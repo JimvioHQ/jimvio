@@ -61,6 +61,12 @@ export interface UGCCampaign {
   total_views_tracked: number;
   starts_at: string | null;
   ends_at: string | null;
+  content_deadline?: string | null;
+  live_at?: string | null;
+  submission_deadline?: string | null;
+  review_starts_at?: string | null;
+  review_ends_at?: string | null;
+  payment_at?: string | null;
   
   // Custom Campaign Type Logic fields
   music_track_url: string | null;
@@ -216,6 +222,12 @@ export interface CreateCampaignPayload {
   requires_face?: boolean;
   starts_at?: string;
   ends_at?: string;
+  content_deadline?: string | null;
+  live_at?: string | null;
+  submission_deadline?: string | null;
+  review_starts_at?: string | null;
+  review_ends_at?: string | null;
+  payment_at?: string | null;
 
   music_track_url?: string;
   music_artist_name?: string;

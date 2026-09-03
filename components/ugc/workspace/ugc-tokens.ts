@@ -24,7 +24,9 @@ export type PlatformKey =
   | "youtube"
   | "x";
 
-export type SortKey = "newest" | "budget" | "payout" | "popular";
+export type SortKey = "newest" | "budget" | "payout" | "popular" | "deadline";
+export type CompensationFilter = "all" | "per_views" | "fixed_per_content";
+export type EndingFilter = "all" | "soon";
 
 export const CONTENT_TYPES: { value: ContentTypeFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -49,7 +51,14 @@ export const PLATFORMS: { key: PlatformKey; label: string; apiKey?: string }[] =
 
 export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "newest", label: "Newest" },
+  { value: "deadline", label: "Ending soon" },
   { value: "budget", label: "Highest budget" },
   { value: "payout", label: "Highest payout" },
   { value: "popular", label: "Most creators" },
+];
+
+export const COMPENSATION_FILTERS: { value: CompensationFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "fixed_per_content", label: "Fixed / video" },
+  { value: "per_views", label: "Per 1K views" },
 ];

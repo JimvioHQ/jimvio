@@ -21,8 +21,11 @@ const messages = read("lib/ugc/i18n/messages.ts");
 const route = read("app/ugc/calendar/page.tsx");
 const sidebar = read("components/ugc/workspace/UGCWorkspaceSidebar.tsx");
 
-assert.match(route, /UGCCalendarPage/);
-assert.match(sidebar, /href: "\/ugc\/calendar"/);
+assert.match(route, /redirect\("\/ugc\/campaigns\?view=schedule"\)/);
+assert.doesNotMatch(sidebar, /href: "\/ugc\/calendar"/);
+const myCampaigns = read("components/ugc/workspace/UGCMyCampaignsPage.tsx");
+assert.match(myCampaigns, /UGCDateDetailPanel/);
+assert.match(myCampaigns, /view=schedule|tab === "schedule"/);
 
 assert.match(api, /needsProfile: true/);
 assert.match(api, /requireUser/);
@@ -44,7 +47,7 @@ assert.doesNotMatch(api, /amount/);
 assert.doesNotMatch(api, /Deadline:/);
 assert.doesNotMatch(api, /Payout \$\{/);
 assert.match(api, /influencer_id/);
-assert.match(helpers, /\/ugc\/payouts/);
+assert.match(helpers, /\/ugc\/earnings/);
 
 assert.match(page, /json\.needsProfile === true/);
 assert.match(page, /t\("noUpcomingEvents"\)/);
@@ -138,7 +141,7 @@ assert.equal(cal.calendarEventMatchesFilter("campaign_start", "campaigns"), true
 
 assert.equal(
   cal.calendarEventHref({ type: "payout", campaignId: "c1" }),
-  "/ugc/payouts",
+  "/ugc/earnings",
 );
 assert.equal(
   cal.calendarEventHref({
@@ -162,7 +165,7 @@ assert.equal(
     campaignId: "c1",
     participantStatus: "accepted",
   }),
-  "/ugc/c1/dashboard",
+  "/ugc/campaigns?view=schedule&campaign=c1",
 );
 
 const wednesday = new Date(2026, 7, 26, 12, 0, 0);

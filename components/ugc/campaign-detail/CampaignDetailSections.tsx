@@ -2,15 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Download,
   ExternalLink,
   Play,
   Shield,
-  Star,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -18,24 +15,22 @@ import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCam
 import {
   buildEligibility,
   buildFaqs,
-  buildInsights,
   buildResources,
   buildTimeline,
-  estimateEarnings,
   getAspectRatioForPlatform,
   getCampaignCategory,
-  getRejectedEstimate,
-  getRemainingBudget,
-  getReservedBudget,
   getRewardType,
   type CreatorProfileSnapshot,
 } from "@/lib/ugc/campaign-detail";
+import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
+import { localDateKey, parseCalendarDate } from "@/lib/ugc/calendar";
+import { UGCDateDetailPanel } from "@/components/ugc/workspace/UGCDateDetailPanel";
+import { buildCampaignSchedule } from "@/lib/ugc/campaign-schedule";
 import {
   AccordionItem,
   ChecklistItem,
   MetricTile,
   Pill,
-  ProgressBar,
   SectionCard,
   SectionTitle,
 } from "./campaign-detail-ui";
@@ -49,116 +44,62 @@ type CampaignDetailSectionsProps = {
 export function CampaignDetailSections({ campaign, profile, similar }: CampaignDetailSectionsProps) {
   const { formatMoney } = useCurrency();
   const [expandedDesc, setExpandedDesc] = useState(false);
-  const [calc, setCalc] = useState({ views: 10000, sales: 1, clicks: 500, conversions: 5 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const rewardType = getRewardType(campaign);
   const eligibility = buildEligibility(campaign, profile);
-  const insights = buildInsights(campaign);
   const timeline = buildTimeline(campaign);
   const resources = buildResources(campaign);
   const faqs = buildFaqs(campaign);
-  const estimated = useMemo(() => estimateEarnings(campaign, calc), [campaign, calc]);
-
-  const remaining = getRemainingBudget(campaign);
-  const reserved = getReservedBudget(campaign);
-  const rejected = getRejectedEstimate(campaign);
-  const budgetPct = Math.min(100, ((campaign.spent_budget ?? 0) / (campaign.total_budget || 1)) * 100);
+  const scheduleEvents = buildCampaignSchedule(campaign);
 
   const desc = campaign.description ?? "";
   const descLong = desc.length > 320;
+  const rewardLine = getCampaignRewardLine(campaign, formatMoney);
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Section 2 — Reward */}
+      <SectionCard id="about">
+        <SectionTitle>About this campaign</SectionTitle>
+        {desc ? (
+          <>
+            <p
+              className={`text-[14px] leading-relaxed text-[#4B5563] whitespace-pre-line ${
+                !expandedDesc && descLong ? "line-clamp-5" : ""
+              }`}
+            >
+              {desc}
+            </p>
+            {descLong ? (
+              <button
+                type="button"
+                onClick={() => setExpandedDesc((e) => !e)}
+                className="mt-2 text-[12px] font-semibold text-[#FF5A1F]"
+              >
+                {expandedDesc ? "Show less" : "Read full description"}
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-[13px] text-[#9CA3AF]">No extended description provided.</p>
+        )}
+      </SectionCard>
+
       <SectionCard id="reward">
-        <SectionTitle sub="Estimate your potential earnings">Reward overview</SectionTitle>
-        <div className="mb-4 flex flex-wrap gap-2">
+        <SectionTitle>Compensation</SectionTitle>
+        <div className="mb-3 flex flex-wrap gap-2">
           <Pill tone="brand">{rewardType}</Pill>
           <Pill tone="neutral">{getCampaignCategory(campaign)}</Pill>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-[11px] font-semibold text-[#6B7280]">Estimated views</span>
-            <input
-              type="number"
-              min={0}
-              value={calc.views}
-              onChange={(e) => setCalc((c) => ({ ...c, views: Number(e.target.value) || 0 }))}
-              className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-semibold text-[#6B7280]">Estimated sales</span>
-            <input
-              type="number"
-              min={0}
-              value={calc.sales}
-              onChange={(e) => setCalc((c) => ({ ...c, sales: Number(e.target.value) || 0 }))}
-              className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-semibold text-[#6B7280]">Estimated clicks</span>
-            <input
-              type="number"
-              min={0}
-              value={calc.clicks}
-              onChange={(e) => setCalc((c) => ({ ...c, clicks: Number(e.target.value) || 0 }))}
-              className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[11px] font-semibold text-[#6B7280]">Estimated conversions</span>
-            <input
-              type="number"
-              min={0}
-              value={calc.conversions}
-              onChange={(e) => setCalc((c) => ({ ...c, conversions: Number(e.target.value) || 0 }))}
-              className="mt-1 w-full rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
-            />
-          </label>
-        </div>
-        <div className="mt-4 rounded-[12px] border border-[#FFE4D6] bg-[#FFF8F5] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#FF5A1F]">
-            Estimated earnings
+        <p className="text-[22px] font-bold tabular-nums text-[#111827]">{rewardLine}</p>
+        {campaign.max_payout_per_sub ? (
+          <p className="mt-1 text-[13px] text-[#64748B]">
+            Cap per submission: {formatMoney(campaign.max_payout_per_sub, "USD")}
           </p>
-          <p className="mt-1 text-[28px] font-bold tabular-nums text-[#111827]">
-            {formatMoney(estimated, "USD")}
-          </p>
-          <p className="text-[12px] text-[#6B7280]">
-            Cap per submission: {formatMoney(campaign.max_payout_per_sub ?? 400, "USD")}
-          </p>
-        </div>
+        ) : null}
       </SectionCard>
 
-      {/* Section 3 — Budget */}
-      <SectionCard id="budget">
-        <SectionTitle sub="Live campaign funding status">Budget</SectionTitle>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <MetricTile label="Total" value={formatMoney(campaign.total_budget, "USD")} />
-          <MetricTile label="Remaining" value={formatMoney(remaining, "USD")} />
-          <MetricTile label="Paid out" value={formatMoney(campaign.spent_budget ?? 0, "USD")} />
-          <MetricTile label="Reserved" value={formatMoney(reserved, "USD")} />
-        </div>
-        <div className="mt-4">
-          <div className="mb-2 flex justify-between text-[12px] font-semibold text-[#374151]">
-            <span>Campaign progress</span>
-            <span>{Math.round(budgetPct)}% allocated</span>
-          </div>
-          <ProgressBar value={budgetPct} />
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <MetricTile label="Creators joined" value={String(campaign.submission_count ?? 0)} />
-          <MetricTile label="Applications" value={String(campaign.submission_count ?? 0)} />
-          <MetricTile label="Approved" value={String(campaign.approved_count ?? 0)} />
-          <MetricTile label="Active creators" value={String(Math.max(0, (campaign.submission_count ?? 0) - rejected))} />
-          <MetricTile label="Rejected est." value={String(rejected)} />
-          <MetricTile label="Views tracked" value={(campaign.total_views_tracked ?? 0).toLocaleString()} />
-        </div>
-      </SectionCard>
-
-      {/* Section 4 — Eligibility */}
       <SectionCard id="eligibility">
         <SectionTitle sub="See if you qualify before applying">Creator eligibility</SectionTitle>
         <div className="mb-4 flex items-center gap-3">
@@ -193,11 +134,6 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
             }
           />
           <ChecklistItem
-            label="Language"
-            met
-            detail="English (campaign default)"
-          />
-          <ChecklistItem
             label="Category match"
             met={
               !profile?.niche?.length ||
@@ -219,55 +155,9 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         </div>
       </SectionCard>
 
-      {/* Section 5 — Overview */}
-      <SectionCard id="overview">
-        <SectionTitle>Campaign overview</SectionTitle>
-        {desc ? (
-          <>
-            <p
-              className={`text-[14px] leading-relaxed text-[#4B5563] whitespace-pre-line ${
-                !expandedDesc && descLong ? "line-clamp-5" : ""
-              }`}
-            >
-              {desc}
-            </p>
-            {descLong ? (
-              <button
-                type="button"
-                onClick={() => setExpandedDesc((e) => !e)}
-                className="mt-2 text-[12px] font-semibold text-[#FF5A1F]"
-              >
-                {expandedDesc ? "Show less" : "Read full description"}
-              </button>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-[13px] text-[#9CA3AF]">No extended description provided.</p>
-        )}
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[12px] bg-[#FAFAFA] p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Objectives</p>
-            <p className="mt-1 text-[13px] text-[#374151]">
-              Drive authentic {getCampaignCategory(campaign).toLowerCase()} content on{" "}
-              {(campaign.allowed_platforms ?? []).join(", ") || "social platforms"}.
-            </p>
-          </div>
-          <div className="rounded-[12px] bg-[#FAFAFA] p-3">
-            <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Success metrics</p>
-            <p className="mt-1 text-[13px] text-[#374151]">
-              Views, engagement, and approved submissions with brand-compliant deliverables.
-            </p>
-          </div>
-        </div>
-      </SectionCard>
-
-      {/* Section 6 — Requirements */}
       <SectionCard id="requirements">
-        <SectionTitle>Requirements</SectionTitle>
+        <SectionTitle>Content requirements</SectionTitle>
         <div className="grid gap-1 sm:grid-cols-2">
-          <ChecklistItem label="Audience" met detail="Open worldwide" />
-          <ChecklistItem label="Countries" met detail="Global" />
-          <ChecklistItem label="Languages" met detail="English" />
           <ChecklistItem
             label="Video length"
             met={Boolean(campaign.min_duration || campaign.max_duration)}
@@ -278,14 +168,15 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
             }
           />
           <ChecklistItem
-            label="Face required"
+            label="Face on camera"
             met={!campaign.requires_face}
             detail={campaign.requires_face ? "On-camera required" : "Not required"}
           />
-          <ChecklistItem label="Original content" met detail="Required — no reused clips" />
-          <ChecklistItem label="AI generated" met={false} detail="Not allowed unless stated in brief" />
-          <ChecklistItem label="Watermark rules" met detail="No third-party watermarks" />
-          <ChecklistItem label="Copyright" met detail="You must own or license all assets" />
+          <ChecklistItem
+            label="Platforms"
+            met={(campaign.allowed_platforms ?? []).length > 0}
+            detail={(campaign.allowed_platforms ?? []).join(" · ") || "Any approved platform"}
+          />
         </div>
         {(campaign.required_hashtags?.length ?? 0) > 0 && (
           <div className="mt-3">
@@ -399,28 +290,54 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
 
       {/* Section 9 — Timeline */}
       <SectionCard id="timeline">
-        <SectionTitle>Campaign timeline</SectionTitle>
-        <ol className="space-y-3">
-          {timeline.map((e) => (
-            <li key={e.id} className="flex gap-3">
-              <span
-                className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                  e.status === "done"
-                    ? "bg-emerald-500"
-                    : e.status === "current"
-                      ? "bg-[#FF5A1F]"
-                      : "bg-[#D1D5DB]"
-                }`}
-              />
-              <div>
-                <p className="text-[13px] font-semibold text-[#111827]">{e.label}</p>
-                <p className="text-[11px] text-[#9CA3AF]">
-                  {e.date ? new Date(e.date).toLocaleString() : "TBD"}
-                </p>
-              </div>
-            </li>
-          ))}
+        <SectionTitle sub="Click a date to see the full campaign brief">Campaign timeline</SectionTitle>
+        <ol className="space-y-2">
+          {timeline.map((e) => {
+            const parsed = e.date ? parseCalendarDate(e.date) : null;
+            const key = parsed ? localDateKey(parsed) : null;
+            return (
+              <li key={e.id}>
+                <button
+                  type="button"
+                  disabled={!key}
+                  onClick={() => key && setSelectedDate(key)}
+                  className="flex w-full gap-3 rounded-[12px] px-2 py-2 text-left hover:bg-[#F8FAFC] disabled:hover:bg-transparent"
+                >
+                  <span
+                    className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                      e.status === "done"
+                        ? "bg-emerald-500"
+                        : e.status === "current"
+                          ? "bg-[#FF5A1F]"
+                          : "bg-[#D1D5DB]"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#111827]">{e.label}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">
+                      {e.date ? new Date(e.date).toLocaleString() : "TBD"}
+                    </p>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
         </ol>
+        {selectedDate ? (
+          <div className="mt-4">
+            <UGCDateDetailPanel
+              dateKey={selectedDate}
+              dateLabel={new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+              campaigns={[campaign]}
+              eventsByCampaign={{ [campaign.id]: scheduleEvents }}
+              onClose={() => setSelectedDate(null)}
+            />
+          </div>
+        ) : null}
       </SectionCard>
 
       {/* Section 10 — FAQ */}
@@ -477,9 +394,10 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
             label="Rating"
             value={campaign.vendor?.rating ? `${campaign.vendor.rating.toFixed(1)} ★` : "New"}
           />
-          <MetricTile label="Campaigns" value="1+" />
-          <MetricTile label="Avg. approval" value={`${Math.round(((campaign.approved_count ?? 0) / Math.max(1, campaign.submission_count ?? 1)) * 100)}%`} />
-          <MetricTile label="Review time" value={insights.avgApprovalTime} />
+          <MetricTile
+            label="Approved"
+            value={String(campaign.approved_count ?? 0)}
+          />
           <MetricTile label="Followers" value={(campaign.vendor?.follower_count ?? 0).toLocaleString()} />
         </div>
         {campaign.vendor?.business_slug ? (
@@ -564,7 +482,6 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         ) : null}
       </SectionCard>
 
-      {/* Section 12 — Similar */}
       {similar.length > 0 ? (
         <SectionCard id="similar">
           <SectionTitle sub="Recommended for you">Similar campaigns</SectionTitle>
@@ -575,49 +492,6 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           </div>
         </SectionCard>
       ) : null}
-
-      {/* Section 13 — Insights */}
-      <SectionCard id="insights">
-        <SectionTitle>Creator insights</SectionTitle>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <MetricTile label="Competition" value={insights.competition} />
-          <MetricTile label="Approval time" value={insights.avgApprovalTime} />
-          <MetricTile label="Avg. earnings" value={insights.avgEarnings} />
-          <MetricTile label="Difficulty" value={insights.difficulty} />
-          <MetricTile label="Trending score" value={String(insights.trendingScore)} />
-          <MetricTile label="Popularity" value={`${insights.popularity}%`} />
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#374151]">
-            <TrendingUp className="h-3 w-3" /> {insights.trendingScore > 60 ? "Trending" : "Stable"}
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#374151]">
-            <Users className="h-3 w-3" /> {campaign.submission_count ?? 0} creators
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#374151]">
-            <Star className="h-3 w-3" /> {insights.difficulty} difficulty
-          </span>
-        </div>
-      </SectionCard>
-
-      {/* Section 14 — Trust */}
-      <SectionCard id="trust">
-        <SectionTitle>Trust &amp; safety</SectionTitle>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {[
-            "Verified brand identity",
-            "Escrow-protected payouts",
-            "Secure payment processing",
-            "Manual content review",
-            "Fraud detection monitoring",
-          ].map((item) => (
-            <div key={item} className="flex items-center gap-2 rounded-[12px] bg-[#FAFAFA] p-3">
-              <Shield className="h-4 w-4 text-emerald-600" />
-              <span className="text-[13px] font-medium text-[#374151]">{item}</span>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
     </div>
   );
 }

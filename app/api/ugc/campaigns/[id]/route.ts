@@ -85,6 +85,9 @@ export async function PATCH(
     'max_payout_per_sub', 'allowed_platforms',
     'min_duration', 'max_duration', 'required_hashtags', 'required_mentions', 'required_keywords',
     'requires_face', 'starts_at', 'ends_at',
+    'content_deadline', 'live_at', 'submission_deadline',
+    'review_starts_at', 'review_ends_at', 'payment_at',
+    'join_mode', 'join_config', 'max_participants',
   ];
   const updates = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))

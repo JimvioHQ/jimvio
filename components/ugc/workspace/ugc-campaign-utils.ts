@@ -125,6 +125,12 @@ export function sortCampaigns(campaigns: UGCCampaign[], sort: SortKey): UGCCampa
       });
     case "popular":
       return list.sort((a, b) => (b.submission_count ?? 0) - (a.submission_count ?? 0));
+    case "deadline":
+      return list.sort((a, b) => {
+        const da = a.ends_at ? Date.parse(a.ends_at) : Number.POSITIVE_INFINITY;
+        const db = b.ends_at ? Date.parse(b.ends_at) : Number.POSITIVE_INFINITY;
+        return da - db;
+      });
     default:
       return list.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

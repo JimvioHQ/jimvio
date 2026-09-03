@@ -31,16 +31,22 @@ export async function GET(req: NextRequest) {
   const sort   = searchParams.get('sort') ?? 'newest';
   const featured = searchParams.get('featured') === 'true' || searchParams.get('featured') === '1';
 
+  const paymentModel = searchParams.get("payment_model") ?? searchParams.get("compensation") ?? undefined;
+  const country = (searchParams.get("country") ?? "").trim().slice(0, 80);
+  const ending = searchParams.get("ending") === "soon";
+
   const db = createServiceRoleClient();
 
   const sortCol =
-    sort === 'budget' ? 'total_budget' :
-    sort === 'payout' ? 'rate_per_1k_views' :
-    sort === 'popular' || featured ? 'submission_count' :
-    'created_at';
+    sort === "budget" ? "total_budget" :
+    sort === "payout" ? "rate_per_1k_views" :
+    sort === "deadline" ? "ends_at" :
+    sort === "popular" || featured ? "submission_count" :
+    "created_at";
+  const sortAsc = sort === "deadline";
 
   let query = db
-    .from('ugc_campaigns')
+    .from("ugc_campaigns")
     .select(
       `
       *,
@@ -48,12 +54,13 @@ export async function GET(req: NextRequest) {
       vendor:vendors!brand_id (
         business_name,
         business_logo,
-        business_slug
+        business_slug,
+        business_country
       )
     `,
-      { count: 'exact' }
+      { count: "exact" }
     )
-    .order(sortCol, { ascending: false, nullsFirst: false })
+    .order(sortCol, { ascending: sortAsc, nullsFirst: false })
     .range(offset, offset + limit - 1);
 
   if (mine) {
@@ -79,6 +86,29 @@ export async function GET(req: NextRequest) {
   }
 
   if (type) query = query.eq('campaign_type', type);
+  if (paymentModel === "per_views" || paymentModel === "fixed_per_content") {
+    query = query.eq("payment_model", paymentModel);
+  }
+  if (ending) {
+    const nowIso = new Date().toISOString();
+    const soonIso = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    query = query.gte("ends_at", nowIso).lte("ends_at", soonIso);
+  }
+  if (country) {
+    const safeCountry = country.replace(/[%_,.()"'\\]/g, " ").replace(/\s+/g, " ").trim();
+    if (safeCountry) {
+      const { data: countryVendors } = await db
+        .from("vendors")
+        .select("id")
+        .ilike("business_country", `%${safeCountry}%`)
+        .limit(200);
+      const ids = (countryVendors ?? []).map((v) => v.id);
+      if (ids.length === 0) {
+        return NextResponse.json({ data: [], total: 0, page, limit });
+      }
+      query = query.in("brand_id", ids);
+    }
+  }
   if (platform && platform !== 'all') {
     if (!(CAMPAIGN_PLATFORMS as readonly string[]).includes(platform)) {
       return NextResponse.json({ data: [], total: 0, page, limit });
@@ -107,7 +137,17 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const db = createServiceRoleClient();
-  const body: CreateCampaignPayload & { readyForFunding?: boolean; brand_id?: string } = await req.json();
+  const body: CreateCampaignPayload & {
+    readyForFunding?: boolean;
+    brand_id?: string;
+    join_config?: Record<string, unknown>;
+    content_deadline?: string | null;
+    live_at?: string | null;
+    submission_deadline?: string | null;
+    review_starts_at?: string | null;
+    review_ends_at?: string | null;
+    payment_at?: string | null;
+  } = await req.json();
   const requestedBrandId =
     brandIdFromRequest(req) ||
     (typeof body.brand_id === "string" ? body.brand_id.trim() : null);
@@ -156,10 +196,12 @@ export async function POST(req: NextRequest) {
     max_payout_per_sub, allowed_platforms, 
     min_duration, max_duration, required_hashtags, required_mentions, required_keywords,
     requires_face, starts_at, ends_at, media,
+    content_deadline, live_at, submission_deadline,
+    review_starts_at, review_ends_at, payment_at,
     // Custom Types logic
     music_track_url, music_artist_name, promotion_target, promotion_target_url,
     // Payment Models
-    payment_model, fixed_rate
+    payment_model, fixed_rate, join_config
   } = body;
 
   if (!title?.trim())          return NextResponse.json({ error: 'title is required' }, { status: 400 });
@@ -206,6 +248,13 @@ export async function POST(req: NextRequest) {
       requires_face: requires_face ?? false,
       starts_at,
       ends_at,
+      content_deadline: content_deadline ?? null,
+      live_at: live_at ?? null,
+      submission_deadline: submission_deadline ?? null,
+      review_starts_at: review_starts_at ?? null,
+      review_ends_at: review_ends_at ?? null,
+      payment_at: payment_at ?? null,
+      join_config: join_config && typeof join_config === "object" ? join_config : {},
       
       // Custom Types Logics
       music_track_url: campaign_type === 'music_clipping' ? music_track_url : null,

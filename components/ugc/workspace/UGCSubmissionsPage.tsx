@@ -17,6 +17,24 @@ import {
 
 const STATUS_TABS = ["all", "pending", "revision_requested", "approved", "rejected"] as const;
 
+function submissionLabel(status: string): string {
+  switch (status) {
+    case "pending":
+      return "Under Review";
+    case "revision_requested":
+      return "Revision Required";
+    case "approved":
+      return "Approved";
+    case "rejected":
+    case "removed":
+      return "Rejected";
+    case "draft":
+      return "Draft";
+    default:
+      return status.replaceAll("_", " ");
+  }
+}
+
 export function UGCSubmissionsPage() {
   const { formatMoney } = useCurrency();
   const [rows, setRows] = useState<UGCSubmission[]>([]);
@@ -95,11 +113,11 @@ export function UGCSubmissionsPage() {
       {!loading && !error && filtered.length === 0 ? (
         <UGCPageEmpty
           title="No submissions yet"
-          description="Submit your first piece of content from an active project. Platforms: TikTok, Instagram, YouTube, and X."
+          description="Your submitted campaign content will appear here."
           illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/ugc/campaigns">View active projects</Link>
+              <Link href="/ugc/campaigns">Go to My Campaigns</Link>
             </Button>
           }
         />
@@ -130,8 +148,10 @@ export function UGCSubmissionsPage() {
                     </a>
                     <p className="mt-1 text-[12px] text-[#6B7280]">
                       Submitted {new Date(sub.created_at).toLocaleDateString()} ·{" "}
-                      {(sub.total_views_earned ?? 0).toLocaleString()} views ·{" "}
-                      {formatMoney(Number(sub.total_earnings) || 0, "USD")}
+                      {submissionLabel(sub.status)}
+                      {Number(sub.total_earnings) > 0
+                        ? ` · ${formatMoney(Number(sub.total_earnings) || 0, "USD")}`
+                        : ""}
                     </p>
                     {sub.rejection_reason ? (
                       <p className="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">

@@ -98,7 +98,7 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
       {!loading && !error && (data?.needsProfile || !s) ? (
         <UGCPageEmpty
           title="No earnings yet"
-          description="Submit approved content to start earning from UGC campaigns."
+          description="Complete campaigns and get paid for approved content."
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
               <Link href="/ugc">Discover campaigns</Link>
@@ -117,34 +117,13 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
 
           <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-[14px] font-bold text-[#111827]">
-                {mode === "payouts" ? "Withdraw funds" : "UGC campaign earnings"}
-              </h2>
-              <div className="flex gap-2">
-                <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F] hover:bg-[#F04E15]">
-                  <Link href="/wallet">Open Wallet</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="rounded-xl">
-                  <Link href="/wallet">Open wallet</Link>
-                </Button>
-                <Button asChild size="sm" variant="outline" className="rounded-xl">
-                  <Link href="/identity/wallet">Unified wallet</Link>
-                </Button>
-              </div>
+              <h2 className="text-[14px] font-bold text-[#111827]">UGC campaign earnings</h2>
+              <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F] hover:bg-[#F04E15]">
+                <Link href="/wallet">Request payout</Link>
+              </Button>
             </div>
             <p className="mt-2 text-[13px] text-[#6B7280]">
-              {mode === "payouts"
-                ? "Manage withdrawals, payout methods, and verification from your Jimvio wallet."
-                : `Total from UGC submissions: ${formatMoney(s.ugcEarnings, "USD")}`}
-              {" "}See earnings combined with marketplace, affiliate and community income in{" "}
-              <Link href="/wallet" className="font-medium text-[#FF5A1F] underline underline-offset-2">
-                Wallet
-              </Link>
-              , or the{" "}
-              <Link href="/identity/wallet" className="font-medium text-[#FF5A1F] underline underline-offset-2">
-                unified Identity wallet
-              </Link>
-              .
+              {`Total from approved UGC submissions: ${formatMoney(s.ugcEarnings, "USD")}`}
             </p>
             {mode === "payouts" ? (
               <div className="mt-4 flex flex-wrap gap-2">

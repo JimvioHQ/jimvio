@@ -16,6 +16,12 @@ type CampaignLite = {
   starts_at: string | null;
   ends_at: string | null;
   status: string | null;
+  content_deadline?: string | null;
+  live_at?: string | null;
+  submission_deadline?: string | null;
+  review_starts_at?: string | null;
+  review_ends_at?: string | null;
+  payment_at?: string | null;
 };
 
 function pushEvent(
@@ -87,7 +93,10 @@ export async function GET(req: NextRequest) {
         `
       status,
       campaign:ugc_campaigns!campaign_id (
-        id, title, starts_at, ends_at, status
+        id, title, starts_at, ends_at, status,
+        content_deadline, live_at, submission_deadline,
+        review_starts_at, review_ends_at, payment_at
+     
       )
     `,
       )
@@ -145,6 +154,42 @@ export async function GET(req: NextRequest) {
       status: participantStatus,
       participantStatus,
     });
+    maybePush(events, seen, from, to, {
+      id: `content-deadline-${campaign.id}`,
+      type: "content_deadline",
+      title,
+      date: campaign.content_deadline ?? null,
+      campaignId: campaign.id,
+      status: participantStatus,
+      participantStatus,
+    });
+    maybePush(events, seen, from, to, {
+      id: `live-date-${campaign.id}`,
+      type: "live_date",
+      title,
+      date: campaign.live_at ?? null,
+      campaignId: campaign.id,
+      status: participantStatus,
+      participantStatus,
+    });
+    maybePush(events, seen, from, to, {
+      id: `review-${campaign.id}`,
+      type: "review",
+      title,
+      date: campaign.review_starts_at ?? campaign.review_ends_at ?? null,
+      campaignId: campaign.id,
+      status: participantStatus,
+      participantStatus,
+    });
+    maybePush(events, seen, from, to, {
+      id: `payment-${campaign.id}`,
+      type: "payment",
+      title,
+      date: campaign.payment_at ?? null,
+      campaignId: campaign.id,
+      status: participantStatus,
+      participantStatus,
+    });
     if (
       participantStatus === "pending" ||
       participantStatus === "waitlisted" ||
@@ -165,10 +210,41 @@ export async function GET(req: NextRequest) {
         id: `submission-deadline-${campaign.id}`,
         type: "submission_deadline",
         title,
-        date: campaign.ends_at,
+        date: campaign.submission_deadline ?? campaign.ends_at,
         campaignId: campaign.id,
         status: participantStatus,
         participantStatus,
+      });
+    }
+  }
+
+  const campaignIds = (participantsRes.data ?? [])
+    .map((row) => (row.campaign as unknown as CampaignLite | null)?.id)
+    .filter((id): id is string => Boolean(id));
+  if (campaignIds.length > 0) {
+    const { data: customEvents } = await db
+      .from("ugc_campaign_events")
+      .select("id, campaign_id, event_type, title, starts_at, description")
+      .in("campaign_id", campaignIds);
+    for (const custom of customEvents ?? []) {
+      const type = (
+        custom.event_type === "live_date" ||
+        custom.event_type === "content_deadline" ||
+        custom.event_type === "submission_deadline" ||
+        custom.event_type === "payment" ||
+        custom.event_type === "campaign_start" ||
+        custom.event_type === "campaign_end"
+          ? custom.event_type
+          : "custom"
+      ) as UgcCalendarEventType;
+      maybePush(events, seen, from, to, {
+        id: `custom-${custom.id}`,
+        type,
+        title: custom.title || "",
+        date: custom.starts_at,
+        campaignId: custom.campaign_id,
+        status: "accepted",
+        participantStatus: "accepted",
       });
     }
   }

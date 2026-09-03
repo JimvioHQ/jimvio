@@ -146,7 +146,7 @@ export function CampaignJoinFlow() {
       setSuccess(true);
       toast.success(json.message ?? t("applicationSubmitted"));
       window.setTimeout(() => {
-        router.push("/ugc/applications");
+        router.push("/ugc/campaigns");
       }, 1600);
     } catch {
       toast.error(t("networkRetry"));

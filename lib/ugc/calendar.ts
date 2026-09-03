@@ -5,7 +5,12 @@ export const UGC_CALENDAR_EVENT_TYPES = [
   "campaign_end",
   "application_deadline",
   "submission_deadline",
+  "content_deadline",
+  "live_date",
+  "review",
+  "payment",
   "payout",
+  "custom",
 ] as const;
 
 export type UgcCalendarEventType = (typeof UGC_CALENDAR_EVENT_TYPES)[number];
@@ -46,11 +51,15 @@ export function calendarEventMatchesFilter(
     return (
       type === "campaign_start" ||
       type === "campaign_end" ||
-      type === "application_deadline"
+      type === "application_deadline" ||
+      type === "live_date" ||
+      type === "custom"
     );
   }
-  if (filter === "submissions") return type === "submission_deadline";
-  if (filter === "payouts") return type === "payout";
+  if (filter === "submissions") {
+    return type === "submission_deadline" || type === "content_deadline" || type === "review";
+  }
+  if (filter === "payouts") return type === "payout" || type === "payment";
   return false;
 }
 
@@ -64,8 +73,18 @@ export function calendarEventTypeKey(type: UgcCalendarEventType): UgcMessageKey 
       return "eventApplicationDeadline";
     case "submission_deadline":
       return "eventSubmissionDeadline";
+    case "content_deadline":
+      return "eventContentDeadline";
+    case "live_date":
+      return "eventLiveDate";
+    case "review":
+      return "eventReviewPeriod";
+    case "payment":
+      return "eventPaymentDate";
     case "payout":
       return "eventPayoutDate";
+    case "custom":
+      return "eventCustom";
   }
 }
 
@@ -226,9 +245,9 @@ export function calendarEventHref(input: {
   campaignId: string | null;
   participantStatus?: string | null;
 }): string {
-  if (input.type === "payout") return "/ugc/payouts";
+  if (input.type === "payout" || input.type === "payment") return "/ugc/earnings";
   if (!input.campaignId) return "/ugc";
-  if (input.type === "submission_deadline") {
+  if (input.type === "submission_deadline" || input.type === "content_deadline") {
     return `/ugc/${input.campaignId}/submit`;
   }
   if (input.type === "application_deadline") {
@@ -241,7 +260,7 @@ export function calendarEventHref(input: {
     return `/ugc/${input.campaignId}`;
   }
   if (input.participantStatus === "accepted") {
-    return `/ugc/${input.campaignId}/dashboard`;
+    return `/ugc/campaigns?view=schedule&campaign=${input.campaignId}`;
   }
   return `/ugc/${input.campaignId}`;
 }

@@ -1,85 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Clapperboard, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Clapperboard, Loader2 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { UGCHeroHeader } from "./UGCHeroHeader";
 import { UGCFeaturedCarousel } from "./UGCFeaturedCarousel";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
-import { UGCCampaignRow, UGCCampaignRowItem } from "./UGCCampaignRow";
-import { useLocale } from "@/context/LocaleContext";
-import type { ContentTypeFilter, PlatformKey, SortKey } from "./ugc-tokens";
+import type {
+  CompensationFilter,
+  ContentTypeFilter,
+  EndingFilter,
+  PlatformKey,
+  SortKey,
+} from "./ugc-tokens";
+import { getDaysRemaining } from "./ugc-campaign-utils";
 
 const LIMIT = 24;
 
-function CardSkeleton({ featured = false }: { featured?: boolean }) {
+function CardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
-      <div
-        className={
-          featured
-            ? "aspect-[5/3] animate-pulse bg-[#F3F4F6] sm:h-[148px] sm:aspect-auto"
-            : "aspect-[5/3] animate-pulse bg-[#F3F4F6] sm:h-[128px] sm:aspect-auto"
-        }
-      />
-      <div className="space-y-1.5 px-4 pb-3 pt-3">
-        <div className="flex items-center gap-1.5">
-          <div className="h-4 w-4 animate-pulse rounded-full bg-[#F3F4F6]" />
-          <div className="h-2 w-14 animate-pulse rounded bg-[#F3F4F6]" />
-        </div>
-        <div className="h-3 w-full animate-pulse rounded bg-[#F3F4F6]" />
+    <div className="overflow-hidden rounded-[14px] border border-[#EEF0F2] bg-white">
+      <div className="aspect-[16/9] animate-pulse bg-[#F3F4F6]" />
+      <div className="space-y-2 px-3.5 py-3">
+        <div className="h-3 w-24 animate-pulse rounded bg-[#F3F4F6]" />
+        <div className="h-4 w-full animate-pulse rounded bg-[#F3F4F6]" />
         <div className="h-3 w-2/3 animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="flex justify-between pt-0.5">
-          <div className="h-2.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
-          <div className="h-4 w-11 animate-pulse rounded bg-[#F3F4F6]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SectionHeader({
-  title,
-  href,
-  count,
-  viewAllLabel,
-}: {
-  title: string;
-  href?: string;
-  count?: string;
-  viewAllLabel: string;
-}) {
-  return (
-    <div className="mb-2.5 flex items-center justify-between gap-3">
-      <h2 className="text-[15px] font-bold tracking-tight text-[#111827]">{title}</h2>
-      <div className="flex items-center gap-2">
-        {href ? (
-          <Link
-            href={href}
-            className="text-[12px] font-semibold text-[#FF5A1F] transition-colors hover:text-[#E54E18] hover:underline"
-          >
-            {viewAllLabel}
-          </Link>
-        ) : count ? (
-          <span className="text-[11px] font-medium text-[#9CA3AF]">{count}</span>
-        ) : null}
-        <div className="hidden items-center gap-1 sm:flex">
-          <span className="grid h-6 w-6 place-items-center rounded-full border border-[#E8EAED] bg-white text-[#9CA3AF]">
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </span>
-          <span className="grid h-6 w-6 place-items-center rounded-full border border-[#E8EAED] bg-white text-[#9CA3AF]">
-            <ChevronRight className="h-3.5 w-3.5" />
-          </span>
-        </div>
       </div>
     </div>
   );
 }
 
 export function UGCDiscoverPage() {
-  const { t } = useLocale();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const typeParam = searchParams.get("type");
@@ -90,6 +42,7 @@ export function UGCDiscoverPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   const [contentType, setContentType] = useState<ContentTypeFilter>(() => {
     if (typeParam === "clipping") return "clipping";
@@ -98,65 +51,76 @@ export function UGCDiscoverPage() {
   });
   const [platform, setPlatform] = useState<PlatformKey>("all");
   const [sort, setSort] = useState<SortKey>("newest");
+  const [compensation, setCompensation] = useState<CompensationFilter>("all");
+  const [ending, setEnding] = useState<EndingFilter>("all");
+  const [country, setCountry] = useState("");
   const [search, setSearch] = useState(initialQ);
   const [inputVal, setInputVal] = useState(initialQ);
   const [featuredCampaigns, setFeaturedCampaigns] = useState<UGCCampaign[]>([]);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countryDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [countryQuery, setCountryQuery] = useState("");
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchPage = useCallback(async (pageNum: number, replace: boolean) => {
-    if (pageNum === 1) setLoading(true);
-    else setLoadingMore(true);
+  const fetchPage = useCallback(
+    async (pageNum: number, replace: boolean) => {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
 
-    try {
-      const params = new URLSearchParams({
-        page: String(pageNum),
-        limit: String(LIMIT),
-        status: "active",
-        sort,
-      });
-      if (contentType !== "all") params.set("type", contentType);
-      if (platform !== "all") params.set("platform", platform);
-      if (search.trim()) params.set("q", search.trim());
+      try {
+        const params = new URLSearchParams({
+          page: String(pageNum),
+          limit: String(LIMIT),
+          status: "active",
+          sort,
+        });
+        if (contentType !== "all") params.set("type", contentType);
+        if (platform !== "all") params.set("platform", platform);
+        if (compensation !== "all") params.set("payment_model", compensation);
+        if (ending === "soon") params.set("ending", "soon");
+        if (search.trim()) params.set("q", search.trim());
+        if (countryQuery.trim()) params.set("country", countryQuery.trim());
 
-      const res = await fetch(`/api/ugc/campaigns?${params}`);
-      if (res.ok) {
-        const json = await res.json();
-        const batch = (json.data ?? []) as UGCCampaign[];
-        setTotal(json.total ?? 0);
-        setRawCampaigns((prev) => (replace ? batch : [...prev, ...batch]));
-        setHasMore(batch.length === LIMIT && pageNum * LIMIT < (json.total ?? 0));
-      } else if (replace) {
-        setRawCampaigns([]);
-        setTotal(0);
-        setHasMore(false);
+        const res = await fetch(`/api/ugc/campaigns?${params}`);
+        if (res.ok) {
+          const json = await res.json();
+          const batch = (json.data ?? []) as UGCCampaign[];
+          setTotal(json.total ?? 0);
+          setRawCampaigns((prev) => (replace ? batch : [...prev, ...batch]));
+          setHasMore(batch.length === LIMIT && pageNum * LIMIT < (json.total ?? 0));
+        } else if (replace) {
+          setRawCampaigns([]);
+          setTotal(0);
+          setHasMore(false);
+        }
+      } catch {
+        if (replace) {
+          setRawCampaigns([]);
+          setTotal(0);
+          setHasMore(false);
+        }
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } catch {
-      if (replace) {
-        setRawCampaigns([]);
-        setTotal(0);
-        setHasMore(false);
-      }
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [contentType, platform, sort, search]);
+    },
+    [contentType, platform, sort, search, compensation, ending, countryQuery],
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pagination when filter changes
     setPage(1);
     void fetchPage(1, true);
-  }, [contentType, platform, sort, search, fetchPage]);
+  }, [contentType, platform, sort, search, compensation, ending, countryQuery, fetchPage]);
 
   useEffect(() => {
     if (page > 1) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- pagination driven by intersection observer
       void fetchPage(page, false);
     }
-  }, [page]);
+  }, [page, fetchPage]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -172,8 +136,6 @@ export function UGCDiscoverPage() {
     obs.observe(node);
     return () => obs.disconnect();
   }, [hasMore, loading, loadingMore]);
-
-  const campaigns = rawCampaigns;
 
   useEffect(() => {
     let cancelled = false;
@@ -192,15 +154,46 @@ export function UGCDiscoverPage() {
     };
   }, []);
 
-  const showCarousel =
-    !loading && featuredCampaigns.length > 0 && !search.trim() && platform === "all";
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/ugc/saves", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        const ids = new Set<string>(
+          ((json.data ?? []) as Array<{ campaign_id?: string; campaign?: { id?: string } }>).map(
+            (row) => row.campaign?.id ?? row.campaign_id ?? "",
+          ).filter(Boolean),
+        );
+        if (!cancelled) setSavedIds(ids);
+      } catch {
+        /* unauthenticated is fine */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const hasFilters = contentType !== "all" || platform !== "all" || !!search.trim();
+  const hasFilters =
+    contentType !== "all" ||
+    platform !== "all" ||
+    compensation !== "all" ||
+    ending !== "all" ||
+    !!search.trim() ||
+    !!countryQuery.trim();
 
   function handleSearchInput(val: string) {
     setInputVal(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => setSearch(val), 300);
+  }
+
+  function handleCountry(val: string) {
+    setCountry(val);
+    if (countryDebounce.current) clearTimeout(countryDebounce.current);
+    countryDebounce.current = setTimeout(() => setCountryQuery(val), 400);
   }
 
   function clearSearch() {
@@ -213,103 +206,193 @@ export function UGCDiscoverPage() {
     setContentType("all");
     setPlatform("all");
     setSort("newest");
+    setCompensation("all");
+    setEnding("all");
+    setCountry("");
+    setCountryQuery("");
     clearSearch();
   }
 
+  async function toggleSave(campaignId: string) {
+    const next = new Set(savedIds);
+    const saving = !next.has(campaignId);
+    if (saving) next.add(campaignId);
+    else next.delete(campaignId);
+    setSavedIds(next);
+    try {
+      if (saving) {
+        await fetch("/api/ugc/saves", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaign_id: campaignId }),
+        });
+      } else {
+        await fetch(`/api/ugc/saves?campaign_id=${encodeURIComponent(campaignId)}`, {
+          method: "DELETE",
+        });
+      }
+    } catch {
+      setSavedIds(savedIds);
+    }
+  }
+
+  const campaigns = rawCampaigns;
+  const showHero = !loading && featuredCampaigns.length > 0 && !hasFilters;
+  const trending = campaigns
+    .filter((c) => (c.submission_count ?? 0) >= 8)
+    .slice(0, 8);
+  const endingSoon = campaigns
+    .filter((c) => {
+      const days = getDaysRemaining(c.ends_at);
+      return days !== null && days <= 7;
+    })
+    .slice(0, 8);
+  const newest = [...campaigns]
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .slice(0, 8);
+
   return (
-    <div className="w-full pb-12 pt-1">
+    <div className="mx-auto w-full max-w-6xl pb-12 pt-1">
       <UGCHeroHeader
         searchRef={searchRef}
         inputVal={inputVal}
         onSearchChange={handleSearchInput}
         onClearSearch={clearSearch}
         contentType={contentType}
-        onContentTypeChange={(v) => {
-          setContentType(v);
-          setPage(1);
-        }}
+        onContentTypeChange={setContentType}
         platform={platform}
         onPlatformChange={setPlatform}
         sort={sort}
         onSortChange={setSort}
+        compensation={compensation}
+        onCompensationChange={setCompensation}
+        ending={ending}
+        onEndingChange={setEnding}
+        country={country}
+        onCountryChange={handleCountry}
         onClearAll={resetAll}
         hasFilters={hasFilters}
       />
 
       {loading ? (
-        <UGCCampaignRow scrollable={false}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <CardSkeleton key={i} featured={i < 3} />
+            <CardSkeleton key={i} />
           ))}
-        </UGCCampaignRow>
+        </div>
       ) : (
         <>
-          {showCarousel && <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 5)} />}
+          {showHero ? <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 5)} /> : null}
 
-          {featuredCampaigns.length > 0 && !search.trim() && (
-            <section className="mb-5">
-              <SectionHeader title={t("featuredCampaigns")} href="/ugc?featured=1" viewAllLabel={t("viewAll")} />
-              <UGCCampaignRow>
-                {featuredCampaigns.map((c, i) => (
-                  <UGCCampaignRowItem key={c.id} featured>
-                    <UGCPremiumCampaignCard campaign={c} index={i} featured />
-                  </UGCCampaignRowItem>
-                ))}
-              </UGCCampaignRow>
-            </section>
-          )}
+          {!hasFilters && trending.length > 0 ? (
+            <CampaignSection title="Trending opportunities">
+              {trending.map((c, i) => (
+                <UGCPremiumCampaignCard
+                  key={c.id}
+                  campaign={c}
+                  index={i}
+                  saved={savedIds.has(c.id)}
+                  onToggleSave={toggleSave}
+                />
+              ))}
+            </CampaignSection>
+          ) : null}
+
+          {!hasFilters && endingSoon.length > 0 ? (
+            <CampaignSection title="Ending soon">
+              {endingSoon.map((c, i) => (
+                <UGCPremiumCampaignCard
+                  key={c.id}
+                  campaign={c}
+                  index={i}
+                  saved={savedIds.has(c.id)}
+                  onToggleSave={toggleSave}
+                />
+              ))}
+            </CampaignSection>
+          ) : null}
+
+          {!hasFilters && newest.length > 0 ? (
+            <CampaignSection title="New campaigns">
+              {newest.map((c, i) => (
+                <UGCPremiumCampaignCard
+                  key={c.id}
+                  campaign={c}
+                  index={i}
+                  saved={savedIds.has(c.id)}
+                  onToggleSave={toggleSave}
+                />
+              ))}
+            </CampaignSection>
+          ) : null}
 
           <section>
-            <SectionHeader
-              title={search ? `Results for “${search}”` : t("allCampaigns")}
-              viewAllLabel={t("viewAll")}
-              count={
-                !search
-                  ? `${campaigns.length.toLocaleString()} of ${total.toLocaleString()}`
-                  : undefined
-              }
-            />
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-[#111827]">
+                {search ? `Results for “${search}”` : "All campaigns"}
+              </h2>
+              <span className="text-[12px] text-[#94A3B8]">
+                {campaigns.length.toLocaleString()} of {total.toLocaleString()}
+              </span>
+            </div>
 
             {campaigns.length === 0 ? (
-              <div className="rounded-[18px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center shadow-[0_1px_3px_rgba(17,24,39,0.03)]">
+              <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center">
                 <Clapperboard className="mx-auto mb-3 h-8 w-8 text-[#D1D5DB]" />
                 <p className="text-sm font-bold text-[#111827]">
-                  {hasFilters ? t("emptyCampaigns") : t("noLiveCampaigns")}
+                  {hasFilters ? "No campaigns match these filters." : "No live campaigns yet"}
                 </p>
-                <p className="mt-1 text-[13px] text-[#6B7280]">
-                  {hasFilters ? t("tryAdjustFilters") : t("brandsPublishHere")}
+                <p className="mt-1 text-[13px] text-[#64748B]">
+                  {hasFilters
+                    ? "Try adjusting filters or search terms."
+                    : "Brands publish briefs here when campaigns go live."}
                 </p>
-                {hasFilters && (
+                {hasFilters ? (
                   <button
                     type="button"
                     onClick={resetAll}
                     className="mt-4 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
                   >
-                    {t("clearFilters")}
+                    Clear filters
                   </button>
-                )}
+                ) : null}
               </div>
             ) : (
-              <UGCCampaignRow>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {campaigns.map((c, i) => (
-                  <UGCCampaignRowItem key={c.id}>
-                    <UGCPremiumCampaignCard campaign={c} index={i} />
-                  </UGCCampaignRowItem>
+                  <UGCPremiumCampaignCard
+                    key={c.id}
+                    campaign={c}
+                    index={i}
+                    saved={savedIds.has(c.id)}
+                    onToggleSave={toggleSave}
+                  />
                 ))}
-              </UGCCampaignRow>
+              </div>
             )}
 
             <div ref={loadMoreRef} className="flex justify-center py-7">
-              {loadingMore && (
-                <div className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280]">
+              {loadingMore ? (
+                <div className="flex items-center gap-2 text-[12px] font-medium text-[#64748B]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF5A1F]" />
-                  {t("loadingMore")}
+                  Loading more…
                 </div>
-              )}
+              ) : null}
             </div>
           </section>
         </>
       )}
     </div>
+  );
+}
+
+function CampaignSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-7">
+      <h2 className="mb-3 text-[15px] font-bold text-[#111827]">{title}</h2>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {children}
+      </div>
+    </section>
   );
 }

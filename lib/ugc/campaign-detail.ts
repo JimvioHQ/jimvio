@@ -267,59 +267,63 @@ export function buildInsights(campaign: UGCCampaign): CampaignInsights {
 
 export function buildTimeline(campaign: UGCCampaign): TimelineEvent[] {
   const now = Date.now();
-  const events: TimelineEvent[] = [
-    { id: "created", label: "Campaign created", date: campaign.created_at, status: "done" },
-    {
-      id: "applications",
-      label: "Applications open",
-      date: campaign.starts_at ?? campaign.created_at,
-      status: "done",
-    },
+  const mark = (iso: string | null | undefined): "done" | "current" | "upcoming" => {
+    if (!iso) return "upcoming";
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) return "upcoming";
+    if (t < now) return "done";
+    return "upcoming";
+  };
+  const events = ([
+    { id: "created", label: "Application opens", date: campaign.created_at, status: "done" as const },
     {
       id: "started",
-      label: "Campaign started",
+      label: "Campaign starts",
       date: campaign.starts_at,
-      status: campaign.starts_at && new Date(campaign.starts_at).getTime() > now ? "upcoming" : "done",
+      status: mark(campaign.starts_at),
+    },
+    {
+      id: "live",
+      label: "Live date",
+      date: campaign.live_at ?? null,
+      status: mark(campaign.live_at),
+    },
+    {
+      id: "content",
+      label: "Content deadline",
+      date: campaign.content_deadline ?? null,
+      status: mark(campaign.content_deadline),
     },
     {
       id: "deadline",
       label: "Submission deadline",
-      date: campaign.ends_at,
-      status:
-        campaign.ends_at && new Date(campaign.ends_at).getTime() < now
-          ? "done"
-          : campaign.ends_at
-            ? "current"
-            : "upcoming",
+      date: campaign.submission_deadline ?? campaign.ends_at,
+      status: mark(campaign.submission_deadline ?? campaign.ends_at),
     },
     {
       id: "review",
-      label: "Review period",
-      date: campaign.ends_at,
-      status: "upcoming",
+      label: "Review",
+      date: campaign.review_starts_at ?? campaign.review_ends_at ?? campaign.ends_at,
+      status: mark(campaign.review_starts_at ?? campaign.review_ends_at),
     },
     {
       id: "payment",
-      label: "Payment processing",
-      date: campaign.ends_at,
-      status: "upcoming",
+      label: "Payment",
+      date: campaign.payment_at ?? null,
+      status: mark(campaign.payment_at),
     },
     {
       id: "ends",
       label: "Campaign ends",
       date: campaign.ends_at,
-      status:
-        campaign.ends_at && new Date(campaign.ends_at).getTime() < now ? "done" : "upcoming",
+      status: mark(campaign.ends_at),
     },
-  ];
+  ] satisfies TimelineEvent[]).filter((e): e is TimelineEvent => Boolean(e.date));
 
-  return events.map((e) => {
-    if (!e.date) return { ...e, status: "upcoming" as const };
-    const t = new Date(e.date).getTime();
-    if (t < now) return { ...e, status: "done" as const };
-    if (e.status === "current") return e;
-    return { ...e, status: "upcoming" as const };
-  });
+  const currentIdx = events.findIndex((e) => e.status !== "done");
+  return events.map((e, i) =>
+    i === currentIdx ? { ...e, status: "current" as const } : e,
+  );
 }
 
 export function buildResources(campaign: UGCCampaign): ResourceItem[] {

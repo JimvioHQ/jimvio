@@ -370,7 +370,7 @@ assert.match(applications, /t\("noApplicationsUnlockDesc"\)/);
 assert.match(applications, /href="\/identity\/edit"/);
 assert.match(applications, /overflow-x-auto/);
 const sidebar = read("components/ugc/workspace/UGCWorkspaceSidebar.tsx");
-assert.match(sidebar, /href: "\/identity\/edit"/);
+assert.match(sidebar, /href="\/identity\/edit"/);
 assert.match(sidebar, /pathname\.startsWith\("\/identity"\)/);
 assert.match(fund, /t\("insufficientWalletEscrow"\)/);
 

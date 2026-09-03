@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { UGCActiveProjectsPage } from "@/components/ugc/workspace/UGCActiveProjectsPage";
+import { UGCMyCampaignsPage } from "@/components/ugc/workspace/UGCMyCampaignsPage";
 
 function Fallback() {
   return (
@@ -12,7 +12,7 @@ function Fallback() {
 export default function Page() {
   return (
     <Suspense fallback={<Fallback />}>
-      <UGCActiveProjectsPage />
+      <UGCMyCampaignsPage />
     </Suspense>
   );
 }
