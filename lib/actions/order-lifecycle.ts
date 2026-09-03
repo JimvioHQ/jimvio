@@ -59,6 +59,16 @@ export async function finalizeAndCompleteOrder(orderId: string, actorId?: string
     return { success: false, error: "Failed to release escrowed funds. Order remains 'delivered'." };
   }
 
+  try {
+    const { approveCommissionsForOrder } = await import("@/lib/affiliate/commissions");
+    await approveCommissionsForOrder(orderId);
+  } catch (err: unknown) {
+    console.warn(
+      `[finalizeAndCompleteOrder] affiliate approve skipped for ${orderId}:`,
+      err instanceof Error ? err.message : err,
+    );
+  }
+
   const { error: updateErr } = await adminClient
     .from("orders")
     .update({

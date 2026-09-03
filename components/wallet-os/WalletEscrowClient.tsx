@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Lock } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import type { EscrowSnapshot } from "@/lib/wallet-os/types";
 import {
   WalletButton,
@@ -48,16 +48,16 @@ export function WalletEscrowClient() {
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <WalletStat
           label="Total reserved"
-          value={formatCurrency(snapshot?.totalEscrow ?? 0, currency)}
+          value={formatMoneyAsUSD(snapshot?.totalEscrow ?? 0, currency)}
           icon={<Lock className="h-3.5 w-3.5" />}
         />
         <WalletStat
           label="Wallet hold"
-          value={formatCurrency(snapshot?.walletEscrowBalance ?? 0, currency)}
+          value={formatMoneyAsUSD(snapshot?.walletEscrowBalance ?? 0, currency)}
         />
         <WalletStat
           label="Campaign holds"
-          value={formatCurrency(snapshot?.ugcEscrowHeld ?? 0, currency)}
+          value={formatMoneyAsUSD(snapshot?.ugcEscrowHeld ?? 0, currency)}
           tone="warning"
         />
       </div>
@@ -90,7 +90,7 @@ export function WalletEscrowClient() {
                     </p>
                   </div>
                   <p className="text-[14px] font-semibold text-[#121113]">
-                    {formatCurrency(campaign.amount, campaign.currency || currency)}
+                    {formatMoneyAsUSD(campaign.amount, campaign.currency || currency)}
                   </p>
                 </div>
               </li>
@@ -105,7 +105,7 @@ export function WalletEscrowClient() {
           <div>
             <p className="text-[14px] font-semibold text-[#121113]">Wallet hold active</p>
             <p className="mt-1 text-[13px] text-[#6B7280]">
-              {formatCurrency(snapshot?.walletEscrowBalance ?? 0, currency)} is currently reserved on your wallet.
+              {formatMoneyAsUSD(snapshot?.walletEscrowBalance ?? 0, currency)} is currently reserved on your wallet.
             </p>
           </div>
         </WalletCard>

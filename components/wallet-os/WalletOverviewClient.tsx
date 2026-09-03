@@ -10,7 +10,7 @@ import {
   Sparkles,
   Wallet as WalletIcon,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import type { WalletOsOverview } from "@/lib/wallet-os/types";
 import {
   WalletButton,
@@ -105,30 +105,30 @@ export function WalletOverviewClient() {
                   Total balance
                 </p>
                 <p className="mt-2 font-[var(--font-wallet-os-serif)] text-[44px] font-medium italic tracking-tight text-white sm:text-[56px]">
-                  {formatCurrency(totalBalance, currency)}
+                  {formatMoneyAsUSD(totalBalance, currency)}
                 </p>
                 <p className="mt-1 text-[13px] text-white/50">
-                  Available {formatCurrency(available, currency)} · ready to withdraw
+                  Available {formatMoneyAsUSD(available, currency)} · ready to withdraw
                 </p>
               </div>
               <div className="flex flex-wrap gap-2.5">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Available</p>
                   <p className="mt-0.5 text-[15px] font-semibold text-white">
-                    {formatCurrency(available, currency)}
+                    {formatMoneyAsUSD(available, currency)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Pending</p>
                   <p className="mt-0.5 text-[15px] font-semibold text-white">
-                    {formatCurrency(pending, currency)}
+                    {formatMoneyAsUSD(pending, currency)}
                   </p>
                 </div>
                 {locked > 0 && (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">Locked</p>
                     <p className="mt-0.5 text-[15px] font-semibold text-white">
-                      {formatCurrency(locked, currency)}
+                      {formatMoneyAsUSD(locked, currency)}
                     </p>
                   </div>
                 )}
@@ -149,18 +149,18 @@ export function WalletOverviewClient() {
               Breakdown
             </p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <WalletStat label="Available" value={formatCurrency(available, currency)} tone="accent" />
-              <WalletStat label="Pending" value={formatCurrency(pending, currency)} tone="warning" />
+              <WalletStat label="Available" value={formatMoneyAsUSD(available, currency)} tone="accent" />
+              <WalletStat label="Pending" value={formatMoneyAsUSD(pending, currency)} tone="warning" />
               <WalletStat
                 label="Rewards"
-                value={formatCurrency(rewards, currency)}
+                value={formatMoneyAsUSD(rewards, currency)}
                 tone="success"
                 icon={<Gift className="h-3.5 w-3.5" />}
               />
               {reserved > 0 ? (
-                <WalletStat label="Reserved" value={formatCurrency(reserved, currency)} />
+                <WalletStat label="Reserved" value={formatMoneyAsUSD(reserved, currency)} />
               ) : (
-                <WalletStat label="Locked" value={formatCurrency(locked, currency)} />
+                <WalletStat label="Locked" value={formatMoneyAsUSD(locked, currency)} />
               )}
             </div>
             {reserved > 0 && (
@@ -177,12 +177,12 @@ export function WalletOverviewClient() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <WalletStat
                 label="Total earnings"
-                value={formatCurrency(overview?.totalEarned ?? 0, currency)}
+                value={formatMoneyAsUSD(overview?.totalEarned ?? 0, currency)}
                 icon={<Sparkles className="h-3.5 w-3.5" />}
               />
-              <WalletStat label="This month" value={formatCurrency(period?.monthly ?? 0, currency)} />
-              <WalletStat label="This week" value={formatCurrency(period?.weekly ?? 0, currency)} />
-              <WalletStat label="Today" value={formatCurrency(period?.daily ?? 0, currency)} />
+              <WalletStat label="This month" value={formatMoneyAsUSD(period?.monthly ?? 0, currency)} />
+              <WalletStat label="This week" value={formatMoneyAsUSD(period?.weekly ?? 0, currency)} />
+              <WalletStat label="Today" value={formatMoneyAsUSD(period?.daily ?? 0, currency)} />
             </div>
           </div>
 

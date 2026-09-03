@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, PauseCircle, Receipt, XCircle } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -55,7 +55,7 @@ export function WalletSubscriptionsClient() {
             <p className="text-[13px] text-[#726D64]">Total recurring spend / month</p>
           </div>
           <p className="font-[var(--font-wallet-os-serif)] text-[19px] font-medium text-[#121113]">
-            {formatCurrency(data.monthlyTotal, currency)}
+            {formatMoneyAsUSD(data.monthlyTotal, currency)}
           </p>
         </WalletCard>
       )}
@@ -85,7 +85,7 @@ export function WalletSubscriptionsClient() {
               </div>
               <div className="flex items-end justify-between">
                 <p className="font-[var(--font-wallet-os-serif)] text-[20px] font-medium text-[#121113]">
-                  {formatCurrency(sub.amount, sub.currency || currency)}
+                  {formatMoneyAsUSD(sub.amount, sub.currency || currency)}
                   <span className="ml-1 text-[11px] font-sans font-normal text-[#9B968D]">/{sub.interval || "month"}</span>
                 </p>
                 {sub.nextBillingDate && (

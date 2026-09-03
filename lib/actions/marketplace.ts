@@ -1197,6 +1197,11 @@ import { getAdminDB } from "../supabase/admin";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { resolvePurchaseLine } from "@/lib/products/resolve-purchase-line";
 import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
+import {
+  buildLineAttribution,
+  isSelfReferral,
+  resolveReferralCode,
+} from "@/lib/affiliate/attribution";
 
 interface CJProductMeta {
   cj_pid?: string;
@@ -2201,7 +2206,7 @@ export async function buyDirectCheckout(
         .from("products")
         .select(`
           id, name, price, images, currency, source, source_metadata,
-          affiliate_enabled, affiliate_commission_rate,
+          affiliate_enabled, affiliate_commission_rate, affiliate_price,
           product_type, pricing_type, billing_period, digital_file_url,
           status, is_active, track_inventory, inventory_quantity, allow_backorder
         `)
@@ -2266,30 +2271,40 @@ export async function buyDirectCheckout(
     );
 
     let affiliateId: string | null = null;
-    let commissionRate: number =
-      !isFree && affiliatesAllowed
-        ? product.affiliate_commission_rate ??
-        (await getDefaultAffiliateCommissionPercent())
-        : 0;
+    let commissionRate = 0;
+    let commissionAmount = 0;
 
     if (refCode && affiliatesAllowed && !isFree) {
-      if (refCode.startsWith("LNK-")) {
-        const { data: link } = await supabase
-          .from("affiliate_links")
-          .select("affiliate_id, commission_rate")
-          .eq("link_code", refCode)
-          .maybeSingle();
-        if (link) {
-          affiliateId = link.affiliate_id;
-          commissionRate = link.commission_rate ?? commissionRate;
-        }
+      const attribution = await buildLineAttribution({
+        buyerUserId: user.id,
+        productSource,
+        affiliateEnabled: true,
+        productCommissionRate: product.affiliate_commission_rate ?? null,
+        affiliateFixedAmountUsd:
+          product.affiliate_price != null && Number(product.affiliate_price) > 0
+            ? toPlatformUsd(Number(product.affiliate_price), product.currency)
+            : null,
+        lineTotal: totalAmount,
+        quantity,
+        platformDefaultRate: await getDefaultAffiliateCommissionPercent(),
+      });
+
+      // Prefer explicit cookie code if buildLineAttribution used last-touch cookies;
+      // when cookie resolves to a different inactive path, fall back to direct resolve.
+      if (attribution) {
+        affiliateId = attribution.affiliate_id;
+        commissionRate = attribution.affiliate_commission_rate;
+        commissionAmount = attribution.affiliate_commission_amount;
       } else {
-        const { data: aff } = await supabase
-          .from("affiliates")
-          .select("id")
-          .eq("affiliate_code", refCode)
-          .maybeSingle();
-        if (aff) affiliateId = aff.id;
+        // buildLineAttribution already checked cookies; if null, try explicit ref
+        // only when self-referral / window blocked it — do not invent rates client-side.
+        const resolved = await resolveReferralCode(refCode);
+        if (
+          resolved &&
+          !isSelfReferral(user.id, resolved.affiliateUserId)
+        ) {
+          // Cookie window may have expired; still no attribution.
+        }
       }
     }
 
@@ -2314,9 +2329,20 @@ export async function buyDirectCheckout(
         subtotal: totalAmount,
         currency: productCurrency,
         integration_source: isCJ ? "cj" : null,
+        referral_code: affiliateId && refCode ? refCode : null,
+        affiliate_attributed_at: affiliateId ? new Date().toISOString() : null,
         metadata: {
           is_direct_checkout: true,
           ...(lastVideoId ? { video_id: lastVideoId } : {}),
+          ...(affiliateId
+            ? {
+                affiliate_attribution: {
+                  affiliate_id: affiliateId,
+                  commission_rate: commissionRate,
+                  commission_amount: commissionAmount,
+                },
+              }
+            : {}),
         },
       })
       .select()
@@ -2325,7 +2351,6 @@ export async function buyDirectCheckout(
     if (createError) throw createError;
 
     const lineSource = toOrderItemSource(product.source);
-    const commissionAmount = affiliateId ? (totalAmount * commissionRate) / 100 : 0;
     const lineMeta: Record<string, unknown> = isCJ
       ? { ...productMeta, cj_pid: cjPid, cj_vid: cjVid, cj_weight: variantWeight }
       : { ...(productMeta as object) };

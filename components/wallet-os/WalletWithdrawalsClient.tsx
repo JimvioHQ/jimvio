@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowUpRight, Bitcoin, CreditCard, Landmark, Settings2, Smartphone, Zap } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -114,7 +114,7 @@ export function WalletWithdrawalsClient() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">Request withdrawal</p>
           {typeof data?.availableBalance === "number" && (
             <p className="mt-1 text-[13px] text-[#726D64]">
-              Available to withdraw: <span className="font-semibold text-[#121113]">{formatCurrency(data.availableBalance, currency)}</span>
+              Available to withdraw: <span className="font-semibold text-[#121113]">{formatMoneyAsUSD(data.availableBalance, currency)}</span>
             </p>
           )}
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
@@ -265,7 +265,7 @@ export function WalletWithdrawalsClient() {
                       <div className="flex shrink-0 items-center gap-2">
                         <WalletPill tone={statusTone(w.status)}>{w.status}</WalletPill>
                         <span className="text-[13px] font-semibold text-[#121113]">
-                          {formatCurrency(w.amount, w.currency || currency)}
+                          {formatMoneyAsUSD(w.amount, w.currency || currency)}
                         </span>
                       </div>
                     </WalletCard>

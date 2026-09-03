@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge";
 import type { ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { Attachment } from "@/types";
 import { RangeKey, RANGES } from "@/components/ui/admin";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -43,9 +44,9 @@ export function formatCurrency(amount: number, currency = DEFAULT_FIAT): string 
   }
 }
 
-/** Wallet / payouts default to RWF in schema — use when no column is loaded yet. */
+/** Wallet / payouts: always present as USD (convert RWF via rate, never reinterpret). */
 export function formatWalletMoney(amount: number, walletCurrency?: string | null): string {
-  return formatCurrency(amount, (walletCurrency || "RWF").toUpperCase());
+  return formatMoneyAsUSD(amount, walletCurrency || "USD");
 }
 
 type LineWithOrderCurrency = {

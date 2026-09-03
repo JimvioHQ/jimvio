@@ -10,6 +10,11 @@ import {
   AffiliatePromoteProductClient,
   type AffiliatePromoteProductView,
 } from "@/components/affiliate/AffiliatePromoteProductClient";
+import {
+  estimateAffiliateCommissionUsd,
+  PLATFORM_CURRENCY,
+  toPlatformUsd,
+} from "@/lib/currency/platform";
 
 function collectProductImages(images: unknown): string[] {
   if (!images) return [];
@@ -105,9 +110,19 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     (product as { affiliate_commission_rate?: number | null }).affiliate_commission_rate ??
       settings.fees.default_affiliate_commission_percent
   );
-  const currency =
-    (product as { currency?: string | null }).currency || "USD";
-  const price = Number(product.price ?? 0);
+  const storedCurrency =
+    (product as { currency?: string | null }).currency || PLATFORM_CURRENCY;
+  const price = toPlatformUsd(Number(product.price ?? 0), storedCurrency);
+  const affiliatePriceRaw = (product as { affiliate_price?: number | null }).affiliate_price;
+  const fixedEarn =
+    affiliatePriceRaw != null && Number(affiliatePriceRaw) > 0
+      ? toPlatformUsd(Number(affiliatePriceRaw), storedCurrency)
+      : null;
+  const avgEarning =
+    fixedEarn != null && fixedEarn > 0
+      ? fixedEarn
+      : estimateAffiliateCommissionUsd(price, rate).amount;
+  const currency = PLATFORM_CURRENCY;
   const images = collectProductImages(product.images);
   const features = Array.isArray((product as { features?: string[] | null }).features)
     ? ((product as { features?: string[] }).features ?? []).filter(Boolean)
@@ -146,7 +161,7 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     price,
     currency,
     rate,
-    avgEarning: Math.round(price * (rate / 100)),
+    avgEarning,
     sellerName: vendor?.business_name ?? null,
     verified:
       verification === "verified" ||

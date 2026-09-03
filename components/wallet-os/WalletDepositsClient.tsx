@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Bitcoin, CreditCard, Landmark, PlusCircle, Smartphone, Zap } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -169,7 +169,7 @@ export function WalletDepositsClient() {
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>
-                      <span className="text-[13px] font-semibold text-[#1C8A44]">+{formatCurrency(d.amount, d.currency || currency)}</span>
+                      <span className="text-[13px] font-semibold text-[#1C8A44]">+{formatMoneyAsUSD(d.amount, d.currency || currency)}</span>
                     </div>
                   </WalletCard>
                 );

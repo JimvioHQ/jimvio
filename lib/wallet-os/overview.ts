@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
 import type { EscrowSnapshot, WalletOsOverview } from "@/lib/wallet-os/types";
+import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -61,7 +62,7 @@ export async function getWalletOsEscrowSnapshot(userId: string, db?: ServiceClie
             campaignId: String(row.campaign_id),
             title: titleById.get(String(row.campaign_id)) ?? "UGC campaign",
             amount,
-            currency: row.currency ?? wallet.currency ?? "RWF",
+            currency: row.currency ?? wallet.currency ?? PLATFORM_CURRENCY,
             status: String(row.status ?? "held"),
             depositedAt: row.deposited_at ? String(row.deposited_at) : null,
           });
@@ -75,10 +76,12 @@ export async function getWalletOsEscrowSnapshot(userId: string, db?: ServiceClie
   campaigns.sort((a, b) => (b.depositedAt ?? "").localeCompare(a.depositedAt ?? ""));
 
   return {
-    walletEscrowBalance,
-    ugcEscrowHeld: Math.round(ugcEscrowHeld * 100) / 100,
-    totalEscrow: Math.round((walletEscrowBalance + ugcEscrowHeld) * 100) / 100,
-    currency: wallet.currency ?? "RWF",
+    walletEscrowBalance: toPlatformUsd(walletEscrowBalance, wallet.currency),
+    ugcEscrowHeld: Math.round(toPlatformUsd(ugcEscrowHeld, wallet.currency) * 100) / 100,
+    totalEscrow: Math.round(
+      toPlatformUsd(walletEscrowBalance + ugcEscrowHeld, wallet.currency) * 100,
+    ) / 100,
+    currency: PLATFORM_CURRENCY,
     campaigns,
   };
 }
@@ -142,29 +145,44 @@ export async function getWalletOsOverview(userId: string): Promise<WalletOsOverv
     sumPaidUgcPayouts(db, userId, monthStart),
   ]);
 
-  const available = Number(wallet.available_balance ?? 0);
-  const pending = Number(wallet.pending_balance ?? 0);
-  const locked = Number(wallet.locked_balance ?? 0);
-  const rewards = Number(wallet.rewards_balance ?? 0);
-  const totalEarned = Number(wallet.total_earned ?? 0);
-  const totalPaid = Number(wallet.total_paid ?? 0);
+  const available = toPlatformUsd(Number(wallet.available_balance ?? 0), wallet.currency);
+  const pending = toPlatformUsd(Number(wallet.pending_balance ?? 0), wallet.currency);
+  const locked = toPlatformUsd(Number(wallet.locked_balance ?? 0), wallet.currency);
+  const rewards = toPlatformUsd(Number(wallet.rewards_balance ?? 0), wallet.currency);
+  const totalEarned = toPlatformUsd(Number(wallet.total_earned ?? 0), wallet.currency);
+  const totalPaid = toPlatformUsd(Number(wallet.total_paid ?? 0), wallet.currency);
+
+  // Surface affiliate pending that is not yet wallet-credited (still awaiting approval).
+  let affiliatePendingUsd = 0;
+  try {
+    const { data: aff } = await db
+      .from("affiliates")
+      .select("pending_earnings")
+      .eq("user_id", userId)
+      .maybeSingle();
+    affiliatePendingUsd = Number(aff?.pending_earnings ?? 0);
+  } catch {
+    affiliatePendingUsd = 0;
+  }
+
+  const pendingCombined = Math.round((pending + affiliatePendingUsd) * 100) / 100;
 
   return {
     userId,
-    currency: wallet.currency ?? "RWF",
+    currency: PLATFORM_CURRENCY,
     available,
-    pending,
+    pending: pendingCombined,
     locked,
     escrow: escrow.totalEscrow,
     escrowFromUgc: escrow.ugcEscrowHeld,
     rewards,
     totalEarned,
     totalPaid,
-    netWorth: Math.round((available + pending + locked + rewards) * 100) / 100,
+    netWorth: Math.round((available + pendingCombined + locked + rewards) * 100) / 100,
     period: {
-      daily: Math.round((dailyTx + dailyUgc) * 100) / 100,
-      weekly: Math.round((weeklyTx + weeklyUgc) * 100) / 100,
-      monthly: Math.round((monthlyTx + monthlyUgc) * 100) / 100,
+      daily: Math.round(toPlatformUsd(dailyTx + dailyUgc, wallet.currency) * 100) / 100,
+      weekly: Math.round(toPlatformUsd(weeklyTx + weeklyUgc, wallet.currency) * 100) / 100,
+      monthly: Math.round(toPlatformUsd(monthlyTx + monthlyUgc, wallet.currency) * 100) / 100,
     },
     updatedAt: wallet.updated_at ? String(wallet.updated_at) : null,
   };

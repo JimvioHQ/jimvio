@@ -1,7 +1,7 @@
 "use client";
 
 import { Award, Gift, Sparkles, Trophy } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -83,7 +83,7 @@ export function WalletRewardsClient() {
                 </p>
                 {typeof data?.totalRewardsValue === "number" && (
                   <p className="mt-1 text-[13px] text-white/50">
-                    ≈ {formatCurrency(data.totalRewardsValue, currency)} in redeemable value
+                    ≈ {formatMoneyAsUSD(data.totalRewardsValue, currency)} in redeemable value
                   </p>
                 )}
               </div>
@@ -146,7 +146,7 @@ export function WalletRewardsClient() {
                     <div className="flex shrink-0 items-center gap-2">
                       <WalletPill tone={statusTone(h.status)}>{h.status}</WalletPill>
                       <span className="text-[13px] font-semibold text-[#1C8A44]">
-                        {typeof h.points === "number" ? `+${h.points.toLocaleString()} pts` : formatCurrency(h.amount ?? 0, h.currency || currency)}
+                        {typeof h.points === "number" ? `+${h.points.toLocaleString()} pts` : formatMoneyAsUSD(h.amount ?? 0, h.currency || currency)}
                       </span>
                     </div>
                   </WalletCard>

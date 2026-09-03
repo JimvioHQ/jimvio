@@ -40,6 +40,9 @@ assert.match(commissions, /approveCommission/);
 assert.match(commissions, /refundCommission/);
 assert.match(commissions, /handleOrderRefundForAffiliates/);
 assert.match(commissions, /withdrawalEligible/);
+assert.match(commissions, /approveCommissionsForOrder/);
+assert.match(commissions, /creditWalletForApprovedCommission/);
+mustExist("lib/affiliate/credit-wallet.ts");
 
 const campaigns = mustExist("lib/affiliate/campaigns.ts");
 assert.match(campaigns, /createAffiliateCampaign/);

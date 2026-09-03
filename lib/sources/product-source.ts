@@ -33,10 +33,14 @@ export function toOrderItemSource(productSource: string | null | undefined): Pro
   return normalizeProductSource(productSource);
 }
 
+/**
+ * Affiliate commissions are allowed for any source when the product opts in.
+ * CJ products use affiliate_price (absolute) when present; otherwise rate × line total.
+ * Enabling commissions does NOT trigger CJ fulfillment — fulfillment stays payment-driven.
+ */
 export function supportsAffiliateCommission(
-  source: ProductSource,
+  _source: ProductSource,
   affiliateEnabled: boolean
 ): boolean {
-  if (source === "cj") return false; 
-  return affiliateEnabled;
+  return Boolean(affiliateEnabled);
 }

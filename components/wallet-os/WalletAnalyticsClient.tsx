@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowDownRight, ArrowUpRight, TrendingUp } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletCard,
   WalletEmptyState,
@@ -93,12 +93,12 @@ export function WalletAnalyticsClient() {
                       <div
                         className="w-1/2 rounded-t-md bg-[#FF5A1F] transition-all duration-500"
                         style={{ height: Math.max(3, (p.income / maxSeries) * 148) }}
-                        title={`Income: ${formatCurrency(p.income, currency)}`}
+                        title={`Income: ${formatMoneyAsUSD(p.income, currency)}`}
                       />
                       <div
                         className="w-1/2 rounded-t-md bg-[#DDD8CC] transition-all duration-500"
                         style={{ height: Math.max(3, (p.expense / maxSeries) * 148) }}
-                        title={`Expense: ${formatCurrency(p.expense, currency)}`}
+                        title={`Expense: ${formatMoneyAsUSD(p.expense, currency)}`}
                       />
                     </div>
                     <span className="text-[9.5px] font-medium text-[#9B968D]">{p.label}</span>
@@ -127,7 +127,7 @@ export function WalletAnalyticsClient() {
                     <div key={m.module}>
                       <div className="mb-1 flex items-center justify-between text-[12.5px]">
                         <span className={cn("font-medium capitalize text-[#121113]")}>{m.module}</span>
-                        <span className="font-semibold text-[#121113]">{formatCurrency(m.value, currency)}</span>
+                        <span className="font-semibold text-[#121113]">{formatMoneyAsUSD(m.value, currency)}</span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
                         <div

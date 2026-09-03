@@ -3,6 +3,9 @@ import { rwfToUsdAmount } from "@/lib/money";
 /** Canonical Jimvio marketplace / checkout / payment currency. */
 export const PLATFORM_CURRENCY = "USD" as const;
 
+/** Fallback when product/link/campaign rates are unset (matches PLATFORM_SETTINGS_DEFAULTS). */
+export const DEFAULT_AFFILIATE_COMMISSION_PERCENT = 5;
+
 export type PlatformCurrency = typeof PLATFORM_CURRENCY;
 
 export function isPlatformCurrency(value: string | null | undefined): boolean {
@@ -28,6 +31,59 @@ export function toPlatformUsd(
     return rwfToUsdAmount(amount);
   }
   return Math.round(amount * 100) / 100;
+}
+
+/** Consistent USD display for Affiliate + Wallet monetary UI. */
+export function formatUSD(amount: number): string {
+  const n = toPlatformUsd(amount, PLATFORM_CURRENCY);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: PLATFORM_CURRENCY,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+/**
+ * Format a stored wallet/affiliate amount as USD.
+ * Converts RWF via rate — never reinterprets RWF integers as dollars.
+ */
+export function formatMoneyAsUSD(
+  amount: number,
+  fromCurrency: string | null | undefined = PLATFORM_CURRENCY,
+): string {
+  return formatUSD(toPlatformUsd(amount, fromCurrency));
+}
+
+/** Resolve commission % from the first positive configured rate (never invents random rates). */
+export function resolveCommissionRatePercent(opts: {
+  linkRate?: number | null;
+  campaignRate?: number | null;
+  productRate?: number | null;
+  platformDefault?: number | null;
+}): number {
+  for (const candidate of [
+    opts.linkRate,
+    opts.campaignRate,
+    opts.productRate,
+    opts.platformDefault,
+    DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  ]) {
+    const n = Number(candidate);
+    if (Number.isFinite(n) && n > 0) return Math.min(100, n);
+  }
+  return DEFAULT_AFFILIATE_COMMISSION_PERCENT;
+}
+
+/** Server-side commission estimate: line_total_usd × rate%. */
+export function estimateAffiliateCommissionUsd(
+  lineTotalUsd: number,
+  ratePercent: number,
+): { amount: number; rate: number } {
+  const rate = Math.max(0, Math.min(100, Number(ratePercent) || 0));
+  const base = Number.isFinite(lineTotalUsd) ? Math.max(0, lineTotalUsd) : 0;
+  const amount = Math.round(((base * rate) / 100) * 100) / 100;
+  return { amount, rate };
 }
 
 export function resolveCheckoutShippingAmountUsd(params: {

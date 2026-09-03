@@ -54,7 +54,7 @@ async function sumRewardsAllTime(db: ServiceClient, userId: string, sinceIso: st
 export async function getWalletOsAnalytics(userId: string): Promise<WalletAnalytics> {
   const db = createServiceRoleClient();
   const { data: walletRow } = await db.from("wallets").select("currency").eq("user_id", userId).maybeSingle();
-  const currency = walletRow?.currency ?? "RWF";
+  const currency = walletRow?.currency ?? "USD";
 
   const sinceIso = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
   const seriesStartIso = startOfWeekUtc(new Date(Date.now() - (WEEKS_IN_SERIES - 1) * WEEK_MS)).toISOString();

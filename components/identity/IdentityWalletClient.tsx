@@ -105,7 +105,7 @@ export function IdentityWalletClient() {
     );
   }
 
-  const currency = data.currency || "RWF";
+  const currency = data.currency || "USD";
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">

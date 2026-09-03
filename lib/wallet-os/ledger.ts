@@ -51,7 +51,7 @@ async function fetchTransactionEntries(
       title: row.description?.trim() ? row.description : prettify(row.type),
       amount: Math.round(Math.abs(amount) * 100) / 100,
       direction: amount < 0 ? "debit" : "credit",
-      currency: row.currency ?? "RWF",
+      currency: row.currency ?? "USD",
       status: String(row.status ?? "completed"),
       reference: row.reference ?? null,
       createdAt: String(row.created_at),
@@ -96,7 +96,7 @@ async function fetchWithdrawalEntries(
     title: `Withdrawal via ${row.payout_method ?? "bank"}`,
     amount: Math.round(Math.abs(Number(row.amount ?? 0)) * 100) / 100,
     direction: "debit",
-    currency: row.currency ?? "RWF",
+    currency: row.currency ?? "USD",
     status: String(row.status ?? "pending"),
     reference: row.provider_reference ?? row.id,
     createdAt: String(row.created_at),
@@ -187,7 +187,7 @@ async function fetchDepositEntries(
     title: `Deposit via ${row.method ?? "manual"}`,
     amount: Math.round(Math.abs(Number(row.amount ?? 0)) * 100) / 100,
     direction: "credit",
-    currency: row.currency ?? "RWF",
+    currency: row.currency ?? "USD",
     status: String(row.status ?? "pending"),
     reference: row.reference ?? null,
     createdAt: String(row.created_at),
@@ -230,7 +230,7 @@ async function fetchRewardEntries(
     title: row.title?.trim() ? row.title : prettify(row.reward_type),
     amount: Math.round(Math.abs(Number(row.amount ?? 0)) * 100) / 100,
     direction: "credit",
-    currency: row.currency ?? "RWF",
+    currency: row.currency ?? "USD",
     status: String(row.status ?? "credited"),
     reference: row.id,
     createdAt: String(row.created_at),
@@ -271,7 +271,7 @@ async function fetchSubscriptionEntries(
         title: `Community subscription — ${prettify(row.event_type)}`,
         amount: Math.round(Math.abs(Number(row.amount ?? 0)) * 100) / 100,
         direction: "debit",
-        currency: row.currency ?? "RWF",
+        currency: row.currency ?? "USD",
         status: "completed",
         reference: row.id,
         createdAt: String(row.created_at),
@@ -296,7 +296,7 @@ export async function getWalletOsLedger(userId: string, query: LedgerQuery = {})
   const fetchLimit = hasFilters ? limit * 4 + 40 : limit + 20;
 
   const { data: walletRow } = await db.from("wallets").select("currency").eq("user_id", userId).maybeSingle();
-  const defaultCurrency = walletRow?.currency ?? "RWF";
+  const defaultCurrency = walletRow?.currency ?? "USD";
 
   const [transactions, withdrawals, ugcPayouts, deposits, rewards, subscriptions] = await Promise.all([
     fetchTransactionEntries(db, userId, fetchLimit, cursor),

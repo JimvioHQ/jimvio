@@ -13,6 +13,11 @@ import {
 import { getImage } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { pageMetadata } from "@/lib/seo";
+import {
+  estimateAffiliateCommissionUsd,
+  PLATFORM_CURRENCY,
+  toPlatformUsd,
+} from "@/lib/currency/platform";
 
 export const metadata: Metadata = pageMetadata("affiliates");
 
@@ -77,6 +82,7 @@ export default async function AffiliatesPage() {
       images?: unknown;
       product_type?: string;
       affiliate_commission_rate?: number | null;
+      affiliate_price?: number | null;
       sale_count?: number | null;
       view_count?: number | null;
       product_categories?: { name?: string | null } | null;
@@ -91,8 +97,16 @@ export default async function AffiliatesPage() {
       row.affiliate_commission_rate ??
         settings.fees.default_affiliate_commission_percent
     );
-    const currency = row.currency || "USD";
-    const earning = Math.round(Number(row.price) * (rate / 100));
+    const currency = PLATFORM_CURRENCY;
+    const priceUsd = toPlatformUsd(Number(row.price), row.currency);
+    const fixedEarn =
+      row.affiliate_price != null && Number(row.affiliate_price) > 0
+        ? toPlatformUsd(Number(row.affiliate_price), row.currency)
+        : null;
+    const earning =
+      fixedEarn != null && fixedEarn > 0
+        ? fixedEarn
+        : estimateAffiliateCommissionUsd(priceUsd, rate).amount;
     const verification = row.vendors?.verification_status?.toLowerCase() ?? "";
     return {
       id: row.id,
@@ -105,7 +119,7 @@ export default async function AffiliatesPage() {
       engagement: Number(row.sale_count ?? 0) + Number(row.view_count ?? 0),
       currency,
       image: getImage(row.images),
-      price: Number(row.price),
+      price: priceUsd,
       sellerName: row.vendors?.business_name ?? null,
       verified:
         verification === "verified" ||

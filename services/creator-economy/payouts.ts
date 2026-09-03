@@ -28,19 +28,46 @@ export async function savePayoutMethod(input: { userId: string; id?: string; met
 }
 export async function requestWithdrawal(input: { userId: string; amount: number; methodId?: string }) {
   if (!Number.isFinite(input.amount) || input.amount <= 0) throw new Error("Enter a valid withdrawal amount");
+  const amount = Math.round(Number(input.amount) * 100) / 100;
   const client = db();
-  const wallet = await getWalletSnapshot(input.userId);
-  if (!wallet || Number(wallet.available_balance) < input.amount) throw new Error("Insufficient available balance");
   const methods = await listPayoutMethods(input.userId);
   const method = input.methodId ? methods.find((item) => item.id === input.methodId) : methods.find((item) => item.is_default);
   if (!method) throw new Error("Save a payout method first");
+
+  let reserved = false;
+  let currency = "USD";
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const wallet = await getWalletSnapshot(input.userId);
+    if (!wallet) throw new Error("Insufficient available balance");
+    const avail = Number(wallet.available_balance ?? 0);
+    const pend = Number(wallet.pending_balance ?? 0);
+    if (avail < amount) throw new Error("Insufficient available balance");
+    currency = wallet.currency ?? "USD";
+    const { data: updated } = await client
+      .from("wallets")
+      .update({
+        available_balance: avail - amount,
+        pending_balance: pend + amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", input.userId)
+      .eq("available_balance", avail)
+      .select("user_id")
+      .maybeSingle();
+    if (updated) {
+      reserved = true;
+      break;
+    }
+  }
+  if (!reserved) throw new Error("Could not reserve funds. Please retry.");
+
   const { data, error } = await client.from("payouts").insert({
     user_id: input.userId,
     type: "vendor_withdrawal",
-    amount: input.amount,
+    amount,
     fee: 0,
-    net_amount: input.amount,
-    currency: wallet.currency ?? "USD",
+    net_amount: amount,
+    currency,
     status: "pending",
     payout_method: method.method,
     payout_account: JSON.stringify(method.account_details),
@@ -49,11 +76,15 @@ export async function requestWithdrawal(input: { userId: string; amount: number;
         ? "Future-ready crypto payout; processing pending."
         : null,
   }).select().single();
-  if (error) throw error;
-  const { error: walletError } = await client.from("wallets").update({
-    available_balance: Number(wallet.available_balance) - input.amount,
-    pending_balance: Number(wallet.pending_balance ?? 0) + input.amount,
-  }).eq("user_id", input.userId);
-  if (walletError) throw walletError;
+  if (error) {
+    const wallet = await getWalletSnapshot(input.userId);
+    if (wallet) {
+      await client.from("wallets").update({
+        available_balance: Number(wallet.available_balance ?? 0) + amount,
+        pending_balance: Math.max(0, Number(wallet.pending_balance ?? 0) - amount),
+      }).eq("user_id", input.userId);
+    }
+    throw error;
+  }
   return data;
 }

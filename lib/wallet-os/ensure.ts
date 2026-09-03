@@ -45,7 +45,7 @@ export async function ensureWallet(userId: string, db?: ServiceClient): Promise<
         rewards_balance: 0,
         total_earned: 0,
         total_paid: 0,
-        currency: "RWF",
+        currency: "USD",
       },
       { onConflict: "user_id" },
     )

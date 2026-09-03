@@ -15,7 +15,7 @@ import {
   Sparkles,
   Users2,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -245,7 +245,7 @@ export function WalletLedgerClient() {
                       <td className="whitespace-nowrap px-4 py-3.5 text-right text-[13px] font-semibold sm:px-5">
                         <span className={isCredit ? "text-[#1C8A44]" : "text-[#121113]"}>
                           {isCredit ? "+" : "-"}
-                          {formatCurrency(Math.abs(tx.amount), tx.currency || currency)}
+                          {formatMoneyAsUSD(Math.abs(tx.amount), tx.currency || currency)}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-center sm:px-5">

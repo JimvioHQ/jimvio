@@ -161,6 +161,7 @@ type CartItem = {
     billing_period: string | null;
     affiliate_enabled?: boolean | null;
     affiliate_commission_rate?: number | null;
+    affiliate_price?: number | null;
   } | null;
   product_variants: {
     id: string;
@@ -249,7 +250,12 @@ async function createVendorOrder(
       productSource: item.product_source,
       affiliateEnabled: Boolean(p.affiliate_enabled),
       productCommissionRate: p.affiliate_commission_rate ?? null,
+      affiliateFixedAmountUsd:
+        p.affiliate_price != null && Number(p.affiliate_price) > 0
+          ? toPlatformUsd(Number(p.affiliate_price), p.currency)
+          : null,
       lineTotal: totalPrice,
+      quantity: item.quantity,
       cartAffiliateLinkId: item.affiliate_link_id ?? null,
     });
 
@@ -638,7 +644,7 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
         track_inventory, inventory_quantity, allow_backorder,
         is_digital, requires_shipping,
         images, pricing_type, billing_period,
-        affiliate_enabled, affiliate_commission_rate
+        affiliate_enabled, affiliate_commission_rate, affiliate_price
       ),
       product_variants(id, name, price, inventory_quantity, is_active, image_url)
     `)

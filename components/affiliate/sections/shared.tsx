@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 
 export const AFFILIATE_SHELL =
   "mx-auto w-full max-w-[1120px] px-4 sm:px-5 lg:px-6";
@@ -34,19 +35,8 @@ export type AffiliateSpotlightProduct = {
   verified?: boolean;
 };
 
-export function formatAffiliateMoney(amount: number, currency = "RWF") {
-  try {
-    if (currency === "RWF") {
-      return `RWF ${Math.round(amount).toLocaleString("en-US")}`;
-    }
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${Math.round(amount).toLocaleString("en-US")}`;
-  }
+export function formatAffiliateMoney(amount: number, currency = "USD") {
+  return formatMoneyAsUSD(amount, currency);
 }
 
 export function AffiliateSectionHeading({

@@ -15,40 +15,35 @@ import {
 } from "./shared";
 import { cn } from "@/lib/utils";
 
+/** Category browse tiles — rates are not claimed as fixed; products carry real rates. */
 const CATEGORIES = [
   {
     name: "Electronics",
-    commission: 15,
     image: getCategoryImageSrc("Electronics", "electronics"),
     href: "/marketplace?category=electronics",
   },
   {
     name: "Beauty",
-    commission: 20,
     image: getCategoryImageSrc("Beauty", "health-beauty"),
     href: "/marketplace?category=beauty",
   },
   {
     name: "Home",
-    commission: 12,
     image: getCategoryImageSrc("Home", "home-living"),
     href: "/marketplace?category=home",
   },
   {
     name: "Fitness",
-    commission: 18,
     image: getCategoryImageSrc("Fitness", "sports-outdoors"),
     href: "/marketplace?category=fitness",
   },
   {
     name: "Education",
-    commission: 25,
     image: getCategoryImageSrc("Education", "toys-kids"),
     href: "/marketplace?category=education",
   },
   {
     name: "Digital Products",
-    commission: 30,
     image: getCategoryImageSrc("Digital", "office-equipment"),
     href: "/marketplace/digital",
   },
@@ -69,7 +64,7 @@ export function AffiliateCategories() {
     <section className={`${AFFILIATE_SHELL} pt-10 sm:pt-12`} id="offers">
       <AffiliateSectionHeading
         title="Explore Top Categories"
-        subtitle="Promote high-converting categories with competitive commissions."
+        subtitle="Each product has its own commission rate — browse categories to find offers that fit your audience."
       />
 
       <motion.div
@@ -113,11 +108,7 @@ export function AffiliateCategories() {
                   {cat.name}
                 </p>
                 <p className="mt-1 text-center text-[12px] text-[#6B7280]">
-                  Up to{" "}
-                  <span className="font-semibold text-[#FF5A1F]">
-                    {cat.commission}%
-                  </span>{" "}
-                  Commission
+                  Variable commissions
                 </p>
               </Link>
             </motion.div>

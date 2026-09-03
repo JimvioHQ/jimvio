@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, Download, FileText } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
   WalletButton,
   WalletCard,
@@ -115,7 +115,7 @@ export function WalletInvoicesClient() {
                       {new Date(inv.issuedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold text-[#121113] sm:px-5">
-                      {formatCurrency(inv.amount, inv.currency || currency)}
+                      {formatMoneyAsUSD(inv.amount, inv.currency || currency)}
                     </td>
                     <td className="px-4 py-3.5 sm:px-5">
                       <WalletPill tone={statusTone(inv.status)}>{inv.status}</WalletPill>

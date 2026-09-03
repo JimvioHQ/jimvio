@@ -144,11 +144,12 @@ export async function approveCommission(commissionId: string) {
     p_commission_id: commissionId,
   });
   if (error) throw error;
+  if (!data) return false;
 
   try {
     const { data: row } = await client
       .from("affiliate_commissions")
-      .select("commission_amount, affiliate_id")
+      .select("commission_amount, affiliate_id, order_id")
       .eq("id", commissionId)
       .maybeSingle();
     if (row?.affiliate_id) {
@@ -158,6 +159,16 @@ export async function approveCommission(commissionId: string) {
         .eq("id", row.affiliate_id)
         .maybeSingle();
       if (affiliate?.user_id) {
+        const { creditWalletForApprovedCommission } = await import(
+          "@/lib/affiliate/credit-wallet"
+        );
+        await creditWalletForApprovedCommission(client, {
+          commissionId,
+          affiliateUserId: affiliate.user_id,
+          amount: Number(row.commission_amount ?? 0),
+          orderId: row.order_id ?? null,
+        });
+
         const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
         await notifyAffiliateCommission({
           affiliateUserId: affiliate.user_id,
@@ -168,10 +179,27 @@ export async function approveCommission(commissionId: string) {
       }
     }
   } catch (err) {
-    console.warn("[approveCommission] notification skipped:", err);
+    console.warn("[approveCommission] wallet/notification skipped:", err);
   }
 
-  return Boolean(data);
+  return true;
+}
+
+/** Approve all pending commissions for an order (e.g. on delivery completion). */
+export async function approveCommissionsForOrder(orderId: string) {
+  const client = db();
+  const { data: rows } = await client
+    .from("affiliate_commissions")
+    .select("id, lifecycle_status")
+    .eq("order_id", orderId);
+
+  let approved = 0;
+  for (const row of rows ?? []) {
+    if (row.lifecycle_status !== "pending") continue;
+    const ok = await approveCommission(row.id);
+    if (ok) approved += 1;
+  }
+  return approved;
 }
 
 export async function rejectCommission(commissionId: string, note?: string) {
@@ -188,13 +216,56 @@ export async function refundCommission(
   refundAmount?: number,
   note?: string
 ) {
-  const { data, error } = await db().rpc("clawback_affiliate_commission", {
+  const client = db();
+  const { data: before } = await client
+    .from("affiliate_commissions")
+    .select("id, commission_amount, lifecycle_status, affiliate_id, order_id")
+    .eq("id", commissionId)
+    .maybeSingle();
+
+  const priorLifecycle = before?.lifecycle_status ?? null;
+  const priorAmount = Number(before?.commission_amount ?? 0);
+
+  const { data, error } = await client.rpc("clawback_affiliate_commission", {
     p_commission_id: commissionId,
     p_refund_amount: refundAmount ?? null,
     p_note: note ?? "Refund clawback",
   });
   if (error) throw error;
-  return Boolean(data);
+  if (!data) return false;
+
+  // Debit wallet only if commission had already been approved (wallet-credited).
+  if (
+    before?.affiliate_id &&
+    (priorLifecycle === "approved" || priorLifecycle === "partial_refund")
+  ) {
+    const claw =
+      refundAmount != null && Number.isFinite(refundAmount)
+        ? Math.min(priorAmount, Number(refundAmount))
+        : priorAmount;
+    try {
+      const { data: affiliate } = await client
+        .from("affiliates")
+        .select("user_id")
+        .eq("id", before.affiliate_id)
+        .maybeSingle();
+      if (affiliate?.user_id) {
+        const { debitWalletForClawedCommission } = await import(
+          "@/lib/affiliate/credit-wallet"
+        );
+        await debitWalletForClawedCommission(client, {
+          commissionId,
+          affiliateUserId: affiliate.user_id,
+          amount: claw,
+          orderId: before.order_id ?? null,
+        });
+      }
+    } catch (err) {
+      console.warn("[refundCommission] wallet debit skipped:", err);
+    }
+  }
+
+  return true;
 }
 
 export async function cancelCommission(commissionId: string, note?: string) {

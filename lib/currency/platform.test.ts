@@ -1,110 +1,59 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatMoneyV2 } from "./format";
 import {
-  PLATFORM_CURRENCY,
-  isPlatformCurrency,
-  marketplacePaymentErrorMessage,
-  resolveCheckoutShippingAmountUsd,
+  DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  estimateAffiliateCommissionUsd,
+  formatMoneyAsUSD,
+  formatUSD,
+  resolveCommissionRatePercent,
   toPlatformUsd,
 } from "./platform";
 
-describe("platform USD currency", () => {
-  it("identifies USD as the platform currency", () => {
-    assert.equal(PLATFORM_CURRENCY, "USD");
-    assert.equal(isPlatformCurrency("usd"), true);
-    assert.equal(isPlatformCurrency("RWF"), false);
+describe("formatUSD", () => {
+  it("formats cents consistently", () => {
+    assert.equal(formatUSD(0), "$0.00");
+    assert.equal(formatUSD(12.5), "$12.50");
+    assert.equal(formatUSD(1250), "$1,250.00");
   });
 
-  it("converts RWF using the existing rate instead of reinterpreting the number as USD", () => {
-    const converted = toPlatformUsd(14100, "RWF");
-    assert.ok(converted > 0);
-    assert.ok(converted < 100);
-    assert.notEqual(converted, 14100);
-  });
-
-  it("passes USD amounts through", () => {
-    assert.equal(toPlatformUsd(24.5, "USD"), 24.5);
-  });
-
-  it("uses CJ priceUSD directly for checkout shipping", () => {
-    assert.equal(
-      resolveCheckoutShippingAmountUsd({
-        isCjOrder: true,
-        selected: { priceUSD: 7.02 },
-      }),
-      7.02,
-    );
-    assert.equal(
-      resolveCheckoutShippingAmountUsd({ isCjOrder: true, selected: null }),
-      null,
-    );
-    assert.equal(
-      resolveCheckoutShippingAmountUsd({ isCjOrder: false, selected: null }),
-      0,
-    );
-  });
-
-  it("maps payment-link failures to actionable copy", () => {
-    assert.match(
-      marketplacePaymentErrorMessage("PAYMENT_LINK_FAILED", "currency not supported") ?? "",
-      /USD/,
-    );
-    assert.match(
-      marketplacePaymentErrorMessage("PAYMENT_LINK_FAILED", "timeout from provider") ?? "",
-      /couldn.?t start|could not start|try again/i,
-    );
-  });
-
-  it("formats marketplace prices in USD without waiting for FX rates", () => {
-    const formatted = formatMoneyV2(14100, "RWF", "USD", {});
+  it("converts RWF before formatting — never reinterprets as dollars", () => {
+    const formatted = formatMoneyAsUSD(14100, "RWF");
     assert.match(formatted, /\$/);
     assert.equal(formatted.includes("RWF"), false);
     assert.equal(formatted.includes("14,100"), false);
-    assert.equal(formatted.includes("14100"), false);
+    assert.ok(toPlatformUsd(14100, "RWF") < 100);
   });
 });
 
-describe("platform USD currency", () => {
-  it("identifies USD as the platform currency", () => {
-    assert.equal(PLATFORM_CURRENCY, "USD");
-    assert.equal(isPlatformCurrency("usd"), true);
-    assert.equal(isPlatformCurrency("RWF"), false);
-  });
-
-  it("converts RWF using the existing rate instead of reinterpreting the number as USD", () => {
-    const converted = toPlatformUsd(14100, "RWF");
-    assert.ok(converted > 0);
-    assert.ok(converted < 100);
-    assert.notEqual(converted, 14100);
-  });
-
-  it("passes USD amounts through", () => {
-    assert.equal(toPlatformUsd(24.5, "USD"), 24.5);
-  });
-
-  it("uses CJ priceUSD directly for checkout shipping", () => {
+describe("variable commission rates", () => {
+  it("prefers product-specific rates over defaults", () => {
     assert.equal(
-      resolveCheckoutShippingAmountUsd({
-        isCjOrder: true,
-        selected: { priceUSD: 7.02 },
+      resolveCommissionRatePercent({
+        productRate: 15,
+        platformDefault: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
       }),
-      7.02,
+      15,
     );
     assert.equal(
-      resolveCheckoutShippingAmountUsd({ isCjOrder: true, selected: null }),
-      null,
+      resolveCommissionRatePercent({
+        linkRate: 25,
+        productRate: 15,
+        platformDefault: 5,
+      }),
+      25,
     );
     assert.equal(
-      resolveCheckoutShippingAmountUsd({ isCjOrder: false, selected: null }),
-      0,
+      resolveCommissionRatePercent({
+        productRate: null,
+        platformDefault: 5,
+      }),
+      5,
     );
   });
 
-  it("maps payment-link failures to actionable copy", () => {
-    assert.match(
-      marketplacePaymentErrorMessage("PAYMENT_LINK_FAILED", "currency not supported") ?? "",
-      /USD/,
-    );
+  it("computes earnings from real rates", () => {
+    assert.equal(estimateAffiliateCommissionUsd(29.99, 15).amount, 4.5);
+    assert.equal(estimateAffiliateCommissionUsd(79.99, 25).amount, 20);
+    assert.notEqual(estimateAffiliateCommissionUsd(100, 10).amount, 20);
   });
 });

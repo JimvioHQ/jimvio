@@ -136,6 +136,22 @@ export async function recordOrderStatusChange(
         `[${options.triggeredBy ?? "system"}]`
     );
 
+    if (newStatus === "refunded" || newStatus === "cancelled") {
+        try {
+            const { handleOrderRefundForAffiliates } = await import(
+                "@/lib/affiliate/commissions"
+            );
+            await handleOrderRefundForAffiliates(orderId, {
+                note: options.notes ?? `Order ${newStatus}`,
+            });
+        } catch (err) {
+            console.warn(
+                `[recordOrderStatusChange] affiliate clawback skipped for ${orderId}:`,
+                err,
+            );
+        }
+    }
+
     return { success: true };
 }
 
@@ -202,6 +218,22 @@ export async function recordPaymentStatusChange(
         `${previousStatus ?? "null"} → ${newStatus}`,
         `[${options.provider ?? "unknown"} / ${options.triggeredBy ?? "system"}]`
     );
+
+    if (newStatus === "refunded") {
+        try {
+            const { handleOrderRefundForAffiliates } = await import(
+                "@/lib/affiliate/commissions"
+            );
+            await handleOrderRefundForAffiliates(orderId, {
+                note: options.notes ?? "Order payment refunded",
+            });
+        } catch (err) {
+            console.warn(
+                `[recordPaymentStatusChange] affiliate clawback skipped for ${orderId}:`,
+                err,
+            );
+        }
+    }
 
     return { success: true };
 }

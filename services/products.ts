@@ -286,7 +286,7 @@ export async function getProducts(query: ProductQuery = {}) {
     .select(`
       id, name, slug, short_description, price, compare_at_price,
       images, rating, review_count, is_featured, is_digital,
-      product_type, status, affiliate_enabled, affiliate_commission_rate,
+      product_type, status, affiliate_enabled, affiliate_commission_rate, affiliate_price,
       sale_count, view_count, wishlist_count, inventory_quantity,
       created_at, source, currency, button_text, brand,
       pricing_type, billing_period,

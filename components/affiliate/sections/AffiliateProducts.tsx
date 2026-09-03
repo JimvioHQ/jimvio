@@ -154,17 +154,20 @@ const ProductCard = memo(function ProductCard({
         ) : null}
 
         <div className="mt-2.5 border-t border-[#F3F4F6] pt-2.5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-            Per Sale
-          </p>
-          <p className="mt-0.5 text-[15px] font-bold tabular-nums leading-none text-[#FF5A1F]">
-            {formatAffiliateMoney(product.avgEarning, product.currency)}
+          <p className="text-[15px] font-bold tabular-nums leading-none text-[#111827]">
+            {formatAffiliateMoney(product.price, product.currency)}
           </p>
           {commissionPct != null ? (
             <span className="mt-2 inline-flex rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FF5A1F] ring-1 ring-[#FF5A1F]/20">
               {commissionPct}% Commission
             </span>
           ) : null}
+          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+            Earn per sale
+          </p>
+          <p className="mt-0.5 text-[15px] font-bold tabular-nums leading-none text-[#FF5A1F]">
+            {formatAffiliateMoney(product.avgEarning, product.currency)}
+          </p>
         </div>
 
         <div

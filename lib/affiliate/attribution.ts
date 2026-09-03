@@ -6,6 +6,11 @@
 import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+  estimateAffiliateCommissionUsd,
+  resolveCommissionRatePercent,
+} from "@/lib/currency/platform";
+import {
   normalizeProductSource,
   supportsAffiliateCommission,
   type ProductSource,
@@ -19,12 +24,6 @@ export const AFFILIATE_REF_TS_COOKIE = "jimvio_ref_ts";
 
 export const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30;
 export const MIN_WITHDRAWAL_AMOUNT = 10;
-
-function estimateCommission(lineTotal: number, ratePercent: number) {
-  const rate = Math.max(0, Number(ratePercent ?? 0));
-  const amount = Math.round((((Number(lineTotal) || 0) * rate) / 100) * 100) / 100;
-  return { amount, rate };
-}
 
 export type AttributionModel = "first_touch" | "last_touch";
 
@@ -222,9 +221,13 @@ export async function buildLineAttribution(input: {
   productSource: string | null | undefined;
   affiliateEnabled: boolean;
   productCommissionRate?: number | null;
+  /** Absolute per-unit commission in USD (e.g. CJ affiliate_price converted). */
+  affiliateFixedAmountUsd?: number | null;
   lineTotal: number;
+  quantity?: number;
   cartAffiliateLinkId?: string | null;
   preferredModel?: AttributionModel;
+  platformDefaultRate?: number | null;
 }): Promise<LineAttribution | null> {
   const source = normalizeProductSource(input.productSource) as ProductSource;
   if (!supportsAffiliateCommission(source, input.affiliateEnabled)) return null;
@@ -249,12 +252,29 @@ export async function buildLineAttribution(input: {
   if (!resolved) return null;
   if (isSelfReferral(input.buyerUserId, resolved.affiliateUserId)) return null;
 
-  const rate =
-    resolved.commissionRate ??
-    input.productCommissionRate ??
-    Number(process.env.DEFAULT_AFFILIATE_COMMISSION_PERCENT ?? 10);
+  const usedRate = resolveCommissionRatePercent({
+    linkRate: resolved.commissionRate,
+    campaignRate: resolved.commissionRate,
+    productRate: input.productCommissionRate,
+    platformDefault:
+      input.platformDefaultRate ??
+      Number(
+        process.env.DEFAULT_AFFILIATE_COMMISSION_PERCENT ??
+          DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+      ),
+  });
 
-  const { amount, rate: usedRate } = estimateCommission(input.lineTotal, rate);
+  const qty = Math.max(1, Number(input.quantity) || 1);
+  let amount: number;
+  if (
+    input.affiliateFixedAmountUsd != null &&
+    Number.isFinite(input.affiliateFixedAmountUsd) &&
+    input.affiliateFixedAmountUsd > 0
+  ) {
+    amount = Math.round(input.affiliateFixedAmountUsd * qty * 100) / 100;
+  } else {
+    amount = estimateAffiliateCommissionUsd(input.lineTotal, usedRate).amount;
+  }
   if (amount <= 0) return null;
 
   return {
