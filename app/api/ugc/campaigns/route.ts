@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
   if (Number.isFinite(maxBudget) && maxBudget > 0) query = query.lte('total_budget', maxBudget);
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Could not load campaigns." }, { status: 500 });
 
   return NextResponse.json({ data, total: count ?? 0, page, limit });
 }
@@ -267,11 +267,11 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Could not create campaign." }, { status: 500 });
 
   // Handle Initial Media
   if (media && media.length > 0) {
-    const mediaToInsert = media.map((m: any, i: number) => ({
+    const mediaToInsert = media.map((m: { type?: string; url?: string; thumbnail_url?: string | null; usage?: string }, i: number) => ({
       campaign_id: campaign.id,
       type: m.type || 'image',
       url: m.url,

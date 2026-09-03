@@ -21,7 +21,7 @@ const messages = read("lib/ugc/i18n/messages.ts");
 const route = read("app/ugc/calendar/page.tsx");
 const sidebar = read("components/ugc/workspace/UGCWorkspaceSidebar.tsx");
 
-assert.match(route, /redirect\("\/ugc\/campaigns\?view=schedule"\)/);
+assert.match(route, /redirect\("\/ugc\/my-campaigns\?view=schedule"\)/);
 assert.doesNotMatch(sidebar, /href: "\/ugc\/calendar"/);
 const myCampaigns = read("components/ugc/workspace/UGCMyCampaignsPage.tsx");
 assert.match(myCampaigns, /UGCDateDetailPanel/);
