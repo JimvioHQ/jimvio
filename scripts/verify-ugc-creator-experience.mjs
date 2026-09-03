@@ -43,6 +43,33 @@ if (!datePanel.includes("What happens today")) {
   failed += 1;
 }
 
+for (const banned of ["Creator profile", "P7 PROVIDER", "roleOwner", "CAMPAIGN CENTER"]) {
+  if (sidebar.includes(banned)) {
+    console.error(`brand sidebar still contains banned copy: ${banned}`);
+    failed += 1;
+  }
+}
+
+const dashboard = readFileSync(join(root, "components/ugc/brand/BrandDashboardClient.tsx"), "utf8");
+for (const banned of ["Conversion Metrics", "Your approval funnel", "Improve outreach", "Top campaigns"]) {
+  if (dashboard.includes(banned)) {
+    console.error(`brand dashboard still contains banned copy: ${banned}`);
+    failed += 1;
+  }
+}
+for (const required of ["Needs your attention", "Active campaigns", "Campaign performance", "Create Campaign"]) {
+  if (!dashboard.includes(required)) {
+    console.error(`brand dashboard missing required copy: ${required}`);
+    failed += 1;
+  }
+}
+
+const filterSrc = readFileSync(join(root, "lib/ugc/ugc-notification-filter.ts"), "utf8");
+if (!filterSrc.includes("campaign_update") || !filterSrc.includes("EXCLUDE")) {
+  console.error("UGC notification filter missing campaign isolation rules");
+  failed += 1;
+}
+
 if (failed) {
   process.exit(1);
 }

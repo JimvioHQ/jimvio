@@ -5,7 +5,8 @@ import { Menu, X } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AppTopNav } from "@/components/shell/AppTopNav";
-import { UGCWorkspaceSidebar, UGC_MOBILE_TABS } from "./UGCWorkspaceSidebar";
+import { UGCWorkspaceSidebar, UGC_BRAND_MOBILE_TABS, UGC_MOBILE_TABS } from "./UGCWorkspaceSidebar";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
 import { useLocale } from "@/context/LocaleContext";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,8 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   const [mobileNav, setMobileNav] = useState(false);
   const { t } = useLocale();
   const pathname = usePathname();
+  const { workspaces } = useUgcBrandWorkspace();
+  const mobileTabs = workspaces.length > 0 ? UGC_BRAND_MOBILE_TABS : UGC_MOBILE_TABS;
 
   useEffect(() => {
     if (!mobileNav) return;
@@ -109,12 +112,14 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
         aria-label="UGC work navigation"
       >
         <ul className="grid grid-cols-4">
-          {UGC_MOBILE_TABS.map((item) => {
+          {mobileTabs.map((item) => {
             const Icon = item.icon;
             const active =
               item.href === "/ugc"
                 ? pathname === "/ugc" || pathname === "/ugc/"
-                : pathname.startsWith(item.href);
+                : item.href === "/ugc/campaign-center"
+                  ? pathname === "/ugc/campaign-center" || pathname === "/ugc/campaign-center/"
+                  : pathname.startsWith(item.href);
             return (
               <li key={item.id}>
                 <Link

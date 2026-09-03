@@ -370,8 +370,10 @@ assert.match(applications, /t\("noApplicationsUnlockDesc"\)/);
 assert.match(applications, /href="\/identity\/edit"/);
 assert.match(applications, /overflow-x-auto/);
 const sidebar = read("components/ugc/workspace/UGCWorkspaceSidebar.tsx");
-assert.match(sidebar, /href="\/identity\/edit"/);
-assert.match(sidebar, /pathname\.startsWith\("\/identity"\)/);
+assert.doesNotMatch(sidebar, /Creator profile/);
+assert.doesNotMatch(sidebar, /href="\/identity\/edit"/);
+const topNav = read("components/shell/AppTopNav.tsx");
+assert.match(topNav, /ProfileAccountMenu/);
 assert.match(fund, /t\("insufficientWalletEscrow"\)/);
 
 const wizard = await loadTs("lib/ugc/campaign-wizard-validation.ts");

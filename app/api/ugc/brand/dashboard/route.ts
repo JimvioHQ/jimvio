@@ -2,44 +2,124 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { brandIdFromRequest, requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 import { memberCan } from "@/lib/ugc/enterprise/permissions";
+import {
+  buildCampaignSchedule,
+  scheduleKindLabel,
+  type CampaignScheduleEvent,
+  type CampaignScheduleKind,
+} from "@/lib/ugc/campaign-schedule";
+import { isUgcCampaignNotification } from "@/lib/ugc/ugc-notification-filter";
 
 export const dynamic = "force-dynamic";
+
+type AttentionItem = {
+  id: string;
+  kind: "submission_review" | "application_review" | "funding" | "deadline" | "ending";
+  title: string;
+  reason: string;
+  campaignId: string;
+  campaignTitle: string;
+  href: string;
+  actionLabel: string;
+};
+
+type ActiveCampaignCard = {
+  id: string;
+  title: string;
+  status: string;
+  bannerUrl: string | null;
+  rewardLabel: string | null;
+  creators: number;
+  submissions: number;
+  approvals: number;
+  views: number;
+  nextDateLabel: string | null;
+  nextDate: string | null;
+  href: string;
+};
+
+type UpcomingItem = {
+  id: string;
+  date: string;
+  label: string;
+  campaignId: string;
+  campaignTitle: string;
+  href: string;
+};
+
+type PerformanceRow = {
+  id: string;
+  title: string;
+  status: string;
+  views: number;
+  creators: number;
+  submissions: number;
+  approvals: number;
+  spend: number | null;
+};
+
+type ActivityItem = {
+  id: string;
+  title: string;
+  message: string;
+  campaignTitle: string | null;
+  href: string | null;
+  createdAt: string | null;
+};
 
 type DashboardStats = {
   needsProfile?: boolean;
   summary?: {
     activeCampaigns: number;
     draftCampaigns: number;
-    pendingFunding: number;
+    pendingReview: number;
     totalSpend: number | null;
     totalViews: number;
     totalCreators: number;
-    activeApplications: number;
-    conversionRate: number; // 0-100
   };
-  campaignPerformance?: {
-    topCampaigns: Array<{
-      id: string;
-      title: string;
-      status: string;
-      views: number;
-      spend: number | null;
-      submissions: number;
-      approvals: number;
-    }>;
-  };
-  notifications?: Array<{
-    id: string;
-    title: string;
-    message: string;
-    type: string;
-    category: string | null;
-    actionUrl: string | null;
-    createdAt: string | null;
-    isRead: boolean;
-  }>;
-  drafts?: Array<{ id: string; title: string }>;
+  attention?: AttentionItem[];
+  activeCampaigns?: ActiveCampaignCard[];
+  upcoming?: UpcomingItem[];
+  campaignPerformance?: PerformanceRow[];
+  activity?: ActivityItem[];
+  fundableDraft?: { id: string; title: string } | null;
 };
+
+function rewardLabel(c: {
+  payment_model?: string | null;
+  fixed_rate?: number | null;
+  max_payout_per_sub?: number | null;
+  rate_per_1k_views?: number | null;
+}): string | null {
+  if (c.payment_model === "fixed_per_content") {
+    const rate = Number(c.fixed_rate ?? 0);
+    const max = Number(c.max_payout_per_sub ?? rate);
+    if (rate <= 0) return null;
+    if (max > rate) return `$${rate}–$${max} / video`;
+    return `$${rate} / video`;
+  }
+  const rate = Number(c.rate_per_1k_views ?? 0);
+  if (rate <= 0) return null;
+  return `$${rate} / 1K views`;
+}
+
+function daysUntil(iso: string | null | undefined, now: number): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  return Math.ceil((t - now) / (1000 * 60 * 60 * 24));
+}
+
+function nextFutureEvent(
+  events: CampaignScheduleEvent[],
+  now: number,
+): CampaignScheduleEvent | null {
+  const future = events
+    .map((e) => ({ e, t: Date.parse(e.date) }))
+    .filter((x) => !Number.isNaN(x.t) && x.t >= now)
+    .sort((a, b) => a.t - b.t);
+  return future[0]?.e ?? null;
+}
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -54,6 +134,7 @@ export async function GET(req: NextRequest) {
   }
   const { db, vendor, role } = ws;
   const showFinance = memberCan(role, "finance.view");
+  const now = Date.now();
 
   const { data: campaigns } = await db
     .from("ugc_campaigns")
@@ -67,8 +148,21 @@ export async function GET(req: NextRequest) {
       total_views_tracked,
       submission_count,
       approved_count,
+      payment_model,
+      fixed_rate,
+      max_payout_per_sub,
+      rate_per_1k_views,
+      starts_at,
+      ends_at,
+      content_deadline,
+      live_at,
+      submission_deadline,
+      review_starts_at,
+      review_ends_at,
+      payment_at,
+      created_at,
       updated_at,
-      ends_at
+      media:ugc_campaign_media(url, usage)
     `,
     )
     .eq("brand_id", vendor.id)
@@ -77,13 +171,11 @@ export async function GET(req: NextRequest) {
 
   const ownedCampaigns = campaigns ?? [];
   const campaignIds = ownedCampaigns.map((c) => c.id);
+  const titleById = new Map(ownedCampaigns.map((c) => [c.id, c.title]));
 
   const byStatus = {
     active: ownedCampaigns.filter((c) => c.status === "active"),
     draft: ownedCampaigns.filter((c) => c.status === "draft"),
-    paused: ownedCampaigns.filter((c) => c.status === "paused"),
-    completed: ownedCampaigns.filter((c) => c.status === "completed"),
-    cancelled: ownedCampaigns.filter((c) => c.status === "cancelled"),
   };
 
   const totalSpend = ownedCampaigns.reduce((sum, c) => sum + Number(c.spent_budget ?? 0), 0);
@@ -92,80 +184,272 @@ export async function GET(req: NextRequest) {
     0,
   );
 
-  let totalCreators = 0;
-  let activeApplications = 0;
-  let conversionRate = 0;
+  const creatorsByCampaign = new Map<string, Set<string>>();
+  const pendingAppsByCampaign = new Map<string, number>();
+  const pendingSubsByCampaign = new Map<string, number>();
+  const creatorSet = new Set<string>();
 
   if (campaignIds.length > 0) {
-    const { data: participants } = await db
-      .from("ugc_campaign_participants")
-      .select("influencer_id, status")
-      .in("campaign_id", campaignIds);
+    const [{ data: participants }, { data: pendingSubs }, { data: customEvents }, { data: activityRows }] =
+      await Promise.all([
+        db
+          .from("ugc_campaign_participants")
+          .select("campaign_id, influencer_id, status")
+          .in("campaign_id", campaignIds),
+        db
+          .from("ugc_submissions")
+          .select("id, campaign_id, status")
+          .in("campaign_id", campaignIds)
+          .in("status", ["pending", "revision_requested"]),
+        db
+          .from("ugc_campaign_events")
+          .select("id, campaign_id, event_type, title, description, starts_at, ends_at, metadata")
+          .in("campaign_id", campaignIds)
+          .order("starts_at", { ascending: true }),
+        db
+          .from("ugc_campaign_activity")
+          .select("id, campaign_id, event_type, title, description, created_at, submission_id")
+          .in("campaign_id", campaignIds)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
 
-    const list = participants ?? [];
-    const creatorSet = new Set<string>();
-    let accepted = 0;
-    let reviewQueue = 0; // pending + waitlisted
-    for (const p of list) {
-      if (!p.influencer_id) continue;
-      creatorSet.add(String(p.influencer_id));
-      if (p.status === "accepted") accepted += 1;
-      if (p.status === "pending" || p.status === "waitlisted") reviewQueue += 1;
+    for (const p of participants ?? []) {
+      const cid = String(p.campaign_id);
+      if (p.influencer_id) {
+        creatorSet.add(String(p.influencer_id));
+        const set = creatorsByCampaign.get(cid) ?? new Set<string>();
+        set.add(String(p.influencer_id));
+        creatorsByCampaign.set(cid, set);
+      }
+      if (p.status === "pending" || p.status === "waitlisted") {
+        pendingAppsByCampaign.set(cid, (pendingAppsByCampaign.get(cid) ?? 0) + 1);
+      }
     }
 
-    // conversion = accepted / (accepted + pending + waitlisted)
-    totalCreators = creatorSet.size;
-    activeApplications = reviewQueue;
-    conversionRate = accepted + reviewQueue > 0 ? Math.round((accepted / (accepted + reviewQueue)) * 100) : 0;
-  }
+    for (const s of pendingSubs ?? []) {
+      const cid = String(s.campaign_id);
+      pendingSubsByCampaign.set(cid, (pendingSubsByCampaign.get(cid) ?? 0) + 1);
+    }
 
-  const topCampaigns = [...ownedCampaigns]
-    .sort((a, b) => Number(b.total_views_tracked ?? 0) - Number(a.total_views_tracked ?? 0))
-    .slice(0, 5)
-    .map((c) => ({
+    const eventsByCampaign = new Map<string, CampaignScheduleEvent[]>();
+    for (const ev of customEvents ?? []) {
+      const cid = String(ev.campaign_id);
+      const list = eventsByCampaign.get(cid) ?? [];
+      list.push({
+        id: String(ev.id),
+        kind: (ev.event_type as CampaignScheduleKind) || "custom",
+        title: ev.title,
+        description: ev.description ?? null,
+        date: String(ev.starts_at),
+        ends_at: ev.ends_at ? String(ev.ends_at) : null,
+        metadata: (ev.metadata as Record<string, unknown> | null) ?? null,
+      });
+      eventsByCampaign.set(cid, list);
+    }
+
+    const attention: AttentionItem[] = [];
+
+    for (const [cid, count] of pendingSubsByCampaign) {
+      const title = titleById.get(cid) ?? "Campaign";
+      attention.push({
+        id: `subs-${cid}`,
+        kind: "submission_review",
+        title: "Submission review",
+        reason: `${count} submission${count === 1 ? "" : "s"} from ${title}`,
+        campaignId: cid,
+        campaignTitle: title,
+        href: `/ugc/campaign-center/${cid}/submissions`,
+        actionLabel: "Review submissions",
+      });
+    }
+
+    for (const [cid, count] of pendingAppsByCampaign) {
+      const title = titleById.get(cid) ?? "Campaign";
+      attention.push({
+        id: `apps-${cid}`,
+        kind: "application_review",
+        title: "Creator applications",
+        reason: `${count} application${count === 1 ? "" : "s"} waiting on ${title}`,
+        campaignId: cid,
+        campaignTitle: title,
+        href: `/ugc/campaign-center/${cid}/participants`,
+        actionLabel: "Review applications",
+      });
+    }
+
+    for (const c of byStatus.draft) {
+      attention.push({
+        id: `fund-${c.id}`,
+        kind: "funding",
+        title: "Campaign funding",
+        reason: `${c.title} is ready but needs funding`,
+        campaignId: c.id,
+        campaignTitle: c.title,
+        href: `/ugc/campaign-center/${c.id}/funding`,
+        actionLabel: "Fund campaign",
+      });
+    }
+
+    for (const c of ownedCampaigns) {
+      if (c.status !== "active" && c.status !== "paused") continue;
+      const contentDays = daysUntil(c.content_deadline, now);
+      if (contentDays !== null && contentDays >= 0 && contentDays <= 7) {
+        attention.push({
+          id: `content-${c.id}`,
+          kind: "deadline",
+          title: "Deadline approaching",
+          reason:
+            contentDays === 0
+              ? `Content deadline is today for ${c.title}`
+              : `${contentDays} day${contentDays === 1 ? "" : "s"} until content deadline`,
+          campaignId: c.id,
+          campaignTitle: c.title,
+          href: `/ugc/campaign-center/${c.id}/edit`,
+          actionLabel: "View campaign",
+        });
+      }
+      const endDays = daysUntil(c.ends_at, now);
+      if (endDays !== null && endDays >= 0 && endDays <= 5) {
+        attention.push({
+          id: `end-${c.id}`,
+          kind: "ending",
+          title: "Campaign ending",
+          reason:
+            endDays === 0
+              ? `${c.title} ends today`
+              : `${endDays} day${endDays === 1 ? "" : "s"} until campaign end`,
+          campaignId: c.id,
+          campaignTitle: c.title,
+          href: `/ugc/campaign-center/${c.id}/edit`,
+          actionLabel: "View campaign",
+        });
+      }
+    }
+
+    const upcoming: UpcomingItem[] = [];
+    for (const c of ownedCampaigns) {
+      const schedule = buildCampaignSchedule(c, eventsByCampaign.get(c.id) ?? []);
+      for (const ev of schedule) {
+        const t = Date.parse(ev.date);
+        if (Number.isNaN(t) || t < now) continue;
+        upcoming.push({
+          id: ev.id,
+          date: ev.date,
+          label: ev.title || scheduleKindLabel(ev.kind),
+          campaignId: c.id,
+          campaignTitle: c.title,
+          href: `/ugc/campaign-center/${c.id}/edit`,
+        });
+      }
+    }
+    upcoming.sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+
+    const activeCampaigns: ActiveCampaignCard[] = byStatus.active.map((c) => {
+      const media = Array.isArray(c.media) ? c.media : [];
+      const banner =
+        media.find((m: { usage?: string; url?: string }) => m.usage === "banner")?.url ??
+        media[0]?.url ??
+        null;
+      const next = nextFutureEvent(buildCampaignSchedule(c, eventsByCampaign.get(c.id) ?? []), now);
+      return {
+        id: c.id,
+        title: c.title,
+        status: c.status,
+        bannerUrl: banner,
+        rewardLabel: rewardLabel(c),
+        creators: creatorsByCampaign.get(c.id)?.size ?? 0,
+        submissions: Number(c.submission_count ?? 0),
+        approvals: Number(c.approved_count ?? 0),
+        views: Number(c.total_views_tracked ?? 0),
+        nextDateLabel: next ? next.title || scheduleKindLabel(next.kind) : null,
+        nextDate: next?.date ?? null,
+        href: `/ugc/campaign-center/${c.id}/edit`,
+      };
+    });
+
+    const campaignPerformance: PerformanceRow[] = ownedCampaigns.slice(0, 12).map((c) => ({
       id: c.id,
       title: c.title,
       status: c.status,
       views: Number(c.total_views_tracked ?? 0),
-      spend: showFinance ? Number(c.spent_budget ?? 0) : null,
+      creators: creatorsByCampaign.get(c.id)?.size ?? 0,
       submissions: Number(c.submission_count ?? 0),
       approvals: Number(c.approved_count ?? 0),
+      spend: showFinance ? Number(c.spent_budget ?? 0) : null,
     }));
+
+    const activity: ActivityItem[] = (activityRows ?? []).map((row) => ({
+      id: String(row.id),
+      title: row.title,
+      message: row.description ?? "",
+      campaignTitle: titleById.get(String(row.campaign_id)) ?? null,
+      href: row.submission_id
+        ? `/ugc/campaign-center/${row.campaign_id}/submissions`
+        : `/ugc/campaign-center/${row.campaign_id}/edit`,
+      createdAt: row.created_at ? String(row.created_at) : null,
+    }));
+
+    const pendingReview =
+      [...pendingAppsByCampaign.values()].reduce((a, b) => a + b, 0) +
+      [...pendingSubsByCampaign.values()].reduce((a, b) => a + b, 0);
+
+    return NextResponse.json({
+      summary: {
+        activeCampaigns: byStatus.active.length,
+        draftCampaigns: byStatus.draft.length,
+        pendingReview,
+        totalSpend: showFinance ? totalSpend : null,
+        totalViews,
+        totalCreators: creatorSet.size,
+      },
+      attention: attention.slice(0, 8),
+      activeCampaigns,
+      upcoming: upcoming.slice(0, 8),
+      campaignPerformance,
+      activity: activity.slice(0, 8),
+      fundableDraft: byStatus.draft[0] ? { id: byStatus.draft[0].id, title: byStatus.draft[0].title } : null,
+    } satisfies DashboardStats);
+  }
 
   const { data: notifications } = await db
     .from("notifications")
     .select("id, title, message, type, category, action_url, is_read, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(20);
 
-  const drafts = byStatus.draft
-    .slice(0, 10)
-    .map((c) => ({ id: c.id, title: c.title }));
+  const filteredNotifs = (notifications ?? []).filter((n) =>
+    isUgcCampaignNotification({
+      category: n.category,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      actionUrl: n.action_url,
+    }),
+  );
 
   return NextResponse.json({
     summary: {
-      activeCampaigns: byStatus.active.length,
-      draftCampaigns: byStatus.draft.length,
-      pendingFunding: byStatus.draft.length,
-      totalSpend: showFinance ? totalSpend : null,
-      totalViews,
-      totalCreators,
-      activeApplications,
-      conversionRate,
+      activeCampaigns: 0,
+      draftCampaigns: 0,
+      pendingReview: 0,
+      totalSpend: showFinance ? 0 : null,
+      totalViews: 0,
+      totalCreators: 0,
     },
-    campaignPerformance: { topCampaigns },
-    notifications: (notifications ?? []).map((n) => ({
+    attention: [],
+    activeCampaigns: [],
+    upcoming: [],
+    campaignPerformance: [],
+    activity: filteredNotifs.slice(0, 8).map((n) => ({
       id: String(n.id),
       title: n.title ?? "Update",
       message: n.message ?? "",
-      type: n.type ?? "system",
-      category: n.category ?? null,
-      actionUrl: n.action_url ?? null,
+      campaignTitle: null,
+      href: n.action_url ?? null,
       createdAt: n.created_at ? String(n.created_at) : null,
-      isRead: Boolean(n.is_read),
     })),
-    drafts,
+    fundableDraft: null,
   } satisfies DashboardStats);
 }
-

@@ -7,6 +7,7 @@ import {
   Archive,
   Copy,
   Eye,
+  FileStack,
   MoreHorizontal,
   Pause,
   Pencil,
@@ -14,6 +15,7 @@ import {
   Plus,
   Trash2,
   Upload,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UGCCampaign, UGCCampaignStatus } from "@/types/ugc";
@@ -23,7 +25,7 @@ import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspa
 import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
 import { useLocale } from "@/context/LocaleContext";
 
-type FilterStatus = "all" | UGCCampaignStatus;
+type FilterStatus = "all" | "upcoming" | UGCCampaignStatus;
 
 type CampaignCenterBoardProps = {
   title: string;
@@ -62,6 +64,7 @@ export function CampaignCenterBoard({
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [tab, setTab] = useState<FilterStatus>(initialStatus);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,9 +84,31 @@ export function CampaignCenterBoard({
   }, [load]);
 
   const filtered = useMemo(() => {
-    if (initialStatus === "all") return campaigns;
-    return campaigns.filter((c) => c.status === initialStatus);
-  }, [campaigns, initialStatus]);
+    const now = Date.now();
+    if (tab === "all") return campaigns;
+    if (tab === "upcoming") {
+      return campaigns.filter((c) => {
+        if (c.status === "completed" || c.status === "cancelled") return false;
+        return Boolean(c.starts_at && Date.parse(c.starts_at) > now);
+      });
+    }
+    if (tab === "draft") return campaigns.filter((c) => c.status === "draft");
+    return campaigns.filter((c) => c.status === tab);
+  }, [campaigns, tab]);
+
+  const tabs: Array<{ id: FilterStatus; label: string; count: number }> = [
+    { id: "all", label: "All", count: campaigns.length },
+    { id: "draft", label: "Draft / Pending funding", count: campaigns.filter((c) => c.status === "draft").length },
+    { id: "active", label: "Active", count: campaigns.filter((c) => c.status === "active").length },
+    {
+      id: "upcoming",
+      label: "Upcoming",
+      count: campaigns.filter(
+        (c) => c.status !== "completed" && c.status !== "cancelled" && Boolean(c.starts_at && Date.parse(c.starts_at) > Date.now()),
+      ).length,
+    },
+    { id: "completed", label: "Completed", count: campaigns.filter((c) => c.status === "completed").length },
+  ];
 
   const runAction = async (id: string, action: () => Promise<void>) => {
     setBusyId(id);
@@ -111,13 +136,10 @@ export function CampaignCenterBoard({
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto w-full max-w-6xl">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
-            Campaign Center
-          </p>
-          <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
+          <h1 className="text-[26px] font-semibold tracking-tight text-[#111827] sm:text-[30px]">
             {title}
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-[#6B7280]">{subtitle}</p>
@@ -132,6 +154,27 @@ export function CampaignCenterBoard({
           </Link>
         ) : null}
       </div>
+
+      {initialStatus === "all" ? (
+        <div className="mb-4 flex gap-1 overflow-x-auto pb-1">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-medium",
+                tab === item.id
+                  ? "bg-[#FFF4EF] text-[#FF5A1F]"
+                  : "text-[#6B7280] hover:bg-[#F8FAFC]",
+              )}
+            >
+              {item.label}
+              <span className="ml-1.5 tabular-nums text-[#9CA3AF]">{item.count}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="grid gap-3">
@@ -178,10 +221,10 @@ export function CampaignCenterBoard({
                     </p>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#9CA3AF]">
                       <span>{c.campaign_type.replace(/_/g, " ")}</span>
-                      <span>
-                        Budget {formatMoney(c.total_budget ?? 0, "USD")}
-                      </span>
+                      <span>{formatMoney(c.total_budget ?? 0, "USD")} budget</span>
                       <span>{c.submission_count ?? 0} submissions</span>
+                      <span>{c.approved_count ?? 0} approved</span>
+                      <span>{(c.total_views_tracked ?? 0).toLocaleString()} views</span>
                       <span>Updated {relativeTime(c.updated_at ?? c.created_at)}</span>
                     </div>
                   </div>
@@ -209,12 +252,32 @@ export function CampaignCenterBoard({
                   <div className="absolute right-4 top-14 z-10 w-48 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white py-1 shadow-lg">
                     {c.status === "draft" ? (
                       <Link
-                        href={`/ugc/campaign-center/${c.id}/fund`}
+                        href={withBrandQuery(`/ugc/campaign-center/${c.id}/fund`, brandId)}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
                         onClick={() => setMenuId(null)}
                       >
                         <Upload className="h-3.5 w-3.5" />
                         {t("fundAndActivate")}
+                      </Link>
+                    ) : null}
+                    {(c.status === "active" || c.status === "paused" || (c.submission_count ?? 0) > 0) ? (
+                      <Link
+                        href={withBrandQuery(`/ugc/campaign-center/${c.id}/submissions`, brandId)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
+                        onClick={() => setMenuId(null)}
+                      >
+                        <FileStack className="h-3.5 w-3.5" />
+                        Review submissions
+                      </Link>
+                    ) : null}
+                    {c.status === "active" || c.status === "draft" ? (
+                      <Link
+                        href={withBrandQuery("/ugc/campaign-center/recruitment", brandId)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
+                        onClick={() => setMenuId(null)}
+                      >
+                        <Users className="h-3.5 w-3.5" />
+                        Recruit creators
                       </Link>
                     ) : null}
                     {c.status === "active" ? (

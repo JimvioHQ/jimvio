@@ -5,190 +5,159 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   Compass,
-  DollarSign,
-  FileStack,
-  FolderKanban,
-  Megaphone,
+  FolderOpen,
+  LayoutDashboard,
   PlusCircle,
-  UserRound,
+  Upload,
+  Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocale } from "@/context/LocaleContext";
-import { UgcWorkspaceSwitcher } from "./UgcWorkspaceSwitcher";
 import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
+import { UgcWorkspaceSwitcher } from "./UgcWorkspaceSwitcher";
 import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
 
 type NavItem = {
   id: string;
-  label: string;
   href: string;
-  icon: typeof Compass;
+  label: string;
+  icon: LucideIcon;
 };
 
-const WORK_NAV: NavItem[] = [
-  { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass },
-  { id: "campaigns", label: "My Campaigns", href: "/ugc/campaigns", icon: FolderKanban },
-  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileStack },
-  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
+const CREATOR_WORK: NavItem[] = [
+  { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
+  { id: "campaigns", href: "/ugc/campaigns", label: "My Campaigns", icon: FolderOpen },
+  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
+  { id: "activity", href: "/ugc/activity", label: "Activity", icon: Bell },
+  { id: "earnings", href: "/ugc/earnings", label: "Earnings", icon: Wallet },
 ];
 
-const SECONDARY_NAV: NavItem[] = [
-  { id: "activity", label: "Activity", href: "/ugc/activity", icon: Bell },
+const BRAND_WORK: NavItem[] = [
+  { id: "overview", href: "/ugc/campaign-center", label: "Overview", icon: LayoutDashboard },
+  { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
+  { id: "campaigns", href: "/ugc/campaign-center/campaigns", label: "My Campaigns", icon: FolderOpen },
+  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
+  { id: "activity", href: "/ugc/activity", label: "Activity", icon: Bell },
+  { id: "earnings", href: "/ugc/earnings", label: "Earnings", icon: Wallet },
 ];
 
-function resolveActive(pathname: string): string {
-  if (pathname.startsWith("/ugc/campaign-center/create")) return "cc-create";
-  if (pathname.startsWith("/ugc/campaign-center")) return "cc-home";
-  if (pathname.startsWith("/ugc/submissions")) return "submissions";
-  if (pathname.startsWith("/ugc/earnings") || pathname.startsWith("/ugc/payouts")) return "earnings";
-  if (pathname.startsWith("/ugc/activity")) return "activity";
-  if (
-    pathname.startsWith("/ugc/campaigns") ||
-    pathname.startsWith("/ugc/applications") ||
-    pathname.startsWith("/ugc/calendar") ||
-    /^\/ugc\/[^/]+\/(dashboard|application|submit|timeline)/.test(pathname)
-  ) {
-    return "campaigns";
+const BRAND_MANAGE: NavItem[] = [
+  { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
+];
+
+export const UGC_MOBILE_TABS: NavItem[] = CREATOR_WORK.filter((item) =>
+  ["discover", "campaigns", "submissions", "earnings"].includes(item.id),
+);
+
+export const UGC_BRAND_MOBILE_TABS: NavItem[] = [
+  BRAND_WORK[0],
+  BRAND_WORK[1],
+  BRAND_WORK[2],
+  BRAND_WORK[3],
+];
+
+function isActive(pathname: string, item: NavItem, brandMode: boolean) {
+  if (item.id === "discover") return pathname === "/ugc" || pathname === "/ugc/";
+  if (item.id === "overview") {
+    return pathname === "/ugc/campaign-center" || pathname === "/ugc/campaign-center/";
   }
-  if (pathname.startsWith("/identity")) return "profile";
-  if (pathname === "/ugc" || pathname === "/ugc/" || pathname.startsWith("/ugc/search")) {
-    return "discover";
+  if (item.id === "create") return pathname.startsWith("/ugc/campaign-center/create");
+  if (item.id === "campaigns" && brandMode) {
+    return (
+      pathname.startsWith("/ugc/campaign-center/campaigns") ||
+      pathname.startsWith("/ugc/campaign-center/active") ||
+      pathname.startsWith("/ugc/campaign-center/drafts") ||
+      pathname.startsWith("/ugc/campaign-center/completed")
+    );
   }
-  if (/^\/ugc\/[^/]+\/?$/.test(pathname) || pathname.startsWith("/ugc/")) return "discover";
-  return "discover";
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 function NavLink({
   item,
   active,
+  href,
   onNavigate,
 }: {
   item: NavItem;
   active: boolean;
+  href: string;
   onNavigate?: () => void;
 }) {
-  const { brandId } = useUgcBrandWorkspace();
-  const href = item.href.startsWith("/ugc/campaign-center")
-    ? withBrandQuery(item.href, brandId)
-    : item.href;
   const Icon = item.icon;
   return (
     <Link
       href={href}
       onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[14px] font-medium transition-colors duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
+        "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors",
         active
-          ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F]"
-          : "text-[#111827] hover:bg-[#F8FAFC] hover:text-[#111827]",
+          ? "bg-[#FFF4EF] font-semibold text-[#FF5A1F]"
+          : "font-medium text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
       )}
     >
-      <Icon
-        strokeWidth={active ? 2.2 : 1.85}
-        className={cn(
-          "h-[16px] w-[16px] shrink-0",
-          active ? "text-[#FF5A1F]" : "text-[#94A3B8] group-hover:text-[#64748B]",
-        )}
-      />
+      <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.1 : 1.75} aria-hidden />
       <span className="truncate">{item.label}</span>
     </Link>
   );
 }
 
-type UGCWorkspaceSidebarProps = {
-  onNavigate?: () => void;
-};
-
-export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
-  const pathname = usePathname();
-  const { t } = useLocale();
-  const { workspaces } = useUgcBrandWorkspace();
-  const activeId = resolveActive(pathname);
-  const showBrandNav = workspaces.length > 0;
-
+function SectionLabel({ children }: { children: string }) {
   return (
-    <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white xl:w-[244px]">
-      <div className="border-b border-[#F1F5F9] px-3.5 pb-3 pt-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
-          {t("ugcClipping")}
-        </p>
-        <UgcWorkspaceSwitcher />
-        <Link
-          href="/identity/edit"
-          onClick={onNavigate}
-          className={cn(
-            "mt-1 flex items-center gap-2 rounded-[10px] px-2.5 py-[7px] text-[13px] font-medium transition-colors",
-            activeId === "profile"
-              ? "bg-[#FFF0E8] text-[#FF5A1F]"
-              : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]",
-          )}
-        >
-          <UserRound className="h-4 w-4" strokeWidth={1.9} />
-          Creator profile
-        </Link>
-      </div>
-
-      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-3">
-        <p className="mb-1.5 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
-          Work
-        </p>
-        <ul className="space-y-[2px]">
-          {WORK_NAV.map((item) => (
-            <li key={item.id}>
-              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
-            </li>
-          ))}
-        </ul>
-
-        <p className="mb-1.5 mt-5 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
-          Activity
-        </p>
-        <ul className="space-y-[2px]">
-          {SECONDARY_NAV.map((item) => (
-            <li key={item.id}>
-              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
-            </li>
-          ))}
-        </ul>
-
-        {showBrandNav ? (
-          <>
-            <p className="mb-1.5 mt-5 px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
-              {t("campaignCenter")}
-            </p>
-            <ul className="space-y-[2px]">
-              <li>
-                <NavLink
-                  item={{
-                    id: "cc-create",
-                    label: t("createCampaign"),
-                    href: "/ugc/campaign-center/create",
-                    icon: PlusCircle,
-                  }}
-                  active={activeId === "cc-create"}
-                  onNavigate={onNavigate}
-                />
-              </li>
-              <li>
-                <NavLink
-                  item={{
-                    id: "cc-home",
-                    label: t("myCampaigns"),
-                    href: "/ugc/campaign-center",
-                    icon: Megaphone,
-                  }}
-                  active={activeId === "cc-home"}
-                  onNavigate={onNavigate}
-                />
-              </li>
-            </ul>
-          </>
-        ) : null}
-      </nav>
-    </div>
+    <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+      {children}
+    </p>
   );
 }
 
-export const UGC_MOBILE_TABS = WORK_NAV;
+export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const { workspaces, brandId } = useUgcBrandWorkspace();
+  const brandMode = workspaces.length > 0;
+  const work = brandMode ? BRAND_WORK : CREATOR_WORK;
+
+  return (
+    <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white">
+      <div className="px-3 pb-3 pt-4">
+        <p className="px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+          UGC & Clipping
+        </p>
+      </div>
+
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2 pb-4">
+        <div>
+          <SectionLabel>Work</SectionLabel>
+          <div className="space-y-0.5">
+            {work.map((item) => (
+              <NavLink
+                key={item.id}
+                item={item}
+                active={isActive(pathname, item, brandMode)}
+                href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+        </div>
+
+        {brandMode ? (
+          <div>
+            <SectionLabel>Manage</SectionLabel>
+            <div className="space-y-0.5">
+              {BRAND_MANAGE.map((item) => (
+                <NavLink
+                  key={item.id}
+                  item={item}
+                  active={isActive(pathname, item, true)}
+                  href={withBrandQuery(item.href, brandId)}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </nav>
+      {brandMode ? <UgcWorkspaceSwitcher /> : null}
+    </div>
+  );
+}
