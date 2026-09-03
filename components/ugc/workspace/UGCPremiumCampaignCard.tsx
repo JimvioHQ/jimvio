@@ -72,8 +72,14 @@ function UGCPremiumCampaignCardInner({
   const creators = c.submission_count ?? 0;
   const days = getDaysRemaining(c.submission_deadline ?? c.ends_at);
   const lifecycle = getCampaignLifecycleStatus(c);
+  const deadlineSource = c.submission_deadline ?? c.ends_at;
   const deadlineLabel =
-    days === null ? "Open" : days === 0 ? "Ends today" : `Deadline ${new Date(c.ends_at ?? "").toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    days === null
+      ? "Open"
+      : days === 0
+        ? "Due today"
+        : `Deadline ${new Date(deadlineSource!).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+  const isVerified = c.vendor?.verification_status === "verified";
 
   return (
     <article className="group h-full">
@@ -145,7 +151,7 @@ function UGCPremiumCampaignCardInner({
             <span className="min-w-0 truncate text-[12px] font-semibold text-[#111827]">
               {c.vendor?.business_name ?? "Brand"}
             </span>
-            <VerifiedBadge className="h-3 w-3" />
+            {isVerified ? <VerifiedBadge className="h-3 w-3" /> : null}
           </div>
 
           <h3 className="mt-1.5 line-clamp-2 text-[14px] font-semibold leading-[1.3] tracking-[-0.01em] text-[#111827] group-hover:text-[#FF5A1F]">

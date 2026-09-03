@@ -93,6 +93,8 @@ export interface UGCCampaign {
     created_at?: string | null;
     rating?: number | null;
     follower_count?: number | null;
+    verification_status?: "pending" | "verified" | "rejected" | "suspended" | null;
+    verified_at?: string | null;
   };
 }
 

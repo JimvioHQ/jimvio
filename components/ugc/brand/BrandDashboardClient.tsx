@@ -70,8 +70,10 @@ type DashboardStats = {
   needsProfile?: boolean;
   summary?: {
     activeCampaigns: number;
-    draftCampaigns: number;
-    pendingReview: number;
+    upcomingCampaigns: number;
+    pendingApplications: number;
+    pendingSubmissions: number;
+    pendingFunding: number;
     totalSpend: number | null;
     totalViews: number;
     totalCreators: number;
@@ -187,10 +189,12 @@ export default function BrandDashboardClient() {
       }
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
           <Kpi label="Active campaigns" value={String(s.activeCampaigns)} hint="Currently live" />
-          <Kpi label="Drafts" value={String(s.draftCampaigns)} hint="Not yet launched" />
-          <Kpi label="Pending review" value={String(s.pendingReview)} hint="Applications and submissions" />
+          <Kpi label="Upcoming" value={String(s.upcomingCampaigns)} hint="Not started yet" />
+          <Kpi label="Pending applications" value={String(s.pendingApplications)} hint="Awaiting approval" />
+          <Kpi label="Pending submissions" value={String(s.pendingSubmissions)} hint="Awaiting review" />
+          <Kpi label="Pending funding" value={String(s.pendingFunding)} hint="Drafts to fund" />
           <Kpi
             label="Total spend"
             value={s.totalSpend == null ? "—" : formatMoney(s.totalSpend, "USD")}

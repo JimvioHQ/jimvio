@@ -37,7 +37,9 @@ export async function GET(
         business_type,
         created_at,
         rating,
-        follower_count
+        follower_count,
+        verification_status,
+        verified_at
       )
     `)
     .eq('id', id)

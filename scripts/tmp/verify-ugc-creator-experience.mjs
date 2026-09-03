@@ -57,7 +57,14 @@ for (const banned of ["Conversion Metrics", "Your approval funnel", "Improve out
     failed += 1;
   }
 }
-for (const required of ["Needs your attention", "Active campaigns", "Campaign performance", "Create Campaign"]) {
+for (const required of [
+  "Needs your attention",
+  "Active campaigns",
+  "Campaign performance",
+  "Create Campaign",
+  "Pending applications",
+  "Pending submissions",
+]) {
   if (!dashboard.includes(required)) {
     console.error(`brand dashboard missing required copy: ${required}`);
     failed += 1;

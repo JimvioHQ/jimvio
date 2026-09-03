@@ -10,8 +10,16 @@ import {
   scheduleKindLabel,
   type CampaignScheduleEvent,
 } from "@/lib/ugc/campaign-schedule";
-import { getCampaignRewardLine } from "./ugc-campaign-utils";
+import { localDateKey } from "@/lib/ugc/calendar";
+import { getCampaignBanner, getCampaignRewardLine } from "./ugc-campaign-utils";
 import { cn } from "@/lib/utils";
+
+function dayTone(dateKey: string) {
+  const today = localDateKey(new Date());
+  if (dateKey < today) return { label: "Ended", className: "border-[#E5E7EB] bg-[#F8FAFC] text-[#64748B]" };
+  if (dateKey === today) return { label: "Due today", className: "border-amber-200 bg-amber-50 text-amber-800" };
+  return { label: "Upcoming", className: "border-sky-200 bg-sky-50 text-sky-700" };
+}
 
 export function UGCDateDetailPanel({
   dateLabel,
@@ -27,6 +35,7 @@ export function UGCDateDetailPanel({
   onClose: () => void;
 }) {
   const { formatMoney } = useCurrency();
+  const day = dayTone(dateKey);
 
   return (
     <aside className="rounded-[16px] border border-[#E5E7EB] bg-white p-4 shadow-[0_8px_30px_rgba(17,24,39,0.06)] sm:p-5">
@@ -35,7 +44,12 @@ export function UGCDateDetailPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">
             Campaign day
           </p>
-          <h2 className="mt-0.5 text-[18px] font-bold tracking-tight text-[#111827]">{dateLabel}</h2>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">{dateLabel}</h2>
+            <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold", day.className)}>
+              {day.label}
+            </span>
+          </div>
         </div>
         <button
           type="button"
@@ -58,26 +72,40 @@ export function UGCDateDetailPanel({
               events: eventsByCampaign[campaign.id] ?? [],
             });
             const reward = getCampaignRewardLine(campaign, formatMoney);
+            const banner = getCampaignBanner(campaign);
+            const assets = (campaign.media ?? []).filter((m) => m.url).slice(0, 4);
             return (
               <article key={campaign.id} className="rounded-[14px] border border-[#EEF0F2] p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[12px] font-semibold text-[#64748B]">{info.campaign.brand}</p>
-                  <span
-                    className={cn(
-                      "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                      info.lifecycle === "live"
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : info.lifecycle === "ending_soon"
-                          ? "border-amber-200 bg-amber-50 text-amber-800"
-                          : info.lifecycle === "ended"
-                            ? "border-[#E5E7EB] bg-[#F8FAFC] text-[#64748B]"
-                            : "border-sky-200 bg-sky-50 text-sky-700",
-                    )}
-                  >
-                    {lifecycleLabel(info.lifecycle)}
-                  </span>
+                <div className="flex gap-3">
+                  {banner ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={banner}
+                      alt=""
+                      className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : null}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[12px] font-semibold text-[#64748B]">{info.campaign.brand}</p>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                          info.lifecycle === "live"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : info.lifecycle === "ending_soon"
+                              ? "border-amber-200 bg-amber-50 text-amber-800"
+                              : info.lifecycle === "ended"
+                                ? "border-[#E5E7EB] bg-[#F8FAFC] text-[#64748B]"
+                                : "border-sky-200 bg-sky-50 text-sky-700",
+                        )}
+                      >
+                        {lifecycleLabel(info.lifecycle)}
+                      </span>
+                    </div>
+                    <h3 className="mt-1 text-[16px] font-semibold text-[#111827]">{campaign.title}</h3>
+                  </div>
                 </div>
-                <h3 className="mt-1 text-[16px] font-bold text-[#111827]">{campaign.title}</h3>
 
                 <div className="mt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">
@@ -89,7 +117,7 @@ export function UGCDateDetailPanel({
                     <ul className="mt-1.5 space-y-1">
                       {info.whatHappens.map((event) => (
                         <li key={event.id} className="text-[13px] text-[#111827]">
-                          <span className="font-semibold">{scheduleKindLabel(event.kind)}</span>
+                          <span className="font-semibold">{event.title || scheduleKindLabel(event.kind)}</span>
                           {event.description ? (
                             <span className="text-[#64748B]"> — {event.description}</span>
                           ) : null}
@@ -116,7 +144,6 @@ export function UGCDateDetailPanel({
                       ].join(" · ")
                     }
                   />
-                  <InfoBlock label="Campaign owner" value={info.campaign.brand} />
                   <InfoBlock
                     label="Hashtags"
                     value={info.campaign.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ") || "None"}
@@ -125,12 +152,37 @@ export function UGCDateDetailPanel({
                     label="Mentions"
                     value={info.campaign.mentions.map((m) => `@${m.replace(/^@/, "")}`).join(" ") || "None"}
                   />
+                  {campaign.content_guidelines ? (
+                    <InfoBlock label="Rules" value={campaign.content_guidelines} />
+                  ) : null}
                 </div>
 
                 {campaign.description ? (
-                  <p className="mt-3 line-clamp-4 text-[13px] leading-relaxed text-[#4B5563]">
-                    {campaign.description}
-                  </p>
+                  <div className="mt-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Brief</p>
+                    <p className="mt-1 line-clamp-4 text-[13px] leading-relaxed text-[#4B5563]">
+                      {campaign.description}
+                    </p>
+                  </div>
+                ) : null}
+
+                {assets.length > 0 ? (
+                  <div className="mt-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">Assets</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      {assets.map((asset) => (
+                        <a
+                          key={asset.id ?? asset.url}
+                          href={asset.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+                        >
+                          {asset.usage ?? asset.type ?? "Asset"}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 ) : null}
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -138,7 +190,7 @@ export function UGCDateDetailPanel({
                     href={`/ugc/${campaign.id}`}
                     className="inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white hover:bg-[#E54E18]"
                   >
-                    View brief
+                    View campaign
                   </Link>
                   <Link
                     href={`/ugc/${campaign.id}/submit`}
@@ -160,7 +212,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A3B8]">{label}</p>
-      <p className="mt-0.5 text-[#111827]">{value}</p>
+      <p className="mt-0.5 line-clamp-3 text-[#111827]">{value}</p>
     </div>
   );
 }

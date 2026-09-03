@@ -71,8 +71,10 @@ type DashboardStats = {
   needsProfile?: boolean;
   summary?: {
     activeCampaigns: number;
-    draftCampaigns: number;
-    pendingReview: number;
+    upcomingCampaigns: number;
+    pendingApplications: number;
+    pendingSubmissions: number;
+    pendingFunding: number;
     totalSpend: number | null;
     totalViews: number;
     totalCreators: number;
@@ -390,15 +392,20 @@ export async function GET(req: NextRequest) {
       createdAt: row.created_at ? String(row.created_at) : null,
     }));
 
-    const pendingReview =
-      [...pendingAppsByCampaign.values()].reduce((a, b) => a + b, 0) +
-      [...pendingSubsByCampaign.values()].reduce((a, b) => a + b, 0);
+    const pendingApplications = [...pendingAppsByCampaign.values()].reduce((a, b) => a + b, 0);
+    const pendingSubmissions = [...pendingSubsByCampaign.values()].reduce((a, b) => a + b, 0);
+    const upcomingCampaigns = ownedCampaigns.filter((c) => {
+      if (c.status === "completed" || c.status === "cancelled") return false;
+      return Boolean(c.starts_at && Date.parse(String(c.starts_at)) > now);
+    }).length;
 
     return NextResponse.json({
       summary: {
         activeCampaigns: byStatus.active.length,
-        draftCampaigns: byStatus.draft.length,
-        pendingReview,
+        upcomingCampaigns,
+        pendingApplications,
+        pendingSubmissions,
+        pendingFunding: byStatus.draft.length,
         totalSpend: showFinance ? totalSpend : null,
         totalViews,
         totalCreators: creatorSet.size,
@@ -432,8 +439,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     summary: {
       activeCampaigns: 0,
-      draftCampaigns: 0,
-      pendingReview: 0,
+      upcomingCampaigns: 0,
+      pendingApplications: 0,
+      pendingSubmissions: 0,
+      pendingFunding: 0,
       totalSpend: showFinance ? 0 : null,
       totalViews: 0,
       totalCreators: 0,

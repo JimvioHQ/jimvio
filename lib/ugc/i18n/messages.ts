@@ -225,7 +225,7 @@ const EN = {
   featured: "Featured",
   creatorsLabel: "creators",
   creatorsJoined: "{count} creators joined",
-  openDashboard: "Open dashboard",
+  openDashboard: "Continue work",
   viewApplication: "View application",
   inviteOnly: "Invite only",
   campaignClosed: "Campaign closed",

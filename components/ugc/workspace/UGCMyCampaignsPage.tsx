@@ -133,6 +133,11 @@ export function UGCMyCampaignsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync schedule deep-link from URL
+    if (searchParams.get("view") === "schedule") setTab("schedule");
+  }, [searchParams]);
+
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load campaigns on mount
     void load();
   }, [load]);
@@ -353,10 +358,14 @@ export function UGCMyCampaignsPage() {
             const progress = `${submittedCount(campaignSubs)} submitted`;
             const cta =
               row.status === "pending" || row.status === "waitlisted"
-                ? { href: `/ugc/${campaign.id}/application`, label: "View status" }
+                ? { href: `/ugc/${campaign.id}/application`, label: "View application" }
                 : campaignSubs.some((s) => s.status === "revision_requested")
-                  ? { href: `/ugc/${campaign.id}/submit`, label: "Revise" }
-                  : { href: `/ugc/${campaign.id}/dashboard`, label: "Continue" };
+                  ? { href: `/ugc/${campaign.id}/submit`, label: "Fix & resubmit" }
+                  : campaignSubs.some((s) => s.status === "pending")
+                    ? { href: `/ugc/${campaign.id}/dashboard`, label: "View submission" }
+                    : campaignSubs.length === 0
+                      ? { href: `/ugc/${campaign.id}/submit`, label: "Submit content" }
+                      : { href: `/ugc/${campaign.id}/dashboard`, label: "Continue work" };
             return (
               <article
                 key={row.id}

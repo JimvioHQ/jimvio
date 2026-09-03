@@ -55,7 +55,9 @@ export async function GET(req: NextRequest) {
         business_name,
         business_logo,
         business_slug,
-        business_country
+        business_country,
+        verification_status,
+        verified_at
       )
     `,
       { count: "exact" }
