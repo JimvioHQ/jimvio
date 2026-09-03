@@ -2,7 +2,10 @@ import crypto from "crypto";
 
 const BINANCE_PAY_BASE = "https://bpay.binanceapi.com";
 const API_KEY = process.env.BINANCE_PAY_API_KEY!;
-const API_SECRET = process.env.BINANCE_PAY_API_SECRET!;
+const API_SECRET =
+  process.env.BINANCE_PAY_API_SECRET ||
+  process.env.BINANCE_PAY_SECRET_KEY ||
+  "";
 const REQUEST_TIMEOUT_MS = 10_000;
 
 // ─── Signature helpers (for OUTBOUND requests — HMAC-SHA512) ──────────────────

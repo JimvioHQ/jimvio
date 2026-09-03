@@ -229,9 +229,9 @@ export function CommandCenter() {
         onKeyDown={onKeyDown}
         className={cn(
           "relative z-10 flex h-[100dvh] w-full max-w-full flex-col overflow-hidden border border-[var(--color-border)]",
-          "rounded-none bg-white text-[var(--color-text-primary)] shadow-2xl dark:bg-[var(--color-surface)]",
+          "rounded-none bg-[#FFFFFF] text-[var(--color-text-primary)] shadow-2xl dark:bg-[var(--color-surface)]",
           "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-          "sm:h-auto sm:max-h-[min(72vh,640px)] sm:w-[min(820px,100%)] sm:max-w-[820px] sm:rounded-2xl sm:bg-white sm:pt-0 sm:pb-0 dark:sm:bg-[var(--color-surface)]",
+          "sm:h-auto sm:max-h-[min(72vh,640px)] sm:w-[min(820px,100%)] sm:max-w-[820px] sm:rounded-2xl sm:bg-[#FFFFFF] sm:pt-0 sm:pb-0 dark:sm:bg-[var(--color-surface)]",
           "motion-safe:animate-[jimvio-command-center-enter_220ms_ease-out]",
         )}
       >

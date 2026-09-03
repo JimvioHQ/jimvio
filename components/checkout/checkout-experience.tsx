@@ -171,6 +171,7 @@ export function CheckoutExperience({
    // ── CJ shipping options ───────────────────────────────────────────────────
    const [cjOptions, setCjOptions] = useState<CJShippingOption[]>([]);
    const [cjSelected, setCjSelected] = useState<CJShippingOption | null>(null);
+   const [cjQuoteToken, setCjQuoteToken] = useState<string | null>(null);
    const [cjLoading, setCjLoading] = useState(false);
    const [cjError, setCjError] = useState("");
 
@@ -286,6 +287,7 @@ export function CheckoutExperience({
                priceUSD: r.priceUSD ?? 0,
             }));
             setCjOptions(opts);
+            setCjQuoteToken(typeof json.quoteToken === "string" ? json.quoteToken : null);
             if (opts.length > 0) {
                const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
                setCjSelected(cheapest);
@@ -349,7 +351,12 @@ export function CheckoutExperience({
             const cjRes = await fetch("/api/cj/set-shipping", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
-               body: JSON.stringify({ orderIds, shippingOption: cjSelected, destCountryCode: shipping.countryCode }),
+               body: JSON.stringify({
+                  orderIds,
+                  shippingOption: cjSelected,
+                  destCountryCode: shipping.countryCode,
+                  quoteToken: cjQuoteToken,
+               }),
             });
             const cjJson = await cjRes.json();
             if (!cjJson.success) {
@@ -377,7 +384,8 @@ export function CheckoutExperience({
          if (!redirectUrl.startsWith("https://")) throw new Error("Invalid redirect");
          window.location.href = redirectUrl;
       } catch (e) {
-         toast.error(sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.checkout));
+         const message = sanitizeCustomerError(e, "We couldn’t start this payment. Please try again or choose another payment method.");
+         toast.error(message);
       } finally {
          payInFlightRef.current = false;
          setSubmitting(false);

@@ -473,8 +473,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 )}
               </div>
 
-              {/* Mobile search shortcut removed — use menu / ⌘K / Command FAB */}
-              <ConsoleIconBtn className="hidden" onClick={() => openCommandCenter()} aria-label="Search">
+              {/* Mobile search — opens Global Search / Command Center */}
+              <ConsoleIconBtn className="md:hidden" onClick={() => openCommandCenter()} aria-label="Search">
                 <Search className="h-[18px] w-[18px]" />
               </ConsoleIconBtn>
 

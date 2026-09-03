@@ -59,7 +59,7 @@ export function marketplacePaymentErrorMessage(
     if (/phone|customer/i.test(text)) {
       return "We could not start payment with the customer details on this order. Please update your phone or email and try again.";
     }
-    return "This payment method could not start. Please try another method or try again shortly.";
+    return "We couldn’t start this payment. Please try again or choose another payment method.";
   }
   return null;
 }

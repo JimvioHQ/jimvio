@@ -30,11 +30,17 @@ const SETTLE_CURRENCY = "USDT";
 // FIX 3: Add Vary: Origin
 // Prevents Render's routing layer or any CDN from caching a CORS-less response
 // and serving it to subsequent cross-origin requests.
-const ALLOWED_ORIGIN = "https://www.jimvio.com";
+const ALLOWED_ORIGINS = new Set([
+  "https://www.jimvio.com",
+  "https://jimvio.com",
+  "http://localhost:3000",
+]);
 
-function buildCorsHeaders(): HeadersInit {
+function buildCorsHeaders(req?: NextRequest): HeadersInit {
+  const origin = req?.headers.get("origin") ?? "";
+  const allowOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://www.jimvio.com";
   return {
-    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
@@ -51,10 +57,10 @@ function buildCorsHeaders(): HeadersInit {
 // the OPTIONS export from the route file itself, not from middleware or config.
 // Without this explicit export, Next.js App Router returns a 405 for OPTIONS
 // which the browser treats as a failed preflight → "Failed to fetch"
-export async function OPTIONS(): Promise<NextResponse> {
+export async function OPTIONS(req: NextRequest): Promise<NextResponse> {
   return new NextResponse(null, {
     status: 204,
-    headers: buildCorsHeaders(),
+    headers: buildCorsHeaders(req),
   });
 }
 
@@ -62,15 +68,23 @@ export async function OPTIONS(): Promise<NextResponse> {
 function errorResponse(
   message: string,
   status: number,
-  details?: Record<string, unknown>
+  detailsOrReq?: Record<string, unknown> | NextRequest,
+  maybeReq?: NextRequest
 ): NextResponse {
-  // FIX 6: Every error response also carries CORS headers.
-  // If an error fires AFTER the preflight but the response lacks CORS headers,
-  // the browser still blocks it and reports "Failed to fetch" instead of
-  // showing the actual error — making debugging very hard.
+  const req =
+    detailsOrReq instanceof Request
+      ? detailsOrReq
+      : maybeReq instanceof Request
+        ? maybeReq
+        : undefined;
+  const details =
+    detailsOrReq && !(detailsOrReq instanceof Request)
+      ? detailsOrReq
+      : undefined;
+
   return NextResponse.json(
     { success: false, error: message, ...(details ?? {}) },
-    { status, headers: buildCorsHeaders() }
+    { status, headers: buildCorsHeaders(req) }
   );
 }
 
@@ -131,20 +145,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     body = await req.json();
   } catch {
-    return errorResponse("Request body must be valid JSON", 400);
+    return errorResponse("Request body must be valid JSON", 400, req);
   }
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return errorResponse("Request body must be a JSON object", 400);
+    return errorResponse("Request body must be a JSON object", 400, req);
   }
 
   const { orderId } = body as Record<string, unknown>;
 
   if (!orderId) {
-    return errorResponse("orderId is required", 400);
+    return errorResponse("orderId is required", 400, req);
   }
   if (!isUUID(orderId)) {
-    return errorResponse("orderId must be a valid UUID", 400);
+    return errorResponse("orderId must be a valid UUID", 400, req);
   }
 
   // ── 2. Build Supabase client ───────────────────────────────────────────────
@@ -167,7 +181,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return errorResponse("Unauthorized — please sign in", 401);
+    return errorResponse("Unauthorized — please sign in", 401, req);
   }
 
   // ── 4. Load & validate order ───────────────────────────────────────────────
@@ -182,22 +196,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (orderError) {
     if (orderError.code === "PGRST116") {
-      return errorResponse("Order not found or does not belong to you", 404);
+      return errorResponse("Order not found or does not belong to you", 404, req);
     }
     console.error("[binance/create] order fetch error", orderError);
-    return errorResponse("Failed to load order", 500);
+    return errorResponse("Failed to load order", 500, req);
   }
 
   if (!order) {
-    return errorResponse("Order not found", 404);
+    return errorResponse("Order not found", 404, req);
   }
 
   if (typeof order.total_amount !== "number" || order.total_amount <= 0) {
-    return errorResponse("Order has an invalid amount", 422);
+    return errorResponse("Order has an invalid amount", 422, req);
   }
 
   if (!order.currency || typeof order.currency !== "string") {
-    return errorResponse("Order has no currency set", 422);
+    return errorResponse("Order has no currency set", 422, req);
   }
 
   const nonPayableStatuses = ["paid", "completed", "refunded", "cancelled"];
@@ -206,7 +220,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       `Order cannot be paid — current payment status is "${order.payment_status}"`,
       409,
       { currentStatus: order.payment_status }
-    );
+    , req);
   }
 
   if (order.payment_status !== "pending") {
@@ -214,20 +228,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       `Order payment status "${order.payment_status}" is not payable`,
       409,
       { currentStatus: order.payment_status }
-    );
+    , req);
   }
 
   if (order.status === "cancelled") {
     return errorResponse("Cannot pay a cancelled order", 409, {
       currentStatus: order.status,
-    });
+    }, req);
   }
 
   // ── 5. Validate env ────────────────────────────────────────────────────────
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!appUrl) {
     console.error("[binance/create] NEXT_PUBLIC_APP_URL is not set");
-    return errorResponse("Server configuration error", 500);
+    return errorResponse("Server configuration error", 500, req);
   }
 
   // ── 6. Check for a reusable pending transaction ────────────────────────────
@@ -265,7 +279,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             expiresAt: new Date(expireTime).toISOString(),
             reused: true,
           },
-          { headers: buildCorsHeaders() }
+          { headers: buildCorsHeaders(req) }
         );
       }
     }
@@ -300,7 +314,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return errorResponse(
         `Could not fetch exchange rate: ${info.message}. Please try again.`,
         503
-      );
+      , req);
     }
 
     payAmount = Number((order.total_amount * exchangeRate).toFixed(2));
@@ -310,7 +324,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return errorResponse(
         "Converted payment amount is invalid. Please contact support.",
         422
-      );
+      , req);
     }
 
     const admin = getAdminDB();
@@ -342,7 +356,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       "This order is missing required data (order number). Please contact support.",
       422,
       { field: "order_number" }
-    );
+    , req);
   }
 
   const attemptSuffix = Date.now().toString(36).toUpperCase();
@@ -391,14 +405,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         "Could not reach Binance Pay. The payment service is temporarily unreachable. Please try a different payment method.",
         502,
         { reason: "network", detail: info.cause ?? info.message }
-      );
+      , req);
     }
 
     return errorResponse(
       `Payment gateway error: ${info.message}. Please try again or use a different payment method.`,
       502,
       { reason: "gateway" }
-    );
+    , req);
   }
 
   if (!binanceOrder?.prepayId || !binanceOrder?.checkoutUrl) {
@@ -409,7 +423,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return errorResponse(
       "Payment gateway returned an incomplete response. Please try again.",
       502
-    );
+    , req);
   }
 
   // ── 10. Record transaction ─────────────────────────────────────────────────
@@ -441,7 +455,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
       return errorResponse("Payment ref conflict. Please try again.", 409, {
         reason: "conflict",
-      });
+      }, req);
     }
     if (txResult.validation) {
       console.error(
@@ -451,7 +465,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return errorResponse(
         "Invalid payment data. Please contact support.",
         422
-      );
+      , req);
     }
     console.error(
       "[binance/create] failed to insert transaction record",
@@ -460,7 +474,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return errorResponse(
       "Failed to record payment attempt. Please try again.",
       500
-    );
+    , req);
   }
 
   console.info("[binance/create] transaction record created", {
@@ -522,6 +536,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       payCurrency,
       exchangeRate,
     },
-    { headers: buildCorsHeaders() }
+    { headers: buildCorsHeaders(req) }
   );
 }

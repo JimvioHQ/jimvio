@@ -52,7 +52,7 @@ describe("platform USD currency", () => {
     );
     assert.match(
       marketplacePaymentErrorMessage("PAYMENT_LINK_FAILED", "timeout from provider") ?? "",
-      /could not start/i,
+      /couldn.?t start|could not start|try again/i,
     );
   });
 

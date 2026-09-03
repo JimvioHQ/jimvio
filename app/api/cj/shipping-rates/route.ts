@@ -8,6 +8,7 @@ import {
   isCheckoutShippingCoverageError,
   toCheckoutFreightProducts,
 } from "@/lib/cj/checkout-shipping";
+import { createCheckoutQuoteToken } from "@/lib/cj/checkout-quote-token";
 import { isJimvioUuid, usableCjVid } from "@/lib/cj/variant-vid";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
@@ -172,15 +173,40 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        console.info("[checkout] shipping_quote_requested", {
+            destCountryCode,
+            orderCurrency,
+            productCount: products.length,
+        });
+
+        const startedAt = Date.now();
         const { rates, unavailable } = await fetchCjCheckoutFreightRates({
             destCountryCode,
             products,
             orderCurrency,
         });
 
+        const quoteToken =
+            rates.length > 0
+                ? createCheckoutQuoteToken({
+                      destCountryCode,
+                      orderCurrency,
+                      products,
+                      rates,
+                  })
+                : null;
+
+        console.info("[checkout] shipping_quote_success", {
+            destCountryCode,
+            rateCount: rates.length,
+            latencyMs: Date.now() - startedAt,
+            hasQuoteToken: Boolean(quoteToken),
+        });
+
         return NextResponse.json({
             success: true,
             rates,
+            quoteToken,
             unavailable: unavailable === true || rates.length === 0,
             message:
                 rates.length === 0
@@ -192,6 +218,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
                 success: true,
                 rates: [],
+                quoteToken: null,
                 unavailable: true,
                 message: CJ_CUSTOMER_MESSAGES.shippingUnavailable,
             });
@@ -202,6 +229,10 @@ export async function POST(req: NextRequest) {
             error: e,
         });
         const quota = isCjApiQuotaError(e);
+        console.warn("[checkout] shipping_quote_failed", {
+            category: quota ? "quota" : "provider",
+            message: e instanceof Error ? e.message : String(e),
+        });
         const fallback = quota
             ? CJ_CUSTOMER_MESSAGES.shippingQuota
             : /timeout|abort|timed out/i.test(e instanceof Error ? e.message : String(e))

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
+import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError, isCjApiQuotaError } from "@/lib/cj/customer-errors";
 import {
     fetchCjCheckoutFreightRates,
     findMatchingCheckoutShippingRate,
@@ -9,6 +9,7 @@ import {
     type CheckoutShippingSelection,
     type CjFreightProduct,
 } from "@/lib/cj/checkout-shipping";
+import { resolveTrustedRateFromQuoteToken } from "@/lib/cj/checkout-quote-token";
 import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 
@@ -104,7 +105,8 @@ async function saveSelection(
     orderIds: string[],
     shippingOption: CheckoutShippingSelection,
     buyerId: string,
-    fallbackCountryCode?: string
+    fallbackCountryCode?: string,
+    quoteToken?: string | null
 ): Promise<{ priceUSD: number; name: string }> {
     const supabase = createServiceRoleClient();
 
@@ -147,9 +149,39 @@ async function saveSelection(
         );
     }
 
-    // Re-quote — this is the trusted price (no currency conversion needed here)
-    const { rates } = await fetchRates(destCountryCode, cartItems, "USD");
-    const trusted = findMatchingCheckoutShippingRate(rates, shippingOption);
+    const { products } = await buildProductsFromVariants(cartItems);
+
+    // Prefer the signed quote from the earlier shipping-rates response so we do
+    // not burn another CJ freightCalculate call on a different serverless instance.
+    let trusted =
+        resolveTrustedRateFromQuoteToken({
+            token: quoteToken,
+            selection: shippingOption,
+            products,
+            destCountryCode,
+        }) ?? null;
+
+    if (trusted) {
+        console.info("[checkout] shipping_quote_reuse", {
+            orderId: orderIds[0],
+            optionId: trusted.optionId,
+            priceUSD: trusted.priceUSD,
+        });
+    } else {
+        try {
+            const { rates } = await fetchCjCheckoutFreightRates({
+                destCountryCode,
+                products,
+                orderCurrency: "USD",
+            });
+            trusted = findMatchingCheckoutShippingRate(rates, shippingOption);
+        } catch (err) {
+            if (isCjApiQuotaError(err)) {
+                throw new UserError(CJ_CUSTOMER_MESSAGES.shippingQuota);
+            }
+            throw err;
+        }
+    }
 
     if (!trusted) {
         throw new UserError(
@@ -232,7 +264,7 @@ export async function POST(req: NextRequest) {
 
         // ── Save operation ───────────────────────────────────────────────────
         if (body.orderIds && body.shippingOption) {
-            const { orderIds, shippingOption, destCountryCode } = body;
+            const { orderIds, shippingOption, destCountryCode, quoteToken } = body;
             logOrderId = Array.isArray(orderIds) ? orderIds[0] : undefined;
             if (!Array.isArray(orderIds) || !orderIds.length) {
                 return NextResponse.json(
@@ -251,7 +283,8 @@ export async function POST(req: NextRequest) {
                 orderIds,
                 shippingOption,
                 user.id,
-                typeof destCountryCode === "string" ? destCountryCode : undefined
+                typeof destCountryCode === "string" ? destCountryCode : undefined,
+                typeof quoteToken === "string" ? quoteToken : null
             );
             return NextResponse.json({ success: true, ...result });
         }

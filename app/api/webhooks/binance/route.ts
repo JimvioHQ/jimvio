@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyBinanceWebhook } from "@/lib/binance-pay";
-import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
-import type {
-    OrderStatusValue,
-    PaymentStatusValue,
-} from "@/lib/payments/record-status-change";
 
 const supabase = createClient(
     getSupabaseUrl(),
@@ -196,184 +191,107 @@ export async function POST(req: NextRequest) {
         orderStatus: order.status,
     });
 
+    const meta =
+        order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+            ? (order.metadata as Record<string, unknown>)
+            : {};
+    const paidAmount = Number(data.orderAmount);
+    const expectedAmount = Number(
+        meta.binance_pay_amount ?? order.total_amount ?? NaN
+    );
     if (
-        order.payment_status === "paid" ||
-        order.payment_status === "completed"
+        !Number.isFinite(paidAmount) ||
+        !Number.isFinite(expectedAmount) ||
+        Math.abs(paidAmount - expectedAmount) > 0.05
     ) {
+        console.error("[binance-webhook] amount mismatch", {
+            orderId: order.id,
+            paidAmount,
+            expectedAmount,
+            currency: data.currency,
+        });
         await supabase
             .from("webhook_events")
-            .update({ status: "processed", order_id: order.id })
+            .update({ status: "error", error: "amount_mismatch" })
             .eq("id", webhookEvent.id);
-
-        console.info("[binance-webhook] order already paid, acking", {
-            orderId: order.id,
-        });
-        return NextResponse.json({
-            returnCode: "SUCCESS",
-            returnMessage: "Already paid",
-        });
+        return NextResponse.json(
+            { returnCode: "FAIL", returnMessage: "Amount mismatch" },
+            { status: 400 }
+        );
     }
 
-    const previousOrderStatus = order.status as OrderStatusValue;
-    const previousPaymentStatus = order.payment_status as PaymentStatusValue;
+    const { finalizeOrderPayment } = await import("@/lib/payments/finalize-order-payment");
+    const { dispatchNonShopifyFulfillmentIntegrations } = await import(
+        "@/lib/order-fulfillment/after-payment"
+    );
 
-    // ── 6. Update order status ────────────────────────────────────────────────
-    const { error: orderUpdateError } = await supabase
-        .from("orders")
-        .update({
-            payment_status: "paid",
-            status: "confirmed",
-            paid_at: new Date().toISOString(),
-            metadata: {
-                ...(order.metadata ?? {}),
-                binance_transaction_id: data.transactionId,
-                binance_pay_currency: data.currency,
-                binance_pay_amount: data.orderAmount,
-            },
-        })
-        .eq("id", order.id);
+    try {
+        console.info("[checkout] payment_webhook_received", {
+            provider: "binance",
+            orderId: order.id,
+        });
 
-    if (orderUpdateError) {
-        console.error("[binance-webhook] order update failed", orderUpdateError);
+        await finalizeOrderPayment(supabase, order.id, {
+            providerTransactionId: data.merchantTradeNo,
+            providerReference: data.transactionId,
+            paidAtIso: new Date().toISOString(),
+            notifyUserId: order.buyer_id,
+            amountForMessage: paidAmount,
+            webhookReference: idempotencyKey,
+            paymentProvider: "binance",
+        });
+
+        // Recovery path: if order was already marked paid by a prior partial
+        // webhook path, still ensure CJ handoff runs when missing.
+        const { data: refreshed } = await supabase
+            .from("orders")
+            .select("cj_order_id, cj_shipping_method, order_number, order_items(id, product_id, vendor_id, quantity, unit_price, total_price, product_source, source_metadata)")
+            .eq("id", order.id)
+            .maybeSingle();
+
+        if (refreshed && !refreshed.cj_order_id) {
+            const items = (refreshed.order_items ?? []) as Array<{
+                id: string;
+                product_id: string;
+                vendor_id: string;
+                quantity: number;
+                unit_price: number;
+                total_price: number;
+                product_source?: string | null;
+                source_metadata?: Record<string, unknown> | null;
+            }>;
+            console.info("[checkout] cj_order_submission_started", {
+                orderId: order.id,
+                provider: "binance",
+            });
+            await dispatchNonShopifyFulfillmentIntegrations(supabase, {
+                orderId: order.id,
+                orderNumber: String(refreshed.order_number ?? order.id),
+                items,
+            });
+        }
+
+        console.info("[checkout] payment_verified", {
+            provider: "binance",
+            orderId: order.id,
+        });
+    } catch (finalizeErr) {
+        const message =
+            finalizeErr instanceof Error ? finalizeErr.message : String(finalizeErr);
+        console.error("[binance-webhook] finalize failed", {
+            orderId: order.id,
+            message,
+        });
         await supabase
             .from("webhook_events")
-            .update({ status: "error", error: orderUpdateError.message })
+            .update({ status: "error", error: message })
             .eq("id", webhookEvent.id);
-
         return NextResponse.json(
-            { returnCode: "FAIL", returnMessage: "Order update failed" },
+            { returnCode: "FAIL", returnMessage: "Finalize failed" },
             { status: 500 }
         );
     }
 
-    // ── 7. Create transaction record ──────────────────────────────────────────
-    const { error: txInsertError } = await supabase
-        .from("transactions")
-        .insert({
-            user_id: order.buyer_id,
-            order_id: order.id,
-            webhook_event_id: webhookEvent.id,
-            type: "payment",
-            direction: "debit",
-            amount: order.total_amount,
-            currency: order.currency,
-            status: "completed",
-            provider: "binance_pay",
-            provider_transaction_id: data.transactionId,
-            description: `Binance Pay – Order ${data.merchantTradeNo}`,
-            reference: idempotencyKey,
-        });
-
-    if (txInsertError) {
-        console.error(
-            "[binance-webhook] transaction insert failed (non-fatal, order already paid)",
-            txInsertError
-        );
-    }
-
-    // ── 8. Credit vendor wallet ───────────────────────────────────────────────
-    if (order.vendor_id) {
-        const { data: vendor } = await supabase
-            .from("vendors")
-            .select("commission_rate, user_id")
-            .eq("id", order.vendor_id)
-            .single();
-
-        const commissionRate = vendor?.commission_rate ?? 8;
-        const platformCut = (order.total_amount * commissionRate) / 100;
-        const vendorEarnings = order.total_amount - platformCut;
-
-        if (vendor?.user_id) {
-            const { data: wallet } = await supabase
-                .from("wallets")
-                .select("id")
-                .eq("user_id", vendor.user_id)
-                .single();
-
-            if (wallet) {
-                const { error: walletError } = await supabase.rpc(
-                    "increment_wallet_balance",
-                    {
-                        p_wallet_id: wallet.id,
-                        p_amount: vendorEarnings,
-                    }
-                );
-                if (walletError) {
-                    console.error("[binance-webhook] wallet credit failed", {
-                        vendorId: order.vendor_id,
-                        vendorEarnings,
-                        error: walletError,
-                    });
-                    await supabase.from("failed_wallet_credits").insert({
-                        order_id: order.id,
-                        vendor_id: order.vendor_id,
-                        amount: vendorEarnings,
-                        currency: order.currency,
-                        reason: walletError.message,
-                    });
-                }
-            } else {
-                console.warn("[binance-webhook] vendor wallet not found", {
-                    vendorUserId: vendor.user_id,
-                    vendorId: order.vendor_id,
-                });
-                await supabase.from("failed_wallet_credits").insert({
-                    order_id: order.id,
-                    vendor_id: order.vendor_id,
-                    amount: vendorEarnings,
-                    currency: order.currency,
-                    reason: "Wallet not found",
-                });
-            }
-        }
-    }
-
-    // ── 9. Record order + payment status history ──────────────────────────────
-    const { orderHistory, paymentHistory } = await recordBothStatusChanges(
-        supabase,
-        order.id,
-        {
-            previousOrderStatus,
-            newOrderStatus: "confirmed",
-            previousPaymentStatus,
-            newPaymentStatus: "paid",
-        },
-        {
-            triggeredBy: "webhook",
-            provider: "binance",
-            providerTransactionId: data.transactionId,
-            notes: `Paid via Binance Pay. Transaction: ${data.transactionId}`,
-        }
-    );
-
-    if (!orderHistory.success) {
-        console.warn("[binance-webhook] order history insert failed (non-fatal)", {
-            error: orderHistory.error,
-        });
-    }
-    if (!paymentHistory.success) {
-        console.warn(
-            "[binance-webhook] payment history insert failed (non-fatal)",
-            { error: paymentHistory.error }
-        );
-    }
-
-    // ── 10. Notify buyer ──────────────────────────────────────────────────────
-    const { error: notifError } = await supabase.from("notifications").insert({
-        user_id: order.buyer_id,
-        type: "payment",
-        title: "Payment confirmed",
-        message: `Your payment for order ${data.merchantTradeNo} was received.`,
-        action_url: `/orders/${order.id}`,
-    });
-
-    if (notifError) {
-        console.warn("[binance-webhook] notification insert failed (non-fatal)", {
-            notifError,
-        });
-    }
-
-    // ── 11. Mark webhook as processed ─────────────────────────────────────────
     await supabase
         .from("webhook_events")
         .update({ status: "processed", order_id: order.id })

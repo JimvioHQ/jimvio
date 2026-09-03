@@ -5,13 +5,15 @@ export const CJ_CUSTOMER_MESSAGES = {
     shippingTimeout:
         "Shipping quotes are taking longer than usual. Please try again.",
     shippingQuota:
-        "Shipping quotes are temporarily unavailable from the carrier. Please try again in a little while.",
+        "We’re refreshing shipping options. Please try again.",
     shippingUnavailable:
         "Shipping isn't available to this destination for the items in your order. Try a different address or contact support.",
     shippingSave:
         "We couldn't save your delivery choice. Please try again.",
     checkout:
         "Checkout couldn't be completed. Please try again or contact support.",
+    paymentStart:
+        "We couldn’t start this payment. Please try again or choose another payment method.",
     fulfillmentFailed:
         "Your order is confirmed. We're preparing it for shipment and will update you soon.",
     fulfillmentDelayed:
