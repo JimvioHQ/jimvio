@@ -18,12 +18,12 @@ import { getDaysRemaining } from "./ugc-campaign-utils";
 
 const LIMIT = 24;
 const CARD_GRID =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,272px),1fr))] gap-4";
+  "grid grid-cols-1 justify-start gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,240px))]";
 
 function CardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[#EEF0F2] bg-white">
-      <div className="aspect-[16/9] animate-pulse bg-[#F3F4F6]" />
+    <div className="overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white">
+      <div className="aspect-[16/10] animate-pulse bg-[#F3F4F6]" />
       <div className="space-y-2 px-3.5 py-3">
         <div className="h-3 w-24 animate-pulse rounded bg-[#F3F4F6]" />
         <div className="h-4 w-full animate-pulse rounded bg-[#F3F4F6]" />
@@ -239,8 +239,8 @@ export function UGCDiscoverPage() {
   }
 
   const campaigns = rawCampaigns;
-  const showHero = !loading && featuredCampaigns.length > 0 && !hasFilters;
-  const showRails = !hasFilters && campaigns.length > 4;
+  const showFeatured = !loading && featuredCampaigns.length > 0 && !hasFilters && (total > 2 || featuredCampaigns.length > 1);
+  const showRails = !hasFilters && campaigns.length > 8;
   const endingSoon = showRails
     ? campaigns
         .filter((c) => {
@@ -254,7 +254,7 @@ export function UGCDiscoverPage() {
     : [];
 
   return (
-    <div className="mx-auto w-full max-w-[1280px] pb-12 pt-1">
+    <div className="mx-auto w-full max-w-[1440px] pb-12 pt-1">
       <UGCHeroHeader
         searchRef={searchRef}
         inputVal={inputVal}
@@ -284,7 +284,13 @@ export function UGCDiscoverPage() {
         </div>
       ) : (
         <>
-          {showHero ? <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 5)} /> : null}
+          {showFeatured ? (
+            <UGCFeaturedCarousel
+              campaigns={featuredCampaigns.slice(0, 8)}
+              savedIds={savedIds}
+              onToggleSave={toggleSave}
+            />
+          ) : null}
 
           {!hasFilters && newest.length > 0 ? (
             <CampaignSection title="New campaigns">
@@ -316,8 +322,8 @@ export function UGCDiscoverPage() {
 
           <section>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[15px] font-bold text-[#111827]">
-                {search ? `Results for “${search}”` : "All campaigns"}
+              <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">
+                {search ? `Results for “${search}”` : "All Campaigns"}
               </h2>
               <span className="text-[12px] text-[#94A3B8]">
                 {campaigns.length.toLocaleString()} of {total.toLocaleString()}
@@ -377,7 +383,7 @@ export function UGCDiscoverPage() {
 function CampaignSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-7">
-      <h2 className="mb-3 text-[15px] font-bold text-[#111827]">{title}</h2>
+      <h2 className="mb-3 text-[18px] font-semibold tracking-tight text-[#111827]">{title}</h2>
       <div className={CARD_GRID}>{children}</div>
     </section>
   );

@@ -154,7 +154,8 @@ assert.match(locale, /UGC_LOCALE_COOKIE/);
 
 assert.match(card, /getCampaignRewardLine/);
 const featured = read("components/ugc/workspace/UGCFeaturedCarousel.tsx");
-assert.match(featured, /t\("joinCampaign"\)/);
+assert.match(featured, /UGCPremiumCampaignCard/);
+assert.match(card, /t\("joinCampaign"\)/);
 assert.match(wizard, /t\("wizardTitle"\)/);
 assert.match(permissions, /viewer: new Set\(\["finance\.view"\]\)/);
 

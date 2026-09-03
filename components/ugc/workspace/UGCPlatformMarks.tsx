@@ -7,6 +7,8 @@ const LABELS: Record<string, string> = {
   facebook: "Facebook",
   x: "X",
   twitter: "X",
+  snapchat: "Snapchat",
+  twitch: "Twitch",
 };
 
 function TikTokMark({ className }: { className?: string }) {
@@ -64,6 +66,28 @@ function XMark({ className }: { className?: string }) {
   );
 }
 
+function SnapchatMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 3c2.4 0 4.4 1.9 4.6 4.4.9.4 1.5 1 1.5 1.7 0 .6-.5 1.1-1.4 1.5.2.6.7 1.6 1.8 2.1.4.2.5.5.5.8 0 .7-.8 1.3-2.3 1.6-.2 1.2-.7 2.3-1.5 3.2 1 .6 1.8 1.5 1.8 2.3 0 .5-.4.8-1 .8-.4 0-.8-.2-1.3-.5-.4.7-1.3 1.5-2.7 1.5s-2.3-.8-2.7-1.5c-.5.3-.9.5-1.3.5-.6 0-1-.3-1-.8 0-.8.8-1.7 1.8-2.3-.8-.9-1.3-2-1.5-3.2-1.5-.3-2.3-.9-2.3-1.6 0-.3.1-.6.5-.8 1.1-.5 1.6-1.5 1.8-2.1-.9-.4-1.4-.9-1.4-1.5 0-.7.6-1.3 1.5-1.7C7.6 4.9 9.6 3 12 3Z"
+      />
+    </svg>
+  );
+}
+
+function TwitchMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="currentColor"
+        d="M4.3 3h16.4v11.4l-4.6 4.6h-3.5L10 21.5V19h-3L4.3 16.3V3Zm14.7 10.3V4.7H6v10.4l1.7 1.8h4.1v2.3l2.3-2.3h4.9Zm-2.9-6.6v5.2h-1.7V6.7h1.7Zm-4.6 0v5.2H9.8V6.7h1.7Z"
+      />
+    </svg>
+  );
+}
+
 const MARKS: Record<string, typeof TikTokMark> = {
   tiktok: TikTokMark,
   instagram: InstagramMark,
@@ -71,32 +95,55 @@ const MARKS: Record<string, typeof TikTokMark> = {
   facebook: FacebookMark,
   x: XMark,
   twitter: XMark,
+  snapchat: SnapchatMark,
+  twitch: TwitchMark,
 };
+
+export function UGCPlatformIcon({
+  platform,
+  className,
+}: {
+  platform: string;
+  className?: string;
+}) {
+  const key = platform.toLowerCase();
+  const Icon = MARKS[key];
+  if (!Icon) return null;
+  return <Icon className={className} />;
+}
+
+export function platformLabel(platform: string) {
+  return LABELS[platform.toLowerCase()] ?? platform;
+}
 
 export function UGCPlatformMarks({
   platforms,
   className,
-  iconClassName,
+  size = "md",
 }: {
   platforms: string[];
   className?: string;
-  iconClassName?: string;
+  size?: "sm" | "md";
 }) {
   const unique = [...new Set(platforms.map((p) => p.toLowerCase()))].filter((p) => MARKS[p]);
   if (!unique.length) return null;
+  const compact = size === "sm";
   return (
-    <ul className={cn("flex items-center gap-1.5", className)}>
+    <ul className={cn("flex items-center", compact ? "gap-1" : "gap-1.5", className)}>
       {unique.map((key) => {
         const Icon = MARKS[key];
         const label = LABELS[key] ?? key;
         return (
           <li key={key}>
             <span
-              className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#F3F4F6] text-[#111827]"
+              className={cn(
+                "inline-flex items-center justify-center text-[#111827]",
+                compact ? "h-4 w-4" : "h-5 w-5",
+              )}
               title={label}
               aria-label={label}
             >
-              <Icon className={cn("h-3.5 w-3.5", iconClassName)} />
+              <Icon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
             </span>
           </li>
         );

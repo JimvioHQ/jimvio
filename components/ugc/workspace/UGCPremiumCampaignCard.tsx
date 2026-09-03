@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import Link from "next/link";
-import { Bookmark, BookmarkCheck } from "lucide-react";
+import { Bookmark, BookmarkCheck, Users } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
@@ -19,13 +19,6 @@ import {
 } from "@/lib/ugc/campaign-schedule";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { UGCPlatformMarks, campaignFallbackStyle } from "./UGCPlatformMarks";
-
-function typeLabel(type: string): string {
-  if (type === "clipping") return "Clipping";
-  if (type === "music_clipping") return "Music clipping";
-  if (type === "promotion") return "Promotion";
-  return "UGC";
-}
 
 type UGCPremiumCampaignCardProps = {
   campaign: UGCCampaign;
@@ -52,25 +45,30 @@ function UGCPremiumCampaignCardInner({
   const deadlineSource = c.submission_deadline ?? c.ends_at;
   const deadlineLabel =
     days === null
-      ? "Open"
+      ? null
       : days === 0
-        ? "Due today"
-        : `Deadline ${new Date(deadlineSource!).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+        ? "Ends today"
+        : deadlineSource
+          ? `Ends ${new Date(deadlineSource).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+          : null;
   const isVerified = c.vendor?.verification_status === "verified";
   const brand = c.vendor?.business_name ?? "Brand";
+  const canJoin = c.status === "active" && lifecycle !== "ended";
   const joinHref = `/ugc/${c.id}/join`;
+  const briefHref = `/ugc/${c.id}`;
+  const showBudget = Number(c.total_budget ?? 0) > 0;
 
   return (
     <article className="group h-full min-w-0">
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E8EAED] bg-white",
+          "relative flex h-full flex-col overflow-hidden rounded-[12px] border border-[#E8EAED] bg-white",
           "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-shadow duration-200",
-          "hover:shadow-[0_10px_28px_rgba(17,24,39,0.08)]",
+          "hover:shadow-[0_8px_20px_rgba(17,24,39,0.08)]",
         )}
       >
-        <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-[#F3F4F6]">
-          <Link href={`/ugc/${c.id}`} className="absolute inset-0 block" aria-label={`View campaign brief: ${c.title}`}>
+        <div className={cn("relative shrink-0 overflow-hidden bg-[#F3F4F6]", featured ? "aspect-[16/9]" : "aspect-[16/10]")}>
+          <Link href={briefHref} className="absolute inset-0 block" aria-label={`View campaign brief: ${c.title}`}>
             {banner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -82,13 +80,13 @@ function UGCPremiumCampaignCardInner({
               />
             ) : (
               <div className="absolute inset-0 grid place-items-center" style={campaignFallbackStyle(brand + c.id)}>
-                <span className="text-[28px] font-semibold tracking-tight text-[#111827]/25">
+                <span className="text-[26px] font-semibold tracking-tight text-[#111827]/25">
                   {brand.slice(0, 2).toUpperCase()}
                 </span>
               </div>
             )}
           </Link>
-          <span className="absolute left-2.5 top-2.5 rounded-full border border-white/15 bg-black/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+          <span className="absolute left-2 top-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
             {featured ? t("featured") : lifecycleLabel(lifecycle)}
           </span>
           {onToggleSave ? (
@@ -97,7 +95,7 @@ function UGCPremiumCampaignCardInner({
               aria-label={saved ? "Remove saved campaign" : "Save campaign"}
               title={saved ? "Remove saved campaign" : "Save campaign"}
               onClick={() => onToggleSave(c.id)}
-              className="absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-[#111827] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-[#111827] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
             >
               {saved ? (
                 <BookmarkCheck className="h-3.5 w-3.5 text-[#FF5A1F]" />
@@ -108,7 +106,7 @@ function UGCPremiumCampaignCardInner({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col px-3.5 pb-3.5 pt-3">
+        <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2.5 pt-2">
           <div className="flex items-center gap-1.5">
             {c.vendor?.business_logo ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -125,43 +123,49 @@ function UGCPremiumCampaignCardInner({
             )}
             <span className="min-w-0 truncate text-[12px] font-medium text-[#4B5563]">{brand}</span>
             {isVerified ? <UGCVerifiedBadge className="h-3 w-3" /> : null}
-            <span className="ml-auto shrink-0 text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">
-              {typeLabel(c.campaign_type)}
-            </span>
+            <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
           </div>
 
-          <h3 className="mt-1.5 line-clamp-2 text-[15px] font-semibold leading-[1.3] tracking-[-0.01em] text-[#111827]">
-            <Link href={`/ugc/${c.id}`} className="hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline">
+          <h3 className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#111827]">
+            <Link href={briefHref} className="hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline">
               {c.title}
             </Link>
           </h3>
-          {c.description ? (
-            <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[#6B7280]">{c.description}</p>
-          ) : null}
 
-          <p className="mt-2 text-[15px] font-semibold tabular-nums text-[#111827]">{reward}</p>
+          <p className="mt-1.5 text-[13px] font-semibold tabular-nums text-[#FF5A1F]">{reward}</p>
 
-          <div className="mt-2.5 flex items-center justify-between gap-2">
-            <UGCPlatformMarks platforms={platforms} />
-            <span className="shrink-0 text-[11px] text-[#6B7280]">
-              {formatCreatorCount(creators)} {t("creatorsLabel")}
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[#6B7280]">
+            <span className="min-w-0 truncate">
+              {showBudget
+                ? `${formatMoney(c.spent_budget ?? 0, "USD")} / ${formatMoney(c.total_budget, "USD")}`
+                : deadlineLabel ?? lifecycleLabel(lifecycle)}
+            </span>
+            <span className="inline-flex shrink-0 items-center gap-1" aria-label={`${formatCreatorCount(creators)} creators`}>
+              <Users className="h-3 w-3" aria-hidden />
+              {formatCreatorCount(creators)}
             </span>
           </div>
+          {showBudget && deadlineLabel ? (
+            <p className="mt-0.5 text-[11px] text-[#9CA3AF]">{deadlineLabel}</p>
+          ) : null}
 
-          <p className="mt-2 text-[12px] text-[#6B7280]">{deadlineLabel}</p>
-
-          <div className="mt-auto flex gap-2 pt-3">
+          <div className="mt-auto flex items-center gap-2 pt-2.5">
+            {canJoin ? (
+              <Link
+                href={joinHref}
+                aria-label={`Join campaign ${c.title}`}
+                className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+              >
+                {t("joinCampaign")}
+              </Link>
+            ) : null}
             <Link
-              href={joinHref}
-              aria-label={`Join campaign ${c.title}`}
-              className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-[#FF5A1F] px-3 text-[12px] font-semibold text-white hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
-            >
-              {t("joinCampaign")}
-            </Link>
-            <Link
-              href={`/ugc/${c.id}`}
+              href={briefHref}
               aria-label={`View campaign brief: ${c.title}`}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#111827] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+              className={cn(
+                "inline-flex h-8 items-center justify-center rounded-lg border border-[#E5E7EB] px-2.5 text-[11px] font-semibold text-[#111827] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
+                canJoin ? "shrink-0" : "flex-1",
+              )}
             >
               {t("viewBrief")}
             </Link>
