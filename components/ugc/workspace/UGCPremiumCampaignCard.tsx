@@ -57,6 +57,7 @@ function UGCPremiumCampaignCardInner({
   const joinHref = `/ugc/${c.id}/join`;
   const briefHref = `/ugc/${c.id}`;
   const showBudget = Number(c.total_budget ?? 0) > 0;
+  const description = c.description?.replace(/\s+/g, " ").trim() || null;
 
   return (
     <article className="group h-full min-w-0">
@@ -67,8 +68,17 @@ function UGCPremiumCampaignCardInner({
           "hover:shadow-[0_8px_20px_rgba(17,24,39,0.08)]",
         )}
       >
-        <div className={cn("relative shrink-0 overflow-hidden bg-[#F3F4F6]", featured ? "aspect-[16/9]" : "aspect-[16/10]")}>
-          <Link href={briefHref} className="absolute inset-0 block" aria-label={`View campaign brief: ${c.title}`}>
+        <div
+          className={cn(
+            "relative shrink-0 overflow-hidden bg-[#F3F4F6]",
+            featured ? "aspect-[16/9]" : "aspect-[16/10]",
+          )}
+        >
+          <Link
+            href={briefHref}
+            className="absolute inset-0 block"
+            aria-label={`View campaign brief: ${c.title}`}
+          >
             {banner ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -79,7 +89,10 @@ function UGCPremiumCampaignCardInner({
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               />
             ) : (
-              <div className="absolute inset-0 grid place-items-center" style={campaignFallbackStyle(brand + c.id)}>
+              <div
+                className="absolute inset-0 grid place-items-center"
+                style={campaignFallbackStyle(brand + c.id)}
+              >
                 <span className="text-[26px] font-semibold tracking-tight text-[#111827]/25">
                   {brand.slice(0, 2).toUpperCase()}
                 </span>
@@ -94,7 +107,11 @@ function UGCPremiumCampaignCardInner({
               type="button"
               aria-label={saved ? "Remove saved campaign" : "Save campaign"}
               title={saved ? "Remove saved campaign" : "Save campaign"}
-              onClick={() => onToggleSave(c.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleSave(c.id);
+              }}
               className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/95 text-[#111827] shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
             >
               {saved ? (
@@ -127,10 +144,17 @@ function UGCPremiumCampaignCardInner({
           </div>
 
           <h3 className="mt-1.5 line-clamp-2 text-[13px] font-semibold leading-snug tracking-[-0.01em] text-[#111827]">
-            <Link href={briefHref} className="hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline">
+            <Link
+              href={briefHref}
+              className="hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
+            >
               {c.title}
             </Link>
           </h3>
+
+          {description ? (
+            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#6B7280]">{description}</p>
+          ) : null}
 
           <p className="mt-1.5 text-[13px] font-semibold tabular-nums text-[#FF5A1F]">{reward}</p>
 
@@ -140,7 +164,10 @@ function UGCPremiumCampaignCardInner({
                 ? `${formatMoney(c.spent_budget ?? 0, "USD")} / ${formatMoney(c.total_budget, "USD")}`
                 : deadlineLabel ?? lifecycleLabel(lifecycle)}
             </span>
-            <span className="inline-flex shrink-0 items-center gap-1" aria-label={`${formatCreatorCount(creators)} creators`}>
+            <span
+              className="inline-flex shrink-0 items-center gap-1"
+              aria-label={`${formatCreatorCount(creators)} creators`}
+            >
               <Users className="h-3 w-3" aria-hidden />
               {formatCreatorCount(creators)}
             </span>

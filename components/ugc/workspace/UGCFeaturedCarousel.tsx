@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 
@@ -12,12 +14,46 @@ export function UGCFeaturedCarousel({
   savedIds?: Set<string>;
   onToggleSave?: (campaignId: string) => void;
 }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
   if (!campaigns.length) return null;
+
+  function scrollByCard(direction: -1 | 1) {
+    const node = scrollerRef.current;
+    if (!node) return;
+    const amount = Math.min(320, Math.max(240, Math.floor(node.clientWidth * 0.8)));
+    node.scrollBy({ left: direction * amount, behavior: "smooth" });
+  }
 
   return (
     <section aria-label="Featured campaigns" className="mb-7">
-      <h2 className="mb-3 text-[18px] font-semibold tracking-tight text-[#111827]">Featured</h2>
-      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 snap-x snap-mandatory [scrollbar-width:thin]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">Featured</h2>
+        {campaigns.length > 2 ? (
+          <div className="hidden items-center gap-1 sm:flex">
+            <button
+              type="button"
+              onClick={() => scrollByCard(-1)}
+              aria-label="Scroll featured campaigns left"
+              className="grid h-8 w-8 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollByCard(1)}
+              aria-label="Scroll featured campaigns right"
+              className="grid h-8 w-8 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div
+        ref={scrollerRef}
+        className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 snap-x snap-mandatory [scrollbar-width:thin]"
+      >
         {campaigns.map((c, i) => (
           <div key={c.id} className="w-[252px] shrink-0 snap-start sm:w-[280px] lg:w-[300px]">
             <UGCPremiumCampaignCard

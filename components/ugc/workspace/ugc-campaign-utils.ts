@@ -2,7 +2,14 @@ import type { UGCCampaign } from "@/types/ugc";
 import type { ContentTypeFilter, PlatformKey, SortKey } from "./ugc-tokens";
 
 export function getCampaignBanner(c: UGCCampaign): string | null {
-  return c.media?.find((m) => m.usage === "banner")?.url ?? null;
+  const media = c.media ?? [];
+  return (
+    media.find((m) => m.usage === "banner")?.url ??
+    media.find((m) => m.type === "image")?.url ??
+    media.find((m) => m.thumbnail_url)?.thumbnail_url ??
+    media[0]?.url ??
+    null
+  );
 }
 
 export function getCampaignPayoutLabel(c: UGCCampaign, formatMoney: (n: number, c?: string) => string): string {

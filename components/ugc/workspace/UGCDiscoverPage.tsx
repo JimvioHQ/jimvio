@@ -143,7 +143,7 @@ export function UGCDiscoverPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/ugc/campaigns?status=active&featured=true&limit=6&sort=popular");
+        const res = await fetch("/api/ugc/campaigns?status=active&featured=true&limit=8&sort=popular");
         if (!res.ok) return;
         const json = await res.json();
         if (!cancelled) setFeaturedCampaigns((json.data ?? []) as UGCCampaign[]);
@@ -216,25 +216,25 @@ export function UGCDiscoverPage() {
   }
 
   async function toggleSave(campaignId: string) {
+    const previous = new Set(savedIds);
     const next = new Set(savedIds);
     const saving = !next.has(campaignId);
     if (saving) next.add(campaignId);
     else next.delete(campaignId);
     setSavedIds(next);
     try {
-      if (saving) {
-        await fetch("/api/ugc/saves", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ campaign_id: campaignId }),
-        });
-      } else {
-        await fetch(`/api/ugc/saves?campaign_id=${encodeURIComponent(campaignId)}`, {
-          method: "DELETE",
-        });
-      }
+      const res = saving
+        ? await fetch("/api/ugc/saves", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ campaign_id: campaignId }),
+          })
+        : await fetch(`/api/ugc/saves?campaign_id=${encodeURIComponent(campaignId)}`, {
+            method: "DELETE",
+          });
+      if (!res.ok) setSavedIds(previous);
     } catch {
-      setSavedIds(savedIds);
+      setSavedIds(previous);
     }
   }
 
