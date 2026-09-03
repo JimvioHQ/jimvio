@@ -12,6 +12,7 @@ import {
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCampaignCard";
+import { UGCPlatformMarks } from "@/components/ugc/workspace/UGCPlatformMarks";
 import {
   buildEligibility,
   buildFaqs,
@@ -175,7 +176,13 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           <ChecklistItem
             label="Platforms"
             met={(campaign.allowed_platforms ?? []).length > 0}
-            detail={(campaign.allowed_platforms ?? []).join(" · ") || "Any approved platform"}
+            detail={
+              (campaign.allowed_platforms ?? []).length > 0 ? (
+                <UGCPlatformMarks platforms={campaign.allowed_platforms ?? []} />
+              ) : (
+                "Any approved platform"
+              )
+            }
           />
         </div>
         {(campaign.required_hashtags?.length ?? 0) > 0 && (
@@ -270,16 +277,20 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
       <SectionCard id="deliverables">
         <SectionTitle>Deliverables</SectionTitle>
         <div className="space-y-2">
-          {(campaign.allowed_platforms ?? ["tiktok"]).map((platform) => (
+          {(campaign.allowed_platforms ?? []).length === 0 ? (
+            <p className="text-[13px] text-[#6B7280]">Publish on any approved campaign platform.</p>
+          ) : null}
+          {(campaign.allowed_platforms ?? []).map((platform) => (
             <div key={platform} className="rounded-[12px] border border-[#EEF0F2] p-3">
-              <p className="text-[13px] font-bold capitalize text-[#111827]">{platform}</p>
+              <div className="flex items-center gap-2">
+                <UGCPlatformMarks platforms={[platform]} />
+                <p className="text-[13px] font-semibold capitalize text-[#111827]">{platform}</p>
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] text-[#6B7280]">
-                <span>Video count: 1+</span>
                 <span>Aspect: {getAspectRatioForPlatform(platform)}</span>
                 <span>
                   Duration: {campaign.min_duration ?? "—"}s – {campaign.max_duration ?? "—"}s
                 </span>
-                <span>Language: English</span>
                 <span>Deadline: {campaign.ends_at ? new Date(campaign.ends_at).toLocaleDateString() : "TBD"}</span>
                 <span>Quality: HD, native upload</span>
               </div>

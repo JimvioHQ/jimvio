@@ -17,6 +17,8 @@ import type {
 import { getDaysRemaining } from "./ugc-campaign-utils";
 
 const LIMIT = 24;
+const CARD_GRID =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,272px),1fr))] gap-4";
 
 function CardSkeleton() {
   return (
@@ -238,21 +240,21 @@ export function UGCDiscoverPage() {
 
   const campaigns = rawCampaigns;
   const showHero = !loading && featuredCampaigns.length > 0 && !hasFilters;
-  const trending = campaigns
-    .filter((c) => (c.submission_count ?? 0) >= 8)
-    .slice(0, 8);
-  const endingSoon = campaigns
-    .filter((c) => {
-      const days = getDaysRemaining(c.ends_at);
-      return days !== null && days <= 7;
-    })
-    .slice(0, 8);
-  const newest = [...campaigns]
-    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
-    .slice(0, 8);
+  const showRails = !hasFilters && campaigns.length > 4;
+  const endingSoon = showRails
+    ? campaigns
+        .filter((c) => {
+          const days = getDaysRemaining(c.submission_deadline ?? c.ends_at);
+          return days !== null && days <= 7;
+        })
+        .slice(0, 8)
+    : [];
+  const newest = showRails
+    ? [...campaigns].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 8)
+    : [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl pb-12 pt-1">
+    <div className="mx-auto w-full max-w-[1280px] pb-12 pt-1">
       <UGCHeroHeader
         searchRef={searchRef}
         inputVal={inputVal}
@@ -275,7 +277,7 @@ export function UGCDiscoverPage() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={CARD_GRID}>
           {Array.from({ length: 6 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
@@ -284,9 +286,9 @@ export function UGCDiscoverPage() {
         <>
           {showHero ? <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 5)} /> : null}
 
-          {!hasFilters && trending.length > 0 ? (
-            <CampaignSection title="Trending opportunities">
-              {trending.map((c, i) => (
+          {!hasFilters && newest.length > 0 ? (
+            <CampaignSection title="New campaigns">
+              {newest.map((c, i) => (
                 <UGCPremiumCampaignCard
                   key={c.id}
                   campaign={c}
@@ -301,20 +303,6 @@ export function UGCDiscoverPage() {
           {!hasFilters && endingSoon.length > 0 ? (
             <CampaignSection title="Ending soon">
               {endingSoon.map((c, i) => (
-                <UGCPremiumCampaignCard
-                  key={c.id}
-                  campaign={c}
-                  index={i}
-                  saved={savedIds.has(c.id)}
-                  onToggleSave={toggleSave}
-                />
-              ))}
-            </CampaignSection>
-          ) : null}
-
-          {!hasFilters && newest.length > 0 ? (
-            <CampaignSection title="New campaigns">
-              {newest.map((c, i) => (
                 <UGCPremiumCampaignCard
                   key={c.id}
                   campaign={c}
@@ -358,7 +346,7 @@ export function UGCDiscoverPage() {
                 ) : null}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className={CARD_GRID}>
                 {campaigns.map((c, i) => (
                   <UGCPremiumCampaignCard
                     key={c.id}
@@ -390,9 +378,7 @@ function CampaignSection({ title, children }: { title: string; children: React.R
   return (
     <section className="mb-7">
       <h2 className="mb-3 text-[15px] font-bold text-[#111827]">{title}</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {children}
-      </div>
+      <div className={CARD_GRID}>{children}</div>
     </section>
   );
 }

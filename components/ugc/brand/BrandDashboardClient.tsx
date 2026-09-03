@@ -2,7 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Users, Wallet } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarClock,
+  Clock,
+  DollarSign,
+  Eye,
+  FileStack,
+  Megaphone,
+  Plus,
+  UserPlus,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { Button } from "@/components/ui/button";
 import { UGCPageEmpty, UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
@@ -41,6 +54,7 @@ type UpcomingItem = {
   id: string;
   date: string;
   label: string;
+  kind?: string;
   campaignId: string;
   campaignTitle: string;
   href: string;
@@ -100,6 +114,43 @@ function formatDate(iso: string) {
     year: "numeric",
   });
 }
+
+function countdownLabel(iso: string) {
+  const days = Math.ceil((Date.parse(iso) - Date.now()) / (1000 * 60 * 60 * 24));
+  if (Number.isNaN(days)) return null;
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}
+
+function eventTypeLabel(kind?: string, fallback?: string) {
+  switch (kind) {
+    case "campaign_start":
+      return "Campaign start";
+    case "submission_deadline":
+    case "content_deadline":
+      return "Content deadline";
+    case "review_start":
+    case "review_end":
+      return "Review period";
+    case "campaign_end":
+      return "Campaign end";
+    case "live_date":
+      return "Creator submissions open";
+    case "payment":
+      return "Payment";
+    default:
+      return fallback ?? "Campaign date";
+  }
+}
+
+const ATTENTION_ICONS: Record<string, LucideIcon> = {
+  funding: Wallet,
+  application_review: UserPlus,
+  submission_review: FileStack,
+  deadline: Clock,
+  ending: AlertCircle,
+};
 
 function statusPill(status: string) {
   if (status === "active") return <Pill tone="success">Active</Pill>;
@@ -190,55 +241,62 @@ export default function BrandDashboardClient() {
     >
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
-          <Kpi label="Active campaigns" value={String(s.activeCampaigns)} hint="Currently live" />
-          <Kpi label="Upcoming" value={String(s.upcomingCampaigns)} hint="Not started yet" />
-          <Kpi label="Pending applications" value={String(s.pendingApplications)} hint="Awaiting approval" />
-          <Kpi label="Pending submissions" value={String(s.pendingSubmissions)} hint="Awaiting review" />
-          <Kpi label="Pending funding" value={String(s.pendingFunding)} hint="Drafts to fund" />
+          <Kpi icon={Megaphone} label="Active campaigns" value={String(s.activeCampaigns)} hint="Currently live" />
+          <Kpi icon={CalendarClock} label="Upcoming" value={String(s.upcomingCampaigns)} hint="Not started yet" />
+          <Kpi icon={UserPlus} label="Pending applications" value={String(s.pendingApplications)} hint="Awaiting approval" />
+          <Kpi icon={FileStack} label="Pending submissions" value={String(s.pendingSubmissions)} hint="Awaiting review" />
+          <Kpi icon={Wallet} label="Pending funding" value={String(s.pendingFunding)} hint="Drafts to fund" />
           <Kpi
+            icon={DollarSign}
             label="Total spend"
             value={s.totalSpend == null ? "—" : formatMoney(s.totalSpend, "USD")}
             hint="Funded campaign spend"
           />
-          <Kpi label="Total views" value={s.totalViews.toLocaleString()} hint="Tracked performance" />
-          <Kpi label="Creators" value={s.totalCreators.toLocaleString()} hint="Participating creators" />
+          <Kpi icon={Eye} label="Total views" value={s.totalViews.toLocaleString()} hint="Tracked performance" />
+          <Kpi icon={Users} label="Creators" value={s.totalCreators.toLocaleString()} hint="Participating creators" />
         </div>
 
-        <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
-          <h2 className="text-[18px] font-semibold text-[#111827]">Needs your attention</h2>
+        <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-5">
+          <h2 className="text-[16px] font-semibold text-[#111827]">Needs your attention</h2>
           {(data.attention ?? []).length === 0 ? (
-            <p className="mt-3 text-[13px] text-[#6B7280]">No action required</p>
+            <p className="mt-3 text-[13px] text-[#6B7280]">No action required right now.</p>
           ) : (
             <ul className="mt-3 divide-y divide-[#F3F4F6]">
-              {(data.attention ?? []).map((item) => (
-                <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="text-[14px] font-semibold text-[#111827]">{item.title}</p>
-                    <p className="mt-0.5 text-[13px] text-[#6B7280]">{item.reason}</p>
-                  </div>
-                  <Link
-                    href={withBrandQuery(item.href, brandId)}
-                    className="shrink-0 text-[13px] font-semibold text-[#FF5A1F] hover:underline"
-                  >
-                    {item.actionLabel}
-                  </Link>
-                </li>
-              ))}
+              {(data.attention ?? []).map((item) => {
+                const Icon = ATTENTION_ICONS[item.kind] ?? AlertCircle;
+                return (
+                  <li key={item.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#F8FAFC] text-[#111827]">
+                      <Icon className="h-[18px] w-[18px]" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-semibold text-[#111827]">{item.title}</p>
+                      <p className="mt-0.5 text-[13px] text-[#6B7280]">{item.reason}</p>
+                    </div>
+                    <Link
+                      href={withBrandQuery(item.href, brandId)}
+                      className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#111827] hover:bg-[#F8FAFC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+                    >
+                      {item.actionLabel}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
 
         <section>
-          <h2 className="text-[18px] font-semibold text-[#111827]">Active campaigns</h2>
+          <h2 className="text-[16px] font-semibold text-[#111827]">Active campaigns</h2>
           {(data.activeCampaigns ?? []).length === 0 ? (
-            <div className="mt-3 rounded-xl border border-dashed border-[#E5E7EB] bg-white px-4 py-8 text-center">
-              <p className="text-[14px] font-semibold text-[#111827]">No active campaigns</p>
+            <div className="mt-3 rounded-xl border border-dashed border-[#E5E7EB] bg-white px-4 py-10 text-center">
+              <p className="text-[15px] font-semibold text-[#111827]">No active campaigns</p>
               <p className="mt-1 text-[13px] text-[#6B7280]">
-                Your active campaigns will appear here once a campaign is launched.
+                Launch a campaign to start working with creators.
               </p>
               <Link
                 href={createHref}
-                className="mt-3 inline-flex text-[13px] font-semibold text-[#FF5A1F] hover:underline"
+                className="mt-4 inline-flex h-9 items-center rounded-lg bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white hover:bg-[#E54E18]"
               >
                 Create Campaign
               </Link>
@@ -286,25 +344,27 @@ export default function BrandDashboardClient() {
           )}
         </section>
 
-        <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
-          <h2 className="text-[18px] font-semibold text-[#111827]">Upcoming</h2>
+        <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-5">
+          <h2 className="text-[16px] font-semibold text-[#111827]">Upcoming</h2>
           {(data.upcoming ?? []).length === 0 ? (
             <p className="mt-3 text-[13px] text-[#6B7280]">No upcoming campaign dates.</p>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 divide-y divide-[#F3F4F6]">
               {(data.upcoming ?? []).map((item) => (
-                <li key={item.id}>
+                <li key={item.id} className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="w-[72px] shrink-0">
+                    <p className="text-[13px] font-semibold text-[#111827]">{formatDay(item.date)}</p>
+                    <p className="text-[11px] text-[#9CA3AF]">{countdownLabel(item.date)}</p>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-[#111827]">{item.campaignTitle}</p>
+                    <p className="text-[12px] text-[#6B7280]">{eventTypeLabel(item.kind, item.label)}</p>
+                  </div>
                   <Link
                     href={withBrandQuery(item.href, brandId)}
-                    className="flex items-start gap-3 rounded-lg px-1 py-1.5 hover:bg-[#F8FAFC]"
+                    className="inline-flex h-9 shrink-0 items-center rounded-lg border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#111827] hover:bg-[#F8FAFC]"
                   >
-                    <span className="w-14 shrink-0 pt-0.5 text-[12px] font-semibold text-[#6B7280]">
-                      {formatDay(item.date)}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-medium text-[#111827]">{item.label}</span>
-                      <span className="block text-[12px] text-[#6B7280]">{item.campaignTitle}</span>
-                    </span>
+                    View
                   </Link>
                 </li>
               ))}
@@ -313,7 +373,7 @@ export default function BrandDashboardClient() {
         </section>
 
         <section>
-          <h2 className="text-[18px] font-semibold text-[#111827]">Campaign performance</h2>
+          <h2 className="text-[16px] font-semibold text-[#111827]">Campaign performance</h2>
           {(data.campaignPerformance ?? []).length === 0 ? (
             <div className="mt-3 rounded-xl border border-dashed border-[#E5E7EB] bg-white px-4 py-8 text-center">
               <p className="text-[14px] font-semibold text-[#111827]">No campaign performance yet</p>
@@ -388,7 +448,7 @@ export default function BrandDashboardClient() {
 
         <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-[18px] font-semibold text-[#111827]">Recent campaign activity</h2>
+            <h2 className="text-[16px] font-semibold text-[#111827]">Recent campaign activity</h2>
             <Link href="/ugc/activity" className="text-[13px] font-semibold text-[#FF5A1F] hover:underline">
               View all
             </Link>
@@ -428,11 +488,26 @@ export default function BrandDashboardClient() {
   );
 }
 
-function Kpi({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  hint: string;
+}) {
   return (
-    <div className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-[#9CA3AF]">{label}</p>
-      <p className="mt-1 text-[22px] font-semibold tabular-nums leading-none text-[#111827]">{value}</p>
+    <div className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#F8FAFC] text-[#111827]">
+          <Icon className="h-3.5 w-3.5" aria-hidden />
+        </span>
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{label}</p>
+      </div>
+      <p className="text-[22px] font-semibold tabular-nums leading-none text-[#111827]">{value}</p>
       <p className="mt-1.5 text-[11px] text-[#6B7280]">{hint}</p>
     </div>
   );

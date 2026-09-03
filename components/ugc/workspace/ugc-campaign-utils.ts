@@ -19,8 +19,8 @@ export function getCampaignRewardLine(
 ): string {
   if (c.payment_model === "fixed_per_content") {
     const rate = c.fixed_rate ?? 0;
-    const max = c.max_payout_per_sub ?? rate * 1.5;
-    if (max > rate && rate > 0) {
+    const max = c.max_payout_per_sub;
+    if (typeof max === "number" && max > rate && rate > 0) {
       return `${formatMoney(rate, "USD")} - ${formatMoney(max, "USD")} per video`;
     }
     return `${formatMoney(rate, "USD")} per video`;

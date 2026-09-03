@@ -17,6 +17,7 @@ import {
   getCampaignRewardLine,
 } from "@/components/ugc/workspace/ugc-campaign-utils";
 import { MetricTile, Pill, ProgressBar, SectionCard } from "./campaign-detail-ui";
+import { UGCPlatformMarks } from "@/components/ugc/workspace/UGCPlatformMarks";
 
 type CampaignDetailSidebarProps = {
   campaign: UGCCampaign;
@@ -184,10 +185,14 @@ export function CampaignDetailSidebar({
           </p>
         </div>
 
-        <p className="flex items-center gap-1.5 text-[11px] text-[#9CA3AF]">
-          <Users className="h-3.5 w-3.5" />
-          {(campaign.allowed_platforms ?? []).join(" · ") || "Multi-platform"}
-        </p>
+        <div className="flex items-center gap-2">
+          <Users className="h-3.5 w-3.5 shrink-0 text-[#9CA3AF]" aria-hidden />
+          {(campaign.allowed_platforms ?? []).length > 0 ? (
+            <UGCPlatformMarks platforms={campaign.allowed_platforms ?? []} />
+          ) : (
+            <span className="text-[11px] text-[#9CA3AF]">Multi-platform</span>
+          )}
+        </div>
       </SectionCard>
     </aside>
   );

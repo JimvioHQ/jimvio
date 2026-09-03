@@ -42,6 +42,7 @@ type UpcomingItem = {
   id: string;
   date: string;
   label: string;
+  kind: string;
   campaignId: string;
   campaignTitle: string;
   href: string;
@@ -257,8 +258,8 @@ export async function GET(req: NextRequest) {
       attention.push({
         id: `subs-${cid}`,
         kind: "submission_review",
-        title: "Submission review",
-        reason: `${count} submission${count === 1 ? "" : "s"} from ${title}`,
+        title: count === 1 ? "1 submission needs review" : `${count} submissions need review`,
+        reason: `Review creator content for ${title}.`,
         campaignId: cid,
         campaignTitle: title,
         href: `/ugc/campaign-center/${cid}/submissions`,
@@ -271,8 +272,8 @@ export async function GET(req: NextRequest) {
       attention.push({
         id: `apps-${cid}`,
         kind: "application_review",
-        title: "Creator applications",
-        reason: `${count} application${count === 1 ? "" : "s"} waiting on ${title}`,
+        title: count === 1 ? "1 application waiting for review" : `${count} applications waiting for review`,
+        reason: `Creators are waiting on ${title}.`,
         campaignId: cid,
         campaignTitle: title,
         href: `/ugc/campaign-center/${cid}/participants`,
@@ -284,8 +285,8 @@ export async function GET(req: NextRequest) {
       attention.push({
         id: `fund-${c.id}`,
         kind: "funding",
-        title: "Campaign funding",
-        reason: `${c.title} is ready but needs funding`,
+        title: "Campaign funding required",
+        reason: `${c.title} is ready to launch after funding.`,
         campaignId: c.id,
         campaignTitle: c.title,
         href: `/ugc/campaign-center/${c.id}/funding`,
@@ -339,6 +340,7 @@ export async function GET(req: NextRequest) {
           id: ev.id,
           date: ev.date,
           label: ev.title || scheduleKindLabel(ev.kind),
+          kind: ev.kind,
           campaignId: c.id,
           campaignTitle: c.title,
           href: `/ugc/campaign-center/${c.id}/edit`,

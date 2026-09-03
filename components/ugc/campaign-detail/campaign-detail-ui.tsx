@@ -87,7 +87,7 @@ export function ChecklistItem({
 }: {
   label: string;
   met: boolean;
-  detail?: string;
+  detail?: ReactNode;
 }) {
   return (
     <div className="flex items-start gap-2.5 py-2">
@@ -104,7 +104,7 @@ export function ChecklistItem({
         <p className={cn("text-[13px] font-medium", met ? "text-[#111827]" : "text-[#6B7280]")}>
           {label}
         </p>
-        {detail ? <p className="text-[11px] text-[#9CA3AF]">{detail}</p> : null}
+        {detail ? <div className="mt-0.5 text-[11px] text-[#9CA3AF]">{detail}</div> : null}
       </div>
     </div>
   );

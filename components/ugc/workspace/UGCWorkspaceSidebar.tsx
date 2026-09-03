@@ -90,13 +90,13 @@ function NavLink({
       href={href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] transition-colors",
+        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors",
         active
           ? "bg-[#FFF4EF] font-semibold text-[#FF5A1F]"
           : "font-medium text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2.1 : 1.75} aria-hidden />
+      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.1 : 1.75} aria-hidden />
       <span className="truncate">{item.label}</span>
     </Link>
   );
