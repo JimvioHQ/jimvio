@@ -329,7 +329,7 @@ const EN = {
   viewActiveCampaigns: "View active campaigns",
   escrowLockedCreatorsCanJoin: "Escrow locked · Creators can now discover and join “{title}”.",
   alreadyActiveDetail: "“{title}” is funded and live.",
-  minFundingIs: "Minimum funding is RWF {amount}",
+  minFundingIs: "Minimum funding is {amount}",
   phoneRequired: "A valid funding phone number is required.",
   insufficientWalletEscrow: "Insufficient wallet balance for this escrow amount.",
   fundingFailed: "Funding failed",
@@ -726,7 +726,7 @@ const FR: typeof EN = {
   escrowLockedCreatorsCanJoin:
     "Escrow verrouillé · Les créateurs peuvent maintenant découvrir et rejoindre « {title} ».",
   alreadyActiveDetail: "« {title} » est financée et en ligne.",
-  minFundingIs: "Le financement minimum est de {amount} RWF",
+  minFundingIs: "Le financement minimum est de {amount}",
   phoneRequired: "Un numéro de téléphone de financement valide est requis.",
   insufficientWalletEscrow: "Solde du portefeuille insuffisant pour cet escrow.",
   fundingFailed: "Échec du financement",
@@ -1125,7 +1125,7 @@ const RW: typeof EN = {
   escrowLockedCreatorsCanJoin:
     "Amafaranga afunze · Abaremyi bashobora kubona no kwinjira muri “{title}”.",
   alreadyActiveDetail: "“{title}” yishyuwe kandi irakora.",
-  minFundingIs: "Amafaranga make ni RWF {amount}",
+  minFundingIs: "Amafaranga make ni {amount}",
   phoneRequired: "Nimero ya telefoni yemewe irakenewe.",
   insufficientWalletEscrow: "Amafaranga yo mu mufuka ntahagije.",
   fundingFailed: "Kwishyura byananiranye",

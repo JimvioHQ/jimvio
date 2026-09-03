@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Bitcoin, CreditCard, Landmark, PlusCircle, Smartphone, Zap } from "lucide-react";
-import { formatMoneyAsUSD } from "@/lib/currency/platform";
+import { PlusCircle } from "lucide-react";
+import { formatMoneyAsUSD, PLATFORM_CURRENCY } from "@/lib/currency/platform";
+import {
+  PaymentMethodSelector,
+  type MethodId,
+} from "@/components/checkout/PaymentMethodSelector";
 import {
   WalletButton,
   WalletCard,
@@ -12,18 +16,15 @@ import {
   WalletLoading,
   WalletPill,
   WalletSectionHeading,
-  cn,
   statusTone,
   useWalletFetch,
 } from "./wallet-ui";
-
-type DepositMethodId = "bank" | "flutterwave" | "mobile_money" | "paypal" | "crypto";
 
 interface DepositRecord {
   id: string;
   amount: number;
   currency?: string;
-  method: DepositMethodId | string;
+  method: string;
   status: string;
   createdAt: string;
   reference?: string | null;
@@ -31,31 +32,43 @@ interface DepositRecord {
 
 interface WalletDepositsResponse {
   currency?: string;
+  availableBalance?: number;
   deposits?: DepositRecord[];
 }
-
-const METHODS: Array<{ id: DepositMethodId; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-  { id: "bank", label: "Bank transfer", icon: Landmark },
-  { id: "flutterwave", label: "Flutterwave", icon: Zap },
-  { id: "mobile_money", label: "Mobile Money", icon: Smartphone },
-  { id: "paypal", label: "PayPal", icon: CreditCard },
-  { id: "crypto", label: "Crypto", icon: Bitcoin },
-];
 
 export function WalletDepositsClient() {
   const { status, data, error, retry } = useWalletFetch<WalletDepositsResponse>("/api/wallet/os/deposits");
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<DepositMethodId>("bank");
+  const [method, setMethod] = useState<MethodId>("flutterwave");
+  const [enabledMethods, setEnabledMethods] = useState<MethodId[] | undefined>();
   const [submitting, setSubmitting] = useState(false);
 
-  const currency = data?.currency || "USD";
-  const deposits = data?.deposits ?? [];
+  useEffect(() => {
+    fetch("/api/platform/payment-providers")
+      .then((r) => r.json())
+      .then((body: { enabled?: MethodId[] }) => {
+        if (Array.isArray(body.enabled) && body.enabled.length > 0) {
+          setEnabledMethods(body.enabled);
+          setMethod((current) =>
+            body.enabled!.includes(current) ? current : body.enabled![0],
+          );
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const parsed = Number(amount);
-    if (!parsed || parsed <= 0) {
-      toast.error("Enter a valid deposit amount");
+  const currency = data?.currency || PLATFORM_CURRENCY;
+  const deposits = data?.deposits ?? [];
+  const available = Number(data?.availableBalance ?? 0);
+  const parsedAmount = useMemo(() => Math.round(Number(amount) * 100) / 100, [amount]);
+
+  async function handlePay() {
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 1) {
+      toast.error("Enter a valid deposit amount (minimum $1.00)");
+      return;
+    }
+    if (!method) {
+      toast.error("Choose a payment method");
       return;
     }
     setSubmitting(true);
@@ -63,17 +76,21 @@ export function WalletDepositsClient() {
       const res = await fetch("/api/wallet/os/deposits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parsed, method }),
+        body: JSON.stringify({ amount: parsedAmount, method }),
       });
+      const body = await res.json().catch(() => null);
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
         throw new Error(body?.error || "Deposit request failed");
       }
-      toast.success("Deposit request created");
+      if (body?.checkoutUrl) {
+        window.location.href = body.checkoutUrl;
+        return;
+      }
+      toast.success("Deposit request created. Complete payment when prompted.");
       setAmount("");
       retry();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't submit deposit request");
+      toast.error(err instanceof Error ? err.message : "Couldn't start deposit");
     } finally {
       setSubmitting(false);
     }
@@ -82,101 +99,93 @@ export function WalletDepositsClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet"
-        title="Deposits"
-        description="Fund your wallet directly, or track incoming funding requests."
+        eyebrow="Wallet"
+        title="Add funds"
+        description="Fund your Jimvio wallet with the same secure payment methods used at checkout."
         className="mb-6"
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <WalletCard className="p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
+            Available balance
+          </p>
+          <p className="mt-1 text-[22px] font-bold tabular-nums text-[#121113]">
+            {formatMoneyAsUSD(available, currency)}
+          </p>
+        </WalletCard>
+        <WalletCard className="p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
+            Deposit amount
+          </p>
+          <div className="relative mt-2">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-[#B9B3A6]">$</span>
+            <input
+              type="number"
+              min={1}
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="50.00"
+              className="h-11 w-full rounded-xl border border-black/[0.08] bg-white pl-8 pr-3 text-[14px] font-medium text-[#121113] outline-none focus:border-[#FF5A1F]/50"
+            />
+          </div>
+        </WalletCard>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <WalletCard className="p-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">Request deposit</p>
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">Amount</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-[#B9B3A6]">{currency}</span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  required
-                  className="h-11 w-full rounded-xl border border-black/[0.08] bg-white pl-14 pr-3 text-[14px] font-medium text-[#121113] outline-none focus:border-[#FF5A1F]/50"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">Fund with</label>
-              <div className="grid grid-cols-1 gap-1.5">
-                {METHODS.map((m) => {
-                  const Icon = m.icon;
-                  const active = method === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setMethod(m.id)}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors",
-                        active ? "border-[#FF5A1F]/60 bg-[#FFF6F1]" : "border-black/[0.08] bg-white hover:border-black/15",
-                      )}
-                    >
-                      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[#D6480F]" : "text-[#9B968D]")} />
-                      <span className="flex-1 text-[12.5px] font-semibold text-[#121113]">{m.label}</span>
-                      <span className={cn("h-2 w-2 shrink-0 rounded-full", active ? "bg-[#FF5A1F]" : "border border-black/15")} />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <WalletButton type="submit" variant="primary" size="lg" loading={submitting} className="w-full">
-              <PlusCircle className="h-4 w-4" />
-              Request deposit
-            </WalletButton>
-          </form>
+          {status === "loading" ? (
+            <WalletLoading />
+          ) : status === "error" ? (
+            <WalletErrorState message={error || "Could not load deposits"} onRetry={retry} />
+          ) : (
+            <PaymentMethodSelector
+              selected={method}
+              onSelect={setMethod}
+              orderTotal={Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : 0}
+              orderCurrency={PLATFORM_CURRENCY}
+              enabledMethodIds={enabledMethods}
+              loading={submitting}
+              onPay={handlePay}
+            />
+          )}
         </WalletCard>
 
-        <div>
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">Funding history</p>
-          {status === "loading" && <WalletLoading label="Loading deposit history…" />}
-          {status === "error" && (
-            <WalletErrorState message={error || "The deposits endpoint isn't available yet."} onRetry={retry} />
+        <WalletCard className="p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
+            Recent deposits
+          </p>
+          {deposits.length === 0 ? (
+            <WalletEmptyState
+              icon={<PlusCircle className="h-6 w-6" />}
+              title="No deposits yet"
+              description="Add funds to pay for campaigns and other Jimvio features from your balance."
+            />
+          ) : (
+            <ul className="mt-4 space-y-2.5">
+              {deposits.map((d) => (
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold text-[#121113]">
+                      {formatMoneyAsUSD(d.amount, d.currency || currency)}
+                    </p>
+                    <p className="text-[11px] text-[#9B968D]">
+                      {d.method} · {new Date(d.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>
+                </li>
+              ))}
+            </ul>
           )}
-          {(status === "empty" || (status === "ready" && deposits.length === 0)) && (
-            <WalletEmptyState title="No deposits yet" description="Your funding history will appear here once you add funds." />
-          )}
-          {status === "ready" && deposits.length > 0 && (
-            <div className="space-y-2">
-              {deposits.map((d) => {
-                const methodMeta = METHODS.find((m) => m.id === d.method);
-                const Icon = methodMeta?.icon ?? Landmark;
-                return (
-                  <WalletCard key={d.id} className="flex items-center justify-between gap-3 p-3.5">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.04] text-[#726D64]">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium text-[#121113]">{methodMeta?.label ?? d.method}</p>
-                        <p className="text-[11px] text-[#9B968D]">
-                          {new Date(d.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                          {d.reference ? ` · ${d.reference}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>
-                      <span className="text-[13px] font-semibold text-[#1C8A44]">+{formatMoneyAsUSD(d.amount, d.currency || currency)}</span>
-                    </div>
-                  </WalletCard>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          <WalletButton variant="ghost" className="mt-4 w-full" onClick={() => retry()}>
+            Refresh
+          </WalletButton>
+        </WalletCard>
       </div>
     </div>
   );

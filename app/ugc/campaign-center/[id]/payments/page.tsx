@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 
 type PayoutItem = {
   payoutId: string;
@@ -105,8 +106,7 @@ export default function CampaignPaymentsPage() {
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Total Amount</p>
               </div>
               <p className="mt-2 text-[22px] font-bold text-[#111827] tabular-nums">
-                {summary.totalAmount.toLocaleString()}{" "}
-                <span className="text-[12px] font-semibold text-[#6B7280]">RWF</span>
+                {formatMoneyAsUSD(summary.totalAmount, "USD")}
               </p>
             </div>
 
@@ -163,7 +163,7 @@ export default function CampaignPaymentsPage() {
                       </Pill>
                     </td>
                     <td className="px-4 py-3 font-bold text-[13px] tabular-nums text-[#111827]">
-                      {p.amount.toLocaleString()} RWF
+                      {formatMoneyAsUSD(p.amount, "USD")}
                     </td>
                     <td className="px-4 py-3 text-[12px] text-[#6B7280]">
                       {p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}

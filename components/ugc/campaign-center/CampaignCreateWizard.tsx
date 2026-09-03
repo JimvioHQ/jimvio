@@ -1097,7 +1097,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             <ReviewRow label={t("reviewAssetsLabel")} value={t("reviewAssets", { count: form.media.length })} />
             {validateCampaignWizardReady(form).success ? (
               <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
-                Next step: fund your campaign (minimum RWF 1,000). It stays in{" "}
+                Next step: fund your campaign (minimum $1.00). It stays in{" "}
                 <strong>Pending Funding</strong> until escrow is deposited, then activates
                 automatically.
               </p>

@@ -10,7 +10,7 @@ import { Json } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
-import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
+import { PLATFORM_CURRENCY, resolveLineUnitUsd, toPlatformUsd } from "@/lib/currency/platform";
 import { estimateOrderTax } from "@/lib/commerce/tax-hooks";
 import {
   buildAffiliateAttribution,
@@ -233,12 +233,13 @@ async function createVendorOrder(
   for (const item of vendorItems) {
     const p = item.products!;
     const v = item.product_variants;
-    const unitPrice =
-      (item.currency_at_add ?? "").toUpperCase() === PLATFORM_CURRENCY &&
-      Number.isFinite(Number(item.unit_price_at_add))
-        ? Math.round(Number(item.unit_price_at_add) * 100) / 100
-        : toPlatformUsd(Number(v?.price ?? p.price), p.currency);
-    const totalPrice = unitPrice * item.quantity;
+    const unitPrice = resolveLineUnitUsd({
+      unitPriceAtAdd: item.unit_price_at_add,
+      currencyAtAdd: item.currency_at_add,
+      catalogPrice: v?.price ?? p.price,
+      catalogCurrency: p.currency,
+    });
+    const totalPrice = Math.round(unitPrice * item.quantity * 100) / 100;
     subtotal += totalPrice;
 
     const productImage =
@@ -828,10 +829,13 @@ type CartItemRow = {
   quantity: number;
   product_source: string;
   source_metadata: Json;
+  unit_price_at_add?: number | null;
+  currency_at_add?: string | null;
   products: {
     id: string;
     name: string;
     price: number;
+    currency?: string | null;
     status: string;
     is_active: boolean;
     deleted_at: string | null;
@@ -839,6 +843,9 @@ type CartItemRow = {
     images: string[] | null;
     pricing_type: string | null;
     billing_period: string | null;
+    affiliate_enabled?: boolean | null;
+    affiliate_commission_rate?: number | null;
+    affiliate_price?: number | null;
   } | null;
   product_variants: {
     id: string;
@@ -940,9 +947,11 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     .select(
       `
       id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata,
+      unit_price_at_add, currency_at_add,
       products(
-        id, name, price, status, is_active, deleted_at,
-        is_digital, images, pricing_type, billing_period
+        id, name, price, currency, status, is_active, deleted_at,
+        is_digital, images, pricing_type, billing_period,
+        affiliate_enabled, affiliate_commission_rate, affiliate_price
       ),
       product_variants(id, name, price, is_active, image_url)
     `
@@ -982,16 +991,21 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   // Cart items IN order with different quantity or price → need to update
   for (const [key, ci] of cartItemMap) {
     const existing = orderItemMap.get(key);
-    const currentPrice = Number(ci.product_variants?.price ?? ci.products?.price ?? 0);
+    const currentPrice = resolveLineUnitUsd({
+      unitPriceAtAdd: ci.unit_price_at_add,
+      currencyAtAdd: ci.currency_at_add,
+      catalogPrice: ci.product_variants?.price ?? ci.products?.price,
+      catalogCurrency: ci.products?.currency,
+    });
 
     if (!existing) {
       itemsAdded++;
     } else if (
       existing.quantity !== ci.quantity ||
-      Number(existing.unit_price) !== currentPrice
+      Math.abs(Number(existing.unit_price) - currentPrice) > 0.001
     ) {
       itemsUpdated++;
-      if (Number(existing.unit_price) !== currentPrice) {
+      if (Math.abs(Number(existing.unit_price) - currentPrice) > 0.001) {
         priceChanged = true;
       }
     }
@@ -1055,8 +1069,13 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   const newItemsPayload = cartItems.map((ci) => {
     const p = ci.products!;
     const v = ci.product_variants;
-    const unitPrice = Number(v?.price ?? p.price);
-    const totalPrice = unitPrice * ci.quantity;
+    const unitPrice = resolveLineUnitUsd({
+      unitPriceAtAdd: ci.unit_price_at_add,
+      currencyAtAdd: ci.currency_at_add,
+      catalogPrice: v?.price ?? p.price,
+      catalogCurrency: p.currency,
+    });
+    const totalPrice = Math.round(unitPrice * ci.quantity * 100) / 100;
     newSubtotal += totalPrice;
 
     const productImage =
@@ -1098,8 +1117,9 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   const { error: updateError } = await admin
     .from("orders")
     .update({
-      subtotal: newSubtotal,
-      total_amount: newSubtotal, // shipping will be re-added when user picks delivery
+      currency: PLATFORM_CURRENCY,
+      subtotal: Math.round(newSubtotal * 100) / 100,
+      total_amount: Math.round(newSubtotal * 100) / 100, // shipping re-added when user picks delivery
       shipping_amount: null,
       // Clear any active Binance prepay session — amount has changed, old one invalid
       metadata: {

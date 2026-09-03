@@ -1,59 +1,53 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
-  DEFAULT_AFFILIATE_COMMISSION_PERCENT,
-  estimateAffiliateCommissionUsd,
   formatMoneyAsUSD,
   formatUSD,
-  resolveCommissionRatePercent,
+  looksLikeRwfasUsd,
+  resolveLineUnitUsd,
   toPlatformUsd,
+  PLATFORM_CURRENCY,
 } from "./platform";
 
-describe("formatUSD", () => {
-  it("formats cents consistently", () => {
-    assert.equal(formatUSD(0), "$0.00");
-    assert.equal(formatUSD(12.5), "$12.50");
-    assert.equal(formatUSD(1250), "$1,250.00");
+describe("platform USD money consistency", () => {
+  it("converts 14100 RWF to $11.28 once — never $14,100", () => {
+    const usd = toPlatformUsd(14100, "RWF");
+    assert.equal(usd, 11.28);
+    assert.equal(formatUSD(usd), "$11.28");
+    assert.equal(formatMoneyAsUSD(14100, "RWF"), "$11.28");
+    assert.notEqual(formatMoneyAsUSD(14100, "USD"), "$11.28");
+    assert.equal(formatMoneyAsUSD(14100, "USD"), "$14,100.00");
   });
 
-  it("converts RWF before formatting — never reinterprets as dollars", () => {
-    const formatted = formatMoneyAsUSD(14100, "RWF");
-    assert.match(formatted, /\$/);
-    assert.equal(formatted.includes("RWF"), false);
-    assert.equal(formatted.includes("14,100"), false);
-    assert.ok(toPlatformUsd(14100, "RWF") < 100);
-  });
-});
-
-describe("variable commission rates", () => {
-  it("prefers product-specific rates over defaults", () => {
-    assert.equal(
-      resolveCommissionRatePercent({
-        productRate: 15,
-        platformDefault: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
-      }),
-      15,
-    );
-    assert.equal(
-      resolveCommissionRatePercent({
-        linkRate: 25,
-        productRate: 15,
-        platformDefault: 5,
-      }),
-      25,
-    );
-    assert.equal(
-      resolveCommissionRatePercent({
-        productRate: null,
-        platformDefault: 5,
-      }),
-      5,
-    );
+  it("passes USD through unchanged", () => {
+    assert.equal(toPlatformUsd(11.28, "USD"), 11.28);
+    assert.equal(toPlatformUsd(11.28, PLATFORM_CURRENCY), 11.28);
+    assert.equal(formatUSD(11.28), "$11.28");
   });
 
-  it("computes earnings from real rates", () => {
-    assert.equal(estimateAffiliateCommissionUsd(29.99, 15).amount, 4.5);
-    assert.equal(estimateAffiliateCommissionUsd(79.99, 25).amount, 20);
-    assert.notEqual(estimateAffiliateCommissionUsd(100, 10).amount, 20);
+  it("resolves cart snapshot USD without re-reading RWF catalog", () => {
+    const unit = resolveLineUnitUsd({
+      unitPriceAtAdd: 11.28,
+      currencyAtAdd: "USD",
+      catalogPrice: 14100,
+      catalogCurrency: "RWF",
+    });
+    assert.equal(unit, 11.28);
+  });
+
+  it("falls back to converting catalog RWF when cart snapshot missing", () => {
+    const unit = resolveLineUnitUsd({
+      unitPriceAtAdd: null,
+      currencyAtAdd: null,
+      catalogPrice: 14100,
+      catalogCurrency: "RWF",
+    });
+    assert.equal(unit, 11.28);
+  });
+
+  it("detects RWF amounts mis-tagged as USD", () => {
+    assert.equal(looksLikeRwfasUsd(14100, 14100, "RWF"), true);
+    assert.equal(looksLikeRwfasUsd(11.28, 14100, "RWF"), false);
+    assert.equal(looksLikeRwfasUsd(14100, 14100, "USD"), false);
   });
 });

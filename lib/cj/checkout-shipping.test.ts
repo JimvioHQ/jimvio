@@ -33,7 +33,7 @@ describe("checkout shipping quota errors", () => {
     assert.equal(isCjApiQuotaError(raw), true);
     const message = sanitizeCustomerError(raw, CJ_CUSTOMER_MESSAGES.shippingRates);
     assert.equal(message, CJ_CUSTOMER_MESSAGES.shippingQuota);
-    assert.match(message, /refreshing shipping options/i);
+    assert.match(message, /temporarily unavailable/i);
     assert.equal(message.includes("address"), false);
     assert.equal(message.toLowerCase().includes("cj"), false);
   });

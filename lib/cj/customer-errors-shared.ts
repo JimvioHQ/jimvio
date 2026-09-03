@@ -5,7 +5,7 @@ export const CJ_CUSTOMER_MESSAGES = {
     shippingTimeout:
         "Shipping quotes are taking longer than usual. Please try again.",
     shippingQuota:
-        "We’re refreshing shipping options. Please try again.",
+        "Shipping options are temporarily unavailable. Please try again shortly.",
     shippingUnavailable:
         "Shipping isn't available to this destination for the items in your order. Try a different address or contact support.",
     shippingSave:

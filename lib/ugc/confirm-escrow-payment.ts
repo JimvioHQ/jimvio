@@ -3,7 +3,7 @@ import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 import { assertCampaignReadyForFunding } from "@/lib/ugc/campaign-wizard-validation";
 import { paidAmountCoversEscrow } from "@/lib/ugc/escrow-amount";
 
-const MIN_FUNDING_RWF = 1000;
+const MIN_FUNDING_USD = 1;
 
 type ConfirmOpts = {
   paymentRef?: string | null;
@@ -84,8 +84,8 @@ export async function confirmUgcEscrowPayment(
   const canActivate = ready.success;
 
   const expected = Number(escrow.amount ?? 0);
-  const escrowCurrency = String(escrow.currency ?? "RWF").toUpperCase();
-  if (Number.isFinite(expected) && expected < MIN_FUNDING_RWF) {
+  const escrowCurrency = String(escrow.currency ?? "USD").toUpperCase();
+  if (Number.isFinite(expected) && expected < MIN_FUNDING_USD) {
     return { handled: true, activated: false, campaignId, alreadyHeld: false };
   }
 
@@ -172,7 +172,7 @@ export async function confirmUgcEscrowPayment(
     await emitUgcEvent(db, campaign.brand_id, "campaign.funded", {
       campaignId,
       amount: expected,
-      currency: escrow.currency ?? "RWF",
+      currency: escrow.currency ?? "USD",
     });
   } catch {
     /* never fail confirmation */

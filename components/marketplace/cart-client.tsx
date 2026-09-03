@@ -130,7 +130,7 @@ function vendorSubtotal(items: CartItem[]): number {
 function itemsToCartOrders(items: CartItem[]): CartOrderLikeForTotal[] {
   const map = new Map<string, number>();
   for (const item of items) {
-    const c = (item.currency_at_add || "RWF").toUpperCase();
+    const c = (item.currency_at_add || "USD").toUpperCase();
     map.set(
       c,
       (map.get(c) ?? 0) + Number(item.unit_price_at_add) * Number(item.quantity)
@@ -415,7 +415,7 @@ export function CartClient({ initialItems }: CartClientProps) {
   const hasMixedCurrencies = useMemo(
     () =>
       new Set(
-        items.map((i) => (i.currency_at_add || "RWF").toUpperCase())
+        items.map((i) => (i.currency_at_add || "USD").toUpperCase())
       ).size > 1,
     [items]
   );
@@ -718,7 +718,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                         const lineTotal =
                           Number(item.unit_price_at_add) *
                           Number(item.quantity);
-                        const currency = item.currency_at_add ?? "RWF";
+                        const currency = item.currency_at_add ?? "USD";
 
                         return (
                           <motion.div
@@ -1300,7 +1300,7 @@ export function CartClient({ initialItems }: CartClientProps) {
           variantPickerItem?.product_variants?.image_url ??
           null
         }
-        currency={variantPickerItem?.currency_at_add ?? "RWF"}
+        currency={variantPickerItem?.currency_at_add ?? "USD"}
         loadingVariantId={loadingVariantId}
       />
     </motion.div>

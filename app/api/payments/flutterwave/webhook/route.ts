@@ -389,6 +389,18 @@ export async function POST(req: NextRequest) {
   // 9. Resolve order. UGC escrow rows have no order_id — confirm via shared helper.
   const resolved = await resolveByTxRef(supabase, txRef);
   if (!resolved) {
+    const { completeWalletDepositByReference } = await import(
+      "@/lib/wallet-os/complete-deposit"
+    );
+    const deposit = await completeWalletDepositByReference(supabase, {
+      providerReference: txRef,
+      provider: "flutterwave",
+    });
+    if (deposit.handled) {
+      if (eventId) await markWebhookProcessed(supabase, eventId, null);
+      return NextResponse.json({ received: true, walletDeposit: true });
+    }
+
     const ugc = await confirmUgcEscrowFromProviderEvent(supabase, {
       provider: "flutterwave",
       providerTransactionId: txId != null ? String(txId) : txRef,

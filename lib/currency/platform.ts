@@ -86,6 +86,45 @@ export function estimateAffiliateCommissionUsd(
   return { amount, rate };
 }
 
+/** Resolve a cart/order line unit price in platform USD exactly once. */
+export function resolveLineUnitUsd(opts: {
+  unitPriceAtAdd?: number | null;
+  currencyAtAdd?: string | null;
+  catalogPrice?: number | null;
+  catalogCurrency?: string | null;
+}): number {
+  const atAdd = Number(opts.unitPriceAtAdd);
+  const addCurrency = (opts.currencyAtAdd ?? "").trim().toUpperCase();
+  if (
+    addCurrency === PLATFORM_CURRENCY &&
+    Number.isFinite(atAdd) &&
+    atAdd >= 0
+  ) {
+    return Math.round(atAdd * 100) / 100;
+  }
+  if (Number.isFinite(atAdd) && atAdd >= 0 && addCurrency) {
+    return toPlatformUsd(atAdd, addCurrency);
+  }
+  return toPlatformUsd(Number(opts.catalogPrice ?? 0), opts.catalogCurrency);
+}
+
+/**
+ * Detect unpaid order lines that were stamped USD but still hold raw RWF catalog
+ * amounts (e.g. 14100 shown as $14,100). Safe only for unpaid repair.
+ */
+export function looksLikeRwfasUsd(
+  unitPrice: number,
+  catalogPrice: number | null | undefined,
+  catalogCurrency: string | null | undefined,
+): boolean {
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0) return false;
+  const catalog = Number(catalogPrice);
+  if (!Number.isFinite(catalog) || catalog <= 0) return false;
+  const cur = (catalogCurrency ?? "").trim().toUpperCase();
+  if (cur !== "RWF") return false;
+  return Math.abs(unitPrice - catalog) < 0.011;
+}
+
 export function resolveCheckoutShippingAmountUsd(params: {
   isCjOrder: boolean;
   selected: { priceUSD: number } | null;

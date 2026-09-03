@@ -1835,8 +1835,10 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
       }
     }
 
-    const effectivePrice =
-      Number(variant.price) > 0 ? Number(variant.price) : Number(product.price);
+    const effectivePrice = toPlatformUsd(
+      Number(variant.price) > 0 ? Number(variant.price) : Number(product.price),
+      product.currency,
+    );
 
     if (product.track_inventory && !product.allow_backorder) {
       const stock = variant.inventory_quantity ?? 0;
@@ -1869,6 +1871,7 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
         .update({
           quantity: duplicate.quantity + item.quantity,
           unit_price_at_add: effectivePrice,
+          currency_at_add: PLATFORM_CURRENCY,
           source_metadata: lineMeta as Json,
         })
         .eq("id", duplicate.id);
@@ -1885,6 +1888,7 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
         .update({
           variant_id: variantId,
           unit_price_at_add: effectivePrice,
+          currency_at_add: PLATFORM_CURRENCY,
           source_metadata: lineMeta as Json,
         })
         .eq("id", cartItemId);

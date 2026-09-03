@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UGCCampaign } from "@/types/ugc";
-import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
+import { formatMoneyAsUSD, PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import {
   assertCampaignReadyForFunding,
   campaignWizardIncompleteSteps,
@@ -26,20 +26,20 @@ import {
 } from "@/lib/ugc/campaign-wizard-validation";
 import { useLocale } from "@/context/LocaleContext";
 
-const MIN_FUNDING_RWF = 1000;
+const MIN_FUNDING_USD = 1;
 
 type PayMethod = "flutterwave" | "wallet" | "crypto";
 
 export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { formatMoney } = useCurrency();
   const { t } = useLocale();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState<PayMethod>("flutterwave");
   const [phone, setPhone] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
+  const [walletCurrency, setWalletCurrency] = useState<string>(PLATFORM_CURRENCY);
   const [funding, setFunding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<"idle" | "activated" | "pending">("idle");
@@ -57,6 +57,9 @@ export function CampaignFundClient() {
         if (!cancelled) {
           setCampaign(json.campaign ?? null);
           setWalletBalance(Number(walletJson.balance ?? 0));
+          setWalletCurrency(
+            String(walletJson.currency || PLATFORM_CURRENCY).toUpperCase() || PLATFORM_CURRENCY,
+          );
         }
       } catch {
         if (!cancelled) setCampaign(null);
@@ -70,9 +73,12 @@ export function CampaignFundClient() {
   }, [id]);
 
   const amountToFund = useMemo(() => {
-    const budget = Number(campaign?.total_budget) || MIN_FUNDING_RWF;
-    return Math.max(MIN_FUNDING_RWF, budget);
+    const budget = Number(campaign?.total_budget) || MIN_FUNDING_USD;
+    return Math.max(MIN_FUNDING_USD, budget);
   }, [campaign]);
+
+  const money = (amount: number, currency: string = PLATFORM_CURRENCY) =>
+    formatMoneyAsUSD(amount, currency);
 
   const readiness = useMemo(
     () => (campaign ? assertCampaignReadyForFunding(campaign as unknown as Record<string, unknown>) : null),
@@ -98,8 +104,8 @@ export function CampaignFundClient() {
       setError(readiness.errors.map((e) => e.message).join(" · "));
       return;
     }
-    if (amountToFund < MIN_FUNDING_RWF) {
-      setError(t("minFundingIs", { amount: MIN_FUNDING_RWF.toLocaleString() }));
+    if (amountToFund < MIN_FUNDING_USD) {
+      setError(t("minFundingIs", { amount: money(MIN_FUNDING_USD) }));
       return;
     }
     if (method === "flutterwave" && !phone.trim()) {
@@ -333,7 +339,7 @@ export function CampaignFundClient() {
                   <div className="min-w-0 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
                     <p className="text-[#9CA3AF]">{t("wizardTotalBudget")}</p>
                     <p className="mt-0.5 font-semibold text-[#111827]">
-                      {formatMoney(campaign.total_budget ?? 0, "USD")}
+                      {money(campaign.total_budget ?? 0)}
                     </p>
                   </div>
                 </div>
@@ -370,7 +376,7 @@ export function CampaignFundClient() {
                   <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B7280]">
                     {t("fundsLockedUntilApproved")}{" "}
                     <strong className="text-[#111827]">
-                      RWF {MIN_FUNDING_RWF.toLocaleString()}
+                      {money(MIN_FUNDING_USD)}
                     </strong>
                     .
                   </p>
@@ -378,14 +384,14 @@ export function CampaignFundClient() {
               </div>
 
               <div className="mt-5 space-y-2.5">
-                <Row label={t("currentBalance")} value={`RWF ${walletBalance.toLocaleString()}`} />
+                <Row label={t("currentBalance")} value={money(walletBalance, walletCurrency)} />
                 <Row
                   label={t("minimumRequired")}
-                  value={`RWF ${MIN_FUNDING_RWF.toLocaleString()}`}
+                  value={money(MIN_FUNDING_USD)}
                 />
                 <Row
                   label={t("amountToFund")}
-                  value={`RWF ${amountToFund.toLocaleString()}`}
+                  value={money(amountToFund)}
                   strong
                 />
               </div>
@@ -478,7 +484,7 @@ export function CampaignFundClient() {
                 ) : (
                   <Lock className="h-4 w-4" />
                 )}
-                {funding ? t("processing") : method === "wallet" ? `${t("fundAndActivate")} · RWF ${amountToFund.toLocaleString()}` : `${t("submitFunding")} · RWF ${amountToFund.toLocaleString()}`}
+                {funding ? t("processing") : method === "wallet" ? `${t("fundAndActivate")} · ${money(amountToFund)}` : `${t("submitFunding")} · ${money(amountToFund)}`}
               </button>
               <p className="mt-2 text-center text-[11px] text-[#9CA3AF]">
                 {t("activationBlockedUntilEscrow")}

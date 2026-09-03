@@ -69,6 +69,28 @@ export async function GET(req: NextRequest) {
 
         const resolvedOrderId = txRecord?.order_id ?? null;
         if (!resolvedOrderId) {
+            const depositParam = searchParams.get("deposit");
+            const { completeWalletDeposit, completeWalletDepositByReference } = await import(
+                "@/lib/wallet-os/complete-deposit"
+            );
+            if (depositParam) {
+                const dep = await completeWalletDeposit(supabase, {
+                    depositId: depositParam,
+                    providerReference: txRef,
+                    provider: "flutterwave",
+                });
+                if (dep.credited || dep.amount > 0) {
+                    return redirect(`/wallet/deposits?status=success&deposit=${depositParam}`);
+                }
+            }
+            const byRef = await completeWalletDepositByReference(supabase, {
+                providerReference: txRef,
+                provider: "flutterwave",
+            });
+            if (byRef.handled) {
+                return redirect(`/wallet/deposits?status=success`);
+            }
+
             const ugc = await confirmUgcEscrowPayment(supabase, {
                 paymentRef: txRef,
                 providerTransactionId: txRef,

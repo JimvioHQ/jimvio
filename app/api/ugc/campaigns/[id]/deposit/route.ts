@@ -14,7 +14,7 @@ import { generateTxRef } from "@/lib/payments/tx-ref";
 import { createNowPaymentsInvoice } from "@/lib/nowpayments";
 import { orderTotalsForUsdGateway } from "@/lib/money";
 
-const MIN_FUNDING_RWF = 1000;
+const MIN_FUNDING_USD = 1;
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -43,7 +43,7 @@ async function debitWalletForEscrow(
   if (available < amount) {
     return {
       ok: false,
-      error: `Insufficient wallet balance. Need RWF ${amount.toLocaleString()}, have RWF ${available.toLocaleString()}.`,
+      error: `Insufficient wallet balance. Need $${amount.toFixed(2)}, have $${available.toFixed(2)}.`,
       status: 400,
     };
   }
@@ -79,7 +79,7 @@ async function markEscrowHeld(
       .update({
         status: "held",
         amount: opts.amount,
-        currency: "RWF",
+        currency: "USD",
         payment_method: "wallet",
         payment_ref: opts.paymentRef,
         locked_amount: opts.amount,
@@ -97,7 +97,7 @@ async function markEscrowHeld(
       campaign_id: opts.campaignId,
       deposited_by: opts.userId,
       amount: opts.amount,
-      currency: "RWF",
+      currency: "USD",
       status: "held",
       payment_method: "wallet",
       payment_ref: opts.paymentRef,
@@ -136,7 +136,7 @@ async function initiateExternalCheckout(
       const checkoutUrl = await createFlutterwavePaymentLink({
         txRef,
         amount: opts.amount,
-        currency: "RWF",
+        currency: "USD",
         redirectUrl: `${appUrl}/api/payments/flutterwave/callback?campaign=${opts.campaignId}`,
         customerEmail: profile?.email || opts.user.email || "ugc@jimvio.com",
         customerName: profile?.full_name || "Jimvio Brand",
@@ -148,7 +148,7 @@ async function initiateExternalCheckout(
         user_id: opts.user.id,
         type: "ugc_escrow",
         amount: opts.amount,
-        currency: "RWF",
+        currency: "USD",
         status: "pending",
         direction: "debit",
         provider: "flutterwave",
@@ -173,7 +173,7 @@ async function initiateExternalCheckout(
       .select("email")
       .eq("id", opts.user.id)
       .maybeSingle();
-    const invoiceTotals = orderTotalsForUsdGateway(opts.amount, "RWF");
+    const invoiceTotals = orderTotalsForUsdGateway(opts.amount, "USD");
     try {
       const invoice = await createNowPaymentsInvoice({
         jimvioOrderId: opts.campaignId,
@@ -188,7 +188,7 @@ async function initiateExternalCheckout(
         user_id: opts.user.id,
         type: "ugc_escrow",
         amount: opts.amount,
-        currency: "RWF",
+        currency: "USD",
         status: "pending",
         direction: "debit",
         provider: "nowpayments",
@@ -230,7 +230,7 @@ async function recordEscrowTransaction(
       user_id: userId,
       type: "ugc_escrow",
       amount: -amount,
-      currency: "RWF",
+      currency: "USD",
       status: "completed",
       direction: "debit",
       reference: campaignId,
@@ -330,8 +330,8 @@ export async function POST(
     .eq("status", "pending")
     .maybeSingle();
 
-  const budget = Number(campaign.total_budget) || MIN_FUNDING_RWF;
-  const amount = Math.max(MIN_FUNDING_RWF, budget);
+  const budget = Number(campaign.total_budget) || MIN_FUNDING_USD;
+  const amount = Math.max(MIN_FUNDING_USD, budget);
 
   if (payment_method === "wallet") {
     const debit = await debitWalletForEscrow(db, user.id, amount);
@@ -411,7 +411,7 @@ export async function POST(
       await emitUgcEvent(db, campaign.brand_id, "campaign.funded", {
         campaignId: id,
         amount,
-        currency: "RWF",
+        currency: "USD",
       });
     } catch {
       /* additive */
@@ -423,7 +423,7 @@ export async function POST(
       activated: true,
       pending: false,
       amount,
-      currency: "RWF",
+      currency: "USD",
       payment_method,
       message: "Wallet escrow locked. Campaign is active.",
     });
@@ -454,7 +454,7 @@ export async function POST(
       pending: true,
       checkout_url: checkout.checkoutUrl,
       amount: pendingEscrow.amount,
-      currency: "RWF",
+      currency: "USD",
       payment_method,
       message: "Escrow intent already pending payment confirmation.",
     });
@@ -464,7 +464,7 @@ export async function POST(
     campaign_id: id,
     deposited_by: user.id,
     amount,
-    currency: "RWF",
+    currency: "USD",
     status: "pending",
     payment_method,
     payment_ref: checkout.paymentRef,
@@ -498,7 +498,7 @@ export async function POST(
         pending: true,
         checkout_url: checkout.checkoutUrl,
         amount: existing?.amount ?? amount,
-        currency: "RWF",
+        currency: "USD",
         payment_method,
         message: "Escrow intent already pending payment confirmation.",
       });
@@ -513,7 +513,7 @@ export async function POST(
     pending: true,
     checkout_url: checkout.checkoutUrl,
     amount,
-    currency: "RWF",
+    currency: "USD",
     payment_method,
     message: "Escrow intent recorded. Campaign activates after payment confirmation.",
   });
