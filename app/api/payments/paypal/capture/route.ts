@@ -7,8 +7,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/paypal";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
-import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
+import {
+  isOrderPaymentComplete,
+  paymentAmountsMatch,
+} from "@/lib/payments/order-payment-utils";
 import { isUuid } from "@/lib/auth/platform-admin";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -36,8 +40,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=capture_failed`);
     }
 
-    const captureId =
-      capture.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
+    const captureUnit = capture.purchase_units?.[0]?.payments?.captures?.[0];
+    const captureId = captureUnit?.id ?? null;
     const customId = capture.purchase_units?.[0]?.custom_id;
     if (!customId || customId !== orderId) {
       return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=order_mismatch`);
@@ -46,7 +50,7 @@ export async function GET(req: NextRequest) {
     // Check order status
     const { data: order } = await supabase
       .from("orders")
-      .select("id, buyer_id, payment_status")
+      .select("id, buyer_id, payment_status, total_amount, currency")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -57,6 +61,30 @@ export async function GET(req: NextRequest) {
     // Already completed (webhook arrived first) — go straight to success
     if (isOrderPaymentComplete(order.payment_status)) {
       return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
+    }
+
+    const receivedAmount = captureUnit?.amount?.value != null
+      ? Number(captureUnit.amount.value)
+      : null;
+    const receivedCurrency = (captureUnit?.amount?.currency_code || "").toUpperCase();
+    const expectedAmount = Number(order.total_amount ?? 0);
+    const expectedCurrency = (order.currency || PLATFORM_CURRENCY).toUpperCase();
+    if (
+      receivedAmount == null ||
+      !Number.isFinite(receivedAmount) ||
+      !receivedCurrency ||
+      !Number.isFinite(expectedAmount) ||
+      expectedAmount <= 0 ||
+      !paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency, 0.05)
+    ) {
+      console.error("[PayPal capture] amount mismatch", {
+        orderId,
+        receivedAmount,
+        receivedCurrency,
+        expectedAmount,
+        expectedCurrency,
+      });
+      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=amount_mismatch`);
     }
 
     // Finalize — idempotent, handles vendor wallet + notifications + Shopify

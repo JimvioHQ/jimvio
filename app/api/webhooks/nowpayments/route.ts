@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getNowPaymentsIpnSecret, verifyNowPaymentsSignature } from "@/lib/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
-import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
+import {
+  isOrderPaymentComplete,
+  paymentAmountsMatch,
+} from "@/lib/payments/order-payment-utils";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 import {
   logWebhookEvent,
@@ -82,7 +86,7 @@ export async function POST(req: NextRequest) {
 
       const { data: ord } = await supabase
         .from("orders")
-        .select("buyer_id, payment_status")
+        .select("buyer_id, payment_status, total_amount, currency")
         .eq("id", oid)
         .maybeSingle();
 
@@ -115,6 +119,29 @@ export async function POST(req: NextRequest) {
           .eq("id", oid)
           .not("payment_status", "in", '("paid","completed")');
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);
+        continue;
+      }
+
+      const expectedAmount = Number(ord.total_amount ?? 0);
+      const expectedCurrency = (ord.currency || PLATFORM_CURRENCY).toUpperCase();
+      const receivedAmount =
+        payload.price_amount != null ? Number(payload.price_amount) : null;
+      const receivedCurrency = (payload.price_currency || PLATFORM_CURRENCY).toUpperCase();
+      if (
+        receivedAmount == null ||
+        !Number.isFinite(receivedAmount) ||
+        !Number.isFinite(expectedAmount) ||
+        expectedAmount <= 0 ||
+        !paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency, 0.05)
+      ) {
+        console.error("[webhooks/nowpayments] amount mismatch", {
+          oid,
+          receivedAmount,
+          receivedCurrency,
+          expectedAmount,
+          expectedCurrency,
+        });
+        if (eventId) await markWebhookFailed(supabase, eventId, "amount mismatch");
         continue;
       }
 

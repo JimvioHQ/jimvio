@@ -20,6 +20,9 @@ export async function completeWalletDeposit(
     depositId: string;
     providerReference?: string | null;
     provider?: string | null;
+    /** When provided, must match the deposit amount/currency before credit. */
+    verifiedAmount?: number | null;
+    verifiedCurrency?: string | null;
   },
 ): Promise<{ credited: boolean; amount: number }> {
   const { data: deposit } = await db
@@ -36,6 +39,28 @@ export async function completeWalletDeposit(
 
   const amount = Math.round(Number(deposit.amount ?? 0) * 100) / 100;
   if (!(amount > 0)) return { credited: false, amount: 0 };
+
+  if (
+    opts.verifiedAmount != null &&
+    Number.isFinite(Number(opts.verifiedAmount))
+  ) {
+    const expectedCurrency = (deposit.currency || PLATFORM_CURRENCY).toUpperCase();
+    const receivedCurrency = (opts.verifiedCurrency || PLATFORM_CURRENCY).toUpperCase();
+    const received = Math.round(Number(opts.verifiedAmount) * 100) / 100;
+    if (
+      receivedCurrency !== expectedCurrency ||
+      Math.abs(received - amount) > 0.05
+    ) {
+      console.error("[completeWalletDeposit] amount mismatch", {
+        depositId: deposit.id,
+        received,
+        receivedCurrency,
+        expected: amount,
+        expectedCurrency,
+      });
+      return { credited: false, amount: 0 };
+    }
+  }
 
   const reference = depositCreditRef(deposit.id);
   const { data: existingTx } = await db
@@ -143,6 +168,8 @@ export async function completeWalletDepositByReference(
   opts: {
     providerReference: string;
     provider?: string | null;
+    verifiedAmount?: number | null;
+    verifiedCurrency?: string | null;
   },
 ): Promise<{ handled: boolean; credited: boolean; amount: number }> {
   const ref = opts.providerReference.trim();
@@ -159,6 +186,8 @@ export async function completeWalletDepositByReference(
       depositId: byRef.id,
       providerReference: ref,
       provider: opts.provider,
+      verifiedAmount: opts.verifiedAmount,
+      verifiedCurrency: opts.verifiedCurrency,
     });
     return { handled: true, ...result };
   }
@@ -179,6 +208,8 @@ export async function completeWalletDepositByReference(
     depositId,
     providerReference: ref,
     provider: opts.provider,
+    verifiedAmount: opts.verifiedAmount,
+    verifiedCurrency: opts.verifiedCurrency,
   });
   return { handled: true, ...result };
 }

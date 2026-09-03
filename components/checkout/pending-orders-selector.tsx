@@ -130,7 +130,7 @@ export function PendingOrdersSelector({ orders, currency }: Props) {
                                                 {Number(order.total_amount).toLocaleString()}
                                             </p>
                                             <p className="text-[10.5px] text-stone-400 dark:text-zinc-500 mt-0.5">
-                                                {order.currency ?? "RWF"}
+                                                {order.currency ?? "USD"}
                                             </p>
                                         </div>
                                     </div>

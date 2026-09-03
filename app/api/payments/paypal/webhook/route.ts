@@ -6,7 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { validatePayPalWebhook, capturePayPalOrder } from "@/lib/paypal";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { paymentAmountsMatch } from "@/lib/payments/order-payment-utils";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import {
   logWebhookEvent,
   markWebhookProcessed,
@@ -51,9 +53,10 @@ export async function POST(req: NextRequest) {
       id?: string;
       custom_id?: string;
       status?: string;
+      amount?: { value?: string; currency_code?: string };
       purchase_units?: Array<{
         custom_id?: string;
-        payments?: { captures?: Array<{ id?: string }> };
+        payments?: { captures?: Array<{ id?: string; amount?: { value?: string; currency_code?: string } }> };
       }>;
     };
   };
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, payment_status, buyer_id")
+    .select("id, payment_status, buyer_id, total_amount, currency")
     .eq("id", jimvioOrderId)
     .maybeSingle();
 
@@ -139,9 +142,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  if (order.payment_status === "completed") {
+  if (order.payment_status === "completed" || order.payment_status === "paid") {
     if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     return NextResponse.json({ received: true, status: "already_processed" });
+  }
+
+  const captureAmount =
+    event.resource?.amount ??
+    event.resource?.purchase_units?.[0]?.payments?.captures?.[0]?.amount;
+  const receivedAmount = captureAmount?.value != null ? Number(captureAmount.value) : null;
+  const receivedCurrency = (captureAmount?.currency_code || "").toUpperCase();
+  const expectedAmount = Number(order.total_amount ?? 0);
+  const expectedCurrency = (order.currency || PLATFORM_CURRENCY).toUpperCase();
+  if (
+    receivedAmount == null ||
+    !Number.isFinite(receivedAmount) ||
+    !receivedCurrency ||
+    !Number.isFinite(expectedAmount) ||
+    expectedAmount <= 0 ||
+    !paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency, 0.05)
+  ) {
+    console.error("[PayPal webhook] amount mismatch", {
+      orderId: order.id,
+      receivedAmount,
+      receivedCurrency,
+      expectedAmount,
+      expectedCurrency,
+    });
+    if (eventId) await markWebhookFailed(supabase, eventId, "amount mismatch");
+    return NextResponse.json({ error: "amount mismatch" }, { status: 400 });
   }
 
   try {

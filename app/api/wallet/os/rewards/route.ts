@@ -29,7 +29,7 @@ export async function GET() {
   }) => ({
     id: row.id,
     amount: Number(row.amount ?? 0),
-    currency: row.currency ?? "RWF",
+    currency: row.currency ?? "USD",
     rewardType: row.reward_type,
     title: row.title,
     description: row.description ?? null,

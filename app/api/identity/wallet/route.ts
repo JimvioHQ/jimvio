@@ -100,7 +100,7 @@ export async function GET() {
     locked: Number(wallet.locked_balance ?? 0),
     escrow: Number(wallet.escrow_balance ?? 0),
     rewardsBalance: Number(wallet.rewards_balance ?? 0),
-    currency: wallet.currency ?? "RWF",
+    currency: wallet.currency ?? "USD",
     aggregation: {
       marketplace: Number(baseAggregation.vendor ?? 0),
       affiliate: Number(baseAggregation.affiliate ?? 0),
@@ -113,7 +113,7 @@ export async function GET() {
       type: tx.type,
       surface: surfaceForTransactionType(tx.type),
       amount: Number(tx.amount ?? 0),
-      currency: tx.currency ?? wallet.currency ?? "RWF",
+      currency: tx.currency ?? wallet.currency ?? "USD",
       status: tx.status,
       reference: tx.reference,
       createdAt: tx.created_at,

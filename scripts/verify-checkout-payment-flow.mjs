@@ -99,8 +99,28 @@ assert(
   "Flutterwave webhook must finalizeOrderPayment"
 );
 assert(
-  nowWh.includes("finalizeOrderPayment"),
-  "NOWPayments webhook must finalizeOrderPayment"
+  nowWh.includes("finalizeOrderPayment") &&
+    nowWh.includes("amount mismatch") &&
+    nowWh.includes("paymentAmountsMatch"),
+  "NOWPayments webhook must verify amount and finalizeOrderPayment"
+);
+assert(
+  flwWh.includes("finalizeOrderPayment") &&
+    flwWh.includes("completeWalletDepositByReference") &&
+    flwWh.includes("verifiedAmount"),
+  "Flutterwave webhook must finalize orders and verify deposit amounts"
+);
+const paypalCapture = read("app/api/payments/paypal/capture/route.ts");
+const paypalWh = read("app/api/payments/paypal/webhook/route.ts");
+assert(
+  paypalCapture.includes("paymentAmountsMatch") &&
+    paypalCapture.includes("amount_mismatch"),
+  "PayPal capture must verify amount before finalize"
+);
+assert(
+  paypalWh.includes("paymentAmountsMatch") &&
+    paypalWh.includes("amount mismatch"),
+  "PayPal webhook must verify amount before finalize"
 );
 assert(
   !errors.includes("temporarily unavailable from the carrier"),

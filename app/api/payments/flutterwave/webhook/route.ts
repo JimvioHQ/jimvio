@@ -395,6 +395,8 @@ export async function POST(req: NextRequest) {
     const deposit = await completeWalletDepositByReference(supabase, {
       providerReference: txRef,
       provider: "flutterwave",
+      verifiedAmount: amount != null ? Number(amount) : null,
+      verifiedCurrency: currency ?? "USD",
     });
     if (deposit.handled) {
       if (eventId) await markWebhookProcessed(supabase, eventId, null);

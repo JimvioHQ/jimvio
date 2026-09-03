@@ -78,6 +78,8 @@ export async function GET(req: NextRequest) {
                     depositId: depositParam,
                     providerReference: txRef,
                     provider: "flutterwave",
+                    verifiedAmount: txData.amount != null ? Number(txData.amount) : null,
+                    verifiedCurrency: txData.currency ?? "USD",
                 });
                 if (dep.credited || dep.amount > 0) {
                     return redirect(`/wallet/deposits?status=success&deposit=${depositParam}`);
@@ -86,6 +88,8 @@ export async function GET(req: NextRequest) {
             const byRef = await completeWalletDepositByReference(supabase, {
                 providerReference: txRef,
                 provider: "flutterwave",
+                verifiedAmount: txData.amount != null ? Number(txData.amount) : null,
+                verifiedCurrency: txData.currency ?? "USD",
             });
             if (byRef.handled) {
                 return redirect(`/wallet/deposits?status=success`);
