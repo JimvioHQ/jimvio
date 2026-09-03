@@ -151,23 +151,61 @@ async function saveSelection(
 
     const { products } = await buildProductsFromVariants(cartItems);
 
-    // Prefer the signed quote from the earlier shipping-rates response so we do
-    // not burn another CJ freightCalculate call on a different serverless instance.
-    let trusted =
-        resolveTrustedRateFromQuoteToken({
-            token: quoteToken,
+    const metaTokenCandidates = orders
+        .map((order) => {
+            const meta =
+                order &&
+                typeof (order as { metadata?: unknown }).metadata === "object" &&
+                (order as { metadata?: unknown }).metadata
+                    ? ((order as { metadata: Record<string, unknown> }).metadata)
+                    : {};
+            return typeof meta.checkout_quote_token === "string"
+                ? meta.checkout_quote_token
+                : null;
+        })
+        .filter((token): token is string => Boolean(token));
+
+    const tokenCandidates = [
+        typeof quoteToken === "string" ? quoteToken : null,
+        ...metaTokenCandidates,
+    ].filter((token): token is string => Boolean(token));
+
+    let trusted: Awaited<ReturnType<typeof resolveTrustedRateFromQuoteToken>> = null;
+    let usedToken: string | null = null;
+
+    for (const candidate of tokenCandidates) {
+        trusted = resolveTrustedRateFromQuoteToken({
+            token: candidate,
             selection: shippingOption,
             products,
             destCountryCode,
-        }) ?? null;
+            orderIds,
+        });
+        if (trusted) {
+            usedToken = candidate;
+            break;
+        }
+    }
 
     if (trusted) {
         console.info("[checkout] shipping_quote_reuse", {
             orderId: orderIds[0],
             optionId: trusted.optionId,
             priceUSD: trusted.priceUSD,
+            source: usedToken === quoteToken ? "client_token" : "order_metadata",
         });
+    } else if (quoteToken || metaTokenCandidates.length) {
+        // A quote was presented earlier — NEVER burn another freightCalculate at Pay.
+        console.warn("[checkout] shipping_quote_token_unusable", {
+            orderId: orderIds[0],
+            hadClientToken: Boolean(quoteToken),
+            hadMetaToken: metaTokenCandidates.length > 0,
+        });
+        throw new UserError(
+            "Your shipping quote expired or no longer matches this order. Please go back and select a delivery method again."
+        );
     } else {
+        // Legacy path only when no signed quote exists at all.
         try {
             const { rates } = await fetchCjCheckoutFreightRates({
                 destCountryCode,
@@ -225,6 +263,12 @@ async function saveSelection(
                     ...existingMeta,
                     cj_logistic_code: trusted.channelId,
                     cj_shipping_cost_usd: trusted.priceUSD,
+                    ...(usedToken
+                        ? {
+                              checkout_quote_token: usedToken,
+                              checkout_quote_locked_at: new Date().toISOString(),
+                          }
+                        : {}),
                 },
             })
             .eq("id", order.id);

@@ -27,6 +27,7 @@ interface RateRequest {
     destCountryCode: string;
     orderCurrency?: string;
     cartItems: CartItemInput[];
+    orderIds?: string[];
 }
 
 function metaVid(meta: unknown): string | null {
@@ -148,6 +149,9 @@ export async function POST(req: NextRequest) {
         const destCountryCode = normalizeCountryCode(body.destCountryCode);
         const orderCurrency = (body.orderCurrency ?? "USD").trim() || "USD";
         const cartItems = body.cartItems;
+        const orderIds = Array.isArray(body.orderIds)
+            ? body.orderIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+            : [];
 
         if (!destCountryCode) {
             return NextResponse.json(
@@ -177,6 +181,7 @@ export async function POST(req: NextRequest) {
             destCountryCode,
             orderCurrency,
             productCount: products.length,
+            orderCount: orderIds.length,
         });
 
         const startedAt = Date.now();
@@ -193,8 +198,55 @@ export async function POST(req: NextRequest) {
                       orderCurrency,
                       products,
                       rates,
+                      orderIds,
                   })
                 : null;
+
+        // Persist quote on pending orders so Pay can reuse it even if the
+        // browser drops the token or hits a different serverless instance.
+        if (quoteToken && orderIds.length > 0) {
+            try {
+                const admin = createAdminClient();
+                const { data: owned } = await admin
+                    .from("orders")
+                    .select("id, buyer_id, metadata, payment_status")
+                    .in("id", orderIds)
+                    .eq("buyer_id", user.id);
+
+                for (const order of owned ?? []) {
+                    if (
+                        order.payment_status === "paid" ||
+                        order.payment_status === "completed"
+                    ) {
+                        continue;
+                    }
+                    const existingMeta =
+                        order.metadata &&
+                        typeof order.metadata === "object" &&
+                        !Array.isArray(order.metadata)
+                            ? (order.metadata as Record<string, unknown>)
+                            : {};
+                    await admin
+                        .from("orders")
+                        .update({
+                            metadata: {
+                                ...existingMeta,
+                                checkout_quote_token: quoteToken,
+                                checkout_quote_at: new Date().toISOString(),
+                            },
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq("id", order.id);
+                }
+            } catch (persistErr) {
+                console.warn("[checkout] shipping_quote_persist_failed", {
+                    message:
+                        persistErr instanceof Error
+                            ? persistErr.message
+                            : String(persistErr),
+                });
+            }
+        }
 
         console.info("[checkout] shipping_quote_success", {
             destCountryCode,

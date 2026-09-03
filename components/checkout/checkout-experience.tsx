@@ -260,7 +260,8 @@ export function CheckoutExperience({
                body: JSON.stringify({
                   destCountryCode,
                   orderCurrency: PLATFORM_CURRENCY,
-                  cartItems: products
+                  cartItems: products,
+                  orderIds: orders.map((o) => o.id),
                }),
             });
 
@@ -268,6 +269,14 @@ export function CheckoutExperience({
 
             const json = await res.json();
             if (!json.success) {
+               // Preserve a previously loaded valid quote — do not wipe it on a later failure.
+               if (cjOptions.length > 0 && cjQuoteToken && cjSelected) {
+                  toast.error(
+                     sanitizeCustomerError(json.error, CJ_CUSTOMER_MESSAGES.shippingRates)
+                  );
+                  setStage("delivery");
+                  return;
+               }
                throw new Error(
                   sanitizeCustomerError(json.error, CJ_CUSTOMER_MESSAGES.shippingRates)
                );
@@ -286,19 +295,36 @@ export function CheckoutExperience({
                arrivalDays: r.arrivalDays,
                priceUSD: r.priceUSD ?? 0,
             }));
-            setCjOptions(opts);
-            setCjQuoteToken(typeof json.quoteToken === "string" ? json.quoteToken : null);
             if (opts.length > 0) {
+               setCjOptions(opts);
+               setCjQuoteToken(typeof json.quoteToken === "string" ? json.quoteToken : null);
                const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
-               setCjSelected(cheapest);
+               setCjSelected((prev) => {
+                  if (!prev) return cheapest;
+                  const stillThere = opts.find(
+                     (o) =>
+                        o.optionId === prev.optionId ||
+                        o.channelId === prev.channelId ||
+                        o.name === prev.name
+                  );
+                  return stillThere ?? cheapest;
+               });
                setCjError("");
             } else {
                setCjSelected(null);
+               setCjQuoteToken(null);
+               setCjOptions([]);
                setCjError(json.message || CJ_CUSTOMER_MESSAGES.shippingUnavailable);
             }
             setStage("delivery");
          } catch (e) {
             if (requestId !== shippingRequestRef.current) return;
+            if (cjOptions.length > 0 && cjQuoteToken && cjSelected) {
+               const message = sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingRates);
+               toast.error(message);
+               setStage("delivery");
+               return;
+            }
             const message = sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingRates);
             setCjError(message);
             toast.error(message);
@@ -325,6 +351,11 @@ export function CheckoutExperience({
          setStage("delivery");
          return;
       }
+      if (isCJOrder && !cjQuoteToken) {
+         toast.error("Please refresh shipping options before paying.");
+         setStage("delivery");
+         return;
+      }
       if (total <= 0 || !Number.isFinite(total)) {
          toast.error("Order total is invalid");
          return;
@@ -336,7 +367,7 @@ export function CheckoutExperience({
          const orderIds = orders.map((o) => o.id);
          const primaryOrderId = orderIds[0];
 
-         // Save shipping
+         // Save shipping address (server-side totals still come from set-shipping).
          const save = await updatePendingOrdersShipping({
             orderIds,
             ...shipping,
@@ -366,25 +397,41 @@ export function CheckoutExperience({
             }
          }
 
-         const confirmedTotal = total;
+         console.info("[checkout] payment_initialized", {
+            provider: payment,
+            orderId: primaryOrderId,
+         });
 
-         // Initiate payment
+         // Initiate payment — never re-quotes shipping.
          const res = await fetch(PAYMENT_ENDPOINTS[payment], {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                orderId: primaryOrderId, orderIds,
-               amount: confirmedTotal, currency: PLATFORM_CURRENCY,
+               amount: total, currency: PLATFORM_CURRENCY,
             }),
          });
          const data = await res.json();
-         if (!res.ok) throw new Error(extractErrorMessage(data));
+         if (!res.ok) {
+            console.warn("[checkout] payment_initialization_failed", {
+               provider: payment,
+               orderId: primaryOrderId,
+               status: res.status,
+            });
+            throw new Error(extractErrorMessage(data));
+         }
          const redirectUrl = extractRedirectUrl(data);
-         if (!redirectUrl) throw new Error("No redirect URL");
-         if (!redirectUrl.startsWith("https://")) throw new Error("Invalid redirect");
+         if (!redirectUrl) throw new Error("No redirect URL from payment provider");
+         if (!redirectUrl.startsWith("https://")) throw new Error("Invalid payment redirect");
          window.location.href = redirectUrl;
       } catch (e) {
-         const message = sanitizeCustomerError(e, "We couldn’t start this payment. Please try again or choose another payment method.");
+         const raw = e instanceof Error ? e.message : String(e);
+         const message = /shipping|delivery|quote|address/i.test(raw)
+            ? sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingSave)
+            : sanitizeCustomerError(
+                 e,
+                 "We couldn’t start this payment. Please try again or choose another payment method."
+              );
          toast.error(message);
       } finally {
          payInFlightRef.current = false;

@@ -175,10 +175,28 @@ async function getExchangeRate(
 const FREIGHT_TIMEOUT_MS = 20_000;
 const FREIGHT_RETRY_DELAY_MS = 700;
 const FREIGHT_CACHE_TTL_MS = 10 * 60 * 1000;
+const QUOTA_CIRCUIT_TTL_MS = 5 * 60 * 1000;
+let quotaCircuitOpenUntil = 0;
 const freightQuoteCache = new Map<
   string,
   { expiresAt: number; rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }
 >();
+
+function markQuotaExhausted(message: string): void {
+  quotaCircuitOpenUntil = Date.now() + QUOTA_CIRCUIT_TTL_MS;
+  console.warn("[checkout] cj_quota_circuit_open", {
+    until: new Date(quotaCircuitOpenUntil).toISOString(),
+    message: message.slice(0, 160),
+  });
+}
+
+function assertQuotaCircuitClosed(): void {
+  if (Date.now() < quotaCircuitOpenUntil) {
+    throw new Error(
+      "Insufficient API points. Remaining: 0 (circuit open — avoid repeated freightCalculate)."
+    );
+  }
+}
 
 function freightQuoteCacheKey(
   destCountryCode: string,
@@ -320,6 +338,9 @@ export async function fetchCjCheckoutFreightRates(params: {
     };
   }
 
+  // Do not spam CJ while daily points are exhausted.
+  assertQuotaCircuitClosed();
+
   let token = await getOrRefreshAccessToken();
   let lastMessage = "";
   let lastStatus = 0;
@@ -352,6 +373,7 @@ export async function fetchCjCheckoutFreightRates(params: {
       }
 
       if (isCjApiQuotaError(result.message)) {
+        markQuotaExhausted(result.message);
         throw new Error(result.message);
       }
 
@@ -370,6 +392,7 @@ export async function fetchCjCheckoutFreightRates(params: {
       const message = error instanceof Error ? error.message : String(error);
       lastMessage = message;
       if (isCjApiQuotaError(message)) {
+        markQuotaExhausted(message);
         throw error instanceof Error ? error : new Error(message);
       }
       if (attempt === 0 && isTransientFreightFailure(lastStatus, message)) {

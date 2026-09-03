@@ -120,15 +120,33 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
       error: result.error ?? "unknown error",
       orderId: params.orderId,
     });
+    console.warn("[checkout] cj_order_submission_failed", {
+      orderId: params.orderId,
+      error: result.error ?? "unknown",
+    });
+    // Payment remains PAID — mark fulfillment retryable, never reverse payment.
+    await db
+      .from("orders")
+      .update({
+        cj_fulfillment_status: "failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", params.orderId)
+      .is("cj_order_id", null);
     await advanceOrderFulfillment(db, params.orderId, {
       newStatus: "processing",
+      cjFulfillmentStatus: "failed",
       notes: CJ_CUSTOMER_MESSAGES.fulfillmentFailed,
-      metadata: { triggered_by: "system", status_type: "note" },
+      metadata: { triggered_by: "system", status_type: "note", retryable: true },
     });
     return;
   }
 
   if (result.externalReference) {
+    console.info("[checkout] cj_order_submission_success", {
+      orderId: params.orderId,
+      cjOrderId: result.externalReference,
+    });
     await db
       .from("orders")
       .update({

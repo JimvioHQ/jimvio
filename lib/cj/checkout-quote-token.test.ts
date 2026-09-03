@@ -25,6 +25,7 @@ describe("checkout quote token", () => {
       orderCurrency: "USD",
       products,
       rates,
+      orderIds: ["11111111-1111-1111-1111-111111111111"],
     });
 
     const payload = verifyCheckoutQuoteToken(token);
@@ -37,12 +38,45 @@ describe("checkout quote token", () => {
       selection: { name: "International Liquid Line", optionId: "ILL", priceUSD: 12.5 },
       products,
       destCountryCode: "RW",
+      orderIds: ["11111111-1111-1111-1111-111111111111"],
     });
     assert.ok(trusted);
     assert.equal(trusted?.priceUSD, 12.5);
   });
 
-  it("rejects tampered tokens and mismatched carts", () => {
+  it("matches order-bound quotes even when product weights differ", () => {
+    process.env.CHECKOUT_QUOTE_SECRET = "test-quote-secret";
+    const orderId = "22222222-2222-2222-2222-222222222222";
+    const rates = [
+      {
+        optionId: "STD",
+        channelId: "STD",
+        name: "Standard",
+        arrivalDays: "10-20",
+        priceUSD: 8,
+      },
+    ];
+    const token = createCheckoutQuoteToken({
+      destCountryCode: "US",
+      orderCurrency: "USD",
+      products: [{ vid: "VID-1", quantity: 1, weight: 120 }],
+      rates,
+      orderIds: [orderId],
+    });
+
+    const trusted = resolveTrustedRateFromQuoteToken({
+      token,
+      selection: { name: "Standard", optionId: "STD", priceUSD: 8 },
+      // Pay-time DB rebuild often omits weight — must still reuse the quote.
+      products: [{ vid: "VID-1", quantity: 1 }],
+      destCountryCode: "US",
+      orderIds: [orderId],
+    });
+    assert.ok(trusted);
+    assert.equal(trusted?.optionId, "STD");
+  });
+
+  it("rejects tampered tokens and mismatched carts without order binding", () => {
     process.env.CHECKOUT_QUOTE_SECRET = "test-quote-secret";
     const products = [{ vid: "VID-1", quantity: 1 }];
     const rates = [

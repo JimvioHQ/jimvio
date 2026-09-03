@@ -101,6 +101,21 @@ export async function submitCjOrderForLines(
 ): Promise<{ ok: boolean; externalReference?: string | null; error?: string }> {
     if (lines.length === 0) return { ok: true, externalReference: null };
 
+    // Idempotency — never create a second CJ order for the same Jimvio order.
+    const { data: existing } = await _db
+        .from("orders")
+        .select("cj_order_id, cj_order_num, cj_fulfillment_status")
+        .eq("id", orderId)
+        .maybeSingle();
+
+    if (existing?.cj_order_id) {
+        console.info("[checkout] cj_order_submission_skipped_duplicate", {
+            orderId,
+            cjOrderId: existing.cj_order_id,
+        });
+        return { ok: true, externalReference: existing.cj_order_id };
+    }
+
     // ── Token ──────────────────────────────────────────────────────────────────
     let accessToken: string;
     try {
