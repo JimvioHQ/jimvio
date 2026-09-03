@@ -7,7 +7,7 @@ import {
   Home, GraduationCap, Layers,
   Plus, ChevronDown, ChevronRight, Flame,
   Hash,
-  MoreHorizontal, UserPlus, ShieldCheck, Target,
+  MoreHorizontal, UserPlus, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -63,16 +63,16 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
+  { href: "/spaces", label: "Spaces", icon: Layers },
   { href: "/courses", label: "Courses", icon: GraduationCap },
-  { href: "/missions", label: "Challenges", icon: Target },
-  { href: "/about", label: "About", icon: ShieldCheck },
+  { href: "/feed", label: "Feeds", icon: Flame },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
+  { href: "/spaces", label: "Spaces", icon: Layers },
   { href: "/courses", label: "Courses", icon: GraduationCap },
-  { href: "/missions", label: "Challenges", icon: Target },
-  { href: "/about", label: "About", icon: ShieldCheck },
+  { href: "/feed", label: "Feeds", icon: Flame },
 ];
 
 function roomTypeIcon(t: string): LucideIcon {
@@ -228,7 +228,9 @@ export function WorkspaceLayout({
           <div
             className={cn(
               "flex flex-1 min-h-0",
-              hideSidebar ? "p-0 pb-14 lg:pb-0" : "px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
+              hideSidebar
+                ? "p-0 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0"
+                : "px-4 lg:px-6 py-4 lg:py-6 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] lg:pb-6",
               hideSidebar
                 ? "flex flex-col"
                 : "lg:grid lg:grid-cols-[240px_1fr] lg:gap-5",
@@ -391,9 +393,9 @@ function Sidebar({
         <nav className="space-y-0.5">
           {[
             { href: "", label: "Overview", icon: Home, badge: null as string | null, matchExact: true },
+            { href: "/spaces", label: "Spaces", icon: Layers, badge: null as string | null },
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
-            { href: "/missions", label: "Challenges", icon: Target, badge: null as string | null },
-            { href: "/about", label: "About", icon: ShieldCheck, badge: null as string | null },
+            { href: "/feed", label: "Feeds", icon: Flame, badge: null as string | null },
           ].map((item) => {
             const active = isActive(item);
             const Icon = item.icon;
@@ -620,8 +622,12 @@ function UserProfileCard({
 
 function MobileBottomNav({ basePath, pathname }: { basePath: string; pathname: string }) {
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-bg/95 backdrop-blur-md border-t border-border safe-area-pb">
-      <div className="grid grid-cols-5 h-14">
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-bg/95 backdrop-blur-md border-t border-border"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      aria-label="Community sections"
+    >
+      <div className="grid h-14 grid-cols-4">
         {MOBILE_NAV_ITEMS.map((item) => {
           const fullPath = `${basePath}${item.href}`;
           const active = item.matchExact
@@ -632,8 +638,10 @@ function MobileBottomNav({ basePath, pathname }: { basePath: string; pathname: s
             <Link
               key={item.href || "overview"}
               href={fullPath}
+              aria-current={active ? "page" : undefined}
+              aria-label={item.label}
               className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 transition-colors",
+                "relative flex min-h-11 flex-col items-center justify-center gap-0.5 transition-colors",
                 active ? "text-[#fd5000]" : "text-text-muted hover:text-text-primary",
               )}
             >

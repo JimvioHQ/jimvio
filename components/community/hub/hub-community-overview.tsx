@@ -17,9 +17,7 @@ import {
   LogOut,
   MoreHorizontal,
   Newspaper,
-  Radio,
   Share2,
-  ShoppingBag,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -162,28 +160,14 @@ export function HubCommunityOverview() {
         label: "Courses",
         count: overview?.courseCount ?? publishedCourses.length,
         icon: GraduationCap,
-        href: null as string | null,
+        href: `${base}/courses`,
       },
       {
         id: "posts" as const,
-        label: "Posts",
+        label: "Feeds",
         count: overview?.postCount ?? null,
         icon: Newspaper,
-        href: null as string | null,
-      },
-      {
-        id: "live" as const,
-        label: "Live",
-        count: liveCount,
-        icon: Radio,
-        href: null as string | null,
-      },
-      {
-        id: "store" as const,
-        label: "Store",
-        count: null as number | null,
-        icon: ShoppingBag,
-        href: null as string | null,
+        href: `${base}/feed`,
       },
     ],
     [
@@ -192,7 +176,6 @@ export function HubCommunityOverview() {
       overview?.courseCount,
       publishedCourses.length,
       overview?.postCount,
-      liveCount,
     ]
   );
 
@@ -281,9 +264,9 @@ export function HubCommunityOverview() {
         <section className="overflow-hidden rounded-[1.5rem] bg-[var(--color-surface)] shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
           <div className="relative overflow-hidden border-b border-[var(--color-border)] bg-[radial-gradient(120%_80%_at_0%_0%,rgba(253,80,0,0.08),transparent_55%),linear-gradient(180deg,var(--color-surface)_0%,var(--color-accent-light)_100%)]">
             <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fd5000]/[0.06] blur-3xl" />
-            <div className="relative flex flex-col gap-6 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-8 lg:px-9">
-              <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-                <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[1.35rem] bg-[#fd5000] shadow-[0_12px_28px_rgba(253,80,0,0.22)] ring-[3px] ring-[var(--color-surface)] sm:h-[96px] sm:w-[96px]">
+            <div className="relative flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-8 lg:px-9">
+              <div className="flex min-w-0 items-center gap-3 sm:gap-5">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[1.1rem] bg-[#fd5000] shadow-[0_12px_28px_rgba(253,80,0,0.22)] ring-[3px] ring-[var(--color-surface)] sm:h-[96px] sm:w-[96px] sm:rounded-[1.35rem]">
                   {logo ? (
                     <Image
                       src={logo}
@@ -301,7 +284,7 @@ export function HubCommunityOverview() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="min-w-0 break-words text-[1.55rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
+                    <h1 className="min-w-0 break-words text-[1.25rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
                       {communityName}
                     </h1>
                     {verified ? (

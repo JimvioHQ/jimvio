@@ -92,14 +92,14 @@ export default async function CommunitySlugLayout({
       if (communityIsRestrictedToMembers(community)) {
         redirect(buildHubLoginUrl(pathname));
       }
-      const payload = await loadCommunityWorkspace(slug);
+      const payload = await loadCommunityWorkspace(slug, null);
       if (!payload) redirect(buildHubLoginUrl(pathname));
       return renderWorkspace(slug, payload, children);
     }
     return <div className="h-full min-h-0">{children}</div>;
   }
 
-  const payload = await loadCommunityWorkspace(slug);
+  const payload = await loadCommunityWorkspace(slug, user.id);
   if (!payload) notFound();
 
   const hasWorkspaceAccess =

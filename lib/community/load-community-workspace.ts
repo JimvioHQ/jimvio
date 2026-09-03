@@ -4,7 +4,6 @@ import { buildPointsSnapshot } from "@/lib/community/points";
 import { getCommunityOverviewStats, type CommunityOverviewStats } from "@/services/community/hub-data";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
-import { resolvePrimarySpace } from "@/lib/community/workspace/primary-space";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export type CommunityWorkspacePayload = {
@@ -41,7 +40,8 @@ export type CommunityWorkspacePayload = {
 };
 
 export const loadCommunityWorkspace = cache(async function loadCommunityWorkspace(
-  slug: string
+  slug: string,
+  viewerId: string | null
 ): Promise<CommunityWorkspacePayload | null> {
   const supabase = await createClient();
   const { data: community } = await supabase
@@ -53,38 +53,35 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
 
   if (!community) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user && communityIsRestrictedToMembers(community)) return null;
+  if (!viewerId && communityIsRestrictedToMembers(community)) return null;
 
-  const { data: membership } = user
+  const { data: membership } = viewerId
     ? await supabase
         .from("community_memberships")
         .select("role, status, plan_type, space_access, created_at")
         .eq("community_id", community.id)
-        .eq("user_id", user.id)
+        .eq("user_id", viewerId)
         .maybeSingle()
     : { data: null };
 
-  const isOwner = Boolean(user && community.owner_id === user.id);
+  const isOwner = Boolean(viewerId && community.owner_id === viewerId);
   const isAdmin = isOwner || membership?.role === "admin" || membership?.role === "moderator";
 
   const [profileRes, pointsRes, spacesRes, roomsRes, overview, ownerRes, staffRes] =
     await Promise.all([
-      user
+      viewerId
         ? supabase
             .from("profiles")
             .select("full_name, avatar_url, username")
-            .eq("id", user.id)
+            .eq("id", viewerId)
             .maybeSingle()
         : Promise.resolve({ data: null }),
-      user
+      viewerId
         ? supabase
             .from("member_points")
             .select("total_points, level, streak_days")
             .eq("community_id", community.id)
-            .eq("user_id", user.id)
+            .eq("user_id", viewerId)
             .maybeSingle()
         : Promise.resolve({ data: null }),
       supabase
@@ -103,7 +100,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         .eq("community_id", community.id)
         .eq("is_active", true)
         .order("sort_order"),
-      getCommunityOverviewStats(community.id, user?.id ?? null).catch((err) => {
+      getCommunityOverviewStats(community.id, viewerId ?? null).catch((err) => {
         console.error("[loadCommunityWorkspace] overview stats failed:", err);
         return null;
       }),
@@ -112,11 +109,11 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         .select("full_name, username")
         .eq("id", community.owner_id)
         .maybeSingle(),
-      user
+      viewerId
         ? supabase
             .from("room_staff")
             .select("room_id, staff_role")
-            .eq("user_id", user.id)
+            .eq("user_id", viewerId)
         : Promise.resolve({ data: [] as { room_id: string; staff_role: string | null }[] }),
     ]);
 
@@ -181,8 +178,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       })),
     }));
 
-  const primarySpace = resolvePrimarySpace(allSpacesWithRooms);
-  const spacesWithRooms = primarySpace ? [primarySpace] : allSpacesWithRooms.slice(0, 1);
+  const spacesWithRooms = allSpacesWithRooms;
 
   const displayMemberCount = resolveCommunityMemberCount({
     slug: community.slug,
@@ -212,7 +208,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       ...communityPublic,
       member_count: displayMemberCount,
     },
-    currentUserId: user?.id ?? "",
+    currentUserId: viewerId ?? "",
     membership:
       membership?.role && membership?.status
         ? {

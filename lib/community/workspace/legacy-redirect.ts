@@ -84,7 +84,7 @@ export async function redirectLegacySpaceRoomQuery(
   if (!spaceKey && !roomKey) return;
 
   const go = options?.permanent === false ? redirect : permanentRedirect;
-  const payload = await loadCommunityWorkspace(communitySlug);
+  const payload = await loadCommunityWorkspace(communitySlug, null);
   const spaces = payload?.spacesWithRooms ?? [];
 
   if (spaces.length > 0) {

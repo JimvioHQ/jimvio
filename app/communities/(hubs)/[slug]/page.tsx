@@ -165,7 +165,7 @@ export default async function CommunitySlugPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const payload = user ? await loadCommunityWorkspace(slug) : null;
+  const payload = user ? await loadCommunityWorkspace(slug, user.id) : null;
   const showMemberOverview =
     !!payload &&
     (payload.isOwner ||

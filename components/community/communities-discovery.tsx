@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import { CommunityCoverImage } from "@/components/community/community-media";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
@@ -27,6 +28,15 @@ type SortKey = (typeof SORTS)[number]["value"];
 
 type PriceFilter = "all" | "free" | "paid";
 
+type LeaderboardRow = {
+  id: string;
+  name: string;
+  href: string;
+  rank: number;
+  score: number;
+  subtitle?: string;
+};
+
 function sortFreeFirst(list: CommunityRow[]): CommunityRow[] {
   return list.slice().sort((a, b) => (a.is_free ? 0 : 1) - (b.is_free ? 0 : 1));
 }
@@ -51,12 +61,12 @@ function priceLabel(c: CommunityRow): string | null {
 }
 
 const GRID =
-  "grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4";
+  "grid grid-cols-2 min-[720px]:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4";
 
 function SkeletonCard() {
   return (
     <div className="animate-pulse overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-      <div className="h-[112px] bg-[var(--color-surface-secondary)]" />
+      <div className="h-[96px] sm:h-[112px] bg-[var(--color-surface-secondary)]" />
       <div className="space-y-2.5 p-3.5 pt-6">
         <div className="h-4 w-3/4 rounded bg-[var(--color-surface-secondary)]" />
         <div className="h-3 w-full rounded bg-[var(--color-surface-secondary)]" />
@@ -310,6 +320,113 @@ function TrendingCommunitiesRow({ items }: { items: CommunityRow[] }) {
   );
 }
 
+function LeaderboardPreview({
+  rows,
+  loading,
+}: {
+  rows: LeaderboardRow[];
+  loading: boolean;
+}) {
+  return (
+    <section className="mt-8 space-y-3">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+            Leaderboard
+          </h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Monthly rankings
+          </p>
+        </div>
+        <Link
+          href="/communities/leaderboard"
+          className="text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+        >
+          View all
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="rounded-2xl border border-[var(--color-border)] p-4 text-center text-[13px] text-[var(--color-text-muted)]">
+          Loading leaderboard…
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-12 text-center text-[13px] text-[var(--color-text-muted)]">
+          Rankings warming up
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {rows.slice(0, 5).map((row) => (
+            <li key={row.id}>
+              <Link
+                href={row.href}
+                className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 transition-colors hover:border-[var(--color-accent)]/30"
+              >
+                <span className="w-8 shrink-0 text-center text-[12px] font-black text-[var(--color-accent)]">
+                  {row.rank}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--color-text-primary)]">
+                  {row.name}
+                </span>
+                <span className="shrink-0 text-[12px] font-bold text-[var(--color-text-primary)] tabular-nums">
+                  {row.score.toLocaleString()}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function MyCommunitiesPreview({
+  communities,
+  loading,
+}: {
+  communities: CommunityRow[];
+  loading: boolean;
+}) {
+  return (
+    <section className="mt-10 space-y-3">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+            My Communities
+          </h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Your joined hubs
+          </p>
+        </div>
+        <Link
+          href="/communities"
+          className="text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+        >
+          View all
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className={GRID}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+      ) : communities.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-10 text-center text-[13px] text-[var(--color-text-muted)]">
+          Join a community to see it here.
+        </div>
+      ) : (
+        <div className={GRID}>
+          {communities.slice(0, 8).map((c) => (
+            <SharedCommunityCard key={c.id} c={c} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function CommunitiesDiscovery({
   initialCommunities = [],
   initialTotal = 0,
@@ -332,6 +449,113 @@ export function CommunitiesDiscovery({
   const [loading, setLoading] = useState(initialCommunities.length === 0 || Boolean(queryFromUrl));
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(initialError);
+
+  const [leaderboardRows, setLeaderboardRows] = useState<LeaderboardRow[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+  const [myCommunities, setMyCommunities] = useState<CommunityRow[]>([]);
+  const [myCommunitiesLoading, setMyCommunitiesLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLeaderboardLoading(true);
+      try {
+        const res = await fetch(`/api/c/hub/leaderboard?tab=communities`, {
+          cache: "no-store",
+        });
+        const json = (await res.json().catch(() => ({}))) as {
+          rows?: LeaderboardRow[];
+        };
+        if (cancelled) return;
+        setLeaderboardRows(Array.isArray(json.rows) ? json.rows : []);
+      } catch {
+        if (!cancelled) setLeaderboardRows([]);
+      } finally {
+        if (!cancelled) setLeaderboardLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setMyCommunitiesLoading(true);
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          if (!cancelled) setMyCommunities([]);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("community_memberships")
+          .select(
+            `role, status,
+             communities!inner (
+               id, slug, name, tagline, category,
+               avatar_url, cover_image, image_url,
+               member_count, is_free, monthly_price, currency,
+               owner_id, created_at, is_active
+             )`
+          )
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .eq("communities.is_active", true);
+
+        if (cancelled) return;
+        if (error) {
+          setMyCommunities([]);
+          return;
+        }
+
+        const byId = new Map<string, CommunityRow>();
+        for (const row of data ?? []) {
+          const c = Array.isArray((row as any).communities)
+            ? (row as any).communities[0]
+            : (row as any).communities;
+          if (!c) continue;
+
+          const communityId = String(c.id);
+          const isOwner = String(c.owner_id) === user.id;
+          byId.set(communityId, {
+            id: communityId,
+            slug: String(c.slug),
+            name: String(c.name),
+            tagline: (c.tagline as string | null) ?? null,
+            category: (c.category as string | null) ?? null,
+            avatar_url: (c.avatar_url as string | null) ?? null,
+            cover_image: (c.cover_image as string | null) ?? null,
+            image_url: (c.image_url as string | null) ?? null,
+            member_count: Number(c.member_count ?? 0),
+            is_free: c.is_free as boolean | null | undefined,
+            monthly_price: (c.monthly_price as number | null) ?? null,
+            currency: (c.currency as string | null) ?? null,
+            created_at: (c.created_at as string | null) ?? null,
+            post_count: null,
+            is_member: true,
+            is_owner: isOwner,
+            profiles: null,
+          });
+        }
+
+        setMyCommunities([...byId.values()]);
+      } catch {
+        if (!cancelled) setMyCommunities([]);
+      } finally {
+        if (!cancelled) setMyCommunitiesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (queryFromUrl === search) return;
@@ -475,12 +699,12 @@ export function CommunitiesDiscovery({
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
-      <div className={`${SHELL} pb-28 pt-10 sm:pb-20 sm:pt-14`}>
-        <header className="mb-8 sm:mb-10">
+      <div className={`${SHELL} pb-24 pt-6 sm:pb-20 sm:pt-14`}>
+        <header className="mb-6 sm:mb-10">
           <div className="flex items-start justify-between gap-6">
             <div className="max-w-2xl">
               <h1 className="text-[clamp(1.85rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
-                Communities
+                COMMUNITIES
               </h1>
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)]">
                 Discover communities, creators, conversations and spaces that
@@ -736,31 +960,38 @@ export function CommunitiesDiscovery({
         )}
 
         {!loading && (
-          <aside className="mt-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-            <h2 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
-              On the roadmap
-            </h2>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                "Search across taglines, tags, and creator names",
-                "Tag pages linked from community profiles",
-                "Server-side sort and filters (not just this page)",
-                "Clone a community template when creating yours",
-                "Live activity indicators (posts today, online members)",
-              ].map((item) => (
-                <li
-                  key={item}
-                  className="flex gap-2 text-[12px] leading-snug text-[var(--color-text-muted)]"
-                >
-                  <span
-                    aria-hidden
-                    className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-accent)]"
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </aside>
+          <>
+            <LeaderboardPreview rows={leaderboardRows} loading={leaderboardLoading} />
+            <MyCommunitiesPreview
+              communities={myCommunities}
+              loading={myCommunitiesLoading}
+            />
+            <aside className="mt-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
+              <h2 className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                On the roadmap
+              </h2>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {[
+                  "Search across taglines, tags, and creator names",
+                  "Tag pages linked from community profiles",
+                  "Server-side sort and filters (not just this page)",
+                  "Clone a community template when creating yours",
+                  "Live activity indicators (posts today, online members)",
+                ].map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-2 text-[12px] leading-snug text-[var(--color-text-muted)]"
+                  >
+                    <span
+                      aria-hidden
+                      className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[var(--color-accent)]"
+                    />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          </>
         )}
 
         <div className="pointer-events-none fixed inset-x-4 bottom-4 z-40 sm:hidden">

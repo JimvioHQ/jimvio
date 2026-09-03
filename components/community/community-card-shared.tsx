@@ -99,7 +99,9 @@ export function SharedCommunityCard({
         <div
           className={cn(
             "relative shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]",
-            featured ? "h-[148px] sm:h-[168px]" : "h-[112px]"
+            featured
+              ? "h-[148px] sm:h-[168px]"
+              : "h-[96px] sm:h-[112px]"
           )}
         >
           {safeMediaUrl(c.cover_image, featured ? 800 : 480) ? (

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Home, Layers, Plus, X } from "lucide-react";
+import { ArrowLeft, Home, Layers, Plus, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
 import {
@@ -17,6 +17,8 @@ import {
   resolvePrimarySpace,
   resolveSpaceAvatarSrc,
 } from "@/lib/community/workspace";
+import { manageCommunityHref } from "@/lib/community/owner-console";
+import { createClient } from "@/lib/supabase/client";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 type CommunityNavItem = "overview" | "spaces";
@@ -77,7 +79,9 @@ function buildSpaces(
   communityCover?: string | null
 ): SpaceItem[] {
   const primary = resolvePrimarySpace(spacesWithRooms);
-  const list = primary ? [primary] : spacesWithRooms.slice(0, 1);
+  const list = primary
+    ? [primary, ...spacesWithRooms.filter((s) => s.id !== primary.id)]
+    : spacesWithRooms;
   return list.map((space) => ({
     id: space.id,
     slug: space.slug,
@@ -100,6 +104,7 @@ function SidebarBody({
   slug,
   activeSpaceId,
   spaces,
+  spacesStatus,
   canManage,
   communityId,
   onNavigate,
@@ -108,6 +113,7 @@ function SidebarBody({
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   spaces: SpaceItem[];
+  spacesStatus: "loading" | "ready" | "error";
   canManage: boolean;
   communityId: string | null;
   onNavigate?: () => void;
@@ -145,8 +151,8 @@ function SidebarBody({
   const onSpacesIndex = pathname === `${base}/spaces` || pathname === `${base}/spaces/`;
 
   return (
-    <>
-      <div className="border-b border-[var(--color-border)] px-4 pb-3.5 pt-3.5">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-[var(--color-border)] px-4 pb-2.5 pt-2">
         <Link
           href="/communities"
           onClick={onNavigate}
@@ -217,7 +223,15 @@ function SidebarBody({
           ) : null}
         </div>
         <nav className="mb-5 space-y-1">
-          {spaces.length === 0 ? (
+          {spacesStatus === "loading" ? (
+            <p className="px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
+              Loading spaces…
+            </p>
+          ) : spacesStatus === "error" ? (
+            <p className="px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
+              Couldn’t load spaces. Try again.
+            </p>
+          ) : spaces.length === 0 ? (
             canManage && communityId ? (
               <button
                 type="button"
@@ -293,6 +307,17 @@ function SidebarBody({
         </nav>
       </div>
 
+      <div className="mt-auto border-t border-[var(--color-border)] px-3 py-3">
+        <Link
+          href={manageCommunityHref(slug)}
+          onClick={onNavigate}
+          className="flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+        >
+          <ShieldCheck className="h-4 w-4 shrink-0" />
+          COMMUNITY MANAGER
+        </Link>
+      </div>
+
       {communityId && (
         <CreateSpaceDialog
           open={createSpaceOpen}
@@ -304,7 +329,7 @@ function SidebarBody({
           }}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -321,18 +346,112 @@ export function CommunitySidebar({
 }: CommunitySidebarProps) {
   const workspace = useWorkspaceOptional();
   const spacesWithRooms = workspace?.spacesWithRooms ?? [];
+  const [fetchedSpaces, setFetchedSpaces] = useState<WorkspaceSpaceRow[]>([]);
+  const [spacesStatus, setSpacesStatus] = useState<"loading" | "ready" | "error">(
+    spacesProp !== undefined || spacesWithRooms.length > 0 ? "ready" : "loading"
+  );
+
+  const shouldResolveSpaces = mobileOpen === undefined || mobileOpen === true;
+
+  useEffect(() => {
+    if (spacesProp !== undefined) {
+      setSpacesStatus("ready");
+      return;
+    }
+    if (spacesWithRooms.length > 0) {
+      setFetchedSpaces([]);
+      setSpacesStatus("ready");
+      return;
+    }
+    if (!shouldResolveSpaces) return;
+
+    let cancelled = false;
+    setSpacesStatus("loading");
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data: community, error: communityError } = await supabase
+          .from("communities")
+          .select("id, avatar_url, cover_image")
+          .eq("slug", slug)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (cancelled) return;
+        if (communityError || !community) {
+          setFetchedSpaces([]);
+          setSpacesStatus(communityError ? "error" : "ready");
+          return;
+        }
+        const { data, error } = await supabase
+          .from("spaces")
+          .select(
+            "id, name, slug, icon, description, access_type, sort_order, space_type, created_at, is_featured, member_count, cover_url, banner_url"
+          )
+          .eq("community_id", community.id)
+          .eq("is_active", true)
+          .order("sort_order");
+        if (cancelled) return;
+        if (error) {
+          setFetchedSpaces([]);
+          setSpacesStatus("error");
+          return;
+        }
+        setFetchedSpaces(
+          (data ?? []).map((s: {
+            id: string;
+            name: string;
+            slug: string;
+            icon: string | null;
+            description: string | null;
+            access_type: string | null;
+            sort_order: number | null;
+            space_type: string | null;
+            created_at: string | null;
+            is_featured: boolean | null;
+            member_count: number | null;
+          }) => ({
+            id: s.id,
+            name: s.name,
+            slug: s.slug,
+            icon: s.icon,
+            color: null,
+            description: s.description ?? null,
+            access_type: s.access_type ?? "free",
+            sort_order: s.sort_order,
+            space_type: s.space_type ?? "discussion",
+            created_at: s.created_at ?? null,
+            is_featured: s.is_featured ?? null,
+            member_count: s.member_count ?? 0,
+            rooms: [],
+          }))
+        );
+        setSpacesStatus("ready");
+      } catch {
+        if (!cancelled) {
+          setFetchedSpaces([]);
+          setSpacesStatus("error");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, spacesProp, spacesWithRooms.length, shouldResolveSpaces]);
+
+  const sourceSpaces = spacesWithRooms.length > 0 ? spacesWithRooms : fetchedSpaces;
 
   const spaces = useMemo(() => {
     if (spacesProp !== undefined) return spacesProp;
     return buildSpaces(
       slug,
-      spacesWithRooms,
+      sourceSpaces,
       workspace?.avatarUrl,
       workspace?.coverUrl
     );
-  }, [spacesProp, spacesWithRooms, slug, workspace?.avatarUrl, workspace?.coverUrl]);
+  }, [spacesProp, sourceSpaces, slug, workspace?.avatarUrl, workspace?.coverUrl]);
 
-  const canCreateSpace = false;
+  const canCreateSpace = Boolean(workspace?.isOwner || workspace?.isAdmin);
   const communityId = workspace?.communityId ?? null;
 
   const bodyProps = {
@@ -340,6 +459,7 @@ export function CommunitySidebar({
     activeNav,
     activeSpaceId,
     spaces,
+    spacesStatus: spacesProp !== undefined ? ("ready" as const) : spacesStatus,
     canManage: canCreateSpace,
     communityId,
   };
@@ -354,13 +474,13 @@ export function CommunitySidebar({
           onClick={onMobileClose}
           aria-hidden
         />
-        <aside className="fixed inset-y-0 left-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-[var(--color-surface)] shadow-xl lg:hidden">
-          <div className="flex items-center justify-end px-3 pt-3">
+        <aside className="fixed bottom-0 left-0 top-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-[var(--color-surface)] shadow-xl lg:hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
+          <div className="flex shrink-0 items-center justify-end px-3">
             <button
               type="button"
               aria-label="Close community menu"
               onClick={onMobileClose}
-              className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             >
               <X className="h-4 w-4" />
             </button>

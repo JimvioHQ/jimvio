@@ -600,9 +600,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { signOut } from "@/lib/auth/actions";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
+import { manageCommunityHref } from "@/lib/community/owner-console";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { cn } from "@/lib/utils";
 
@@ -868,6 +868,32 @@ function SidebarContent({
 }) {
     const pathname = usePathname();
     const { isAuthenticated } = useFeedUser();
+        const managerSlugRaw =
+            pathname.match(/^\/communities\/([^/]+)(?:\/|$)/)?.[1] ??
+            pathname.match(/^\/owner\/communities\/([^/]+)(?:\/|$)/)?.[1];
+        const reservedHubSlugs = new Set([
+            "explore",
+            "create",
+            "settings",
+            "messages",
+            "live",
+            "leaderboard",
+            "profile",
+            "wallet",
+            "missions",
+            "notifications",
+            "bookmarks",
+            "courses",
+            "spaces",
+            "channels",
+            "events",
+            "analytics",
+            "community",
+        ]);
+        const managerSlug = managerSlugRaw && !reservedHubSlugs.has(managerSlugRaw)
+            ? decodeURIComponent(managerSlugRaw)
+            : null;
+        const communityManagerHref = managerSlug ? manageCommunityHref(managerSlug) : "/owner/communities";
     const [communitiesOpen, setCommunitiesOpen] = useState(true);
     const [userCard, setUserCard] = useState<{
         name: string;
@@ -929,11 +955,6 @@ function SidebarContent({
 
         return pathname === path || pathname.startsWith(`${path}/`);
     };
-
-    async function handleSignOut() {
-        await signOut();
-        window.location.href = "/";
-    }
 
     // ── Shared style helpers ──
     const navLink = (active: boolean): React.CSSProperties => ({
@@ -1213,45 +1234,24 @@ function SidebarContent({
                         {!collapsed && <span>Sign in</span>}
                     </Link>
                 ) : (
-                    <>
-                        <Link
-                            href="/communities/settings"
-                            title={collapsed ? "Settings" : undefined}
-                            style={{ ...footerBtnBase, display: "flex" }}
-                            onClick={onLinkClick}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.color = "var(--color-text-primary, #ededed)";
-                                e.currentTarget.style.background = "var(--color-surface-secondary, rgba(255,255,255,0.05))";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
-                                e.currentTarget.style.background = "transparent";
-                            }}
-                        >
-                            <Icons.Settings />
-                            {!collapsed && <span>Settings</span>}
-                        </Link>
-                        <button
-                            onClick={handleSignOut}
-                            title={collapsed ? "Sign out" : undefined}
-                            style={{
-                                ...footerBtnBase,
-                                display: "flex",
-                                background: "none", border: "none", cursor: "pointer", width: "100%",
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.color = "var(--color-danger, #f07070)";
-                                e.currentTarget.style.background = "rgba(240,112,112,0.08)";
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
-                                e.currentTarget.style.background = "transparent";
-                            }}
-                        >
-                            <Icons.SignOut />
-                            {!collapsed && <span>Sign out</span>}
-                        </button>
-                    </>
+                    <Link
+                        href={communityManagerHref}
+                        title={collapsed ? "Community manager" : undefined}
+                        aria-label="Community manager"
+                        style={{ ...footerBtnBase, display: "flex" }}
+                        onClick={onLinkClick}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "var(--color-text-primary, #ededed)";
+                            e.currentTarget.style.background = "var(--color-surface-secondary, rgba(255,255,255,0.05))";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "var(--color-text-muted, #6a6a6a)";
+                            e.currentTarget.style.background = "transparent";
+                        }}
+                    >
+                        <Icons.Settings />
+                        {!collapsed && <span>COMMUNITY MANAGER</span>}
+                    </Link>
                 )}
             </div>
         </>

@@ -60,16 +60,20 @@ export function SpacesSection({
     onChange: refreshSpaces,
   });
 
-  const { primary } = partitionSpacesForDisplay(spacesWithRooms, {
+  const { primary, secondary } = partitionSpacesForDisplay(spacesWithRooms, {
     isStaff: canCreate,
   });
-  const visibleSpaces = primary ? [primary] : spacesWithRooms.slice(0, 1);
+  const visibleSpaces = primary
+    ? [primary, ...secondary]
+    : secondary.length > 0
+      ? secondary
+      : spacesWithRooms;
   const hasSpace = visibleSpaces.length > 0;
 
   const spaceCards = useMemo(() => {
     const roleInput = { userId, ownerId, membership };
     const online = overview?.membersOnline ?? 0;
-    return visibleSpaces.map((space, index) => {
+    return visibleSpaces.map((space) => {
       const mapped = mapSpaceToGroup(space, roleInput, {
         cover:
           safeMediaUrl(

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+    ArrowLeft,
     Home,
     ChevronDown,
     Search,
@@ -324,8 +325,17 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                 {/* Logo — icon-only on narrow screens to avoid truncation */}
                 <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="Jimvio home">
-                    <JimvioLogo href={undefined} size="md" presentation="header" variant="icon" className="sm:hidden" />
-                    <JimvioLogo href={undefined} size="md" presentation="header" variant="full" className="hidden min-w-0 sm:flex" />
+                    {/* Mobile: replace logo icon with compact brand text */}
+                    <span className="sm:hidden inline-flex items-center text-[16px] font-black tracking-tight text-[#fd5000]">
+                        Jimvio
+                    </span>
+                    <JimvioLogo
+                        href={undefined}
+                        size="md"
+                        presentation="header"
+                        variant="full"
+                        className="hidden min-w-0 sm:flex"
+                    />
                 </Link>
 
                 {/* Primary nav (desktop) — breathing room from logo */}
@@ -538,9 +548,37 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[var(--color-bg)]")}>
                     {/* Mobile page title bar */}
                     {!isLiveStudio && (
-                    <div className="flex min-h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 py-2 lg:hidden">
-                        <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">{pageTitle}</h1>
-                    </div>
+                        <div className="flex min-h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 py-2 lg:hidden">
+                            {isCommunityWorkspace && communitySlug ? (
+                                <div className="flex w-full items-center gap-2">
+                                    <Link
+                                        href="/communities"
+                                        className="inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-[13px] font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                                    >
+                                        <ArrowLeft className="h-4 w-4" />
+                                        Back
+                                    </Link>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
+                                            {pageTitle}
+                                        </p>
+                                        <p className="truncate text-[12px] font-semibold text-[var(--color-text-muted)]">
+                                            {pathname.includes("/spaces")
+                                                ? "Spaces"
+                                                : pathname.includes("/courses")
+                                                  ? "Courses"
+                                                  : pathname.includes("/feed")
+                                                    ? "Feeds"
+                                                    : "Overview"}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
+                                    {pageTitle}
+                                </h1>
+                            )}
+                        </div>
                     )}
                     <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0")}>
                         {children}
