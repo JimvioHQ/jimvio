@@ -37,10 +37,14 @@ export function WorkspaceShell({
   const activeId = resolveWorkspaceNavActive(pathname, workspace);
   const rightPanelEnabled = showRightPanel && !!def.rightPanel && workspace !== "affiliates";
 
+  const isAffiliate = workspace === "affiliates";
+
   return (
     <div
       className={cn(
-        "flex min-h-dvh flex-col bg-[var(--color-bg)]",
+        "flex flex-col bg-[var(--color-bg)]",
+        // Affiliates: lock shell to viewport so the left nav stays fixed while main scrolls.
+        isAffiliate ? "h-dvh overflow-hidden" : "min-h-dvh"
       )}
     >
       <AppTopNav
@@ -49,11 +53,13 @@ export function WorkspaceShell({
         user={user}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside
           className={cn(
             "hidden shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] lg:block",
-            workspace === "affiliates" ? "w-[232px]" : "w-[240px]"
+            isAffiliate
+              ? "sticky top-0 h-full w-[232px] self-stretch overflow-hidden"
+              : "w-[240px]"
           )}
         >
           <WorkspaceSidebar

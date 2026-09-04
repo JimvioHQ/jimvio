@@ -286,7 +286,19 @@ export async function buildLineAttribution(input: {
   }
 
   if (!resolved) {
-    resolved = await resolveActiveAttribution(input.preferredModel ?? "last_touch");
+    const preferred = input.preferredModel ?? "last_touch";
+    resolved = await resolveActiveAttribution(preferred);
+    // When campaign defines a model, re-resolve with that model if different.
+    if (
+      resolved?.attributionModel &&
+      resolved.attributionModel !== preferred &&
+      !input.preferredModel
+    ) {
+      const campaignResolved = await resolveActiveAttribution(
+        resolved.attributionModel
+      );
+      if (campaignResolved) resolved = campaignResolved;
+    }
   }
   if (!resolved) return null;
   if (isSelfReferral(input.buyerUserId, resolved.affiliateUserId)) return null;

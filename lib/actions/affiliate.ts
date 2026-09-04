@@ -64,6 +64,6 @@ export async function recordReferralVisit(code: string, pathname?: string) {
     }
   }
 
-  await setReferralCookies(code, resolved.attributionWindowDays);
+  await setReferralCookies(resolved.referralCode, resolved.attributionWindowDays);
   return { success: true };
 }

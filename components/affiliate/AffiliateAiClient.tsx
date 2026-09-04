@@ -9,6 +9,7 @@ import {
 import {
   AFFILIATE_BTN_PRIMARY,
   AFFILIATE_BTN_SECONDARY,
+  formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
     if (!selected) return;
     startTransition(async () => {
       setError(null);
+      setResult(null);
       try {
         const res = await fetch("/api/ai/generate", {
           method: "POST",
@@ -78,7 +80,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
             productName: selected.name,
             category: selected.category,
             price: selected.price,
-            currency: selected.currency,
+            currency: "USD",
             commissionRate: selected.rate,
             features: selected.features ?? [],
             description: selected.description ?? "",
@@ -86,10 +88,19 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          setError(data?.error ?? "AI generation failed");
+          setError(
+            data?.error ||
+              (res.status === 503
+                ? "AI provider is not configured."
+                : "AI generation failed")
+          );
           return;
         }
-        setResult(data?.data ?? null);
+        if (!data?.data) {
+          setError("AI returned an empty response. Retry generation.");
+          return;
+        }
+        setResult(data.data);
       } catch {
         setError("Could not reach Jimvio AI");
       }
@@ -146,11 +157,24 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
             </select>
             {selected ? (
               <p className="mt-2 text-[12.5px] text-[#6B7280]">
-                {selected.category} · {selected.currency} {selected.price.toLocaleString()} ·{" "}
+                {selected.category} ·{" "}
+                {formatAffiliateMoney(selected.price, "USD")} ·{" "}
                 {Math.round(selected.rate)}% commission
               </p>
             ) : null}
-            {error ? <p className="mt-2 text-[12px] font-medium text-red-600">{error}</p> : null}
+            {error ? (
+              <div className="mt-3 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2.5">
+                <p className="text-[12px] font-medium text-red-700">{error}</p>
+                <button
+                  type="button"
+                  onClick={generate}
+                  disabled={pending}
+                  className={cn(AFFILIATE_BTN_SECONDARY, "mt-2 h-8 px-2.5 text-[11px]")}
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
           </div>
 
           {result ? (

@@ -305,7 +305,7 @@ export function AffiliatePromoteProductClient({
             productName: product.name,
             category: product.category,
             price: product.price,
-            currency: product.currency,
+            currency: "USD",
             commissionRate: product.rate,
             features: product.features,
             description: product.description || product.shortDescription,

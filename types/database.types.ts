@@ -2052,9 +2052,11 @@ export type Database = {
       order_items: {
         Row: {
           access_granted_at: string | null
+          affiliate_campaign_id: string | null
           affiliate_commission_amount: number | null
           affiliate_commission_rate: number | null
           affiliate_id: string | null
+          affiliate_link_id: string | null
           billing_period: string | null
           created_at: string | null
           digital_download_url: string | null
@@ -2080,9 +2082,11 @@ export type Database = {
         }
         Insert: {
           access_granted_at?: string | null
+          affiliate_campaign_id?: string | null
           affiliate_commission_amount?: number | null
           affiliate_commission_rate?: number | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           billing_period?: string | null
           created_at?: string | null
           digital_download_url?: string | null
@@ -2108,9 +2112,11 @@ export type Database = {
         }
         Update: {
           access_granted_at?: string | null
+          affiliate_campaign_id?: string | null
           affiliate_commission_amount?: number | null
           affiliate_commission_rate?: number | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           billing_period?: string | null
           created_at?: string | null
           digital_download_url?: string | null

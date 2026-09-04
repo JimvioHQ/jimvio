@@ -7115,9 +7115,11 @@ export type Database = {
       order_items: {
         Row: {
           access_granted_at: string | null
+          affiliate_campaign_id: string | null
           affiliate_commission_amount: number | null
           affiliate_commission_rate: number | null
           affiliate_id: string | null
+          affiliate_link_id: string | null
           billing_period: string | null
           created_at: string | null
           digital_download_url: string | null
@@ -7143,9 +7145,11 @@ export type Database = {
         }
         Insert: {
           access_granted_at?: string | null
+          affiliate_campaign_id?: string | null
           affiliate_commission_amount?: number | null
           affiliate_commission_rate?: number | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           billing_period?: string | null
           created_at?: string | null
           digital_download_url?: string | null
@@ -7171,9 +7175,11 @@ export type Database = {
         }
         Update: {
           access_granted_at?: string | null
+          affiliate_campaign_id?: string | null
           affiliate_commission_amount?: number | null
           affiliate_commission_rate?: number | null
           affiliate_id?: string | null
+          affiliate_link_id?: string | null
           billing_period?: string | null
           created_at?: string | null
           digital_download_url?: string | null
@@ -7198,6 +7204,20 @@ export type Database = {
           vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_affiliate_campaign_id_fkey"
+            columns: ["affiliate_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_affiliate_link_id_fkey"
+            columns: ["affiliate_link_id"]
+            isOneToOne: false
+            referencedRelation: "affiliate_links"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]

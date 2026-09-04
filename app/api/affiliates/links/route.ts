@@ -5,6 +5,10 @@ import { getSiteUrl } from "@/lib/site-url";
 import { generateAffiliateUrl } from "@/lib/utils";
 import { getSessionAffiliate } from "@/lib/affiliate/access";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getLinkMetricsMap,
+  mergeLinkMetrics,
+} from "@/lib/affiliate/link-metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -47,36 +51,53 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Could not load affiliate links" }, { status: 400 });
   }
 
+  const rows = data ?? [];
+  const productByLinkId: Record<string, string | null | undefined> = {};
+  for (const l of rows) {
+    productByLinkId[l.id] = l.product_id;
+  }
+  const metricsMap = await getLinkMetricsMap(
+    rows.map((l: any) => l.id as string),
+    { affiliateId: auth.affiliate!.id, productByLinkId }
+  );
+
   const site = getSiteUrl();
-  const links = (data ?? []).map((l: any) => ({
-    id: l.id,
-    linkCode: l.link_code,
-    customSlug: l.custom_slug,
-    destinationUrl: l.destination_url,
-    fullUrl:
-      l.full_url?.startsWith("http")
-        ? l.full_url
-        : generateAffiliateUrl(site, l.link_code),
-    shortUrl: `${site}/ref/${l.link_code}`,
-    commissionRate: l.commission_rate != null ? Number(l.commission_rate) : null,
-    clicks: Number(l.total_clicks ?? 0),
-    uniqueClicks: Number(l.unique_clicks ?? 0),
-    conversions: Number(l.total_conversions ?? 0),
-    earnings: Number(l.total_earnings ?? 0),
-    isActive: Boolean(l.is_active),
-    expiresAt: l.expires_at,
-    createdAt: l.created_at,
-    product: l.products
-      ? {
-          id: l.products.id,
-          name: l.products.name,
-          slug: l.products.slug,
-          currency: l.products.currency,
-          price: l.products.price != null ? Number(l.products.price) : null,
-          images: l.products.images ?? null,
-        }
-      : null,
-  }));
+  const links = rows.map((l: any) => {
+    const metrics = mergeLinkMetrics(metricsMap.get(l.id), {
+      clicks: Number(l.total_clicks ?? 0),
+      conversions: Number(l.total_conversions ?? 0),
+      earnings: Number(l.total_earnings ?? 0),
+    });
+    return {
+      id: l.id,
+      linkCode: l.link_code,
+      customSlug: l.custom_slug,
+      destinationUrl: l.destination_url,
+      fullUrl:
+        l.full_url?.startsWith("http")
+          ? l.full_url
+          : generateAffiliateUrl(site, l.link_code),
+      shortUrl: `${site}/ref/${l.link_code}`,
+      commissionRate: l.commission_rate != null ? Number(l.commission_rate) : null,
+      clicks: metrics.clicks,
+      uniqueClicks: Number(l.unique_clicks ?? 0),
+      conversions: metrics.conversions,
+      earnings: metrics.earnings,
+      isActive: Boolean(l.is_active),
+      expiresAt: l.expires_at,
+      createdAt: l.created_at,
+      product: l.products
+        ? {
+            id: l.products.id,
+            name: l.products.name,
+            slug: l.products.slug,
+            currency: l.products.currency,
+            price: l.products.price != null ? Number(l.products.price) : null,
+            images: l.products.images ?? null,
+          }
+        : null,
+    };
+  });
 
   return NextResponse.json({ links });
 }

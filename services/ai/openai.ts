@@ -2,17 +2,105 @@ import OpenAI from "openai";
 
 let _openai: OpenAI | null = null;
 
-function getOpenAI(): OpenAI {
-  if (!_openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey || apiKey.trim() === "") {
-      throw new Error(
-        "OPENAI_API_KEY is not set. Add it to .env or configure the OpenAI client with an apiKey option."
-      );
-    }
-    _openai = new OpenAI({ apiKey });
+export type AiProviderStatus = {
+  configured: boolean;
+  provider: "openai" | "ai_gateway" | "none";
+  reason?: string;
+};
+
+export function getAiProviderStatus(): AiProviderStatus {
+  if (process.env.OPENAI_API_KEY?.trim()) {
+    return { configured: true, provider: "openai" };
   }
-  return _openai;
+  if (
+    process.env.AI_GATEWAY_API_KEY?.trim() ||
+    process.env.VERCEL_AI_GATEWAY_API_KEY?.trim()
+  ) {
+    return { configured: true, provider: "ai_gateway" };
+  }
+  return {
+    configured: false,
+    provider: "none",
+    reason:
+      "No AI provider configured. Set OPENAI_API_KEY or AI_GATEWAY_API_KEY in the environment.",
+  };
+}
+
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  if (openaiKey) {
+    _openai = new OpenAI({
+      apiKey: openaiKey,
+      baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
+    });
+    return _openai;
+  }
+
+  const gatewayKey =
+    process.env.AI_GATEWAY_API_KEY?.trim() ||
+    process.env.VERCEL_AI_GATEWAY_API_KEY?.trim();
+  if (gatewayKey) {
+    _openai = new OpenAI({
+      apiKey: gatewayKey,
+      baseURL:
+        process.env.AI_GATEWAY_BASE_URL?.trim() ||
+        "https://ai-gateway.vercel.sh/v1",
+    });
+    return _openai;
+  }
+
+  throw new Error(
+    "OPENAI_API_KEY is not set. Add it to .env or configure AI_GATEWAY_API_KEY."
+  );
+}
+
+export function describeAiError(error: unknown): {
+  message: string;
+  code?: string;
+  status: number;
+} {
+  const err = error as {
+    message?: string;
+    code?: string;
+    status?: number;
+    error?: { message?: string; code?: string; type?: string };
+  };
+  const code = err?.code || err?.error?.code || err?.error?.type;
+  const status = err?.status;
+  const raw =
+    err?.error?.message ||
+    err?.message ||
+    (error instanceof Error ? error.message : "AI generation failed");
+
+  if (
+    code === "credit_balance_exhausted" ||
+    code === "insufficient_quota" ||
+    /no credits remaining|insufficient_quota|credit_balance_exhausted/i.test(raw)
+  ) {
+    return {
+      message:
+        "AI provider has no credits remaining. Add OpenAI billing credits or configure AI_GATEWAY_API_KEY with available quota.",
+      code: "insufficient_quota",
+      status: 502,
+    };
+  }
+  if (status === 429 || /rate limit/i.test(raw)) {
+    return {
+      message: "AI provider rate limit reached. Wait a moment and retry.",
+      code: "rate_limit",
+      status: 429,
+    };
+  }
+  if (/OPENAI_API_KEY is not set|No AI provider/i.test(raw)) {
+    return { message: raw, code: "provider_unconfigured", status: 503 };
+  }
+  return {
+    message: raw,
+    code: typeof code === "string" ? code : undefined,
+    status: 500,
+  };
 }
 
 export interface ProductDescriptionParams {
@@ -238,7 +326,7 @@ Return ONLY JSON with these exact keys:
 }`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.75,
       max_tokens: 1400,
@@ -246,7 +334,42 @@ Return ONLY JSON with these exact keys:
     });
 
     const content = response.choices[0].message.content || "{}";
-    return JSON.parse(content);
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const required = [
+      "tiktokCaption",
+      "instagramCaption",
+      "youtubeTitle",
+      "facebookPost",
+      "threadsPost",
+      "xPost",
+      "emailCopy",
+      "blogIntro",
+      "seoTitle",
+    ] as const;
+    for (const key of required) {
+      if (typeof parsed[key] !== "string" || !(parsed[key] as string).trim()) {
+        throw new Error(`AI response missing field: ${key}`);
+      }
+    }
+    return {
+      tiktokCaption: String(parsed.tiktokCaption),
+      instagramCaption: String(parsed.instagramCaption),
+      youtubeTitle: String(parsed.youtubeTitle),
+      facebookPost: String(parsed.facebookPost),
+      threadsPost: String(parsed.threadsPost),
+      xPost: String(parsed.xPost),
+      emailCopy: String(parsed.emailCopy),
+      blogIntro: String(parsed.blogIntro),
+      seoTitle: String(parsed.seoTitle),
+      keywords: Array.isArray(parsed.keywords)
+        ? parsed.keywords.map(String)
+        : [],
+      hashtags: Array.isArray(parsed.hashtags)
+        ? parsed.hashtags.map(String)
+        : [],
+      hooks: Array.isArray(parsed.hooks) ? parsed.hooks.map(String) : [],
+      scripts: Array.isArray(parsed.scripts) ? parsed.scripts.map(String) : [],
+    };
   }
 
   async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>) {

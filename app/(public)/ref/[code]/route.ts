@@ -9,6 +9,22 @@ import {
   DEFAULT_ATTRIBUTION_WINDOW_DAYS,
 } from "@/lib/affiliate/attribution";
 
+/** Privacy-safe IP retention: IPv4 /24 or IPv6 /48 prefix only. */
+function truncateIpForPrivacy(ip: string | null | undefined): string | null {
+  if (!ip) return null;
+  const v = ip.trim();
+  if (!v) return null;
+  if (v.includes(".")) {
+    const parts = v.split(".");
+    if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.0`;
+  }
+  if (v.includes(":")) {
+    const parts = v.split(":").filter(Boolean);
+    if (parts.length >= 3) return `${parts.slice(0, 3).join(":")}::`;
+  }
+  return null;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
@@ -87,40 +103,50 @@ export async function GET(
     }
   }
 
-  const ip =
+  // Privacy: store truncated network prefix only (never full client IP).
+  const rawIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip");
+    request.headers.get("x-real-ip") ||
+    null;
+  const ip = truncateIpForPrivacy(rawIp);
   const userAgent = request.headers.get("user-agent") || "";
   const referer = request.headers.get("referer") || "";
   const deviceType = /mobile|android|iphone|ipad/i.test(userAgent) ? "mobile" : "desktop";
   const sessionKey =
     request.cookies.get("jimvio_sid")?.value ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    truncateIpForPrivacy(
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ) ||
     null;
 
-  if (linkId && affiliateId) {
-    await supabase.rpc("record_affiliate_click", {
-      p_link_id: linkId,
-      p_affiliate_id: affiliateId,
-      p_campaign_id: campaignId,
-      p_ip: ip,
-      p_user_agent: userAgent,
-      p_referrer: referer,
-      p_device_type: deviceType,
-      p_session_key: sessionKey,
-    });
-  } else if (affiliateId) {
-    const { data: aff } = await supabase
-      .from("affiliates")
-      .select("total_clicks")
-      .eq("id", affiliateId)
-      .maybeSingle();
-    if (aff) {
-      await supabase
+  try {
+    if (linkId && affiliateId) {
+      await supabase.rpc("record_affiliate_click", {
+        p_link_id: linkId,
+        p_affiliate_id: affiliateId,
+        p_campaign_id: campaignId,
+        p_ip: ip,
+        p_user_agent: userAgent.slice(0, 400),
+        p_referrer: referer.slice(0, 500),
+        p_device_type: deviceType,
+        p_session_key: sessionKey,
+      });
+    } else if (affiliateId) {
+      const { data: aff } = await supabase
         .from("affiliates")
-        .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
-        .eq("id", affiliateId);
+        .select("total_clicks")
+        .eq("id", affiliateId)
+        .maybeSingle();
+      if (aff) {
+        await supabase
+          .from("affiliates")
+          .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
+          .eq("id", affiliateId);
+      }
     }
+  } catch (err) {
+    // Fail-open for shoppers: attribution cookies still set below.
+    console.warn("[ref] click recording failed:", err);
   }
 
   const response = NextResponse.redirect(new URL(destination, request.url));

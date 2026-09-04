@@ -285,6 +285,15 @@ async function createVendorOrder(
       affiliate_id: attribution?.affiliate_id ?? null,
       affiliate_commission_rate: attribution?.affiliate_commission_rate ?? null,
       affiliate_commission_amount: attribution?.affiliate_commission_amount ?? null,
+      affiliate_link_id: attribution?.affiliate_link_id ?? null,
+      affiliate_campaign_id: attribution?.campaign_id ?? null,
+      metadata: attribution
+        ? {
+            affiliate_link_id: attribution.affiliate_link_id,
+            affiliate_campaign_id: attribution.campaign_id,
+            attribution_model: attribution.attribution_model,
+          }
+        : null,
     });
   }
 

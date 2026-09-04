@@ -175,6 +175,12 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
         ],
       },
     ],
+    proCard: {
+      title: "Jimvio Affiliates",
+      description: "Pick products, share tracked links, and grow commission-ready traffic.",
+      cta: "Browse products",
+      href: "/affiliates",
+    },
   },
   ugc: {
     id: "ugc",
@@ -227,12 +233,28 @@ export function resolveWorkspaceNavActive(pathname: string, workspace: Workspace
     if (pathname.startsWith("/communities/explore")) return "explore";
     if (pathname.startsWith("/communities") || pathname === "/communities") return "feed";
   }
+  // Affiliates: many nav items share routes — prefer the most specific surface.
+  if (workspace === "affiliates") {
+    if (pathname.startsWith("/affiliates/ai")) return "ai";
+    if (pathname.startsWith("/affiliates/analytics")) return "analytics";
+    if (pathname.startsWith("/affiliates/links")) return "links";
+    if (pathname.startsWith("/affiliates/payouts")) return "payouts";
+    if (pathname.startsWith("/affiliates/promote")) return "products";
+    if (pathname.startsWith("/affiliates/dashboard")) return "dashboard";
+    if (pathname === "/affiliates" || pathname.startsWith("/affiliates?")) return "products";
+    if (pathname.startsWith("/help")) return "guides";
+  }
+  // Longest exact/prefix match wins (avoids /affiliates shadowing /affiliates/links).
+  let best: { id: string; len: number } | null = null;
   for (const item of def.sidebar) {
     const base = item.href.split("?")[0].split("#")[0];
     if (pathname === base || (base !== "/" && pathname.startsWith(`${base}/`))) {
-      return item.id;
+      if (!best || base.length > best.len) {
+        best = { id: item.id, len: base.length };
+      }
     }
   }
+  if (best) return best.id;
   if (workspace === "ugc" && pathname.startsWith("/ugc")) return "discover";
   return def.sidebar[0]?.id ?? "overview";
 }

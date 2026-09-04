@@ -1587,6 +1587,24 @@ export async function addToCart(
           .eq("link_code", refCode)
           .maybeSingle();
         if (link) affiliateLinkId = link.id;
+      } else {
+        // Custom slug or profile code → resolve to product-specific / active link when possible.
+        const { resolveReferralCode } = await import("@/lib/affiliate/attribution");
+        const resolved = await resolveReferralCode(refCode);
+        if (resolved?.linkId) {
+          affiliateLinkId = resolved.linkId;
+        } else if (resolved?.affiliateId) {
+          const { data: productLink } = await supabase
+            .from("affiliate_links")
+            .select("id")
+            .eq("affiliate_id", resolved.affiliateId)
+            .eq("product_id", productId)
+            .eq("is_active", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (productLink) affiliateLinkId = productLink.id;
+        }
       }
     }
 

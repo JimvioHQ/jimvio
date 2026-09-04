@@ -761,9 +761,12 @@ interface CJOrderItem {
   total_price: number;
   product_source: string | null;
   source_metadata: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   affiliate_id: string | null;
   affiliate_commission_rate: number | null;
   affiliate_commission_amount: number | null;
+  affiliate_link_id?: string | null;
+  affiliate_campaign_id?: string | null;
 }
 
 // ─── Consistent terminal payment status ───────────────────────────────────────
@@ -877,12 +880,37 @@ async function grantDigitalAccess(
 async function insertAffiliateCommissions(
   db: SupabaseClient,
   orderId: string,
-  orderItems: CJOrderItem[]
+  orderItems: CJOrderItem[],
+  referralCode?: string | null
 ): Promise<void> {
   const { createPendingCommission } = await import("@/lib/affiliate/commissions");
+  const { resolveReferralCode } = await import("@/lib/affiliate/attribution");
+
+  let resolvedFromOrder: Awaited<ReturnType<typeof resolveReferralCode>> = null;
+  if (referralCode) {
+    try {
+      resolvedFromOrder = await resolveReferralCode(referralCode);
+    } catch (err) {
+      console.warn("[insertAffiliateCommissions] referral resolve skipped:", err);
+    }
+  }
 
   for (const item of orderItems) {
     if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
+
+    const meta = (item.metadata ?? {}) as Record<string, unknown>;
+    const linkId =
+      item.affiliate_link_id ??
+      (typeof meta.affiliate_link_id === "string" ? meta.affiliate_link_id : null) ??
+      resolvedFromOrder?.linkId ??
+      null;
+    const campaignId =
+      item.affiliate_campaign_id ??
+      (typeof meta.affiliate_campaign_id === "string"
+        ? meta.affiliate_campaign_id
+        : null) ??
+      resolvedFromOrder?.campaignId ??
+      null;
 
     try {
       await createPendingCommission({
@@ -891,9 +919,15 @@ async function insertAffiliateCommissions(
         orderItemId: item.id,
         productId: item.product_id,
         vendorId: item.vendor_id,
+        linkId,
+        campaignId,
         commissionRate: Number(item.affiliate_commission_rate ?? 0),
         orderAmount: Number(item.total_price ?? 0),
         commissionAmount: Number(item.affiliate_commission_amount),
+        attributionModel:
+          typeof meta.attribution_model === "string"
+            ? meta.attribution_model
+            : resolvedFromOrder?.attributionModel,
       });
     } catch (err) {
       console.warn(`[insertAffiliateCommissions] item ${item.id}:`, err);
@@ -971,9 +1005,12 @@ export async function finalizeOrderPayment(
         total_price,
         product_source,
         source_metadata,
+        metadata,
         affiliate_id,
         affiliate_commission_rate,
-        affiliate_commission_amount
+        affiliate_commission_amount,
+        affiliate_link_id,
+        affiliate_campaign_id
       ),
       profiles (
         id,
@@ -1156,7 +1193,12 @@ export async function finalizeOrderPayment(
     });
 
     // Affiliate commissions — deduplicated
-    await insertAffiliateCommissions(db, orderId, orderItems);
+    await insertAffiliateCommissions(
+      db,
+      orderId,
+      orderItems,
+      (order as { referral_code?: string | null }).referral_code
+    );
 
     // Notify buyer
     if (ctx.notifyUserId) {
@@ -1356,7 +1398,12 @@ export async function finalizeOrderPayment(
   });
 
   // Affiliate commissions — deduplicated on both paths
-  await insertAffiliateCommissions(db, orderId, orderItems);
+  await insertAffiliateCommissions(
+    db,
+    orderId,
+    orderItems,
+    (order as { referral_code?: string | null }).referral_code
+  );
 
   return { type: "shopify" };
 }

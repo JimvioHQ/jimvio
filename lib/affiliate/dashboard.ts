@@ -5,6 +5,10 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getAffiliateAnalytics } from "@/lib/affiliate/analytics";
 import { getAffiliateBalances, getAffiliateLedger } from "@/lib/affiliate/commissions";
+import {
+  getLinkMetricsMap,
+  mergeLinkMetrics,
+} from "@/lib/affiliate/link-metrics";
 
 function db() {
   return createServiceRoleClient() as any;
@@ -204,6 +208,16 @@ export async function getAffiliateDashboardBundle(affiliateId: string, days = 30
       .sort((a, b) => b.value - a.value)
       .slice(0, limit);
 
+  const recentLinkRows = links ?? [];
+  const productByLinkId: Record<string, string | null | undefined> = {};
+  for (const l of recentLinkRows) {
+    productByLinkId[l.id] = l.product_id;
+  }
+  const linkMetrics = await getLinkMetricsMap(
+    recentLinkRows.map((l: any) => l.id as string),
+    { affiliateId, productByLinkId }
+  );
+
   return {
     analytics,
     balances: {
@@ -229,27 +243,34 @@ export async function getAffiliateDashboardBundle(affiliateId: string, days = 30
     countries: rankMap(countries),
     platforms: rankMap(platforms),
     trafficSources: rankMap(sources),
-    recentLinks: (links ?? []).map((l: any) => ({
-      id: l.id,
-      linkCode: l.link_code,
-      customSlug: l.custom_slug,
-      destinationUrl: l.destination_url,
-      fullUrl: l.full_url,
-      commissionRate: l.commission_rate != null ? Number(l.commission_rate) : null,
-      clicks: Number(l.total_clicks ?? 0),
-      conversions: Number(l.total_conversions ?? 0),
-      earnings: Number(l.total_earnings ?? 0),
-      isActive: Boolean(l.is_active),
-      expiresAt: l.expires_at,
-      createdAt: l.created_at,
-      product: l.products
-        ? {
-            id: l.products.id,
-            name: l.products.name,
-            slug: l.products.slug,
-            currency: l.products.currency,
-          }
-        : null,
-    })),
+    recentLinks: recentLinkRows.map((l: any) => {
+      const metrics = mergeLinkMetrics(linkMetrics.get(l.id), {
+        clicks: Number(l.total_clicks ?? 0),
+        conversions: Number(l.total_conversions ?? 0),
+        earnings: Number(l.total_earnings ?? 0),
+      });
+      return {
+        id: l.id,
+        linkCode: l.link_code,
+        customSlug: l.custom_slug,
+        destinationUrl: l.destination_url,
+        fullUrl: l.full_url,
+        commissionRate: l.commission_rate != null ? Number(l.commission_rate) : null,
+        clicks: metrics.clicks,
+        conversions: metrics.conversions,
+        earnings: metrics.earnings,
+        isActive: Boolean(l.is_active),
+        expiresAt: l.expires_at,
+        createdAt: l.created_at,
+        product: l.products
+          ? {
+              id: l.products.id,
+              name: l.products.name,
+              slug: l.products.slug,
+              currency: l.products.currency,
+            }
+          : null,
+      };
+    }),
   };
 }
