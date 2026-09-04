@@ -1,27 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAffiliateLink } from "@/lib/affiliate/campaigns";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getSiteUrl } from "@/lib/site-url";
 import { generateAffiliateUrl } from "@/lib/utils";
+import { getSessionAffiliate } from "@/lib/affiliate/access";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 async function requireAffiliate() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  const { data: affiliate } = await supabase
-    .from("affiliates")
-    .select("id, is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!affiliate?.is_active) {
-    return { error: NextResponse.json({ error: "Affiliate profile required" }, { status: 403 }) };
+  const affiliate = await getSessionAffiliate({ requireActive: true });
+  if (!affiliate) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    }
+    return {
+      error: NextResponse.json({ error: "Affiliate profile required" }, { status: 403 }),
+    };
   }
-  return { user, affiliate, supabase };
+  return { affiliate };
 }
 
 /** GET — list affiliate links for the signed-in creator. */

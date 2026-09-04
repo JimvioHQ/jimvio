@@ -7,8 +7,8 @@ const nextSteps = {
     { label: "Add your first product", href: "/marketplace/new" },
   ],
   affiliate: [
-    { label: "Open your affiliate analytics", href: "/" },
-    { label: "Explore products to share", href: "/marketplace" },
+    { label: "Open Affiliate Dashboard", href: "/affiliates/dashboard" },
+    { label: "Pick products to promote", href: "/affiliates" },
   ],
   influencer: [
     { label: "Explore creator opportunities", href: "/ugc" },

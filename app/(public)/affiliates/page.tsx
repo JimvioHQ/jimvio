@@ -142,7 +142,7 @@ export default async function AffiliatesPage() {
       maxEarning={maxEarning}
       settings={settings}
       isLoggedIn={!!user}
-      hasAffiliateAccount={!!affiliateRow}
+      hasAffiliateAccount={!!affiliateRow && affiliateRow.is_active !== false}
     />
   );
 }

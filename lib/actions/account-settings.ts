@@ -266,32 +266,108 @@ export async function saveInfluencerSettings(input: {
 
 export async function activateUserRole(
   role: "affiliate" | "influencer"
-): Promise<ActionResult> {
+): Promise<ActionResult<{ affiliateCode?: string }>> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
+  if (!user.email_confirmed_at) {
+    return {
+      success: false,
+      error: "Verify your email before activating this role.",
+    };
+  }
+
   if (role === "affiliate") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      return {
+        success: false,
+        error: "Complete your Jimvio profile before activating affiliate access.",
+      };
+    }
+
     const { data: existing } = await supabase
       .from("affiliates")
-      .select("id, is_active")
+      .select("id, is_active, affiliate_code")
       .eq("user_id", user.id)
       .maybeSingle();
+
     if (!existing) {
-      const { error } = await supabase.from("affiliates").insert({
-        user_id: user.id,
-        is_active: true,
-      });
-      if (error) return { success: false, error: error.message };
+      const { data: created, error } = await supabase
+        .from("affiliates")
+        .insert({
+          user_id: user.id,
+          is_active: true,
+        })
+        .select("id, affiliate_code, is_active")
+        .single();
+      if (error || !created?.is_active) {
+        // Fallback: service-role upsert if RLS/session insert fails unexpectedly
+        const admin = createAdminClient();
+        const { data: upserted, error: upsertError } = await admin
+          .from("affiliates")
+          .upsert(
+            { user_id: user.id, is_active: true },
+            { onConflict: "user_id" }
+          )
+          .select("id, affiliate_code, is_active")
+          .single();
+        if (upsertError || !upserted?.is_active) {
+          return {
+            success: false,
+            error: "Could not activate affiliate access. Please try again.",
+          };
+        }
+      }
     } else if (!existing.is_active) {
       const { error } = await supabase
         .from("affiliates")
         .update({ is_active: true })
         .eq("id", existing.id)
         .eq("user_id", user.id);
-      if (error) return { success: false, error: error.message };
+      if (error) {
+        const admin = createAdminClient();
+        const { error: adminError } = await admin
+          .from("affiliates")
+          .update({ is_active: true })
+          .eq("id", existing.id)
+          .eq("user_id", user.id);
+        if (adminError) {
+          return {
+            success: false,
+            error: "Could not reactivate affiliate access. Please try again.",
+          };
+        }
+      }
+    }
+
+    // Confirm canonical active state before success
+    const { data: confirmed } = await supabase
+      .from("affiliates")
+      .select("id, is_active, affiliate_code")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!confirmed?.is_active) {
+      const admin = createAdminClient();
+      const { data: adminRow } = await admin
+        .from("affiliates")
+        .select("id, is_active, affiliate_code")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!adminRow?.is_active) {
+        return {
+          success: false,
+          error: "Affiliate activation did not persist. Please try again.",
+        };
+      }
     }
   } else {
     const { data: profile } = await supabase
@@ -307,7 +383,10 @@ export async function activateUserRole(
     if (!existing) {
       const { error } = await supabase.from("influencers").insert({
         user_id: user.id,
-        display_name: profile?.full_name?.trim() || "Creator",
+        display_name:
+          profile?.full_name?.trim() ||
+          String(user.user_metadata?.full_name ?? "").trim() ||
+          "Creator",
       });
       if (error) return { success: false, error: error.message };
     }
@@ -317,5 +396,23 @@ export async function activateUserRole(
   if (!("ok" in provisioned)) return { success: false, error: provisioned.error };
 
   revalidatePath("/identity/settings");
-  return { success: true };
+  revalidatePath("/activate/affiliate");
+  revalidatePath("/activate/influencer");
+  revalidatePath("/affiliates");
+  revalidatePath("/affiliates/dashboard");
+  revalidatePath("/affiliates/links");
+  revalidatePath("/affiliates/payouts");
+  revalidatePath("/affiliates/analytics");
+
+  let affiliateCode: string | undefined;
+  if (role === "affiliate") {
+    const { data: row } = await supabase
+      .from("affiliates")
+      .select("affiliate_code")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    affiliateCode = row?.affiliate_code ?? undefined;
+  }
+
+  return { success: true, data: { affiliateCode } };
 }

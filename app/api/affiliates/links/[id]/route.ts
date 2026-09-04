@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getSessionAffiliate } from "@/lib/affiliate/access";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 async function requireOwnedLink(linkId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-
-  const { data: affiliate } = await supabase
-    .from("affiliates")
-    .select("id, is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!affiliate?.is_active) {
-    return { error: NextResponse.json({ error: "Affiliate profile required" }, { status: 403 }) };
+  const affiliate = await getSessionAffiliate({ requireActive: true });
+  if (!affiliate) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    }
+    return {
+      error: NextResponse.json({ error: "Affiliate profile required" }, { status: 403 }),
+    };
   }
 
   const client = createServiceRoleClient() as any;
