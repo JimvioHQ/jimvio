@@ -4,6 +4,11 @@
  */
 
 import { getCJToken } from "@/lib/cj/client";
+import {
+  isCjQuotaCircuitOpen,
+  markCjQuotaExhausted,
+} from "@/lib/cj/checkout-shipping";
+import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -48,9 +53,12 @@ export async function resolveDeliveryDaysFromFreight(
     return null;
   }
 
+  if (isCjQuotaCircuitOpen()) return null;
+
   let bestDays: number | null = null;
 
   for (const countryCode of PROBE_COUNTRIES) {
+    if (isCjQuotaCircuitOpen()) break;
     try {
       const res = await fetch(`${CJ_API_BASE}/logistic/freightCalculate`, {
         method: "POST",
@@ -75,8 +83,15 @@ export async function resolveDeliveryDaysFromFreight(
 
       const data = (await res.json()) as {
         result?: boolean;
+        message?: string;
+        code?: string | number;
         data?: Array<{ logisticsTime?: string; logisticAging?: string }>;
       };
+
+      if (isCjApiQuotaError(data.message) || isCjApiQuotaError(JSON.stringify(data))) {
+        markCjQuotaExhausted(String(data.message ?? "CJ freight quota during delivery probe"));
+        break;
+      }
 
       if (!data.result || !data.data?.length) continue;
 

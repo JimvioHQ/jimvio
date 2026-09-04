@@ -198,6 +198,16 @@ function assertQuotaCircuitClosed(): void {
   }
 }
 
+/** True when checkout circuit is open — other freight callers should skip live CJ. */
+export function isCjQuotaCircuitOpen(): boolean {
+  return Date.now() < quotaCircuitOpenUntil;
+}
+
+/** Open the shared in-process quota circuit (import/PDP/checkout). */
+export function markCjQuotaExhausted(message: string): void {
+  markQuotaExhausted(message);
+}
+
 function freightQuoteCacheKey(
   destCountryCode: string,
   products: CjFreightProduct[],

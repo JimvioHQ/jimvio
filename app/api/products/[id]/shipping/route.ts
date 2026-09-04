@@ -9,6 +9,11 @@ import {
   type RegionalShippingOption,
 } from "@/lib/shipping/regional-shipping";
 import { isUuid } from "@/lib/auth/platform-admin";
+import {
+  isCjQuotaCircuitOpen,
+  markCjQuotaExhausted,
+} from "@/lib/cj/checkout-shipping";
+import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 
 const CJ_BASE_URL =
   process.env.CJ_API_BASE_URL ?? "https://developers.cjdropshipping.com/api2.0/v1";
@@ -26,6 +31,8 @@ async function fetchLiveCjRates(params: {
   country: string;
   quantity?: number;
 }): Promise<RegionalShippingOption[]> {
+  if (isCjQuotaCircuitOpen()) return [];
+
   const token = await getOrRefreshAccessToken();
   const body: Record<string, unknown> = {
     startCountryCode: "CN",
@@ -47,6 +54,10 @@ async function fetchLiveCjRates(params: {
   if (!res.ok) return [];
 
   const json = await res.json();
+  if (isCjApiQuotaError(json?.message) || isCjApiQuotaError(JSON.stringify(json))) {
+    markCjQuotaExhausted(String(json?.message ?? "CJ freight quota exhausted on PDP"));
+    return [];
+  }
   if (json.result !== true || !Array.isArray(json.data)) return [];
 
   return mapCjFreightToShippingOptions(json.data, {

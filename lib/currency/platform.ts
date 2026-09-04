@@ -140,20 +140,25 @@ export function marketplacePaymentErrorMessage(
   code: string | undefined,
   reason: string | undefined,
 ): string | null {
-  if (code === "PAYMENT_LINK_FAILED") {
-    const text = reason ?? "";
-    if (/currency/i.test(text)) {
-      return "This payment method does not support USD for this order. Please choose another method.";
-    }
-    if (/amount|minimum|invalid/i.test(text)) {
-      return "The payment amount could not be submitted. Please review your order and try again.";
-    }
-    if (/not configured|secret|api key|credential/i.test(text)) {
-      return "This payment method is temporarily unavailable. Please choose another method.";
-    }
-    if (/phone|customer/i.test(text)) {
-      return "We could not start payment with the customer details on this order. Please update your phone or email and try again.";
-    }
+  const text = `${code ?? ""} ${reason ?? ""}`.trim();
+  if (!text) return null;
+
+  if (/currency/i.test(text)) {
+    return "This payment method does not support USD for this order. Please choose another method.";
+  }
+  if (/amount|minimum|invalid/i.test(text) && /payment|order|link|invoice/i.test(text)) {
+    return "The payment amount could not be submitted. Please review your order and try again.";
+  }
+  if (/not configured|secret|api key|credential|missing BINANCE|missing PAYPAL|NOWPAYMENTS_API_KEY/i.test(text)) {
+    return "This payment method is temporarily unavailable. Please choose another method.";
+  }
+  if (/phone|customer/i.test(text) && /flutterwave|payment/i.test(text)) {
+    return "We could not start payment with the customer details on this order. Please update your phone or email and try again.";
+  }
+  if (
+    code === "PAYMENT_LINK_FAILED" ||
+    /could not reach|timeout|BINANCEPAY_UNAVAILABLE|INVALID_API_KEY|authentication failed/i.test(text)
+  ) {
     return "We couldn’t start this payment. Please try again or choose another payment method.";
   }
   return null;

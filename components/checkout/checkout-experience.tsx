@@ -56,8 +56,14 @@ function extractRedirectUrl(data: PaymentApiResponse): string | null {
 }
 
 function extractErrorMessage(data: PaymentApiResponse): string {
-   if (!data.error) return data.message ?? "Payment initiation failed";
-   if (typeof data.error === "string") return data.error;
+   if (!data.error) {
+      const mapped = marketplacePaymentErrorMessage(undefined, data.message);
+      return mapped ?? data.message ?? "Payment initiation failed";
+   }
+   if (typeof data.error === "string") {
+      const mapped = marketplacePaymentErrorMessage(undefined, data.error);
+      return mapped ?? data.error;
+   }
    const mapped = marketplacePaymentErrorMessage(
       data.error.code,
       "reason" in data.error ? String((data.error as { reason?: string }).reason ?? "") : undefined,
@@ -428,10 +434,11 @@ export function CheckoutExperience({
          const raw = e instanceof Error ? e.message : String(e);
          const message = /shipping|delivery|quote|address/i.test(raw)
             ? sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingSave)
-            : sanitizeCustomerError(
-                 e,
-                 "We couldn’t start this payment. Please try again or choose another payment method."
-              );
+            : (marketplacePaymentErrorMessage(undefined, raw) ??
+               (/HTTP \d{3}|api key|credential|not configured/i.test(raw)
+                  ? "We couldn’t start this payment. Please try again or choose another payment method."
+                  : raw.slice(0, 200) ||
+                    "We couldn’t start this payment. Please try again or choose another payment method."));
          toast.error(message);
       } finally {
          payInFlightRef.current = false;

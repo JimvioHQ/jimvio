@@ -41,9 +41,9 @@ export async function GET() {
   );
   const withCredentials = adminEnabled.filter(providerConfigured);
 
-  // Prefer credential-gated list. If none match (misnamed/unavailable env in this
-  // runtime), fall back to admin-enabled so checkout still offers configured methods.
-  const enabled = withCredentials.length > 0 ? withCredentials : adminEnabled;
+  // Never advertise methods that cannot initiate — empty credentials must not
+  // fall back to admin-enabled-only (that produces "could not start" for every click).
+  const enabled = withCredentials;
 
   return NextResponse.json({
     sandbox_mode: settings.sandbox_mode,

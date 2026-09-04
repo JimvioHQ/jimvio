@@ -131,8 +131,9 @@ async function buildAndReturnPaymentLink({
       customerName: profile.full_name ?? "Customer",
       customerPhone: profile.phone ?? "",
       orderDescription: `Order ${order.order_number ?? orderId.slice(0, 8)}`,
-      paymentOptions: "card,applepay,googlepay",
-      // Card-only USD checkout — SMS channel with bad/local phone breaks link creation.
+      paymentOptions: "card",
+      // Card-only USD checkout — Apple/Google Pay options require merchant enablement
+      // and often cause PAYMENT_LINK_FAILED when not provisioned.
     });
   } catch (linkErr) {
     const reason = linkErr instanceof Error ? linkErr.message : String(linkErr);
@@ -248,7 +249,16 @@ export async function POST(req: NextRequest) {
         if (err instanceof FlutterwaveAPIError && err.isNotFound) {
           flwStatus = "not_found";
         } else {
-          throw err; // unexpected — let the outer catch log it
+          // Transient FLW / credential blips must not block a fresh payment link.
+          console.warn("[flutterwave/initiate] pending verify failed; creating new tx_ref", {
+            orderId,
+            message: err instanceof Error ? err.message.slice(0, 160) : String(err),
+          });
+          await supabase
+            .from("transactions")
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", existingTx.id);
+          flwStatus = "not_found";
         }
       }
 

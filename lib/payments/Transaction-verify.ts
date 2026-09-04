@@ -68,7 +68,7 @@ export class FlutterwaveAPIError extends Error {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 function getFlwSecretKey(): string {
-    const key = process.env.FLW_SECRET_KEY;
+    const key = process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY;
     if (!key) throw new Error("FLW_SECRET_KEY is not configured");
     return key.trim().replace(/^["']|["']$/g, "");
 }

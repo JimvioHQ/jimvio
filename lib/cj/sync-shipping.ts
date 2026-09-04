@@ -2,6 +2,11 @@
 
 import { getCJToken } from "@/lib/cj/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
+import {
+  isCjQuotaCircuitOpen,
+  markCjQuotaExhausted,
+} from "@/lib/cj/checkout-shipping";
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -32,6 +37,8 @@ interface CJFreightOption {
 interface CJFreightResponse {
     result: boolean;
     data: CJFreightOption[];
+    message?: string;
+    code?: string | number;
 }
 
 export async function syncProductShipping(
@@ -45,11 +52,21 @@ export async function syncProductShipping(
     // Get token from your existing helper
     const token = await getCJToken(supabase);
 
+    if (isCjQuotaCircuitOpen()) {
+        console.warn("[CJ shipping] skipping freight sync — quota circuit open");
+        return { synced: 0, failed: [...TARGET_COUNTRIES] };
+    }
+
     const rows: any[] = [];
     const failed: string[] = [];
+    let quotaHit = false;
 
     await Promise.allSettled(
         TARGET_COUNTRIES.map(async (countryCode) => {
+            if (quotaHit || isCjQuotaCircuitOpen()) {
+                failed.push(countryCode);
+                return;
+            }
             try {
                 const res = await fetch(`${CJ_API_BASE}/logistic/freightCalculate`, {
                     method: "POST",
@@ -67,6 +84,13 @@ export async function syncProductShipping(
                 });
 
                 const data = (await res.json()) as CJFreightResponse;
+                const message = String(data.message ?? data.code ?? "");
+                if (isCjApiQuotaError(message) || isCjApiQuotaError(JSON.stringify(data))) {
+                    quotaHit = true;
+                    markCjQuotaExhausted(message || "CJ freight quota exhausted during sync");
+                    failed.push(countryCode);
+                    return;
+                }
                 if (!data.result || !data.data?.length) {
                     failed.push(countryCode);
                     return;
@@ -103,6 +127,10 @@ export async function syncProductShipping(
                     });
                 }
             } catch (err) {
+                if (isCjApiQuotaError(err)) {
+                    quotaHit = true;
+                    markCjQuotaExhausted(err instanceof Error ? err.message : String(err));
+                }
                 console.error(`[CJ shipping] ${countryCode} failed:`, err);
                 failed.push(countryCode);
             }

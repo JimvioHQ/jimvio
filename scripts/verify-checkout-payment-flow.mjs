@@ -137,6 +137,33 @@ assert(
   "Mobile header Search icon must be present"
 );
 
+const paymentProviders = read("app/api/platform/payment-providers/route.ts");
+assert(
+  paymentProviders.includes("Never advertise methods that cannot initiate") ||
+    !paymentProviders.includes("withCredentials.length > 0 ? withCredentials : adminEnabled"),
+  "payment-providers must not fall back to admin-enabled without credentials"
+);
+
+const binancePay = read("lib/binance-pay/index.ts");
+assert(
+  binancePay.includes("BINANCEPAY_API_KEY") &&
+    binancePay.includes("BINANCEPAY_SECRET_KEY"),
+  "Binance Pay client must accept BINANCEPAY_* env aliases"
+);
+
+const flwVerify = read("lib/payments/Transaction-verify.ts");
+assert(
+  flwVerify.includes("FLUTTERWAVE_SECRET_KEY"),
+  "Flutterwave verify must accept FLUTTERWAVE_SECRET_KEY alias"
+);
+
+const syncShipping = read("lib/cj/sync-shipping.ts");
+assert(
+  syncShipping.includes("isCjQuotaCircuitOpen") &&
+    syncShipping.includes("markCjQuotaExhausted"),
+  "CJ shipping sync must respect quota circuit"
+);
+
 if (fails.length) {
   console.error("VERIFY FAIL — checkout/payment flow invariants:");
   for (const f of fails) console.error(" -", f);
