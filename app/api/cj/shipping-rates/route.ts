@@ -260,6 +260,7 @@ export async function POST(req: NextRequest) {
             rates,
             quoteToken,
             unavailable: unavailable === true || rates.length === 0,
+            errorKind: rates.length === 0 ? "no_coverage" : undefined,
             message:
                 rates.length === 0
                     ? CJ_CUSTOMER_MESSAGES.shippingUnavailable
@@ -272,6 +273,7 @@ export async function POST(req: NextRequest) {
                 rates: [],
                 quoteToken: null,
                 unavailable: true,
+                errorKind: "no_coverage",
                 message: CJ_CUSTOMER_MESSAGES.shippingUnavailable,
             });
         }
@@ -292,7 +294,17 @@ export async function POST(req: NextRequest) {
               : CJ_CUSTOMER_MESSAGES.shippingRates;
         const message = sanitizeCustomerError(e, fallback);
         return NextResponse.json(
-            { success: false, error: message },
+            {
+                success: false,
+                error: message,
+                errorKind: quota
+                    ? "quota"
+                    : /timeout|abort|timed out/i.test(
+                          e instanceof Error ? e.message : String(e)
+                      )
+                      ? "timeout"
+                      : "provider",
+            },
             { status: quota ? 503 : 500 }
         );
     }

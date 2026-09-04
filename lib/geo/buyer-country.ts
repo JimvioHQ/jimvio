@@ -3,6 +3,67 @@
  * Client: browser locale. Server: IP geo headers → profile → fallback.
  */
 
+/** Common country display names → ISO 3166-1 alpha-2 (checkout + CJ payloads). */
+const COUNTRY_NAME_TO_CODE: Record<string, string> = {
+  rwanda: "RW",
+  kenya: "KE",
+  uganda: "UG",
+  tanzania: "TZ",
+  nigeria: "NG",
+  "south africa": "ZA",
+  ghana: "GH",
+  ethiopia: "ET",
+  egypt: "EG",
+  morocco: "MA",
+  "united states": "US",
+  "united states of america": "US",
+  usa: "US",
+  america: "US",
+  "united kingdom": "GB",
+  "great britain": "GB",
+  britain: "GB",
+  england: "GB",
+  canada: "CA",
+  germany: "DE",
+  france: "FR",
+  italy: "IT",
+  spain: "ES",
+  netherlands: "NL",
+  belgium: "BE",
+  portugal: "PT",
+  poland: "PL",
+  sweden: "SE",
+  norway: "NO",
+  denmark: "DK",
+  finland: "FI",
+  ireland: "IE",
+  switzerland: "CH",
+  austria: "AT",
+  australia: "AU",
+  "new zealand": "NZ",
+  india: "IN",
+  china: "CN",
+  japan: "JP",
+  "south korea": "KR",
+  korea: "KR",
+  brazil: "BR",
+  mexico: "MX",
+  argentina: "AR",
+  "united arab emirates": "AE",
+  uae: "AE",
+  "saudi arabia": "SA",
+  turkey: "TR",
+  israel: "IL",
+  singapore: "SG",
+  malaysia: "MY",
+  indonesia: "ID",
+  philippines: "PH",
+  thailand: "TH",
+  vietnam: "VN",
+  pakistan: "PK",
+  bangladesh: "BD",
+};
+
 export function countryCodeFromLocale(locale: string): string | null {
   const normalized = locale.trim().replace(/_/g, "-");
   if (!normalized) return null;
@@ -32,10 +93,22 @@ export function detectBrowserCountry(fallback = "RW"): string {
   return fallback;
 }
 
+/**
+ * Normalize any country input to ISO 3166-1 alpha-2.
+ * Accepts "RW", "rw", "Rwanda", "United States", etc.
+ */
 export function normalizeCountryCode(raw: string | null | undefined): string | null {
-  const code = raw?.trim().toUpperCase();
-  if (!code || code === "*" || code === "GLOBAL") return null;
-  return /^[A-Z]{2}$/.test(code) ? code : null;
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+
+  const upper = trimmed.toUpperCase();
+  if (upper === "*" || upper === "GLOBAL") return null;
+  if (/^[A-Z]{2}$/.test(upper)) return upper;
+
+  const byName = COUNTRY_NAME_TO_CODE[trimmed.toLowerCase()];
+  if (byName) return byName;
+
+  return null;
 }
 
 export function countryDisplayName(code: string, locale = "en"): string {

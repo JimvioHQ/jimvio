@@ -219,6 +219,8 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * CJ API fetch with exponential backoff on rate limits / transient errors.
+ * Opens the durable quota circuit on Insufficient API points so enrichment
+ * crons stop burning the daily allotment needed for checkout freight.
  */
 export async function cjFetchWithRetry<T = unknown>(
     path: string,
@@ -226,6 +228,17 @@ export async function cjFetchWithRetry<T = unknown>(
     init: RequestInit = {},
     options: { maxRetries?: number; baseDelayMs?: number } = {}
 ): Promise<T> {
+    const { isCjApiQuotaError } = await import("@/lib/cj/customer-errors-shared");
+    const { markCjQuotaExhausted, isCjQuotaCircuitOpenAsync } = await import(
+        "@/lib/cj/quota-circuit"
+    );
+
+    if (await isCjQuotaCircuitOpenAsync()) {
+        throw new Error(
+            "Insufficient API points. Remaining: 0 (circuit open — background CJ paused)."
+        );
+    }
+
     const maxRetries = options.maxRetries ?? 5;
     const baseDelayMs = options.baseDelayMs ?? 1000;
     let lastError: Error | null = null;
@@ -244,7 +257,17 @@ export async function cjFetchWithRetry<T = unknown>(
 
         if (!res.ok) {
             const status = res.status;
-            lastError = new Error(`CJ HTTP ${status} on ${path}`);
+            const bodyText = await res.text().catch(() => "");
+            lastError = new Error(
+                bodyText
+                    ? `CJ HTTP ${status} on ${path}: ${bodyText.slice(0, 200)}`
+                    : `CJ HTTP ${status} on ${path}`
+            );
+
+            if (isCjApiQuotaError(bodyText) || isCjApiQuotaError(lastError.message)) {
+                markCjQuotaExhausted(bodyText || lastError.message);
+                throw lastError;
+            }
 
             if (RETRYABLE_HTTP.has(status) && attempt < maxRetries) {
                 const retryAfterHeader = res.headers.get("retry-after");
@@ -271,6 +294,12 @@ export async function cjFetchWithRetry<T = unknown>(
             message?: string;
             data?: unknown;
         };
+
+        if (isCjApiQuotaError(json.message) || isCjApiQuotaError(JSON.stringify(json))) {
+            const message = json.message || "Insufficient API points";
+            markCjQuotaExhausted(message);
+            throw new Error(message);
+        }
 
         const ok = json.result === true || json.success === true;
         if (!ok) {

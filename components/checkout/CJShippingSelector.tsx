@@ -49,23 +49,60 @@ export function CJShippingSelector({
     );
   }
 
-  // Error
+  // Error — distinguish temporary failure vs coverage (message comes from API).
   if (error) {
+    const isCoverage = /isn't available to this destination|no shipping|coverage/i.test(error);
+    const isTemporary = /temporarily unavailable|taking longer|try again shortly/i.test(error);
     return (
-      <div className="rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 p-4">
+      <div
+        className={cn(
+          "rounded-xl border p-4",
+          isCoverage
+            ? "border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20"
+            : "border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20"
+        )}
+      >
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0 mt-0.5" />
+          <AlertCircle
+            className={cn(
+              "h-4 w-4 flex-shrink-0 mt-0.5",
+              isCoverage ? "text-amber-600" : "text-rose-600"
+            )}
+          />
           <div className="flex-1">
-            <p className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">
-              Couldn&apos;t load shipping rates
+            <p
+              className={cn(
+                "text-[13px] font-semibold",
+                isCoverage
+                  ? "text-amber-800 dark:text-amber-300"
+                  : "text-rose-700 dark:text-rose-300"
+              )}
+            >
+              {isCoverage
+                ? "No shipping coverage"
+                : isTemporary
+                  ? "Shipping temporarily unavailable"
+                  : "Couldn't load shipping rates"}
             </p>
-            <p className="text-[12px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
-              Please try again in a moment. If the problem continues, contact support.
+            <p
+              className={cn(
+                "text-[12px] mt-0.5",
+                isCoverage
+                  ? "text-amber-700/80 dark:text-amber-400/80"
+                  : "text-rose-600/80 dark:text-rose-400/80"
+              )}
+            >
+              {error}
             </p>
-            {onRetry && (
+            {onRetry && !isCoverage && (
               <button
                 onClick={onRetry}
-                className="mt-2 text-[12px] font-semibold text-rose-700 dark:text-rose-300 hover:underline"
+                className={cn(
+                  "mt-2 text-[12px] font-semibold hover:underline",
+                  isTemporary
+                    ? "text-rose-700 dark:text-rose-300"
+                    : "text-rose-700 dark:text-rose-300"
+                )}
               >
                 Try again
               </button>
@@ -78,17 +115,17 @@ export function CJShippingSelector({
 
   if (!options.length) {
     return (
-      <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-5">
+      <div className="rounded-md border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/15 p-5">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="h-4 w-4 text-[var(--color-text-muted)]" />
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-              No shipping options available
+              No shipping coverage for this destination
             </p>
             <p className="text-[12px] text-[var(--color-text-muted)] mt-1 leading-relaxed">
-              We couldn&apos;t find any shipping methods for your destination. Try a different address, or contact support if this looks wrong.
+              We couldn&apos;t find a shipping route for these items to your address. Try a different country or contact support.
             </p>
             {onRetry && (
               <button

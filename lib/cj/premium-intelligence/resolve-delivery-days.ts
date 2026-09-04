@@ -5,9 +5,9 @@
 
 import { getCJToken } from "@/lib/cj/client";
 import {
-  isCjQuotaCircuitOpen,
+  isCjQuotaCircuitOpenAsync,
   markCjQuotaExhausted,
-} from "@/lib/cj/checkout-shipping";
+} from "@/lib/cj/quota-circuit";
 import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
@@ -53,12 +53,12 @@ export async function resolveDeliveryDaysFromFreight(
     return null;
   }
 
-  if (isCjQuotaCircuitOpen()) return null;
+  if (await isCjQuotaCircuitOpenAsync()) return null;
 
   let bestDays: number | null = null;
 
   for (const countryCode of PROBE_COUNTRIES) {
-    if (isCjQuotaCircuitOpen()) break;
+    if (await isCjQuotaCircuitOpenAsync()) break;
     try {
       const res = await fetch(`${CJ_API_BASE}/logistic/freightCalculate`, {
         method: "POST",

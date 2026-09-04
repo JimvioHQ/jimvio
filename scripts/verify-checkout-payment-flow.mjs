@@ -159,9 +159,22 @@ assert(
 
 const syncShipping = read("lib/cj/sync-shipping.ts");
 assert(
-  syncShipping.includes("isCjQuotaCircuitOpen") &&
+  syncShipping.includes("isCjQuotaCircuitOpenAsync") &&
     syncShipping.includes("markCjQuotaExhausted"),
-  "CJ shipping sync must respect quota circuit"
+  "CJ shipping sync must respect durable quota circuit"
+);
+
+const quotaCircuit = read("lib/cj/quota-circuit.ts");
+assert(
+  quotaCircuit.includes("cj_api_quota_circuit") &&
+    quotaCircuit.includes("platform_settings"),
+  "CJ quota circuit must persist via platform_settings"
+);
+
+const enrichmentCron = read("app/api/cron/cj-enrichment/route.ts");
+assert(
+  enrichmentCron.includes("assertCjQuotaAvailableForBackground"),
+  "Enrichment cron must pause when CJ API quota is exhausted"
 );
 
 if (fails.length) {

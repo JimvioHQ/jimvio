@@ -18,6 +18,7 @@ import {
   getCjRateMetrics,
   resetCjRateMetricsWindow,
 } from "@/lib/cj/cj-rate-limiter";
+import { assertCjQuotaAvailableForBackground, noteCjQuotaIfPresent } from "@/lib/cj/quota-circuit";
 
 const DEFAULT_INTER_JOB_MS = 200;
 const DEFAULT_BATCH_LIMIT = 30;
@@ -82,6 +83,12 @@ export async function processEnrichmentQueue(
       break;
     }
 
+    if (!(await assertCjQuotaAvailableForBackground())) {
+      console.warn("[enrichment] aborting batch — CJ API quota circuit open");
+      timedOut = true;
+      break;
+    }
+
     const pid = job.pid as string;
     const claimed = await claimEnrichmentJob(pid);
     if (!claimed) {
@@ -95,6 +102,7 @@ export async function processEnrichmentQueue(
     try {
       result = await enrichSingleProduct(pid);
     } catch (err) {
+      noteCjQuotaIfPresent(err);
       await markQueueJob(pid, {
         status: "failed",
         last_error: err instanceof Error ? err.message : "enrichment failed",

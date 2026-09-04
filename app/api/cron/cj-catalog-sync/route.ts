@@ -11,6 +11,7 @@ import {
   releaseHeavyWorkerLock,
   tryAcquireHeavyWorkerLock,
 } from "@/lib/cj/premium-intelligence/worker-coordinator";
+import { assertCjQuotaAvailableForBackground } from "@/lib/cj/quota-circuit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -20,6 +21,15 @@ export const maxDuration = 300;
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  if (!(await assertCjQuotaAvailableForBackground())) {
+    console.warn("[cj-catalog-sync] skipped — CJ API quota circuit open");
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "cj_api_quota_circuit_open",
+    });
+  }
 
   const lock = await tryAcquireHeavyWorkerLock("list_sync", {
     metadata: { source: "cj-catalog-sync-cron" },

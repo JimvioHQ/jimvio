@@ -307,7 +307,7 @@ export async function MarketplaceData() {
       <FlashDealsSection deals={flashDeals} />
       <ShopByCategorySection categories={categories} />
       <TrendingProductsSection products={trending} />
-      <MarketplaceEngagementHub listingCount={trending.length} />
+      <MarketplaceEngagementHub />
     </>
   );
 }

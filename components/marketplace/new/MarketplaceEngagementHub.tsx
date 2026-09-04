@@ -160,12 +160,6 @@ export function MarketplaceEngagementHub({
             Shop, earn, create &amp; sell — all in one place
           </h3>
         </div>
-        {listingCount > 0 && (
-          <p className="text-[11px] font-medium text-[var(--color-text-muted)]">
-            <span className="font-bold text-[var(--color-text-primary)]">{listingCount.toLocaleString()}</span>{" "}
-            listings to explore
-          </p>
-        )}
       </div>
 
       <div className="grid grid-cols-2 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-4">

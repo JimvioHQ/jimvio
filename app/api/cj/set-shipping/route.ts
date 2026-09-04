@@ -12,6 +12,7 @@ import {
 import { resolveTrustedRateFromQuoteToken } from "@/lib/cj/checkout-quote-token";
 import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 // Expected, user-facing errors — logged at debug level, not as errors
 class UserError extends Error {
@@ -140,8 +141,15 @@ async function saveSelection(
     if (!cartItems.length) throw new UserError("No shippable items found on these orders");
 
     const destCountryCode =
-        (orders[0] as any)?.shipping_address?.country_code ??
-        fallbackCountryCode ??
+        normalizeCountryCode(
+            (orders[0] as { shipping_address?: { country_code?: string; country?: string } })
+                ?.shipping_address?.country_code
+        ) ??
+        normalizeCountryCode(
+            (orders[0] as { shipping_address?: { country?: string } })?.shipping_address
+                ?.country
+        ) ??
+        normalizeCountryCode(fallbackCountryCode) ??
         null;
     if (!destCountryCode) {
         throw new UserError(

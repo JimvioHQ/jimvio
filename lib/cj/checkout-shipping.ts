@@ -1,6 +1,11 @@
 import { forceRefreshFromApiKey, getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
+import {
+  isCjQuotaCircuitOpen,
+  markCjQuotaExhausted,
+  quotaCircuitAssertMessage,
+} from "@/lib/cj/quota-circuit";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import { usableCjVid } from "@/lib/cj/variant-vid";
 import type { CJShippingOption } from "@/types/checkout";
@@ -173,39 +178,31 @@ async function getExchangeRate(
 }
 
 const FREIGHT_TIMEOUT_MS = 20_000;
-const FREIGHT_RETRY_DELAY_MS = 700;
+const FREIGHT_RETRY_BASE_MS = 700;
 const FREIGHT_CACHE_TTL_MS = 10 * 60 * 1000;
-const QUOTA_CIRCUIT_TTL_MS = 5 * 60 * 1000;
-let quotaCircuitOpenUntil = 0;
+/** Short local cooldown so a single checkout session does not hammer CJ after a quota miss. */
+const CHECKOUT_QUOTA_COOLDOWN_MS = 2 * 60 * 1000;
+let checkoutQuotaCooldownUntil = 0;
 const freightQuoteCache = new Map<
   string,
   { expiresAt: number; rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }
 >();
+/** Coalesce identical in-flight freightCalculate calls (Strict Mode / double submit). */
+const freightInFlight = new Map<
+  string,
+  Promise<{ rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }>
+>();
 
-function markQuotaExhausted(message: string): void {
-  quotaCircuitOpenUntil = Date.now() + QUOTA_CIRCUIT_TTL_MS;
-  console.warn("[checkout] cj_quota_circuit_open", {
-    until: new Date(quotaCircuitOpenUntil).toISOString(),
-    message: message.slice(0, 160),
-  });
-}
+export { isCjQuotaCircuitOpen, markCjQuotaExhausted };
 
-function assertQuotaCircuitClosed(): void {
-  if (Date.now() < quotaCircuitOpenUntil) {
-    throw new Error(
-      "Insufficient API points. Remaining: 0 (circuit open — avoid repeated freightCalculate)."
-    );
+function assertCheckoutQuotaCooldownClosed(): void {
+  if (Date.now() < checkoutQuotaCooldownUntil) {
+    throw new Error(quotaCircuitAssertMessage());
   }
 }
 
-/** True when checkout circuit is open — other freight callers should skip live CJ. */
-export function isCjQuotaCircuitOpen(): boolean {
-  return Date.now() < quotaCircuitOpenUntil;
-}
-
-/** Open the shared in-process quota circuit (import/PDP/checkout). */
-export function markCjQuotaExhausted(message: string): void {
-  markQuotaExhausted(message);
+function openCheckoutQuotaCooldown(): void {
+  checkoutQuotaCooldownUntil = Date.now() + CHECKOUT_QUOTA_COOLDOWN_MS;
 }
 
 function freightQuoteCacheKey(
@@ -348,73 +345,92 @@ export async function fetchCjCheckoutFreightRates(params: {
     };
   }
 
-  // Do not spam CJ while daily points are exhausted.
-  assertQuotaCircuitClosed();
+  const existing = freightInFlight.get(cacheKey);
+  if (existing) return existing;
 
-  let token = await getOrRefreshAccessToken();
-  let lastMessage = "";
-  let lastStatus = 0;
-  let didAuthRefresh = false;
+  const pending = (async () => {
+    // Short cooldown only — never hard-block checkout on the durable background
+    // circuit, so quotes resume as soon as CJ daily points reset.
+    assertCheckoutQuotaCooldownClosed();
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    try {
-      const result = await requestCjFreight(token, destCountryCode, validProducts);
-      lastMessage = result.message;
-      lastStatus = result.status;
+    let token = await getOrRefreshAccessToken();
+    let lastMessage = "";
+    let lastStatus = 0;
+    let didAuthRefresh = false;
 
-      if (result.authFailed && !didAuthRefresh) {
-        didAuthRefresh = true;
-        const refreshed = await forceRefreshFromApiKey();
-        token = refreshed.accessToken;
-        attempt -= 1;
-        continue;
-      }
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const result = await requestCjFreight(token, destCountryCode, validProducts);
+        lastMessage = result.message;
+        lastStatus = result.status;
 
-      if (result.ok) {
-        const fxRate = await getExchangeRate("USD", orderCurrency);
-        const rates = normalizeCjFreightRows(result.rows, orderCurrency, fxRate);
-        const payload = { rates, fxRate, unavailable: rates.length === 0 };
-        // Cache successful quotes; keep empty coverage briefly so we don't thrash CJ points.
-        freightQuoteCache.set(cacheKey, {
-          expiresAt: Date.now() + (rates.length === 0 ? 60_000 : FREIGHT_CACHE_TTL_MS),
-          ...payload,
-        });
-        return payload;
-      }
+        if (result.authFailed && !didAuthRefresh) {
+          didAuthRefresh = true;
+          const refreshed = await forceRefreshFromApiKey();
+          token = refreshed.accessToken;
+          attempt -= 1;
+          continue;
+        }
 
-      if (isCjApiQuotaError(result.message)) {
-        markQuotaExhausted(result.message);
-        throw new Error(result.message);
-      }
+        if (result.ok) {
+          const fxRate = await getExchangeRate("USD", orderCurrency);
+          const rates = normalizeCjFreightRows(result.rows, orderCurrency, fxRate);
+          const payload = { rates, fxRate, unavailable: rates.length === 0 };
+          // Cache successful quotes; keep empty coverage briefly so we don't thrash CJ points.
+          freightQuoteCache.set(cacheKey, {
+            expiresAt: Date.now() + (rates.length === 0 ? 60_000 : FREIGHT_CACHE_TTL_MS),
+            ...payload,
+          });
+          return payload;
+        }
 
-      if (isNoCoverageMessage(result.message)) {
-        throw new CheckoutShippingCoverageError(result.message);
-      }
+        if (isCjApiQuotaError(result.message)) {
+          markCjQuotaExhausted(result.message);
+          openCheckoutQuotaCooldown();
+          throw new Error(result.message);
+        }
 
-      if (attempt === 0 && isTransientFreightFailure(result.status, result.message)) {
-        await sleep(FREIGHT_RETRY_DELAY_MS);
-        continue;
-      }
+        if (isNoCoverageMessage(result.message)) {
+          throw new CheckoutShippingCoverageError(result.message);
+        }
 
-      throw new Error(result.message || "Shipping quote failed");
-    } catch (error) {
-      if (isCheckoutShippingCoverageError(error)) throw error;
-      const message = error instanceof Error ? error.message : String(error);
-      lastMessage = message;
-      if (isCjApiQuotaError(message)) {
-        markQuotaExhausted(message);
+        if (attempt < 2 && isTransientFreightFailure(result.status, result.message)) {
+          const delay =
+            result.status === 429
+              ? FREIGHT_RETRY_BASE_MS * Math.pow(2, attempt + 1)
+              : FREIGHT_RETRY_BASE_MS * Math.pow(2, attempt);
+          await sleep(delay);
+          continue;
+        }
+
+        throw new Error(result.message || "Shipping quote failed");
+      } catch (error) {
+        if (isCheckoutShippingCoverageError(error)) throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        lastMessage = message;
+        if (isCjApiQuotaError(message)) {
+          markCjQuotaExhausted(message);
+          openCheckoutQuotaCooldown();
+          throw error instanceof Error ? error : new Error(message);
+        }
+        if (attempt < 2 && isTransientFreightFailure(lastStatus, message)) {
+          await sleep(FREIGHT_RETRY_BASE_MS * Math.pow(2, attempt));
+          continue;
+        }
+        if (isNoCoverageMessage(message)) {
+          throw new CheckoutShippingCoverageError(message);
+        }
         throw error instanceof Error ? error : new Error(message);
       }
-      if (attempt === 0 && isTransientFreightFailure(lastStatus, message)) {
-        await sleep(FREIGHT_RETRY_DELAY_MS);
-        continue;
-      }
-      if (isNoCoverageMessage(message)) {
-        throw new CheckoutShippingCoverageError(message);
-      }
-      throw error instanceof Error ? error : new Error(message);
     }
-  }
 
-  throw new Error(lastMessage || "Shipping quote failed");
+    throw new Error(lastMessage || "Shipping quote failed");
+  })();
+
+  freightInFlight.set(cacheKey, pending);
+  try {
+    return await pending;
+  } finally {
+    freightInFlight.delete(cacheKey);
+  }
 }

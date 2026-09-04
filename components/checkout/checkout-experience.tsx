@@ -257,8 +257,15 @@ export function CheckoutExperience({
 
             const destCountryCode =
                normalizeCountryCode(shipping.countryCode) ??
+               normalizeCountryCode(shipping.country) ??
                normalizeCountryCode(countryCode) ??
                "RW";
+
+            console.info("[checkout] shipping_quote_client_request", {
+               destCountryCode,
+               city: shipping.city,
+               itemCount: products.length,
+            });
 
             const res = await fetch("/api/cj/shipping-rates", {
                method: "POST",
@@ -391,7 +398,10 @@ export function CheckoutExperience({
                body: JSON.stringify({
                   orderIds,
                   shippingOption: cjSelected,
-                  destCountryCode: shipping.countryCode,
+                  destCountryCode:
+                     normalizeCountryCode(shipping.countryCode) ??
+                     normalizeCountryCode(shipping.country) ??
+                     undefined,
                   quoteToken: cjQuoteToken,
                }),
             });

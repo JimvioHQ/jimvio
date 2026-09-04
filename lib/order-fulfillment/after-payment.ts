@@ -3,6 +3,7 @@ import { CJ_CUSTOMER_MESSAGES, logCjInternalError } from "@/lib/cj/customer-erro
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { normalizeProductSource, type ProductSource } from "@/lib/sources/product-source";
 import { submitCjOrderForLines } from "@/lib/sources/cj/submit-order";
+import { usableCjVid } from "@/lib/cj/variant-vid";
 
 type OrderItemRow = {
   id: string;
@@ -82,9 +83,10 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
 
     for (const variant of variants ?? []) {
       const vid =
-        (variant.cj_vid as string | null) ??
-        ((variant.source_metadata as Record<string, unknown> | null)?.cj_vid as string | undefined) ??
-        null;
+        usableCjVid(variant.cj_vid) ??
+        usableCjVid(
+          (variant.source_metadata as Record<string, unknown> | null)?.cj_vid
+        );
       if (vid) variantVidMap.set(variant.id, vid);
     }
   }
@@ -105,8 +107,8 @@ export async function dispatchNonShopifyFulfillmentIntegrations(
         totalPrice: Number(line.total_price),
         sourceMetadata: meta,
         cjVid:
-          (meta?.cj_vid as string | undefined) ??
-          (meta?.vid as string | undefined) ??
+          usableCjVid(meta?.cj_vid) ??
+          usableCjVid(meta?.vid) ??
           (variantId ? variantVidMap.get(variantId) : null) ??
           null,
       };

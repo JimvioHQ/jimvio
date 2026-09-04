@@ -12,6 +12,7 @@ import {
   releaseHeavyWorkerLock,
   tryAcquireHeavyWorkerLock,
 } from "@/lib/cj/premium-intelligence/worker-coordinator";
+import { assertCjQuotaAvailableForBackground } from "@/lib/cj/quota-circuit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -24,6 +25,17 @@ const TIME_BUDGET_MS = 240_000;
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  // Checkout freightCalculate needs daily API points. Stop enrichment when
+  // Remaining: 0 so customers can still get shipping quotes after reset.
+  if (!(await assertCjQuotaAvailableForBackground())) {
+    console.warn("[cj-enrichment] skipped — CJ API quota circuit open");
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "cj_api_quota_circuit_open",
+    });
+  }
 
   const lock = await tryAcquireHeavyWorkerLock("enrichment", {
     metadata: { source: "cj-enrichment-cron" },

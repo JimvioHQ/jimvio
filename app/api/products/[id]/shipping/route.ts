@@ -10,9 +10,9 @@ import {
 } from "@/lib/shipping/regional-shipping";
 import { isUuid } from "@/lib/auth/platform-admin";
 import {
-  isCjQuotaCircuitOpen,
+  isCjQuotaCircuitOpenAsync,
   markCjQuotaExhausted,
-} from "@/lib/cj/checkout-shipping";
+} from "@/lib/cj/quota-circuit";
 import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 
 const CJ_BASE_URL =
@@ -31,7 +31,7 @@ async function fetchLiveCjRates(params: {
   country: string;
   quantity?: number;
 }): Promise<RegionalShippingOption[]> {
-  if (isCjQuotaCircuitOpen()) return [];
+  if (await isCjQuotaCircuitOpenAsync()) return [];
 
   const token = await getOrRefreshAccessToken();
   const body: Record<string, unknown> = {

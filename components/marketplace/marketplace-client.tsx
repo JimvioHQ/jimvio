@@ -884,8 +884,8 @@ export function MarketplaceClient({
   const hasActiveFilter = !!(params.q || params.cat || params.affiliate === "1" || params.minPrice || params.maxPrice || params.minRating);
   const activeFilterCount = [params.cat, params.q, params.affiliate === "1" ? "1" : null, params.minPrice, params.maxPrice, params.minRating].filter(Boolean).length;
 
-  const statLine = marketplaceStats && (marketplaceStats.activeVendors > 0 || marketplaceStats.activeListings > 0)
-    ? `${marketplaceStats.activeListingsLabel} listings`
+  const statLine = marketplaceStats && marketplaceStats.activeVendors > 0
+    ? `${marketplaceStats.activeVendorsLabel ?? marketplaceStats.activeVendors} vendors`
     : null;
 
   const [modalClip, setModalClip] = useState<(typeof viralClips)[number] | null>(null);

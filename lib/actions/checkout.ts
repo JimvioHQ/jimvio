@@ -18,6 +18,7 @@ import {
   resolveAffiliateReferralFromCookies,
 } from "@/lib/commerce/affiliate-hooks";
 import { buildLineAttribution } from "@/lib/affiliate/attribution";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -57,11 +58,17 @@ const ShippingSchema = z.object({
   address2: z.string().trim().max(200).default(""),
   city: z.string().trim().min(1, "City is required").max(100),
   country: z.string().trim().min(1, "Country is required").max(100),
-  countryCode: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z]{2}$/, "Country code must be a 2-letter ISO code"),
+  countryCode: z.preprocess(
+    (val) => {
+      if (typeof val !== "string") return val;
+      return normalizeCountryCode(val) ?? val;
+    },
+    z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{2}$/, "Country code must be a 2-letter ISO code")
+  ),
   zip: z.string().trim().max(20).default(""),
   shippingAmount: z.number().nonnegative().optional(),
   discountAmount: z.number().nonnegative().optional(),

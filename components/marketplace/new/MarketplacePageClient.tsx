@@ -1049,13 +1049,6 @@ export function MarketplacePageClient({
                 </button>
               ))}
             </div>
-            <span
-              className="hidden shrink-0 items-center gap-1.5 text-xs lg:flex"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              <span className="size-1.5 rounded-full bg-green-500" />
-              {listingCount} listings
-            </span>
           </div>
 
           <MarketplaceSearchPopover

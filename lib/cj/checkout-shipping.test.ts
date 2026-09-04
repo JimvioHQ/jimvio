@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import { usableCjVid } from "./variant-vid";
 import { toCheckoutFreightProducts } from "./checkout-shipping";
 import { isCjApiQuotaError, sanitizeCustomerError, CJ_CUSTOMER_MESSAGES } from "./customer-errors-shared";
+import { resolveQuotaCircuitTtlMs } from "./quota-circuit";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 describe("checkout freight vids", () => {
   it("keeps a real CJ vid and drops empty values", () => {
@@ -36,5 +38,22 @@ describe("checkout shipping quota errors", () => {
     assert.match(message, /temporarily unavailable/i);
     assert.equal(message.includes("address"), false);
     assert.equal(message.toLowerCase().includes("cj"), false);
+  });
+
+  it("opens a long circuit when Remaining is 0", () => {
+    const ttl = resolveQuotaCircuitTtlMs(
+      "Insufficient API points. Used today: 84610, Remaining: 0, Required: 10."
+    );
+    assert.ok(ttl >= 30 * 60 * 1000);
+  });
+});
+
+describe("checkout country normalization", () => {
+  it("maps Rwanda / RW consistently", () => {
+    assert.equal(normalizeCountryCode("RW"), "RW");
+    assert.equal(normalizeCountryCode("rw"), "RW");
+    assert.equal(normalizeCountryCode("Rwanda"), "RW");
+    assert.equal(normalizeCountryCode("United States"), "US");
+    assert.equal(normalizeCountryCode("united kingdom"), "GB");
   });
 });

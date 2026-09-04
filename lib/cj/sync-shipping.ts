@@ -1,12 +1,10 @@
-// lib/cj/sync-shipping.ts
-
-import { getCJToken } from "@/lib/cj/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 import {
-  isCjQuotaCircuitOpen,
+  isCjQuotaCircuitOpenAsync,
   markCjQuotaExhausted,
-} from "@/lib/cj/checkout-shipping";
+} from "@/lib/cj/quota-circuit";
+import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCJToken } from "@/lib/cj/client";
 
 const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
@@ -27,9 +25,9 @@ interface CJFreightOption {
     logisticsCompanyName: string;
     countryCode: string;
     startCountryCode: string;
-    trackingType: number;         // 0=none, 1=partial, 2=full
-    logisticsTime: string;        // "7-12" or "10"
-    freight: number;              // USD
+    trackingType: number;
+    logisticsTime: string;
+    freight: number;
     isFreeFreight: boolean;
     remark: string | null;
 }
@@ -49,10 +47,9 @@ export async function syncProductShipping(
     quantity: number = 1,
 ): Promise<{ synced: number; failed: string[] }> {
 
-    // Get token from your existing helper
     const token = await getCJToken(supabase);
 
-    if (isCjQuotaCircuitOpen()) {
+    if (await isCjQuotaCircuitOpenAsync()) {
         console.warn("[CJ shipping] skipping freight sync — quota circuit open");
         return { synced: 0, failed: [...TARGET_COUNTRIES] };
     }
@@ -63,7 +60,7 @@ export async function syncProductShipping(
 
     await Promise.allSettled(
         TARGET_COUNTRIES.map(async (countryCode) => {
-            if (quotaHit || isCjQuotaCircuitOpen()) {
+            if (quotaHit || (await isCjQuotaCircuitOpenAsync())) {
                 failed.push(countryCode);
                 return;
             }
@@ -97,7 +94,6 @@ export async function syncProductShipping(
                 }
 
                 for (const option of data.data) {
-                    // Parse "7-12" or "10" into min/max days
                     const parts = option.logisticsTime?.split("-").map(Number) ?? [];
                     const minDays = parts[0] ?? null;
                     const maxDays = parts[1] ?? parts[0] ?? null;

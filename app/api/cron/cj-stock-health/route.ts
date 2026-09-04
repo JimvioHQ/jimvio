@@ -3,6 +3,7 @@ import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import { runStockHealthMonitor } from "@/lib/cj/premium-intelligence/auto-unpublish-monitor";
 import { triggerAutoPublishFromWorker } from "@/lib/cj/premium-intelligence/auto-publish-worker";
+import { assertCjQuotaAvailableForBackground } from "@/lib/cj/quota-circuit";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -12,6 +13,15 @@ export const maxDuration = 300;
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  if (!(await assertCjQuotaAvailableForBackground())) {
+    console.warn("[cj-stock-health] skipped — CJ API quota circuit open");
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "cj_api_quota_circuit_open",
+    });
+  }
 
   try {
     const health = await getSchemaHealth();

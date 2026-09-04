@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { usableCjVid } from "@/lib/cj/variant-vid";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 export type CjOrderLine = {
     orderItemId:    string;
@@ -48,8 +50,10 @@ async function cjPost<T>(
         const json = await res.json();
 
         if (res.status === 429 || (json?.message ?? "").includes("Too Many Requests")) {
-            console.warn(`[CJ] QPS hit on ${path}, attempt ${attempt + 1}/${retries}`);
-            lastCjCallAt = Date.now() + 2000;
+            const delay = 2000 * Math.pow(2, attempt);
+            console.warn(`[CJ] QPS hit on ${path}, attempt ${attempt + 1}/${retries}, backoff ${delay}ms`);
+            lastCjCallAt = Date.now() + delay;
+            await new Promise<void>((r) => setTimeout(r, delay));
             continue;
         }
 
@@ -70,7 +74,7 @@ async function resolveCjLogisticName(
     fallback: string,
 ): Promise<string> {
     try {
-        const body = await cjPost<any>(
+        const body = await cjPost<{ data?: Array<{ logisticPrice?: number; logisticName?: string }> }>(
             "/logistics/freights/products/list",
             accessToken,
             {
@@ -79,18 +83,28 @@ async function resolveCjLogisticName(
             },
         );
 
-        const options: any[] = body?.data ?? [];
+        const options = body?.data ?? [];
         if (!options.length) {
             console.warn(`[CJ] No logistics options for ${countryCode}, falling back to "${fallback}"`);
             return fallback;
         }
 
         const sorted = [...options].sort((a, b) => (a.logisticPrice ?? 0) - (b.logisticPrice ?? 0));
-        return (sorted[0].logisticName as string) || fallback;
+        return (sorted[0]?.logisticName as string) || fallback;
     } catch (err) {
         console.warn(`[CJ] Logistics lookup failed, falling back to "${fallback}":`, err);
         return fallback;
     }
+}
+
+function resolveOrderCountryCode(shipping: Record<string, unknown>): string | null {
+    return (
+        normalizeCountryCode(
+            (shipping.country_code as string | undefined) ??
+                (shipping.countryCode as string | undefined)
+        ) ??
+        normalizeCountryCode(shipping.country as string | undefined)
+    );
 }
 
 export async function submitCjOrderForLines(
@@ -138,31 +152,37 @@ export async function submitCjOrderForLines(
         return { ok: false, error: "Failed to load order shipping data" };
     }
 
-    const shipping = orderData.shipping_address as any;
-    if (!shipping) {
+    const shipping = (orderData.shipping_address ?? {}) as Record<string, unknown>;
+    if (!orderData.shipping_address) {
         console.warn(`[CJ] Order ${orderId} has no shipping_address`);
         return { ok: false, error: "No shipping address provided" };
     }
 
-    const countryCode: string =
-        shipping.country_code ?? shipping.countryCode ?? shipping.country ?? "US";
+    const countryCode = resolveOrderCountryCode(shipping);
+    if (!countryCode) {
+        return {
+            ok: false,
+            error: "Invalid shipping country on order — expected ISO country code (e.g. RW)",
+        };
+    }
 
-    // Build product lines
-    // Priority: line.cjVid (from product_variants.cj_vid) → sourceMetadata.vid → sourceMetadata.variant_id
+    // Build product lines — NEVER send a Jimvio product/variant UUID as a CJ vid.
     const productLines = lines
-        .map((line) => ({
-            vid: String(
-                line.cjVid
-                ?? line.sourceMetadata?.vid
-                ?? line.sourceMetadata?.cj_vid
-                ?? line.sourceMetadata?.variant_id
-                ?? ""
-            ),
-            quantity:        line.quantity,
-            storeLineItemId: line.orderItemId,
-            unitPrice:       line.unitPrice > 0 ? line.unitPrice : undefined,
-        }))
-        .filter((p) => p.vid);
+        .map((line) => {
+            const meta = line.sourceMetadata ?? {};
+            const vid =
+                usableCjVid(line.cjVid) ??
+                usableCjVid(meta.vid) ??
+                usableCjVid(meta.cj_vid);
+            if (!vid) return null;
+            return {
+                vid,
+                quantity:        line.quantity,
+                storeLineItemId: line.orderItemId,
+                unitPrice:       line.unitPrice > 0 ? line.unitPrice : undefined,
+            };
+        })
+        .filter((p): p is NonNullable<typeof p> => p != null);
 
     if (productLines.length === 0) {
         return { ok: false, error: "No valid CJ VIDs found in order items — check product_variants.cj_vid" };
@@ -185,8 +205,8 @@ export async function submitCjOrderForLines(
     }
 
     // ── Build full name (V2 uses shippingCustomerName, not first+last) ─────────
-    const firstName = (shipping.firstName ?? shipping.first_name ?? "").trim();
-    const lastName  = (shipping.lastName  ?? shipping.last_name  ?? "").trim();
+    const firstName = String(shipping.firstName ?? shipping.first_name ?? "").trim();
+    const lastName  = String(shipping.lastName  ?? shipping.last_name  ?? "").trim();
     const customerName = [firstName, lastName].filter(Boolean).join(" ") || "Customer";
 
     // ── Payload ────────────────────────────────────────────────────────────────
@@ -199,31 +219,39 @@ export async function submitCjOrderForLines(
         orderNumber,
         fromCountryCode:      "CN",
         shippingCountryCode:  countryCode,
-        shippingCountry:      shipping.country ?? countryCode,
-        shippingProvince:     shipping.province ?? shipping.state ?? shipping.city ?? "Unknown",
-        shippingCity:         shipping.city ?? "Unknown",
-        shippingAddress:      shipping.address1 ?? shipping.address ?? "Unknown",
-        shippingAddress2:     shipping.address2 ?? "",
-        shippingZip:          (shipping.zip ?? shipping.postal_code ?? "00000").trim() || "00000",
-        shippingCustomerName: customerName,                   // V2 field (replaces firstName+lastName)
-        shippingPhone:        (shipping.phone ?? "0000000000").replace(/\s+/g, ""),
-        email:                shipping.email ?? "",            // V2 field (was shippingEmail)
+        shippingCountry:      String(shipping.country ?? countryCode),
+        shippingProvince:     String(shipping.province ?? shipping.state ?? shipping.city ?? "Unknown"),
+        shippingCity:         String(shipping.city ?? "Unknown"),
+        shippingAddress:      String(shipping.address1 ?? shipping.address ?? "Unknown"),
+        shippingAddress2:     String(shipping.address2 ?? ""),
+        shippingZip:          (String(shipping.zip ?? shipping.postal_code ?? "00000")).trim() || "00000",
+        shippingCustomerName: customerName,
+        shippingPhone:        String(shipping.phone ?? "0000000000").replace(/\s+/g, ""),
+        email:                String(shipping.email ?? ""),
         logisticName,
-        shopLogisticsType:    2,                              // seller logistics — no waybill needed
-        payType:              2,                              // balance payment — auto deduct from CJ wallet
+        shopLogisticsType:    2,
+        payType:              2,
         remark:               `jimvio-${orderId}`,
-        storeOrderTime:       Math.floor(Date.now() / 1000), // actual store order time (seconds)
+        storeOrderTime:       Math.floor(Date.now() / 1000),
         products:             productLines,
     };
 
     try {
-        const body = await cjPost<any>("/shopping/order/createOrderV2", accessToken, cjPayload);
+        const body = await cjPost<{
+            code?: number;
+            result?: boolean;
+            message?: string;
+            data?: {
+                orderId?: string;
+                payId?: string;
+                orderStatus?: string;
+                logisticsMiss?: boolean;
+                actualPayment?: number;
+                orderAmount?: number;
+            };
+        }>("/shopping/order/createOrderV2", accessToken, cjPayload);
 
         // ── Insufficient balance: order was created, payment failed ───────────
-        // code=1604000 means CJ created the order (orderId exists) but couldn't
-        // deduct from wallet. We save the CJ order ID and attempt payBalanceV2
-        // with the payId CJ returned. If that also fails, we return a specific
-        // error so the admin knows to top up the CJ wallet balance.
         if (body.code === 1604000 || body.data?.orderStatus === "UNPAID") {
             const cjOrderId = body.data?.orderId ?? null;
             const payId     = body.data?.payId   ?? null;
@@ -235,7 +263,6 @@ export async function submitCjOrderForLines(
                 `Attempting automatic supplier balance payment...`,
             );
 
-            // Save CJ order ID immediately so we don't re-submit
             if (cjOrderId) {
                 await _db
                     .from("orders")
@@ -246,10 +273,9 @@ export async function submitCjOrderForLines(
                     .eq("id", orderId);
             }
 
-            // Attempt to pay via payBalanceV2
             if (payId) {
                 try {
-                    const payBody = await cjPost<any>(
+                    const payBody = await cjPost<{ code?: number; result?: boolean }>(
                         "/shopping/order/payBalanceV2",
                         accessToken,
                         { payId },
@@ -261,20 +287,18 @@ export async function submitCjOrderForLines(
                     }
 
                     console.warn(`[CJ] payBalanceV2 failed for order ${orderId}:`, payBody);
-                } catch (payErr: any) {
-                    console.warn(`[CJ] payBalanceV2 exception for order ${orderId}:`, payErr.message);
+                } catch (payErr: unknown) {
+                    const msg = payErr instanceof Error ? payErr.message : String(payErr);
+                    console.warn(`[CJ] payBalanceV2 exception for order ${orderId}:`, msg);
                 }
             }
 
-            // Both create and pay failed — order is UNPAID on CJ side
-            // Return ok: false so the queue retries later (after balance is topped up)
             return {
                 ok:    false,
                 error: `CJ balance insufficient — $${needed} USD needed. Top up your CJ wallet and retry. CJ order ID: ${cjOrderId ?? "not saved"}`,
             };
         }
 
-        // ── Hard failure (not a balance issue) ────────────────────────────────
         if (body.code !== 200 || body.result !== true) {
             console.error(`[CJ] Order creation failed for ${orderId}:`, body);
             return { ok: false, error: body.message || `CJ error code ${body.code}` };
@@ -285,8 +309,6 @@ export async function submitCjOrderForLines(
         const logisticsMiss = body.data?.logisticsMiss ?? false;
 
         if (logisticsMiss) {
-            // Order created but logistics name was invalid for this country.
-            // Must select logistics manually on the CJ dashboard.
             console.warn(
                 `[CJ] logisticsMiss=true for order ${orderId}. ` +
                 `"${logisticName}" may not ship to ${countryCode}. ` +
@@ -301,8 +323,9 @@ export async function submitCjOrderForLines(
 
         return { ok: true, externalReference: cjOrderId };
 
-    } catch (err: any) {
-        console.error(`[CJ] Submission failed for order ${orderId}:`, err.message);
-        return { ok: false, error: err.message };
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[CJ] Submission failed for order ${orderId}:`, message);
+        return { ok: false, error: message };
     }
 }
