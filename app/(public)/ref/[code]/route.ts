@@ -9,20 +9,17 @@ import {
   DEFAULT_ATTRIBUTION_WINDOW_DAYS,
 } from "@/lib/affiliate/attribution";
 
-/** Privacy-safe IP retention: IPv4 /24 or IPv6 /48 prefix only. */
+/** Privacy-safe IP retention: IPv4 /24 only (inet-safe). */
 function truncateIpForPrivacy(ip: string | null | undefined): string | null {
   if (!ip) return null;
   const v = ip.trim();
   if (!v) return null;
-  if (v.includes(".")) {
-    const parts = v.split(".");
-    if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}.0`;
-  }
-  if (v.includes(":")) {
-    const parts = v.split(":").filter(Boolean);
-    if (parts.length >= 3) return `${parts.slice(0, 3).join(":")}::`;
-  }
-  return null;
+  // Only keep valid IPv4 /24 prefixes — avoids inet cast failures on IPv6/truncated forms.
+  const m = v.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return null;
+  const octets = m.slice(1, 5).map(Number);
+  if (octets.some((n) => n > 255)) return null;
+  return `${octets[0]}.${octets[1]}.${octets[2]}.0`;
 }
 
 export async function GET(
@@ -103,7 +100,7 @@ export async function GET(
     }
   }
 
-  // Privacy: store truncated network prefix only (never full client IP).
+  // Privacy: store truncated IPv4 /24 only; skip invalid/non-IPv4 values for inet column.
   const rawIp =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
@@ -121,7 +118,7 @@ export async function GET(
 
   try {
     if (linkId && affiliateId) {
-      await supabase.rpc("record_affiliate_click", {
+      const { error: clickError } = await supabase.rpc("record_affiliate_click", {
         p_link_id: linkId,
         p_affiliate_id: affiliateId,
         p_campaign_id: campaignId,
@@ -131,6 +128,32 @@ export async function GET(
         p_device_type: deviceType,
         p_session_key: sessionKey,
       });
+      if (clickError) {
+        console.warn("[ref] record_affiliate_click failed:", clickError.message || clickError);
+        // Fallback: still increment denormalized counters if RPC is unavailable.
+        const { data: link } = await supabase
+          .from("affiliate_links")
+          .select("total_clicks")
+          .eq("id", linkId)
+          .maybeSingle();
+        if (link) {
+          await supabase
+            .from("affiliate_links")
+            .update({ total_clicks: Number(link.total_clicks ?? 0) + 1 })
+            .eq("id", linkId);
+        }
+        const { data: aff } = await supabase
+          .from("affiliates")
+          .select("total_clicks")
+          .eq("id", affiliateId)
+          .maybeSingle();
+        if (aff) {
+          await supabase
+            .from("affiliates")
+            .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
+            .eq("id", affiliateId);
+        }
+      }
     } else if (affiliateId) {
       const { data: aff } = await supabase
         .from("affiliates")

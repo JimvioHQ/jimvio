@@ -40,7 +40,7 @@ export async function recordReferralVisit(code: string, pathname?: string) {
   }
 
   if (linkId) {
-    await supabase.rpc("record_affiliate_click", {
+    const { error: clickError } = await supabase.rpc("record_affiliate_click", {
       p_link_id: linkId,
       p_affiliate_id: resolved.affiliateId,
       p_campaign_id: resolved.campaignId,
@@ -50,6 +50,9 @@ export async function recordReferralVisit(code: string, pathname?: string) {
       p_device_type: null,
       p_session_key: null,
     });
+    if (clickError) {
+      console.warn("[recordReferralVisit] click RPC failed:", clickError.message);
+    }
   } else {
     const { data: aff } = await supabase
       .from("affiliates")
