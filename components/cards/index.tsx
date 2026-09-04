@@ -426,12 +426,40 @@ export function AffiliateCard({
     accent = "#fd5000",
 }: AffiliateCardProps) {
     const initial = p.name?.[0]?.toUpperCase() ?? "?";
+    const [copyState, setCopyState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
 
-    function handleCopyLink(e: React.MouseEvent) {
+    async function handleCopyLink(e: React.MouseEvent) {
         e.preventDefault();
-        const url = `${typeof window !== "undefined" ? window.location.origin : ""}/affiliates/promote/${p.slug}`;
-        if (typeof window !== "undefined") {
-            navigator.clipboard.writeText(url);
+        e.stopPropagation();
+        if (copyState === "loading") return;
+        setCopyState("loading");
+        try {
+            const origin = typeof window !== "undefined" ? window.location.origin : "";
+            const res = await fetch("/api/affiliates/links", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    productId: p.id,
+                    destinationUrl: `${origin}/marketplace/${p.slug}`,
+                    commissionRate: p.commission_rate,
+                }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.link?.link_code) {
+                setCopyState("error");
+                window.setTimeout(() => setCopyState("idle"), 1600);
+                return;
+            }
+            const tracked =
+                typeof data.link.short_url === "string"
+                    ? data.link.short_url
+                    : `${origin}/ref/${data.link.link_code}`;
+            await navigator.clipboard.writeText(tracked);
+            setCopyState("done");
+            window.setTimeout(() => setCopyState("idle"), 1600);
+        } catch {
+            setCopyState("error");
+            window.setTimeout(() => setCopyState("idle"), 1600);
         }
     }
 
@@ -470,8 +498,11 @@ export function AffiliateCard({
                             Est. per sale
                         </p>
                         <p className="font-mono text-lg font-bold leading-none" style={{ color: accent }}>
-                            {p.avg_earning_per_sale.toLocaleString()}
-                            <span className="text-[11px] font-medium text-stone-400 ml-1">{p.currency ?? "RWF"}</span>
+                            {p.avg_earning_per_sale.toLocaleString(undefined, {
+                                style: "currency",
+                                currency: (p.currency || "USD").toUpperCase() === "RWF" ? "USD" : (p.currency || "USD"),
+                                maximumFractionDigits: 2,
+                            })}
                         </p>
                     </div>
 
@@ -506,7 +537,13 @@ export function AffiliateCard({
                 {showQuickActions && (
                     <CardShell.Actions className="mt-2">
                         <CardShell.ActionButton onClick={handleCopyLink} icon={<IconLink />} hoverColor="orange">
-                            Copy link
+                            {copyState === "loading"
+                              ? "Picking…"
+                              : copyState === "done"
+                                ? "Link copied"
+                                : copyState === "error"
+                                  ? "Try again"
+                                  : "Copy link"}
                         </CardShell.ActionButton>
                         <CardShell.ActionButton href={`/affiliates/promote/${p.slug}`} icon={<IconShare />} hoverColor="indigo">
                             Preview

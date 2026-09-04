@@ -276,11 +276,21 @@ export async function activateUserRole(
   if (role === "affiliate") {
     const { data: existing } = await supabase
       .from("affiliates")
-      .select("id")
+      .select("id, is_active")
       .eq("user_id", user.id)
       .maybeSingle();
     if (!existing) {
-      const { error } = await supabase.from("affiliates").insert({ user_id: user.id });
+      const { error } = await supabase.from("affiliates").insert({
+        user_id: user.id,
+        is_active: true,
+      });
+      if (error) return { success: false, error: error.message };
+    } else if (!existing.is_active) {
+      const { error } = await supabase
+        .from("affiliates")
+        .update({ is_active: true })
+        .eq("id", existing.id)
+        .eq("user_id", user.id);
       if (error) return { success: false, error: error.message };
     }
   } else {

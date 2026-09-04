@@ -21,11 +21,13 @@ export async function GET(
   let affiliateId: string | null = null;
   let campaignId: string | null = null;
   let windowDays = DEFAULT_ATTRIBUTION_WINDOW_DAYS;
+  /** Cookie must store LNK-/CMP-/affiliate_code — never a custom slug alone. */
+  let cookieCode = code;
 
   if (code.startsWith("LNK-")) {
     const { data: link } = await supabase
       .from("affiliate_links")
-      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at")
+      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at, link_code")
       .eq("link_code", code)
       .maybeSingle();
     if (!link?.is_active) {
@@ -38,6 +40,7 @@ export async function GET(
     affiliateId = link.affiliate_id;
     campaignId = link.campaign_id;
     destination = link.destination_url || "/marketplace";
+    cookieCode = link.link_code || code;
   } else if (code.startsWith("CMP-")) {
     const { data: campaign } = await supabase
       .from("affiliate_campaigns")
@@ -50,11 +53,12 @@ export async function GET(
     campaignId = campaign.id;
     windowDays = Number(campaign.attribution_window_days) || windowDays;
     destination = `/marketplace?ref=${encodeURIComponent(code)}`;
+    cookieCode = code;
   } else {
     // Prefer custom short slug on affiliate_links, then profile affiliate_code
     const { data: link } = await supabase
       .from("affiliate_links")
-      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at")
+      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at, link_code")
       .eq("custom_slug", code.toLowerCase())
       .eq("is_active", true)
       .maybeSingle();
@@ -67,6 +71,7 @@ export async function GET(
       affiliateId = link.affiliate_id;
       campaignId = link.campaign_id;
       destination = link.destination_url || "/marketplace";
+      cookieCode = link.link_code || code;
     } else {
       const { data: aff } = await supabase
         .from("affiliates")
@@ -78,6 +83,7 @@ export async function GET(
       }
       affiliateId = aff.id;
       destination = `/marketplace?ref=${encodeURIComponent(code)}`;
+      cookieCode = code;
     }
   }
 
@@ -120,10 +126,10 @@ export async function GET(
   const response = NextResponse.redirect(new URL(destination, request.url));
   const opts = attributionCookieOptions(windowDays * 24 * 60 * 60);
   if (!request.cookies.get(AFFILIATE_REF_FIRST_COOKIE)?.value) {
-    response.cookies.set(AFFILIATE_REF_FIRST_COOKIE, code, opts);
+    response.cookies.set(AFFILIATE_REF_FIRST_COOKIE, cookieCode, opts);
   }
-  response.cookies.set(AFFILIATE_REF_COOKIE, code, opts);
-  response.cookies.set(AFFILIATE_REF_COOKIE_LEGACY, code, opts);
+  response.cookies.set(AFFILIATE_REF_COOKIE, cookieCode, opts);
+  response.cookies.set(AFFILIATE_REF_COOKIE_LEGACY, cookieCode, opts);
   response.cookies.set(AFFILIATE_REF_TS_COOKIE, String(Date.now()), opts);
   return response;
 }

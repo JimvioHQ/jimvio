@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   let query = client
     .from("affiliate_links")
     .select(
-      "id, link_code, custom_slug, destination_url, full_url, commission_rate, total_clicks, unique_clicks, total_conversions, total_earnings, is_active, expires_at, created_at, product_id, products(id, name, slug, images, currency)"
+      "id, link_code, custom_slug, destination_url, full_url, commission_rate, total_clicks, unique_clicks, total_conversions, total_earnings, is_active, expires_at, created_at, product_id, products(id, name, slug, images, currency, price)"
     )
     .eq("affiliate_id", auth.affiliate!.id)
     .order("created_at", { ascending: false })
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query;
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Could not load affiliate links" }, { status: 400 });
   }
 
   const site = getSiteUrl();
@@ -71,6 +71,8 @@ export async function GET(req: NextRequest) {
           name: l.products.name,
           slug: l.products.slug,
           currency: l.products.currency,
+          price: l.products.price != null ? Number(l.products.price) : null,
+          images: l.products.images ?? null,
         }
       : null,
   }));
@@ -78,14 +80,74 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ links });
 }
 
-/** POST — create an affiliate short link (LNK-). */
+/** POST — create or reuse an affiliate short link (LNK-) for a product pick. */
 export async function POST(req: NextRequest) {
   const auth = await requireAffiliate();
   if ("error" in auth && auth.error) return auth.error;
 
   const body = await req.json().catch(() => null);
-  const destinationUrl =
+  const productId =
+    typeof body?.productId === "string" && body.productId.trim()
+      ? body.productId.trim()
+      : null;
+
+  const client = createServiceRoleClient() as any;
+  let destinationUrl =
     typeof body?.destinationUrl === "string" ? body.destinationUrl.trim() : "";
+  let vendorId =
+    typeof body?.vendorId === "string" ? body.vendorId : null;
+  let commissionRate =
+    body?.commissionRate != null && Number.isFinite(Number(body.commissionRate))
+      ? Number(body.commissionRate)
+      : null;
+
+  if (productId) {
+    const { data: product, error: productError } = await client
+      .from("products")
+      .select(
+        "id, slug, vendor_id, status, is_active, deleted_at, affiliate_enabled, affiliate_commission_rate"
+      )
+      .eq("id", productId)
+      .maybeSingle();
+
+    if (productError || !product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+    if (
+      product.deleted_at ||
+      product.status !== "active" ||
+      product.is_active === false
+    ) {
+      return NextResponse.json({ error: "Product is not available" }, { status: 400 });
+    }
+    if (!product.affiliate_enabled) {
+      return NextResponse.json(
+        { error: "Product is not available for affiliate promotion" },
+        { status: 400 }
+      );
+    }
+    if (!product.slug) {
+      return NextResponse.json(
+        { error: "Product is missing a storefront URL" },
+        { status: 400 }
+      );
+    }
+
+    const site = getSiteUrl();
+    const canonicalDest = `${site}/marketplace/${product.slug}`;
+    // Never trust a client destination that points away from this product.
+    if (
+      !destinationUrl ||
+      !destinationUrl.includes(`/marketplace/${product.slug}`)
+    ) {
+      destinationUrl = canonicalDest;
+    }
+    vendorId = product.vendor_id ?? vendorId;
+    if (commissionRate == null && product.affiliate_commission_rate != null) {
+      commissionRate = Number(product.affiliate_commission_rate);
+    }
+  }
+
   if (!destinationUrl) {
     return NextResponse.json({ error: "destinationUrl is required" }, { status: 400 });
   }
@@ -94,11 +156,10 @@ export async function POST(req: NextRequest) {
     const link = await createAffiliateLink({
       affiliateId: auth.affiliate!.id,
       destinationUrl,
-      productId: body?.productId ?? null,
-      vendorId: body?.vendorId ?? null,
+      productId,
+      vendorId,
       campaignId: body?.campaignId ?? null,
-      commissionRate:
-        body?.commissionRate != null ? Number(body.commissionRate) : null,
+      commissionRate,
     });
 
     if (typeof body?.customSlug === "string" && body.customSlug.trim()) {
@@ -109,7 +170,6 @@ export async function POST(req: NextRequest) {
         .replace(/-+/g, "-")
         .slice(0, 48);
       if (slug) {
-        const client = createServiceRoleClient() as any;
         await client
           .from("affiliate_links")
           .update({ custom_slug: slug })
@@ -119,10 +179,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, link });
-  } catch (error) {
+    const site = getSiteUrl();
+    const shortUrl = `${site}/ref/${link.link_code}`;
+    return NextResponse.json({
+      ok: true,
+      picked: true,
+      link: {
+        ...link,
+        short_url: shortUrl,
+        full_url:
+          link.full_url?.startsWith("http")
+            ? link.full_url
+            : generateAffiliateUrl(site, link.link_code),
+      },
+    });
+  } catch {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not create link" },
+      { error: "Could not create affiliate link" },
       { status: 400 }
     );
   }

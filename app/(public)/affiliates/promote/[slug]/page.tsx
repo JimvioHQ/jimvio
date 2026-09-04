@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProductBySlug } from "@/services/db";
-import { getImage, generateAffiliateUrl } from "@/lib/utils";
+import { generateAffiliateUrl } from "@/lib/utils";
 import { getSiteUrl } from "@/lib/site-url";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { createAffiliateLink } from "@/lib/affiliate/campaigns";
@@ -23,23 +23,20 @@ function collectProductImages(images: unknown): string[] {
     try {
       arr = JSON.parse(images);
     } catch {
-      return getImage(images) !== "/placeholder.png" ? [getImage(images)] : [];
+      return typeof images === "string" && images.startsWith("http") ? [images] : [];
     }
   } else if (Array.isArray(images)) {
     arr = images;
   }
   const out: string[] = [];
   for (const item of arr) {
-    if (typeof item === "string" && item.startsWith("http")) out.push(item);
-    else if (item && typeof item === "object") {
+    if (typeof item === "string" && (item.startsWith("http") || item.startsWith("/"))) {
+      out.push(item);
+    } else if (item && typeof item === "object") {
       const o = item as Record<string, unknown>;
       const u = o.url ?? o.src ?? o.image_url;
       if (typeof u === "string" && (u.startsWith("http") || u.startsWith("/"))) out.push(u);
     }
-  }
-  if (out.length === 0) {
-    const fallback = getImage(images);
-    if (fallback && fallback !== "/placeholder.png") out.push(fallback);
   }
   return out;
 }
@@ -99,6 +96,13 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) notFound();
+
+  const affiliateEnabled = Boolean(
+    (product as { affiliate_enabled?: boolean | null }).affiliate_enabled
+  );
+  if (!affiliateEnabled) {
+    notFound();
+  }
 
   const settings = await getResolvedPlatformSettings();
   const supabase = await createClient();
@@ -172,6 +176,8 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
   let affiliateLink: string | null = null;
   let linkCode: string | null = null;
   let needsAffiliate = false;
+  let linkError: string | null = null;
+  let picked = false;
 
   if (user) {
     const { data: affiliate } = await supabase
@@ -186,15 +192,16 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
       const site = getSiteUrl();
       const destinationUrl = `${site}/marketplace/${product.slug}`;
 
-      const { data: existing } = await supabase
+      const { data: existingRows } = await supabase
         .from("affiliate_links")
         .select("link_code, full_url, destination_url")
         .eq("affiliate_id", affiliate.id)
         .eq("product_id", product.id)
         .eq("is_active", true)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      const existing = Array.isArray(existingRows) ? existingRows[0] : existingRows;
 
       if (existing?.link_code) {
         linkCode = existing.link_code;
@@ -202,6 +209,7 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
           existing.full_url?.startsWith("http")
             ? existing.full_url
             : generateAffiliateUrl(site, existing.link_code);
+        picked = true;
       } else {
         try {
           const link = await createAffiliateLink({
@@ -215,8 +223,12 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
           affiliateLink = link.full_url?.startsWith("http")
             ? link.full_url
             : generateAffiliateUrl(site, link.link_code);
-        } catch {
-          // Client can retry via API
+          picked = true;
+        } catch (err) {
+          linkError =
+            err instanceof Error && err.message
+              ? "Could not create your affiliate link. Try again."
+              : "Could not create your affiliate link. Try again.";
         }
       }
     }
@@ -227,6 +239,8 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
       product={view}
       affiliateLink={affiliateLink}
       linkCode={linkCode}
+      initialPicked={picked}
+      initialLinkError={linkError}
       needsAuth={!user}
       needsAffiliate={!!user && needsAffiliate}
       activateHref="/activate/affiliate"

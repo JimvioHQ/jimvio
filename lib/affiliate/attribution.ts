@@ -151,6 +151,45 @@ export async function resolveReferralCode(
       }
     }
   } else {
+    // Prefer custom short slug on affiliate_links, then profile affiliate_code
+    const { data: link } = await client
+      .from("affiliate_links")
+      .select(
+        "id, affiliate_id, campaign_id, commission_rate, is_active, expires_at, link_code",
+      )
+      .eq("custom_slug", raw.toLowerCase())
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (link) {
+      if (link.expires_at && new Date(link.expires_at) <= new Date()) return null;
+      linkId = link.id;
+      affiliateId = link.affiliate_id;
+      campaignId = link.campaign_id;
+      commissionRate = link.commission_rate != null ? Number(link.commission_rate) : null;
+      // Canonical cookie/checkout code is always LNK-
+      const canonical = String(link.link_code || raw);
+      if (!affiliateId) return null;
+      const { data: affiliate } = await client
+        .from("affiliates")
+        .select("id, user_id, is_active")
+        .eq("id", affiliateId)
+        .maybeSingle();
+      if (!affiliate?.is_active) return null;
+      return {
+        referralCode: canonical,
+        affiliateId: affiliate.id,
+        affiliateUserId: affiliate.user_id,
+        linkId,
+        campaignId,
+        commissionRate,
+        attributionModel,
+        attributionWindowDays,
+        attributedAt: new Date().toISOString(),
+        touch: "last_touch",
+      };
+    }
+
     // AFF- profile code or bare code
     const { data: aff } = await client
       .from("affiliates")

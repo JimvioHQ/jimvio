@@ -167,12 +167,22 @@ export async function createAffiliateLink(input: {
   destinationUrl: string;
   commissionRate?: number | null;
 }) {
+  const client = db();
+
+  // Idempotent pick: reuse active link for same affiliate + product.
+  if (input.productId) {
+    const existing = await findActiveProductLink(client, input.affiliateId, input.productId);
+    if (existing?.link_code) {
+      return refreshAffiliateLinkIfNeeded(client, existing, input);
+    }
+  }
+
   const linkCode = `LNK-${crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase()}`;
   const fullUrl = input.destinationUrl.includes("?")
     ? `${input.destinationUrl}&ref=${linkCode}`
     : `${input.destinationUrl}?ref=${linkCode}`;
 
-  const { data, error } = await db()
+  const { data, error } = await client
     .from("affiliate_links")
     .insert({
       affiliate_id: input.affiliateId,
@@ -187,6 +197,69 @@ export async function createAffiliateLink(input: {
     })
     .select("*")
     .single();
+
+  // Concurrent pick: unique index race → return the winner.
+  if (error && input.productId && isUniqueViolation(error)) {
+    const raced = await findActiveProductLink(client, input.affiliateId, input.productId);
+    if (raced) return refreshAffiliateLinkIfNeeded(client, raced, input);
+  }
   if (error) throw error;
   return data;
+}
+
+async function findActiveProductLink(
+  client: any,
+  affiliateId: string,
+  productId: string,
+) {
+  const { data } = await client
+    .from("affiliate_links")
+    .select("*")
+    .eq("affiliate_id", affiliateId)
+    .eq("product_id", productId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  return Array.isArray(data) ? data[0] ?? null : data ?? null;
+}
+
+async function refreshAffiliateLinkIfNeeded(
+  client: any,
+  existing: any,
+  input: {
+    destinationUrl: string;
+    commissionRate?: number | null;
+    vendorId?: string | null;
+  },
+) {
+  const needsRefresh =
+    existing.destination_url !== input.destinationUrl ||
+    (input.commissionRate != null &&
+      Number(existing.commission_rate ?? NaN) !== Number(input.commissionRate));
+  if (!needsRefresh) return existing;
+
+  const fullUrl = input.destinationUrl.includes("?")
+    ? `${input.destinationUrl}&ref=${existing.link_code}`
+    : `${input.destinationUrl}?ref=${existing.link_code}`;
+  const { data: updated, error: updateError } = await client
+    .from("affiliate_links")
+    .update({
+      destination_url: input.destinationUrl,
+      full_url: fullUrl,
+      commission_rate: input.commissionRate ?? existing.commission_rate,
+      vendor_id: input.vendorId ?? existing.vendor_id,
+    })
+    .eq("id", existing.id)
+    .select("*")
+    .single();
+  if (!updateError && updated) return updated;
+  return existing;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  const e = error as { code?: string; message?: string };
+  return (
+    e?.code === "23505" ||
+    /duplicate key|unique constraint/i.test(String(e?.message ?? ""))
+  );
 }

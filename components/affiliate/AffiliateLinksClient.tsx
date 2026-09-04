@@ -222,9 +222,20 @@ export function AffiliateLinksClient() {
                           : "bg-stone-100 text-stone-500"
                       )}
                     >
-                      {link.isActive ? "Active" : "Expired"}
+                      {link.isActive ? (link.product ? "Picked" : "Active") : "Expired"}
                     </span>
                   </div>
+                  {link.product?.slug ? (
+                    <p className="mt-0.5 text-[12px] text-[#6B7280]">
+                      Product:{" "}
+                      <Link
+                        href={`/marketplace/${link.product.slug}`}
+                        className="font-semibold text-[#111827] hover:text-[#FF5A1F]"
+                      >
+                        /marketplace/{link.product.slug}
+                      </Link>
+                    </p>
+                  ) : null}
                   <p className="mt-1 break-all font-mono text-[12px] text-[#6B7280]">
                     {link.shortUrl}
                     {link.customSlug ? ` · /ref/${link.customSlug}` : ""}
@@ -241,7 +252,7 @@ export function AffiliateLinksClient() {
                     className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
                   >
                     {copied === link.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    Copy
+                    {copied === link.id ? "Link copied" : "Copy link"}
                   </button>
                   <button
                     type="button"

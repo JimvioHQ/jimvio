@@ -301,16 +301,16 @@ export default function ActivateRolePage() {
         profileComplete: !!(user.user_metadata?.full_name),
       });
 
-      // Check all three roles in parallel
+      // Check all three roles in parallel — affiliate must be *active*
       const [vendorRes, affiliateRes, influencerRes] = await Promise.all([
         supabase.from("vendors").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("affiliates").select("id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("affiliates").select("id, is_active").eq("user_id", user.id).maybeSingle(),
         supabase.from("influencers").select("id").eq("user_id", user.id).maybeSingle(),
       ]);
 
       setStatusMap({
         vendor: !!vendorRes.data,
-        affiliate: !!affiliateRes.data,
+        affiliate: !!affiliateRes.data?.is_active,
         influencer: !!influencerRes.data,
       });
       setLoading(false);
