@@ -15,7 +15,7 @@ type Data = {
 export function PayoutCenter() {
   const [data, setData] = useState<Data | null>(null);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("bank_transfer");
+  const [method, setMethod] = useState("bank");
   const [account, setAccount] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,9 +70,11 @@ export function PayoutCenter() {
       return;
     }
     setMessage(
-      method === "crypto"
-        ? "Crypto method saved for future processing."
-        : "Payout method saved."
+      method === "binance_id"
+        ? "Binance ID saved. Withdrawals stay pending until payout is confirmed."
+        : method === "crypto"
+          ? "Crypto method saved. Withdrawals stay pending until payout is confirmed."
+          : "Payout method saved.",
     );
     setAccount("");
     void load();
@@ -85,8 +87,8 @@ export function PayoutCenter() {
       <div>
         <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Payout center</h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          Request withdrawals via Flutterwave, bank transfer, mobile money, or crypto-ready
-          accounts.
+          Request withdrawals via bank transfer, Flutterwave, mobile money, Binance ID, or crypto.
+          PayPal is not available for payouts.
         </p>
       </div>
 
@@ -118,10 +120,11 @@ export function PayoutCenter() {
           onChange={(e) => setMethod(e.target.value)}
           className="min-h-10 rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm"
         >
-          <option value="bank_transfer">Bank transfer</option>
+          <option value="bank">Bank transfer</option>
           <option value="flutterwave">Flutterwave</option>
           <option value="mobile_money">Mobile money</option>
-          <option value="crypto">Crypto (future-ready)</option>
+          <option value="binance_id">Binance ID</option>
+          <option value="crypto">Cryptocurrency</option>
         </select>
         <label className="sr-only" htmlFor="payout-account">
           Account details
@@ -131,7 +134,15 @@ export function PayoutCenter() {
           required
           value={account}
           onChange={(e) => setAccount(e.target.value)}
-          placeholder="Account or wallet details"
+          placeholder={
+            method === "binance_id"
+              ? "Binance ID (numbers only)"
+              : method === "crypto"
+                ? "Wallet address"
+                : method === "mobile_money"
+                  ? "Mobile money phone (+…)"
+                  : "Account or wallet details"
+          }
           className="min-h-10 rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm"
         />
         <button className="min-h-10 rounded-lg border border-[var(--color-border)] px-3 text-sm font-semibold text-[var(--color-text-primary)]">

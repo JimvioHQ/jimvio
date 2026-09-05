@@ -91,6 +91,34 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (!ord) {
+        // Wallet deposit: NOWPayments order_id is wallet_deposits.id
+        const { completeWalletDeposit } = await import(
+          "@/lib/wallet-os/complete-deposit"
+        );
+        if (isFailed) {
+          await supabase
+            .from("wallet_deposits")
+            .update({ status: "failed" })
+            .eq("id", oid)
+            .eq("status", "pending");
+        } else {
+          const dep = await completeWalletDeposit(supabase, {
+            depositId: oid,
+            providerReference: txId,
+            provider: "nowpayments",
+            verifiedAmount: payload.price_amount ?? null,
+            verifiedCurrency: payload.price_currency ?? null,
+          });
+          if (dep.credited || dep.amount > 0) {
+            console.info("[webhooks/nowpayments] wallet deposit credited", {
+              depositId: oid,
+              credited: dep.credited,
+            });
+            if (eventId) await markWebhookProcessed(supabase, eventId, oid);
+            continue;
+          }
+        }
+
         const ugc = await confirmUgcEscrowPayment(supabase, {
           campaignId: oid,
           providerTransactionId: txId,

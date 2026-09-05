@@ -93,51 +93,83 @@ export async function PATCH(req: NextRequest) {
 
   const { data: payoutTxRows } = await db
     .from("transactions")
-    .select("id, metadata")
+    .select("id, metadata, reference, type, status")
     .eq("user_id", payout.user_id)
-    .eq("type", "payout_request");
+    .in("type", ["payout_request", "wallet_withdrawal", "vendor_withdrawal"])
+    .eq("status", "pending");
 
-  const payoutTx = (payoutTxRows ?? []).find(
-    (t) => (t.metadata as { payout_id?: string } | null)?.payout_id === payout.id
-  );
+  const matchingTxIds = (payoutTxRows ?? [])
+    .filter((t) => {
+      const meta = t.metadata as {
+        payout_id?: string;
+        payout?: { id?: string };
+      } | null;
+      if (meta?.payout_id === payout.id) return true;
+      if (meta?.payout?.id === payout.id) return true;
+      if (
+        payout.provider_reference &&
+        t.reference &&
+        t.reference === payout.provider_reference
+      ) {
+        return true;
+      }
+      return false;
+    })
+    .map((t) => t.id);
 
   if (action === "approve") {
-    const { data: wallet } = await db.from("wallets").select("total_paid").eq("user_id", payout.user_id).single();
+    const { data: wallet } = await db
+      .from("wallets")
+      .select("total_paid, pending_balance")
+      .eq("user_id", payout.user_id)
+      .single();
     if (wallet) {
+      const pend = Number(wallet.pending_balance ?? 0);
+      const amt = Number(payout.amount);
       await db
         .from("wallets")
         .update({
-          total_paid: Number(wallet.total_paid) + Number(payout.amount),
+          total_paid: Number(wallet.total_paid) + amt,
+          // Clear reserved pending funds for CAS withdrawals
+          pending_balance: Math.max(0, pend - amt),
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", payout.user_id);
     }
 
-    if (payoutTx) {
+    if (matchingTxIds.length > 0) {
       await db
         .from("transactions")
         .update({ status: "completed", updated_at: new Date().toISOString() })
-        .eq("id", payoutTx.id);
+        .in("id", matchingTxIds);
     }
   }
 
   if (action === "reject") {
-    const { data: wallet } = await db.from("wallets").select("available_balance").eq("user_id", payout.user_id).single();
+    const { data: wallet } = await db
+      .from("wallets")
+      .select("available_balance, pending_balance")
+      .eq("user_id", payout.user_id)
+      .single();
     if (wallet) {
+      const amt = Number(payout.amount);
+      const pend = Number(wallet.pending_balance ?? 0);
+      // Release reservation: pending → available (Wallet OS CAS path)
       await db
         .from("wallets")
         .update({
-          available_balance: Number(wallet.available_balance) + Number(payout.amount),
+          available_balance: Number(wallet.available_balance) + amt,
+          pending_balance: Math.max(0, pend - amt),
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", payout.user_id);
     }
 
-    if (payoutTx) {
+    if (matchingTxIds.length > 0) {
       await db
         .from("transactions")
         .update({ status: "failed", updated_at: new Date().toISOString() })
-        .eq("id", payoutTx.id);
+        .in("id", matchingTxIds);
     }
   }
 

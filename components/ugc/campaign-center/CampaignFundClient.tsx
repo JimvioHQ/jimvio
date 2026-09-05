@@ -28,7 +28,7 @@ import { useLocale } from "@/context/LocaleContext";
 
 const MIN_FUNDING_USD = 1;
 
-type PayMethod = "flutterwave" | "wallet" | "crypto";
+type PayMethod = "flutterwave" | "wallet" | "crypto" | "binancepay";
 
 export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
@@ -43,23 +43,30 @@ export function CampaignFundClient() {
   const [funding, setFunding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<"idle" | "activated" | "pending">("idle");
+  const [binanceEnabled, setBinanceEnabled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [campaignRes, walletRes] = await Promise.all([
+        const [campaignRes, walletRes, providersRes] = await Promise.all([
           fetch(`/api/ugc/campaigns/${id}`),
           fetch("/api/identity/wallet"),
+          fetch("/api/platform/payment-providers"),
         ]);
         const json = await campaignRes.json();
         const walletJson = walletRes.ok ? await walletRes.json().catch(() => ({})) : {};
+        const providersJson = providersRes.ok
+          ? await providersRes.json().catch(() => ({}))
+          : {};
         if (!cancelled) {
           setCampaign(json.campaign ?? null);
           setWalletBalance(Number(walletJson.balance ?? 0));
           setWalletCurrency(
             String(walletJson.currency || PLATFORM_CURRENCY).toUpperCase() || PLATFORM_CURRENCY,
           );
+          const enabled = Array.isArray(providersJson.enabled) ? providersJson.enabled : [];
+          setBinanceEnabled(enabled.includes("binancepay"));
         }
       } catch {
         if (!cancelled) setCampaign(null);
@@ -211,6 +218,16 @@ export function CampaignFundClient() {
     { id: "flutterwave", label: t("methodFlutterwave"), desc: t("methodFlutterwaveDesc"), icon: CreditCard },
     { id: "wallet", label: t("methodWallet"), desc: t("methodWalletDesc"), icon: Wallet },
     { id: "crypto", label: t("methodCrypto"), desc: t("methodCryptoDesc"), icon: Bitcoin },
+    ...(binanceEnabled
+      ? [
+          {
+            id: "binancepay" as const,
+            label: "Binance Pay",
+            desc: "Pay with Binance — confirmed after provider verification",
+            icon: Wallet,
+          },
+        ]
+      : []),
   ];
 
   return (

@@ -21,8 +21,11 @@ export function paidAmountCoversEscrow(input: {
     return true;
   }
   const paid = Number(input.paidAmount);
-  const paidCur = String(input.paidCurrency ?? "").trim().toUpperCase();
-  const escrowCur = String(input.escrowCurrency ?? "RWF").trim().toUpperCase();
+  const paidCurRaw = String(input.paidCurrency ?? "").trim().toUpperCase();
+  const escrowCurRaw = String(input.escrowCurrency ?? "RWF").trim().toUpperCase();
+  // USDT settles 1:1 with USD for Jimvio escrow / wallet checks
+  const paidCur = paidCurRaw === "USDT" ? "USD" : paidCurRaw;
+  const escrowCur = escrowCurRaw === "USDT" ? "USD" : escrowCurRaw;
   if (!paidCur) return true;
 
   if (paidCur === escrowCur) {

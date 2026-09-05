@@ -7,19 +7,25 @@ import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { generateTxRef } from "@/lib/payments/tx-ref";
 import { createNowPaymentsInvoice } from "@/lib/nowpayments";
+import { createBinancePayOrder } from "@/lib/binance-pay";
 import { getSiteUrl } from "@/lib/site-url";
+import {
+  isWalletDepositInitiable,
+  normalizeWalletDepositMethod,
+  walletDepositMethodLabel,
+  walletDepositProviderId,
+  WALLET_DEPOSIT_INITIABLE_METHODS,
+  type WalletDepositDbMethod,
+} from "@/lib/payments/wallet-deposit-method";
+import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
 
 export const dynamic = "force-dynamic";
 
-const PROVIDER_METHODS = new Set([
-  "flutterwave",
-  "paypal",
-  "nowpayments",
-  "binancepay",
-  "pesapal",
-  "pawapay",
-  "mobile_money",
-]);
+const BINANCE_SETTLE = "USDT";
+
+function sanitizeMerchantTradeNo(seed: string): string {
+  return seed.replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
+}
 
 export async function GET() {
   const { user, error } = await requireUser();
@@ -34,7 +40,10 @@ export async function GET() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(100);
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+  if (fetchError) {
+    console.error("[wallet deposits] list failed", { code: fetchError.code });
+    return NextResponse.json({ error: "Could not load deposits" }, { status: 500 });
+  }
 
   const deposits = (data ?? []).map((row: {
     id: string;
@@ -52,6 +61,7 @@ export async function GET() {
     amount: Number(row.amount ?? 0),
     currency: row.currency ?? PLATFORM_CURRENCY,
     method: row.method,
+    methodLabel: walletDepositMethodLabel(row.method),
     status: row.status,
     reference: row.reference ?? null,
     invoiceUrl: row.invoice_url ?? null,
@@ -63,6 +73,7 @@ export async function GET() {
   return NextResponse.json({
     currency: PLATFORM_CURRENCY,
     availableBalance: Number(wallet.available_balance ?? 0),
+    supportedMethods: [...WALLET_DEPOSIT_INITIABLE_METHODS],
     deposits,
   });
 }
@@ -75,7 +86,7 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  let body: { amount?: number; method?: string; phone?: string };
+  let body: { amount?: number; method?: string; phone?: string; idempotencyKey?: string };
   try {
     body = await req.json();
   } catch {
@@ -84,11 +95,14 @@ export async function POST(req: NextRequest) {
 
   const amount = Math.round(Number(body.amount) * 100) / 100;
   if (!Number.isFinite(amount) || amount < 1) {
-    return NextResponse.json({ error: "Enter a valid deposit amount (minimum $1.00)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Enter a valid deposit amount (minimum $1.00)" },
+      { status: 400 },
+    );
   }
 
-  const method = String(body.method ?? "").trim().toLowerCase();
-  if (!PROVIDER_METHODS.has(method)) {
+  const method = normalizeWalletDepositMethod(body.method);
+  if (!method || !isWalletDepositInitiable(method)) {
     return NextResponse.json(
       { error: "Choose an available payment method" },
       { status: 400 },
@@ -97,6 +111,38 @@ export async function POST(req: NextRequest) {
 
   const db = createServiceRoleClient();
   await ensureWallet(user.id, db);
+
+  // Idempotency: reuse a recent pending deposit for the same user/method/amount
+  const idempHeader =
+    body.idempotencyKey?.trim() ||
+    req.headers.get("idempotency-key")?.trim() ||
+    "";
+  if (idempHeader) {
+    const { data: existingByMeta } = await db
+      .from("wallet_deposits")
+      .select("id, amount, currency, method, status, reference, invoice_url, created_at")
+      .eq("user_id", user.id)
+      .eq("method", method)
+      .eq("status", "pending")
+      .contains("metadata", { idempotency_key: idempHeader.slice(0, 128) })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existingByMeta?.invoice_url) {
+      return NextResponse.json({
+        deposit: {
+          id: existingByMeta.id,
+          amount: Number(existingByMeta.amount),
+          currency: existingByMeta.currency ?? PLATFORM_CURRENCY,
+          method: existingByMeta.method,
+          status: "pending",
+          reference: existingByMeta.reference,
+        },
+        checkoutUrl: existingByMeta.invoice_url,
+        duplicate: true,
+      });
+    }
+  }
 
   const txRef = generateTxRef("WDEP");
   const { data: inserted, error: insertError } = await db
@@ -108,13 +154,27 @@ export async function POST(req: NextRequest) {
       method,
       status: "pending",
       reference: txRef,
-      metadata: { purpose: "wallet_deposit" },
+      metadata: {
+        purpose: "wallet_deposit",
+        provider: walletDepositProviderId(method),
+        ...(idempHeader ? { idempotency_key: idempHeader.slice(0, 128) } : {}),
+      },
     })
     .select()
     .single();
 
   if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+    console.error("[wallet deposits] insert failed", {
+      code: insertError.code,
+      method,
+      userId: user.id,
+    });
+    return NextResponse.json(
+      {
+        error: safeDepositInitiateError(method, insertError),
+      },
+      { status: 500 },
+    );
   }
 
   await db.from("transactions").insert({
@@ -124,10 +184,10 @@ export async function POST(req: NextRequest) {
     currency: PLATFORM_CURRENCY,
     status: "pending",
     reference: `WDEP-PEND-${inserted.id}`,
-    provider: method,
+    provider: walletDepositProviderId(method),
     provider_transaction_id: txRef,
     description: "Wallet deposit pending",
-    metadata: { purpose: "wallet_deposit", deposit_id: inserted.id },
+    metadata: { purpose: "wallet_deposit", deposit_id: inserted.id, method },
   });
 
   const appUrl = getSiteUrl().replace(/\/$/, "");
@@ -163,37 +223,108 @@ export async function POST(req: NextRequest) {
         currency: PLATFORM_CURRENCY,
         description: `Wallet deposit ${inserted.id.slice(0, 8)}`,
         buyerEmail: profile?.email || user.email || "wallet@jimvio.com",
-        successUrl: `${appUrl}/wallet/deposits?deposit=${inserted.id}&status=success`,
+        successUrl: `${appUrl}/wallet/deposits?deposit=${inserted.id}&status=pending`,
         cancelUrl: `${appUrl}/wallet/deposits?deposit=${inserted.id}&status=cancelled`,
       });
-      checkoutUrl = (invoice as { invoice_url?: string }).invoice_url ?? null;
-      if (checkoutUrl) {
+      checkoutUrl = invoice.invoiceUrl ?? null;
+      if (checkoutUrl || invoice.invoiceId) {
         await db
           .from("wallet_deposits")
-          .update({ invoice_url: checkoutUrl })
+          .update({
+            invoice_url: checkoutUrl,
+            metadata: {
+              purpose: "wallet_deposit",
+              provider: "nowpayments",
+              nowpayments_invoice_id: invoice.invoiceId || null,
+              ...(idempHeader ? { idempotency_key: idempHeader.slice(0, 128) } : {}),
+            },
+          })
           .eq("id", inserted.id);
       }
-    } else if (method === "paypal") {
-      checkoutUrl = `${appUrl}/wallet/deposits?deposit=${inserted.id}&method=paypal&amount=${amount}`;
-    } else {
-      // Provider selected but dedicated initiate not wired — keep pending request
-      checkoutUrl = null;
+    } else if (method === "binancepay") {
+      // USD wallet amounts settle as USDT (1:1 peg) — same settlement currency as marketplace.
+      const payAmount = Number(amount.toFixed(2));
+      const merchantTradeNo = sanitizeMerchantTradeNo(
+        `WDEP${inserted.id.replace(/-/g, "").slice(0, 20)}${Date.now().toString(36)}`,
+      );
+      if (!merchantTradeNo) {
+        throw new Error("Could not create Binance Pay reference");
+      }
+
+      const binanceOrder = await createBinancePayOrder({
+        merchantOrderId: merchantTradeNo,
+        orderAmount: payAmount,
+        currency: BINANCE_SETTLE,
+        description: `Jimvio wallet deposit ${inserted.id.slice(0, 8)}`,
+        returnUrl: `${appUrl}/wallet/deposits?deposit=${inserted.id}&status=pending`,
+        cancelUrl: `${appUrl}/wallet/deposits?deposit=${inserted.id}&status=cancelled`,
+      });
+
+      checkoutUrl =
+        binanceOrder.checkoutUrl ||
+        binanceOrder.universalUrl ||
+        binanceOrder.qrcodeLink ||
+        null;
+
+      await db
+        .from("wallet_deposits")
+        .update({
+          reference: merchantTradeNo,
+          invoice_url: checkoutUrl,
+          metadata: {
+            purpose: "wallet_deposit",
+            provider: "binancepay",
+            binance_merchant_trade_no: merchantTradeNo,
+            binance_prepay_id: binanceOrder.prepayId,
+            binance_pay_amount: payAmount,
+            binance_pay_currency: BINANCE_SETTLE,
+            wallet_credit_usd: amount,
+            ...(idempHeader ? { idempotency_key: idempHeader.slice(0, 128) } : {}),
+          },
+        })
+        .eq("id", inserted.id);
+
+      await db
+        .from("transactions")
+        .update({
+          provider_transaction_id: merchantTradeNo,
+          provider: "binancepay",
+        })
+        .eq("reference", `WDEP-PEND-${inserted.id}`);
     }
   } catch (err) {
-    console.error("[wallet deposits] payment initiate failed", err);
+    console.error("[wallet deposits] payment initiate failed", {
+      method,
+      depositId: inserted.id,
+      message: err instanceof Error ? err.message : String(err),
+    });
     await db
       .from("wallet_deposits")
       .update({ status: "failed" })
       .eq("id", inserted.id);
     return NextResponse.json(
-      {
-        error:
-          err instanceof Error
-            ? err.message
-            : "Could not start payment. Please try another method.",
-      },
+      { error: safeDepositInitiateError(method, err) },
       { status: 502 },
     );
+  }
+
+  if (!checkoutUrl) {
+    await db
+      .from("wallet_deposits")
+      .update({ status: "failed" })
+      .eq("id", inserted.id);
+    return NextResponse.json(
+      { error: safeDepositInitiateError(method, new Error("No checkout URL")) },
+      { status: 502 },
+    );
+  }
+
+  // Persist invoice URL for Flutterwave / others when not already saved
+  if (method === "flutterwave" || method === "mobile_money") {
+    await db
+      .from("wallet_deposits")
+      .update({ invoice_url: checkoutUrl })
+      .eq("id", inserted.id);
   }
 
   await logWalletActivity({
@@ -202,7 +333,7 @@ export async function POST(req: NextRequest) {
     surface: "deposits",
     amount,
     currency: PLATFORM_CURRENCY,
-    metadata: { depositId: inserted.id, method, checkoutUrl },
+    metadata: { depositId: inserted.id, method },
     db,
   });
 
@@ -211,7 +342,7 @@ export async function POST(req: NextRequest) {
       id: inserted.id,
       amount,
       currency: PLATFORM_CURRENCY,
-      method,
+      method: method as WalletDepositDbMethod,
       status: "pending",
       reference: txRef,
     },

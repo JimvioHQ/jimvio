@@ -12,9 +12,28 @@ import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
 import { generateTxRef } from "@/lib/payments/tx-ref";
 import { createNowPaymentsInvoice } from "@/lib/nowpayments";
+import { createBinancePayOrder } from "@/lib/binance-pay";
 import { orderTotalsForUsdGateway } from "@/lib/money";
+import { normalizeWalletDepositMethod } from "@/lib/payments/wallet-deposit-method";
+import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
 
 const MIN_FUNDING_USD = 1;
+
+/** Canonical UGC external funding methods (wallet is separate). */
+function normalizeUgcPaymentMethod(raw: string): string {
+  const key = String(raw ?? "").trim().toLowerCase();
+  if (key === "wallet") return "wallet";
+  const depositLike = normalizeWalletDepositMethod(key);
+  if (depositLike === "nowpayments" || depositLike === "crypto") return "crypto";
+  if (depositLike === "binancepay") return "binancepay";
+  if (depositLike === "flutterwave" || depositLike === "mobile_money") {
+    return depositLike === "mobile_money" ? "mobile_money" : "flutterwave";
+  }
+  if (["flutterwave", "wallet", "crypto", "mobile_money", "binancepay"].includes(key)) {
+    return key;
+  }
+  return "flutterwave";
+}
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -200,6 +219,7 @@ async function initiateExternalCheckout(
           campaign_id: opts.campaignId,
           invoice_amount: invoiceTotals.amount,
           invoice_currency: invoiceTotals.currency,
+          payment_method: "crypto",
         },
       });
       return {
@@ -210,7 +230,64 @@ async function initiateExternalCheckout(
     } catch (err) {
       return {
         ok: false,
-        error: err instanceof Error ? err.message : "Could not start crypto checkout",
+        error: safeDepositInitiateError("nowpayments", err),
+        status: 502,
+      };
+    }
+  }
+
+  if (opts.paymentMethod === "binancepay") {
+    const payAmount = Number(opts.amount.toFixed(2));
+    const merchantTradeNo = `UGC${opts.campaignId.replace(/-/g, "").slice(0, 18)}${Date.now().toString(36)}`
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 32);
+    try {
+      const binanceOrder = await createBinancePayOrder({
+        merchantOrderId: merchantTradeNo,
+        orderAmount: payAmount,
+        currency: "USDT",
+        description: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
+        returnUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?binance=pending`,
+        cancelUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?binance=cancel`,
+      });
+      const checkoutUrl =
+        binanceOrder.checkoutUrl ||
+        binanceOrder.universalUrl ||
+        binanceOrder.qrcodeLink ||
+        null;
+      if (!checkoutUrl) {
+        return {
+          ok: false,
+          error: "Binance Pay could not be started. Please try again.",
+          status: 502,
+        };
+      }
+      await db.from("transactions").insert({
+        user_id: opts.user.id,
+        type: "ugc_escrow",
+        amount: opts.amount,
+        currency: "USD",
+        status: "pending",
+        direction: "debit",
+        provider: "binancepay",
+        provider_transaction_id: merchantTradeNo,
+        reference: opts.campaignId,
+        description: `UGC campaign escrow ${opts.campaignId}`,
+        metadata: {
+          purpose: "ugc_escrow",
+          campaign_id: opts.campaignId,
+          binance_merchant_trade_no: merchantTradeNo,
+          binance_pay_amount: payAmount,
+          binance_pay_currency: "USDT",
+          wallet_credit_usd: opts.amount,
+          payment_method: "binancepay",
+        },
+      });
+      return { ok: true, checkoutUrl, paymentRef: merchantTradeNo };
+    } catch (err) {
+      return {
+        ok: false,
+        error: safeDepositInitiateError("binancepay", err),
         status: 502,
       };
     }
@@ -268,11 +345,7 @@ export async function POST(
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const paymentMethodRaw =
     typeof body.payment_method === "string" ? body.payment_method : "mobile_money";
-  const payment_method = ["flutterwave", "wallet", "crypto", "mobile_money"].includes(
-    paymentMethodRaw,
-  )
-    ? paymentMethodRaw
-    : "mobile_money";
+  const payment_method = normalizeUgcPaymentMethod(paymentMethodRaw);
 
   if ((payment_method === "mobile_money" || payment_method === "flutterwave") && !phone) {
     return NextResponse.json(

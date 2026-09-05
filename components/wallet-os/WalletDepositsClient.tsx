@@ -9,6 +9,11 @@ import {
   type MethodId,
 } from "@/components/checkout/PaymentMethodSelector";
 import {
+  isWalletDepositInitiable,
+  walletDepositMethodLabel,
+  WALLET_DEPOSIT_INITIABLE_METHODS,
+} from "@/lib/payments/wallet-deposit-method";
+import {
   WalletButton,
   WalletCard,
   WalletEmptyState,
@@ -25,6 +30,7 @@ interface DepositRecord {
   amount: number;
   currency?: string;
   method: string;
+  methodLabel?: string;
   status: string;
   createdAt: string;
   reference?: string | null;
@@ -34,7 +40,11 @@ interface WalletDepositsResponse {
   currency?: string;
   availableBalance?: number;
   deposits?: DepositRecord[];
+  supportedMethods?: string[];
 }
+
+/** Only methods with real deposit initiate + verify paths. */
+const DEPOSIT_METHOD_SET = new Set<string>(WALLET_DEPOSIT_INITIABLE_METHODS);
 
 export function WalletDepositsClient() {
   const { status, data, error, retry } = useWalletFetch<WalletDepositsResponse>("/api/wallet/os/deposits");
@@ -47,14 +57,23 @@ export function WalletDepositsClient() {
     fetch("/api/platform/payment-providers")
       .then((r) => r.json())
       .then((body: { enabled?: MethodId[] }) => {
-        if (Array.isArray(body.enabled) && body.enabled.length > 0) {
-          setEnabledMethods(body.enabled);
+        const configured = Array.isArray(body.enabled) ? body.enabled : [];
+        const depositReady = configured.filter(
+          (id) => DEPOSIT_METHOD_SET.has(id) && isWalletDepositInitiable(id),
+        ) as MethodId[];
+        if (depositReady.length > 0) {
+          setEnabledMethods(depositReady);
           setMethod((current) =>
-            body.enabled!.includes(current) ? current : body.enabled![0],
+            depositReady.includes(current) ? current : depositReady[0],
           );
+        } else {
+          // Fall back to initiable list — API still validates credentials at initiate time
+          setEnabledMethods([...WALLET_DEPOSIT_INITIABLE_METHODS] as MethodId[]);
         }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setEnabledMethods([...WALLET_DEPOSIT_INITIABLE_METHODS] as MethodId[]);
+      });
   }, []);
 
   const currency = data?.currency || PLATFORM_CURRENCY;
@@ -174,7 +193,8 @@ export function WalletDepositsClient() {
                       {formatMoneyAsUSD(d.amount, d.currency || currency)}
                     </p>
                     <p className="text-[11px] text-[#9B968D]">
-                      {d.method} · {new Date(d.createdAt).toLocaleString()}
+                      {d.methodLabel || walletDepositMethodLabel(d.method)} ·{" "}
+                      {new Date(d.createdAt).toLocaleString()}
                     </p>
                   </div>
                   <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>

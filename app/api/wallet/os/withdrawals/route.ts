@@ -6,6 +6,13 @@ import { logWalletActivity } from "@/lib/wallet-os/activity";
 import { listPayoutMethods, requestWithdrawal } from "@/services/creator-economy/payouts";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { syncAffiliatePaidOnWithdrawal } from "@/lib/affiliate/credit-wallet";
+import {
+  normalizeWalletWithdrawalMethod,
+  toCreatorPayoutDbMethod,
+  validateWithdrawalDestination,
+  walletWithdrawalMethodLabel,
+} from "@/lib/payments/wallet-payout-method";
+import { safeWithdrawalError } from "@/lib/payments/safe-payment-error";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +20,6 @@ const MIN_WITHDRAWAL = 1;
 
 function idempotencyKey(userId: string, amount: number, raw?: string | null) {
   if (raw && raw.trim()) return `WDR-${userId}-${raw.trim().slice(0, 64)}`;
-  // Fallback: short window key (same second) to blunt double-clicks without a client key
   const bucket = Math.floor(Date.now() / 5000);
   return `WDR-${userId}-${amount}-${bucket}`;
 }
@@ -26,6 +32,8 @@ export async function GET() {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
+  const wallet = await ensureWallet(user.id, db);
+
   const { data, error: fetchError } = await db
     .from("payouts")
     .select("*")
@@ -33,7 +41,10 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+  if (fetchError) {
+    console.error("[wallet withdrawals] list failed", { code: fetchError.code });
+    return NextResponse.json({ error: "Could not load withdrawals" }, { status: 500 });
+  }
 
   const withdrawals = (data ?? []).map((row: {
     id: string;
@@ -56,8 +67,11 @@ export async function GET() {
     netAmount: Number(row.net_amount ?? row.amount ?? 0),
     currency: row.currency ?? PLATFORM_CURRENCY,
     status: row.status,
+    method: row.payout_method ?? null,
     payoutMethod: row.payout_method ?? null,
+    methodLabel: walletWithdrawalMethodLabel(row.payout_method),
     payoutAccount: row.payout_account ?? null,
+    reference: row.provider_reference ?? null,
     providerReference: row.provider_reference ?? null,
     notes: row.notes ?? null,
     createdAt: row.created_at,
@@ -65,14 +79,19 @@ export async function GET() {
     releaseDate: row.release_date ?? null,
   }));
 
-  return NextResponse.json({ withdrawals });
+  return NextResponse.json({
+    currency: PLATFORM_CURRENCY,
+    availableBalance: Number(wallet.available_balance ?? 0),
+    withdrawals,
+  });
 }
 
 /**
  * POST /api/wallet/os/withdrawals — creates a withdrawal request.
  *
- * Wraps the existing `requestWithdrawal` service when the user has a saved
- * payout method; otherwise inserts into `payouts` with CAS wallet updates.
+ * Manual payout-request workflow: reserves balance (available → pending),
+ * creates a pending payout for admin/processor confirmation.
+ * Never marks paid until real confirmation.
  */
 export async function POST(req: NextRequest) {
   const { user, db, error } = await requireUser();
@@ -80,6 +99,7 @@ export async function POST(req: NextRequest) {
 
   let body: {
     amount?: number;
+    method?: string;
     methodId?: string;
     payoutMethod?: string;
     payoutAccount?: string;
@@ -94,7 +114,10 @@ export async function POST(req: NextRequest) {
 
   const amount = Math.round(Number(body.amount) * 100) / 100;
   if (!Number.isFinite(amount) || amount < MIN_WITHDRAWAL) {
-    return NextResponse.json({ error: `Enter a valid amount (minimum ${MIN_WITHDRAWAL})` }, { status: 400 });
+    return NextResponse.json(
+      { error: `Enter a valid amount (minimum ${MIN_WITHDRAWAL})` },
+      { status: 400 },
+    );
   }
 
   const wallet = await ensureWallet(user.id, db);
@@ -105,7 +128,10 @@ export async function POST(req: NextRequest) {
   const security = await getWalletSecurityStatus(user.id, db);
   if (security.locked) {
     return NextResponse.json(
-      { error: "Wallet is temporarily locked after too many failed PIN attempts", lockedUntil: security.lockedUntil },
+      {
+        error: "Wallet is temporarily locked after too many failed PIN attempts",
+        lockedUntil: security.lockedUntil,
+      },
       { status: 423 },
     );
   }
@@ -113,12 +139,19 @@ export async function POST(req: NextRequest) {
   let requireTwoFa = false;
   if (security.pinSet) {
     if (!body.pin) {
-      return NextResponse.json({ error: "PIN is required for withdrawals", requirePin: true }, { status: 400 });
+      return NextResponse.json(
+        { error: "PIN is required for withdrawals", requirePin: true },
+        { status: 400 },
+      );
     }
     const verification = await verifyWalletPin(user.id, String(body.pin));
     if (!verification.valid) {
       return NextResponse.json(
-        { error: "Incorrect PIN", attemptsRemaining: verification.attemptsRemaining, locked: verification.locked },
+        {
+          error: "Incorrect PIN",
+          attemptsRemaining: verification.attemptsRemaining,
+          locked: verification.locked,
+        },
         { status: 401 },
       );
     }
@@ -126,7 +159,11 @@ export async function POST(req: NextRequest) {
     requireTwoFa = true;
   }
 
-  const idemp = idempotencyKey(user.id, amount, body.idempotencyKey ?? req.headers.get("idempotency-key"));
+  const idemp = idempotencyKey(
+    user.id,
+    amount,
+    body.idempotencyKey ?? req.headers.get("idempotency-key"),
+  );
   const { data: existingByRef } = await db
     .from("transactions")
     .select("id, metadata")
@@ -143,23 +180,39 @@ export async function POST(req: NextRequest) {
   try {
     let payout: { id: string } | unknown;
     const methods = await listPayoutMethods(user.id);
-    const method = body.methodId
+    const savedMethod = body.methodId
       ? methods.find((item: { id: string }) => item.id === body.methodId)
-      : methods.find((item: { is_default: boolean }) => item.is_default);
+      : null;
 
-    if (method) {
-      payout = await requestWithdrawal({ userId: user.id, amount, methodId: method.id });
-    } else {
-      const payoutMethod = String(body.payoutMethod ?? "").trim();
-      const payoutAccount = String(body.payoutAccount ?? "").trim();
-      if (!payoutMethod || !payoutAccount) {
+    // Prefer explicit method from the request form over a silent default.
+    const rawMethod = body.payoutMethod ?? body.method ?? "";
+    const canonicalMethod = normalizeWalletWithdrawalMethod(rawMethod);
+
+    if (savedMethod && !canonicalMethod) {
+      // Saved method path (creator payout center) — still reject PayPal
+      const savedCanonical = normalizeWalletWithdrawalMethod(
+        String((savedMethod as { method?: string }).method ?? ""),
+      );
+      if (!savedCanonical) {
         return NextResponse.json(
-          { error: "Save a payout method first, or provide payoutMethod and payoutAccount" },
+          { error: "This payout method is no longer available for withdrawals" },
           { status: 400 },
         );
       }
+      payout = await requestWithdrawal({
+        userId: user.id,
+        amount,
+        methodId: savedMethod.id,
+      });
+    } else if (canonicalMethod) {
+      const accountRaw = String(body.payoutAccount ?? "").trim();
+      const validated = validateWithdrawalDestination(canonicalMethod, accountRaw);
+      if (!validated.ok) {
+        return NextResponse.json({ error: validated.error }, { status: 400 });
+      }
 
-      // CAS: move available → pending without going negative
+      const dbMethod = toCreatorPayoutDbMethod(canonicalMethod);
+
       let reserved = false;
       for (let attempt = 0; attempt < 5; attempt++) {
         const fresh = await ensureWallet(user.id, db);
@@ -185,7 +238,10 @@ export async function POST(req: NextRequest) {
         }
       }
       if (!reserved) {
-        return NextResponse.json({ error: "Could not reserve funds. Please retry." }, { status: 409 });
+        return NextResponse.json(
+          { error: "Could not reserve funds. Please retry." },
+          { status: 409 },
+        );
       }
 
       const { data: inserted, error: insertError } = await db
@@ -198,15 +254,14 @@ export async function POST(req: NextRequest) {
           net_amount: amount,
           currency: PLATFORM_CURRENCY,
           status: "pending",
-          payout_method: payoutMethod,
-          payout_account: payoutAccount,
-          notes: "Wallet OS withdrawal request",
+          payout_method: dbMethod,
+          payout_account: validated.account,
+          notes: `Wallet OS withdrawal · ${walletWithdrawalMethodLabel(canonicalMethod)}`,
           provider_reference: idemp,
         })
         .select()
         .single();
       if (insertError) {
-        // release reservation
         const fresh = await ensureWallet(user.id, db);
         await db
           .from("wallets")
@@ -220,6 +275,32 @@ export async function POST(req: NextRequest) {
       }
 
       payout = inserted;
+    } else if (!body.methodId) {
+      // Fall back to default saved method (non-PayPal)
+      const defaultMethod = methods.find(
+        (item: { is_default: boolean; method?: string }) =>
+          item.is_default && normalizeWalletWithdrawalMethod(item.method),
+      );
+      if (defaultMethod) {
+        payout = await requestWithdrawal({
+          userId: user.id,
+          amount,
+          methodId: defaultMethod.id,
+        });
+      } else {
+        return NextResponse.json(
+          {
+            error:
+              "Choose a payout method and enter destination details (PayPal is not available for withdrawals)",
+          },
+          { status: 400 },
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: "Choose a supported payout method" },
+        { status: 400 },
+      );
     }
 
     await db.from("transactions").insert({
@@ -247,10 +328,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ payout, requireTwoFa });
   } catch (err) {
-    console.error("POST /api/wallet/os/withdrawals failed", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to create withdrawal" },
-      { status: 400 },
-    );
+    console.error("POST /api/wallet/os/withdrawals failed", {
+      message: err instanceof Error ? err.message : String(err),
+      userId: user.id,
+    });
+    return NextResponse.json({ error: safeWithdrawalError(err) }, { status: 400 });
   }
 }

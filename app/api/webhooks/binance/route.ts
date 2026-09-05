@@ -245,6 +245,113 @@ export async function POST(req: NextRequest) {
     }
 
     if (!order) {
+        // Wallet deposit path: merchantTradeNo stored on wallet_deposits.reference / metadata
+        const { data: depositByRef } = await supabase
+            .from("wallet_deposits")
+            .select("id, amount, currency, status, metadata")
+            .eq("reference", data.merchantTradeNo)
+            .maybeSingle();
+
+        let deposit = depositByRef;
+        if (!deposit) {
+            const { data: depositByMeta } = await supabase
+                .from("wallet_deposits")
+                .select("id, amount, currency, status, metadata")
+                .eq("metadata->>binance_merchant_trade_no", data.merchantTradeNo)
+                .maybeSingle();
+            deposit = depositByMeta;
+        }
+
+        if (deposit) {
+            const depMeta =
+                deposit.metadata &&
+                typeof deposit.metadata === "object" &&
+                !Array.isArray(deposit.metadata)
+                    ? (deposit.metadata as Record<string, unknown>)
+                    : {};
+            const paidAmount = Number(data.orderAmount);
+            const expectedPayAmount = Number(
+                depMeta.binance_pay_amount ?? deposit.amount ?? NaN
+            );
+            if (
+                !Number.isFinite(paidAmount) ||
+                !Number.isFinite(expectedPayAmount) ||
+                Math.abs(paidAmount - expectedPayAmount) > 0.05
+            ) {
+                console.error("[binance-webhook] wallet deposit amount mismatch", {
+                    depositId: deposit.id,
+                    paidAmount,
+                    expectedPayAmount,
+                });
+                await supabase
+                    .from("webhook_events")
+                    .update({ status: "error", error: "deposit_amount_mismatch" })
+                    .eq("id", webhookEvent.id);
+                return NextResponse.json(
+                    { returnCode: "FAIL", returnMessage: "Amount mismatch" },
+                    { status: 400 }
+                );
+            }
+
+            const { completeWalletDeposit } = await import(
+                "@/lib/wallet-os/complete-deposit"
+            );
+            // Credit the USD wallet amount (not USDT settlement amount) when stored.
+            const creditUsd = Number(depMeta.wallet_credit_usd ?? deposit.amount);
+            const result = await completeWalletDeposit(supabase, {
+                depositId: deposit.id,
+                providerReference: data.transactionId || data.merchantTradeNo,
+                provider: "binancepay",
+                verifiedAmount: creditUsd,
+                verifiedCurrency: "USD",
+            });
+
+            console.info("[binance-webhook] wallet deposit processed", {
+                depositId: deposit.id,
+                credited: result.credited,
+                merchantTradeNo: data.merchantTradeNo,
+            });
+
+            await supabase
+                .from("webhook_events")
+                .update({
+                    status: "processed",
+                    order_id: null,
+                })
+                .eq("id", webhookEvent.id);
+
+            return NextResponse.json({
+                returnCode: "SUCCESS",
+                returnMessage: result.credited ? "Deposit credited" : "Deposit already handled",
+            });
+        }
+
+        // UGC escrow: merchantTradeNo stored as payment_ref / provider_transaction_id
+        const { confirmUgcEscrowPayment } = await import(
+            "@/lib/ugc/confirm-escrow-payment"
+        );
+        const ugc = await confirmUgcEscrowPayment(supabase, {
+            paymentRef: data.merchantTradeNo,
+            providerTransactionId: data.transactionId || data.merchantTradeNo,
+            amount: Number(data.orderAmount),
+            currency: data.currency || "USDT",
+            provider: "binancepay",
+        });
+        if (ugc.handled) {
+            console.info("[binance-webhook] UGC escrow confirmed", {
+                campaignId: ugc.campaignId,
+                activated: ugc.activated,
+            });
+            await supabase
+                .from("webhook_events")
+                .update({ status: "processed" })
+                .eq("id", webhookEvent.id);
+            return NextResponse.json({
+                returnCode: "SUCCESS",
+                returnMessage: "UGC escrow confirmed",
+            });
+        }
+
         console.error("[binance-webhook] order not found", {
             merchantTradeNo: data.merchantTradeNo,
         });
