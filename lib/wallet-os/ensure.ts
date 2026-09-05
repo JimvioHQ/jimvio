@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -16,6 +17,43 @@ export interface WalletRow {
   updated_at: string | null;
 }
 
+function totalBalance(row: WalletRow): number {
+  return (
+    Number(row.available_balance ?? 0) +
+    Number(row.pending_balance ?? 0) +
+    Number(row.locked_balance ?? 0) +
+    Number(row.escrow_balance ?? 0) +
+    Number(row.rewards_balance ?? 0)
+  );
+}
+
+/**
+ * Jimvio wallet ledger is USD. Legacy rows may still say RWF with zero
+ * balances — normalize those so deposits/withdrawals stay consistent.
+ * Never rewrite currency when any balance is non-zero (needs migration care).
+ */
+async function normalizeWalletCurrency(
+  client: ServiceClient,
+  row: WalletRow,
+): Promise<WalletRow> {
+  const current = String(row.currency ?? "").toUpperCase();
+  if (current === PLATFORM_CURRENCY) return row;
+  if (totalBalance(row) > 0.0001) return row;
+
+  const { data: updated } = await client
+    .from("wallets")
+    .update({
+      currency: PLATFORM_CURRENCY,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", row.user_id)
+    .eq("available_balance", row.available_balance)
+    .select("*")
+    .maybeSingle();
+
+  return (updated as WalletRow) ?? { ...row, currency: PLATFORM_CURRENCY };
+}
+
 /**
  * Ensures a `wallets` row exists for `userId`, inserting one with zero
  * balances (including the migration 124 columns) if missing. Never mutates
@@ -31,7 +69,9 @@ export async function ensureWallet(userId: string, db?: ServiceClient): Promise<
     .maybeSingle();
 
   if (fetchError) throw fetchError;
-  if (existing) return existing as WalletRow;
+  if (existing) {
+    return normalizeWalletCurrency(client, existing as WalletRow);
+  }
 
   const { data: inserted, error: insertError } = await client
     .from("wallets")
@@ -45,7 +85,7 @@ export async function ensureWallet(userId: string, db?: ServiceClient): Promise<
         rewards_balance: 0,
         total_earned: 0,
         total_paid: 0,
-        currency: "USD",
+        currency: PLATFORM_CURRENCY,
       },
       { onConflict: "user_id" },
     )
