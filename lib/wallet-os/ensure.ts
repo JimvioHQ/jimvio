@@ -40,16 +40,25 @@ async function normalizeWalletCurrency(
   if (current === PLATFORM_CURRENCY) return row;
   if (totalBalance(row) > 0.0001) return row;
 
-  const { data: updated } = await client
+  // Zero-balance legacy rows: rewrite currency without fragile numeric CAS
+  // (Postgres numeric vs JS number mismatches can silently no-op the update).
+  const { data: updated, error } = await client
     .from("wallets")
     .update({
       currency: PLATFORM_CURRENCY,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", row.user_id)
-    .eq("available_balance", row.available_balance)
     .select("*")
     .maybeSingle();
+
+  if (error) {
+    console.warn("[ensureWallet] currency normalize failed", {
+      userId: row.user_id,
+      code: error.code,
+    });
+    return { ...row, currency: PLATFORM_CURRENCY };
+  }
 
   return (updated as WalletRow) ?? { ...row, currency: PLATFORM_CURRENCY };
 }

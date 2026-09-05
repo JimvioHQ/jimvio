@@ -120,6 +120,12 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/wallet/os/withdrawals — creates a withdrawal request.
  * Manual admin-confirmed workflow. Session auth required; Wallet PIN not required.
+ *
+ * Validation order (intentional):
+ * 1) method / destination contract
+ * 2) amount + fee
+ * 3) balance reservation
+ * so zero-balance accounts still receive correct method/destination errors.
  */
 export async function POST(req: NextRequest) {
   const { user, db, error } = await requireUser();
@@ -132,6 +138,8 @@ export async function POST(req: NextRequest) {
     payoutMethod?: string;
     payoutAccount?: string;
     destination?: WithdrawalDestinationDetails;
+    fee?: number; // ignored — server calculates
+    netAmount?: number; // ignored
     idempotencyKey?: string;
   };
   try {
@@ -141,19 +149,41 @@ export async function POST(req: NextRequest) {
   }
 
   const amount = Math.round(Number(body.amount) * 100) / 100;
-  if (!Number.isFinite(amount) || amount < MIN_WITHDRAWAL) {
+  if (!Number.isFinite(amount)) {
+    return NextResponse.json({ error: "Enter a valid amount" }, { status: 400 });
+  }
+
+  const methods = await listPayoutMethods(user.id);
+  const savedMethod = body.methodId
+    ? methods.find((item: { id: string }) => item.id === body.methodId)
+    : null;
+
+  const rawMethod = String(body.payoutMethod ?? body.method ?? "").trim();
+  const canonicalMethod = normalizeWalletWithdrawalMethod(rawMethod);
+
+  // Explicit unsupported method (e.g. flutterwave / paypal) must fail clearly
+  // before the balance gate — otherwise zero-balance accounts hide the real error.
+  if (rawMethod && !canonicalMethod && !savedMethod) {
+    const blocked = rawMethod.toLowerCase().replace(/\s+/g, "_");
+    if (blocked === "flutterwave" || blocked === "flw") {
+      return NextResponse.json(
+        { error: "Flutterwave is not available for withdrawals" },
+        { status: 400 },
+      );
+    }
+    if (blocked === "paypal" || blocked === "pay_pal") {
+      return NextResponse.json(
+        { error: "PayPal is not available for withdrawals" },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
-      { error: `Enter a valid amount (minimum ${MIN_WITHDRAWAL})` },
+      { error: "Choose a supported payout method" },
       { status: 400 },
     );
   }
 
-  const wallet = await ensureWallet(user.id, db);
-  if (Number(wallet.available_balance) < amount) {
-    return NextResponse.json({ error: "Insufficient available balance" }, { status: 400 });
-  }
-
-  // Soft security: honor existing temporary lock (from other PIN surfaces) without requiring PIN here.
+  // Soft security: honor existing temporary lock without requiring PIN.
   const security = await getWalletSecurityStatus(user.id, db);
   if (security.locked) {
     return NextResponse.json(
@@ -165,32 +195,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const idemp = idempotencyKey(
-    user.id,
-    amount,
-    body.idempotencyKey ?? req.headers.get("idempotency-key"),
-  );
-  const { data: existingByRef } = await db
-    .from("transactions")
-    .select("id, metadata")
-    .eq("reference", idemp)
-    .maybeSingle();
-  if (existingByRef) {
-    return NextResponse.json({
-      payout: (existingByRef.metadata as { payout?: unknown } | null)?.payout ?? null,
-      duplicate: true,
-    });
-  }
-
   try {
     let payout: { id: string } | unknown;
-    const methods = await listPayoutMethods(user.id);
-    const savedMethod = body.methodId
-      ? methods.find((item: { id: string }) => item.id === body.methodId)
-      : null;
-
-    const rawMethod = body.payoutMethod ?? body.method ?? "";
-    const canonicalMethod = normalizeWalletWithdrawalMethod(rawMethod);
+    let resolvedMethod = canonicalMethod;
 
     if (savedMethod && !canonicalMethod) {
       const savedCanonical = normalizeWalletWithdrawalMethod(
@@ -202,15 +209,12 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
-      payout = await requestWithdrawal({
-        userId: user.id,
-        amount,
-        methodId: savedMethod.id,
-      });
-    } else if (canonicalMethod) {
+      resolvedMethod = savedCanonical;
+    }
+
+    if (canonicalMethod) {
       let validatedAccount: string;
       let display = "";
-      let feeQuote = calculateWithdrawalFee(canonicalMethod, amount);
 
       if (body.destination && typeof body.destination === "object") {
         const structured = validateWithdrawalDestinationDetails(
@@ -232,11 +236,42 @@ export async function POST(req: NextRequest) {
         display = formatStoredPayoutAccount(canonicalMethod, validatedAccount);
       }
 
+      if (amount < MIN_WITHDRAWAL) {
+        return NextResponse.json(
+          { error: `Enter a valid amount (minimum ${MIN_WITHDRAWAL})` },
+          { status: 400 },
+        );
+      }
+
+      // Server-authoritative fee — ignore any client fee/netAmount.
+      let feeQuote = calculateWithdrawalFee(canonicalMethod, amount);
       if (feeQuote.netAmount <= 0) {
         return NextResponse.json(
           { error: "Amount is too small after the Jimvio withdrawal fee" },
           { status: 400 },
         );
+      }
+
+      const wallet = await ensureWallet(user.id, db);
+      if (Number(wallet.available_balance) < amount) {
+        return NextResponse.json({ error: "Insufficient available balance" }, { status: 400 });
+      }
+
+      const idemp = idempotencyKey(
+        user.id,
+        amount,
+        body.idempotencyKey ?? req.headers.get("idempotency-key"),
+      );
+      const { data: existingByRef } = await db
+        .from("transactions")
+        .select("id, metadata")
+        .eq("reference", idemp)
+        .maybeSingle();
+      if (existingByRef) {
+        return NextResponse.json({
+          payout: (existingByRef.metadata as { payout?: unknown } | null)?.payout ?? null,
+          duplicate: true,
+        });
       }
 
       const dbMethod = toCreatorPayoutDbMethod(canonicalMethod);
@@ -272,7 +307,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Recompute fee server-side immediately before insert (never trust client).
       feeQuote = calculateWithdrawalFee(canonicalMethod, amount);
 
       const { data: inserted, error: insertError } = await db
@@ -306,6 +340,75 @@ export async function POST(req: NextRequest) {
       }
 
       payout = inserted;
+
+      await db.from("transactions").insert({
+        user_id: user.id,
+        type: "wallet_withdrawal",
+        amount: -amount,
+        currency: PLATFORM_CURRENCY,
+        status: "pending",
+        reference: idemp,
+        description: "Withdrawal requested",
+        metadata: { payout },
+      });
+
+      await syncAffiliatePaidOnWithdrawal(db, { userId: user.id, amount });
+
+      await logWalletActivity({
+        userId: user.id,
+        action: "withdrawal_requested",
+        surface: "withdrawals",
+        amount,
+        currency: PLATFORM_CURRENCY,
+        metadata: { payout },
+        db,
+      });
+
+      return NextResponse.json({
+        payout,
+        duplicate: false,
+        fee: feeQuote.fee,
+        netAmount: feeQuote.netAmount,
+        feeLabel: feeQuote.label,
+      });
+    }
+
+    // Saved-method / default-method paths
+    if (amount < MIN_WITHDRAWAL) {
+      return NextResponse.json(
+        { error: `Enter a valid amount (minimum ${MIN_WITHDRAWAL})` },
+        { status: 400 },
+      );
+    }
+
+    const wallet = await ensureWallet(user.id, db);
+    if (Number(wallet.available_balance) < amount) {
+      return NextResponse.json({ error: "Insufficient available balance" }, { status: 400 });
+    }
+
+    const idemp = idempotencyKey(
+      user.id,
+      amount,
+      body.idempotencyKey ?? req.headers.get("idempotency-key"),
+    );
+    const { data: existingByRef } = await db
+      .from("transactions")
+      .select("id, metadata")
+      .eq("reference", idemp)
+      .maybeSingle();
+    if (existingByRef) {
+      return NextResponse.json({
+        payout: (existingByRef.metadata as { payout?: unknown } | null)?.payout ?? null,
+        duplicate: true,
+      });
+    }
+
+    if (savedMethod) {
+      payout = await requestWithdrawal({
+        userId: user.id,
+        amount,
+        methodId: savedMethod.id,
+      });
     } else if (!body.methodId) {
       const defaultMethod = methods.find(
         (item: { is_default: boolean; method?: string }) =>
@@ -320,8 +423,7 @@ export async function POST(req: NextRequest) {
       } else {
         return NextResponse.json(
           {
-            error:
-              "Choose a payout method and enter destination details",
+            error: "Choose a payout method and enter destination details",
           },
           { status: 400 },
         );
@@ -352,7 +454,7 @@ export async function POST(req: NextRequest) {
       surface: "withdrawals",
       amount,
       currency: PLATFORM_CURRENCY,
-      metadata: { payout },
+      metadata: { payout, resolvedMethod },
       db,
     });
 
