@@ -129,7 +129,7 @@ export function UGCPlatformMarks({
   if (!unique.length) return null;
   const compact = size === "sm";
   return (
-    <ul className={cn("flex items-center", compact ? "gap-1" : "gap-1.5", className)}>
+    <ul className={cn("flex items-center", compact ? "gap-1" : "gap-1.5", className)} aria-label="Platforms">
       {unique.map((key) => {
         const Icon = MARKS[key];
         const label = LABELS[key] ?? key;
@@ -138,7 +138,7 @@ export function UGCPlatformMarks({
             <span
               className={cn(
                 "inline-flex items-center justify-center text-[#111827]",
-                compact ? "h-4 w-4" : "h-5 w-5",
+                compact ? "h-3.5 w-3.5" : "h-5 w-5",
               )}
               title={label}
               aria-label={label}

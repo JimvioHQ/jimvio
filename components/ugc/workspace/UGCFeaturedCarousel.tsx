@@ -62,10 +62,10 @@ export function UGCFeaturedCarousel({
       </div>
       <div
         ref={scrollerRef}
-        className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory [scrollbar-width:thin]"
+        className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 snap-x snap-mandatory [scrollbar-width:thin] sm:gap-3"
       >
         {campaigns.map((c, i) => (
-          <div key={c.id} className="w-[228px] shrink-0 snap-start sm:w-[240px] lg:w-[248px]">
+          <div key={c.id} className="w-[220px] shrink-0 snap-start sm:w-[228px] lg:w-[236px]">
             <UGCPremiumCampaignCard
               campaign={c}
               index={i}
