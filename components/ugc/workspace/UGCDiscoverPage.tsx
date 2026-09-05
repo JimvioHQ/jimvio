@@ -27,12 +27,11 @@ function CardSkeleton() {
       <div className="space-y-1.5 px-2.5 pb-2.5 pt-2">
         <div className="flex items-center gap-1.5">
           <div className="h-[18px] w-[18px] animate-pulse rounded-full bg-[#F3F4F6]" />
-          <div className="h-3 w-20 animate-pulse rounded bg-[#F3F4F6]" />
+          <div className="h-3 w-24 animate-pulse rounded bg-[#F3F4F6]" />
         </div>
-        <div className="h-3.5 w-full animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="h-3 w-2/3 animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="flex items-center justify-between pt-0.5">
-          <div className="h-3 w-10 animate-pulse rounded bg-[#F3F4F6]" />
+        <div className="h-4 w-full animate-pulse rounded bg-[#F3F4F6]" />
+        <div className="flex items-center justify-between pt-1">
+          <div className="h-3 w-20 animate-pulse rounded bg-[#F3F4F6]" />
           <div className="h-5 w-14 animate-pulse rounded-full bg-[#EBF5FF]" />
         </div>
       </div>
@@ -59,8 +58,6 @@ export function UGCDiscoverPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-
   const [contentType, setContentType] = useState<ContentTypeFilter>(() => {
     if (typeParam === "clipping") return "clipping";
     if (typeParam === "ugc") return "ugc";
@@ -191,28 +188,6 @@ export function UGCDiscoverPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/ugc/saves", { cache: "no-store" });
-        if (!res.ok) return;
-        const json = await res.json();
-        const ids = new Set<string>(
-          ((json.data ?? []) as Array<{ campaign_id?: string; campaign?: { id?: string } }>)
-            .map((row) => row.campaign?.id ?? row.campaign_id ?? "")
-            .filter(Boolean),
-        );
-        if (!cancelled) setSavedIds(ids);
-      } catch {
-        /* unauthenticated is fine */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const hasFilters =
     contentType !== "all" ||
     platform !== "all" ||
@@ -248,29 +223,6 @@ export function UGCDiscoverPage() {
     setCountry("");
     setCountryQuery("");
     clearSearch();
-  }
-
-  async function toggleSave(campaignId: string) {
-    const previous = new Set(savedIds);
-    const next = new Set(savedIds);
-    const saving = !next.has(campaignId);
-    if (saving) next.add(campaignId);
-    else next.delete(campaignId);
-    setSavedIds(next);
-    try {
-      const res = saving
-        ? await fetch("/api/ugc/saves", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ campaign_id: campaignId }),
-          })
-        : await fetch(`/api/ugc/saves?campaign_id=${encodeURIComponent(campaignId)}`, {
-            method: "DELETE",
-          });
-      if (!res.ok) setSavedIds(previous);
-    } catch {
-      setSavedIds(previous);
-    }
   }
 
   const campaigns = rawCampaigns;
@@ -329,11 +281,7 @@ export function UGCDiscoverPage() {
       ) : (
         <>
           {showFeaturedRail ? (
-            <UGCFeaturedCarousel
-              campaigns={featuredCampaigns.slice(0, 8)}
-              savedIds={savedIds}
-              onToggleSave={toggleSave}
-            />
+            <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 8)} />
           ) : null}
 
           <section id="all-campaigns">
@@ -382,13 +330,7 @@ export function UGCDiscoverPage() {
             ) : (
               <div className={CARD_GRID}>
                 {campaigns.map((c, i) => (
-                  <UGCPremiumCampaignCard
-                    key={c.id}
-                    campaign={c}
-                    index={i}
-                    saved={savedIds.has(c.id)}
-                    onToggleSave={toggleSave}
-                  />
+                  <UGCPremiumCampaignCard key={c.id} campaign={c} index={i} />
                 ))}
               </div>
             )}

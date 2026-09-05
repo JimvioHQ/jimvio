@@ -7,10 +7,9 @@ import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 
 export function UGCFeaturedCarousel({
   campaigns,
-  savedIds,
-  onToggleSave,
 }: {
   campaigns: UGCCampaign[];
+  /** Kept optional for call-site compatibility; Discover cards no longer show save. */
   savedIds?: Set<string>;
   onToggleSave?: (campaignId: string) => void;
 }) {
@@ -66,13 +65,7 @@ export function UGCFeaturedCarousel({
       >
         {campaigns.map((c, i) => (
           <div key={c.id} className="w-[220px] shrink-0 snap-start sm:w-[228px] lg:w-[236px]">
-            <UGCPremiumCampaignCard
-              campaign={c}
-              index={i}
-              featured
-              saved={savedIds?.has(c.id)}
-              onToggleSave={onToggleSave}
-            />
+            <UGCPremiumCampaignCard campaign={c} index={i} featured />
           </div>
         ))}
       </div>

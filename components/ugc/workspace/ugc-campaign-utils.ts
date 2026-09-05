@@ -44,7 +44,7 @@ export function getClipRateBadge(
     return `${formatMoney(c.rate_per_1k_views, "USD")}/1K`;
   }
   if (c.payment_model === "fixed_per_content" && c.fixed_rate > 0) {
-    return `${formatMoney(c.fixed_rate, "USD")}/clip`;
+    return `${formatMoney(c.fixed_rate, "USD")}/clips`;
   }
   return null;
 }
