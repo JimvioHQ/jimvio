@@ -10,15 +10,21 @@ import {
   Settings2,
   Smartphone,
   Wallet,
-  Zap,
 } from "lucide-react";
 import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import {
+  BANK_COUNTRY_CONFIG,
+  CRYPTO_ASSETS,
+  CRYPTO_NETWORKS,
+  MOBILE_MONEY_BY_COUNTRY,
   normalizeWalletWithdrawalMethod,
   walletWithdrawalMethodLabel,
-  withdrawalSpeedLabel,
+  withdrawalProcessingEstimate,
+  type CryptoAssetId,
   type WalletWithdrawalMethod,
+  type WithdrawalDestinationDetails,
 } from "@/lib/payments/wallet-payout-method";
+import { calculateWithdrawalFee } from "@/lib/payments/withdrawal-fees";
 import {
   WalletButton,
   WalletCard,
@@ -35,20 +41,25 @@ import {
 interface WithdrawalRecord {
   id: string;
   amount: number;
+  fee?: number;
+  netAmount?: number;
   currency?: string;
   method?: string;
   payoutMethod?: string | null;
+  methodLabel?: string;
   status: string;
   createdAt: string;
   reference?: string | null;
   providerReference?: string | null;
   payoutAccount?: string | null;
+  destinationDisplay?: string | null;
 }
 
 interface WalletWithdrawalsResponse {
   currency?: string;
   availableBalance?: number;
   withdrawals?: WithdrawalRecord[];
+  methods?: string[];
 }
 
 const METHODS: Array<{
@@ -56,58 +67,37 @@ const METHODS: Array<{
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  accountLabel: string;
-  accountPlaceholder: string;
-  accountHint: string;
 }> = [
   {
     id: "bank",
     label: "Bank transfer",
     icon: Landmark,
-    description: withdrawalSpeedLabel("bank"),
-    accountLabel: "Bank account details",
-    accountPlaceholder: "Bank name, account number, account name",
-    accountHint: "Include bank name, account number, and account holder name.",
-  },
-  {
-    id: "flutterwave",
-    label: "Flutterwave",
-    icon: Zap,
-    description: withdrawalSpeedLabel("flutterwave"),
-    accountLabel: "Flutterwave payout destination",
-    accountPlaceholder: "Account / phone linked to Flutterwave",
-    accountHint: "Use the account you registered with Flutterwave payouts.",
+    description: withdrawalProcessingEstimate("bank"),
   },
   {
     id: "mobile_money",
     label: "Mobile Money",
     icon: Smartphone,
-    description: withdrawalSpeedLabel("mobile_money"),
-    accountLabel: "Mobile money number",
-    accountPlaceholder: "+2507…",
-    accountHint: "Include country code. Operator must match your region.",
+    description: withdrawalProcessingEstimate("mobile_money"),
   },
   {
     id: "binance_id",
     label: "Binance ID",
     icon: Wallet,
-    description: withdrawalSpeedLabel("binance_id"),
-    accountLabel: "Binance ID",
-    accountPlaceholder: "123456789",
-    accountHint: "Your numeric Binance ID from the Binance app profile.",
+    description: withdrawalProcessingEstimate("binance_id"),
   },
   {
     id: "crypto",
     label: "Cryptocurrency",
     icon: Bitcoin,
-    description: withdrawalSpeedLabel("crypto"),
-    accountLabel: "Wallet address (include network in notes if needed)",
-    accountPlaceholder: "USDT TRC20 / BTC address",
-    accountHint: "Double-check network and address — crypto payouts are irreversible.",
+    description: withdrawalProcessingEstimate("crypto"),
   },
 ];
 
 const STATUS_FILTERS = ["all", "pending", "processing", "paid", "failed"] as const;
+
+const fieldClass =
+  "h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3.5 text-[14px] text-[#121113] outline-none focus:border-[#FF5A1F]/50 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/25";
 
 function mapUiStatus(status: string): string {
   const s = (status || "").toLowerCase();
@@ -115,46 +105,172 @@ function mapUiStatus(status: string): string {
   return s;
 }
 
+function Field({
+  id,
+  label,
+  children,
+  hint,
+  error,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+  hint?: string;
+  error?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-[12px] font-medium text-[#726D64]">
+        {label}
+      </label>
+      {children}
+      {hint ? <p className="mt-1.5 text-[11px] text-[#9B968D]">{hint}</p> : null}
+      {error ? (
+        <p className="mt-1 text-[11px] text-red-600" role="alert" id={`${id}-error`}>
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function WalletWithdrawalsClient() {
-  const { status, data, error, retry } = useWalletFetch<WalletWithdrawalsResponse>("/api/wallet/os/withdrawals");
+  const { status, data, error, retry } =
+    useWalletFetch<WalletWithdrawalsResponse>("/api/wallet/os/withdrawals");
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>("all");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<WalletWithdrawalMethod>("bank");
-  const [payoutAccount, setPayoutAccount] = useState("");
-  const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmStep, setConfirmStep] = useState(false);
+
+  // Bank
+  const [bankCountry, setBankCountry] = useState("US");
+  const [bankName, setBankName] = useState("");
+  const [accountHolder, setAccountHolder] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [routingNumber, setRoutingNumber] = useState("");
+  const [sortCode, setSortCode] = useState("");
+  const [branchCode, setBranchCode] = useState("");
+  const [iban, setIban] = useState("");
+  const [swift, setSwift] = useState("");
+  const [bankAddress, setBankAddress] = useState("");
+
+  // Mobile money
+  const [mmCountry, setMmCountry] = useState("RW");
+  const [mmProvider, setMmProvider] = useState(
+    MOBILE_MONEY_BY_COUNTRY.RW.providers[0]?.id ?? ""
+  );
+  const [mmPhone, setMmPhone] = useState("");
+  const [mmHolder, setMmHolder] = useState("");
+
+  // Binance
+  const [binanceId, setBinanceId] = useState("");
+  const [confirmBinanceId, setConfirmBinanceId] = useState("");
+  const [binanceName, setBinanceName] = useState("");
+
+  // Crypto
+  const [cryptoAsset, setCryptoAsset] = useState<CryptoAssetId>("USDT");
+  const [cryptoNetwork, setCryptoNetwork] = useState("TRC20");
+  const [walletAddress, setWalletAddress] = useState("");
 
   const currency = data?.currency || "USD";
-  const withdrawals = data?.withdrawals ?? [];
-  const activeMethod = METHODS.find((m) => m.id === method) ?? METHODS[0];
+  const available = Number(data?.availableBalance ?? 0);
+
+  const parsedAmount = Number(amount);
+  const feeQuote = useMemo(() => {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return calculateWithdrawalFee(method, 0);
+    }
+    return calculateWithdrawalFee(method, parsedAmount);
+  }, [method, parsedAmount]);
+
+  const bankCfg = BANK_COUNTRY_CONFIG[bankCountry] ?? BANK_COUNTRY_CONFIG.OTHER;
+  const mmCfg = MOBILE_MONEY_BY_COUNTRY[mmCountry];
+  const cryptoNetworks = CRYPTO_NETWORKS[cryptoAsset] ?? [];
 
   const filtered = useMemo(() => {
-    if (statusFilter === "all") return withdrawals;
-    return withdrawals.filter((w) => mapUiStatus(w.status) === statusFilter);
-  }, [withdrawals, statusFilter]);
+    const list = data?.withdrawals ?? [];
+    if (statusFilter === "all") return list;
+    return list.filter((w) => mapUiStatus(w.status) === statusFilter);
+  }, [data?.withdrawals, statusFilter]);
+
+  function buildDestination(): WithdrawalDestinationDetails {
+    switch (method) {
+      case "bank":
+        return {
+          method: "bank",
+          country: bankCountry,
+          bankName,
+          accountHolder,
+          accountNumber,
+          routingNumber,
+          sortCode,
+          branchCode,
+          iban,
+          swift,
+          bankAddress,
+          currency: bankCfg.currency,
+        };
+      case "mobile_money":
+        return {
+          method: "mobile_money",
+          country: mmCountry,
+          provider: mmProvider,
+          phone: mmPhone,
+          accountHolder: mmHolder,
+        };
+      case "binance_id":
+        return {
+          method: "binance_id",
+          binanceId,
+          confirmBinanceId,
+          recipientName: binanceName || undefined,
+        };
+      case "crypto":
+        return {
+          method: "crypto",
+          asset: cryptoAsset,
+          network: cryptoNetwork,
+          walletAddress,
+        };
+    }
+  }
+
+  function resetDestinationFields() {
+    setConfirmStep(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = Number(amount);
-    if (!parsed || parsed <= 0) {
-      toast.error("Enter a valid withdrawal amount");
+    if (!confirmStep) {
+      if (!parsedAmount || parsedAmount <= 0) {
+        toast.error("Enter a valid withdrawal amount");
+        return;
+      }
+      if (parsedAmount > available) {
+        toast.error("Amount exceeds available balance");
+        return;
+      }
+      if (feeQuote.netAmount <= 0) {
+        toast.error("Amount is too small after the Jimvio withdrawal fee");
+        return;
+      }
+      setConfirmStep(true);
       return;
     }
+
     const canonical = normalizeWalletWithdrawalMethod(method);
     if (!canonical) {
       toast.error("Choose a supported payout method");
       return;
     }
-    if (!payoutAccount.trim()) {
-      toast.error(`Enter your ${activeMethod.accountLabel.toLowerCase()}`);
-      return;
-    }
+
     setSubmitting(true);
     try {
       const idempotencyKey =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
-          : `${Date.now()}-${parsed}`;
+          : `${Date.now()}-${parsedAmount}`;
       const res = await fetch("/api/wallet/os/withdrawals", {
         method: "POST",
         headers: {
@@ -162,11 +278,10 @@ export function WalletWithdrawalsClient() {
           "Idempotency-Key": idempotencyKey,
         },
         body: JSON.stringify({
-          amount: parsed,
+          amount: parsedAmount,
           payoutMethod: canonical,
-          payoutAccount: payoutAccount.trim(),
+          destination: buildDestination(),
           idempotencyKey,
-          ...(pin ? { pin } : {}),
         }),
       });
       const body = await res.json().catch(() => null);
@@ -179,8 +294,22 @@ export function WalletWithdrawalsClient() {
           : "Withdrawal request submitted — pending confirmation",
       );
       setAmount("");
-      setPin("");
-      setPayoutAccount("");
+      setConfirmStep(false);
+      setBankName("");
+      setAccountHolder("");
+      setAccountNumber("");
+      setRoutingNumber("");
+      setSortCode("");
+      setBranchCode("");
+      setIban("");
+      setSwift("");
+      setBankAddress("");
+      setMmPhone("");
+      setMmHolder("");
+      setBinanceId("");
+      setConfirmBinanceId("");
+      setBinanceName("");
+      setWalletAddress("");
       retry();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't submit withdrawal request");
@@ -194,7 +323,7 @@ export function WalletWithdrawalsClient() {
       <WalletSectionHeading
         eyebrow="Jimvio Wallet"
         title="Withdrawals"
-        description="Request a payout to a supported destination. Funds stay reserved until the payout is confirmed."
+        description="Request a payout to a supported destination. Funds stay reserved until the payout is confirmed by Jimvio."
         action={
           <Link href="/creator/payouts">
             <WalletButton variant="outline" size="md">
@@ -206,7 +335,7 @@ export function WalletWithdrawalsClient() {
         className="mb-6"
       />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[400px_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]">
         <WalletCard className="p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
             Request withdrawal
@@ -219,29 +348,39 @@ export function WalletWithdrawalsClient() {
               </span>
             </p>
           )}
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">Amount</label>
+
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
+            <Field id="wd-amount" label="Amount (USD)">
               <div className="relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] text-[#B9B3A6]">
-                  {currency}
+                  USD
                 </span>
                 <input
+                  id="wd-amount"
                   type="number"
-                  min={0}
+                  min={1}
                   step="0.01"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setConfirmStep(false);
+                  }}
                   placeholder="0.00"
                   required
-                  className="h-11 w-full rounded-xl border border-black/[0.08] bg-white pl-14 pr-3 text-[14px] font-medium text-[#121113] outline-none focus:border-[#FF5A1F]/50"
+                  className={cn(fieldClass, "pl-14")}
                 />
               </div>
-            </div>
+            </Field>
 
             <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">Method</label>
-              <div className="grid grid-cols-1 gap-1.5">
+              <p className="mb-1.5 text-[12px] font-medium text-[#726D64]" id="method-label">
+                Payout method
+              </p>
+              <div
+                className="grid grid-cols-1 gap-1.5 sm:grid-cols-2"
+                role="radiogroup"
+                aria-labelledby="method-label"
+              >
                 {METHODS.map((m) => {
                   const Icon = m.icon;
                   const active = method === m.id;
@@ -249,12 +388,23 @@ export function WalletWithdrawalsClient() {
                     <button
                       key={m.id}
                       type="button"
+                      role="radio"
+                      aria-checked={active}
                       onClick={() => {
                         setMethod(m.id);
-                        setPayoutAccount("");
+                        resetDestinationFields();
+                        if (m.id === "crypto") {
+                          setCryptoNetwork(CRYPTO_NETWORKS.USDT[0]?.id ?? "TRC20");
+                        }
+                        if (m.id === "mobile_money") {
+                          setMmProvider(
+                            MOBILE_MONEY_BY_COUNTRY[mmCountry]?.providers[0]?.id ?? ""
+                          );
+                        }
                       }}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                        "flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35",
                         active
                           ? "border-[#FF5A1F]/60 bg-[#FFF6F1]"
                           : "border-black/[0.08] bg-white hover:border-black/15",
@@ -262,7 +412,7 @@ export function WalletWithdrawalsClient() {
                     >
                       <Icon
                         className={cn(
-                          "h-4 w-4 shrink-0",
+                          "mt-0.5 h-4 w-4 shrink-0",
                           active ? "text-[#D6480F]" : "text-[#9B968D]",
                         )}
                       />
@@ -270,61 +420,370 @@ export function WalletWithdrawalsClient() {
                         <span className="block text-[12.5px] font-semibold text-[#121113]">
                           {m.label}
                         </span>
-                        <span className="block text-[10.5px] text-[#9B968D]">{m.description}</span>
+                        <span className="block text-[10.5px] leading-snug text-[#9B968D]">
+                          {m.description}
+                        </span>
                       </span>
-                      <span
-                        className={cn(
-                          "h-2 w-2 shrink-0 rounded-full",
-                          active ? "bg-[#FF5A1F]" : "border border-black/15 bg-transparent",
-                        )}
-                      />
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">
-                {activeMethod.accountLabel}
-              </label>
-              <input
-                type="text"
-                value={payoutAccount}
-                onChange={(e) => setPayoutAccount(e.target.value)}
-                placeholder={activeMethod.accountPlaceholder}
-                required
-                autoComplete="off"
-                className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3.5 text-[14px] text-[#121113] outline-none focus:border-[#FF5A1F]/50"
-              />
-              <p className="mt-1.5 text-[11px] text-[#9B968D]">{activeMethod.accountHint}</p>
+            {/* Method-specific forms */}
+            {method === "bank" ? (
+              <div className="space-y-3 rounded-xl border border-black/[0.06] bg-[#FAFAF8] p-3.5">
+                <Field id="bank-country" label="Country">
+                  <select
+                    id="bank-country"
+                    value={bankCountry}
+                    onChange={(e) => {
+                      setBankCountry(e.target.value);
+                      setConfirmStep(false);
+                    }}
+                    className={fieldClass}
+                  >
+                    {Object.entries(BANK_COUNTRY_CONFIG).map(([code, cfg]) => (
+                      <option key={code} value={code}>
+                        {cfg.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id="bank-name" label="Bank name">
+                  <input
+                    id="bank-name"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className={fieldClass}
+                    autoComplete="organization"
+                    required
+                  />
+                </Field>
+                <Field id="account-holder" label="Account holder name">
+                  <input
+                    id="account-holder"
+                    value={accountHolder}
+                    onChange={(e) => setAccountHolder(e.target.value)}
+                    className={fieldClass}
+                    autoComplete="name"
+                    required
+                  />
+                </Field>
+                {bankCfg.fields.includes("accountNumber") ? (
+                  <Field id="account-number" label="Account number">
+                    <input
+                      id="account-number"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className={fieldClass}
+                      autoComplete="off"
+                      required={!bankCfg.fields.includes("iban")}
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("routingNumber") ? (
+                  <Field
+                    id="routing"
+                    label={bankCountry === "US" ? "Routing number" : "Routing / transit number"}
+                  >
+                    <input
+                      id="routing"
+                      value={routingNumber}
+                      onChange={(e) => setRoutingNumber(e.target.value)}
+                      className={fieldClass}
+                      autoComplete="off"
+                      required={bankCountry === "US"}
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("sortCode") ? (
+                  <Field id="sort-code" label="Sort code">
+                    <input
+                      id="sort-code"
+                      value={sortCode}
+                      onChange={(e) => setSortCode(e.target.value)}
+                      className={fieldClass}
+                      placeholder="12-34-56"
+                      required
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("branchCode") ? (
+                  <Field id="branch" label="Branch code">
+                    <input
+                      id="branch"
+                      value={branchCode}
+                      onChange={(e) => setBranchCode(e.target.value)}
+                      className={fieldClass}
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("iban") ? (
+                  <Field id="iban" label="IBAN">
+                    <input
+                      id="iban"
+                      value={iban}
+                      onChange={(e) => setIban(e.target.value)}
+                      className={fieldClass}
+                      autoComplete="off"
+                      required={!bankCfg.fields.includes("accountNumber") || !accountNumber}
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("swift") ? (
+                  <Field id="swift" label="SWIFT / BIC">
+                    <input
+                      id="swift"
+                      value={swift}
+                      onChange={(e) => setSwift(e.target.value)}
+                      className={fieldClass}
+                      autoComplete="off"
+                    />
+                  </Field>
+                ) : null}
+                {bankCfg.fields.includes("bankAddress") ? (
+                  <Field id="bank-address" label="Bank address (optional)">
+                    <input
+                      id="bank-address"
+                      value={bankAddress}
+                      onChange={(e) => setBankAddress(e.target.value)}
+                      className={fieldClass}
+                    />
+                  </Field>
+                ) : null}
+                <p className="text-[11px] text-[#9B968D]">
+                  Payout currency reference: {bankCfg.currency}. Settled from your USD wallet balance.
+                </p>
+              </div>
+            ) : null}
+
+            {method === "mobile_money" ? (
+              <div className="space-y-3 rounded-xl border border-black/[0.06] bg-[#FAFAF8] p-3.5">
+                <Field id="mm-country" label="Country">
+                  <select
+                    id="mm-country"
+                    value={mmCountry}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setMmCountry(next);
+                      setMmProvider(
+                        MOBILE_MONEY_BY_COUNTRY[next]?.providers[0]?.id ?? ""
+                      );
+                      setConfirmStep(false);
+                    }}
+                    className={fieldClass}
+                  >
+                    {Object.entries(MOBILE_MONEY_BY_COUNTRY).map(([code, cfg]) => (
+                      <option key={code} value={code}>
+                        {cfg.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id="mm-provider" label="Provider">
+                  <select
+                    id="mm-provider"
+                    value={mmProvider}
+                    onChange={(e) => setMmProvider(e.target.value)}
+                    className={fieldClass}
+                  >
+                    {(mmCfg?.providers ?? []).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field
+                  id="mm-phone"
+                  label="Phone number"
+                  hint={`Include country code (e.g. ${mmCfg?.dial ?? "+…"})`}
+                >
+                  <input
+                    id="mm-phone"
+                    type="tel"
+                    value={mmPhone}
+                    onChange={(e) => setMmPhone(e.target.value)}
+                    className={fieldClass}
+                    placeholder={`${mmCfg?.dial ?? "+"}…`}
+                    required
+                  />
+                </Field>
+                <Field id="mm-holder" label="Account holder name (optional)">
+                  <input
+                    id="mm-holder"
+                    value={mmHolder}
+                    onChange={(e) => setMmHolder(e.target.value)}
+                    className={fieldClass}
+                  />
+                </Field>
+              </div>
+            ) : null}
+
+            {method === "binance_id" ? (
+              <div className="space-y-3 rounded-xl border border-black/[0.06] bg-[#FAFAF8] p-3.5">
+                <p className="text-[12px] leading-relaxed text-[#726D64]">
+                  Binance ID is used for payout routing. Make sure it belongs to the
+                  intended recipient. Processed after admin confirmation — not an
+                  automated Binance transfer.
+                </p>
+                <Field id="binance-id" label="Binance ID">
+                  <input
+                    id="binance-id"
+                    inputMode="numeric"
+                    value={binanceId}
+                    onChange={(e) => setBinanceId(e.target.value)}
+                    className={fieldClass}
+                    placeholder="123456789"
+                    required
+                    autoComplete="off"
+                  />
+                </Field>
+                <Field id="binance-confirm" label="Confirm Binance ID">
+                  <input
+                    id="binance-confirm"
+                    inputMode="numeric"
+                    value={confirmBinanceId}
+                    onChange={(e) => setConfirmBinanceId(e.target.value)}
+                    className={fieldClass}
+                    required
+                    autoComplete="off"
+                  />
+                </Field>
+                <Field id="binance-name" label="Recipient name (optional)">
+                  <input
+                    id="binance-name"
+                    value={binanceName}
+                    onChange={(e) => setBinanceName(e.target.value)}
+                    className={fieldClass}
+                  />
+                </Field>
+              </div>
+            ) : null}
+
+            {method === "crypto" ? (
+              <div className="space-y-3 rounded-xl border border-black/[0.06] bg-[#FAFAF8] p-3.5">
+                <Field id="crypto-asset" label="Asset">
+                  <select
+                    id="crypto-asset"
+                    value={cryptoAsset}
+                    onChange={(e) => {
+                      const next = e.target.value as CryptoAssetId;
+                      setCryptoAsset(next);
+                      setCryptoNetwork(CRYPTO_NETWORKS[next]?.[0]?.id ?? "");
+                      setConfirmStep(false);
+                    }}
+                    className={fieldClass}
+                  >
+                    {CRYPTO_ASSETS.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id="crypto-network" label="Network">
+                  <select
+                    id="crypto-network"
+                    value={cryptoNetwork}
+                    onChange={(e) => setCryptoNetwork(e.target.value)}
+                    className={fieldClass}
+                  >
+                    {cryptoNetworks.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {n.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field id="crypto-address" label="Wallet address">
+                  <input
+                    id="crypto-address"
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    className={fieldClass}
+                    autoComplete="off"
+                    spellCheck={false}
+                    required
+                  />
+                </Field>
+                <p className="rounded-lg border border-amber-200/80 bg-amber-50 px-3 py-2 text-[11.5px] leading-relaxed text-amber-950">
+                  Only withdraw using the selected network. Using an incompatible
+                  network may permanently lose funds. Crypto payouts are processed
+                  after admin confirmation.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Fee + summary */}
+            <div className="rounded-xl border border-black/[0.08] bg-white p-3.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9B968D]">
+                Withdrawal summary
+              </p>
+              <dl className="mt-2.5 space-y-1.5 text-[13px]">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#726D64]">Amount requested</dt>
+                  <dd className="font-semibold tabular-nums text-[#121113]">
+                    {formatMoneyAsUSD(feeQuote.amount || 0, currency)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#726D64]">{feeQuote.label}</dt>
+                  <dd className="font-semibold tabular-nums text-[#121113]">
+                    {formatMoneyAsUSD(feeQuote.fee, currency)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3 border-t border-black/[0.06] pt-1.5">
+                  <dt className="font-semibold text-[#121113]">You receive</dt>
+                  <dd className="font-bold tabular-nums text-[#D6480F]">
+                    {formatMoneyAsUSD(feeQuote.netAmount, currency)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3 pt-0.5">
+                  <dt className="text-[#9B968D]">Estimated processing</dt>
+                  <dd className="text-right text-[12px] text-[#726D64]">
+                    {withdrawalProcessingEstimate(method)}
+                  </dd>
+                </div>
+              </dl>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#726D64]">
-                Wallet PIN (if set)
-              </label>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="••••"
-                className="h-11 w-full rounded-xl border border-black/[0.08] bg-white px-3.5 text-[14px] tracking-widest text-[#121113] outline-none focus:border-[#FF5A1F]/50"
-              />
-            </div>
+            {confirmStep ? (
+              <div className="rounded-xl border border-[#FF5A1F]/25 bg-[#FFF6F1] p-3.5 text-[13px] text-[#121113]">
+                <p className="font-semibold">Confirm withdrawal</p>
+                <p className="mt-1 text-[12px] text-[#726D64]">
+                  {METHODS.find((m) => m.id === method)?.label} ·{" "}
+                  {formatMoneyAsUSD(feeQuote.amount, currency)} requested · you receive{" "}
+                  {formatMoneyAsUSD(feeQuote.netAmount, currency)} after Jimvio fee.
+                </p>
+              </div>
+            ) : null}
 
-            <WalletButton
-              type="submit"
-              variant="primary"
-              size="lg"
-              loading={submitting}
-              className="w-full"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-              Request withdrawal
-            </WalletButton>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {confirmStep ? (
+                <WalletButton
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  onClick={() => setConfirmStep(false)}
+                  disabled={submitting}
+                >
+                  Edit
+                </WalletButton>
+              ) : null}
+              <WalletButton
+                type="submit"
+                variant="primary"
+                size="lg"
+                loading={submitting}
+                className="w-full flex-1"
+              >
+                <ArrowUpRight className="h-4 w-4" />
+                {confirmStep ? "Confirm request" : "Review withdrawal"}
+              </WalletButton>
+            </div>
             <p className="text-center text-[11px] text-[#9B968D]">
               Status stays pending until payout is confirmed. Never marked paid early.
             </p>
@@ -334,9 +793,9 @@ export function WalletWithdrawalsClient() {
         <div className="space-y-6">
           <div>
             <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
-              Payout methods
+              Supported methods
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {METHODS.map((m) => {
                 const Icon = m.icon;
                 return (
@@ -375,6 +834,7 @@ export function WalletWithdrawalsClient() {
                     onClick={() => setStatusFilter(s)}
                     className={cn(
                       "rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35",
                       statusFilter === s
                         ? "bg-[#121113] text-white"
                         : "border border-black/[0.06] bg-white text-[#726D64]",
@@ -414,9 +874,12 @@ export function WalletWithdrawalsClient() {
                         </span>
                         <div className="min-w-0">
                           <p className="truncate text-[13px] font-medium text-[#121113]">
-                            {methodMeta?.label ?? walletWithdrawalMethodLabel(methodKey)}
+                            {w.methodLabel ??
+                              methodMeta?.label ??
+                              walletWithdrawalMethodLabel(methodKey)}
                           </p>
-                          <p className="text-[11px] text-[#9B968D]">
+                          <p className="truncate text-[11px] text-[#9B968D]">
+                            {w.destinationDisplay ? `${w.destinationDisplay} · ` : ""}
                             {new Date(w.createdAt).toLocaleDateString(undefined, {
                               month: "short",
                               day: "numeric",
@@ -426,9 +889,17 @@ export function WalletWithdrawalsClient() {
                               ? ` · ${w.reference || w.providerReference}`
                               : ""}
                           </p>
+                          {typeof w.fee === "number" && w.fee > 0 ? (
+                            <p className="text-[10.5px] text-[#9B968D]">
+                              Fee {formatMoneyAsUSD(w.fee, w.currency || currency)}
+                              {typeof w.netAmount === "number"
+                                ? ` · Net ${formatMoneyAsUSD(w.netAmount, w.currency || currency)}`
+                                : ""}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex shrink-0 flex-col items-end gap-1">
                         <WalletPill tone={statusTone(displayStatus)}>{displayStatus}</WalletPill>
                         <span className="text-[13px] font-semibold text-[#121113]">
                           {formatMoneyAsUSD(w.amount, w.currency || currency)}

@@ -87,8 +87,8 @@ export function PayoutCenter() {
       <div>
         <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Payout center</h1>
         <p className="text-sm text-[var(--color-text-muted)]">
-          Request withdrawals via bank transfer, Flutterwave, mobile money, Binance ID, or crypto.
-          PayPal is not available for payouts.
+          Request withdrawals via bank transfer, mobile money, Binance ID, or crypto.
+          PayPal and Flutterwave are not available for payouts (Flutterwave remains available for deposits).
         </p>
       </div>
 
@@ -121,7 +121,6 @@ export function PayoutCenter() {
           className="min-h-10 rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm"
         >
           <option value="bank">Bank transfer</option>
-          <option value="flutterwave">Flutterwave</option>
           <option value="mobile_money">Mobile money</option>
           <option value="binance_id">Binance ID</option>
           <option value="crypto">Cryptocurrency</option>

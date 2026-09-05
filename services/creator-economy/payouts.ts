@@ -4,9 +4,9 @@ import {
   toCreatorPayoutDbMethod,
   type WalletWithdrawalMethod,
 } from "@/lib/payments/wallet-payout-method";
+import { calculateWithdrawalFee } from "@/lib/payments/withdrawal-fees";
 
 export type PayoutMethod =
-  | "flutterwave"
   | "bank_transfer"
   | "bank"
   | "mobile_money"
@@ -134,14 +134,29 @@ export async function requestWithdrawal(input: {
   }
   if (!reserved) throw new Error("Could not reserve funds. Please retry.");
 
+  const feeQuote = calculateWithdrawalFee(selectable, amount);
+  if (feeQuote.netAmount <= 0) {
+    const wallet = await getWalletSnapshot(input.userId);
+    if (wallet) {
+      await client
+        .from("wallets")
+        .update({
+          available_balance: Number(wallet.available_balance ?? 0) + amount,
+          pending_balance: Math.max(0, Number(wallet.pending_balance ?? 0) - amount),
+        })
+        .eq("user_id", input.userId);
+    }
+    throw new Error("Amount is too small after the Jimvio withdrawal fee");
+  }
+
   const { data, error } = await client
     .from("payouts")
     .insert({
       user_id: input.userId,
       type: "vendor_withdrawal",
       amount,
-      fee: 0,
-      net_amount: amount,
+      fee: feeQuote.fee,
+      net_amount: feeQuote.netAmount,
       currency,
       status: "pending",
       payout_method: toCreatorPayoutDbMethod(selectable),

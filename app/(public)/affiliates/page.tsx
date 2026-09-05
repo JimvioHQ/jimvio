@@ -10,14 +10,9 @@ import {
   formatPlatformCount,
   getResolvedPlatformSettings,
 } from "@/lib/platform-settings";
-import { getImage } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
 import { pageMetadata } from "@/lib/seo";
-import {
-  estimateAffiliateCommissionUsd,
-  PLATFORM_CURRENCY,
-  toPlatformUsd,
-} from "@/lib/currency/platform";
+import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
 
 export const metadata: Metadata = pageMetadata("affiliates");
 
@@ -72,61 +67,12 @@ export default async function AffiliatesPage() {
     },
   ];
 
-  const topProducts = spotlight.map((p) => {
-    const row = p as {
-      id: string;
-      slug: string;
-      name: string;
-      price: number;
-      currency?: string | null;
-      images?: unknown;
-      product_type?: string;
-      affiliate_commission_rate?: number | null;
-      affiliate_price?: number | null;
-      sale_count?: number | null;
-      view_count?: number | null;
-      product_categories?: { name?: string | null } | null;
-      vendors?: {
-        business_name?: string | null;
-        verification_status?: string | null;
-      } | null;
-    };
-    const cat =
-      row.product_categories?.name ?? row.product_type ?? "General";
-    const rate = Number(
-      row.affiliate_commission_rate ??
-        settings.fees.default_affiliate_commission_percent
-    );
-    const currency = PLATFORM_CURRENCY;
-    const priceUsd = toPlatformUsd(Number(row.price), row.currency);
-    const fixedEarn =
-      row.affiliate_price != null && Number(row.affiliate_price) > 0
-        ? toPlatformUsd(Number(row.affiliate_price), row.currency)
-        : null;
-    const earning =
-      fixedEarn != null && fixedEarn > 0
-        ? fixedEarn
-        : estimateAffiliateCommissionUsd(priceUsd, rate).amount;
-    const verification = row.vendors?.verification_status?.toLowerCase() ?? "";
-    return {
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      category: cat,
-      rate,
-      commission: `${rate}%`,
-      avgEarning: earning,
-      engagement: Number(row.sale_count ?? 0) + Number(row.view_count ?? 0),
-      currency,
-      image: getImage(row.images),
-      price: priceUsd,
-      sellerName: row.vendors?.business_name ?? null,
-      verified:
-        verification === "verified" ||
-        verification === "approved" ||
-        verification === "active",
-    };
-  });
+  const topProducts = spotlight.map((p) =>
+    mapAffiliateSpotlightProduct(
+      p as Parameters<typeof mapAffiliateSpotlightProduct>[0],
+      settings.fees.default_affiliate_commission_percent
+    )
+  );
 
   const maxEarning =
     topEarners.length > 0

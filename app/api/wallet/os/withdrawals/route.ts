@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
-import { getWalletSecurityStatus, verifyWalletPin } from "@/lib/wallet-os/security";
+import { getWalletSecurityStatus } from "@/lib/wallet-os/security";
 import { logWalletActivity } from "@/lib/wallet-os/activity";
 import { listPayoutMethods, requestWithdrawal } from "@/services/creator-economy/payouts";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { syncAffiliatePaidOnWithdrawal } from "@/lib/affiliate/credit-wallet";
 import {
+  formatStoredPayoutAccount,
   normalizeWalletWithdrawalMethod,
   toCreatorPayoutDbMethod,
   validateWithdrawalDestination,
+  validateWithdrawalDestinationDetails,
   walletWithdrawalMethodLabel,
+  withdrawalProcessingEstimate,
+  type WithdrawalDestinationDetails,
 } from "@/lib/payments/wallet-payout-method";
+import {
+  calculateWithdrawalFee,
+  WITHDRAWAL_FEE_RULES,
+} from "@/lib/payments/withdrawal-fees";
 import { safeWithdrawalError } from "@/lib/payments/safe-payment-error";
 
 export const dynamic = "force-dynamic";
@@ -25,14 +33,31 @@ function idempotencyKey(userId: string, amount: number, raw?: string | null) {
 }
 
 /**
- * GET /api/wallet/os/withdrawals — thin read wrapper around the `payouts`
- * table (same source of truth as `/api/creator/payouts`).
+ * GET /api/wallet/os/withdrawals — list + balance + fee catalog.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
   const wallet = await ensureWallet(user.id, db);
+
+  // Fee preview: ?preview=1&amount=&method=
+  const preview = req.nextUrl.searchParams.get("preview") === "1";
+  if (preview) {
+    const amount = Number(req.nextUrl.searchParams.get("amount") ?? 0);
+    const method = normalizeWalletWithdrawalMethod(
+      req.nextUrl.searchParams.get("method")
+    );
+    if (!method || !Number.isFinite(amount) || amount <= 0) {
+      return NextResponse.json({ error: "Invalid fee preview request" }, { status: 400 });
+    }
+    const quote = calculateWithdrawalFee(method, amount);
+    return NextResponse.json({
+      ...quote,
+      processingEstimate: withdrawalProcessingEstimate(method),
+      methodLabel: walletWithdrawalMethodLabel(method),
+    });
+  }
 
   const { data, error: fetchError } = await db
     .from("payouts")
@@ -71,6 +96,10 @@ export async function GET() {
     payoutMethod: row.payout_method ?? null,
     methodLabel: walletWithdrawalMethodLabel(row.payout_method),
     payoutAccount: row.payout_account ?? null,
+    destinationDisplay: formatStoredPayoutAccount(
+      row.payout_method,
+      row.payout_account
+    ),
     reference: row.provider_reference ?? null,
     providerReference: row.provider_reference ?? null,
     notes: row.notes ?? null,
@@ -82,16 +111,15 @@ export async function GET() {
   return NextResponse.json({
     currency: PLATFORM_CURRENCY,
     availableBalance: Number(wallet.available_balance ?? 0),
+    feeRules: WITHDRAWAL_FEE_RULES,
+    methods: ["bank", "mobile_money", "binance_id", "crypto"],
     withdrawals,
   });
 }
 
 /**
  * POST /api/wallet/os/withdrawals — creates a withdrawal request.
- *
- * Manual payout-request workflow: reserves balance (available → pending),
- * creates a pending payout for admin/processor confirmation.
- * Never marks paid until real confirmation.
+ * Manual admin-confirmed workflow. Session auth required; Wallet PIN not required.
  */
 export async function POST(req: NextRequest) {
   const { user, db, error } = await requireUser();
@@ -103,7 +131,7 @@ export async function POST(req: NextRequest) {
     methodId?: string;
     payoutMethod?: string;
     payoutAccount?: string;
-    pin?: string;
+    destination?: WithdrawalDestinationDetails;
     idempotencyKey?: string;
   };
   try {
@@ -125,38 +153,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Insufficient available balance" }, { status: 400 });
   }
 
+  // Soft security: honor existing temporary lock (from other PIN surfaces) without requiring PIN here.
   const security = await getWalletSecurityStatus(user.id, db);
   if (security.locked) {
     return NextResponse.json(
       {
-        error: "Wallet is temporarily locked after too many failed PIN attempts",
+        error: "Wallet is temporarily locked. Try again later or contact support.",
         lockedUntil: security.lockedUntil,
       },
       { status: 423 },
     );
-  }
-
-  let requireTwoFa = false;
-  if (security.pinSet) {
-    if (!body.pin) {
-      return NextResponse.json(
-        { error: "PIN is required for withdrawals", requirePin: true },
-        { status: 400 },
-      );
-    }
-    const verification = await verifyWalletPin(user.id, String(body.pin));
-    if (!verification.valid) {
-      return NextResponse.json(
-        {
-          error: "Incorrect PIN",
-          attemptsRemaining: verification.attemptsRemaining,
-          locked: verification.locked,
-        },
-        { status: 401 },
-      );
-    }
-  } else if (security.requireTwoFactorWithdraw) {
-    requireTwoFa = true;
   }
 
   const idemp = idempotencyKey(
@@ -172,7 +178,6 @@ export async function POST(req: NextRequest) {
   if (existingByRef) {
     return NextResponse.json({
       payout: (existingByRef.metadata as { payout?: unknown } | null)?.payout ?? null,
-      requireTwoFa,
       duplicate: true,
     });
   }
@@ -184,12 +189,10 @@ export async function POST(req: NextRequest) {
       ? methods.find((item: { id: string }) => item.id === body.methodId)
       : null;
 
-    // Prefer explicit method from the request form over a silent default.
     const rawMethod = body.payoutMethod ?? body.method ?? "";
     const canonicalMethod = normalizeWalletWithdrawalMethod(rawMethod);
 
     if (savedMethod && !canonicalMethod) {
-      // Saved method path (creator payout center) — still reject PayPal
       const savedCanonical = normalizeWalletWithdrawalMethod(
         String((savedMethod as { method?: string }).method ?? ""),
       );
@@ -205,10 +208,35 @@ export async function POST(req: NextRequest) {
         methodId: savedMethod.id,
       });
     } else if (canonicalMethod) {
-      const accountRaw = String(body.payoutAccount ?? "").trim();
-      const validated = validateWithdrawalDestination(canonicalMethod, accountRaw);
-      if (!validated.ok) {
-        return NextResponse.json({ error: validated.error }, { status: 400 });
+      let validatedAccount: string;
+      let display = "";
+      let feeQuote = calculateWithdrawalFee(canonicalMethod, amount);
+
+      if (body.destination && typeof body.destination === "object") {
+        const structured = validateWithdrawalDestinationDetails(
+          canonicalMethod,
+          { ...body.destination, method: canonicalMethod },
+        );
+        if (!structured.ok) {
+          return NextResponse.json({ error: structured.error }, { status: 400 });
+        }
+        validatedAccount = structured.account;
+        display = structured.display;
+      } else {
+        const accountRaw = String(body.payoutAccount ?? "").trim();
+        const validated = validateWithdrawalDestination(canonicalMethod, accountRaw);
+        if (!validated.ok) {
+          return NextResponse.json({ error: validated.error }, { status: 400 });
+        }
+        validatedAccount = validated.account;
+        display = formatStoredPayoutAccount(canonicalMethod, validatedAccount);
+      }
+
+      if (feeQuote.netAmount <= 0) {
+        return NextResponse.json(
+          { error: "Amount is too small after the Jimvio withdrawal fee" },
+          { status: 400 },
+        );
       }
 
       const dbMethod = toCreatorPayoutDbMethod(canonicalMethod);
@@ -244,19 +272,22 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Recompute fee server-side immediately before insert (never trust client).
+      feeQuote = calculateWithdrawalFee(canonicalMethod, amount);
+
       const { data: inserted, error: insertError } = await db
         .from("payouts")
         .insert({
           user_id: user.id,
           type: "wallet_withdrawal",
           amount,
-          fee: 0,
-          net_amount: amount,
+          fee: feeQuote.fee,
+          net_amount: feeQuote.netAmount,
           currency: PLATFORM_CURRENCY,
           status: "pending",
           payout_method: dbMethod,
-          payout_account: validated.account,
-          notes: `Wallet OS withdrawal · ${walletWithdrawalMethodLabel(canonicalMethod)}`,
+          payout_account: validatedAccount,
+          notes: `Wallet OS withdrawal · ${walletWithdrawalMethodLabel(canonicalMethod)} · ${display} · ${feeQuote.label} $${feeQuote.fee.toFixed(2)} · ${withdrawalProcessingEstimate(canonicalMethod)}`,
           provider_reference: idemp,
         })
         .select()
@@ -276,7 +307,6 @@ export async function POST(req: NextRequest) {
 
       payout = inserted;
     } else if (!body.methodId) {
-      // Fall back to default saved method (non-PayPal)
       const defaultMethod = methods.find(
         (item: { is_default: boolean; method?: string }) =>
           item.is_default && normalizeWalletWithdrawalMethod(item.method),
@@ -291,7 +321,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "Choose a payout method and enter destination details (PayPal is not available for withdrawals)",
+              "Choose a payout method and enter destination details",
           },
           { status: 400 },
         );
@@ -326,7 +356,7 @@ export async function POST(req: NextRequest) {
       db,
     });
 
-    return NextResponse.json({ payout, requireTwoFa });
+    return NextResponse.json({ payout, duplicate: false });
   } catch (err) {
     console.error("POST /api/wallet/os/withdrawals failed", {
       message: err instanceof Error ? err.message : String(err),

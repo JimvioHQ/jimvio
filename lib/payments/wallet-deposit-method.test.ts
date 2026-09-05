@@ -11,7 +11,9 @@ import {
   normalizeWalletWithdrawalMethod,
   validateWithdrawalDestination,
   toCreatorPayoutDbMethod,
+  WALLET_WITHDRAWAL_METHODS,
 } from "./wallet-payout-method";
+import { calculateWithdrawalFee } from "./withdrawal-fees";
 import { safeDepositInitiateError } from "./safe-payment-error";
 
 describe("wallet deposit method normalization", () => {
@@ -49,9 +51,11 @@ describe("wallet deposit method normalization", () => {
 });
 
 describe("wallet withdrawal method normalization", () => {
-  it("removes PayPal from selectable withdrawals", () => {
+  it("removes PayPal and Flutterwave from selectable withdrawals", () => {
     assert.equal(normalizeWalletWithdrawalMethod("paypal"), null);
     assert.equal(normalizeWalletWithdrawalMethod("PayPal"), null);
+    assert.equal(normalizeWalletWithdrawalMethod("flutterwave"), null);
+    assert.equal(normalizeWalletWithdrawalMethod("flw"), null);
   });
 
   it("supports Binance ID and legacy bank aliases", () => {
@@ -65,6 +69,25 @@ describe("wallet withdrawal method normalization", () => {
     assert.equal(validateWithdrawalDestination("binance_id", "12345678").ok, true);
     assert.equal(validateWithdrawalDestination("binance_id", "abc").ok, false);
     assert.equal(validateWithdrawalDestination("binance_id", "12").ok, false);
+  });
+
+  it("keeps only four selectable withdrawal methods", () => {
+    assert.deepEqual(
+      [...WALLET_WITHDRAWAL_METHODS].sort(),
+      ["bank", "binance_id", "crypto", "mobile_money"].sort(),
+    );
+  });
+});
+
+describe("withdrawal fees", () => {
+  it("computes Jimvio fee server-side and never exceeds amount", () => {
+    const q = calculateWithdrawalFee("bank", 100);
+    assert.equal(q.fee, 2);
+    assert.equal(q.netAmount, 98);
+    assert.equal(q.label, "Jimvio withdrawal fee");
+    const tiny = calculateWithdrawalFee("bank", 1);
+    assert.ok(tiny.fee < 1);
+    assert.ok(tiny.netAmount > 0);
   });
 });
 
