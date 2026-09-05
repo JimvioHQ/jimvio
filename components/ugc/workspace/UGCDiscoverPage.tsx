@@ -18,7 +18,7 @@ import type {
 
 const LIMIT = 24;
 const CARD_GRID =
-  "grid grid-cols-1 justify-start gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(228px,1fr))]";
+  "grid grid-cols-1 justify-start gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,240px))] lg:[grid-template-columns:repeat(auto-fill,minmax(228px,252px))]";
 
 function CardSkeleton() {
   return (
@@ -274,7 +274,7 @@ export function UGCDiscoverPage() {
     !hasFilters && !featuredLoading && featuredCampaigns.length > 1 && total > 1;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] pb-10 pt-1">
+    <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10 pt-1">
       <header className="mb-3 sm:mb-4">
         <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[30px]">
           Discover Campaigns

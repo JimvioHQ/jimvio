@@ -6,7 +6,7 @@ import {
   getCampaignLifecycleStatus,
   lifecycleLabel,
 } from "./campaign-schedule";
-import type { UGCCampaign } from "../types/ugc";
+import type { UGCCampaign } from "@/types/ugc";
 
 function campaign(partial: Partial<UGCCampaign>): UGCCampaign {
   return {

@@ -71,11 +71,13 @@ function UtilityIconLink({
   href,
   label,
   active,
+  className,
   children,
 }: {
   href: string;
   label: string;
   active?: boolean;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -88,6 +90,7 @@ function UtilityIconLink({
         active
           ? "bg-[var(--color-accent-light)] text-[#FF5A1F]"
           : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+        className,
       )}
     >
       {children}
@@ -109,7 +112,7 @@ export function AppTopNav({
   const isAuthenticated = Boolean(user);
 
   return (
-    <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
+    <header className="z-30 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 overflow-x-clip border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
       <div className="flex shrink-0 items-center">
         <Link href="/" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
@@ -144,7 +147,7 @@ export function AppTopNav({
         })}
       </nav>
 
-      <div className="col-start-3 flex shrink-0 items-center justify-end gap-1 sm:gap-1.5">
+      <div className="col-start-3 flex min-w-0 max-w-full items-center justify-end gap-0.5 overflow-x-clip sm:gap-1.5">
         <button
           type="button"
           onClick={() => openCommandCenter()}
@@ -191,10 +194,20 @@ export function AppTopNav({
 
         {user ? (
           <>
-            <UtilityIconLink href="/orders" label="Orders" active={isOrdersActive(pathname)}>
+            <UtilityIconLink
+              href="/orders"
+              label="Orders"
+              active={isOrdersActive(pathname)}
+              className="hidden sm:grid"
+            >
               <Package className="h-[17px] w-[17px]" />
             </UtilityIconLink>
-            <UtilityIconLink href="/wallet" label="Wallet" active={isWalletActive(pathname)}>
+            <UtilityIconLink
+              href="/wallet"
+              label="Wallet"
+              active={isWalletActive(pathname)}
+              className="hidden sm:grid"
+            >
               <Wallet className="h-[17px] w-[17px]" />
             </UtilityIconLink>
           </>

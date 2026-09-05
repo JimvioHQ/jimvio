@@ -73,7 +73,7 @@ assert.match(reject, /Approved submissions cannot be rejected/);
 assert.match(reject, /\.in\('status', \['pending', 'revision_requested'\]\)/);
 
 assert.match(deposit, /assertCampaignReadyForFunding/);
-assert.match(deposit, /MIN_FUNDING_RWF = 1000/);
+assert.match(deposit, /MIN_FUNDING_USD = 1/);
 assert.match(deposit, /payment_method === "wallet"/);
 assert.match(deposit, /ensureWallet/);
 assert.match(deposit, /23505/);

@@ -28,7 +28,7 @@ export function UGCWorkspaceLayoutClient({ children, user }: UGCWorkspaceLayoutC
     <Suspense fallback={<ShellFallback />}>
       <UgcBrandWorkspaceProvider>
         <UGCWorkspaceShell user={user}>
-          <div className="px-3.5 py-3 sm:px-5 lg:px-6 lg:py-4">{children}</div>
+          <div className="min-w-0 max-w-full overflow-x-clip px-3.5 py-3 sm:px-5 lg:px-6 lg:py-4">{children}</div>
         </UGCWorkspaceShell>
       </UgcBrandWorkspaceProvider>
     </Suspense>

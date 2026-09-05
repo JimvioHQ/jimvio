@@ -131,8 +131,8 @@ assert.match(submitPage, /t\("submitUrlHint"\)/);
 assert.doesNotMatch(submitPage, /Facebook/);
 
 assert.match(confirm, /paidAmountCoversEscrow/);
-assert.match(confirm, /MIN_FUNDING_RWF/);
-assert.doesNotMatch(confirm, /void MIN_FUNDING_RWF/);
+assert.match(confirm, /MIN_FUNDING_USD/);
+assert.doesNotMatch(confirm, /void MIN_FUNDING_USD/);
 
 assert.match(disputes, /Only brand\/admin can resolve/);
 assert.match(disputes, /disputes\.manage/);

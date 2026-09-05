@@ -16,6 +16,7 @@ import {
   campaignWizardErrorPayload,
   CAMPAIGN_PLATFORMS,
 } from '@/lib/ugc/campaign-wizard-validation';
+import { countryDisplayName, normalizeCountryCode } from '@/lib/geo/buyer-country';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -99,10 +100,20 @@ export async function GET(req: NextRequest) {
   if (country) {
     const safeCountry = country.replace(/[%_,.()"'\\]/g, " ").replace(/\s+/g, " ").trim();
     if (safeCountry) {
+      const terms = new Set<string>([safeCountry]);
+      const iso = normalizeCountryCode(safeCountry);
+      if (iso) {
+        terms.add(iso);
+        const display = countryDisplayName(iso);
+        if (display && display.trim()) terms.add(display.trim());
+      }
+      const orFilter = [...terms]
+        .map((term) => `business_country.ilike.%${term}%`)
+        .join(",");
       const { data: countryVendors } = await db
         .from("vendors")
         .select("id")
-        .ilike("business_country", `%${safeCountry}%`)
+        .or(orFilter)
         .limit(200);
       const ids = (countryVendors ?? []).map((v) => v.id);
       if (ids.length === 0) {

@@ -71,8 +71,8 @@ export function UGCHeroHeader({
   }, [searchRef]);
 
   return (
-    <div className="mb-4 sm:mb-5">
-      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
+    <div className="mb-4 min-w-0 max-w-full sm:mb-5">
+      <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
         <div className="relative min-w-0 flex-1">
           <Search
             className="pointer-events-none absolute left-3.5 top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#94A3B8]"
@@ -105,83 +105,87 @@ export function UGCHeroHeader({
         </div>
 
         <div
-          className="-mx-1 flex shrink-0 items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none]"
+          className="min-w-0 max-w-full overflow-x-auto [scrollbar-width:none]"
           role="group"
           aria-label="Filter by platform"
         >
-          {PLATFORM_FILTERS.map((p) => {
-            const active = platform === p.key;
-            return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => onPlatformChange(active ? "all" : p.key)}
-                aria-pressed={active}
-                aria-label={platformLabel(p.key)}
-                title={platformLabel(p.key)}
-                className={cn(
-                  "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
-                  active
-                    ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#111827]"
-                    : "border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB]",
-                )}
-              >
-                <UGCPlatformIcon platform={p.key} className="h-4 w-4" />
-              </button>
-            );
-          })}
+          <div className="flex w-max items-center gap-1.5 px-0.5">
+            {PLATFORM_FILTERS.map((p) => {
+              const active = platform === p.key;
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => onPlatformChange(active ? "all" : p.key)}
+                  aria-pressed={active}
+                  aria-label={platformLabel(p.key)}
+                  title={platformLabel(p.key)}
+                  className={cn(
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
+                    active
+                      ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#111827]"
+                      : "border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB]",
+                  )}
+                >
+                  <UGCPlatformIcon platform={p.key} className="h-4 w-4" />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="-mx-1 mt-2.5 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">
-        <FilterSelect
-          label="Type"
-          value={contentType}
-          options={CONTENT_TYPES.map((item) => ({ value: item.value, label: item.label }))}
-          onChange={(v) => onContentTypeChange(v as ContentTypeFilter)}
-        />
-        <FilterSelect
-          label="Pay"
-          value={compensation}
-          options={COMPENSATION_FILTERS.map((item) => ({ value: item.value, label: item.label }))}
-          onChange={(v) => onCompensationChange(v as CompensationFilter)}
-        />
-        <FilterSelect
-          label="Status"
-          value={ending}
-          options={[
-            { value: "all", label: "Active" },
-            { value: "soon", label: "Ending soon" },
-          ]}
-          onChange={(v) => onEndingChange(v as EndingFilter)}
-        />
-        <label className="relative shrink-0">
-          <span className="sr-only">Country</span>
-          <input
-            value={country}
-            onChange={(e) => onCountryChange(e.target.value)}
-            placeholder="Country"
-            className="h-9 w-[100px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 sm:w-[108px]"
+      <div className="mt-2.5 min-w-0 max-w-full overflow-x-auto [scrollbar-width:none]">
+        <div className="flex w-max items-center gap-1.5 px-0.5 pb-0.5">
+          <FilterSelect
+            label="Type"
+            value={contentType}
+            options={CONTENT_TYPES.map((item) => ({ value: item.value, label: item.label }))}
+            onChange={(v) => onContentTypeChange(v as ContentTypeFilter)}
           />
-        </label>
-        <FilterSelect
-          label="Sort"
-          value={sort}
-          options={SORT_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
-          onChange={(v) => onSortChange(v as SortKey)}
-        />
-        <button
-          type="button"
-          onClick={onClearAll}
-          disabled={!hasFilters}
-          className={cn(
-            "h-9 shrink-0 px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:underline",
-            hasFilters ? "text-[#FF5A1F] hover:underline" : "cursor-default text-[#D1D5DB]",
-          )}
-        >
-          Clear all filters
-        </button>
+          <FilterSelect
+            label="Pay"
+            value={compensation}
+            options={COMPENSATION_FILTERS.map((item) => ({ value: item.value, label: item.label }))}
+            onChange={(v) => onCompensationChange(v as CompensationFilter)}
+          />
+          <FilterSelect
+            label="Status"
+            value={ending}
+            options={[
+              { value: "all", label: "Active" },
+              { value: "soon", label: "Ending soon" },
+            ]}
+            onChange={(v) => onEndingChange(v as EndingFilter)}
+          />
+          <label className="relative shrink-0">
+            <span className="sr-only">Country</span>
+            <input
+              value={country}
+              onChange={(e) => onCountryChange(e.target.value)}
+              placeholder="Country"
+              className="h-9 w-[100px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 sm:w-[108px]"
+            />
+          </label>
+          <FilterSelect
+            label="Sort"
+            value={sort}
+            options={SORT_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
+            onChange={(v) => onSortChange(v as SortKey)}
+          />
+          <button
+            type="button"
+            onClick={onClearAll}
+            disabled={!hasFilters}
+            className={cn(
+              "h-9 shrink-0 px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:underline",
+              hasFilters ? "text-[#FF5A1F] hover:underline" : "cursor-default text-[#D1D5DB]",
+            )}
+          >
+            Clear all filters
+          </button>
+        </div>
       </div>
     </div>
   );
