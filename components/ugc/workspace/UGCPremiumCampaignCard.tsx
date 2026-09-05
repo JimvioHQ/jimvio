@@ -11,6 +11,7 @@ import {
   formatCreatorCount,
   getCampaignBanner,
   getCampaignRewardLine,
+  getClipRateBadge,
   getDaysRemaining,
 } from "./ugc-campaign-utils";
 import {
@@ -28,6 +29,16 @@ type UGCPremiumCampaignCardProps = {
   onToggleSave?: (campaignId: string) => void;
 };
 
+function relativeAge(iso: string): string | null {
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (days < 1) return "Today";
+  if (days < 7) return `${days}d`;
+  if (days < 30) return `${Math.floor(days / 7)}w`;
+  return `${Math.floor(days / 30)}mo`;
+}
+
 function UGCPremiumCampaignCardInner({
   campaign: c,
   featured = false,
@@ -38,6 +49,7 @@ function UGCPremiumCampaignCardInner({
   const { t } = useLocale();
   const banner = getCampaignBanner(c);
   const reward = getCampaignRewardLine(c, formatMoney);
+  const rateBadge = getClipRateBadge(c, formatMoney);
   const platforms = c.allowed_platforms ?? [];
   const creators = c.submission_count ?? 0;
   const days = getDaysRemaining(c.submission_deadline ?? c.ends_at);
@@ -56,8 +68,18 @@ function UGCPremiumCampaignCardInner({
   const canJoin = c.status === "active" && lifecycle !== "ended";
   const joinHref = `/ugc/${c.id}/join`;
   const briefHref = `/ugc/${c.id}`;
-  const showBudget = Number(c.total_budget ?? 0) > 0;
+  const totalBudget = Number(c.total_budget ?? 0);
+  const spentBudget = Number(c.spent_budget ?? 0);
+  const showBudget = totalBudget > 0;
+  const budgetPct = showBudget ? Math.min(100, Math.round((spentBudget / totalBudget) * 100)) : 0;
   const description = c.description?.replace(/\s+/g, " ").trim() || null;
+  const age = relativeAge(c.created_at);
+  const statusLabel =
+    lifecycle === "live" || lifecycle === "ending_soon"
+      ? "Live"
+      : featured
+        ? t("featured")
+        : lifecycleLabel(lifecycle);
 
   return (
     <article className="group h-full min-w-0">
@@ -68,12 +90,7 @@ function UGCPremiumCampaignCardInner({
           "hover:shadow-[0_8px_20px_rgba(17,24,39,0.08)]",
         )}
       >
-        <div
-          className={cn(
-            "relative shrink-0 overflow-hidden bg-[#F3F4F6]",
-            featured ? "aspect-[16/9]" : "aspect-[16/10]",
-          )}
-        >
+        <div className="relative shrink-0 overflow-hidden bg-[#F3F4F6] aspect-[16/10]">
           <Link
             href={briefHref}
             className="absolute inset-0 block"
@@ -100,7 +117,7 @@ function UGCPremiumCampaignCardInner({
             )}
           </Link>
           <span className="absolute left-2 top-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-            {featured ? t("featured") : lifecycleLabel(lifecycle)}
+            {statusLabel}
           </span>
           {onToggleSave ? (
             <button
@@ -140,6 +157,7 @@ function UGCPremiumCampaignCardInner({
             )}
             <span className="min-w-0 truncate text-[12px] font-medium text-[#4B5563]">{brand}</span>
             {isVerified ? <UGCVerifiedBadge className="h-3 w-3" /> : null}
+            {age ? <span className="shrink-0 text-[11px] text-[#9CA3AF]">{age}</span> : null}
             <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
           </div>
 
@@ -156,25 +174,45 @@ function UGCPremiumCampaignCardInner({
             <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[#6B7280]">{description}</p>
           ) : null}
 
-          <p className="mt-1.5 text-[13px] font-semibold tabular-nums text-[#FF5A1F]">{reward}</p>
+          {showBudget ? (
+            <div className="mt-2">
+              <div className="mb-1 flex items-center justify-between gap-2 text-[11px] tabular-nums text-[#6B7280]">
+                <span className="truncate font-medium text-[#374151]">
+                  {formatMoney(spentBudget, "USD")} / {formatMoney(totalBudget, "USD")}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
+                <div
+                  className="h-full rounded-full bg-[#111827]/80"
+                  style={{ width: `${budgetPct}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1.5 text-[13px] font-semibold tabular-nums text-[#FF5A1F]">{reward}</p>
+          )}
 
-          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[#6B7280]">
-            <span className="min-w-0 truncate">
-              {showBudget
-                ? `${formatMoney(c.spent_budget ?? 0, "USD")} / ${formatMoney(c.total_budget, "USD")}`
-                : deadlineLabel ?? lifecycleLabel(lifecycle)}
-            </span>
+          <div className="mt-2 flex items-center justify-between gap-2">
             <span
-              className="inline-flex shrink-0 items-center gap-1"
+              className="inline-flex min-w-0 items-center gap-1 truncate text-[11px] text-[#6B7280]"
               aria-label={`${formatCreatorCount(creators)} creators`}
             >
-              <Users className="h-3 w-3" aria-hidden />
+              <Users className="h-3 w-3 shrink-0" aria-hidden />
               {formatCreatorCount(creators)}
+              {!showBudget && deadlineLabel ? (
+                <span className="truncate text-[#9CA3AF]">· {deadlineLabel}</span>
+              ) : null}
             </span>
+            {rateBadge ? (
+              <span className="inline-flex shrink-0 rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#1D4ED8]">
+                {rateBadge}
+              </span>
+            ) : showBudget ? (
+              <span className="inline-flex shrink-0 rounded-full bg-[#FFF4EF] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[#FF5A1F]">
+                {reward}
+              </span>
+            ) : null}
           </div>
-          {showBudget && deadlineLabel ? (
-            <p className="mt-0.5 text-[11px] text-[#9CA3AF]">{deadlineLabel}</p>
-          ) : null}
 
           <div className="mt-auto flex items-center gap-2 pt-2.5">
             {canJoin ? (

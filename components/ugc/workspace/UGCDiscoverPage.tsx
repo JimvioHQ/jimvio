@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Clapperboard, Loader2 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { UGCHeroHeader } from "./UGCHeroHeader";
+import { UGCPremiumFeaturedHero } from "./UGCPremiumFeaturedHero";
 import { UGCFeaturedCarousel } from "./UGCFeaturedCarousel";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 import type {
@@ -14,11 +15,10 @@ import type {
   PlatformKey,
   SortKey,
 } from "./ugc-tokens";
-import { getDaysRemaining } from "./ugc-campaign-utils";
 
 const LIMIT = 24;
 const CARD_GRID =
-  "grid grid-cols-1 justify-start gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,240px))]";
+  "grid grid-cols-1 justify-start gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))] lg:[grid-template-columns:repeat(auto-fill,minmax(228px,1fr))]";
 
 function CardSkeleton() {
   return (
@@ -33,14 +33,22 @@ function CardSkeleton() {
   );
 }
 
+function HeroSkeleton() {
+  return (
+    <div className="mb-4 aspect-[5/3] animate-pulse rounded-[14px] bg-[#E5E7EB] sm:mb-5 sm:aspect-[16/7] lg:aspect-[16/5] sm:rounded-[16px]" />
+  );
+}
+
 export function UGCDiscoverPage() {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const typeParam = searchParams.get("type");
+  const sortParam = searchParams.get("sort");
 
   const [rawCampaigns, setRawCampaigns] = useState<UGCCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -52,13 +60,24 @@ export function UGCDiscoverPage() {
     return "all";
   });
   const [platform, setPlatform] = useState<PlatformKey>("all");
-  const [sort, setSort] = useState<SortKey>("newest");
+  const [sort, setSort] = useState<SortKey>(() => {
+    if (
+      sortParam === "budget" ||
+      sortParam === "payout" ||
+      sortParam === "popular" ||
+      sortParam === "deadline"
+    ) {
+      return sortParam;
+    }
+    return "newest";
+  });
   const [compensation, setCompensation] = useState<CompensationFilter>("all");
   const [ending, setEnding] = useState<EndingFilter>("all");
   const [country, setCountry] = useState("");
   const [search, setSearch] = useState(initialQ);
   const [inputVal, setInputVal] = useState(initialQ);
   const [featuredCampaigns, setFeaturedCampaigns] = useState<UGCCampaign[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,6 +108,7 @@ export function UGCDiscoverPage() {
         if (res.ok) {
           const json = await res.json();
           const batch = (json.data ?? []) as UGCCampaign[];
+          setFetchError(false);
           setTotal(json.total ?? 0);
           setRawCampaigns((prev) => (replace ? batch : [...prev, ...batch]));
           setHasMore(batch.length === LIMIT && pageNum * LIMIT < (json.total ?? 0));
@@ -96,12 +116,14 @@ export function UGCDiscoverPage() {
           setRawCampaigns([]);
           setTotal(0);
           setHasMore(false);
+          setFetchError(true);
         }
       } catch {
         if (replace) {
           setRawCampaigns([]);
           setTotal(0);
           setHasMore(false);
+          setFetchError(true);
         }
       } finally {
         setLoading(false);
@@ -142,13 +164,19 @@ export function UGCDiscoverPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setFeaturedLoading(true);
       try {
         const res = await fetch("/api/ugc/campaigns?status=active&featured=true&limit=8&sort=popular");
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) setFeaturedCampaigns([]);
+          return;
+        }
         const json = await res.json();
         if (!cancelled) setFeaturedCampaigns((json.data ?? []) as UGCCampaign[]);
       } catch {
         if (!cancelled) setFeaturedCampaigns([]);
+      } finally {
+        if (!cancelled) setFeaturedLoading(false);
       }
     })();
     return () => {
@@ -164,9 +192,9 @@ export function UGCDiscoverPage() {
         if (!res.ok) return;
         const json = await res.json();
         const ids = new Set<string>(
-          ((json.data ?? []) as Array<{ campaign_id?: string; campaign?: { id?: string } }>).map(
-            (row) => row.campaign?.id ?? row.campaign_id ?? "",
-          ).filter(Boolean),
+          ((json.data ?? []) as Array<{ campaign_id?: string; campaign?: { id?: string } }>)
+            .map((row) => row.campaign?.id ?? row.campaign_id ?? "")
+            .filter(Boolean),
         );
         if (!cancelled) setSavedIds(ids);
       } catch {
@@ -239,22 +267,31 @@ export function UGCDiscoverPage() {
   }
 
   const campaigns = rawCampaigns;
-  const showFeatured = !loading && featuredCampaigns.length > 0 && !hasFilters && (total > 2 || featuredCampaigns.length > 1);
-  const showRails = !hasFilters && campaigns.length > 8;
-  const endingSoon = showRails
-    ? campaigns
-        .filter((c) => {
-          const days = getDaysRemaining(c.submission_deadline ?? c.ends_at);
-          return days !== null && days <= 7;
-        })
-        .slice(0, 8)
-    : [];
-  const newest = showRails
-    ? [...campaigns].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 8)
-    : [];
+  const heroCampaigns = featuredCampaigns.slice(0, 6);
+  const showHero = !hasFilters && (featuredLoading || heroCampaigns.length > 0);
+  // Avoid awkward duplicate when only one campaign exists in the marketplace.
+  const showFeaturedRail =
+    !hasFilters && !featuredLoading && featuredCampaigns.length > 1 && total > 1;
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] pb-12 pt-1">
+    <div className="mx-auto w-full max-w-[1440px] pb-10 pt-1">
+      <header className="mb-3 sm:mb-4">
+        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[30px]">
+          Discover Campaigns
+        </h1>
+        <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#64748B] sm:text-[14px]">
+          Find brands, products and opportunities that match your content style.
+        </p>
+      </header>
+
+      {showHero ? (
+        featuredLoading && !heroCampaigns.length ? (
+          <HeroSkeleton />
+        ) : heroCampaigns.length > 0 ? (
+          <UGCPremiumFeaturedHero campaigns={heroCampaigns} />
+        ) : null
+      ) : null}
+
       <UGCHeroHeader
         searchRef={searchRef}
         inputVal={inputVal}
@@ -276,15 +313,15 @@ export function UGCDiscoverPage() {
         hasFilters={hasFilters}
       />
 
-      {loading ? (
+      {loading && !campaigns.length ? (
         <div className={CARD_GRID}>
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 10 }).map((_, i) => (
             <CardSkeleton key={i} />
           ))}
         </div>
       ) : (
         <>
-          {showFeatured ? (
+          {showFeaturedRail ? (
             <UGCFeaturedCarousel
               campaigns={featuredCampaigns.slice(0, 8)}
               savedIds={savedIds}
@@ -292,49 +329,33 @@ export function UGCDiscoverPage() {
             />
           ) : null}
 
-          {!hasFilters && newest.length > 0 ? (
-            <CampaignSection title="New campaigns">
-              {newest.map((c, i) => (
-                <UGCPremiumCampaignCard
-                  key={c.id}
-                  campaign={c}
-                  index={i}
-                  saved={savedIds.has(c.id)}
-                  onToggleSave={toggleSave}
-                />
-              ))}
-            </CampaignSection>
-          ) : null}
-
-          {!hasFilters && endingSoon.length > 0 ? (
-            <CampaignSection title="Ending soon">
-              {endingSoon.map((c, i) => (
-                <UGCPremiumCampaignCard
-                  key={c.id}
-                  campaign={c}
-                  index={i}
-                  saved={savedIds.has(c.id)}
-                  onToggleSave={toggleSave}
-                />
-              ))}
-            </CampaignSection>
-          ) : null}
-
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-[18px] font-semibold tracking-tight text-[#111827]">
+          <section id="all-campaigns">
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <h2 className="text-[17px] font-semibold tracking-tight text-[#111827] sm:text-[18px]">
                 {search ? `Results for “${search}”` : "All Campaigns"}
               </h2>
-              <span className="text-[12px] text-[#94A3B8]">
+              <span className="shrink-0 text-[12px] text-[#94A3B8]">
                 {campaigns.length.toLocaleString()} of {total.toLocaleString()}
               </span>
             </div>
 
-            {campaigns.length === 0 ? (
-              <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center">
+            {fetchError && campaigns.length === 0 ? (
+              <div className="rounded-[16px] border border-rose-200 bg-rose-50 py-12 text-center">
+                <p className="text-sm font-bold text-rose-800">Couldn’t load campaigns.</p>
+                <p className="mt-1 text-[13px] text-rose-700/80">Check your connection and try again.</p>
+                <button
+                  type="button"
+                  onClick={() => void fetchPage(1, true)}
+                  className="mt-4 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white py-14 text-center">
                 <Clapperboard className="mx-auto mb-3 h-8 w-8 text-[#D1D5DB]" />
                 <p className="text-sm font-bold text-[#111827]">
-                  {hasFilters ? "No campaigns match these filters." : "No live campaigns yet"}
+                  {hasFilters ? "No campaigns match your filters." : "No live campaigns yet"}
                 </p>
                 <p className="mt-1 text-[13px] text-[#64748B]">
                   {hasFilters
@@ -365,7 +386,7 @@ export function UGCDiscoverPage() {
               </div>
             )}
 
-            <div ref={loadMoreRef} className="flex justify-center py-7">
+            <div ref={loadMoreRef} className="flex justify-center py-6">
               {loadingMore ? (
                 <div className="flex items-center gap-2 text-[12px] font-medium text-[#64748B]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF5A1F]" />
@@ -377,14 +398,5 @@ export function UGCDiscoverPage() {
         </>
       )}
     </div>
-  );
-}
-
-function CampaignSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-7">
-      <h2 className="mb-3 text-[18px] font-semibold tracking-tight text-[#111827]">{title}</h2>
-      <div className={CARD_GRID}>{children}</div>
-    </section>
   );
 }

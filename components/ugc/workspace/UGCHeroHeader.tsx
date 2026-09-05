@@ -71,21 +71,13 @@ export function UGCHeroHeader({
   }, [searchRef]);
 
   return (
-    <header className="mb-6">
-      <div className="min-w-0">
-        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[32px]">
-          Discover Campaigns
-        </h1>
-        <p className="mt-1 max-w-2xl text-[14px] leading-snug text-[#64748B] sm:text-[15px]">
-          Find brands, products and opportunities that match your content style.
-        </p>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+    <div className="mb-4 sm:mb-5">
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute left-3.5 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[#94A3B8]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#94A3B8]"
             strokeWidth={1.85}
+            aria-hidden
           />
           <input
             ref={searchRef}
@@ -95,8 +87,8 @@ export function UGCHeroHeader({
             placeholder="Search brands, campaigns, products..."
             aria-label={t("searchPlaceholder")}
             className={cn(
-              "h-10 w-full rounded-full border border-[#E5E7EB] bg-white pl-10 pr-11 text-[14px] text-[#111827]",
-              "outline-none placeholder:text-[#94A3B8]",
+              "h-11 w-full rounded-xl border border-[#E5E7EB] bg-white pl-10 pr-11 text-[14px] text-[#111827]",
+              "shadow-[0_1px_2px_rgba(17,24,39,0.04)] outline-none placeholder:text-[#94A3B8]",
               "focus:border-[#FF5A1F]/50 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.1)]",
             )}
           />
@@ -105,14 +97,18 @@ export function UGCHeroHeader({
               type="button"
               onClick={onClearSearch}
               aria-label={t("clearFilters")}
-              className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-[#94A3B8] hover:bg-[#F3F4F6]"
+              className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-[#94A3B8] hover:bg-[#F3F4F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
             >
               <X className="h-3.5 w-3.5" />
             </button>
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5" role="group" aria-label="Filter by platform">
+        <div
+          className="-mx-1 flex shrink-0 items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none]"
+          role="group"
+          aria-label="Filter by platform"
+        >
           {PLATFORM_FILTERS.map((p) => {
             const active = platform === p.key;
             return (
@@ -124,7 +120,8 @@ export function UGCHeroHeader({
                 aria-label={platformLabel(p.key)}
                 title={platformLabel(p.key)}
                 className={cn(
-                  "grid h-9 w-9 place-items-center rounded-full border transition-colors",
+                  "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
                   active
                     ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#111827]"
                     : "border-[#E5E7EB] bg-white text-[#111827] hover:border-[#D1D5DB]",
@@ -137,7 +134,7 @@ export function UGCHeroHeader({
         </div>
       </div>
 
-      <div className="-mx-1 mt-3 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">
+      <div className="-mx-1 mt-2.5 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]">
         <FilterSelect
           label="Type"
           value={contentType}
@@ -165,7 +162,7 @@ export function UGCHeroHeader({
             value={country}
             onChange={(e) => onCountryChange(e.target.value)}
             placeholder="Country"
-            className="h-9 w-[108px] rounded-full border border-[#E5E7EB] bg-white px-3 text-[12px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40"
+            className="h-9 w-[100px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 sm:w-[108px]"
           />
         </label>
         <FilterSelect
@@ -179,14 +176,14 @@ export function UGCHeroHeader({
           onClick={onClearAll}
           disabled={!hasFilters}
           className={cn(
-            "h-9 shrink-0 px-2 text-[12px] font-semibold",
-            hasFilters ? "text-[#FF5A1F] hover:underline" : "text-[#D1D5DB]",
+            "h-9 shrink-0 px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:underline",
+            hasFilters ? "text-[#FF5A1F] hover:underline" : "cursor-default text-[#D1D5DB]",
           )}
         >
-          {t("clearFilters")}
+          Clear all filters
         </button>
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -210,7 +207,7 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={cn(
-          "h-9 appearance-none rounded-full border bg-white pl-3 pr-7",
+          "h-9 appearance-none rounded-lg border bg-white pl-3 pr-7",
           "text-[12px] font-medium outline-none",
           "focus:border-[#FF5A1F]/40 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.08)]",
           active ? "border-[#FF5A1F]/50 text-[#111827]" : "border-[#E5E7EB] text-[#374151]",
@@ -222,7 +219,7 @@ function FilterSelect({
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#94A3B8]" />
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#94A3B8]" aria-hidden />
       <span className="sr-only">{selected?.label}</span>
     </div>
   );
