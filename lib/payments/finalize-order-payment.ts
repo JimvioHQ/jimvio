@@ -935,6 +935,54 @@ async function insertAffiliateCommissions(
   }
 }
 
+/**
+ * Idempotent commission backfill for already-paid / skipped finalize paths.
+ * Safe to call repeatedly — createPendingCommission dedupes on order_item_id.
+ */
+async function ensureAffiliateCommissionsForOrder(
+  db: SupabaseClient,
+  orderId: string
+): Promise<void> {
+  const { data: order } = await db
+    .from("orders")
+    .select(
+      `
+      referral_code,
+      payment_status,
+      order_items (
+        id,
+        product_id,
+        vendor_id,
+        product_name,
+        quantity,
+        unit_price,
+        total_price,
+        product_source,
+        source_metadata,
+        metadata,
+        affiliate_id,
+        affiliate_commission_rate,
+        affiliate_commission_amount,
+        affiliate_link_id,
+        affiliate_campaign_id
+      )
+    `
+    )
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (!order) return;
+  if (!isOrderPaymentComplete(order.payment_status)) return;
+
+  const items = (order.order_items ?? []) as CJOrderItem[];
+  await insertAffiliateCommissions(
+    db,
+    orderId,
+    items,
+    (order as { referral_code?: string | null }).referral_code
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export async function finalizeOrderPayment(
@@ -974,8 +1022,10 @@ export async function finalizeOrderPayment(
       if (ageMs < 3 * 60 * 1000) {
         console.log(
           `[finalizeOrderPayment] Tx ${ctx.providerTransactionId} ` +
-          `locked ${Math.round(ageMs / 1000)}s ago. Skipping.`
+          `locked ${Math.round(ageMs / 1000)}s ago. Ensuring commissions then skipping.`
         );
+        // Crash recovery: first finalize may have marked tx complete before commissions.
+        await ensureAffiliateCommissionsForOrder(db, orderId);
         return { type: "skipped" };
       }
 
@@ -1044,6 +1094,7 @@ export async function finalizeOrderPayment(
     (Array.isArray(order.shopify_order_ids) && order.shopify_order_ids.length > 0);
 
   if (isPaid && (shopifyItems.length === 0 || hasShopifyBridge)) {
+    await ensureAffiliateCommissionsForOrder(db, orderId);
     return { type: "skipped" };
   }
 
@@ -1102,7 +1153,10 @@ export async function finalizeOrderPayment(
   // ── 3a. Non-Shopify path ──────────────────────────────────────────────────
 
   if (shopifyItems.length === 0) {
-    if (isPaid) return { type: "skipped" };
+    if (isPaid) {
+      await ensureAffiliateCommissionsForOrder(db, orderId);
+      return { type: "skipped" };
+    }
 
     // Mark order confirmed + paid
     const { error: patchError } = await db

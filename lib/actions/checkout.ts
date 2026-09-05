@@ -360,6 +360,121 @@ async function createVendorOrder(
   return order.id;
 }
 
+/**
+ * When checkout resumes a pending order, backfill affiliate fields from the
+ * current cart sticky link / referral cookies so attribution is not frozen null.
+ */
+async function refreshPendingOrdersAffiliateAttribution(
+  admin: ReturnType<typeof getAdminDB>,
+  orderIds: string[],
+  buyerId: string,
+  cartId: string
+): Promise<void> {
+  if (!orderIds.length) return;
+
+  const referralCode = await resolveAffiliateReferralFromCookies();
+  const { data: cartItems } = await admin
+    .from("cart_items")
+    .select(
+      `
+      product_id, quantity, product_source, affiliate_link_id,
+      unit_price_at_add, currency_at_add,
+      products(
+        id, price, currency, affiliate_enabled, affiliate_commission_rate, affiliate_price
+      ),
+      product_variants(price)
+    `
+    )
+    .eq("cart_id", cartId);
+
+  const byProduct = new Map<string, any>();
+  for (const item of (cartItems ?? []) as any[]) {
+    if (item.product_id) byProduct.set(item.product_id, item);
+  }
+
+  for (const orderId of orderIds) {
+    const { data: existingOrder } = await admin
+      .from("orders")
+      .select("id, metadata, referral_code")
+      .eq("id", orderId)
+      .eq("buyer_id", buyerId)
+      .eq("payment_status", "pending")
+      .maybeSingle();
+    if (!existingOrder) continue;
+
+    if (referralCode) {
+      const prevMeta =
+        existingOrder.metadata && typeof existingOrder.metadata === "object"
+          ? (existingOrder.metadata as Record<string, unknown>)
+          : {};
+      await admin
+        .from("orders")
+        .update({
+          referral_code: referralCode,
+          affiliate_attributed_at: new Date().toISOString(),
+          metadata: mergeAffiliateMetadata(
+            prevMeta,
+            buildAffiliateAttribution({
+              referralCode,
+              source: "cookie",
+            })
+          ) as Json,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", orderId);
+    }
+
+    const { data: lines } = await admin
+      .from("order_items")
+      .select(
+        "id, product_id, quantity, total_price, affiliate_id, affiliate_link_id, product_source"
+      )
+      .eq("order_id", orderId);
+
+    for (const line of lines ?? []) {
+      if (line.affiliate_id && line.affiliate_link_id) continue;
+      const cartItem = line.product_id ? byProduct.get(line.product_id) : null;
+      const productRaw = cartItem?.products;
+      const product = Array.isArray(productRaw) ? productRaw[0] : productRaw;
+      if (!product) continue;
+
+      const lineTotal = Number(line.total_price ?? 0);
+      const attribution = await buildLineAttribution({
+        buyerUserId: buyerId,
+        productSource: line.product_source ?? cartItem?.product_source,
+        affiliateEnabled: Boolean(product.affiliate_enabled),
+        productCommissionRate: product.affiliate_commission_rate ?? null,
+        affiliateFixedAmountUsd:
+          product.affiliate_price != null && Number(product.affiliate_price) > 0
+            ? toPlatformUsd(Number(product.affiliate_price), product.currency)
+            : null,
+        lineTotal,
+        quantity: line.quantity,
+        cartAffiliateLinkId: cartItem?.affiliate_link_id ?? null,
+      });
+      if (!attribution) continue;
+
+      await admin
+        .from("order_items")
+        .update({
+          affiliate_id: attribution.affiliate_id,
+          affiliate_commission_rate: attribution.affiliate_commission_rate,
+          affiliate_commission_amount: attribution.affiliate_commission_amount,
+          affiliate_link_id: attribution.affiliate_link_id,
+          affiliate_campaign_id: attribution.campaign_id,
+          metadata: {
+            affiliate_link_id: attribution.affiliate_link_id,
+            affiliate_campaign_id: attribution.campaign_id,
+            attribution_model: attribution.attribution_model,
+            attribution_refreshed_at: new Date().toISOString(),
+          },
+        } as any)
+        .eq("id", line.id)
+        .is("affiliate_id", null);
+    }
+  }
+}
+
 // ─── updatePendingOrdersShipping ──────────────────────────────────────────────
 
 // export async function updatePendingOrdersShipping(
@@ -647,6 +762,18 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
           )
         )
       );
+    }
+
+    // Resume must not freeze a missing affiliate attribution from an earlier attempt.
+    try {
+      await refreshPendingOrdersAffiliateAttribution(
+        admin,
+        existingOrders.map((o) => o.id),
+        userId,
+        cartId
+      );
+    } catch (refreshErr) {
+      console.warn("[startCheckout] attribution refresh skipped:", refreshErr);
     }
 
     return ok({ orderIds: existingOrders.map((o) => o.id) });

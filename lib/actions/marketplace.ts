@@ -2293,6 +2293,9 @@ export async function buyDirectCheckout(
     );
 
     let affiliateId: string | null = null;
+    let affiliateLinkId: string | null = null;
+    let affiliateCampaignId: string | null = null;
+    let attributionModel: string | null = null;
     let commissionRate = 0;
     let commissionAmount = 0;
 
@@ -2315,6 +2318,9 @@ export async function buyDirectCheckout(
       // when cookie resolves to a different inactive path, fall back to direct resolve.
       if (attribution) {
         affiliateId = attribution.affiliate_id;
+        affiliateLinkId = attribution.affiliate_link_id;
+        affiliateCampaignId = attribution.campaign_id;
+        attributionModel = attribution.attribution_model;
         commissionRate = attribution.affiliate_commission_rate;
         commissionAmount = attribution.affiliate_commission_amount;
       } else {
@@ -2360,8 +2366,11 @@ export async function buyDirectCheckout(
             ? {
                 affiliate_attribution: {
                   affiliate_id: affiliateId,
+                  affiliate_link_id: affiliateLinkId,
+                  affiliate_campaign_id: affiliateCampaignId,
                   commission_rate: commissionRate,
                   commission_amount: commissionAmount,
+                  attribution_model: attributionModel,
                 },
               }
             : {}),
@@ -2393,13 +2402,24 @@ export async function buyDirectCheckout(
         affiliate_id: affiliateId,
         affiliate_commission_rate: commissionRate,
         affiliate_commission_amount: commissionAmount,
+        affiliate_link_id: affiliateLinkId,
+        affiliate_campaign_id: affiliateCampaignId,
         product_source: lineSource,
         source_metadata: lineMeta as Json,
         pricing_type: product.pricing_type ?? "one_time",
         billing_period: product.billing_period ?? null,
         digital_download_url: !isCJ ? product.digital_file_url ?? null : null,
         access_granted_at: isFree && !isCJ ? new Date().toISOString() : null,
-        metadata: { ...(lastVideoId ? { video_id: lastVideoId } : {}) },
+        metadata: {
+          ...(lastVideoId ? { video_id: lastVideoId } : {}),
+          ...(affiliateLinkId
+            ? {
+                affiliate_link_id: affiliateLinkId,
+                affiliate_campaign_id: affiliateCampaignId,
+                attribution_model: attributionModel,
+              }
+            : {}),
+        },
       })
       .select()
       .single();
