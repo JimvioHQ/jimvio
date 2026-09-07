@@ -24,7 +24,7 @@ type TrendingCommunityRow = {
   cover_image: string | null;
   avatar_url: string | null;
   member_count: number | null;
-  post_count: number | null;
+  post_count?: number | null;
   is_featured: boolean | null;
   online_members: number | null;
   trending_score: number | null;
@@ -58,6 +58,10 @@ function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
     online_members: onlineMembers,
     trending_score: Number(row.trending_score ?? 0) || 0,
     verified,
+    is_featured: Boolean(row.is_featured),
+    is_free: (row as { is_free?: boolean | null }).is_free !== false,
+    monthly_price: (row as { monthly_price?: number | null }).monthly_price ?? null,
+    currency: (row as { currency?: string | null }).currency ?? null,
     href: `/communities/${row.slug}`,
     join_href: `/communities/${row.slug}/subscribe`,
   };
@@ -186,7 +190,7 @@ export async function GET() {
     const ids = trendingRows.map((row) => row.id);
     const { data: copyRows } = await supabase
       .from("communities")
-      .select("id, tagline, description, settings")
+      .select("id, tagline, description, settings, is_free, monthly_price, currency, is_featured")
       .in("id", ids);
     const copyById = new Map(
       ((copyRows ?? []) as Array<{
@@ -194,6 +198,10 @@ export async function GET() {
         tagline: string | null;
         description: string | null;
         settings?: unknown;
+        is_free?: boolean | null;
+        monthly_price?: number | null;
+        currency?: string | null;
+        is_featured?: boolean | null;
       }>).map((row) => [row.id, row])
     );
     trendingRows = trendingRows.map((row) => {
@@ -204,6 +212,10 @@ export async function GET() {
             tagline: row.tagline ?? copy.tagline,
             description: row.description ?? copy.description,
             settings: (row as { settings?: unknown }).settings ?? copy.settings,
+            is_featured: row.is_featured ?? copy.is_featured ?? null,
+            is_free: copy.is_free,
+            monthly_price: copy.monthly_price,
+            currency: copy.currency,
           }
         : row;
     });
@@ -247,13 +259,38 @@ export async function GET() {
           }),
           settings: (raw as { settings?: unknown }).settings,
         };
-        trendingRows = [scored, ...trendingRows].slice(0, 8);
+        trendingRows = [scored, ...trendingRows];
       }
     }
+
+    const pinned: TrendingCommunityRow[] = [];
+    const rest: TrendingCommunityRow[] = [];
+    const seen = new Set<string>();
+    for (const slug of PRIORITY_TRENDING_COMMUNITY_SLUGS) {
+      const row = trendingRows.find((item) => item.slug === slug);
+      if (row && !seen.has(row.id)) {
+        pinned.push(row);
+        seen.add(row.id);
+      }
+    }
+    for (const row of trendingRows) {
+      if (!seen.has(row.id)) rest.push(row);
+    }
+    trendingRows = [...pinned, ...rest].slice(0, 8);
   }
 
+  const qualityRows = trendingRows.filter((row) => {
+    if (!row.name?.trim() || !row.slug?.trim()) return false;
+    if (PRIORITY_TRENDING_COMMUNITY_SLUGS.includes(row.slug)) return true;
+    if (row.is_featured) return true;
+    const members = Number(row.member_count ?? 0) || 0;
+    const posts = Number(row.post_count ?? 0) || 0;
+    const score = Number(row.trending_score ?? 0) || 0;
+    return members >= 5 || posts >= 1 || score > 4;
+  });
+
   return NextResponse.json({
-    communities: trendingRows.map((row) =>
+    communities: qualityRows.map((row) =>
       mapCommunity(row as TrendingCommunityRow & { settings?: unknown })
     ),
     live: liveRows.map((s) => ({

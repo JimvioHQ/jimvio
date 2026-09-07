@@ -5,7 +5,7 @@ import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect"
+import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect"
 import { getPublicAppUrl } from "@/lib/app-url"
 import { verifyTOTP } from "@/lib/totp"
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions"
@@ -116,7 +116,7 @@ function clearFailedAttempts(userId: string) {
 // ─────────────────────────────────────────────
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
-  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? "/")
+  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? DEFAULT_POST_LOGIN_PATH)
 }
 
 async function currentSessionIsPasswordRecovery(
@@ -367,7 +367,7 @@ export async function signIn(formData: FormData) {
       cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
       cookieStore.set(TWO_FA_PENDING_COOKIE, userId, twoFaPendingCookieOptions())
 
-      const safe = sanitizeAuthenticatedNext(next) ?? "/"
+      const safe = sanitizeAuthenticatedNext(next) ?? DEFAULT_POST_LOGIN_PATH
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
     }
   } catch (err) {

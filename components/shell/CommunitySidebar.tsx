@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Home, Layers, Plus, ShieldCheck, X } from "lucide-react";
@@ -20,6 +19,12 @@ import {
 import { manageCommunityHref } from "@/lib/community/owner-console";
 import { createClient } from "@/lib/supabase/client";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import { SpaceAvatar } from "@/components/community/workspace/space/SpaceAvatar";
+import {
+  formatMemberCountLabel,
+  resolveCommunityMemberCount,
+  resolveSpaceMemberCount,
+} from "@/lib/community/member-count";
 
 type CommunityNavItem = "overview" | "spaces";
 
@@ -31,6 +36,7 @@ type SpaceItem = {
   memberCount?: number;
   iconColor?: string;
   iconUrl?: string | null;
+  icon?: string | null;
 };
 
 const SPACE_ICON_COLORS = [
@@ -58,18 +64,7 @@ type CommunitySidebarProps = {
 };
 
 function formatMemberCount(count: number): string {
-  if (count >= 1_000_000) {
-    const n = count / 1_000_000;
-    return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1).replace(/\.0$/, "")}M`;
-  }
-  if (count >= 10_000) {
-    return `${Math.round(count / 1000)}K`;
-  }
-  if (count >= 1000) {
-    const n = count / 1000;
-    return `${n.toFixed(1).replace(/\.0$/, "")}K`;
-  }
-  return count.toLocaleString();
+  return formatMemberCountLabel(count, { compact: true });
 }
 
 function buildSpaces(
@@ -92,11 +87,13 @@ function buildSpaces(
     ),
     memberCount: space.member_count ?? 0,
     iconColor: "bg-orange-500",
+    icon:
+      space.icon && !/^https?:\/\//i.test(space.icon) ? space.icon : null,
     iconUrl:
       safeMediaUrl(
         resolveSpaceAvatarSrc(space, communityAvatar, communityCover) ?? undefined,
         96
-      ) ?? space.icon,
+      ) ?? null,
   }));
 }
 
@@ -252,7 +249,6 @@ function SidebarBody({
               const color =
                 space.iconColor ??
                 SPACE_ICON_COLORS[index % SPACE_ICON_COLORS.length];
-              const letter = (space.label.trim()[0] || "S").toUpperCase();
               const count = space.memberCount ?? 0;
               return (
                 <Link
@@ -267,24 +263,13 @@ function SidebarBody({
                       : "hover:bg-[var(--color-surface-secondary)]"
                   )}
                 >
-                  <span
-                    className={cn(
-                      "relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white",
-                      color
-                    )}
-                  >
-                    {space.iconUrl && /^https?:\/\//.test(space.iconUrl) ? (
-                      <Image
-                        src={space.iconUrl}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      letter
-                    )}
-                  </span>
+                  <SpaceAvatar
+                    name={space.label}
+                    src={space.iconUrl}
+                    icon={space.icon}
+                    size={32}
+                    className={cn(!space.iconUrl && !space.icon && color)}
+                  />
                   <span className="min-w-0 flex-1">
                     <span
                       className={cn(
@@ -297,7 +282,7 @@ function SidebarBody({
                       {space.label}
                     </span>
                     <span className="block text-[11px] text-[var(--color-text-muted)]">
-                      {formatMemberCount(count)} members
+                      {formatMemberCount(count)}
                     </span>
                   </span>
                 </Link>
@@ -372,7 +357,7 @@ export function CommunitySidebar({
         const supabase = createClient();
         const { data: community, error: communityError } = await supabase
           .from("communities")
-          .select("id, avatar_url, cover_image")
+          .select("id, slug, avatar_url, cover_image, member_count, settings")
           .eq("slug", slug)
           .eq("is_active", true)
           .maybeSingle();
@@ -382,6 +367,11 @@ export function CommunitySidebar({
           setSpacesStatus(communityError ? "error" : "ready");
           return;
         }
+        const communityCount = resolveCommunityMemberCount({
+          slug: community.slug,
+          member_count: community.member_count,
+          settings: (community as { settings?: unknown }).settings,
+        });
         const { data, error } = await supabase
           .from("spaces")
           .select(
@@ -409,6 +399,8 @@ export function CommunitySidebar({
             created_at: string | null;
             is_featured: boolean | null;
             member_count: number | null;
+            cover_url?: string | null;
+            banner_url?: string | null;
           }) => ({
             id: s.id,
             name: s.name,
@@ -421,7 +413,15 @@ export function CommunitySidebar({
             space_type: s.space_type ?? "discussion",
             created_at: s.created_at ?? null,
             is_featured: s.is_featured ?? null,
-            member_count: s.member_count ?? 0,
+            cover_url: s.cover_url ?? null,
+            banner_url: s.banner_url ?? null,
+            member_count: resolveSpaceMemberCount(
+              {
+                access_type: s.access_type ?? "free",
+                member_count: s.member_count,
+              },
+              communityCount
+            ),
             rooms: [],
           }))
         );

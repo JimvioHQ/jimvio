@@ -2,11 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { BadgeCheck } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar, communityInitial } from "@/components/community/community-letter-avatar";
 import { CommunityAvatarImage, CommunityCoverImage } from "@/components/community/community-media";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import {
+  formatMemberCountLabel,
+  resolveCommunityMemberCount,
+} from "@/lib/community/member-count";
+import { isCommunityVerified } from "@/lib/community/trending-score";
 
 export type CommunityRow = {
   id: string;
@@ -17,6 +23,7 @@ export type CommunityRow = {
   member_count?: number | null;
   post_count?: number | null;
   is_free?: boolean | null;
+  is_featured?: boolean | null;
   monthly_price?: number | null;
   currency?: string | null;
   cover_image?: string | null;
@@ -25,6 +32,7 @@ export type CommunityRow = {
   created_at?: string | null;
   is_member?: boolean;
   is_owner?: boolean;
+  settings?: unknown;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
@@ -62,6 +70,11 @@ export function SharedCommunityCard({
   const owner = ownerLabel(c);
   const featured = variant === "featured";
   const detailHref = `/communities/${c.slug}`;
+  const memberCount = resolveCommunityMemberCount(c);
+  const verified = isCommunityVerified({
+    is_featured: c.is_featured,
+    member_count: memberCount,
+  });
   const joined = Boolean(c.is_member || c.is_owner);
   const joinHref = c.is_free
     ? `/communities/${c.slug}`
@@ -154,7 +167,15 @@ export function SharedCommunityCard({
                   featured ? "text-[16px]" : "text-[14px]"
                 )}
               >
-                {c.name}
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <span className="min-w-0 break-words">{c.name}</span>
+                  {verified ? (
+                    <BadgeCheck
+                      className="h-3.5 w-3.5 shrink-0 text-[#3b82f6]"
+                      aria-label="Verified community"
+                    />
+                  ) : null}
+                </span>
               </h2>
               {c.category && (
                 <span className="max-w-[40%] shrink-0 truncate rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
@@ -172,7 +193,7 @@ export function SharedCommunityCard({
             ) : null}
 
             <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
-              <span>{formatNumber(c.member_count ?? 0)} members</span>
+              <span>{formatMemberCountLabel(memberCount)}</span>
               {(c.post_count ?? 0) > 0 && (
                 <>
                   <span aria-hidden className="text-[var(--color-border-strong)]">
@@ -181,7 +202,7 @@ export function SharedCommunityCard({
                   <span>{formatNumber(c.post_count ?? 0)} posts</span>
                 </>
               )}
-              {(c.member_count ?? 0) >= 50 || (c.post_count ?? 0) >= 5 ? (
+              {memberCount >= 50 || (c.post_count ?? 0) >= 5 ? (
                 <>
                   <span aria-hidden className="text-[var(--color-border-strong)]">
                     ·

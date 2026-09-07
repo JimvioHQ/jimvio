@@ -14,7 +14,6 @@ import {
 } from "@/lib/community/workspace";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { MembershipLite } from "@/lib/community-workspace-access";
-import { useCommunityRoster } from "@/components/community/workspace/shared/useCommunityRoster";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import { SpaceSettingsDialog } from "@/components/community/workspace/space/SpaceSettingsDialog";
@@ -53,7 +52,6 @@ export function GroupWorkspace({
   const router = useRouter();
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { members } = useCommunityRoster(communityId);
   const [ensuredRoom, setEnsuredRoom] = useState<DiscussionRoom | null>(null);
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
@@ -72,13 +70,13 @@ export function GroupWorkspace({
   const group: WorkspaceGroup = useMemo(
     () =>
       mapSpaceToGroup(space, roleInput, {
-        memberCount: memberCount ?? members.length,
+        memberCount: memberCount ?? space.member_count ?? 0,
         onlineCount: 0,
         description: space.description ?? null,
         color: space.color ?? null,
         cover: avatarSrc,
       }),
-    [space, roleInput, memberCount, members.length, avatarSrc]
+    [space, roleInput, memberCount, avatarSrc]
   );
 
   const resolvedFromSpace = useMemo(

@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -14,6 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
 import { SafeCommunityImage } from "@/components/community/community-media";
+import { SpaceAvatar } from "@/components/community/workspace/space/SpaceAvatar";
+import { formatMemberCountLabel } from "@/lib/community/member-count";
 import {
   WorkspaceActionMenu,
   buildWorkspaceActions,
@@ -205,8 +206,14 @@ export function GroupCard({
         </div>
 
         <Link href={href} className="min-w-0 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <h3 className="truncate text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+          <div className="flex items-center gap-2">
+            <SpaceAvatar
+              name={group.name}
+              src={group.cover}
+              icon={group.icon}
+              size={28}
+            />
+            <h3 className="min-w-0 truncate text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]">
               {group.name}
             </h3>
             {isVerified ? (
@@ -225,7 +232,7 @@ export function GroupCard({
           <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
             <Users className="h-3 w-3" aria-hidden />
             {group.memberCount > 0
-              ? `${group.memberCount.toLocaleString()} members`
+              ? formatMemberCountLabel(group.memberCount)
               : `${group.channels.length} channels`}
           </span>
           {group.onlineCount > 0 ? (

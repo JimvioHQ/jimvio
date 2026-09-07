@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
 import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
-import { resolveCommunityMemberCount } from "@/lib/community/member-count";
+import { resolveCommunityMemberCount, resolveSpaceMemberCount } from "@/lib/community/member-count";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -866,7 +866,7 @@ export async function getHubSpaces(
   const { data: spaces } = await supabase
     .from("spaces")
     .select(
-      "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, access_type, sort_order, is_featured, communities(name, slug, avatar_url, cover_image)"
+      "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, access_type, sort_order, is_featured, communities(name, slug, avatar_url, cover_image, member_count, settings)"
     )
     .in("community_id", communityIds)
     .eq("is_active", true)
@@ -947,6 +947,8 @@ export async function getHubSpaces(
       slug: string;
       avatar_url: string | null;
       cover_image: string | null;
+      member_count?: number | null;
+      settings?: unknown;
     } | null;
     const cover =
       space.cover_url?.trim() ||
@@ -954,6 +956,11 @@ export async function getHubSpaces(
       null;
     const communityAvatar =
       community?.avatar_url?.trim() || community?.cover_image?.trim() || null;
+    const communityCount = resolveCommunityMemberCount({
+      slug: community?.slug,
+      member_count: community?.member_count,
+      settings: community?.settings,
+    });
     const roomId = discussionRoomBySpace.get(space.id);
     const last = roomId ? lastByRoom.get(roomId) : undefined;
     return {
@@ -968,7 +975,13 @@ export async function getHubSpaces(
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
       room_count: space.room_count ?? 0,
-      member_count: space.member_count ?? 0,
+      member_count: resolveSpaceMemberCount(
+        {
+          access_type: (space as { access_type?: string | null }).access_type,
+          member_count: space.member_count,
+        },
+        communityCount
+      ),
       access_type: (space as { access_type?: string }).access_type ?? "free",
       last_message: last?.body?.slice(0, 140) ?? null,
       last_message_at: last?.created_at ?? null,

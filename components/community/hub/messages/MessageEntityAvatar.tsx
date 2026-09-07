@@ -27,13 +27,11 @@ export function MessageEntityAvatar({
   );
 }
 
-/** Resolve display image: space → community fallback. */
+/** Resolve display image from the Space itself. */
 export function resolveSpaceAvatar(
   spaceCover: string | null | undefined,
-  communityAvatar: string | null | undefined
+  _communityAvatar?: string | null | undefined
 ): string | null {
   const cover = spaceCover?.trim();
-  if (cover) return cover;
-  const community = communityAvatar?.trim();
-  return community || null;
+  return cover || null;
 }

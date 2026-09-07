@@ -20,13 +20,16 @@ function sanitizePath(raw: string | null | undefined): string {
   return sanitizeInternalPath(raw, "/")
 }
 
+/** Default destination after a successful login when no deep-link is present. */
+export const DEFAULT_POST_LOGIN_PATH = "/communities"
+
 // Role priority — highest wins
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
   vendor: "/ugc/campaign-center",
-  affiliate: "/",
-  influencer: "/",
-  buyer: "/",
+  affiliate: DEFAULT_POST_LOGIN_PATH,
+  influencer: DEFAULT_POST_LOGIN_PATH,
+  buyer: DEFAULT_POST_LOGIN_PATH,
 }
 const ROLE_PRIORITY = ["admin", "vendor", "affiliate", "influencer", "buyer"]
 
@@ -55,7 +58,7 @@ export async function resolvePostLoginPath(
 
     if (error) {
       console.error("[resolvePostLoginPath] role lookup failed:", error.message)
-      return hasExplicitNext ? safe : "/"
+      return hasExplicitNext ? safe : DEFAULT_POST_LOGIN_PATH
     }
 
     const roles = ((data ?? []) as { role: string }[]).map(r => r.role)
@@ -71,7 +74,7 @@ export async function resolvePostLoginPath(
         .eq("user_id", userId)
         .maybeSingle()
       const row = onboarding as { welcome_completed_at?: string | null } | null
-      return row?.welcome_completed_at ? "/" : "/welcome"
+      return row?.welcome_completed_at ? DEFAULT_POST_LOGIN_PATH : "/welcome"
     }
 
     const roleHome = ROLE_HOME[topRole]
@@ -99,6 +102,6 @@ export async function resolvePostLoginPath(
 
   } catch (err) {
     console.error("[resolvePostLoginPath] unexpected error:", err)
-    return hasExplicitNext ? safe : "/"
+    return hasExplicitNext ? safe : DEFAULT_POST_LOGIN_PATH
   }
 }

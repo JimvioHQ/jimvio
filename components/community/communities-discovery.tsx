@@ -13,6 +13,10 @@ import {
   CommunityRow,
 } from "./community-card-shared";
 import { COMMUNITY_CATEGORIES } from "@/lib/community/categories";
+import {
+  formatMemberCountLabel,
+  resolveCommunityMemberCount,
+} from "@/lib/community/member-count";
 
 const SHELL = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
@@ -119,7 +123,7 @@ function CommunitiesHero({
             </div>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--color-text-muted)]">
-              <span>{formatNumber(community.member_count ?? 0)} members</span>
+              <span>{formatMemberCountLabel(community.member_count ?? 0)}</span>
               {price && (
                 <>
                   <span aria-hidden>·</span>
@@ -294,9 +298,36 @@ function PriceFilterChips({
   );
 }
 
-function TrendingCommunitiesRow({ items }: { items: CommunityRow[] }) {
+function TrendingCommunitiesRow({
+  items,
+  loading,
+}: {
+  items: CommunityRow[];
+  loading?: boolean;
+}) {
+  if (loading) {
+    return (
+      <section className="mb-8 sm:mb-10">
+        <div className="mb-4">
+          <h2 className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[18px]">
+            Trending communities
+          </h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Active hubs with real members and conversations
+          </p>
+        </div>
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:-mx-6 sm:px-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="w-[220px] shrink-0 sm:w-[240px]">
+              <SkeletonCard />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
   if (items.length === 0) return null;
-  const trending = items.slice(0, 12);
+  const trending = items.slice(0, 8);
   return (
     <section className="mb-8 sm:mb-10">
       <div className="mb-4 flex items-end justify-between gap-3">
@@ -455,6 +486,8 @@ export function CommunitiesDiscovery({
 
   const [myCommunities, setMyCommunities] = useState<CommunityRow[]>([]);
   const [myCommunitiesLoading, setMyCommunitiesLoading] = useState(false);
+  const [trendingItems, setTrendingItems] = useState<CommunityRow[]>([]);
+  const [trendingLoading, setTrendingLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -473,6 +506,61 @@ export function CommunitiesDiscovery({
         if (!cancelled) setLeaderboardRows([]);
       } finally {
         if (!cancelled) setLeaderboardLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setTrendingLoading(true);
+      try {
+        const res = await fetch(`/api/c/hub/discover`, { cache: "no-store" });
+        const json = (await res.json().catch(() => ({}))) as {
+          communities?: Array<{
+            id: string;
+            name: string;
+            slug: string;
+            category: string | null;
+            tagline: string | null;
+            cover_image: string | null;
+            avatar_url: string | null;
+            member_count: number;
+            is_featured?: boolean | null;
+            is_free?: boolean | null;
+            monthly_price?: number | null;
+            currency?: string | null;
+          }>;
+        };
+        if (cancelled) return;
+        const rows = Array.isArray(json.communities) ? json.communities : [];
+        setTrendingItems(
+          rows.map((row) => ({
+            id: row.id,
+            name: row.name,
+            slug: row.slug,
+            tagline: row.tagline,
+            category: row.category,
+            cover_image: row.cover_image,
+            avatar_url: row.avatar_url,
+            member_count: resolveCommunityMemberCount(row),
+            is_featured: row.is_featured ?? null,
+            is_free: row.is_free ?? true,
+            monthly_price: row.monthly_price ?? null,
+            currency: row.currency ?? null,
+            post_count: null,
+            is_member: false,
+            is_owner: false,
+            profiles: null,
+          }))
+        );
+      } catch {
+        if (!cancelled) setTrendingItems([]);
+      } finally {
+        if (!cancelled) setTrendingLoading(false);
       }
     })();
     return () => {
@@ -502,7 +590,7 @@ export function CommunitiesDiscovery({
                id, slug, name, tagline, category,
                avatar_url, cover_image, image_url,
                member_count, is_free, monthly_price, currency,
-               owner_id, created_at, is_active
+               owner_id, created_at, is_active, is_featured, settings
              )`
           )
           .eq("user_id", user.id)
@@ -533,7 +621,12 @@ export function CommunitiesDiscovery({
             avatar_url: (c.avatar_url as string | null) ?? null,
             cover_image: (c.cover_image as string | null) ?? null,
             image_url: (c.image_url as string | null) ?? null,
-            member_count: Number(c.member_count ?? 0),
+            member_count: resolveCommunityMemberCount({
+              slug: String(c.slug),
+              member_count: Number(c.member_count ?? 0),
+              settings: c.settings,
+            }),
+            is_featured: (c.is_featured as boolean | null | undefined) ?? null,
             is_free: c.is_free as boolean | null | undefined,
             monthly_price: (c.monthly_price as number | null) ?? null,
             currency: (c.currency as string | null) ?? null,
@@ -908,8 +1001,11 @@ export function CommunitiesDiscovery({
           </div>
         ) : (
           <>
-            {!debounced && category === "All" && visibleItems.length > 1 ? (
-              <TrendingCommunitiesRow items={visibleItems} />
+            {!debounced && category === "All" ? (
+              <TrendingCommunitiesRow
+                items={trendingItems}
+                loading={trendingLoading}
+              />
             ) : null}
 
             {heroCommunity && (

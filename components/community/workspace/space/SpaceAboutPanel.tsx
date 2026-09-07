@@ -20,6 +20,7 @@ import {
 } from "@/lib/community/workspace/space-types";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
 import { cn } from "@/lib/utils";
+import { formatMemberCountLabel } from "@/lib/community/member-count";
 
 export type SpaceAboutMember = {
   id: string;
@@ -154,7 +155,7 @@ export function SpaceAboutPanel({
 
           <InfoCard title="Members" icon={Users}>
             <p className="mb-3 text-[12px] text-gray-500">
-              {members.length || group.memberCount} members
+              {formatMemberCountLabel(group.memberCount || members.length)}
             </p>
             {shown.length === 0 ? (
               <p className="text-[12px] text-gray-500">No members to show yet.</p>

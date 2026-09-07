@@ -28,6 +28,10 @@ import { cn, formatNumber } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
 import { ownerConsoleHref } from "@/lib/community/owner-console";
+import {
+  formatMemberCountLabel,
+  resolveCommunityMemberCount,
+} from "@/lib/community/member-count";
 import { toast } from "sonner";
 
 type HubCommunity = {
@@ -192,7 +196,7 @@ function CommunityHubCard({
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
-            {formatNumber(community.member_count)} members
+            {formatMemberCountLabel(community.member_count)}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Layers className="h-3.5 w-3.5" />
@@ -309,7 +313,7 @@ export function MyCommunitiesClient() {
         supabase
           .from("communities")
           .select(
-            "id, name, slug, tagline, category, avatar_url, cover_image, member_count, is_free, is_private, monthly_price, currency, is_active, owner_id, updated_at, created_at"
+            "id, name, slug, tagline, category, avatar_url, cover_image, member_count, is_free, is_private, monthly_price, currency, is_active, owner_id, updated_at, created_at, settings"
           )
           .eq("owner_id", user.id)
           .eq("is_active", true)
@@ -321,7 +325,7 @@ export function MyCommunitiesClient() {
              communities!inner (
                id, name, slug, tagline, category, avatar_url, cover_image,
                member_count, is_free, is_private, monthly_price, currency,
-               is_active, owner_id, updated_at, created_at
+               is_active, owner_id, updated_at, created_at, settings
              )`
           )
           .eq("user_id", user.id)
@@ -355,7 +359,11 @@ export function MyCommunitiesClient() {
           category: (c.category as string | null) ?? null,
           avatar_url: (c.avatar_url as string | null) ?? null,
           cover_image: (c.cover_image as string | null) ?? null,
-          member_count: Number(c.member_count ?? 0),
+          member_count: resolveCommunityMemberCount({
+            slug: String(c.slug),
+            member_count: Number(c.member_count ?? 0),
+            settings: c.settings,
+          }),
           group_count: 0,
           channel_count: 0,
           revenue: null,

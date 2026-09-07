@@ -4,7 +4,10 @@ import { buildPointsSnapshot } from "@/lib/community/points";
 import { getCommunityOverviewStats, type CommunityOverviewStats } from "@/services/community/hub-data";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
-import { resolveCommunityMemberCount } from "@/lib/community/member-count";
+import {
+  resolveCommunityMemberCount,
+  resolveSpaceMemberCount,
+} from "@/lib/community/member-count";
 
 export type CommunityWorkspacePayload = {
   community: {
@@ -146,7 +149,13 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
     roomsBySpace.set(r.space_id, list);
   }
 
-  const allSpacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? [])
+  const displayMemberCount = resolveCommunityMemberCount({
+    slug: community.slug,
+    member_count: community.member_count,
+    settings: (community as { settings?: unknown }).settings,
+  });
+
+  const spacesForUi: WorkspaceSpaceRow[] = (spacesRes.data ?? [])
     .filter((s) => canSeeRestricted || isPublicSpace(s.access_type))
     .map((s) => ({
       id: s.id,
@@ -161,7 +170,15 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         (s as { space_type?: string | null }).space_type ?? "discussion",
       created_at: (s as { created_at?: string | null }).created_at ?? null,
       is_featured: (s as { is_featured?: boolean | null }).is_featured ?? null,
-      member_count: (s as { member_count?: number | null }).member_count ?? 0,
+      cover_url: (s as { cover_url?: string | null }).cover_url ?? null,
+      banner_url: (s as { banner_url?: string | null }).banner_url ?? null,
+      member_count: resolveSpaceMemberCount(
+        {
+          access_type: s.access_type ?? "free",
+          member_count: (s as { member_count?: number | null }).member_count,
+        },
+        displayMemberCount
+      ),
       rooms: (roomsBySpace.get(s.id) ?? []).map((r) => ({
         id: r.id,
         name: r.name,
@@ -177,19 +194,6 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         channel_staff_role: staffByRoom.get(r.id) ?? null,
       })),
     }));
-
-  const spacesWithRooms = allSpacesWithRooms;
-
-  const displayMemberCount = resolveCommunityMemberCount({
-    slug: community.slug,
-    member_count: community.member_count,
-    settings: (community as { settings?: unknown }).settings,
-  });
-
-  const spacesForUi = spacesWithRooms.map((s) => ({
-    ...s,
-    member_count: displayMemberCount > 0 ? displayMemberCount : s.member_count,
-  }));
 
   const points: PointsSnapshot | null = pointsRes.data
     ? buildPointsSnapshot(

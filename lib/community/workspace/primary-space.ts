@@ -103,13 +103,21 @@ export function partitionSpacesForDisplay(
   return { primary, secondary };
 }
 
+/**
+ * Space imagery only — never substitute a Community avatar/cover.
+ * Callers should fall back to initials when this returns null.
+ * Extra community args are accepted for call-site compatibility and ignored.
+ */
 export function resolveSpaceAvatarSrc(
-  space: WorkspaceSpaceRow,
+  space: Pick<WorkspaceSpaceRow, "cover_url" | "banner_url" | "icon">,
   communityAvatar?: string | null,
   communityCover?: string | null
 ): string | null {
-  const spaceCover = space.cover_url?.trim() || space.banner_url?.trim() || null;
+  void communityAvatar;
+  void communityCover;
+  const spaceCover = space.cover_url?.trim() || space.banner_url?.trim() || "";
   if (spaceCover) return spaceCover;
-  const community = communityAvatar?.trim() || communityCover?.trim() || null;
-  return community || null;
+  const icon = space.icon?.trim() || "";
+  if (/^https?:\/\//i.test(icon)) return icon;
+  return null;
 }

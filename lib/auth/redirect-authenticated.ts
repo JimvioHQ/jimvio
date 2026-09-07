@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import { TWO_FA_PENDING_COOKIE, cookieMatchesUser } from "@/lib/auth/two-fa-session";
 
@@ -21,7 +21,7 @@ export async function redirectIfAuthenticated(
 
   const pending = (await cookies()).get(TWO_FA_PENDING_COOKIE)?.value;
   if (cookieMatchesUser(pending, user.id)) {
-    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : "/";
+    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : DEFAULT_POST_LOGIN_PATH;
     redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
   }
 

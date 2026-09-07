@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/base";
 import { ensureDefaultCommunityWorkspace } from "@/lib/community/ensure-default-workspace";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export const dynamic = "force-dynamic";
 
@@ -221,7 +222,14 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    communities,
+    communities: communities.map((community) => ({
+      ...community,
+      member_count: resolveCommunityMemberCount({
+        slug: community.slug,
+        member_count: community.member_count,
+        settings: (community as { settings?: unknown }).settings,
+      }),
+    })),
     total: count ?? 0,
     page,
     limit,

@@ -167,7 +167,7 @@ export function mapSpaceToWorkspaceSpace(
     ownerId: roleInput.ownerId ?? null,
     adminIds: [],
     moderatorIds: [],
-    memberCount: extras?.memberCount ?? 0,
+    memberCount: extras?.memberCount ?? space.member_count ?? 0,
     onlineCount: extras?.onlineCount ?? 0,
     createdAt: extras?.createdAt ?? null,
     tags: extras?.tags ?? [],

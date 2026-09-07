@@ -15,55 +15,13 @@ import {
   WorkspaceActionMenu,
   buildWorkspaceActions,
 } from "@/components/community/workspace/shared/WorkspaceActionMenu";
-
-function formatCompactMembers(n: number): string {
-  if (n >= 1_000_000) {
-    const v = n / 1_000_000;
-    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")}M`;
-  }
-  if (n >= 1000) {
-    const v = n / 1000;
-    return `${v.toFixed(1).replace(/\.0$/, "")}K`;
-  }
-  return n.toLocaleString();
-}
-
-function memberCountLabel(n: number): string {
-  if (n <= 0) return "Members";
-  const compact = formatCompactMembers(n);
-  return n === 1 ? `${compact} member` : `${compact} members`;
-}
+import { SpaceAvatar } from "@/components/community/workspace/space/SpaceAvatar";
+import { formatMemberCountLabel } from "@/lib/community/member-count";
 
 function privacyLabel(privacy: WorkspaceGroup["privacy"]) {
   if (privacy === "premium") return "Premium";
   if (privacy === "private") return "Private";
   return "Public";
-}
-
-function SpaceAvatar({
-  name,
-  icon,
-}: {
-  name: string;
-  icon?: string | null;
-}) {
-  const letter = (name.trim()[0] || "S").toUpperCase();
-  const isUrl = Boolean(icon && /^https?:\/\//.test(icon));
-  return (
-    <span
-      className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-accent)] text-[14px] font-bold text-white shadow-[0_4px_12px_rgba(253,80,0,0.18)] ring-2 ring-white sm:h-10 sm:w-10 sm:text-[15px]"
-      aria-hidden
-    >
-      {isUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={icon!} alt="" className="h-full w-full object-cover" />
-      ) : icon ? (
-        <span className="text-[16px] leading-none sm:text-[18px]">{icon}</span>
-      ) : (
-        letter
-      )}
-    </span>
-  );
 }
 
 function GhostIconButton({
@@ -142,7 +100,13 @@ export function GroupHeader({
       )}
     >
       <div className="flex items-center gap-2.5 sm:gap-3">
-        <SpaceAvatar name={group.name} icon={group.cover ?? group.icon} />
+        <SpaceAvatar
+          name={group.name}
+          src={group.cover}
+          icon={group.icon}
+          size={36}
+          className="shadow-[0_4px_12px_rgba(253,80,0,0.18)] sm:h-10 sm:w-10"
+        />
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
@@ -166,7 +130,7 @@ export function GroupHeader({
             </span>
             <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-text-muted)]">
               <Users className="h-3 w-3" aria-hidden />
-              {memberCountLabel(group.memberCount)}
+              {formatMemberCountLabel(group.memberCount, { compact: true })}
             </span>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
 import { canSignInDuringMaintenance } from "@/lib/platform-maintenance";
 import { resolvePublicOrigin } from "@/lib/app-url";
@@ -228,9 +228,9 @@ export async function GET(request: Request) {
     destination = await resolvePostLoginPath(user.id, safeNext);
   } catch (err) {
     console.error("[auth/callback] resolvePostLoginPath threw:", err);
-    destination = safeNext;
+    destination = safeNext === "/" ? DEFAULT_POST_LOGIN_PATH : safeNext;
   }
-  destination = sanitizeAuthenticatedNext(destination) ?? "/";
+  destination = sanitizeAuthenticatedNext(destination) ?? DEFAULT_POST_LOGIN_PATH;
 
   const admin = createAdminClient();
   const { data: profile2fa } = await admin

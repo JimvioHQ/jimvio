@@ -155,7 +155,7 @@ export function ChatInputZone({
       className={cn(
         "relative flex shrink-0 flex-col",
         discussion
-          ? "discussion-chat-canvas border-t border-black/[0.04] px-2.5 pb-[max(6px,env(safe-area-inset-bottom,0px))] pt-1 sm:px-4 lg:px-5"
+          ? "discussion-chat-canvas border-t border-black/[0.04] px-2.5 pb-1.5 pt-1 sm:px-4 lg:px-5"
           : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
       )}
       onDragEnter={(e) => {
@@ -286,7 +286,7 @@ export function ChatInputZone({
             className={cn(
               "flex min-h-[38px] items-end gap-1",
               discussion
-                ? "mx-auto w-full max-w-[720px] flex-col gap-0.5 max-lg:mb-[2.5rem]"
+                ? "mx-auto w-full max-w-[720px] flex-col gap-0.5"
                 : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
             )}
           >

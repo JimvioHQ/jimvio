@@ -96,7 +96,10 @@ export function SpaceWorkspacePage() {
             userId={workspace.userId}
             membership={workspace.membership ?? null}
             memberCount={
-              workspace.overview?.memberCount ?? workspace.memberCount ?? 0
+              space.member_count ??
+              workspace.overview?.memberCount ??
+              workspace.memberCount ??
+              0
             }
             isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
             ownerName={workspace.ownerName}
@@ -185,7 +188,10 @@ export function SpaceWorkspacePage() {
           membership={workspace.membership ?? null}
           ownerId={workspace.ownerId ?? null}
           memberCount={
-            workspace.overview?.memberCount ?? workspace.memberCount ?? 0
+            space.member_count ??
+            workspace.overview?.memberCount ??
+            workspace.memberCount ??
+            0
           }
           onlineCount={workspace.overview?.membersOnline ?? 0}
         />
@@ -228,7 +234,10 @@ export function SpaceWorkspacePage() {
           userId={workspace.userId}
           membership={workspace.membership ?? null}
           memberCount={
-            workspace.overview?.memberCount ?? workspace.memberCount ?? 0
+            spaceHit.member_count ??
+            workspace.overview?.memberCount ??
+            workspace.memberCount ??
+            0
           }
           isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
           ownerName={workspace.ownerName}

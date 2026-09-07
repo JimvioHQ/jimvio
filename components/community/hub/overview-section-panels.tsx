@@ -21,6 +21,7 @@ import {
   SPACE_TYPE_LABELS,
   isSpaceType,
 } from "@/lib/community/workspace";
+import { formatMemberCountLabel } from "@/lib/community/member-count";
 import { CommunityAvatarImage } from "@/components/community/community-media";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { CommunityOverviewStats } from "@/services/community/hub-data";
@@ -156,7 +157,7 @@ export function OverviewSpacesPanel({
               {primary.name}
             </h3>
             <p className="mt-1 text-[13px] text-gray-500">
-              {(primary.member_count ?? 0).toLocaleString()} members ·{" "}
+              {formatMemberCountLabel(primary.member_count ?? 0)} ·{" "}
               {relativeActivity(primary.created_at)}
             </p>
             <p className="mt-2 text-[13px] font-medium text-[#fd5000]">
@@ -246,7 +247,7 @@ export function OverviewSpacesPanel({
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-50 pt-3">
                 <span className="text-[11px] text-gray-500">
                   {typeof members === "number"
-                    ? `${formatCompact(members)} members`
+                    ? formatMemberCountLabel(members, { compact: true })
                     : typeLabel}
                 </span>
                 {space.created_at ? (
