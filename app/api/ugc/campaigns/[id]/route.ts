@@ -39,7 +39,11 @@ export async function GET(
         rating,
         follower_count,
         verification_status,
-        verified_at
+        verified_at,
+        owner:profiles!user_id (
+          avatar_url,
+          full_name
+        )
       )
     `)
     .eq('id', id)

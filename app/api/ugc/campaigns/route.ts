@@ -58,7 +58,11 @@ export async function GET(req: NextRequest) {
         business_slug,
         business_country,
         verification_status,
-        verified_at
+        verified_at,
+        owner:profiles!user_id (
+          avatar_url,
+          full_name
+        )
       )
     `,
       { count: "exact" }

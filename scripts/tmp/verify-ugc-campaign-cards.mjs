@@ -114,4 +114,42 @@ assert.equal(
   null,
 );
 
+
+assert.match(card, /getCampaignOwnerAvatar/);
+assert.doesNotMatch(card, /\\bLive\\b/);
+
+const header = read("components/ugc/workspace/UGCFeaturedHeader.tsx");
+assert.match(header, /getCampaignOwnerAvatar/);
+assert.match(header, /#FFFFFF/);
+assert.match(header, /rgba\(255,90,31/);
+assert.doesNotMatch(header, /#0d0500/);
+assert.doesNotMatch(header, /typeLabel/);
+assert.doesNotMatch(header, />Featured</);
+assert.match(header, /joinCampaign/);
+assert.match(header, /viewBrief/);
+
+const listApi = read("app/api/ugc/campaigns/route.ts");
+assert.match(listApi, /owner:profiles!user_id/);
+assert.match(listApi, /avatar_url/);
+
+assert.equal(typeof utils.getCampaignOwnerAvatar, "function");
+assert.equal(
+  utils.getCampaignOwnerAvatar({
+    vendor: { owner: { avatar_url: "https://cdn.example/a.jpg" }, business_logo: "https://cdn.example/logo.png", business_name: "B", business_slug: "b" },
+  }),
+  "https://cdn.example/a.jpg",
+);
+assert.equal(
+  utils.getCampaignOwnerAvatar({
+    vendor: { owner: { avatar_url: null }, business_logo: "https://cdn.example/logo.png", business_name: "B", business_slug: "b" },
+  }),
+  "https://cdn.example/logo.png",
+);
+assert.equal(
+  utils.getCampaignOwnerAvatar({
+    vendor: { business_logo: null, business_name: "B", business_slug: "b" },
+  }),
+  null,
+);
+
 console.log("UGC campaign card polish checks passed");

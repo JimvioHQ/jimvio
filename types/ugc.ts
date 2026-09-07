@@ -101,6 +101,11 @@ export interface UGCCampaign {
     follower_count?: number | null;
     verification_status?: "pending" | "verified" | "rejected" | "suspended" | null;
     verified_at?: string | null;
+    /** Account owner profile (vendors.user_id → profiles), when joined by API. */
+    owner?: {
+      avatar_url?: string | null;
+      full_name?: string | null;
+    } | null;
   };
 }
 

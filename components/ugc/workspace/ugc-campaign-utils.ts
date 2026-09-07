@@ -12,6 +12,18 @@ export function getCampaignBanner(c: UGCCampaign): string | null {
   );
 }
 
+/**
+ * Brand/owner avatar for Discover cards + featured header.
+ * Priority: account owner profile photo → business logo → null (initials fallback).
+ */
+export function getCampaignOwnerAvatar(c: UGCCampaign): string | null {
+  const ownerAvatar = c.vendor?.owner?.avatar_url?.trim();
+  if (ownerAvatar) return ownerAvatar;
+  const logo = c.vendor?.business_logo?.trim();
+  if (logo) return logo;
+  return null;
+}
+
 export function getCampaignPayoutLabel(c: UGCCampaign, formatMoney: (n: number, c?: string) => string): string {
   if (c.payment_model === "fixed_per_content") {
     return `${formatMoney(c.fixed_rate ?? 0, "USD")} / post`;

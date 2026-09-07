@@ -10,23 +10,21 @@ import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
 import {
   formatUgcFundingUsd,
   getCampaignBanner,
+  getCampaignOwnerAvatar,
   getClipRateBadge,
 } from "./ugc-campaign-utils";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { campaignFallbackStyle, UGCPlatformMarks } from "./UGCPlatformMarks";
 
-const STAGE_BG = "linear-gradient(135deg, #0d0500 0%, #1e0900 45%, #2d1200 100%)";
-const STAGE_GLOW = "radial-gradient(ellipse at 68% 50%, rgba(253,80,0,0.22) 0%, transparent 62%)";
-const IMAGE_FADE = "linear-gradient(to right, rgba(13,5,0,0.55) 0%, rgba(13,5,0,0.25) 20%, transparent 45%)";
+/** Clean white base with a restrained Jimvio-orange atmospheric glow. */
+const STAGE_BG =
+  "linear-gradient(135deg, #FFFFFF 0%, #FFFCFB 42%, #FFF7F3 72%, #FFFFFF 100%)";
+const STAGE_GLOW =
+  "radial-gradient(ellipse at 72% 42%, rgba(255,90,31,0.10) 0%, rgba(255,90,31,0.04) 38%, transparent 68%)";
+const IMAGE_FADE =
+  "linear-gradient(to right, #FFFFFF 0%, rgba(255,255,255,0.92) 14%, rgba(255,255,255,0.35) 38%, transparent 58%)";
 const MOBILE_TEXT =
-  "linear-gradient(to right, rgba(13,5,0,0.94) 0%, rgba(13,5,0,0.82) 42%, rgba(13,5,0,0.35) 58%, transparent 72%)";
-
-function typeLabel(type: UGCCampaign["campaign_type"]): string {
-  if (type === "clipping" || type === "music_clipping") return "Clipping";
-  if (type === "ugc") return "UGC";
-  if (type === "promotion") return "Promotion";
-  return "Campaign";
-}
+  "linear-gradient(to right, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.55) 72%, transparent 88%)";
 
 function FeaturedStage({
   banner,
@@ -42,12 +40,9 @@ function FeaturedStage({
   return (
     <div
       className={cn(
-        "relative isolate h-full w-full overflow-hidden bg-[#0F172A]",
+        "relative isolate h-full w-full overflow-hidden bg-[#F8FAFC]",
         mobile ? "rounded-r-2xl" : "rounded-r-3xl",
       )}
-      style={{
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -16px 32px rgba(15,23,42,0.4)",
-      }}
     >
       {banner ? (
         <>
@@ -58,15 +53,15 @@ function FeaturedStage({
             aria-hidden
             className="absolute inset-0 h-full w-full object-cover"
             style={{
-              transform: "translate3d(0,0,0) scale(1.22)",
-              filter: "blur(28px) brightness(0.7) saturate(1.15)",
+              transform: "translate3d(0,0,0) scale(1.18)",
+              filter: "blur(24px) brightness(1.05) saturate(1.08)",
             }}
           />
           <div
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 45%, rgba(59,130,246,0.16) 0%, rgba(37,99,235,0.1) 35%, transparent 70%)",
+                "radial-gradient(ellipse at 50% 45%, rgba(255,90,31,0.08) 0%, transparent 70%)",
             }}
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -74,13 +69,12 @@ function FeaturedStage({
             src={banner}
             alt=""
             className="hero-product-float absolute inset-0 z-10 h-full w-full object-cover object-center"
-            style={{ filter: "drop-shadow(0 14px 32px rgba(0,0,0,0.42))" }}
+            style={{ filter: "drop-shadow(0 12px 28px rgba(17,24,39,0.18))" }}
           />
         </>
       ) : (
         <div className="absolute inset-0" style={campaignFallbackStyle(brand + campaignId)}>
-          <div className="absolute inset-0 bg-[#0d0500]/55" />
-          <span className="relative z-10 grid h-full place-items-center text-[42px] font-bold tracking-tight text-white/25">
+          <span className="relative z-10 grid h-full place-items-center text-[42px] font-bold tracking-tight text-[#111827]/20">
             {brand.slice(0, 2).toUpperCase()}
           </span>
         </div>
@@ -98,6 +92,7 @@ function FeaturedCopy({
 }) {
   const { t } = useLocale();
   const brand = campaign.vendor?.business_name ?? "Brand";
+  const avatar = getCampaignOwnerAvatar(campaign);
   const isVerified = campaign.vendor?.verification_status === "verified";
   const lifecycle = getCampaignLifecycleStatus(campaign);
   const canJoin = campaign.status === "active" && lifecycle !== "ended";
@@ -108,35 +103,22 @@ function FeaturedCopy({
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col justify-center gap-2.5 sm:gap-3.5">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span
-          className="inline-flex h-5 items-center rounded-full px-2.5 text-[9px] font-bold leading-none text-white sm:h-6 sm:px-3 sm:text-[11px]"
-          style={{
-            background: "linear-gradient(90deg, #FF5A1F 0%, #FF7A1F 50%, #FF8C42 100%)",
-            boxShadow: "0 2px 10px rgba(255, 90, 31, 0.28)",
-          }}
-        >
-          {typeLabel(campaign.campaign_type)}
-        </span>
-        <span className="inline-flex h-5 items-center rounded-full bg-white/10 px-2.5 text-[9px] font-bold leading-none text-white/90 sm:h-6 sm:text-[11px]">
-          Featured
-        </span>
-      </div>
-
       <div className="flex min-w-0 items-center gap-1.5">
-        {campaign.vendor?.business_logo ? (
+        {avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={campaign.vendor.business_logo}
+            src={avatar}
             alt=""
-            className="h-5 w-5 rounded-full border border-white/20 object-cover sm:h-6 sm:w-6"
+            className="h-5 w-5 rounded-full border border-[#E8EAED] object-cover sm:h-6 sm:w-6"
           />
         ) : (
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-white/15 text-[8px] font-bold text-white sm:h-6 sm:w-6">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#111827] text-[8px] font-bold text-white sm:h-6 sm:w-6">
             {brand[0]?.toUpperCase() ?? "B"}
           </span>
         )}
-        <span className="min-w-0 truncate text-[11px] font-medium text-white/85 sm:text-[13px]">{brand}</span>
+        <span className="min-w-0 truncate text-[11px] font-semibold text-[#111827] sm:text-[13px]">
+          {brand}
+        </span>
         {isVerified ? <UGCVerifiedBadge className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" /> : null}
         <UGCPlatformMarks
           platforms={campaign.allowed_platforms ?? []}
@@ -147,7 +129,7 @@ function FeaturedCopy({
 
       <h2
         className={cn(
-          "line-clamp-2 min-w-0 font-extrabold tracking-[-0.025em] text-white",
+          "line-clamp-2 min-w-0 font-extrabold tracking-[-0.025em] text-[#111827]",
           mobile ? "text-[13px] leading-[1.3]" : "text-xl leading-[1.35] lg:text-2xl",
         )}
       >
@@ -156,12 +138,12 @@ function FeaturedCopy({
 
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
         {rate ? (
-          <span className="text-[17px] font-black leading-none tracking-tight text-[#fd8c00] sm:text-2xl">
+          <span className="text-[17px] font-black leading-none tracking-tight text-[#FF5A1F] sm:text-2xl">
             {rate}
           </span>
         ) : null}
         {totalBudget > 0 ? (
-          <span className="text-[11px] font-medium tabular-nums text-white/55 sm:text-[13px]">
+          <span className="text-[11px] font-medium tabular-nums text-[#6B7280] sm:text-[13px]">
             {formatUgcFundingUsd(spentBudget)} / {formatUgcFundingUsd(totalBudget)}
           </span>
         ) : null}
@@ -171,10 +153,10 @@ function FeaturedCopy({
         {canJoin ? (
           <Link href={`/ugc/${campaign.id}/join`} data-hero-action onClick={(e) => e.stopPropagation()}>
             <span
-              className="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
+              className="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:brightness-[0.97] sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
               style={{
-                background: "linear-gradient(135deg, #FF5A1F 0%, #FF7A1F 50%, #FF8C42 100%)",
-                boxShadow: "0 4px 18px rgba(253,80,0,0.50), 0 2px 8px rgba(253,80,0,0.35)",
+                background: "#FF5A1F",
+                boxShadow: "0 4px 14px rgba(255,90,31,0.28)",
               }}
             >
               {t("joinCampaign")}
@@ -187,14 +169,7 @@ function FeaturedCopy({
           className={cn(mobile ? "inline-flex" : "hidden sm:inline-flex")}
           onClick={(e) => e.stopPropagation()}
         >
-          <span
-            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-white/14 sm:px-4 sm:py-2 sm:text-xs"
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255,255,255,0.20)",
-            }}
-          >
+          <span className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 text-[10px] font-bold text-[#111827] transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[#D1D5DB] hover:bg-[#F9FAFB] sm:px-4 sm:py-2 sm:text-xs">
             <Eye className="size-3 sm:size-3.5" />
             {t("viewBrief")}
           </span>
@@ -259,11 +234,10 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
         role={multi ? "region" : undefined}
         tabIndex={multi ? 0 : undefined}
         onKeyDown={onFeaturedKey}
-        className="product-tap-nav group relative h-[210px] overflow-hidden rounded-2xl transition-[transform,box-shadow] duration-150 ease-out sm:h-[280px] sm:rounded-3xl lg:h-[320px] sm:hover:shadow-[0_20px_50px_rgba(37,99,235,0.18),0_8px_24px_rgba(0,0,0,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+        className="product-tap-nav group relative h-[210px] overflow-hidden rounded-2xl border border-[#E8EAED] bg-white transition-[transform,box-shadow] duration-150 ease-out sm:h-[280px] sm:rounded-3xl lg:h-[320px] sm:hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
         style={{
           background: STAGE_BG,
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(59,130,246,0.06)",
+          boxShadow: "0 4px 20px rgba(17,24,39,0.04)",
         }}
         onTouchStart={(e) => {
           touchX.current = e.changedTouches[0]?.clientX ?? null;
@@ -307,7 +281,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
               data-hero-action
               onClick={() => go(-1)}
               aria-label="Previous featured campaign"
-              className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#111827] shadow-md hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:left-3"
+              className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_10px_rgba(17,24,39,0.08)] hover:bg-[#F9FAFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:left-3"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden />
             </button>
@@ -316,7 +290,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
               data-hero-action
               onClick={() => go(1)}
               aria-label="Next featured campaign"
-              className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white/95 text-[#111827] shadow-md hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:right-3"
+              className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_10px_rgba(17,24,39,0.08)] hover:bg-[#F9FAFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:right-3"
             >
               <ChevronRight className="h-5 w-5" aria-hidden />
             </button>
@@ -335,8 +309,8 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
                   aria-label={`Show featured campaign ${i + 1}`}
                   onClick={() => setIndex(i)}
                   className={cn(
-                    "h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
-                    i === index ? "w-5 bg-white" : "w-1.5 bg-white/45 hover:bg-white/70",
+                    "h-1.5 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
+                    i === index ? "w-5 bg-[#FF5A1F]" : "w-1.5 bg-[#D1D5DB] hover:bg-[#9CA3AF]",
                   )}
                 />
               ))}
@@ -352,7 +326,7 @@ export function UGCFeaturedHeaderSkeleton() {
   return (
     <div
       aria-hidden
-      className="mb-5 h-[210px] animate-pulse rounded-2xl bg-[#1a0800] sm:mb-6 sm:h-[280px] sm:rounded-3xl lg:h-[320px]"
+      className="mb-5 h-[210px] animate-pulse rounded-2xl border border-[#E8EAED] bg-[#F8FAFC] sm:mb-6 sm:h-[280px] sm:rounded-3xl lg:h-[320px]"
     />
   );
 }
@@ -365,7 +339,7 @@ export function UGCFeaturedHeaderEmpty() {
     >
       <Clapperboard className="mb-2 h-7 w-7 text-[#D1D5DB]" />
       <p className="text-sm font-semibold text-[#111827]">Featured campaigns appear here</p>
-      <p className="mt-1 text-[12px] text-[#6B7280]">Live briefs show in this header when campaigns are active.</p>
+      <p className="mt-1 text-[12px] text-[#6B7280]">Active briefs show in this header when campaigns are live.</p>
     </section>
   );
 }

@@ -8,6 +8,7 @@ import { useLocale } from "@/context/LocaleContext";
 import {
   formatUgcFundingUsd,
   getCampaignBanner,
+  getCampaignOwnerAvatar,
   getClipRateBadge,
 } from "./ugc-campaign-utils";
 import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
@@ -54,7 +55,7 @@ function JoinButton({
       aria-label={`Join campaign ${title}`}
       className={cn(
         "inline-flex h-7 w-full items-center justify-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white shadow-sm",
-        "transition-[background-color,box-shadow,opacity] duration-200 hover:bg-[#E54E18] hover:shadow-md",
+        "transition-[background-color,box-shadow,opacity] duration-200 hover:bg-[#E54E18] hover:shadow-[0_4px_14px_rgba(255,90,31,0.35)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-1",
         className,
       )}
@@ -70,6 +71,7 @@ function UGCPremiumCampaignCardInner({
 }: UGCPremiumCampaignCardProps) {
   const { t } = useLocale();
   const banner = getCampaignBanner(c);
+  const avatar = getCampaignOwnerAvatar(c);
   const rateBadge = getClipRateBadge(c);
   const platforms = c.allowed_platforms ?? [];
   const lifecycle = getCampaignLifecycleStatus(c);
@@ -144,12 +146,13 @@ function UGCPremiumCampaignCardInner({
 
         <div className="flex min-w-0 flex-1 flex-col px-3 pb-3 pt-2.5">
           <div className="flex min-w-0 items-center gap-1.5">
-            {c.vendor?.business_logo ? (
+            {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={c.vendor.business_logo}
+                src={avatar}
                 alt=""
                 loading="lazy"
+                decoding="async"
                 className="h-[18px] w-[18px] shrink-0 rounded-full border border-[#E8EAED] object-cover"
               />
             ) : (
@@ -169,7 +172,8 @@ function UGCPremiumCampaignCardInner({
             <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
           </div>
 
-          <div className="relative mt-2 min-h-[38px] overflow-hidden">
+          {/* Fixed-height title slot: description overlays on hover without reflow */}
+          <div className="relative mt-2.5 min-h-[40px] overflow-hidden">
             <h3
               id={`ugc-card-title-${c.id}`}
               className="min-w-0 text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111827]"
@@ -196,7 +200,7 @@ function UGCPremiumCampaignCardInner({
             ) : null}
           </div>
 
-          <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
+          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
             {showBudget ? (
               <p className="min-w-0 truncate text-[12px] leading-none tabular-nums">
                 <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>

@@ -78,10 +78,13 @@ assert.match(header, /h-\[210px\]/);
 assert.match(header, /sm:h-\[280px\]/);
 assert.match(header, /lg:h-\[320px\]/);
 assert.match(header, /#FF5A1F/);
+assert.match(header, /#FFFFFF/);
+assert.doesNotMatch(header, /#0d0500/);
 assert.match(header, /joinCampaign/);
 assert.match(header, /viewBrief/);
 assert.doesNotMatch(header, /Heart/);
 assert.doesNotMatch(header, /formatCreatorCount/);
+assert.doesNotMatch(header, /typeLabel/);
 
 assert.match(migration, /activated_by_admin/);
 assert.match(migration, /admin_activated_by/);
