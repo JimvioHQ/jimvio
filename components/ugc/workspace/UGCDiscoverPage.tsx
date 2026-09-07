@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Clapperboard, Loader2 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { UGCHeroHeader } from "./UGCHeroHeader";
-import { UGCFeaturedCarousel } from "./UGCFeaturedCarousel";
+import { UGCFeaturedHeader, UGCFeaturedHeaderSkeleton } from "./UGCFeaturedHeader";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 import type {
   CompensationFilter,
@@ -39,18 +39,7 @@ function CardSkeleton() {
 }
 
 function FeaturedSkeleton() {
-  return (
-    <section aria-hidden className="mb-5 sm:mb-6">
-      <div className="mb-2.5 h-[18px] w-24 animate-pulse rounded bg-[#E5E7EB]" />
-      <div className="-mx-1 flex gap-2.5 overflow-hidden px-1 sm:gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="w-[220px] shrink-0 sm:w-[228px] lg:w-[236px]">
-            <CardSkeleton />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  return <UGCFeaturedHeaderSkeleton />;
 }
 
 export function UGCDiscoverPage() {
@@ -234,20 +223,18 @@ export function UGCDiscoverPage() {
   }
 
   const campaigns = rawCampaigns;
-  // Compact featured rail (same cards as All Campaigns). Skip when the marketplace
-  // only has one campaign so it is not listed twice.
-  const showFeaturedRail =
-    !hasFilters && !featuredLoading && featuredCampaigns.length > 0 && total > 1;
+  const showFeaturedHeader =
+    !hasFilters && (featuredLoading || featuredCampaigns.length > 0);
   const showFeaturedSkeleton = !hasFilters && featuredLoading;
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10 pt-1">
       <header className="mb-3 sm:mb-4">
         <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[30px]">
-          Discover Campaigns
+          UGC & Clipping
         </h1>
         <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#64748B] sm:text-[14px]">
-          Find brands, products and opportunities that match your content style.
+          Featured campaigns / creator opportunities
         </p>
       </header>
 
@@ -284,8 +271,8 @@ export function UGCDiscoverPage() {
       ) : (
         <>
           {showFeaturedSkeleton ? <FeaturedSkeleton /> : null}
-          {showFeaturedRail ? (
-            <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 8)} />
+          {showFeaturedHeader && !featuredLoading ? (
+            <UGCFeaturedHeader campaigns={featuredCampaigns.slice(0, 8)} />
           ) : null}
 
           <section id="all-campaigns">

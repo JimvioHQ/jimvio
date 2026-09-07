@@ -69,12 +69,13 @@ assert.match(marks, /#FE2C55/);
 assert.match(marks, /ugc-ig-grad/);
 assert.doesNotMatch(marks, /text-\[#111827\]/);
 
-assert.match(discover, /UGCFeaturedCarousel/);
+assert.match(discover, /UGCFeaturedHeader/);
 assert.match(discover, /featured=true/);
-assert.doesNotMatch(discover, /UGCPremiumFeaturedHero/);
+assert.match(discover, /UGCFeaturedHeader/);
 assert.doesNotMatch(discover, /aspect-\[16\/5\]/);
+assert.doesNotMatch(discover, /total > 1/);
 
-assert.match(hero, /UGCFeaturedCarousel/);
+assert.match(hero, /UGCFeaturedHeader/);
 assert.doesNotMatch(hero, /from-black\/80/);
 
 assert.match(carousel, /UGCPremiumCampaignCard/);

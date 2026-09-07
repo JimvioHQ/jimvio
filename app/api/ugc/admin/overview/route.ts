@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireUser, isAdmin } from "@/lib/ugc/platform/auth";
+import { requirePlatformAdmin } from "@/lib/auth/platform-admin";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const { user, db, error } = await requireUser();
-  if (!user) return NextResponse.json({ error }, { status: 401 });
-
-  const admin = await isAdmin(user.id);
-  if (!admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const auth = await requirePlatformAdmin();
+  if ("error" in auth) return auth.error;
+  const db = createServiceRoleClient();
 
   const [
     campaignsRes,

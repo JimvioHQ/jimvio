@@ -54,7 +54,7 @@ const navSections = [
     items: [
       { label: "Verifications", href: "/admin/verifications", icon: BadgeCheck },
       { label: "Disputes",      href: "/admin/disputes",      icon: Siren },
-      { label: "Campaigns",     href: "/admin/ugc",           icon: Megaphone },
+      { label: "UGC & Clipping", href: "/admin/ugc", icon: Megaphone },
       { label: "Messages",      href: "/admin/messages",      icon: Inbox },
     ],
   },

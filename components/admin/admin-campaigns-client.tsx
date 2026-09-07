@@ -9,6 +9,7 @@ import {
   FileVideo,
   ArrowUpRight,
 } from "lucide-react";
+import { toast } from "sonner";
 import type { UGCCampaign, UGCCampaignStatus } from "@/types/ugc";
 import { Tile } from "@/components/ui/admin-tile";
 import {
@@ -28,8 +29,17 @@ import {
   formatCampaignUsd,
   sortCampaigns,
 } from "@/components/campaigns/campaign-board-shared";
-import { adminBtnPrimary, adminTableShell } from "@/lib/admin/ui";
+import { adminBtnGhost, adminBtnPrimary, adminTableShell } from "@/lib/admin/ui";
 import { relativeTime } from "@/lib/utils";
+import { canAdminActivateOverride } from "@/lib/ugc/admin-activate-override";
+import { formatUgcFundingUsd, getClipRateBadge } from "@/components/ugc/workspace/ugc-campaign-utils";
+
+type EscrowState = "unfunded" | "pending" | "held";
+
+type AdminCampaign = UGCCampaign & {
+  escrow_state?: EscrowState;
+  admin_activator_name?: string | null;
+};
 
 type AdminOverview = {
   campaigns?: Record<string, number>;
@@ -39,23 +49,32 @@ type AdminOverview = {
   suspiciousSubmissions?: unknown[] | number;
 };
 
+function fundingLabel(state: EscrowState | undefined) {
+  if (state === "held") return "Funded";
+  if (state === "pending") return "Pending funding";
+  return "Unfunded";
+}
+
 export function AdminCampaignsClient() {
-  const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
+  const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"all" | UGCCampaignStatus>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"recent" | "budget" | "views">("recent");
+  const [pending, setPending] = useState<AdminCampaign | null>(null);
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetch("/api/ugc/campaigns?status=all&limit=200").then((r) => r.json()),
+      fetch("/api/admin/ugc/campaigns").then((r) => r.json()),
       fetch("/api/ugc/admin/overview").then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ])
       .then(([j, ov]) => {
         if (cancelled) return;
-        setCampaigns(j.data ?? []);
+        setCampaigns(Array.isArray(j?.data) ? j.data : []);
         setOverview(ov?.data ?? ov ?? null);
       })
       .finally(() => {
@@ -94,12 +113,40 @@ export function AdminCampaignsClient() {
     return sortCampaigns(rows, sort);
   }, [campaigns, status, search, sort]);
 
+  async function confirmActivate() {
+    if (!pending) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/ugc/campaigns/${pending.id}/activate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof json.error === "string" ? json.error : "Could not activate campaign.");
+        return;
+      }
+      const next = json.campaign as AdminCampaign | undefined;
+      setCampaigns((prev) =>
+        prev.map((c) => (c.id === pending.id ? { ...c, ...(next ?? {}), status: "active", activated_by_admin: true } : c)),
+      );
+      toast.success(json.idempotent ? "Campaign is already active." : "Campaign marked as active. Funding was not recorded.");
+      setPending(null);
+      setReason("");
+    } catch {
+      toast.error("Could not activate campaign.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Moderation"
-        title="Campaigns"
-        subtitle="UGC and clipping campaigns across vendors — budget, reach, and submission volume."
+        eyebrow="UGC & Clipping"
+        title="Campaign Management"
+        subtitle="Inspect lifecycle and funding separately. Mark as Active bypasses funding for platform admins only."
         actions={
           <Link href="/admin/ugc/submissions?status=pending" className={adminBtnPrimary}>
             Submission queue
@@ -204,75 +251,151 @@ export function AdminCampaignsClient() {
                   <Th>Campaign</Th>
                   <Th>Brand</Th>
                   <Th>Type</Th>
-                  <Th align="right">Views</Th>
-                  <Th>Budget</Th>
-                  <Th align="right">Subs</Th>
+                  <Th>Payout</Th>
+                  <Th>Funding</Th>
                   <Th>Status</Th>
+                  <Th>Action</Th>
                   <th className="w-10" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]/50">
-                {filtered.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="group hover:bg-[var(--color-surface-secondary)]/35 transition-colors"
-                  >
-                    <td className="min-w-[200px] px-3 py-3">
-                      <Link
-                        href={`/ugc/campaign-center/campaigns/${c.id}`}
-                        className="line-clamp-1 font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
-                      >
-                        {c.title}
-                      </Link>
-                      <p className="mt-0.5 text-[10.5px] text-[var(--color-text-muted)]">
-                        Created {relativeTime(c.created_at)}
-                        {c.ends_at ? ` · ends ${relativeTime(c.ends_at)}` : ""}
-                      </p>
-                    </td>
-                    <td className="px-3 py-3 text-[var(--color-text-secondary)]">
-                      {c.brand_id ? (
+                {filtered.map((c) => {
+                  const rate = getClipRateBadge(c);
+                  const adminActivated = Boolean(c.activated_by_admin);
+                  return (
+                    <tr
+                      key={c.id}
+                      className="group transition-colors hover:bg-[var(--color-surface-secondary)]/35"
+                    >
+                      <td className="min-w-[200px] px-3 py-3">
                         <Link
-                          href={`/admin/vendors/${c.brand_id}`}
-                          className="hover:text-[var(--color-text-primary)]"
+                          href={`/ugc/campaign-center/campaigns/${c.id}`}
+                          className="line-clamp-1 font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
                         >
-                          {c.vendor?.business_name ?? "Vendor"}
+                          {c.title}
                         </Link>
-                      ) : (
-                        (c.vendor?.business_name ?? "—")
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <CampaignTypeBadge type={c.campaign_type} />
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums text-[var(--color-text-primary)]">
-                      {(c.total_views_tracked ?? 0).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-3">
-                      <CampaignBudgetBar spent={c.spent_budget ?? 0} total={c.total_budget ?? 0} />
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <span className="font-medium tabular-nums text-[var(--color-text-primary)]">
-                        {c.submission_count ?? 0}
-                      </span>
-                      {(c.approved_count ?? 0) > 0 && (
-                        <span className="mt-0.5 block text-[10px] tabular-nums text-[var(--color-text-muted)]">
-                          {c.approved_count} approved
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <StatusPill status={c.status} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <RowArrow href={`/ugc/campaign-center/campaigns/${c.id}`} />
-                    </td>
-                  </tr>
-                ))}
+                        <p className="mt-0.5 text-[10.5px] text-[var(--color-text-muted)]">
+                          Created {relativeTime(c.created_at)}
+                          {c.admin_activated_at ? ` · activated ${relativeTime(c.admin_activated_at)}` : ""}
+                          {c.admin_activator_name ? ` by ${c.admin_activator_name}` : ""}
+                        </p>
+                        {c.admin_activation_reason ? (
+                          <p className="mt-0.5 line-clamp-1 text-[10.5px] text-[var(--color-text-muted)]" title={c.admin_activation_reason}>
+                            Reason: {c.admin_activation_reason}
+                          </p>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-3 text-[var(--color-text-secondary)]">
+                        {c.brand_id ? (
+                          <Link
+                            href={`/admin/vendors/${c.brand_id}`}
+                            className="hover:text-[var(--color-text-primary)]"
+                          >
+                            {c.vendor?.business_name ?? "Vendor"}
+                          </Link>
+                        ) : (
+                          (c.vendor?.business_name ?? "—")
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <CampaignTypeBadge type={c.campaign_type} />
+                      </td>
+                      <td className="px-3 py-3 tabular-nums text-[var(--color-text-primary)]">
+                        {rate ?? "—"}
+                      </td>
+                      <td className="min-w-[140px] px-3 py-3">
+                        <CampaignBudgetBar spent={c.spent_budget ?? 0} total={c.total_budget ?? 0} />
+                        <p className="mt-1 text-[10.5px] text-[var(--color-text-muted)]">
+                          {formatUgcFundingUsd(c.spent_budget ?? 0)} / {formatUgcFundingUsd(c.total_budget ?? 0)}
+                          {" · "}
+                          {fundingLabel(c.escrow_state)}
+                        </p>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-col items-start gap-1">
+                          <StatusPill status={c.status} />
+                          {adminActivated ? (
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-amber-200">
+                              Admin activated
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        {canAdminActivateOverride(c.status) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPending(c);
+                              setReason("");
+                            }}
+                            className="inline-flex h-8 items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18]"
+                          >
+                            Mark as Active
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-[var(--color-text-muted)]">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <RowArrow href={`/ugc/campaign-center/campaigns/${c.id}`} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {pending ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-activate-title">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-5 shadow-xl ring-1 ring-[var(--color-border)]">
+            <h2 id="admin-activate-title" className="text-[16px] font-semibold text-[var(--color-text-primary)]">
+              Mark campaign as active?
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+              This will make “{pending.title}” visible to eligible creators without the normal funding step.
+              Funding will not be recorded by this action.
+            </p>
+            <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
+              Current funding: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · {fundingLabel(pending.escrow_state)}
+            </p>
+            <label className="mt-4 block text-[12px] font-medium text-[var(--color-text-secondary)]">
+              Reason for activation (optional)
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                maxLength={500}
+                className="mt-1 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px] text-[var(--color-text-primary)]"
+              />
+            </label>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className={adminBtnGhost}
+                disabled={submitting}
+                onClick={() => {
+                  setPending(null);
+                  setReason("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={adminBtnPrimary}
+                disabled={submitting}
+                onClick={() => void confirmActivate()}
+              >
+                {submitting ? "Activating…" : "Mark as Active"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

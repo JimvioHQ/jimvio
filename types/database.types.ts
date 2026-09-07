@@ -3968,6 +3968,10 @@ export type Database = {
           total_budget: number
           total_views_tracked: number | null
           updated_at: string | null
+          activated_by_admin: boolean
+          admin_activated_at: string | null
+          admin_activated_by: string | null
+          admin_activation_reason: string | null
         }
         Insert: {
           allowed_platforms?: string[] | null
@@ -4002,6 +4006,10 @@ export type Database = {
           total_budget?: number
           total_views_tracked?: number | null
           updated_at?: string | null
+          activated_by_admin?: boolean
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_activation_reason?: string | null
         }
         Update: {
           allowed_platforms?: string[] | null
@@ -4036,6 +4044,10 @@ export type Database = {
           total_budget?: number
           total_views_tracked?: number | null
           updated_at?: string | null
+          activated_by_admin?: boolean
+          admin_activated_at?: string | null
+          admin_activated_by?: string | null
+          admin_activation_reason?: string | null
         }
         Relationships: [
           {

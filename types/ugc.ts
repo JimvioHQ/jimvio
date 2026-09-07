@@ -81,6 +81,12 @@ export interface UGCCampaign {
   join_config?: Record<string, unknown> | null;
   max_participants?: number | null;
 
+  /** Platform-admin override: Active without recording funding. */
+  activated_by_admin?: boolean;
+  admin_activated_at?: string | null;
+  admin_activated_by?: string | null;
+  admin_activation_reason?: string | null;
+
   // Joined / Nested
   media?: UGCCampaignMedia[];
   vendor?: {
