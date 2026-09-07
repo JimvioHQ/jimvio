@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Clapperboard, Loader2 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { UGCHeroHeader } from "./UGCHeroHeader";
-import { UGCPremiumFeaturedHero } from "./UGCPremiumFeaturedHero";
 import { UGCFeaturedCarousel } from "./UGCFeaturedCarousel";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 import type {
@@ -39,9 +38,18 @@ function CardSkeleton() {
   );
 }
 
-function HeroSkeleton() {
+function FeaturedSkeleton() {
   return (
-    <div className="mb-4 aspect-[5/3] animate-pulse rounded-[14px] bg-[#E5E7EB] sm:mb-5 sm:aspect-[16/7] lg:aspect-[16/5] sm:rounded-[16px]" />
+    <section aria-hidden className="mb-5 sm:mb-6">
+      <div className="mb-2.5 h-[18px] w-24 animate-pulse rounded bg-[#E5E7EB]" />
+      <div className="-mx-1 flex gap-2.5 overflow-hidden px-1 sm:gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="w-[220px] shrink-0 sm:w-[228px] lg:w-[236px]">
+            <CardSkeleton />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -226,11 +234,11 @@ export function UGCDiscoverPage() {
   }
 
   const campaigns = rawCampaigns;
-  const heroCampaigns = featuredCampaigns.slice(0, 6);
-  const showHero = !hasFilters && (featuredLoading || heroCampaigns.length > 0);
-  // Avoid awkward duplicate when only one campaign exists in the marketplace.
+  // Compact featured rail (same cards as All Campaigns). Skip when the marketplace
+  // only has one campaign so it is not listed twice.
   const showFeaturedRail =
-    !hasFilters && !featuredLoading && featuredCampaigns.length > 1 && total > 1;
+    !hasFilters && !featuredLoading && featuredCampaigns.length > 0 && total > 1;
+  const showFeaturedSkeleton = !hasFilters && featuredLoading;
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10 pt-1">
@@ -242,14 +250,6 @@ export function UGCDiscoverPage() {
           Find brands, products and opportunities that match your content style.
         </p>
       </header>
-
-      {showHero ? (
-        featuredLoading && !heroCampaigns.length ? (
-          <HeroSkeleton />
-        ) : heroCampaigns.length > 0 ? (
-          <UGCPremiumFeaturedHero campaigns={heroCampaigns} />
-        ) : null
-      ) : null}
 
       <UGCHeroHeader
         searchRef={searchRef}
@@ -273,13 +273,17 @@ export function UGCDiscoverPage() {
       />
 
       {loading && !campaigns.length ? (
-        <div className={CARD_GRID}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
+        <>
+          {showFeaturedSkeleton ? <FeaturedSkeleton /> : null}
+          <div className={CARD_GRID}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+        </>
       ) : (
         <>
+          {showFeaturedSkeleton ? <FeaturedSkeleton /> : null}
           {showFeaturedRail ? (
             <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 8)} />
           ) : null}

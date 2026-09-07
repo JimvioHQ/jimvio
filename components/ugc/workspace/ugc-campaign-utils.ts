@@ -35,16 +35,34 @@ export function getCampaignRewardLine(
   return `${formatMoney(c.rate_per_1k_views, "USD")} / 1K views`;
 }
 
-/** Blue performance-pay badge e.g. "$1.50/1K" */
-export function getClipRateBadge(
-  c: UGCCampaign,
-  formatMoney: (n: number, c?: string) => string
-): string | null {
-  if (c.payment_model === "per_views" && c.rate_per_1k_views > 0) {
-    return `${formatMoney(c.rate_per_1k_views, "USD")}/1K`;
+/** Compact USD for card funding: $0, $5,000, $89,767 */
+export function formatUgcFundingUsd(amount: number): string {
+  const n = Number(amount);
+  const safe = Number.isFinite(n) ? n : 0;
+  const rounded = Math.round(safe);
+  const abs = Math.abs(rounded).toLocaleString("en-US");
+  return `${rounded < 0 ? "-" : ""}$${abs}`;
+}
+
+/** Compact USD for pay-rate pills: $50.0, $1.5, $1.25 */
+export function formatUgcRateUsd(amount: number): string {
+  const n = Number(amount);
+  const safe = Number.isFinite(n) ? n : 0;
+  const rounded2 = Math.round(safe * 100) / 100;
+  const rounded1 = Math.round(safe * 10) / 10;
+  if (Math.abs(rounded2 - rounded1) < 0.001) {
+    return `$${rounded1.toFixed(1)}`;
   }
-  if (c.payment_model === "fixed_per_content" && c.fixed_rate > 0) {
-    return `${formatMoney(c.fixed_rate, "USD")}/clips`;
+  return `$${rounded2.toFixed(2)}`;
+}
+
+/** Blue performance-pay badge e.g. "$50.0/clip" or "$1.50/1K" */
+export function getClipRateBadge(c: UGCCampaign): string | null {
+  if (c.payment_model === "per_views" && c.rate_per_1k_views > 0) {
+    return `${formatUgcRateUsd(c.rate_per_1k_views)}/1K`;
+  }
+  if (c.payment_model === "fixed_per_content" && (c.fixed_rate ?? 0) > 0) {
+    return `${formatUgcRateUsd(c.fixed_rate)}/clip`;
   }
   return null;
 }

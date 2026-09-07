@@ -3,12 +3,11 @@
 import { memo } from "react";
 import Link from "next/link";
 import type { UGCCampaign } from "@/types/ugc";
-import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/context/LocaleContext";
 import {
+  formatUgcFundingUsd,
   getCampaignBanner,
-  getCampaignRewardLine,
   getClipRateBadge,
 } from "./ugc-campaign-utils";
 import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
@@ -55,7 +54,7 @@ function JoinButton({
       aria-label={`Join campaign ${title}`}
       className={cn(
         "inline-flex h-7 w-full items-center justify-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white shadow-sm",
-        "transition-[background-color,box-shadow] duration-200 hover:bg-[#E54E18] hover:shadow-md",
+        "transition-[background-color,box-shadow,opacity] duration-200 hover:bg-[#E54E18] hover:shadow-md",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-1",
         className,
       )}
@@ -69,11 +68,9 @@ function UGCPremiumCampaignCardInner({
   campaign: c,
   featured = false,
 }: UGCPremiumCampaignCardProps) {
-  const { formatMoney } = useCurrency();
   const { t } = useLocale();
   const banner = getCampaignBanner(c);
-  const reward = getCampaignRewardLine(c, formatMoney);
-  const rateBadge = getClipRateBadge(c, formatMoney);
+  const rateBadge = getClipRateBadge(c);
   const platforms = c.allowed_platforms ?? [];
   const lifecycle = getCampaignLifecycleStatus(c);
   const isVerified = c.vendor?.verification_status === "verified";
@@ -85,22 +82,26 @@ function UGCPremiumCampaignCardInner({
   const spentBudget = Number(c.spent_budget ?? 0);
   const showBudget = totalBudget > 0;
   const description = c.description?.replace(/\s+/g, " ").trim() || null;
+  const descId = description ? `ugc-card-desc-${c.id}` : undefined;
   const age = relativeAge(c.created_at);
   const joinLabel = t("joinCampaign");
-  const payoutPill = rateBadge ?? (!showBudget ? reward : null);
 
   return (
-    <article className="group/card h-full min-w-0">
+    <article
+      className="group/card h-full min-w-0"
+      aria-labelledby={`ugc-card-title-${c.id}`}
+      aria-describedby={descId}
+    >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white",
-          "shadow-[0_1px_3px_rgba(17,24,39,0.05)] transition-[transform,box-shadow] duration-200",
-          "hover:-translate-y-px hover:shadow-[0_8px_20px_rgba(17,24,39,0.08)]",
+          "relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[#E8EAED] bg-white",
+          "shadow-[0_1px_3px_rgba(17,24,39,0.05)] transition-[transform,box-shadow] duration-200 ease-out",
+          "hover:-translate-y-px hover:shadow-[0_8px_22px_rgba(17,24,39,0.08)]",
+          "focus-within:shadow-[0_8px_22px_rgba(17,24,39,0.08)]",
           featured && "shadow-[0_2px_8px_rgba(17,24,39,0.06)]",
         )}
       >
-        {/* Image - clean, no overlays */}
-        <div className="relative shrink-0 overflow-hidden bg-[#F3F4F6] aspect-[16/9]">
+        <div className="relative aspect-[16/9] shrink-0 overflow-hidden bg-[#F3F4F6]">
           <Link
             href={briefHref}
             className="absolute inset-0 block"
@@ -113,7 +114,7 @@ function UGCPremiumCampaignCardInner({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-[200ms] group-hover/card:scale-[1.02]"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 ease-out group-hover/card:scale-[1.025] group-focus-within/card:scale-[1.025]"
               />
             ) : (
               <div
@@ -127,7 +128,6 @@ function UGCPremiumCampaignCardInner({
             )}
           </Link>
 
-          {/* Orange Join - hover/focus on desktop; always on touch; no layout shift */}
           {canJoin ? (
             <div
               className={cn(
@@ -142,9 +142,8 @@ function UGCPremiumCampaignCardInner({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col px-2.5 pb-2.5 pt-2">
-          {/* Brand + platforms */}
-          <div className="flex min-w-0 items-center gap-1">
+        <div className="flex min-w-0 flex-1 flex-col px-3 pb-3 pt-2.5">
+          <div className="flex min-w-0 items-center gap-1.5">
             {c.vendor?.business_logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -170,22 +169,26 @@ function UGCPremiumCampaignCardInner({
             <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
           </div>
 
-          {/* Title only (default). Description fades under title on hover/focus without resizing. */}
-          <div className="relative mt-1.5">
-            <h3 className="min-w-0 text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111827]">
+          <div className="relative mt-2 min-h-[38px] overflow-hidden">
+            <h3
+              id={`ugc-card-title-${c.id}`}
+              className="min-w-0 text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111827]"
+            >
               <Link
                 href={briefHref}
-                className="line-clamp-1 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
+                className="line-clamp-2 group-hover/card:line-clamp-1 group-focus-within/card:line-clamp-1 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
               >
                 {c.title}
               </Link>
             </h3>
             {description ? (
               <p
+                id={descId}
                 className={cn(
-                  "pointer-events-none absolute inset-x-0 top-full z-[1] mt-0.5 line-clamp-2 rounded-sm bg-white/95 py-0.5 text-[11px] leading-snug text-[#6B7280]",
-                  "opacity-0 transition-opacity duration-200",
-                  "group-hover/card:opacity-100 group-focus-within/card:opacity-100",
+                  "pointer-events-none absolute inset-x-0 top-[19px] line-clamp-1 bg-white/95 text-[11px] leading-[1.35] text-[#6B7280]",
+                  "opacity-0 translate-y-0.5 transition-[opacity,transform] duration-200 ease-out",
+                  "group-hover/card:translate-y-0 group-hover/card:opacity-100",
+                  "group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100",
                 )}
               >
                 {description}
@@ -193,24 +196,21 @@ function UGCPremiumCampaignCardInner({
             ) : null}
           </div>
 
-          {/* Funding left + rate pill right */}
-          <div className="mt-auto flex items-center justify-between gap-2 pt-2">
+          <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
             {showBudget ? (
               <p className="min-w-0 truncate text-[12px] leading-none tabular-nums">
-                <span className="font-semibold text-[#111827]">
-                  {formatMoney(spentBudget, "USD")}
-                </span>
+                <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>
                 <span className="font-medium text-[#9CA3AF]">
                   {" / "}
-                  {formatMoney(totalBudget, "USD")}
+                  {formatUgcFundingUsd(totalBudget)}
                 </span>
               </p>
             ) : (
               <span className="min-w-0" />
             )}
-            {payoutPill ? (
-              <span className="inline-flex shrink-0 items-center rounded-full bg-[#EBF5FF] px-2 py-[3px] text-[11px] font-semibold leading-none tabular-nums text-[#1D4ED8]">
-                {payoutPill}
+            {rateBadge ? (
+              <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-[#EBF5FF] px-2 text-[11px] font-semibold leading-none tabular-nums text-[#1D4ED8]">
+                {rateBadge}
               </span>
             ) : null}
           </div>

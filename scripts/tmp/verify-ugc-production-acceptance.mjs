@@ -152,7 +152,8 @@ assert.match(layout, /UGC_LOCALE_COOKIE/);
 assert.match(layout, /lang=\{lang\}/);
 assert.match(locale, /UGC_LOCALE_COOKIE/);
 
-assert.match(card, /getCampaignRewardLine/);
+assert.match(card, /getClipRateBadge/);
+assert.match(card, /formatUgcFundingUsd/);
 const featured = read("components/ugc/workspace/UGCFeaturedCarousel.tsx");
 assert.match(featured, /UGCPremiumCampaignCard/);
 assert.match(card, /t\("joinCampaign"\)/);
