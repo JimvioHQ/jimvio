@@ -28,7 +28,7 @@ const MOBILE_TEXT =
 
 /** Icon-only carousel control — no disc, border, shadow, or permanent ring. */
 const CAROUSEL_CTRL =
-  "absolute top-1/2 z-20 hidden -translate-y-1/2 appearance-none items-center justify-center border-0 bg-transparent p-0 text-[#111827]/50 shadow-none outline-none ring-0 transition-colors hover:text-[#111827] focus:outline-none focus:ring-0 focus-visible:text-[#111827] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5A1F]/70 focus-visible:ring-offset-0 sm:inline-flex";
+  "absolute top-1/2 z-20 hidden -translate-y-1/2 appearance-none items-center justify-center border-0 bg-transparent p-0 text-[#111827]/50 shadow-none outline-none ring-0 [--tw-ring-color:#FF5A1F] transition-colors hover:text-[#111827] focus:outline-none focus:ring-0 focus-visible:text-[#111827] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5A1F]/70 focus-visible:ring-offset-0 sm:inline-flex";
 
 function FeaturedStage({
   banner,
@@ -325,7 +325,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
                   aria-label={`Show featured campaign ${i + 1}`}
                   onClick={() => setIndex(i)}
                   className={cn(
-                    "appearance-none border-0 p-0 shadow-none outline-none ring-0 transition-all",
+                    "appearance-none border-0 p-0 shadow-none outline-none ring-0 [--tw-ring-color:#FF5A1F] transition-all",
                     "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5A1F]/70 focus-visible:ring-offset-0",
                     "h-1.5 rounded-full",
                     i === index ? "w-5 bg-[#FF5A1F]" : "w-1.5 bg-[#D1D5DB] hover:bg-[#9CA3AF]",
