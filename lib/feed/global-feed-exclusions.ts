@@ -15,10 +15,14 @@ export const GLOBAL_FEED_ROTATION_MS = 3 * 60 * 60 * 1000;
 /** Mint a unique feed session seed for community-mix / head selection. */
 export function getGlobalFeedRotationBucket(now = Date.now()): number {
   // Same-ms requests must still diverge, otherwise consecutive refreshes look static.
-  const entropy =
-    typeof process !== "undefined" && typeof process.hrtime?.bigint === "function"
-      ? Number(process.hrtime.bigint() % 1_000_000n)
-      : Math.floor(Math.random() * 1_000_000);
+  let entropy = Math.floor(Math.random() * 1_000_000);
+  try {
+    if (typeof process !== "undefined" && typeof process.hrtime?.bigint === "function") {
+      entropy = Number(process.hrtime.bigint() % BigInt(1_000_000));
+    }
+  } catch {
+    /* keep Math.random fallback */
+  }
   return now * 1_000_000 + entropy;
 }
 
