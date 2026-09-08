@@ -1450,35 +1450,85 @@ export async function submitReview({
 // NAVBAR COUNTS
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getNavbarCounts() {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { cartCount: 0, chatCount: 0 };
+export type NavbarCounts = {
+  cartCount: number;
+  chatCount: number;
+  notificationCount: number;
+  walletBalance: number;
+  rewardsBalance: number;
+  walletCurrency: string;
+};
 
-    const [cartResult, messageResult] = await Promise.all([
-      supabase
-        .from("carts")
-        .select("item_count")
-        .eq("user_id", user.id)
-        .maybeSingle(),
+const EMPTY_NAVBAR_COUNTS: NavbarCounts = {
+  cartCount: 0,
+  chatCount: 0,
+  notificationCount: 0,
+  walletBalance: 0,
+  rewardsBalance: 0,
+  walletCurrency: "USD",
+};
 
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("type", "message")
-        .eq("is_read", false),
-    ]);
+let navbarCountsInFlight: Promise<NavbarCounts> | null = null;
 
-    const cartCount = cartResult.data?.item_count ?? 0;
-    const chatCount = messageResult.count ?? 0;
+export async function getNavbarCounts(): Promise<NavbarCounts> {
+  if (navbarCountsInFlight) return navbarCountsInFlight;
 
-    return { cartCount, chatCount };
-  } catch (err) {
-    console.error("[getNavbarCounts] error:", err);
-    return { cartCount: 0, chatCount: 0 };
-  }
+  navbarCountsInFlight = (async () => {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return EMPTY_NAVBAR_COUNTS;
+
+      const [cartResult, messageResult, notifResult, walletResult] = await Promise.all([
+        supabase
+          .from("carts")
+          .select("item_count")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("type", "message")
+          .eq("is_read", false),
+
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false),
+
+        (supabase as any)
+          .from("wallets")
+          .select("available_balance, rewards_balance, currency")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      const wallet = walletResult.data as {
+        available_balance?: number | null;
+        rewards_balance?: number | null;
+        currency?: string | null;
+      } | null;
+
+      return {
+        cartCount: cartResult.data?.item_count ?? 0,
+        chatCount: messageResult.count ?? 0,
+        notificationCount: notifResult.count ?? 0,
+        walletBalance: Number(wallet?.available_balance ?? 0),
+        rewardsBalance: Number(wallet?.rewards_balance ?? 0),
+        walletCurrency: wallet?.currency ?? "USD",
+      };
+    } catch (err) {
+      console.error("[getNavbarCounts] error:", err);
+      return EMPTY_NAVBAR_COUNTS;
+    } finally {
+      navbarCountsInFlight = null;
+    }
+  })();
+
+  return navbarCountsInFlight;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

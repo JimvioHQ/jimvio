@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getCart, getNavbarCounts } from '@/lib/actions/marketplace';
+import { useHeaderAccountStore } from '@/lib/store/use-header-account-store';
 
 const COUNTS_COOLDOWN_MS = 30_000;
 let lastCountsFetchAt = 0;
@@ -69,6 +70,14 @@ export const useCartStore = create<CartState>((set, get) => ({
         set({
           cartCount: counts.cartCount,
           chatCount: counts.chatCount,
+        });
+        // Keep header wallet / notification badges in sync without a second round-trip.
+        useHeaderAccountStore.setState({
+          walletBalance: Number(counts.walletBalance ?? 0),
+          rewardsBalance: Number(counts.rewardsBalance ?? 0),
+          notificationCount: Number(counts.notificationCount ?? 0),
+          currency: counts.walletCurrency ?? "USD",
+          hydrated: true,
         });
       } catch (err) {
         console.error("[CartStore] refreshCounts failed:", err);

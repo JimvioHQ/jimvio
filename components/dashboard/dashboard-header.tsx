@@ -467,18 +467,13 @@ import {
     Radio,
     X,
     Menu,
-    Moon,
-    Sun,
-    Monitor,
     Coins,
     SlidersHorizontal,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { ProfileImage } from "@/components/ui/profile-image";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CurrencySelector } from "@/context/CurrencyContext";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { useUserStore } from "@/lib/store/use-user-store";
@@ -738,45 +733,6 @@ const LANGUAGES = [
     { code: "fr", label: "Français", short: "FR", disabled: true },
 ] as const;
 
-function PreferencesThemePicker() {
-    const { theme, setTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => setMounted(true), []);
-
-    const active = mounted ? (theme ?? "system") : "system";
-
-    const options = [
-        { key: "light", label: "Light", icon: Sun },
-        { key: "dark", label: "Dark", icon: Moon },
-        { key: "system", label: "Auto", icon: Monitor },
-    ] as const;
-
-    return (
-        <div className="grid grid-cols-3 gap-1.5">
-            {options.map(({ key, label, icon: Icon }) => {
-                const isActive = active === key;
-                return (
-                    <button
-                        key={key}
-                        type="button"
-                        onClick={() => setTheme(key)}
-                        className={cn(
-                            "flex flex-col items-center gap-1 rounded-lg border px-2 py-2 transition-colors",
-                            isActive
-                                ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                                : "border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
-                        )}
-                    >
-                        <Icon className="h-3.5 w-3.5" />
-                        <span className="text-[10px] font-semibold">{label}</span>
-                    </button>
-                );
-            })}
-        </div>
-    );
-}
-
 function MobilePreferencesMenu() {
     const [language, setLanguage] = useState<(typeof LANGUAGES)[number]["code"]>("en");
 
@@ -806,7 +762,7 @@ function MobilePreferencesMenu() {
                         Preferences
                     </p>
                     <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-                        Language, theme & currency
+                        Language & currency
                     </p>
                 </div>
 
@@ -850,20 +806,6 @@ function MobilePreferencesMenu() {
                                 </button>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Theme */}
-                    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="flex size-7 items-center justify-center rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">
-                                <Moon className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                            </span>
-                            <div>
-                                <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Theme</p>
-                                <p className="text-[10px] text-[var(--color-text-muted)]">Appearance</p>
-                            </div>
-                        </div>
-                        <PreferencesThemePicker />
                     </div>
 
                     {/* Currency */}
@@ -1184,11 +1126,6 @@ export function DashboardHeader({
                             "transition-colors"
                         )}
                     />
-                </div>
-
-                {/* Theme toggle — visible sm+ */}
-                <div className="hidden sm:block">
-                    <ThemeToggle />
                 </div>
 
                 {/* Preferences — mobile only */}

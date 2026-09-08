@@ -11,9 +11,7 @@ import {
   Menu,
   X,
   CircleHelp,
-  Settings,
   LogOut,
-  Video,
   Factory,
   Home,
   ShoppingBag,
@@ -27,8 +25,9 @@ import {
   Clapperboard,
   ArrowRight,
   BanknoteIcon,
-  Wallet,
   DollarSign,
+  Bell,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,20 +40,19 @@ import {
 import { cn } from "@/lib/utils";
 import { signOut } from "@/lib/auth/actions";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { CurrencySelector } from "@/context/CurrencyContext";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   PRIMARY_NAV_ITEMS,
-  PROFILE_QUICK_ACCESS_ITEMS,
-  isOrdersActive,
-  isWalletActive,
-  resolvePrimaryNavHref,
+  PROFILE_TOOL_ITEMS,
+  PROFILE_SUPPORT_ITEMS,
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
+import { HeaderUtilityActions } from "@/components/shell/HeaderUtilityActions";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { MobilePrimaryBottomNav } from "@/components/layout/mobile-primary-bottom-nav";
 
@@ -124,23 +122,27 @@ const ConsoleIconBtn = React.forwardRef<
     href?: string;
     onClick?: () => void;
     badge?: number;
+    badgeTone?: "orange" | "red";
     className?: string;
     style?: React.CSSProperties;
     [key: string]: any;
   }
->(({ children, href, onClick, badge, className, style, ...props }, ref) => {
+>(({ children, href, onClick, badge, badgeTone = "orange", className, style, ...props }, ref) => {
   const cls = cn(
     "relative flex items-center justify-center h-9 w-9 shrink-0 rounded-xl transition-all duration-150 active:scale-[0.94]",
     "text-stone-500 hover:bg-black/[0.06] hover:text-stone-800",
-    "dark:text-stone-400 dark:hover:bg-white/[0.08] dark:hover:text-stone-100",
     className
   );
+  const badgeClass =
+    badgeTone === "red"
+      ? "absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-red-500 text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white z-20"
+      : "absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-[#fd5000] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white z-20";
   const inner = (
     <>
       {children}
       {badge != null && badge > 0 && (
-        <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-[#fd5000] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#0a0a0a] z-20">
-          {badge}
+        <span className={badgeClass}>
+          {badge > 9 ? "9+" : badge}
         </span>
       )}
     </>
@@ -206,6 +208,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
   const { isMobile } = useIsMobile();
   const { cartCount, chatCount, refreshCounts } = useCartStore();
+  const {
+    walletBalance,
+    rewardsBalance,
+    notificationCount,
+    currency: walletCurrency,
+  } = useHeaderAccountStore();
   const { openAssistant } = useAIStore();
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const pathname = usePathname();
@@ -220,7 +228,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
-  // Counts are non-blocking — never gate menu/nav chrome on this.
+  // Counts / wallet / notifications are non-blocking — never gate menu/nav chrome.
   useEffect(() => { if (user) refreshCounts(); }, [user, refreshCounts]);
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
@@ -369,59 +377,65 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 type="button"
                 onClick={() => openCommandCenter()}
                 aria-label="Search everything or run a command"
-                className="hidden min-[1240px]:flex h-9 w-[180px] xl:w-[220px] items-center gap-2 rounded-full border border-border bg-stone-50/90 dark:bg-stone-900/80 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white dark:hover:bg-stone-900"
+                className="hidden min-[1240px]:flex h-9 w-[180px] xl:w-[220px] items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-          <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
+                <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
                   Search globally…
                 </span>
-                <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 dark:bg-stone-950 xl:inline">
+                <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 xl:inline">
                   ⌘K
                 </kbd>
               </button>
 
-              {/* Orders / Wallet — icon-only utilities */}
-              {user && (
-                <>
-                  <ConsoleIconBtn
-                    href="/orders"
-                    className={cn(isOrdersActive(pathname) && "text-[#FF5A1F]")}
-                    aria-label="Orders"
-                  >
-                    <Package className="h-[18px] w-[18px]" />
-                  </ConsoleIconBtn>
-                  <ConsoleIconBtn
-                    href="/wallet"
-                    className={cn(isWalletActive(pathname) && "text-[#FF5A1F]")}
-                    aria-label="Wallet"
-                  >
-                    <Wallet className="h-[18px] w-[18px]" />
-                  </ConsoleIconBtn>
-                </>
-              )}
+              {/* Products → Notifications → Cart → Wallet — no Orders / theme */}
+              <HeaderUtilityActions
+                isAuthenticated={Boolean(user)}
+                cartCount={cartCount}
+                notificationCount={notificationCount}
+                walletBalance={walletBalance}
+                walletCurrency={walletCurrency}
+                className="hidden sm:flex"
+              />
 
-              {/* Cart */}
-              <ConsoleIconBtn href="/cart" badge={cartCount}>
-                <ShoppingCart className="h-[18px] w-[18px]" />
-              </ConsoleIconBtn>
-
-              {/* Theme Toggle (wide screens) */}
-              <div className="hidden min-[1280px]:flex mr-0.5">
-                <ThemeToggle />
+              {/* Mobile: essential actions before hamburger */}
+              <div className="flex items-center gap-0.5 sm:hidden">
+                {user ? (
+                  <ConsoleIconBtn
+                    href="/settings/notifications"
+                    aria-label={
+                      notificationCount > 0
+                        ? `Notifications (${notificationCount} unread)`
+                        : "Notifications"
+                    }
+                    badge={notificationCount > 0 ? notificationCount : undefined}
+                    badgeTone="red"
+                  >
+                    <Bell className="h-[18px] w-[18px]" />
+                  </ConsoleIconBtn>
+                ) : null}
+                <ConsoleIconBtn href="/cart" badge={cartCount}>
+                  <ShoppingCart className="h-[18px] w-[18px]" />
+                </ConsoleIconBtn>
+                {user ? (
+                  <ConsoleIconBtn href="/wallet" aria-label="Wallet">
+                    <Wallet className="h-[18px] w-[18px] text-[#fd5000]" />
+                  </ConsoleIconBtn>
+                ) : null}
               </div>
-
-              <div className="hidden lg:block h-6 w-px mx-0.5 bg-border/40 shrink-0" />
 
               {/* User menu / auth */}
               <div className="hidden sm:flex items-center shrink-0">
                 {user ? (
                   <ProfileAccountMenu
                     user={{
-                      name: user.full_name || user.email || "Account",
-                      email: user.email,
+                      name: user.full_name || user.email?.split("@")[0] || "Account",
                       avatarUrl: user.avatar_url,
                     }}
                     messageCount={chatCount}
+                    walletBalance={walletBalance}
+                    rewardsBalance={rewardsBalance}
+                    walletCurrency={walletCurrency}
                     trigger={
                       <button
                         type="button"
@@ -430,7 +444,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       >
                         <Avatar className="h-full w-full shrink-0 rounded-full">
                           <AvatarImage src={user.avatar_url ?? undefined} className="object-cover" />
-                          <AvatarFallback className="rounded-full bg-orange-100 text-[10px] font-bold capitalize text-orange-600">
+                          <AvatarFallback className="rounded-full bg-[#fd5000] text-[10px] font-bold capitalize text-white">
                             {user.full_name?.[0] || user.email?.[0] || "U"}
                           </AvatarFallback>
                         </Avatar>
@@ -439,7 +453,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   />
                 ) : (
                   <div className="flex items-center gap-2 shrink-0">
-                    <Link href="/login" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-bold text-stone-600 dark:text-stone-300 border border-border bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white transition-all whitespace-nowrap">
+                    <Link href="/login" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-bold text-stone-600 border border-border bg-white hover:bg-stone-50 hover:text-stone-900 transition-all whitespace-nowrap">
                       Log In
                     </Link>
                     <Link href="/register" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-black uppercase tracking-widest bg-orange-500 text-white hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap">
@@ -461,7 +475,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
           </div>
         </div>
-
         {/* Mobile drawer — always in tree; open is CSS/animation only (no portal / data gate) */}
         <MobileDrawer
           open={mobileOpen}
@@ -500,13 +513,16 @@ function MobileDrawer({
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
 
   const accountLinks = [
-    ...PROFILE_QUICK_ACCESS_ITEMS.map((item) => ({
+    ...PROFILE_TOOL_ITEMS.map((item) => ({
       href: item.href,
       icon: item.icon,
       label: item.label,
     })),
-    { href: "/library", icon: Video, label: "Digital Library" },
-    { href: "/identity/settings", icon: Settings, label: "Settings" },
+    ...PROFILE_SUPPORT_ITEMS.map((item) => ({
+      href: item.href,
+      icon: item.icon,
+      label: item.label,
+    })),
   ];
 
   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -649,7 +665,9 @@ function MobileDrawer({
                         <p className="truncate text-[14px] font-semibold text-[var(--color-text-primary)]">
                           {user.full_name || "My account"}
                         </p>
-                        <p className="truncate text-[11px] text-[var(--color-text-muted)]">{user.email}</p>
+                        <p className="truncate text-[11px] text-[var(--color-text-muted)]">
+                          View and manage your account
+                        </p>
                       </div>
                       <ChevronDown className={cn("size-4 shrink-0 text-[var(--color-text-muted)] transition-transform", expanded === "account" && "rotate-180")} />
                     </button>
@@ -784,12 +802,8 @@ function MobileDrawer({
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] font-medium text-[var(--color-text-muted)]">Theme</span>
-                <ThemeToggle />
-              </div>
+            {/* Footer — currency only (single light theme, no theme switcher) */}
+            <div className="flex items-center justify-end gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
               <CurrencySelector className="h-8 border-0 bg-transparent text-[12px] font-medium text-[var(--color-text-muted)]" />
             </div>
       </div>

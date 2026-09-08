@@ -12,7 +12,6 @@ import {
     Sparkles,
     Menu,
     Users,
-    Package,
     Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -20,15 +19,14 @@ import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
 import { CommunitySidebar } from "@/components/shell/CommunitySidebar";
 import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import JimvioLogo from "@/components/ui/logo";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath, isHubAuthRequired } from "@/lib/community/hub-auth";
 import {
   isCommunitiesNavActive,
-  isOrdersActive,
   isPrimaryNavActive,
   isWalletActive,
   PRIMARY_NAV_ITEMS,
@@ -43,6 +41,7 @@ import {
   MobilePrimaryBottomNav,
   MOBILE_PRIMARY_BOTTOM_NAV_PAD,
 } from "@/components/layout/mobile-primary-bottom-nav";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -177,6 +176,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
       pathname.startsWith("/communities/live") ||
       /\/communities\/[^/]+\/live(?:\/|$)/.test(pathname);
     const { cartCount, refreshCounts } = useCartStore();
+    const { walletBalance, rewardsBalance, currency: walletCurrency } = useHeaderAccountStore();
     const { openAssistant } = useAIStore();
 
     // Close mobile nav on route change
@@ -412,43 +412,11 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     >
                         <Bell className="h-[18px] w-[18px]" />
                         {unreadNotifications > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#fd5000] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
+                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
                                 {unreadNotifications > 9 ? "9+" : unreadNotifications}
                             </span>
                         )}
                     </Link>
-
-                    {/* Orders / Wallet — icon-only utilities */}
-                    {isAuthenticated && (
-                        <>
-                            <Link
-                                href="/orders"
-                                aria-label="Orders"
-                                title="Orders"
-                                className={cn(
-                                    "hidden h-9 w-9 shrink-0 place-items-center rounded-full transition-colors sm:grid",
-                                    isOrdersActive(pathname)
-                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
-                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                                )}
-                            >
-                                <Package className="h-[18px] w-[18px]" />
-                            </Link>
-                            <Link
-                                href="/wallet"
-                                aria-label="Wallet"
-                                title="Wallet"
-                                className={cn(
-                                    "hidden h-9 w-9 shrink-0 place-items-center rounded-full transition-colors sm:grid",
-                                    isWalletActive(pathname)
-                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
-                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                                )}
-                            >
-                                <Wallet className="h-[18px] w-[18px]" />
-                            </Link>
-                        </>
-                    )}
 
                     {/* Cart */}
                     <Link
@@ -464,10 +432,25 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         )}
                     </Link>
 
-                    {/* Theme */}
-                    <div className="hidden sm:flex">
-                        <ThemeToggle />
-                    </div>
+                    {/* Wallet + balance — replaces Orders icon */}
+                    {isAuthenticated && (
+                        <Link
+                            href="/wallet"
+                            aria-label={`Wallet balance ${formatMoneyAsUSD(walletBalance, walletCurrency)}`}
+                            title="Wallet"
+                            className={cn(
+                                "hidden h-9 shrink-0 items-center gap-1.5 rounded-full px-2 transition-colors sm:inline-flex",
+                                isWalletActive(pathname)
+                                    ? "bg-[#fd5000]/10 text-[#fd5000]"
+                                    : "text-[#fd5000] hover:bg-[#fd5000]/10"
+                            )}
+                        >
+                            <Wallet className="h-[18px] w-[18px]" />
+                            <span className="min-w-[3.25rem] text-[12px] font-semibold tabular-nums">
+                              {formatMoneyAsUSD(walletBalance, walletCurrency)}
+                            </span>
+                        </Link>
+                    )}
 
                     {/* Avatar / Sign in */}
                     {isAuthenticated === false ? (
@@ -484,7 +467,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             avatarUrl: profile?.avatar_url,
                         }}
                         messageCount={unreadMessages}
-                        inboxCount={unreadNotifications}
+                        walletBalance={walletBalance}
+                        rewardsBalance={rewardsBalance}
+                        walletCurrency={walletCurrency}
                         extraAccountItems={[
                           {
                             label: myCommunityHome?.label ?? "My Community",

@@ -24,10 +24,7 @@ import { normalizeUgcLocale, UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
 export const metadata: Metadata = constructMetadata();
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FB4C07" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  themeColor: "#FB4C07",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

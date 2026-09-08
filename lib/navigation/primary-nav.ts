@@ -1,16 +1,16 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
+  CircleHelp,
   Clapperboard,
   DollarSign,
+  Heart,
   Home,
-  Inbox,
   MessageSquare,
   Package,
-  Settings,
   ShoppingBag,
+  User,
   Users,
-  Video,
-  Wallet,
 } from "lucide-react";
 
 export type PrimaryNavItem = {
@@ -26,13 +26,14 @@ export type ProfileMenuItem = {
   label: string;
   href: string;
   icon: LucideIcon;
+  description?: string;
   /** Optional badge key handled by the menu surface */
-  badge?: "messages" | "inbox";
+  badge?: "messages";
 };
 
 /**
  * Global primary navigation — discovery destinations only.
- * Wallet / Orders / Messages / Inbox live in the profile menu.
+ * Personal tools live in the header utilities + profile menu.
  */
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "Home", href: "/", icon: Home },
@@ -51,27 +52,67 @@ export const MOBILE_BOTTOM_NAV_ITEMS = [
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
 ] as const;
 
-/** Canonical personal commerce / communication tools (profile menu). */
-export const PROFILE_QUICK_ACCESS_ITEMS: ProfileMenuItem[] = [
-  { label: "Wallet", href: "/wallet", icon: Wallet },
-  { label: "Orders", href: "/orders", icon: Package },
-  { label: "Messages", href: "/messages", icon: MessageSquare, badge: "messages" },
-  { label: "Inbox", href: "/inbox", icon: Inbox, badge: "inbox" },
+/**
+ * Creator / account tools in the profile dropdown.
+ * Destinations must be real, working routes.
+ */
+export const PROFILE_TOOL_ITEMS: ProfileMenuItem[] = [
+  {
+    label: "My Account",
+    href: "/identity/settings",
+    icon: User,
+    description: "Profile, security, settings",
+  },
+  {
+    label: "Messages",
+    href: "/messages",
+    icon: MessageSquare,
+    description: "Chat with buyers & sellers",
+    badge: "messages",
+  },
+  {
+    label: "My Products",
+    href: "/ugc/campaign-center/store",
+    icon: Package,
+    description: "Manage and upload your listings",
+  },
+  {
+    label: "Earnings",
+    href: "/ugc/earnings",
+    icon: BarChart3,
+    description: "Affiliate commissions & payouts",
+  },
+  {
+    label: "Saved Items",
+    href: "/ugc/saved",
+    icon: Heart,
+    description: "Products, posts and campaigns",
+  },
 ];
 
-/** Account section under profile — keep existing useful destinations. */
-export const PROFILE_ACCOUNT_ITEMS: ProfileMenuItem[] = [
-  { label: "My Account", href: "/identity/settings", icon: Settings },
-  { label: "Digital Library", href: "/library", icon: Video },
+export const PROFILE_SUPPORT_ITEMS: ProfileMenuItem[] = [
+  {
+    label: "Help Center",
+    href: "/help",
+    icon: CircleHelp,
+    description: "Get support and guides",
+  },
 ];
 
-/** Canonical Orders URL (user-facing). */
+/** @deprecated Use PROFILE_TOOL_ITEMS — kept for gradual call-site migration. */
+export const PROFILE_QUICK_ACCESS_ITEMS: ProfileMenuItem[] = PROFILE_TOOL_ITEMS;
+
+/** @deprecated Use PROFILE_TOOL_ITEMS. */
+export const PROFILE_ACCOUNT_ITEMS: ProfileMenuItem[] = PROFILE_TOOL_ITEMS;
+
+/** Canonical routes */
 export const ORDERS_HREF = "/orders";
-
-/** Canonical Messages / Inbox routes. */
 export const MESSAGES_HREF = "/messages";
 export const INBOX_HREF = "/inbox";
 export const WALLET_HREF = "/wallet";
+export const NOTIFICATIONS_HREF = "/settings/notifications";
+export const CART_HREF = "/cart";
+export const MY_PRODUCTS_HREF = "/ugc/campaign-center/store";
 export const HOME_HREF = "/";
 
 export function resolvePrimaryNavHref(
@@ -115,4 +156,17 @@ export function isWalletActive(pathname: string): boolean {
 
 export function isOrdersActive(pathname: string): boolean {
   return pathname === "/orders" || pathname.startsWith("/orders/");
+}
+
+export function isNotificationsActive(pathname: string): boolean {
+  return (
+    pathname === "/settings/notifications" ||
+    pathname.startsWith("/settings/notifications/") ||
+    pathname === "/inbox" ||
+    pathname.startsWith("/inbox/")
+  );
+}
+
+export function isMyProductsActive(pathname: string): boolean {
+  return pathname === MY_PRODUCTS_HREF || pathname.startsWith(`${MY_PRODUCTS_HREF}/`);
 }

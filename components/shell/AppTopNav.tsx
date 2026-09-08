@@ -1,28 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   ChevronDown,
-  Package,
   Plus,
   Search,
-  ShoppingCart,
-  Wallet,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import {
-  isOrdersActive,
   isPrimaryNavActive,
-  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
+import { HeaderUtilityActions } from "@/components/shell/HeaderUtilityActions";
 import { cn, getInitials } from "@/lib/utils";
 
 type AppTopNavProps = {
@@ -67,49 +63,32 @@ function UserAvatar({
   );
 }
 
-function UtilityIconLink({
-  href,
-  label,
-  active,
-  className,
-  children,
-}: {
-  href: string;
-  label: string;
-  active?: boolean;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-label={label}
-      title={label}
-      className={cn(
-        "relative grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors",
-        active
-          ? "bg-[var(--color-accent-light)] text-[#FF5A1F]"
-          : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-        className,
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
 export function AppTopNav({
   showUtilityBar: _showUtilityBar = false,
   activeNav,
   user,
-  notificationCount = 0,
+  notificationCount: notificationCountProp,
   messageCount = 0,
 }: AppTopNavProps) {
   void _showUtilityBar;
   const pathname = usePathname();
-  const { cartCount } = useCartStore();
+  const { cartCount, refreshCounts } = useCartStore();
+  const {
+    walletBalance,
+    rewardsBalance,
+    notificationCount: notificationCountStore,
+    currency: walletCurrency,
+  } = useHeaderAccountStore();
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const isAuthenticated = Boolean(user);
+  const notificationCount =
+    typeof notificationCountProp === "number" && notificationCountProp > 0
+      ? notificationCountProp
+      : notificationCountStore;
+
+  useEffect(() => {
+    if (user) refreshCounts();
+  }, [user, refreshCounts]);
 
   return (
     <header className="z-30 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 overflow-x-clip border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
@@ -179,64 +158,25 @@ export function AppTopNav({
           <ChevronDown className="hidden h-3 w-3 shrink-0 opacity-80 sm:block" />
         </button>
 
-        <Link
-          href="/settings/notifications"
-          aria-label="Notifications"
-          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-        >
-          <Bell className="h-[17px] w-[17px]" />
-          {notificationCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white">
-              {notificationCount > 9 ? "9+" : notificationCount}
-            </span>
-          )}
-        </Link>
-
-        {user ? (
-          <>
-            <UtilityIconLink
-              href="/orders"
-              label="Orders"
-              active={isOrdersActive(pathname)}
-              className="hidden sm:grid"
-            >
-              <Package className="h-[17px] w-[17px]" />
-            </UtilityIconLink>
-            <UtilityIconLink
-              href="/wallet"
-              label="Wallet"
-              active={isWalletActive(pathname)}
-              className="hidden sm:grid"
-            >
-              <Wallet className="h-[17px] w-[17px]" />
-            </UtilityIconLink>
-          </>
-        ) : null}
-
-        <Link
-          href="/cart"
-          aria-label="Cart"
-          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-        >
-          <ShoppingCart className="h-[17px] w-[17px]" />
-          {cartCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#FF5A1F] px-1 text-[9px] font-semibold text-white">
-              {cartCount > 9 ? "9+" : cartCount}
-            </span>
-          )}
-        </Link>
-
-        <ThemeToggle />
+        <HeaderUtilityActions
+          isAuthenticated={isAuthenticated}
+          cartCount={cartCount}
+          notificationCount={notificationCount}
+          walletBalance={walletBalance}
+          walletCurrency={walletCurrency}
+          showProducts={isAuthenticated}
+        />
 
         {user ? (
           <ProfileAccountMenu
             user={{
               name: user.name,
-              email: user.email,
               avatarUrl: user.avatarUrl,
             }}
             messageCount={messageCount}
-            inboxCount={notificationCount}
+            walletBalance={walletBalance}
+            rewardsBalance={rewardsBalance}
+            walletCurrency={walletCurrency}
             trigger={
               <button
                 type="button"
