@@ -1454,7 +1454,12 @@ export type NavbarCounts = {
   cartCount: number;
   chatCount: number;
   notificationCount: number;
+  /**
+   * Canonical Jimvio Total Balance — same formula as Wallet OS Overview
+   * `netWorth` (available + pending + locked + wallet rewards USD + affiliate pending).
+   */
   walletBalance: number;
+  /** Canonical reward points from `jip_identity.xp` — not USD. */
   rewardsBalance: number;
   walletCurrency: string;
 };
@@ -1479,46 +1484,71 @@ export async function getNavbarCounts(): Promise<NavbarCounts> {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return EMPTY_NAVBAR_COUNTS;
 
-      const [cartResult, messageResult, notifResult, walletResult] = await Promise.all([
-        supabase
-          .from("carts")
-          .select("item_count")
-          .eq("user_id", user.id)
-          .maybeSingle(),
+      const [cartResult, messageResult, notifResult, walletResult, xpResult, affResult] =
+        await Promise.all([
+          supabase
+            .from("carts")
+            .select("item_count")
+            .eq("user_id", user.id)
+            .maybeSingle(),
 
-        supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("type", "message")
-          .eq("is_read", false),
+          supabase
+            .from("notifications")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("type", "message")
+            .eq("is_read", false),
 
-        supabase
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("is_read", false),
+          supabase
+            .from("notifications")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("is_read", false),
 
-        (supabase as any)
-          .from("wallets")
-          .select("available_balance, rewards_balance, currency")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
+          (supabase as any)
+            .from("wallets")
+            .select(
+              "available_balance, pending_balance, locked_balance, rewards_balance, currency",
+            )
+            .eq("user_id", user.id)
+            .maybeSingle(),
+
+          (supabase as any)
+            .from("jip_identity")
+            .select("xp")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+
+          (supabase as any)
+            .from("affiliates")
+            .select("pending_earnings")
+            .eq("user_id", user.id)
+            .maybeSingle(),
+        ]);
 
       const wallet = walletResult.data as {
         available_balance?: number | null;
+        pending_balance?: number | null;
+        locked_balance?: number | null;
         rewards_balance?: number | null;
         currency?: string | null;
       } | null;
+
+      const currency = wallet?.currency ?? PLATFORM_CURRENCY;
+      const available = toPlatformUsd(Number(wallet?.available_balance ?? 0), currency);
+      const pending = toPlatformUsd(Number(wallet?.pending_balance ?? 0), currency);
+      const locked = toPlatformUsd(Number(wallet?.locked_balance ?? 0), currency);
+      const rewardsUsd = toPlatformUsd(Number(wallet?.rewards_balance ?? 0), currency);
+      const affiliatePending = Number(affResult.data?.pending_earnings ?? 0);
+      const pendingCombined = Math.round((pending + affiliatePending) * 100) / 100;
 
       return {
         cartCount: cartResult.data?.item_count ?? 0,
         chatCount: messageResult.count ?? 0,
         notificationCount: notifResult.count ?? 0,
-        walletBalance: Number(wallet?.available_balance ?? 0),
-        rewardsBalance: Number(wallet?.rewards_balance ?? 0),
-        walletCurrency: wallet?.currency ?? "USD",
+        walletBalance: Math.round((available + pendingCombined + locked + rewardsUsd) * 100) / 100,
+        rewardsBalance: Math.max(0, Math.trunc(Number(xpResult.data?.xp ?? 0))),
+        walletCurrency: PLATFORM_CURRENCY,
       };
     } catch (err) {
       console.error("[getNavbarCounts] error:", err);

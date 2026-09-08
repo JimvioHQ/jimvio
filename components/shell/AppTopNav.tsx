@@ -124,23 +124,19 @@ export function AppTopNav({
           const dropdown = item.dropdown ?? false;
           const href = resolvePrimaryNavHref(item, isAuthenticated);
           const active = isPrimaryNavActive(pathname, item, activeNav, isAuthenticated);
-          const shortLabel = item.mobileLabel ?? item.label;
           return (
             <Link
               key={`${item.label}-${href}`}
               href={href}
               className={cn(
-                "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors xl:px-2.5 xl:text-[13px] 2xl:px-2.5",
+                "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 py-1.5 text-[12px] font-medium transition-colors xl:gap-1.5 xl:px-2 xl:text-[13px] 2xl:px-2.5",
                 active
                   ? "text-[#FF5A1F] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[#FF5A1F]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">
-                <span className="2xl:hidden">{shortLabel}</span>
-                <span className="hidden 2xl:inline">{item.label}</span>
-              </span>
+              <span className="whitespace-nowrap">{item.label}</span>
               {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
             </Link>
           );
@@ -151,7 +147,7 @@ export function AppTopNav({
         <button
           type="button"
           onClick={() => openCommandCenter()}
-          className="hidden h-9 w-[min(100%,140px)] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] min-[1060px]:flex xl:w-[160px] 2xl:w-[180px]"
+          className="hidden h-9 w-[min(100%,120px)] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] min-[1060px]:flex xl:w-[140px] 2xl:w-[168px]"
           aria-label="Search everything or run a command"
         >
           <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />

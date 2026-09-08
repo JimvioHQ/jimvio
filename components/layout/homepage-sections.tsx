@@ -13,6 +13,8 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount, cn } from "@/lib/utils";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
+import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCampaignCard";
+import type { UGCCampaign, UGCCampaignType, UGCPaymentModel, UGCCampaignStatus } from "@/types/ugc";
 import { type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
@@ -28,7 +30,6 @@ import { HomepageTrendingProductsClient } from "@/components/layout/homepage-tre
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
-import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -516,129 +517,74 @@ export function TrendingProductsRow({
 }
 
 /* ═══ 7. Featured UGC campaigns ═══ */
-function campaignVendorLogo(vendor: SharedCampaignRow["vendor"] | SharedCampaignRow["vendors"]) {
-  return vendor?.business_logo ?? vendor?.logo_url ?? null;
-}
-
-function campaignDaysLeft(endsAt?: string | null) {
-  if (!endsAt) return null;
-  return Math.max(0, Math.ceil((new Date(endsAt).getTime() - Date.now()) / 86_400_000));
+function sharedCampaignToUgcCampaign(c: SharedCampaignRow): UGCCampaign {
+  const vendor = c.vendor ?? c.vendors;
+  const logo = vendor?.business_logo ?? vendor?.logo_url ?? null;
+  return {
+    id: c.id,
+    brand_id: "",
+    title: c.title,
+    description: null,
+    campaign_type: (c.campaign_type as UGCCampaignType) || "ugc",
+    payment_model: (c.payment_model as UGCPaymentModel) || "per_views",
+    status: (c.status as UGCCampaignStatus) || "active",
+    rate_per_1k_views: Number(c.rate_per_1k_views ?? 0),
+    fixed_rate: Number(c.fixed_rate ?? 0),
+    total_budget: Number(c.total_budget ?? 0),
+    spent_budget: Number(c.spent_budget ?? 0),
+    max_payout_per_sub: null,
+    allowed_platforms: c.allowed_platforms ?? [],
+    content_guidelines: null,
+    min_duration: null,
+    max_duration: null,
+    required_hashtags: [],
+    required_mentions: [],
+    required_keywords: [],
+    requires_face: false,
+    submission_count: Number(c.submission_count ?? 0),
+    approved_count: Number(c.approved_count ?? 0),
+    total_views_tracked: 0,
+    starts_at: null,
+    ends_at: c.ends_at ?? null,
+    music_track_url: null,
+    music_artist_name: null,
+    promotion_target: null,
+    promotion_target_url: null,
+    created_at: c.created_at ?? new Date(0).toISOString(),
+    updated_at: c.created_at ?? new Date(0).toISOString(),
+    media: (c.media ?? []).map((m, i) => ({
+      id: `${c.id}-media-${i}`,
+      campaign_id: c.id,
+      type: "image" as const,
+      url: m.url,
+      thumbnail_url: null,
+      usage: (m.usage as "banner" | "example" | "ad_creative") || "banner",
+      platform_format: null,
+      order_index: i,
+      created_at: c.created_at ?? new Date(0).toISOString(),
+    })),
+    vendor: vendor
+      ? {
+          business_name: vendor.business_name,
+          business_logo: logo,
+          business_slug: vendor.business_slug,
+        }
+      : undefined,
+  };
 }
 
 export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
-  const { formatMoney } = useCurrency();
   if (!campaigns.length) return null;
 
-  const cards = campaigns.map((c) => {
-    const joined = c.approved_count ?? c.submission_count ?? 0;
-    const daysLeft = campaignDaysLeft(c.ends_at);
-    const isFixed = c.payment_model === "fixed_per_content";
-    const payAmount = isFixed
-      ? formatMoney(c.fixed_rate ?? 0, "USD")
-      : formatMoney(c.rate_per_1k_views, "USD");
-    const paySuffix = isFixed ? "/ post" : "/ 1K";
-    const vendor = c.vendor ?? c.vendors;
-    const banner = c.media?.find((m) => m.usage === "banner")?.url;
-    const logoUrl = campaignVendorLogo(vendor);
-
-    return (
-      <article
-        key={c.id}
-        className={cn(
-          "group relative flex h-full flex-col overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-white",
-          "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
-          "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-          "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)]",
-          "hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)]",
-          "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-        )}
-      >
-        <div className="relative aspect-[5/3] shrink-0 overflow-hidden bg-[#F8FAFC]">
-          <Link href={`/ugc/${c.id}`} className="absolute inset-0 block" aria-label={c.title}>
-            {safeMediaUrl(banner, 640) ? (
-              // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN
-              <img
-                src={safeMediaUrl(banner, 640)!}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : safeMediaUrl(logoUrl, 320) ? (
-              // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
-              <img
-                src={safeMediaUrl(logoUrl, 320)!}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: "linear-gradient(145deg, #FFF4EF 0%, #F8FAFC 60%, #FFE8DC 100%)",
-                }}
-              />
-            )}
-          </Link>
-
-          <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.3)]">
-            Featured
-          </span>
-
-          <div className="absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3">
-            <JoinCampaignGateLink
-              href={`/ugc/${c.id}/join`}
-              className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition-colors hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
-            >
-              Join Campaign
-            </JoinCampaignGateLink>
-          </div>
-        </div>
-
-        <Link href={`/ugc/${c.id}`} className="flex flex-1 flex-col px-4 pb-4 pt-3.5">
-          <div className="flex items-center gap-1.5">
-            {safeMediaUrl(logoUrl, 64) ? (
-              // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
-              <img
-                src={safeMediaUrl(logoUrl, 64)!}
-                alt=""
-                className="h-5 w-5 shrink-0 rounded-full border border-[#E8EAED] object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[8px] font-bold text-white">
-                {vendor?.business_name?.[0] ?? "B"}
-              </span>
-            )}
-            <span className="min-w-0 truncate text-[11px] font-semibold leading-none text-[#111827]">
-              {vendor?.business_name ?? "Brand"}
-            </span>
-          </div>
-
-          <h3 className="mt-2 line-clamp-2 text-[13px] font-bold leading-[1.35] tracking-[-0.015em] text-[#111827] transition-colors group-hover:text-[#FF5A1F] sm:text-[14px]">
-            {c.title}
-          </h3>
-
-          <div className="mt-2.5 flex items-center justify-between gap-2">
-            <span className="truncate text-[11px] font-medium text-[#6B7280]">
-              {joined} creator{joined === 1 ? "" : "s"}
-            </span>
-            <span className="shrink-0 rounded-lg bg-[#ECFDF5] px-2 py-1 text-[10px] font-bold tabular-nums leading-none text-[#059669]">
-              {payAmount}
-              {paySuffix}
-            </span>
-          </div>
-          {daysLeft !== null ? (
-            <span className="mt-2.5 inline-flex w-fit rounded-lg bg-[#FFF0E8] px-2 py-1 text-[10px] font-bold text-[#FF5A1F]">
-              {daysLeft === 0 ? "Ends today" : `${daysLeft}d left`}
-            </span>
-          ) : null}
-        </Link>
-      </article>
-    );
-  });
+  const cards = campaigns.map((c, i) => (
+    <UGCPremiumCampaignCard
+      key={c.id}
+      campaign={sharedCampaignToUgcCampaign(c)}
+      index={i}
+      featured
+      density="compact"
+    />
+  ));
 
   return (
     <section className="bg-white py-12 sm:py-16 lg:py-[4.5rem]">

@@ -6,7 +6,9 @@ let lastFetchAt = 0;
 let fetchInFlight: Promise<void> | null = null;
 
 interface HeaderAccountState {
+  /** Canonical Jimvio Total Balance (Wallet OS netWorth). */
   walletBalance: number;
+  /** Canonical reward points (`jip_identity.xp`) — not USD. */
   rewardsBalance: number;
   notificationCount: number;
   currency: string;
@@ -17,7 +19,7 @@ interface HeaderAccountState {
 }
 
 /**
- * Non-blocking wallet + notification summary for header / profile menu.
+ * Non-blocking total-balance + reward-points + notification summary for header / profile.
  * Never gate chrome on this store — values hydrate independently.
  */
 export const useHeaderAccountStore = create<HeaderAccountState>((set) => ({

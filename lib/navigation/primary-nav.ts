@@ -39,7 +39,8 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
-  { label: "UGC & Clipping", mobileLabel: "UGC", href: "/ugc", icon: Clapperboard },
+  /** Full label everywhere in desktop primary nav; bottom nav uses MOBILE_BOTTOM_NAV_ITEMS. */
+  { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
 ];
 
 /** Compact mobile bottom bar — discovery destinations (Affiliates replaces Menu). */

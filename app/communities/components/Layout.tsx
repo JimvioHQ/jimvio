@@ -341,30 +341,26 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 {/* Primary nav (desktop) — breathing room from logo */}
                 <nav className="hidden min-w-0 items-center justify-center gap-1.5 overflow-hidden pl-3 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-2.5 xl:pl-5 2xl:gap-3">
                     {PRIMARY_NAV_ITEMS.map((item) => {
-                        const { label, icon: Icon, dropdown, mobileLabel } = item;
+                        const { label, icon: Icon, dropdown } = item;
                         const href = resolvePrimaryNavHref(item, isAuthenticated);
                         const active =
                             item.label === "Communities"
                                 ? isCommunitiesNavActive(pathname)
                                 : isPrimaryNavActive(pathname, item, undefined, isAuthenticated);
-                        const shortLabel = mobileLabel ?? label;
                         return (
                     <Link
                                 key={`${label}-${href}`}
                                 href={href}
                                 aria-current={active ? "page" : undefined}
                                 className={cn(
-                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 xl:px-2.5 xl:text-[13px]",
+                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-1.5 py-1.5 text-[12px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 xl:px-2 xl:text-[13px]",
                                     active
                                         ? "bg-[#fd5000]/10 text-[#fd5000]"
                                         : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                                 )}
                             >
                                 <Icon className="h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
-                                <span className="whitespace-nowrap">
-                                  <span className="2xl:hidden">{shortLabel}</span>
-                                  <span className="hidden 2xl:inline">{label}</span>
-                                </span>
+                                <span className="whitespace-nowrap">{label}</span>
                                 {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
                     </Link>
                         );
@@ -377,7 +373,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={() => openCommandCenter()}
                         aria-label="Search everything or run a command"
-                        className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 text-left min-[1060px]:flex xl:w-[152px]"
+                        className="hidden h-9 w-[120px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 text-left min-[1060px]:flex xl:w-[140px] 2xl:w-[160px]"
                     >
                         <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
                         <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search…</span>

@@ -13,7 +13,6 @@ import {
 } from "react";
 import {
   ArrowRight,
-  BadgeCheck,
   Check,
   ChevronDown,
   Eye,
@@ -162,13 +161,6 @@ const ProductCard = memo(function ProductCard({
         >
           {product.name}
         </Link>
-
-        {product.verified ? (
-          <span className="mt-1.5 inline-flex w-fit items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
-            <BadgeCheck className="h-3 w-3" strokeWidth={2.4} />
-            Verified
-          </span>
-        ) : null}
 
         <div className="mt-2.5 border-t border-[#F3F4F6] pt-2.5">
           <p className="text-[15px] font-bold tabular-nums leading-none text-[#111827]">

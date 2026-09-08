@@ -41,7 +41,7 @@ type ProfileAccountMenuProps = {
   /** @deprecated Inbox removed from profile menu — ignored. */
   inboxCount?: number;
   walletBalance?: number;
-  /** Real `wallets.rewards_balance` (USD). Shown as Rewards, not fabricated points. */
+  /** Canonical reward points (`jip_identity.xp`). Display as pts — never USD. */
   rewardsBalance?: number;
   walletCurrency?: string;
   /** Extra account links after the standard set (deduped by href). */
@@ -77,7 +77,8 @@ export function ProfileAccountMenu({
   const extras = extraAccountItems.filter((i) => !toolHrefs.has(i.href));
   const initial = (user.name?.trim()?.[0] || "U").toUpperCase();
   const balanceLabel = formatMoneyAsUSD(walletBalance, walletCurrency);
-  const rewardsLabel = formatMoneyAsUSD(rewardsBalance, walletCurrency);
+  const rewardsPoints = Math.max(0, Math.trunc(Number(rewardsBalance) || 0));
+  const rewardsLabel = `${rewardsPoints.toLocaleString()} pts`;
 
   return (
     <DropdownMenu modal={false}>

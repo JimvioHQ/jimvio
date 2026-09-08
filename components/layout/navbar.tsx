@@ -384,11 +384,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       className="h-9 gap-1.5 px-2 xl:px-2.5 2xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
-                      <span className="whitespace-nowrap">
-                        {/* Short label until 2xl so Search never collides with UGC & Clipping */}
-                        <span className="2xl:hidden">{navDisplayLabel(item).short}</span>
-                        <span className="hidden 2xl:inline">{navDisplayLabel(item).full}</span>
-                      </span>
+                      <span className="whitespace-nowrap">{navDisplayLabel(item).full}</span>
                     </ConsoleButton>
                   );
                 }
@@ -403,7 +399,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 type="button"
                 onClick={() => openCommandCenter()}
                 aria-label="Search everything or run a command"
-                className="hidden min-[1240px]:flex h-9 w-[min(100%,160px)] xl:w-[180px] 2xl:w-[220px] min-w-0 shrink items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
+                className="hidden min-[1240px]:flex h-9 w-[min(100%,140px)] xl:w-[160px] 2xl:w-[200px] min-w-0 shrink items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
                 <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
