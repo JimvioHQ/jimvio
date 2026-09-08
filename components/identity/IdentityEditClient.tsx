@@ -5,17 +5,11 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   BadgeCheck,
-  Briefcase,
   Camera,
   Check,
   Eye,
-  EyeOff,
-  Globe,
-  Lock,
   Plus,
   Save,
-  Shield,
-  Sparkles,
   Trash2,
   User,
   X,
@@ -24,31 +18,23 @@ import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload";
 import { getInitials } from "@/lib/utils";
 import type {
   IdentityAvailability,
-  IdentityPortfolioItem,
-  IdentityPortfolioKind,
   IdentityPrivacyVisibility,
   IdentityProfilePayload,
-  IdentityResumeEntry,
-  IdentityResumeEntryType,
   IdentitySocialAccount,
   IdentitySocialPlatform,
 } from "@/lib/identity/types";
 import {
   IdentityButton,
   IdentityCard,
-  IdentityPill,
   cn,
 } from "@/components/identity/identity-ui";
-import { evaluateCreatorProfileCompletion } from "@/lib/identity/creator-profile-completion";
+import { evaluateCreatorProfileCompletion, evaluateProfileStrength } from "@/lib/identity/creator-profile-completion";
+import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 
-type Tab = "profile" | "social" | "portfolio" | "resume" | "privacy";
+type Tab = "profile";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "social", label: "Social accounts", icon: Globe },
-  { id: "portfolio", label: "Portfolio", icon: Briefcase },
-  { id: "resume", label: "Resume", icon: Shield },
-  { id: "privacy", label: "Privacy", icon: Lock },
 ];
 
 const AVAILABILITY_OPTIONS: { value: IdentityAvailability; label: string }[] = [
@@ -69,16 +55,6 @@ const PLATFORMS: IdentitySocialPlatform[] = [
   "pinterest",
   "snapchat",
   "website",
-];
-
-const PORTFOLIO_KINDS: IdentityPortfolioKind[] = ["video", "image", "campaign", "brand", "testimonial", "other"];
-const RESUME_TYPES: IdentityResumeEntryType[] = [
-  "experience",
-  "industry",
-  "brand",
-  "campaign",
-  "education",
-  "certification",
 ];
 
 export function IdentityEditClient({ initialPayload }: { initialPayload: IdentityProfilePayload }) {
@@ -106,8 +82,6 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
   });
 
   const [social, setSocial] = useState<IdentitySocialAccount[]>(initialPayload.social);
-  const [portfolio, setPortfolio] = useState<IdentityPortfolioItem[]>(initialPayload.portfolio);
-  const [resume, setResume] = useState<IdentityResumeEntry[]>(initialPayload.resume);
 
   const [saving, setSaving] = useState(false);
   const [saveNotice, setSaveNotice] = useState<"complete" | "incomplete" | null>(null);
@@ -203,20 +177,10 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
               onSave={saveCore}
               saving={saving}
               saveNotice={saveNotice}
-            />
-          )}
-          {tab === "social" && <SocialTab social={social} setSocial={setSocial} />}
-          {tab === "portfolio" && <PortfolioTab portfolio={portfolio} setPortfolio={setPortfolio} />}
-          {tab === "resume" && <ResumeTab resume={resume} setResume={setResume} />}
-          {tab === "privacy" && (
-            <PrivacyTab
-              privacyVisibility={core.privacyVisibility}
-              onChangeVisibility={(v) => setCore((c) => ({ ...c, privacyVisibility: v }))}
-              onSave={saveCore}
-              saving={saving}
+              username={profile.username}
               identityVerified={profile.identityVerified}
-              documentsVerified={profile.documentsVerified}
-              socialVerified={profile.socialVerified}
+              social={social}
+              setSocial={setSocial}
             />
           )}
         </div>
@@ -253,12 +217,20 @@ function ProfileTab({
   onSave,
   saving,
   saveNotice,
+  username,
+  identityVerified,
+  social,
+  setSocial,
 }: {
   core: CoreState;
   setCore: React.Dispatch<React.SetStateAction<CoreState>>;
   onSave: () => void;
   saving: boolean;
   saveNotice: "complete" | "incomplete" | null;
+  username: string | null;
+  identityVerified: boolean;
+  social: IdentitySocialAccount[];
+  setSocial: React.Dispatch<React.SetStateAction<IdentitySocialAccount[]>>;
 }) {
   const avatarUpload = useCloudinaryUpload("jimvio/avatars");
   const coverUpload = useCloudinaryUpload("jimvio/identity");
@@ -299,8 +271,8 @@ function ProfileTab({
             onChange={(e) => e.target.files?.[0] && handleCoverFile(e.target.files[0])}
           />
         </div>
-        <div className="relative flex items-end gap-4 px-6 pb-5">
-          <div className="-mt-10 flex flex-col items-center gap-2">
+        <div className="relative flex flex-col gap-3 px-4 pb-5 pt-0 sm:flex-row sm:items-end sm:gap-4 sm:px-6">
+          <div className="-mt-10 flex flex-col items-center gap-2 sm:items-start">
             <div className="relative h-20 w-20 overflow-hidden rounded-[22px] border-4 border-white bg-[#FF5A1F] shadow-lg">
               {core.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -311,6 +283,7 @@ function ProfileTab({
                 </div>
               )}
               <button
+                type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarUpload.uploading}
                 className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100"
@@ -325,14 +298,73 @@ function ProfileTab({
                 onChange={(e) => e.target.files?.[0] && handleAvatarFile(e.target.files[0])}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              className="text-[11px] font-semibold text-[#D6480F]"
+            >
+              {avatarUpload.uploading ? `${avatarUpload.progress}%` : "Change photo"}
+            </button>
           </div>
-          <p className="pb-1 text-[11.5px] text-[#9A9388]">
-            {avatarUpload.uploading ? `Uploading photo… ${avatarUpload.progress}%` : "Square photo works best."}
-          </p>
+          <div className="min-w-0 flex-1 space-y-1.5 pb-1 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <p className="truncate text-[18px] font-semibold text-[#161512]">
+                {core.fullName.trim() || "Your name"}
+              </p>
+              <VerifiedBadge verified={identityVerified} />
+            </div>
+            <p className="truncate text-[13px] text-[#59544B]">
+              {core.headline.trim() || "Add a headline that describes what you do"}
+            </p>
+            <p className="text-[12px] text-[#9A9388]">
+              {[core.city, core.country].filter(Boolean).join(", ") || "Add your location"}
+            </p>
+            {(() => {
+              const strength = evaluateProfileStrength({
+                ...core,
+                identityVerified,
+              });
+              return (
+                <div className="pt-1">
+                  <div className="mb-1 flex items-center justify-between gap-2 text-[11px]">
+                    <span className="font-semibold text-[#59544B]">Profile strength</span>
+                    <span className="font-bold tabular-nums text-[#161512]">{strength.percent}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-[#FF5A1F] transition-[width]"
+                      style={{ width: `${strength.percent}%` }}
+                    />
+                  </div>
+                  {strength.nextHint ? (
+                    <p className="mt-1.5 text-[11.5px] text-[#8B8579]">{strength.nextHint}</p>
+                  ) : null}
+                </div>
+              );
+            })()}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1 sm:justify-start">
+              {username ? (
+                <Link
+                  href={`/u/${username}`}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 text-[12px] font-semibold text-[#1C1B19]"
+                >
+                  <Eye className="h-3.5 w-3.5" /> View public profile
+                </Link>
+              ) : null}
+              {!identityVerified ? (
+                <Link
+                  href="/identity/verification"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#FFF1EA] px-3 text-[12px] font-semibold text-[#D6480F]"
+                >
+                  <BadgeCheck className="h-3.5 w-3.5" /> Verify identity
+                </Link>
+              ) : null}
+            </div>
+          </div>
         </div>
       </IdentityCard>
 
-      <IdentityCard className="space-y-4 p-6">
+      <IdentityCard className="space-y-4 p-5 sm:p-6">
         {(() => {
           const live = evaluateCreatorProfileCompletion({
             fullName: core.fullName,
@@ -451,17 +483,17 @@ function ProfileTab({
               ))}
             </select>
           </EditField>
-          <EditField label="Availability note (optional)">
+          <EditField label="Availability note">
             <input
               className="identity-input"
               value={core.availabilityNote}
               onChange={(e) => setCore((c) => ({ ...c, availabilityNote: e.target.value }))}
-              maxLength={300}
+              placeholder="Optional"
             />
           </EditField>
         </div>
 
-        <EditField label="Media kit / rate card URL (optional)">
+        <EditField label="Media kit / rate card URL">
           <input
             className="identity-input"
             placeholder="https://"
@@ -480,7 +512,10 @@ function ProfileTab({
                 <Toggle
                   checked={core.contactPreferences[key]}
                   onChange={(checked) =>
-                    setCore((c) => ({ ...c, contactPreferences: { ...c.contactPreferences, [key]: checked } }))
+                    setCore((c) => ({
+                      ...c,
+                      contactPreferences: { ...c.contactPreferences, [key]: checked },
+                    }))
                   }
                 />
                 {key === "email" ? "Email" : key === "in_app" ? "In-app notifications" : "Booking requests"}
@@ -488,45 +523,53 @@ function ProfileTab({
             ))}
           </div>
         </div>
-      </IdentityCard>
 
-      <div className="flex justify-end">
-        <IdentityButton onClick={onSave} loading={saving}>
-          <Save className="h-4 w-4" /> Save profile
-        </IdentityButton>
-      </div>
+        <ExternalLinksSection social={social} setSocial={setSocial} />
+
+        <div className="flex justify-end">
+          <IdentityButton onClick={onSave} loading={saving}>
+            <Save className="h-4 w-4" /> Save profile
+          </IdentityButton>
+        </div>
+      </IdentityCard>
       <style jsx global>{identityInputStyles}</style>
     </div>
   );
 }
 
-// ─── Social tab ─────────────────────────────────────────────────────────────
-
-function SocialTab({
+function ExternalLinksSection({
   social,
   setSocial,
 }: {
   social: IdentitySocialAccount[];
   setSocial: React.Dispatch<React.SetStateAction<IdentitySocialAccount[]>>;
 }) {
-  const [form, setForm] = useState({ platform: "instagram" as IdentitySocialPlatform, handle: "", url: "", followers: 0 });
+  const [form, setForm] = useState({
+    platform: "instagram" as IdentitySocialPlatform,
+    handle: "",
+    url: "",
+  });
   const [saving, setSaving] = useState(false);
 
   async function addAccount() {
+    if (!form.handle.trim() && !form.url.trim()) {
+      toast.error("Add a handle or URL");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/identity/social", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, followers: 0 }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to add account");
+      if (!res.ok) throw new Error(json.error ?? "Failed to add link");
       setSocial((prev) => [json.account, ...prev.filter((a) => a.platform !== form.platform)]);
-      setForm({ platform: "instagram", handle: "", url: "", followers: 0 });
-      toast.success("Account added");
+      setForm({ platform: "instagram", handle: "", url: "" });
+      toast.success("Link added");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add account");
+      toast.error(err instanceof Error ? err.message : "Failed to add link");
     } finally {
       setSaving(false);
     }
@@ -538,492 +581,69 @@ function SocialTab({
   }
 
   return (
-    <div className="space-y-5">
-      <IdentityCard className="p-6">
-        <p className="mb-4 text-[13px] font-semibold text-[#1C1B19]">Add a channel</p>
-        <div className="grid gap-3 sm:grid-cols-4">
-          <select
-            className="identity-input"
-            value={form.platform}
-            onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value as IdentitySocialPlatform }))}
-          >
-            {PLATFORMS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <input
-            className="identity-input"
-            placeholder="Handle"
-            value={form.handle}
-            onChange={(e) => setForm((f) => ({ ...f, handle: e.target.value }))}
-          />
-          <input
-            className="identity-input"
-            placeholder="Profile URL"
-            value={form.url}
-            onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-          />
-          <input
-            className="identity-input"
-            type="number"
-            placeholder="Followers"
-            value={form.followers || ""}
-            onChange={(e) => setForm((f) => ({ ...f, followers: Number(e.target.value) }))}
-          />
-        </div>
-        <div className="mt-3 flex justify-end">
-          <IdentityButton size="sm" onClick={addAccount} loading={saving}>
-            <Plus className="h-3.5 w-3.5" /> Add channel
-          </IdentityButton>
-        </div>
-      </IdentityCard>
-
-      <div className="space-y-2.5">
-        {social.map((a) => (
-          <IdentityCard key={a.id} className="flex items-center justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <p className="text-[13.5px] font-semibold capitalize text-[#1C1B19]">{a.platform}</p>
-                {a.isVerified && <BadgeCheck className="h-3.5 w-3.5 text-[#FF5A1F]" />}
-              </div>
-              <p className="truncate text-[12px] text-[#9A9388]">
-                {a.handle ? `@${a.handle}` : a.url} · {a.followers.toLocaleString()} followers
-              </p>
-            </div>
-            <button
-              onClick={() => removeAccount(a.id)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#B9B3A6] hover:bg-red-50 hover:text-red-500"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </IdentityCard>
-        ))}
-      </div>
-      <style jsx global>{identityInputStyles}</style>
-    </div>
-  );
-}
-
-// ─── Portfolio tab ──────────────────────────────────────────────────────────
-
-function PortfolioTab({
-  portfolio,
-  setPortfolio,
-}: {
-  portfolio: IdentityPortfolioItem[];
-  setPortfolio: React.Dispatch<React.SetStateAction<IdentityPortfolioItem[]>>;
-}) {
-  const [form, setForm] = useState({ kind: "image" as IdentityPortfolioKind, title: "", brandName: "", mediaUrl: "", externalUrl: "" });
-  const [saving, setSaving] = useState(false);
-  const upload = useCloudinaryUpload("jimvio/identity");
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  async function handleFile(file: File) {
-    const isVideo = file.type.startsWith("video/");
-    const result = await upload.upload(file, isVideo ? "video" : "image");
-    if ("url" in result) setForm((f) => ({ ...f, mediaUrl: result.url, kind: isVideo ? "video" : "image" }));
-    else toast.error(result.error);
-  }
-
-  async function addItem() {
-    if (!form.title.trim()) return toast.error("Add a title");
-    setSaving(true);
-    try {
-      const res = await fetch("/api/identity/portfolio", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to add item");
-      setPortfolio((prev) => [...prev, json.item]);
-      setForm({ kind: "image", title: "", brandName: "", mediaUrl: "", externalUrl: "" });
-      toast.success("Added to portfolio");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add item");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeItem(id: string) {
-    setPortfolio((prev) => prev.filter((p) => p.id !== id));
-    await fetch(`/api/identity/portfolio?id=${id}`, { method: "DELETE" }).catch(() => {});
-  }
-
-  async function toggleFeatured(item: IdentityPortfolioItem) {
-    const next = !item.isFeatured;
-    setPortfolio((prev) => prev.map((p) => (p.id === item.id ? { ...p, isFeatured: next } : p)));
-    await fetch("/api/identity/portfolio", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: item.id, isFeatured: next }),
-    }).catch(() => {});
-  }
-
-  return (
-    <div className="space-y-5">
-      <IdentityCard className="p-6">
-        <p className="mb-4 text-[13px] font-semibold text-[#1C1B19]">Add a portfolio piece</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input
-            className="identity-input"
-            placeholder="Title"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
-          <input
-            className="identity-input"
-            placeholder="Brand name (optional)"
-            value={form.brandName}
-            onChange={(e) => setForm((f) => ({ ...f, brandName: e.target.value }))}
-          />
-          <input
-            className="identity-input"
-            placeholder="External link (optional)"
-            value={form.externalUrl}
-            onChange={(e) => setForm((f) => ({ ...f, externalUrl: e.target.value }))}
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={upload.uploading}
-            className="identity-input flex items-center justify-center gap-1.5 text-[#7C766B] hover:border-black/20"
-          >
-            <Camera className="h-3.5 w-3.5" />
-            {upload.uploading ? `Uploading… ${upload.progress}%` : form.mediaUrl ? "Media added ✓" : "Upload photo/video"}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*,video/*"
-            hidden
-            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-          />
-        </div>
-        <div className="mt-3 flex justify-end">
-          <IdentityButton size="sm" onClick={addItem} loading={saving}>
-            <Plus className="h-3.5 w-3.5" /> Add to portfolio
-          </IdentityButton>
-        </div>
-      </IdentityCard>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {portfolio.map((item) => (
-          <div key={item.id} className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-black/[0.06] bg-[#F1EFEA]">
-            {item.thumbnailUrl || item.mediaUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.thumbnailUrl ?? item.mediaUrl ?? ""} alt={item.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-[#C7C1B4]">
-                <Briefcase className="h-6 w-6" />
-              </div>
-            )}
-            <div className="absolute inset-0 flex flex-col justify-between bg-gradient-to-t from-black/70 via-black/10 to-transparent p-2.5 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="flex justify-end gap-1.5">
-                <button
-                  onClick={() => toggleFeatured(item)}
-                  className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full bg-white/90",
-                    item.isFeatured ? "text-[#D6480F]" : "text-[#59544B]",
-                  )}
-                  title="Feature"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-red-500"
-                  title="Remove"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <p className="truncate text-[12px] font-semibold text-white">{item.title}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <style jsx global>{identityInputStyles}</style>
-    </div>
-  );
-}
-
-// ─── Resume tab ─────────────────────────────────────────────────────────────
-
-function ResumeTab({
-  resume,
-  setResume,
-}: {
-  resume: IdentityResumeEntry[];
-  setResume: React.Dispatch<React.SetStateAction<IdentityResumeEntry[]>>;
-}) {
-  const [form, setForm] = useState({
-    entryType: "experience" as IdentityResumeEntryType,
-    title: "",
-    organization: "",
-    startedOn: "",
-    endedOn: "",
-    isCurrent: false,
-  });
-  const [saving, setSaving] = useState(false);
-
-  async function addEntry() {
-    if (!form.title.trim()) return toast.error("Add a title");
-    setSaving(true);
-    try {
-      const res = await fetch("/api/identity/resume", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to add entry");
-      setResume((prev) => [...prev, json.entry]);
-      setForm({ entryType: "experience", title: "", organization: "", startedOn: "", endedOn: "", isCurrent: false });
-      toast.success("Added to resume");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add entry");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function removeEntry(id: string) {
-    setResume((prev) => prev.filter((r) => r.id !== id));
-    await fetch(`/api/identity/resume?id=${id}`, { method: "DELETE" }).catch(() => {});
-  }
-
-  return (
-    <div className="space-y-5">
-      <IdentityCard className="p-6">
-        <p className="mb-4 text-[13px] font-semibold text-[#1C1B19]">Add experience</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <select
-            className="identity-input"
-            value={form.entryType}
-            onChange={(e) => setForm((f) => ({ ...f, entryType: e.target.value as IdentityResumeEntryType }))}
-          >
-            {RESUME_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-          <input
-            className="identity-input"
-            placeholder="Title (e.g. Lead Creator)"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-          />
-          <input
-            className="identity-input"
-            placeholder="Organization / Brand"
-            value={form.organization}
-            onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
-          />
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              className="identity-input"
-              value={form.startedOn}
-              onChange={(e) => setForm((f) => ({ ...f, startedOn: e.target.value }))}
-            />
-            {!form.isCurrent && (
-              <input
-                type="date"
-                className="identity-input"
-                value={form.endedOn}
-                onChange={(e) => setForm((f) => ({ ...f, endedOn: e.target.value }))}
-              />
-            )}
-          </div>
-        </div>
-        <label className="mt-3 flex items-center gap-2 text-[12.5px] text-[#3E3A34]">
-          <Toggle checked={form.isCurrent} onChange={(v) => setForm((f) => ({ ...f, isCurrent: v }))} />
-          This is current
-        </label>
-        <div className="mt-3 flex justify-end">
-          <IdentityButton size="sm" onClick={addEntry} loading={saving}>
-            <Plus className="h-3.5 w-3.5" /> Add to resume
-          </IdentityButton>
-        </div>
-      </IdentityCard>
-
-      <div className="space-y-2.5">
-        {resume.map((entry) => (
-          <IdentityCard key={entry.id} className="flex items-center justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <p className="text-[13.5px] font-semibold text-[#1C1B19]">{entry.title}</p>
-              <p className="truncate text-[12px] text-[#9A9388]">
-                {entry.organization} · {entry.entryType}
-              </p>
-            </div>
-            <button
-              onClick={() => removeEntry(entry.id)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#B9B3A6] hover:bg-red-50 hover:text-red-500"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </IdentityCard>
-        ))}
-      </div>
-      <style jsx global>{identityInputStyles}</style>
-    </div>
-  );
-}
-
-// ─── Privacy tab ────────────────────────────────────────────────────────────
-
-const VISIBILITY_OPTIONS: { value: IdentityPrivacyVisibility; label: string; description: string }[] = [
-  { value: "public", label: "Public", description: "Anyone on the internet can view your profile." },
-  { value: "followers_only", label: "Followers only", description: "Only people who follow you can view details." },
-  { value: "brand_only", label: "Brands only", description: "Visible to signed-in brand/business accounts." },
-  { value: "private", label: "Private", description: "Only you (and admins) can view your profile." },
-];
-
-function PrivacyTab({
-  privacyVisibility,
-  onChangeVisibility,
-  onSave,
-  saving,
-  identityVerified,
-  documentsVerified,
-  socialVerified,
-}: {
-  privacyVisibility: IdentityPrivacyVisibility;
-  onChangeVisibility: (v: IdentityPrivacyVisibility) => void;
-  onSave: () => void;
-  saving: boolean;
-  identityVerified: boolean;
-  documentsVerified: boolean;
-  socialVerified: boolean;
-}) {
-  const [requesting, setRequesting] = useState<string | null>(null);
-
-  async function requestVerification(requestType: "identity" | "documents" | "social") {
-    setRequesting(requestType);
-    try {
-      const res = await fetch("/api/identity/verify-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ requestType }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to submit request");
-      toast.success("Verification request submitted");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to submit request");
-    } finally {
-      setRequesting(null);
-    }
-  }
-
-  return (
-    <div className="space-y-5">
-      <IdentityCard className="p-6">
-        <p className="mb-1 text-[13px] font-semibold text-[#1C1B19]">Profile visibility</p>
-        <p className="mb-4 text-[12.5px] text-[#8B8579]">Choose who can see your full Jimvio identity profile.</p>
-        <div className="space-y-2">
-          {VISIBILITY_OPTIONS.map((opt) => {
-            const active = privacyVisibility === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => onChangeVisibility(opt.value)}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-2xl border p-3.5 text-left transition-colors",
-                  active ? "border-[#FF5A1F] bg-[#FFF6F1]" : "border-black/[0.06] hover:border-black/15",
-                )}
-              >
-                <div
-                  className={cn(
-                    "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                    active ? "border-[#FF5A1F] bg-[#FF5A1F]" : "border-black/20",
-                  )}
-                >
-                  {active && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
-                </div>
-                <div>
-                  <p className="text-[13px] font-semibold text-[#1C1B19]">{opt.label}</p>
-                  <p className="text-[12px] text-[#8B8579]">{opt.description}</p>
-                </div>
-                {opt.value === "private" ? (
-                  <EyeOff className="ml-auto h-4 w-4 shrink-0 text-[#B9B3A6]" />
-                ) : (
-                  <Eye className="ml-auto h-4 w-4 shrink-0 text-[#B9B3A6]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-4 flex justify-end">
-          <IdentityButton onClick={onSave} loading={saving}>
-            <Save className="h-4 w-4" /> Save privacy settings
-          </IdentityButton>
-        </div>
-      </IdentityCard>
-
-      <IdentityCard className="p-6">
-        <p className="mb-1 text-[13px] font-semibold text-[#1C1B19]">Verification</p>
-        <p className="mb-4 text-[12.5px] text-[#8B8579]">
-          Get a verified badge to build trust with brands and buyers.
-        </p>
-        <div className="space-y-2.5">
-          <VerificationRow
-            label="Identity verification"
-            verified={identityVerified}
-            onRequest={() => requestVerification("identity")}
-            requesting={requesting === "identity"}
-          />
-          <VerificationRow
-            label="Document verification"
-            verified={documentsVerified}
-            onRequest={() => requestVerification("documents")}
-            requesting={requesting === "documents"}
-          />
-          <VerificationRow
-            label="Social account verification"
-            verified={socialVerified}
-            onRequest={() => requestVerification("social")}
-            requesting={requesting === "social"}
-          />
-        </div>
-      </IdentityCard>
-    </div>
-  );
-}
-
-function VerificationRow({
-  label,
-  verified,
-  onRequest,
-  requesting,
-}: {
-  label: string;
-  verified: boolean;
-  onRequest: () => void;
-  requesting: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-2xl border border-black/[0.06] p-3.5">
-      <div className="flex items-center gap-2">
-        {verified ? <BadgeCheck className="h-4 w-4 text-[#FF5A1F]" /> : <Shield className="h-4 w-4 text-[#B9B3A6]" />}
-        <span className="text-[13px] font-medium text-[#1C1B19]">{label}</span>
-      </div>
-      {verified ? (
-        <IdentityPill tone="success">Verified</IdentityPill>
-      ) : (
-        <IdentityButton variant="outline" size="sm" onClick={onRequest} loading={requesting}>
-          Request
+    <div className="border-t border-black/[0.06] pt-4">
+      <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9388]">
+        Social / external links
+      </p>
+      <p className="mb-3 text-[12px] text-[#8B8579]">
+        Add public channels people can use to find your work.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-[140px_1fr_1fr_auto]">
+        <select
+          className="identity-input"
+          value={form.platform}
+          onChange={(e) => setForm((f) => ({ ...f, platform: e.target.value as IdentitySocialPlatform }))}
+        >
+          {PLATFORMS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <input
+          className="identity-input"
+          placeholder="Handle"
+          value={form.handle}
+          onChange={(e) => setForm((f) => ({ ...f, handle: e.target.value }))}
+        />
+        <input
+          className="identity-input"
+          placeholder="Profile URL"
+          value={form.url}
+          onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+        />
+        <IdentityButton size="sm" onClick={addAccount} loading={saving} className="sm:w-auto">
+          <Plus className="h-3.5 w-3.5" /> Add
         </IdentityButton>
-      )}
+      </div>
+      {social.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          {social.map((a) => (
+            <div
+              key={a.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] bg-[#FAFAF8] px-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold capitalize text-[#1C1B19]">{a.platform}</p>
+                <p className="truncate text-[12px] text-[#9A9388]">
+                  {a.handle ? `@${a.handle}` : a.url}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeAccount(a.id)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#B9B3A6] hover:bg-red-50 hover:text-red-500"
+                aria-label={`Remove ${a.platform}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
-
-// ─── Shared bits ────────────────────────────────────────────────────────────
 
 function EditField({
   label,

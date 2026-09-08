@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  BadgeCheck,
   Briefcase,
   Calendar,
   Clock,
@@ -35,6 +34,7 @@ import { IdentityAchievements } from "@/components/identity/IdentityAchievements
 import { IdentityAiPanel } from "@/components/identity/IdentityAiPanel";
 import { IdentitySocialLinks } from "@/components/identity/IdentitySocialLinks";
 import { IdentityBookingForm } from "@/components/identity/IdentityBookingForm";
+import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 
 const AVAILABILITY_META: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
   open: { label: "Open to work", tone: "success" },
@@ -157,9 +157,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                   <h1 className="font-[var(--font-identity-serif)] text-[22px] font-medium tracking-tight text-[#161512] sm:text-[26px]">
                     {displayName}
                   </h1>
-                  {(profile.isVerified || profile.identityVerified) && (
-                    <BadgeCheck className="h-5 w-5 text-[#FF5A1F]" aria-label="Verified" />
-                  )}
+                  <VerifiedBadge verified={Boolean(profile.identityVerified)} />
                 </div>
                 {profile.username && <p className="text-[13px] text-[#9A9388]">@{profile.username}</p>}
               </div>

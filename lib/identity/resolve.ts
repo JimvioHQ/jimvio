@@ -11,7 +11,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { levelProgress as computeLevelProgress } from "./levels";
-import { canViewFullDetails, canViewIdentity } from "./privacy";
+import { canViewFullDetails, canViewIdentity, privacyFieldVisible } from "./privacy";
 import { computeCreatorStats } from "./stats";
 import type {
   AIInsights,
@@ -368,6 +368,10 @@ async function buildProfilePayload(
     industries: identity.industries ?? [],
     contactPreferences,
     privacyVisibility: identity.privacy_visibility,
+    privacyCustom:
+      identity.privacy_custom && typeof identity.privacy_custom === "object"
+        ? (identity.privacy_custom as Record<string, unknown>)
+        : {},
     mediaKitUrl: identity.media_kit_url,
     creatorLevel: identity.creator_level,
     trustScore: Number(identity.trust_score ?? 50),
@@ -450,9 +454,28 @@ async function buildProfilePayload(
     .map((ub) => ub.badge)
     .filter((b): b is Badge => Boolean(b));
 
+  let publicProfile = profileCore;
+  let publicSocial = ((socials ?? []) as SocialAccount[]).map(toSocialAccount);
+
+  if (!isSelf) {
+    const custom = profileCore.privacyCustom;
+    publicProfile = {
+      ...profileCore,
+      bio: privacyFieldVisible(custom, "showBio") ? profileCore.bio : null,
+      website: privacyFieldVisible(custom, "showWebsite") ? profileCore.website : null,
+      city: privacyFieldVisible(custom, "showLocation") ? profileCore.city : null,
+      country: privacyFieldVisible(custom, "showLocation") ? profileCore.country : null,
+      languages: privacyFieldVisible(custom, "showSkills") ? profileCore.languages : [],
+      skills: privacyFieldVisible(custom, "showSkills") ? profileCore.skills : [],
+    };
+    if (!privacyFieldVisible(custom, "showSocial")) {
+      publicSocial = [];
+    }
+  }
+
   return {
-    profile: profileCore,
-    social: ((socials ?? []) as SocialAccount[]).map(toSocialAccount),
+    profile: publicProfile,
+    social: publicSocial,
     portfolio: ((portfolio ?? []) as PortfolioItem[]).map(toPortfolioItem),
     testimonials: ((testimonials ?? []) as Testimonial[]).map(toTestimonial),
     resume: ((resume ?? []) as ResumeEntry[]).map(toResumeEntry),

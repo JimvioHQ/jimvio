@@ -54,6 +54,7 @@ import {
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { HeaderUtilityActions } from "@/components/shell/HeaderUtilityActions";
 import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
+import { WalletBalanceChip } from "@/components/wallet-os/WalletBalanceChip";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { MobilePrimaryBottomNav } from "@/components/layout/mobile-primary-bottom-nav";
 import type { CreateMenuContext } from "@/lib/navigation/create-menu";
@@ -554,10 +555,6 @@ function MobileDrawer({
   const { chatCount, cartCount } = useCartStore();
   const { walletBalance, currency: walletCurrency, hydrated } = useHeaderAccountStore();
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
-  const balanceLabel = formatMoneyAsUSD(
-    Number.isFinite(walletBalance) ? walletBalance : 0,
-    walletCurrency || "USD",
-  );
 
   const accountLinks = [
     ...PROFILE_TOOL_ITEMS.map((item) => ({
@@ -802,23 +799,16 @@ function MobileDrawer({
                 </button>
               </div>
 
-              {/* Quick access — Jimvio Balance + Cart (Messages lives in Profile / Communities) */}
+              {/* Quick access — compact wallet amount + Cart */}
               {user && (
                 <div className="grid grid-cols-2 gap-2 border-b border-[var(--color-border)] px-4 py-4">
-                  <Link
+                  <WalletBalanceChip
+                    amount={walletBalance}
+                    currency={walletCurrency || "USD"}
+                    hydrated={hydrated}
                     href="/wallet"
                     onClick={onClose}
-                    aria-label={`Jimvio Balance ${balanceLabel}`}
-                    className="relative flex min-h-[52px] flex-col items-start justify-center gap-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 transition-colors hover:border-[#fd5000]/30"
-                  >
-                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-text-muted)]">
-                      <Wallet className="size-3.5 shrink-0 text-[#fd5000]" />
-                      Jimvio Balance
-                    </span>
-                    <span className="text-[15px] font-bold tabular-nums leading-none text-[var(--color-text-primary)]">
-                      {hydrated ? balanceLabel : "—"}
-                    </span>
-                  </Link>
+                  />
                   <Link
                     href="/cart"
                     onClick={onClose}

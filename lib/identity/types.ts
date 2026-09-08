@@ -596,6 +596,7 @@ export interface IdentityProfileCore {
   industries: string[];
   contactPreferences: { email: boolean; in_app: boolean; booking: boolean };
   privacyVisibility: IdentityPrivacyVisibility;
+  privacyCustom: Record<string, unknown>;
   mediaKitUrl: string | null;
   creatorLevel: IdentityCreatorLevel;
   trustScore: number;

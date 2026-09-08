@@ -95,6 +95,9 @@ export async function PATCH(req: NextRequest) {
     }
     identityUpdates.privacy_visibility = body.privacyVisibility;
   }
+  if (body.privacyCustom && typeof body.privacyCustom === "object") {
+    identityUpdates.privacy_custom = body.privacyCustom;
+  }
 
   await ensureJipIdentity(user.id);
 

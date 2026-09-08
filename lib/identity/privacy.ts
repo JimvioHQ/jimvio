@@ -69,3 +69,12 @@ export function canViewFullDetails(
 export function isSelfViewer(viewerId: string | null | undefined, userId: string): boolean {
   return Boolean(viewerId) && viewerId === userId;
 }
+
+/** Field-level visibility from privacy_custom (defaults to visible). */
+export function privacyFieldVisible(
+  privacyCustom: Record<string, unknown> | null | undefined,
+  key: "showLocation" | "showWebsite" | "showBio" | "showSkills" | "showSocial",
+): boolean {
+  if (!privacyCustom || typeof privacyCustom !== "object") return true;
+  return privacyCustom[key] !== false;
+}
