@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   Compass,
   FolderOpen,
   LayoutDashboard,
   PlusCircle,
   Upload,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,15 +22,11 @@ type NavItem = {
   icon: LucideIcon;
 };
 
+/** Canonical creator Work nav — Discover / My Campaigns / Submissions only. */
 const CREATOR_WORK: NavItem[] = [
   { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
   { id: "campaigns", href: "/ugc/campaigns", label: "My Campaigns", icon: FolderOpen },
   { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
-  { id: "earnings", href: "/ugc/earnings", label: "Earnings", icon: Wallet },
-];
-
-const CREATOR_ACTIVITY: NavItem[] = [
-  { id: "activity", href: "/ugc/activity", label: "Activity", icon: Bell },
 ];
 
 const BRAND_WORK: NavItem[] = [
@@ -40,19 +34,14 @@ const BRAND_WORK: NavItem[] = [
   { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
   { id: "campaigns", href: "/ugc/campaign-center/campaigns", label: "My Campaigns", icon: FolderOpen },
   { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
-  { id: "earnings", href: "/ugc/earnings", label: "Earnings", icon: Wallet },
 ];
 
-const BRAND_ACTIVITY: NavItem[] = [
-  { id: "activity", href: "/ugc/activity", label: "Activity", icon: Bell },
-];
-
-const BRAND_MANAGE: NavItem[] = [
+const MANAGE: NavItem[] = [
   { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
 ];
 
 export const UGC_MOBILE_TABS: NavItem[] = CREATOR_WORK.filter((item) =>
-  ["discover", "campaigns", "submissions", "earnings"].includes(item.id),
+  ["discover", "campaigns", "submissions"].includes(item.id),
 );
 
 export const UGC_BRAND_MOBILE_TABS: NavItem[] = [
@@ -121,7 +110,6 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
   const { workspaces, brandId } = useUgcBrandWorkspace();
   const brandMode = workspaces.length > 0;
   const work = brandMode ? BRAND_WORK : CREATOR_WORK;
-  const activity = brandMode ? BRAND_ACTIVITY : CREATOR_ACTIVITY;
 
   return (
     <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white">
@@ -148,24 +136,9 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
         </div>
 
         <div>
-          <SectionLabel>Activity</SectionLabel>
-          <div className="space-y-0.5">
-            {activity.map((item) => (
-              <NavLink
-                key={item.id}
-                item={item}
-                active={isActive(pathname, item, brandMode)}
-                href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
           <SectionLabel>Manage</SectionLabel>
           <div className="space-y-0.5">
-            {BRAND_MANAGE.map((item) => (
+            {MANAGE.map((item) => (
               <NavLink
                 key={item.id}
                 item={item}

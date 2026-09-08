@@ -22,8 +22,7 @@
 // import { cn } from "@/lib/utils";
 // import { createClient } from "@/lib/supabase/client";
 // import { ThemeToggle } from "@/components/ui/theme-toggle";
-// import { CurrencySelector } from "@/context/CurrencyContext";
-// import { SignOutButton } from "@/components/auth/sign-out-button";
+// // import { SignOutButton } from "@/components/auth/sign-out-button";
 // import { useUserStore } from "@/lib/store/use-user-store";
 // import {
 //     DropdownMenu,
@@ -467,14 +466,12 @@ import {
     Radio,
     X,
     Menu,
-    Coins,
     SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProfileImage } from "@/components/ui/profile-image";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
-import { CurrencySelector } from "@/context/CurrencyContext";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { useUserStore } from "@/lib/store/use-user-store";
 import {
@@ -762,7 +759,7 @@ function MobilePreferencesMenu() {
                         Preferences
                     </p>
                     <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-                        Language & currency
+                        Language
                     </p>
                 </div>
 
@@ -806,26 +803,6 @@ function MobilePreferencesMenu() {
                                 </button>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Currency */}
-                    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="flex size-7 items-center justify-center rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">
-                                <Coins className="h-3.5 w-3.5 text-[var(--color-accent)]" />
-                            </span>
-                            <div>
-                                <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Currency</p>
-                                <p className="text-[10px] text-[var(--color-text-muted)]">Prices & wallet display</p>
-                            </div>
-                        </div>
-                        <CurrencySelector
-                            className={cn(
-                                "w-full h-9 rounded-lg text-[12px] font-semibold",
-                                "bg-[var(--color-surface)] border border-[var(--color-border)] px-3",
-                                "text-[var(--color-text-primary)]",
-                            )}
-                        />
                     </div>
                 </div>
 
@@ -1115,18 +1092,6 @@ export function DashboardHeader({
                     <Globe className="h-3.5 w-3.5" />
                     EN
                 </button>
-
-                {/* Currency — visible sm+ */}
-                <div className="hidden sm:block">
-                    <CurrencySelector
-                        className={cn(
-                            "h-9 rounded-[var(--radius-sm)] text-[11px] font-bold",
-                            "bg-[var(--color-surface)] border border-[var(--color-border)] px-3",
-                            "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]",
-                            "transition-colors"
-                        )}
-                    />
-                </div>
 
                 {/* Preferences — mobile only */}
                 <MobilePreferencesMenu />

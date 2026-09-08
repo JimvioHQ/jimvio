@@ -18,8 +18,6 @@ import {
   type CartOrderLikeForTotal,
 } from "@/lib/currency/format";
 import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
-import CustomSelect from "@/components/ui/select-2";
-import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "jimvio_currency";
 
@@ -200,27 +198,8 @@ export function CurrencySelector({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { userCurrency, setUserCurrency, loading } = useCurrency();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const displayValue = mounted ? userCurrency : "USD";
-
-  return (
-    <CustomSelect
-      className={cn(
-        "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
-        className
-      )}
-      options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
-        const c = SUPPORTED_CURRENCIES[code];
-        return { label: `${c.symbol} — ${c.name}`, value: code };
-      })}
-      textSize="xs"
-      value={displayValue}
-      onChange={setUserCurrency}
-    />
-  );
+  // Platform display currency is USD-only — no user-facing currency switcher.
+  void className;
+  void style;
+  return null;
 }

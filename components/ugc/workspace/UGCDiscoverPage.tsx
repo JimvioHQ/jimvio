@@ -277,11 +277,11 @@ export function UGCDiscoverPage() {
           ) : null}
 
           <section id="all-campaigns">
-            <div className="mb-2.5 flex items-center justify-between gap-3">
-              <h2 className="text-[17px] font-semibold tracking-tight text-[#111827] sm:text-[18px]">
+            <div className="mb-2.5 flex min-w-0 items-baseline justify-between gap-2 sm:gap-3">
+              <h2 className="min-w-0 truncate text-[16px] font-semibold tracking-tight text-[#111827] sm:text-[18px]">
                 {search ? `Results for “${search}”` : "All Campaigns"}
               </h2>
-              <span className="shrink-0 text-[12px] tabular-nums text-[#94A3B8]">
+              <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-[#94A3B8] sm:text-[12px]">
                 {total.toLocaleString()}{" "}
                 {total === 1 ? "campaign" : "campaigns"}
               </span>

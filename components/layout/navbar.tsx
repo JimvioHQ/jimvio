@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   ShoppingCart,
-  MessageSquare,
   Menu,
   X,
   CircleHelp,
@@ -44,7 +43,7 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
-import { CurrencySelector } from "@/context/CurrencyContext";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
@@ -553,7 +552,12 @@ function MobileDrawer({
 }: MobileDrawerProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const { chatCount, cartCount } = useCartStore();
+  const { walletBalance, currency: walletCurrency, hydrated } = useHeaderAccountStore();
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
+  const balanceLabel = formatMoneyAsUSD(
+    Number.isFinite(walletBalance) ? walletBalance : 0,
+    walletCurrency || "USD",
+  );
 
   const accountLinks = [
     ...PROFILE_TOOL_ITEMS.map((item) => ({
@@ -736,7 +740,7 @@ function MobileDrawer({
                               >
                                 <link.icon className="size-4 shrink-0 text-[var(--color-text-muted)]" />
                                 {link.label}
-                                {link.href === "/messages" && chatCount > 0 && (
+                                {link.href === "/communities/messages" && chatCount > 0 && (
                                   <span className="ml-auto rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[10px] font-bold text-white">
                                     {chatCount > 99 ? "99+" : chatCount}
                                   </span>
@@ -798,26 +802,27 @@ function MobileDrawer({
                 </button>
               </div>
 
-              {/* Quick access */}
+              {/* Quick access — Jimvio Balance + Cart (Messages lives in Profile / Communities) */}
               {user && (
                 <div className="grid grid-cols-2 gap-2 border-b border-[var(--color-border)] px-4 py-4">
                   <Link
-                    href="/messages"
+                    href="/wallet"
                     onClick={onClose}
-                    className="relative flex items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
+                    aria-label={`Jimvio Balance ${balanceLabel}`}
+                    className="relative flex min-h-[52px] flex-col items-start justify-center gap-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 transition-colors hover:border-[#fd5000]/30"
                   >
-                    <MessageSquare className="size-4 text-[#fd5000]" />
-                    Messages
-                    {chatCount > 0 && (
-                      <span className="absolute -right-1 -top-1 rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        {chatCount > 99 ? "99+" : chatCount}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-text-muted)]">
+                      <Wallet className="size-3.5 shrink-0 text-[#fd5000]" />
+                      Jimvio Balance
+                    </span>
+                    <span className="text-[15px] font-bold tabular-nums leading-none text-[var(--color-text-primary)]">
+                      {hydrated ? balanceLabel : "—"}
+                    </span>
                   </Link>
                   <Link
                     href="/cart"
                     onClick={onClose}
-                    className="relative flex items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
+                    className="relative flex min-h-[52px] items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
                   >
                     <ShoppingCart className="size-4 text-[var(--color-text-muted)]" />
                     Cart
@@ -846,11 +851,6 @@ function MobileDrawer({
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />
                 </div>
               </div>
-            </div>
-
-            {/* Footer — currency only (single light theme, no theme switcher) */}
-            <div className="flex items-center justify-end gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
-              <CurrencySelector className="h-8 border-0 bg-transparent text-[12px] font-medium text-[var(--color-text-muted)]" />
             </div>
       </div>
     </>
