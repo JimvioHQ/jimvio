@@ -170,7 +170,15 @@ function ensureCoreNavLinks(_links: NavLinkConfig[]): NavLinkConfig[] {
   return PRIMARY_NAV_ITEMS.map((item) => ({
     label: item.label,
     href: item.href,
+    mobileLabel: item.mobileLabel,
   }));
+}
+
+function navDisplayLabel(item: NavLinkConfig): { short: string; full: string } {
+  return {
+    short: item.mobileLabel ?? item.label,
+    full: item.label,
+  };
 }
 
 
@@ -261,9 +269,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
-        <div className="min-w-0 w-full overflow-x-hidden">
-          {/* main bar — 3-column grid prevents nav/search overlap */}
-          <div className="grid w-full min-w-0 max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-3">
+        <div className="min-w-0 w-full">
+          {/* main bar — 3-column grid; nav may clip, Create menu portals above */}
+          <div className="grid w-full min-w-0 max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 sm:gap-x-4">
             {/* Logo */}
             <div className="flex shrink-0 items-center self-center">
               <JimvioLogo
@@ -273,9 +281,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
               />
             </div>
 
-            {/* Desktop nav — flex-1 center column, clips before overlapping search */}
-            {/* Desktop nav — discovery destinations with breathing room from logo */}
-            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-3 overflow-hidden pl-4 xl:gap-4 xl:pl-6">
+            {/* Desktop nav — clips before overlapping search; shorter UGC label until 2xl */}
+            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-1.5 overflow-hidden pl-3 xl:gap-2.5 xl:pl-5 2xl:gap-3">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -292,7 +299,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <DropdownMenuTrigger asChild>
                           <ConsoleButton
                             active={active}
-                            className="h-9 gap-1.5 px-2.5 xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
+                            className="h-9 gap-1.5 px-2 xl:px-2.5 2xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
@@ -363,10 +370,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       key={item.href}
                       href={item.href}
                       active={active}
-                      className="h-9 gap-1.5 px-2.5 xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
+                      className="h-9 gap-1.5 px-2 xl:px-2.5 2xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
-                      <span className="whitespace-nowrap">{item.label}</span>
+                      <span className="whitespace-nowrap">
+                        {/* Short label until 2xl so Search never collides with UGC & Clipping */}
+                        <span className="2xl:hidden">{navDisplayLabel(item).short}</span>
+                        <span className="hidden 2xl:inline">{navDisplayLabel(item).full}</span>
+                      </span>
                     </ConsoleButton>
                   );
                 }
@@ -374,20 +385,20 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </nav>
 
             {/* Right side — fixed-width cluster, never overlaps nav */}
-            <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-0">
+            <div className="relative z-10 flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-0">
 
-              {/* Desktop search → unified Command+K */}
+              {/* Desktop search → unified Command+K; shrinks before colliding with nav */}
               <button
                 type="button"
                 onClick={() => openCommandCenter()}
                 aria-label="Search everything or run a command"
-                className="hidden min-[1240px]:flex h-9 w-[180px] xl:w-[220px] items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
+                className="hidden min-[1240px]:flex h-9 w-[min(100%,160px)] xl:w-[180px] 2xl:w-[220px] min-w-0 shrink items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
                 <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
                   Search globally…
                 </span>
-                <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 xl:inline">
+                <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 2xl:inline">
                   ⌘K
                 </kbd>
               </button>

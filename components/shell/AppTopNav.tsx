@@ -108,7 +108,7 @@ export function AppTopNav({
   }, [user, refreshCounts]);
 
   return (
-    <header className="z-30 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 overflow-x-clip border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
+    <header className="relative z-50 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
       <div className="flex shrink-0 items-center">
         <Link href="/" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
@@ -117,41 +117,47 @@ export function AppTopNav({
 
       <nav
         aria-label="Primary"
-        className="hidden min-w-0 items-center justify-center gap-3 overflow-hidden pl-4 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-4 xl:pl-6"
+        className="hidden min-w-0 items-center justify-center gap-1.5 overflow-hidden pl-3 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-2.5 xl:pl-5 2xl:gap-3"
       >
         {PRIMARY_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const dropdown = item.dropdown ?? false;
           const href = resolvePrimaryNavHref(item, isAuthenticated);
           const active = isPrimaryNavActive(pathname, item, activeNav, isAuthenticated);
+          const shortLabel = item.mobileLabel ?? item.label;
           return (
             <Link
               key={`${item.label}-${href}`}
               href={href}
               className={cn(
-                "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors xl:px-2.5 xl:text-[13px] 2xl:px-2.5",
                 active
-                  ? "text-[#FF5A1F] after:absolute after:bottom-0 after:left-2.5 after:right-2.5 after:h-0.5 after:rounded-full after:bg-[#FF5A1F]"
+                  ? "text-[#FF5A1F] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[#FF5A1F]"
                   : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{item.label}</span>
+              <span className="whitespace-nowrap">
+                <span className="2xl:hidden">{shortLabel}</span>
+                <span className="hidden 2xl:inline">{item.label}</span>
+              </span>
               {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
             </Link>
           );
         })}
       </nav>
 
-      <div className="col-start-3 flex min-w-0 max-w-full items-center justify-end gap-0.5 overflow-x-clip sm:gap-1.5">
+      <div className="relative z-10 col-start-3 flex min-w-0 max-w-full items-center justify-end gap-0.5 sm:gap-1.5">
         <button
           type="button"
           onClick={() => openCommandCenter()}
-          className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] min-[1060px]:flex xl:w-[180px]"
+          className="hidden h-9 w-[min(100%,140px)] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] min-[1060px]:flex xl:w-[160px] 2xl:w-[180px]"
           aria-label="Search everything or run a command"
         >
           <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
-          <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search...</span>
+          <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">
+            Search globally…
+          </span>
           <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-px text-[9px] font-medium text-[var(--color-text-muted)] 2xl:inline">
             ⌘K
           </kbd>

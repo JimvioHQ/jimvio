@@ -311,7 +311,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
 
             {/* ── Main header (full width, above sidebar) ── */}
-            <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1.5 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-2.5 sm:gap-x-3 sm:px-6 supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]">
+            <header className="relative z-50 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-2.5 sm:gap-x-3 sm:px-6 supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]">
                 {/* Mobile hamburger */}
                     <button
                         type="button"
@@ -339,28 +339,32 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 </Link>
 
                 {/* Primary nav (desktop) — breathing room from logo */}
-                <nav className="hidden min-w-0 items-center justify-center gap-3 overflow-hidden pl-4 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-4 xl:pl-6">
+                <nav className="hidden min-w-0 items-center justify-center gap-1.5 overflow-hidden pl-3 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-2.5 xl:pl-5 2xl:gap-3">
                     {PRIMARY_NAV_ITEMS.map((item) => {
-                        const { label, icon: Icon, dropdown } = item;
+                        const { label, icon: Icon, dropdown, mobileLabel } = item;
                         const href = resolvePrimaryNavHref(item, isAuthenticated);
                         const active =
                             item.label === "Communities"
                                 ? isCommunitiesNavActive(pathname)
                                 : isPrimaryNavActive(pathname, item, undefined, isAuthenticated);
+                        const shortLabel = mobileLabel ?? label;
                         return (
                     <Link
                                 key={`${label}-${href}`}
                                 href={href}
                                 aria-current={active ? "page" : undefined}
                                 className={cn(
-                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 xl:px-2.5 xl:text-[13px]",
                                     active
                                         ? "bg-[#fd5000]/10 text-[#fd5000]"
                                         : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                                 )}
                             >
                                 <Icon className="h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
-                                <span className="whitespace-nowrap">{label}</span>
+                                <span className="whitespace-nowrap">
+                                  <span className="2xl:hidden">{shortLabel}</span>
+                                  <span className="hidden 2xl:inline">{label}</span>
+                                </span>
                                 {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
                     </Link>
                         );

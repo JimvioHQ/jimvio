@@ -18,7 +18,7 @@ export type SocialProofSettings = {
 export type TrustBarItem = { title: string; desc: string };
 
 /** Public navbar link — icon is chosen automatically from `href` when omitted on client. */
-export type NavLinkConfig = { label: string; href: string };
+export type NavLinkConfig = { label: string; href: string; mobileLabel?: string };
 
 export type MarketingSettings = {
   trending_search_keywords: string[];
