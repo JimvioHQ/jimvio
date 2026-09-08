@@ -176,11 +176,11 @@ export function UGCPlatformMarks({
   );
 }
 
-export function campaignFallbackStyle(seed: string) {
-  let hash = 0;
-  for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  const hue = hash % 360;
+/** Neutral Jimvio fallback — never blue/cyan decorative hues. */
+export function campaignFallbackStyle(_seed: string) {
+  void _seed;
   return {
-    background: `linear-gradient(145deg, hsl(${hue} 62% 94%) 0%, hsl(${(hue + 28) % 360} 48% 86%) 100%)`,
+    background:
+      "linear-gradient(145deg, #FFFFFF 0%, #F8FAFC 48%, rgba(255,90,31,0.04) 100%)",
   };
 }
