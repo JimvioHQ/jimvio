@@ -25,20 +25,6 @@ type UGCPremiumCampaignCardProps = {
   onToggleSave?: (campaignId: string) => void;
 };
 
-/** Compact relative age: 3h, 10d, 2mo */
-function relativeAge(iso: string): string | null {
-  const ms = Date.now() - Date.parse(iso);
-  if (!Number.isFinite(ms) || ms < 0) return null;
-  const mins = Math.floor(ms / (1000 * 60));
-  if (mins < 60) return `${Math.max(1, mins)}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d`;
-  if (days < 365) return `${Math.floor(days / 30)}mo`;
-  return `${Math.floor(days / 365)}y`;
-}
-
 function JoinButton({
   href,
   title,
@@ -86,7 +72,6 @@ function UGCPremiumCampaignCardInner({
   const showBudget = totalBudget > 0;
   const description = c.description?.replace(/\s+/g, " ").trim() || null;
   const descId = description ? `ugc-card-desc-${c.id}` : undefined;
-  const age = relativeAge(c.created_at);
   const joinLabel = t("joinCampaign");
 
   return (
@@ -165,15 +150,10 @@ function UGCPremiumCampaignCardInner({
               {brand}
             </span>
             {isVerified ? <UGCVerifiedBadge className="h-3 w-3 shrink-0" /> : null}
-            {age ? (
-              <span className="shrink-0 text-[11px] leading-none text-[#9CA3AF]">
-                {"\u00B7"} {age}
-              </span>
-            ) : null}
             <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
           </div>
 
-          {/* Fixed-height title slot: description overlays on hover without reflow */}
+          {/* Fixed-height title slot: description overlays on hover-capable desktops only */}
           <div className="relative mt-2.5 min-h-[40px] overflow-hidden">
             <h3
               id={`ugc-card-title-${c.id}`}
@@ -181,7 +161,7 @@ function UGCPremiumCampaignCardInner({
             >
               <Link
                 href={briefHref}
-                className="line-clamp-2 group-hover/card:line-clamp-1 group-focus-within/card:line-clamp-1 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
+                className="line-clamp-2 [@media(hover:hover)]:group-hover/card:line-clamp-1 sm:group-focus-within/card:line-clamp-1 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
               >
                 {c.title}
               </Link>
@@ -191,9 +171,9 @@ function UGCPremiumCampaignCardInner({
                 id={descId}
                 className={cn(
                   "pointer-events-none absolute inset-x-0 top-[19px] line-clamp-1 bg-white/95 text-[11px] leading-[1.35] text-[#6B7280]",
-                  "opacity-0 translate-y-0.5 transition-[opacity,transform] duration-200 ease-out",
-                  "group-hover/card:translate-y-0 group-hover/card:opacity-100",
-                  "group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100",
+                  "max-sm:hidden opacity-0 translate-y-0.5 transition-[opacity,transform] duration-200 ease-out",
+                  "[@media(hover:hover)]:group-hover/card:translate-y-0 [@media(hover:hover)]:group-hover/card:opacity-100",
+                  "sm:group-focus-within/card:translate-y-0 sm:group-focus-within/card:opacity-100",
                 )}
               >
                 {description}

@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 import { UGCWorkspaceSidebar } from "./UGCWorkspaceSidebar";
 import { useLocale } from "@/context/LocaleContext";
+import { cn } from "@/lib/utils";
 import {
   MobilePrimaryBottomNav,
   MOBILE_PRIMARY_BOTTOM_NAV_PAD,
@@ -32,7 +33,11 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
       if (e.key === "Escape") setMobileNav(false);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
   }, [mobileNav]);
 
   return (
@@ -46,38 +51,50 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           </Suspense>
         </aside>
 
-        {mobileNav ? (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label={t("closeNav")}
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setMobileNav(false)}
-            />
-            <aside
-              id="ugc-mobile-nav"
-              className="relative h-full w-[min(280px,88vw)] bg-white shadow-2xl"
-              role="dialog"
-              aria-modal="true"
-              aria-label={t("ugcClipping")}
-            >
-              <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
-                <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
-                <button
-                  type="button"
-                  onClick={() => setMobileNav(false)}
-                  aria-label={t("closeNav")}
-                  className="grid h-11 w-11 place-items-center rounded-xl"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <Suspense fallback={null}>
-                <UGCWorkspaceSidebar onNavigate={() => setMobileNav(false)} />
-              </Suspense>
-            </aside>
-          </div>
-        ) : null}
+        {/* Always-mounted drawer — above bottom nav (z-100); CSS open only */}
+        <div
+          className={cn(
+            "fixed inset-0 z-[110] lg:hidden",
+            mobileNav ? "pointer-events-auto" : "pointer-events-none",
+          )}
+          aria-hidden={!mobileNav}
+        >
+          <button
+            type="button"
+            aria-label={t("closeNav")}
+            tabIndex={mobileNav ? 0 : -1}
+            className={cn(
+              "absolute inset-0 bg-black/40 transition-opacity duration-150",
+              mobileNav ? "opacity-100" : "opacity-0",
+            )}
+            onClick={() => setMobileNav(false)}
+          />
+          <aside
+            id="ugc-mobile-nav"
+            className={cn(
+              "relative h-full w-[min(280px,88vw)] bg-white shadow-2xl transition-transform duration-150 ease-out",
+              mobileNav ? "translate-x-0" : "-translate-x-full",
+            )}
+            role="dialog"
+            aria-modal={mobileNav}
+            aria-label={t("ugcClipping")}
+          >
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+              <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
+              <button
+                type="button"
+                onClick={() => setMobileNav(false)}
+                aria-label={t("closeNav")}
+                className="grid h-11 w-11 place-items-center rounded-xl"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <Suspense fallback={null}>
+              <UGCWorkspaceSidebar onNavigate={() => setMobileNav(false)} />
+            </Suspense>
+          </aside>
+        </div>
 
         <main className={`min-w-0 flex-1 overflow-y-auto bg-[#F8FAFC] ${MOBILE_PRIMARY_BOTTOM_NAV_PAD}`}>
           <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#E5E7EB] bg-[#F8FAFC]/92 px-4 py-2.5 backdrop-blur-md lg:hidden">

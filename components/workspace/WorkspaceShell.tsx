@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 import {
   type WorkspaceId,
@@ -43,6 +43,19 @@ export function WorkspaceShell({
 
   const isAffiliate = workspace === "affiliates";
 
+  useEffect(() => {
+    if (!mobileNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNav(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [mobileNav]);
+
   return (
     <div
       className={cn(
@@ -72,31 +85,53 @@ export function WorkspaceShell({
           />
         </aside>
 
-        {mobileNav ? (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <button
-              type="button"
-              aria-label="Close navigation"
-              className="absolute inset-0 bg-black/40"
-              onClick={() => setMobileNav(false)}
+        {/* Always-mounted drawer — above bottom nav; CSS open only */}
+        <div
+          className={cn(
+            "fixed inset-0 z-[110] lg:hidden",
+            mobileNav ? "pointer-events-auto" : "pointer-events-none",
+          )}
+          aria-hidden={!mobileNav}
+        >
+          <button
+            type="button"
+            aria-label="Close navigation"
+            tabIndex={mobileNav ? 0 : -1}
+            className={cn(
+              "absolute inset-0 bg-black/40 transition-opacity duration-150",
+              mobileNav ? "opacity-100" : "opacity-0",
+            )}
+            onClick={() => setMobileNav(false)}
+          />
+          <aside
+            className={cn(
+              "relative h-full w-[min(280px,85vw)] border-r border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl transition-transform duration-150 ease-out",
+              mobileNav ? "translate-x-0" : "-translate-x-full",
+            )}
+            role="dialog"
+            aria-modal={mobileNav}
+            aria-label={def.label}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                {def.label}
+              </span>
+              <button
+                type="button"
+                onClick={() => setMobileNav(false)}
+                aria-label="Close"
+                tabIndex={mobileNav ? 0 : -1}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <WorkspaceSidebar
+              workspace={workspace}
+              activeId={activeId}
+              onNavigate={() => setMobileNav(false)}
             />
-            <aside className="relative h-full w-[min(280px,85vw)] border-r border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
-              <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-                <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  {def.label}
-                </span>
-                <button type="button" onClick={() => setMobileNav(false)} aria-label="Close">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <WorkspaceSidebar
-                workspace={workspace}
-                activeId={activeId}
-                onNavigate={() => setMobileNav(false)}
-              />
-            </aside>
-          </div>
-        ) : null}
+          </aside>
+        </div>
 
         <div className="flex min-w-0 flex-1 overflow-hidden">
           <main className={cn("min-w-0 flex-1 overflow-y-auto", MOBILE_PRIMARY_BOTTOM_NAV_PAD)}>
@@ -106,6 +141,7 @@ export function WorkspaceShell({
                 onClick={() => setMobileNav(true)}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--color-border)]"
                 aria-label="Open navigation"
+                aria-expanded={mobileNav}
               >
                 <Menu className="h-4 w-4" />
               </button>

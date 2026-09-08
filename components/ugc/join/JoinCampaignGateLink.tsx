@@ -28,6 +28,8 @@ export function JoinCampaignGateLink({
     onClick?.(e);
     if (e.defaultPrevented) return;
     if (!isUgcJoinPath(href)) return;
+    // Let modified clicks use native link behavior.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
 
     e.preventDefault();
     const returnPath = sanitizeJoinReturnPath(href);
@@ -47,10 +49,11 @@ export function JoinCampaignGateLink({
           ? authResult.data.user
           : null;
 
+      // Timeout/null: let the server join page decide (authoritative).
       // Full navigation so server join-page redirect / login always apply.
-      window.location.assign(user ? returnPath : loginUrl);
+      window.location.assign(user ? returnPath : authResult === null ? returnPath : loginUrl);
     } catch {
-      window.location.assign(loginUrl);
+      window.location.assign(returnPath);
     }
   }
 

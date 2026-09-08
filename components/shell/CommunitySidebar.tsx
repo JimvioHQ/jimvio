@@ -465,20 +465,39 @@ export function CommunitySidebar({
   };
 
   if (mobileOpen !== undefined) {
-    if (!mobileOpen) return null;
-
+    // Always-mounted drawer — CSS open only (no cold mount on hamburger).
     return (
-      <>
-        <div
-          className="fixed inset-0 z-[99] bg-black/40 lg:hidden"
+      <div
+        className={cn(
+          "fixed inset-0 z-[110] lg:hidden",
+          mobileOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        aria-hidden={!mobileOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close community menu"
+          tabIndex={mobileOpen ? 0 : -1}
+          className={cn(
+            "absolute inset-0 bg-black/40 transition-opacity duration-150",
+            mobileOpen ? "opacity-100" : "opacity-0",
+          )}
           onClick={onMobileClose}
-          aria-hidden
         />
-        <aside className="fixed bottom-0 left-0 top-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-[var(--color-surface)] shadow-xl lg:hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]">
+        <aside
+          className={cn(
+            "absolute bottom-0 left-0 top-0 flex w-[min(288px,86vw)] flex-col bg-[var(--color-surface)] shadow-xl transition-transform duration-150 ease-out pt-[max(0.5rem,env(safe-area-inset-top))] pb-[env(safe-area-inset-bottom)]",
+            mobileOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+          role="dialog"
+          aria-modal={mobileOpen}
+          aria-label="Community menu"
+        >
           <div className="flex shrink-0 items-center justify-end px-3">
             <button
               type="button"
               aria-label="Close community menu"
+              tabIndex={mobileOpen ? 0 : -1}
               onClick={onMobileClose}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             >
@@ -487,7 +506,7 @@ export function CommunitySidebar({
           </div>
           <SidebarBody {...bodyProps} onNavigate={onMobileClose} />
         </aside>
-      </>
+      </div>
     );
   }
 

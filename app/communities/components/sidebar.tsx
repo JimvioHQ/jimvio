@@ -1308,7 +1308,7 @@ export default function HubSidebar({
             {/* Mobile drawer — always mounted; open is transform-only */}
             <aside
                 className={cn(
-                    "lg:hidden fixed left-0 top-14 z-[99] flex flex-col",
+                    "lg:hidden fixed left-0 top-14 z-[110] flex flex-col",
                     "w-[min(288px,86vw)]",
                     "h-[calc(100dvh-3.5rem)]",
                     "border-r border-[var(--color-border,rgba(0,0,0,0.08))]",

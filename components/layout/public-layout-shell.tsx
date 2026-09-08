@@ -46,7 +46,8 @@ export function PublicLayoutShell({
   const isWorkspace = isWorkspacePublicRoute(pathname);
   // `translate` on #main-content (even 0 0 via animation fill-mode) creates a
   // containing block that disables position:sticky for Marketplace's sidebar.
-  const isMarketplaceListing = pathname === "/marketplace";
+  const isMarketplaceRoute =
+    pathname === "/marketplace" || pathname.startsWith("/marketplace/");
 
   if (isWorkspace) {
     return <>{children}</>;
@@ -64,7 +65,7 @@ export function PublicLayoutShell({
           tabIndex={-1}
           className={`relative isolation-auto flex-1 pt-[var(--navbar-height)] ${MOBILE_PRIMARY_BOTTOM_NAV_PAD}`}
           style={{
-            animation: isMarketplaceListing
+            animation: isMarketplaceRoute
               ? "page-enter-fade 220ms ease both"
               : "page-enter 220ms ease both",
             overscrollBehaviorY: "contain",

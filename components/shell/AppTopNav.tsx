@@ -140,7 +140,7 @@ export function AppTopNav({
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{item.mobileLabel ?? item.label}</span>
+              <span className="whitespace-nowrap">{item.label}</span>
               {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
             </Link>
           );

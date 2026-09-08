@@ -115,7 +115,7 @@ function FeaturedCopy({
         <UGCPlatformMarks
           platforms={campaign.allowed_platforms ?? []}
           size="sm"
-          className="ml-auto hidden shrink-0 sm:flex"
+          className="ml-auto max-w-[40%] shrink-0 justify-end overflow-hidden"
         />
       </div>
 
