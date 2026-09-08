@@ -73,12 +73,8 @@ export async function POST(
     }
   }
 
-  const joinMode = campaign.join_mode ?? "instant";
-  if (!body.termsAccepted && !body.termsAcceptedAt) {
-    if (joinMode !== "instant") {
-      return NextResponse.json({ error: "You must accept all terms to continue." }, { status: 400 });
-    }
-    body.termsAccepted = true;
+  if (body.termsAccepted !== true) {
+    return NextResponse.json({ error: "You must accept all terms to continue." }, { status: 400 });
   }
 
   const { data: existing } = await db

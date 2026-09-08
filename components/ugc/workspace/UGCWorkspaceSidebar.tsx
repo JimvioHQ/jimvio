@@ -162,22 +162,20 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
           </div>
         </div>
 
-        {brandMode ? (
-          <div>
-            <SectionLabel>Manage</SectionLabel>
-            <div className="space-y-0.5">
-              {BRAND_MANAGE.map((item) => (
-                <NavLink
-                  key={item.id}
-                  item={item}
-                  active={isActive(pathname, item, true)}
-                  href={withBrandQuery(item.href, brandId)}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </div>
+        <div>
+          <SectionLabel>Manage</SectionLabel>
+          <div className="space-y-0.5">
+            {BRAND_MANAGE.map((item) => (
+              <NavLink
+                key={item.id}
+                item={item}
+                active={isActive(pathname, item, brandMode)}
+                href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
+                onNavigate={onNavigate}
+              />
+            ))}
           </div>
-        ) : null}
+        </div>
       </nav>
       {brandMode ? <UgcWorkspaceSwitcher /> : null}
     </div>

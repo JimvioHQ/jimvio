@@ -237,11 +237,12 @@ export async function syncAllApprovedSubmissions(): Promise<{
         continue;
       }
 
-      // 2c. Compute earnings for this snapshot
+      // 2c. Compute earnings for this snapshot (never exceed remaining campaign budget)
       const rawEarnings = (delta / 1000) * campaign.rate_per_1k_views;
       const cap = campaign.max_payout_per_sub ?? Infinity;
       const alreadyEarned = sub.total_earnings ?? 0;
-      const earningsThisSync = Math.min(rawEarnings, cap - alreadyEarned);
+      const remainingBudget = Math.max(0, Number(campaign.total_budget ?? 0) - Number(campaign.spent_budget ?? 0));
+      const earningsThisSync = Math.min(rawEarnings, Math.max(0, cap - alreadyEarned), remainingBudget);
 
       if (earningsThisSync <= 0) {
         skipped++;
@@ -268,15 +269,27 @@ export async function syncAllApprovedSubmissions(): Promise<{
         .eq('id', sub.id);
       if (subUpdateErr) throw new Error(subUpdateErr.message);
 
-      // 2f. Update campaign spent_budget + total_views_tracked
-      const newSpent = (campaign.spent_budget ?? 0) + earningsThisSync;
-      await db
+      // 2f. CAS update campaign spent_budget + total_views_tracked (prevents overspend races)
+      const spent = Number(campaign.spent_budget ?? 0);
+      const newSpent = spent + earningsThisSync;
+      const { data: budgetRow } = await db
         .from('ugc_campaigns')
         .update({
           spent_budget: newSpent,
           total_views_tracked: (campaign.total_views_tracked ?? 0) + delta,
         })
-        .eq('id', campaign.id);
+        .eq('id', campaign.id)
+        .eq('spent_budget', spent)
+        .select('id')
+        .maybeSingle();
+
+      if (!budgetRow) {
+        // Concurrent budget update — skip crediting this sync cycle
+        skipped++;
+        continue;
+      }
+      campaign.spent_budget = newSpent;
+      campaign.total_views_tracked = (campaign.total_views_tracked ?? 0) + delta;
 
       // auto-pause if budget exhausted
       if (newSpent >= campaign.total_budget) {
@@ -284,6 +297,7 @@ export async function syncAllApprovedSubmissions(): Promise<{
           .from('ugc_campaigns')
           .update({ status: 'paused' })
           .eq('id', campaign.id);
+        campaign.status = 'paused';
       }
 
       // 2g. Credit influencer in PENDING state (Fraud Delay)

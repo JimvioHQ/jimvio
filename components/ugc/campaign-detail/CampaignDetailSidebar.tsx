@@ -134,7 +134,7 @@ export function CampaignDetailSidebar({
           </p>
         </div>
 
-        {isActive && !isPending ? (
+        {isActive && !isPending && campaign.join_mode !== "invite_only" ? (
           <JoinCampaignGateLink
             href={joinHref}
             className="flex h-11 w-full items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
@@ -148,6 +148,10 @@ export function CampaignDetailSidebar({
           >
             {joinLabel}
           </JoinCampaignGateLink>
+        ) : campaign.join_mode === "invite_only" ? (
+          <span className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] text-[13px] font-semibold text-[#6B7280]">
+            Invite only
+          </span>
         ) : (
           <span className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] text-[13px] font-semibold text-[#9CA3AF]">
             Campaign closed
@@ -233,21 +237,23 @@ export function CampaignDetailMobileCta({
             )}
           </p>
         </div>
-        {isActive || isPending ? (
+        {isPending ? (
           <JoinCampaignGateLink
             href={joinHref}
-            className={cn(
-              "flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-bold shadow-[0_4px_16px_rgba(255,90,31,0.3)]",
-              isPending
-                ? "border border-amber-300 bg-amber-50 text-amber-800"
-                : "bg-[#FF5A1F] text-white",
-            )}
+            className="flex h-12 flex-1 items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 text-sm font-bold text-amber-800 shadow-[0_4px_16px_rgba(255,90,31,0.3)]"
+          >
+            {joinLabel}
+          </JoinCampaignGateLink>
+        ) : isActive && campaign.join_mode !== "invite_only" ? (
+          <JoinCampaignGateLink
+            href={joinHref}
+            className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-[#FF5A1F] text-sm font-bold text-white shadow-[0_4px_16px_rgba(255,90,31,0.3)]"
           >
             {joinLabel}
           </JoinCampaignGateLink>
         ) : (
           <div className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-[#F3F4F6] text-sm font-semibold text-[#9CA3AF]">
-            Unavailable
+            {campaign.join_mode === "invite_only" ? "Invite only" : "Unavailable"}
           </div>
         )}
       </div>

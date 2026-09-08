@@ -5,7 +5,6 @@ import Image from "next/image";
 import {
   ArrowLeft,
   Bookmark,
-  CheckCircle2,
   Copy,
   Share2,
   Sparkles,
@@ -21,6 +20,8 @@ import {
   getDaysRemaining,
   isFeaturedCampaign,
 } from "@/lib/ugc/campaign-detail";
+import { getCampaignOwnerAvatar } from "@/components/ugc/workspace/ugc-campaign-utils";
+import { UGCVerifiedBadge } from "@/components/ugc/workspace/UGCVerifiedBadge";
 import { Pill } from "./campaign-detail-ui";
 import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
@@ -105,25 +106,31 @@ export function CampaignDetailHero({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex min-w-0 items-start gap-3 sm:gap-4">
             <div className="relative shrink-0">
-              {campaign.vendor?.business_logo ? (
-                <Image
-                  src={campaign.vendor.business_logo}
-                  alt={campaign.vendor.business_name}
-                  width={64}
-                  height={64}
-                  className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md sm:h-16 sm:w-16"
-                />
-              ) : (
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#FF5A1F] to-[#FF7A45] text-lg font-bold text-white shadow-md sm:h-16 sm:w-16">
-                  {campaign.vendor?.business_name?.[0] ?? "B"}
-                </div>
-              )}
+              {(() => {
+                const ownerAvatar = getCampaignOwnerAvatar(campaign);
+                const brandName = campaign.vendor?.business_name ?? "Brand";
+                return ownerAvatar ? (
+                  <Image
+                    src={ownerAvatar}
+                    alt={brandName}
+                    width={64}
+                    height={64}
+                    className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md sm:h-16 sm:w-16"
+                  />
+                ) : (
+                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#FF5A1F] to-[#FF7A45] text-lg font-bold text-white shadow-md sm:h-16 sm:w-16">
+                    {brandName[0]?.toUpperCase() ?? "B"}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="min-w-0 flex-1">
               <p className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#6B7280]">
                 <span className="font-semibold text-[#111827]">{campaign.vendor?.business_name ?? "Brand"}</span>
-                <CheckCircle2 className="h-3.5 w-3.5 text-sky-500" aria-label="Verified brand" />
+                {campaign.vendor?.verification_status === "verified" ? (
+                  <UGCVerifiedBadge className="h-3.5 w-3.5" />
+                ) : null}
               </p>
               <h1 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#111827] sm:text-[28px]">
                 {campaign.title}
@@ -201,6 +208,10 @@ export function CampaignDetailHero({
               >
                 {joinLabel}
               </JoinCampaignGateLink>
+            ) : campaign.join_mode === "invite_only" ? (
+              <span className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-5 text-[13px] font-semibold text-[#6B7280]">
+                Invite only
+              </span>
             ) : (
               <span className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-5 text-[13px] font-semibold text-[#9CA3AF]">
                 Unavailable

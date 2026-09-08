@@ -33,6 +33,13 @@ export async function POST(
 
   if (!submission) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
 
+  if (!["pending", "revision_requested"].includes(String(submission.status))) {
+    return NextResponse.json(
+      { error: "Only pending submissions can receive a revision request." },
+      { status: 400 },
+    );
+  }
+
   const access = await requireCampaignPermission(user.id, submission.campaign_id, "campaigns.review");
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
   const { db } = access;
@@ -55,10 +62,17 @@ export async function POST(
       rejection_reason: notes,
     })
     .eq("id", id)
+    .in("status", ["pending", "revision_requested"])
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+  if (!updated) {
+    return NextResponse.json(
+      { error: "Only pending submissions can receive a revision request." },
+      { status: 400 },
+    );
+  }
 
   const { data: revision, error: rErr } = await db
     .from("ugc_submission_revisions")

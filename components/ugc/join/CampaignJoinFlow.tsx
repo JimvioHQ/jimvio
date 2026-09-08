@@ -345,7 +345,22 @@ export function CampaignJoinFlow() {
             ) : null}
 
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <h2 className="text-[15px] font-bold text-[#111827]">{t("joinTerms")}</h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[15px] font-bold text-[#111827]">{t("joinTerms")}</h2>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (allTermsAccepted) {
+                      setTermsAccepted({});
+                      return;
+                    }
+                    setTermsAccepted(Object.fromEntries(terms.map((term) => [term, true])));
+                  }}
+                  className="shrink-0 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+                >
+                  {allTermsAccepted ? t("uncheckAllTerms") : t("acceptAllTerms")}
+                </button>
+              </div>
               <div className="mt-3 space-y-2">
                 {terms.map((term) => (
                   <label

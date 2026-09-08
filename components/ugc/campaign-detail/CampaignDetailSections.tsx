@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import {
   Download,
   ExternalLink,
   Play,
-  Shield,
 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -30,7 +28,6 @@ import { buildCampaignSchedule } from "@/lib/ugc/campaign-schedule";
 import {
   AccordionItem,
   ChecklistItem,
-  MetricTile,
   Pill,
   SectionCard,
   SectionTitle,
@@ -357,68 +354,6 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         {faqs.map((f) => (
           <AccordionItem key={f.q} q={f.q} a={f.a} />
         ))}
-      </SectionCard>
-
-      {/* Section 11 — Brand */}
-      <SectionCard id="brand">
-        <SectionTitle>Brand information</SectionTitle>
-        <div className="flex gap-3">
-          {campaign.vendor?.business_logo ? (
-            <Image
-              src={campaign.vendor.business_logo}
-              alt=""
-              width={56}
-              height={56}
-              className="h-14 w-14 rounded-xl object-cover"
-            />
-          ) : (
-            <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#FFF4EF] text-lg font-bold text-[#FF5A1F]">
-              {campaign.vendor?.business_name?.[0] ?? "B"}
-            </div>
-          )}
-          <div>
-            <p className="flex items-center gap-1.5 text-[15px] font-bold text-[#111827]">
-              {campaign.vendor?.business_name}
-              <Shield className="h-3.5 w-3.5 text-sky-500" />
-            </p>
-            <p className="text-[12px] text-[#6B7280]">
-              {campaign.vendor?.business_type ?? "Creator brand"} ·{" "}
-              {campaign.vendor?.business_country ?? "Global"}
-            </p>
-          </div>
-        </div>
-        {campaign.vendor?.business_description ? (
-          <p className="mt-3 text-[13px] leading-relaxed text-[#4B5563]">
-            {campaign.vendor.business_description}
-          </p>
-        ) : null}
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <MetricTile
-            label="Member since"
-            value={
-              campaign.vendor?.created_at
-                ? new Date(campaign.vendor.created_at).getFullYear().toString()
-                : "—"
-            }
-          />
-          <MetricTile
-            label="Rating"
-            value={campaign.vendor?.rating ? `${campaign.vendor.rating.toFixed(1)} ★` : "New"}
-          />
-          <MetricTile
-            label="Approved"
-            value={String(campaign.approved_count ?? 0)}
-          />
-          <MetricTile label="Followers" value={(campaign.vendor?.follower_count ?? 0).toLocaleString()} />
-        </div>
-        {campaign.vendor?.business_slug ? (
-          <Link
-            href={`/vendors/${campaign.vendor.business_slug}`}
-            className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
-          >
-            View brand store <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-        ) : null}
       </SectionCard>
 
       {/* Content examples */}

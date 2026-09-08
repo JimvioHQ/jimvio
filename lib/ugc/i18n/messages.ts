@@ -399,6 +399,8 @@ const EN = {
   brandLabel: "Brand",
   kanbanEmpty: "Empty",
   joinTerms: "Terms",
+  acceptAllTerms: "Accept all terms",
+  uncheckAllTerms: "Uncheck all",
   escrowProtectsJoin:
     "Escrow protects payouts. Review the campaign brief carefully before joining.",
 };
@@ -798,6 +800,8 @@ const FR: typeof EN = {
   brandLabel: "Marque",
   kanbanEmpty: "Vide",
   joinTerms: "Conditions",
+  acceptAllTerms: "Accepter toutes les conditions",
+  uncheckAllTerms: "Tout décocher",
   escrowProtectsJoin:
     "L’escrow protège les paiements. Relisez le brief avant de rejoindre.",
 };
@@ -1197,6 +1201,8 @@ const RW: typeof EN = {
   brandLabel: "Ikigo",
   kanbanEmpty: "Kirimo ubusa",
   joinTerms: "Amasezerano",
+  acceptAllTerms: "Emera amasezerano yose",
+  uncheckAllTerms: "Kuraho byose",
   escrowProtectsJoin:
     "Amafaranga abitswe arinda ibihembo. Soma amabwiriza mbere yo kwinjira.",
 };
