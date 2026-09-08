@@ -1,6 +1,9 @@
 /**
  * Canonical payout institution / provider catalog for Wallet withdrawals.
  *
+ * Source of truth for country → bank / mobile-money institutions shown in
+ * /wallet/withdrawals (maintain here; do not hardcode names in React).
+ *
  * Maintainability rules:
  * - Add/remove banks or MM providers here — never scatter names in React UI.
  * - Only list institutions Jimvio can operationally pay (manual or automated).
