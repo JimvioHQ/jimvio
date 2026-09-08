@@ -417,7 +417,7 @@
 
 //                 {/* Notifications */}
 //                 <Link
-//                     href="/settings/notifications"
+//                     href="/notifications"
 //                     className={cn(
 //                         "relative flex items-center justify-center h-9 w-9",
 //                         "rounded-[var(--radius-sm)] border border-[var(--color-border)]",
@@ -1133,7 +1133,7 @@ export function DashboardHeader({
 
                 {/* Notifications */}
                 <Link
-                    href="/settings/notifications"
+                    href="/notifications"
                     className={cn(
                         "relative flex items-center justify-center h-9 w-9",
                         "rounded-full border border-[var(--color-border)]",

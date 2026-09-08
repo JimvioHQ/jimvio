@@ -90,7 +90,7 @@ const NAV_ITEMS: NavItem[] = [
       p.startsWith("/owner/communities") || p.startsWith("/communities"),
   },
   { label: "Messages", href: "/messages", icon: MessageSquare },
-  { label: "Notifications", href: "/settings/notifications", icon: Bell },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Account", href: "/identity/settings", icon: Settings },
   { label: "Jimvio OS", icon: Monitor },
 ];

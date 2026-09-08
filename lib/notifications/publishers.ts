@@ -349,7 +349,7 @@ export async function notifyAdminAnnouncement(input: {
       category: "admin_announcement" as const,
       title: input.title,
       message: input.message,
-      actionUrl: input.actionUrl ?? "/settings/notifications",
+      actionUrl: input.actionUrl ?? "/notifications",
       force: true,
       eventKey: input.announcementId
         ? `admin_announcement:${userId}:${input.announcementId}`

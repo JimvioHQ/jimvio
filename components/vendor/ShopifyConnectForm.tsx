@@ -183,7 +183,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
             <div className="flex items-center justify-between gap-3 mb-3">
               <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Recent products</h2>
               <Link
-                href="/ugc/campaign-center/store"
+                href="/seller/products"
                 className="text-sm font-semibold text-[var(--color-accent)] hover:underline"
               >
                 View all products

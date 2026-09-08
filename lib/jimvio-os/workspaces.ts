@@ -112,7 +112,7 @@ export const OS_PROFILE_RAIL: WorkspaceNavItem[] = [
   { id: "wallet", label: "Wallet", href: "/wallet", icon: "wallet", section: "system" },
   { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag", section: "system" },
   { id: "messages", label: "Messages", href: "/messages", icon: "message", section: "system" },
-  { id: "inbox", label: "Inbox", href: "/settings/notifications", icon: "bell", section: "system" },
+  { id: "inbox", label: "Inbox", href: "/notifications", icon: "bell", section: "system" },
   { id: "identity", label: "Profile", href: "/identity", icon: "users", section: "system" },
   { id: "settings", label: "Settings", href: "/identity/settings", icon: "settings", section: "system" },
 ];

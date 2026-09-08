@@ -219,8 +219,8 @@ const INTENTS: IntentSeed[] = [
     id: "nl-open-store",
     title: "Open store",
     subtitle: "Manage your vendor storefront",
-    href: "/ugc/campaign-center/store",
-    phrases: ["open store", "my store", "manage store", "storefront settings", "vendor store"],
+    href: "/seller/products",
+    phrases: ["open store", "my store", "manage store", "storefront settings", "vendor store", "my products"],
   },
   {
     id: "nl-open-orders",
@@ -233,14 +233,14 @@ const INTENTS: IntentSeed[] = [
     id: "nl-open-messages",
     title: "Open messages",
     subtitle: "Your conversations and inbox",
-    href: "/messages",
+    href: "/communities/messages",
     phrases: ["open messages", "open inbox", "show messages", "my messages", "chats", "inbox"],
   },
   {
     id: "nl-open-notifications",
     title: "Open notifications",
     subtitle: "Recent alerts and updates",
-    href: "/settings/notifications",
+    href: "/notifications",
     phrases: ["open notifications", "show notifications", "my notifications", "notifications"],
   },
   {

@@ -15,7 +15,7 @@ export const OS_NAV_ITEMS: OsNavItem[] = [
   { id: "affiliate", label: "Affiliates", href: "/affiliates", icon: "link" },
   { id: "ugc", label: "UGC & Clipping", href: "/ugc", icon: "megaphone" },
   { id: "messages", label: "Messages", href: "/messages", icon: "message" },
-  { id: "inbox", label: "Inbox", href: "/settings/notifications", icon: "bell" },
+  { id: "inbox", label: "Inbox", href: "/notifications", icon: "bell" },
   { id: "products", label: "Products", href: "/marketplace", icon: "package" },
   { id: "analytics", label: "Analytics", href: "/", icon: "chart" },
   { id: "ai", label: "Jimvio AI", href: "#open-ai", icon: "sparkles" },

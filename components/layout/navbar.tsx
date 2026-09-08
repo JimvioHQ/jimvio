@@ -418,7 +418,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 ) : null}
                 {user ? (
                   <ConsoleIconBtn
-                    href="/settings/notifications"
+                    href="/notifications"
                     aria-label={
                       notificationCount > 0
                         ? `Notifications (${notificationCount} unread)`

@@ -25,7 +25,7 @@ export default function UploadProductPage() {
       title="Upload Product"
       isEdit={false}
       mode="vendor"
-      returnHref="/ugc/campaign-center/store"
+      returnHref="/seller/products"
     />
   );
 }

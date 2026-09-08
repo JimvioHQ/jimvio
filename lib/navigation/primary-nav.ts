@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  BarChart3,
   CircleHelp,
   Clapperboard,
   DollarSign,
@@ -55,6 +54,7 @@ export const MOBILE_BOTTOM_NAV_ITEMS = [
 /**
  * Creator / account tools in the profile dropdown.
  * Destinations must be real, working routes.
+ * Earnings intentionally omitted — lives inside Affiliates / UGC product areas.
  */
 export const PROFILE_TOOL_ITEMS: ProfileMenuItem[] = [
   {
@@ -65,26 +65,20 @@ export const PROFILE_TOOL_ITEMS: ProfileMenuItem[] = [
   },
   {
     label: "Messages",
-    href: "/messages",
+    href: "/communities/messages",
     icon: MessageSquare,
-    description: "Chat with buyers & sellers",
+    description: "Chat with communities & members",
     badge: "messages",
   },
   {
     label: "My Products",
-    href: "/ugc/campaign-center/store",
+    href: "/seller/products",
     icon: Package,
     description: "Manage and upload your listings",
   },
   {
-    label: "Earnings",
-    href: "/ugc/earnings",
-    icon: BarChart3,
-    description: "Affiliate commissions & payouts",
-  },
-  {
     label: "Saved Items",
-    href: "/ugc/saved",
+    href: "/saved",
     icon: Heart,
     description: "Products, posts and campaigns",
   },
@@ -107,12 +101,19 @@ export const PROFILE_ACCOUNT_ITEMS: ProfileMenuItem[] = PROFILE_TOOL_ITEMS;
 
 /** Canonical routes */
 export const ORDERS_HREF = "/orders";
-export const MESSAGES_HREF = "/messages";
-export const INBOX_HREF = "/inbox";
+/** Profile menu Messages → communities hub (canonical global messages). */
+export const MESSAGES_HREF = "/communities/messages";
+/** Commerce buyer↔seller chat remains at /messages for deep links / orders. */
+export const COMMERCE_MESSAGES_HREF = "/messages";
+export const INBOX_HREF = "/notifications";
 export const WALLET_HREF = "/wallet";
-export const NOTIFICATIONS_HREF = "/settings/notifications";
+/** Canonical notification center (not preferences). */
+export const NOTIFICATIONS_HREF = "/notifications";
+/** Notification preferences / email settings. */
+export const NOTIFICATION_PREFERENCES_HREF = "/settings/notifications";
 export const CART_HREF = "/cart";
-export const MY_PRODUCTS_HREF = "/ugc/campaign-center/store";
+export const MY_PRODUCTS_HREF = "/seller/products";
+export const SAVED_HREF = "/saved";
 export const HOME_HREF = "/";
 
 export function resolvePrimaryNavHref(
@@ -160,13 +161,22 @@ export function isOrdersActive(pathname: string): boolean {
 
 export function isNotificationsActive(pathname: string): boolean {
   return (
-    pathname === "/settings/notifications" ||
-    pathname.startsWith("/settings/notifications/") ||
+    pathname === "/notifications" ||
+    pathname.startsWith("/notifications/") ||
     pathname === "/inbox" ||
     pathname.startsWith("/inbox/")
   );
 }
 
 export function isMyProductsActive(pathname: string): boolean {
-  return pathname === MY_PRODUCTS_HREF || pathname.startsWith(`${MY_PRODUCTS_HREF}/`);
+  return (
+    pathname === MY_PRODUCTS_HREF ||
+    pathname.startsWith(`${MY_PRODUCTS_HREF}/`) ||
+    pathname === "/ugc/campaign-center/store" ||
+    pathname.startsWith("/ugc/campaign-center/store/")
+  );
+}
+
+export function isSavedActive(pathname: string): boolean {
+  return pathname === "/saved" || pathname.startsWith("/saved/");
 }

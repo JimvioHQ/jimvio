@@ -406,7 +406,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                     {/* Notifications */}
                     <Link
-                        href="/settings/notifications"
+                        href="/notifications"
                         aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
                         className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                     >

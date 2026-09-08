@@ -31,7 +31,7 @@ export type CreateMenuItem = {
 
 /** Canonical product upload — remounted ProductFormShell at this path. */
 export const UPLOAD_PRODUCT_HREF = "/marketplace/new";
-export const SELLER_HUB_HREF = "/ugc/campaign-center/store";
+export const SELLER_HUB_HREF = "/seller/products";
 export const CREATE_CAMPAIGN_HREF = "/ugc/campaign-center/create";
 export const CREATE_POST_HREF = "/create/post";
 export const GO_LIVE_HREF = "/communities/live";

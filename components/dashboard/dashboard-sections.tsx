@@ -89,7 +89,7 @@ export const SECTION_LINKS = {
   revenue: "/wallet",
   analytics: "/",
   messages: "/messages",
-  notifications: "/settings/notifications",
+  notifications: "/notifications",
   communities: "/owner/communities",
-  store: "/ugc/campaign-center/store",
+  store: "/seller/products",
 } as const;

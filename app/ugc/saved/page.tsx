@@ -1,11 +1,6 @@
-import { Suspense } from "react";
-import { UGCSavedCampaignsPage } from "@/components/ugc/workspace/UGCSavedCampaignsPage";
-import { UGCPageFallback } from "@/components/ugc/workspace/ugc-page-fallback";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <Suspense fallback={<UGCPageFallback />}>
-      <UGCSavedCampaignsPage />
-    </Suspense>
-  );
+/** Legacy UGC-only saved → canonical global Saved Items. */
+export default function UgcSavedRedirectPage() {
+  redirect("/saved");
 }

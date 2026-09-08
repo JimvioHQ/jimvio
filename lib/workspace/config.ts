@@ -83,7 +83,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
       { id: "wishlist", label: "Wishlist", href: "/marketplace", icon: Bookmark },
       { id: "cart", label: "Cart", href: "/cart", icon: ShoppingBag },
       { id: "orders", label: "Orders", href: "/orders", icon: Package },
-      { id: "store", label: "Seller Hub", href: "/ugc/campaign-center/store", icon: Store },
+      { id: "store", label: "Seller Hub", href: "/seller/products", icon: Store },
     ],
   },
   communities: {

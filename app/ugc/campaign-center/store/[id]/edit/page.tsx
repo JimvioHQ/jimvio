@@ -3,6 +3,7 @@
 import { ProductFormShell } from "@/components/product/ProductFormShell";
 import { useParams } from "next/navigation";
 
+/** Legacy UGC store edit path — same ProductFormShell, returns to canonical seller products. */
 export default function EditSellerProductPage() {
   const params = useParams();
   const productId = params?.id as string;
@@ -12,7 +13,7 @@ export default function EditSellerProductPage() {
       isEdit
       productId={productId}
       mode="vendor"
-      returnHref="/ugc/campaign-center/store"
+      returnHref="/seller/products"
     />
   );
 }

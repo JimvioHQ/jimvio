@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Filter,
   MessageCircle,
@@ -58,7 +59,7 @@ export function ThreadSidebar({
       )}
     >
       <div className="border-b border-black/[0.06] px-3 pb-0 pt-3">
-        <div className="mb-2.5 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h1 className="flex items-center gap-2 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
             <MessageCircle className="h-4 w-4 text-[var(--color-accent,#fd5000)]" />
             Messages
@@ -82,6 +83,12 @@ export function ThreadSidebar({
             </button>
           </div>
         </div>
+        <Link
+          href="/messages"
+          className="mb-2.5 inline-block text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent,#fd5000)]"
+        >
+          Marketplace buyer &amp; seller chats →
+        </Link>
 
         <div className="relative mb-2.5">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-muted)]" />

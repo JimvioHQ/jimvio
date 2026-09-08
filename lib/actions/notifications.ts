@@ -35,6 +35,8 @@ export async function markNotificationRead(
       eventName: "read",
     });
   }
+  revalidatePath("/notifications");
+  revalidatePath("/inbox");
   revalidatePath("/settings/notifications");
   return { ok: true };
 }
@@ -57,6 +59,8 @@ export async function markAllNotificationsRead(): Promise<{ ok: boolean; error?:
     eventName: "read",
     properties: { scope: "mark_all" },
   });
+  revalidatePath("/notifications");
+  revalidatePath("/inbox");
   revalidatePath("/settings/notifications");
   return { ok: true };
 }
@@ -80,6 +84,8 @@ export async function archiveNotification(
     notificationId,
     eventName: "archived",
   });
+  revalidatePath("/notifications");
+  revalidatePath("/inbox");
   revalidatePath("/settings/notifications");
   return { ok: true };
 }
@@ -103,6 +109,8 @@ export async function dismissNotification(
     notificationId,
     eventName: "deleted",
   });
+  revalidatePath("/notifications");
+  revalidatePath("/inbox");
   revalidatePath("/settings/notifications");
   return { ok: true };
 }

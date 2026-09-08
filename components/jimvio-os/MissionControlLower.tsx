@@ -191,7 +191,7 @@ const ActivityTimeline = memo(function ActivityTimeline({
           title="No activity yet"
           message="AI will surface new orders, messages, and updates here as they happen."
           ctaLabel="Open notifications"
-          ctaHref="/settings/notifications"
+          ctaHref="/notifications"
         />
       ) : (
         <OsCard padding="lg" className="rounded-3xl">
