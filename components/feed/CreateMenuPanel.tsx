@@ -1,95 +1,73 @@
+"use client";
+
 import Link from "next/link";
 import {
-  GraduationCap,
-  Layers,
-  Mic,
-  Monitor,
-  Radio,
-  SquarePen,
-  Target,
-} from "lucide-react";
-import { CREATE_QUICK_LAUNCH } from "@/lib/feed/mock-data";
+  CREATE_MENU_TONE_CLASS,
+  getCreateMenuItems,
+  type CreateMenuContext,
+} from "@/lib/navigation/create-menu";
 import { cn } from "@/lib/utils";
-
-const ICON_MAP = {
-  radio: Radio,
-  mic: Mic,
-  upload: SquarePen,
-  graduation: GraduationCap,
-  target: Target,
-  layers: Layers,
-  monitor: Monitor,
-} as const;
-
-const COLOR_MAP = {
-  radio: "bg-red-50 text-red-500",
-  mic: "bg-violet-50 text-violet-500",
-  upload: "bg-orange-50 text-orange-500",
-  graduation: "bg-orange-50 text-orange-500",
-  target: "bg-orange-50 text-orange-500",
-  layers: "bg-orange-50 text-orange-500",
-  monitor: "bg-green-50 text-green-600",
-} as const;
 
 type CreateMenuPanelProps = {
   onItemClick?: () => void;
   className?: string;
+  context?: CreateMenuContext;
 };
 
-export function CreateMenuPanel({ onItemClick, className }: CreateMenuPanelProps) {
+/**
+ * Shared Create menu panel — used by header Create and community Create.
+ * Instant shell; no data fetching.
+ */
+export function CreateMenuPanel({
+  onItemClick,
+  className,
+  context = "global",
+}: CreateMenuPanelProps) {
+  const items = getCreateMenuItems(context);
+
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg",
-        className
+        "overflow-hidden rounded-2xl border border-stone-200/90 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12),0_4px_12px_rgba(15,23,42,0.06)]",
+        className,
       )}
     >
-      {CREATE_QUICK_LAUNCH.map((item, index) => {
-        const Icon = ICON_MAP[item.icon as keyof typeof ICON_MAP];
-        const colorCls = COLOR_MAP[item.icon as keyof typeof COLOR_MAP];
-        const className = cn(
-          "flex w-full items-center gap-4 px-3 py-3 text-left transition-colors hover:bg-gray-50",
-          index > 0 && "border-t border-gray-100"
-        );
-        const content = (
-          <>
-            <span
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                colorCls
-              )}
-            >
-              <Icon className="h-4 w-4" />
-            </span>
-            <div className="min-w-0 text-left">
-              <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-              <p className="text-xs text-gray-500">{item.subtitle}</p>
-            </div>
-          </>
-        );
-        if ("href" in item && item.href) {
+      <div className="border-b border-stone-100 px-3.5 py-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+          Create
+        </p>
+      </div>
+      <div className="max-h-[min(70vh,420px)] overflow-y-auto py-1">
+        {items.map((item) => {
+          const Icon = item.icon;
           return (
             <Link
-              key={item.label}
+              key={item.id}
               href={item.href}
+              role="menuitem"
               onClick={onItemClick}
-              className={className}
+              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-stone-50"
             >
-              {content}
+              <span
+                className={cn(
+                  "grid h-9 w-9 shrink-0 place-items-center rounded-xl",
+                  CREATE_MENU_TONE_CLASS[item.tone],
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold text-stone-900">
+                  {item.label}
+                </span>
+                <span className="mt-0.5 block truncate text-[11px] text-stone-500">
+                  {item.description}
+                </span>
+              </span>
             </Link>
           );
-        }
-        return (
-          <button
-            key={item.label}
-            type="button"
-            onClick={onItemClick}
-            className={className}
-          >
-            {content}
-          </button>
-        );
-      })}
+        })}
+      </div>
     </div>
   );
 }

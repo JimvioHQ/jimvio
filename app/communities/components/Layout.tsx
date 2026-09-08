@@ -390,7 +390,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </button>
 
                     {/* Create */}
-                    <CreateMenuDropdown variant="compact" />
+                    <CreateMenuDropdown variant="compact" context="communities" />
 
                     {/* AI — community panel on hub routes; global copilot otherwise */}
                     <button

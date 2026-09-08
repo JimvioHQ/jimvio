@@ -353,8 +353,8 @@ export default function ActivateVendorPage() {
                      {isApproved && (
                         <div className="grid grid-cols-2 gap-2">
                            {[
-                              { href: "/ugc/campaign-center", icon: Store, label: "My Store" },
-                              { href: "/ugc/campaign-center", icon: Plus, label: "New Product" },
+                              { href: "/ugc/campaign-center/store", icon: Store, label: "My Store" },
+                              { href: "/marketplace/new", icon: Plus, label: "New Product" },
                               { href: "/", icon: LayoutDashboard, label: "Home" },
                               { href: `/marketplace/${vendor.business_slug}`, icon: Globe, label: "Public Page" },
                            ].map(({ href, icon: Icon, label }) => (

@@ -72,7 +72,7 @@ export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
 
   // Creator
   { id: "ugc-request", label: "UGC Campaign", description: "Launch a creator campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#fd5000", group: "creator" },
-  { id: "campaign", label: "Seller Campaign", description: "Vendor promo campaign", href: "/ugc/campaign-center/campaigns/new", icon: "megaphone", accent: "#ea580c", group: "creator" },
+  { id: "campaign", label: "Seller Campaign", description: "Vendor promo campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#ea580c", group: "creator" },
   { id: "creator-invite", label: "Creator Invite", description: "Recruit creators", href: "/ugc/campaign-center/recruitment", icon: "user-plus", accent: "#0ea5e9", group: "creator" },
   { id: "brand-invite", label: "Brand Invite", description: "Invite a brand partner", href: "/ugc/campaign-center/invitations", icon: "handshake", accent: "#7c3aed", group: "creator" },
   { id: "automation", label: "Automation", description: "Automate campaign steps", href: "/ugc/campaign-center/automations", icon: "workflow", accent: "#0d9488", group: "creator" },

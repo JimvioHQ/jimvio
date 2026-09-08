@@ -1818,7 +1818,7 @@ export function ProductFormShell({
 }) {
     const router = useRouter();
     const isAdminMode = mode === "admin";
-    const listHref = returnHref ?? (isAdminMode ? "/admin/products" : "/marketplace");
+    const listHref = returnHref ?? (isAdminMode ? "/admin/products" : "/ugc/campaign-center/store");
     const [isPending, startTransition] = useTransition();
     const [step, setStep] = useState(1);
     const [vendor, setVendor] = useState<any>(null);

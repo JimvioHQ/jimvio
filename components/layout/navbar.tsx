@@ -53,8 +53,10 @@ import {
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { HeaderUtilityActions } from "@/components/shell/HeaderUtilityActions";
+import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { MobilePrimaryBottomNav } from "@/components/layout/mobile-primary-bottom-nav";
+import type { CreateMenuContext } from "@/lib/navigation/create-menu";
 
 
 const ConsoleButton = React.forwardRef<
@@ -232,6 +234,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
   useEffect(() => { if (user) refreshCounts(); }, [user, refreshCounts]);
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
+  const createContext: CreateMenuContext =
+    pathname.startsWith("/marketplace") ? "marketplace" : "home";
 
   const marketplaceVariants = [
     { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
@@ -388,6 +392,15 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 </kbd>
               </button>
 
+              {/* Global Create — authenticated only; instant shared menu */}
+              {user ? (
+                <CreateMenuDropdown
+                  variant="header"
+                  context={createContext}
+                  className="hidden sm:block"
+                />
+              ) : null}
+
               {/* Products → Notifications → Cart → Wallet — no Orders / theme */}
               <HeaderUtilityActions
                 isAuthenticated={Boolean(user)}
@@ -400,6 +413,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
               {/* Mobile: essential actions before hamburger */}
               <div className="flex items-center gap-0.5 sm:hidden">
+                {user ? (
+                  <CreateMenuDropdown variant="header" context={createContext} />
+                ) : null}
                 {user ? (
                   <ConsoleIconBtn
                     href="/settings/notifications"

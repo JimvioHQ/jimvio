@@ -62,7 +62,7 @@ export const COMMAND_CENTER_QUICK_ACTIONS: StaticCommand[] = [
     kind: "command",
     title: "Create Campaign",
     subtitle: "Launch a seller campaign",
-    href: "/ugc/campaign-center/campaigns/new",
+    href: "/ugc/campaign-center/create",
     icon: "megaphone",
     keywords: ["campaign", "create"],
     trending: true,

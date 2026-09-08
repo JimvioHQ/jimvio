@@ -44,7 +44,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-launch-seller-campaign",
     title: "Launch seller campaign",
     subtitle: "Create a vendor promo campaign",
-    href: "/ugc/campaign-center/campaigns/new",
+    href: "/ugc/campaign-center/create",
     phrases: ["launch seller campaign", "vendor campaign", "seller campaign", "launch campaign"],
   },
   {

@@ -35,7 +35,7 @@ const ACTION_SEEDS: ActionSeed[] = [
         id: "action-create-vendor-campaign",
         title: "Create seller campaign",
         subtitle: "Launch a vendor promo campaign",
-        href: "/ugc/campaign-center/campaigns/new",
+        href: "/ugc/campaign-center/create",
       },
     ],
   },

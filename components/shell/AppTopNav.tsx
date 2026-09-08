@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
-  Plus,
   Search,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
@@ -17,8 +16,10 @@ import {
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
+import type { CreateMenuContext } from "@/lib/navigation/create-menu";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { HeaderUtilityActions } from "@/components/shell/HeaderUtilityActions";
+import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import { cn, getInitials } from "@/lib/utils";
 
 type AppTopNavProps = {
@@ -33,7 +34,21 @@ type AppTopNavProps = {
   };
   notificationCount?: number;
   messageCount?: number;
+  createContext?: CreateMenuContext;
 };
+
+function resolveCreateContext(
+  pathname: string,
+  explicit?: CreateMenuContext,
+  activeNav?: string,
+): CreateMenuContext {
+  if (explicit) return explicit;
+  if (activeNav === "UGC & Clipping" || pathname.startsWith("/ugc")) return "ugc";
+  if (pathname.startsWith("/affiliates")) return "affiliates";
+  if (pathname.startsWith("/marketplace")) return "marketplace";
+  if (pathname.startsWith("/communities")) return "communities";
+  return "global";
+}
 
 function UserAvatar({
   name,
@@ -69,9 +84,10 @@ export function AppTopNav({
   user,
   notificationCount: notificationCountProp,
   messageCount = 0,
+  createContext,
 }: AppTopNavProps) {
   void _showUtilityBar;
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const { cartCount, refreshCounts } = useCartStore();
   const {
     walletBalance,
@@ -85,6 +101,7 @@ export function AppTopNav({
     typeof notificationCountProp === "number" && notificationCountProp > 0
       ? notificationCountProp
       : notificationCountStore;
+  const menuContext = resolveCreateContext(pathname, createContext, activeNav);
 
   useEffect(() => {
     if (user) refreshCounts();
@@ -149,14 +166,7 @@ export function AppTopNav({
           <Search className="h-[17px] w-[17px]" />
         </button>
 
-        <button
-          type="button"
-          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#FF5A1F] px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#e64e18] sm:gap-1.5 sm:px-3"
-        >
-          <Plus className="h-3.5 w-3.5 shrink-0" />
-          <span className="hidden whitespace-nowrap sm:inline">Create</span>
-          <ChevronDown className="hidden h-3 w-3 shrink-0 opacity-80 sm:block" />
-        </button>
+        <CreateMenuDropdown variant="header" context={menuContext} />
 
         <HeaderUtilityActions
           isAuthenticated={isAuthenticated}
