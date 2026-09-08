@@ -7,13 +7,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Check,
-  CreditCard,
   Loader2,
   Lock,
-  ShieldCheck,
   Sparkles,
   Wallet,
-  Bitcoin,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UGCCampaign } from "@/types/ugc";
@@ -25,10 +22,25 @@ import {
   toCampaignWizardDraft,
 } from "@/lib/ugc/campaign-wizard-validation";
 import { useLocale } from "@/context/LocaleContext";
+import {
+  PaymentMethodSelector,
+  type MethodId,
+} from "@/components/checkout/PaymentMethodSelector";
+import { WALLET_DEPOSIT_INITIABLE_METHODS } from "@/lib/payments/wallet-deposit-method";
 
 const MIN_FUNDING_USD = 1;
 
-type PayMethod = "flutterwave" | "wallet" | "crypto" | "binancepay";
+const DEPOSIT_METHOD_SET = new Set<string>(WALLET_DEPOSIT_INITIABLE_METHODS);
+
+type PaySelection =
+  | { kind: "wallet" }
+  | { kind: "external"; id: MethodId };
+
+function mapExternalToDepositMethod(id: MethodId): "flutterwave" | "crypto" | "binancepay" {
+  if (id === "nowpayments") return "crypto";
+  if (id === "binancepay") return "binancepay";
+  return "flutterwave";
+}
 
 export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
@@ -36,14 +48,19 @@ export function CampaignFundClient() {
   const { t } = useLocale();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [loading, setLoading] = useState(true);
-  const [method, setMethod] = useState<PayMethod>("flutterwave");
+  const [selection, setSelection] = useState<PaySelection>({
+    kind: "external",
+    id: "flutterwave",
+  });
   const [phone, setPhone] = useState("");
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletCurrency, setWalletCurrency] = useState<string>(PLATFORM_CURRENCY);
   const [funding, setFunding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<"idle" | "activated" | "pending">("idle");
-  const [binanceEnabled, setBinanceEnabled] = useState(false);
+  const [enabledMethods, setEnabledMethods] = useState<MethodId[]>([
+    ...WALLET_DEPOSIT_INITIABLE_METHODS,
+  ] as MethodId[]);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +83,18 @@ export function CampaignFundClient() {
             String(walletJson.currency || PLATFORM_CURRENCY).toUpperCase() || PLATFORM_CURRENCY,
           );
           const enabled = Array.isArray(providersJson.enabled) ? providersJson.enabled : [];
-          setBinanceEnabled(enabled.includes("binancepay"));
+          const filtered = enabled.filter((m: string): m is MethodId =>
+            DEPOSIT_METHOD_SET.has(m),
+          );
+          const nextMethods = (
+            filtered.length > 0 ? filtered : [...WALLET_DEPOSIT_INITIABLE_METHODS]
+          ) as MethodId[];
+          setEnabledMethods(nextMethods);
+          setSelection((prev) => {
+            if (prev.kind === "wallet") return prev;
+            if (nextMethods.includes(prev.id)) return prev;
+            return { kind: "external", id: nextMethods[0] ?? "flutterwave" };
+          });
         }
       } catch {
         if (!cancelled) setCampaign(null);
@@ -105,6 +133,12 @@ export function CampaignFundClient() {
     return Math.max(views, 1000);
   }, [amountToFund, campaign]);
 
+  const usingWallet = selection.kind === "wallet";
+  const externalId = selection.kind === "external" ? selection.id : null;
+  const depositMethod = usingWallet
+    ? "wallet"
+    : mapExternalToDepositMethod(externalId ?? "flutterwave");
+
   const fund = async () => {
     if (!campaign) return;
     if (readiness && !readiness.success) {
@@ -115,11 +149,11 @@ export function CampaignFundClient() {
       setError(t("minFundingIs", { amount: money(MIN_FUNDING_USD) }));
       return;
     }
-    if (method === "flutterwave" && !phone.trim()) {
+    if (depositMethod === "flutterwave" && !phone.trim()) {
       setError(t("phoneRequired"));
       return;
     }
-    if (method === "wallet" && walletBalance < amountToFund) {
+    if (usingWallet && walletBalance < amountToFund) {
       setError(t("insufficientWalletEscrow"));
       return;
     }
@@ -131,8 +165,8 @@ export function CampaignFundClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: amountToFund,
-          payment_method: method,
-          phone: method === "flutterwave" ? phone : undefined,
+          payment_method: depositMethod,
+          phone: depositMethod === "flutterwave" ? phone : undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -209,26 +243,12 @@ export function CampaignFundClient() {
     );
   }
 
-  const methods: {
-    id: PayMethod;
-    label: string;
-    desc: string;
-    icon: typeof Wallet;
-  }[] = [
-    { id: "flutterwave", label: t("methodFlutterwave"), desc: t("methodFlutterwaveDesc"), icon: CreditCard },
-    { id: "wallet", label: t("methodWallet"), desc: t("methodWalletDesc"), icon: Wallet },
-    { id: "crypto", label: t("methodCrypto"), desc: t("methodCryptoDesc"), icon: Bitcoin },
-    ...(binanceEnabled
-      ? [
-          {
-            id: "binancepay" as const,
-            label: "Binance Pay",
-            desc: "Pay with Binance — confirmed after provider verification",
-            icon: Wallet,
-          },
-        ]
-      : []),
-  ];
+  const walletSelected = usingWallet;
+  const payDisabled =
+    funding ||
+    Boolean(readiness && !readiness.success) ||
+    (usingWallet && walletBalance < amountToFund) ||
+    (!usingWallet && !externalId);
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[920px] px-4 py-6 sm:px-6">
@@ -385,7 +405,7 @@ export function CampaignFundClient() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-2xl border border-[#FFE4D6] bg-white p-5 shadow-[0_8px_28px_rgba(255,90,31,0.08)]">
+            <div className="min-w-0 rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
               <div className="flex items-start gap-2">
                 <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5A1F]" />
                 <div className="min-w-0">
@@ -413,96 +433,112 @@ export function CampaignFundClient() {
                 />
               </div>
 
-              <p className="mt-5 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                {t("paymentMethod")}
-              </p>
-              <div className="mt-2 space-y-2" role="radiogroup" aria-label={t("paymentMethod")}>
-                {methods.map((m) => {
-                  const Icon = m.icon;
-                  const on = method === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      aria-pressed={on}
-                      onClick={() => setMethod(m.id)}
+              <div className="mt-5 space-y-3">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={walletSelected}
+                  aria-pressed={walletSelected}
+                  onClick={() => setSelection({ kind: "wallet" })}
+                  className={cn(
+                    "relative w-full text-left transition-[transform,border-color,background-color,box-shadow] duration-200",
+                    "rounded-xl overflow-hidden border active:scale-[0.99]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 focus-visible:ring-offset-2",
+                    walletSelected
+                      ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[#FF5A1F]/25"
+                      : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB]",
+                  )}
+                >
+                  <div className="flex items-start gap-3 px-4 py-3.5 lg:items-center">
+                    <div
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-                        on
-                          ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_0_0_3px_rgba(255,90,31,0.1)]"
-                          : "border-[#E5E7EB] hover:border-[#FF5A1F]/40",
+                        "grid h-12 w-12 shrink-0 place-items-center rounded-full",
+                        walletSelected ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
                       )}
                     >
-                      <span
-                        className={cn(
-                          "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
-                          on ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-bold text-[#111827]">
-                          {m.label}
-                        </span>
-                        <span className="text-[11.5px] text-[#6B7280]">{m.desc}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      <Wallet className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-bold text-[#111827]">{t("methodWallet")}</p>
+                      <p className="mt-0.5 text-[12px] text-[#6B7280]">{t("methodWalletDesc")}</p>
+                      <p className="mt-1 text-[11px] font-medium text-[#9CA3AF]">
+                        {money(walletBalance, walletCurrency)} available
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                        walletSelected
+                          ? "border-[#FF5A1F] bg-[#FF5A1F]"
+                          : "border-[#D1D5DB] bg-white",
+                      )}
+                      aria-hidden="true"
+                    >
+                      {walletSelected ? <Check className="h-3 w-3 text-white" strokeWidth={3} /> : null}
+                    </span>
+                  </div>
+                </button>
 
-              {method === "flutterwave" ? (
-                <div className="mt-3">
-                  <label htmlFor="ugc-fund-phone" className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
-                    {t("phoneMobileMoney")}
-                  </label>
-                  <input
-                    id="ugc-fund-phone"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="2507…"
-                    autoComplete="tel"
-                    aria-invalid={Boolean(error)}
-                    aria-describedby={error ? "ugc-fund-error" : undefined}
-                    className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
-                  />
-                </div>
-              ) : null}
+                <PaymentMethodSelector
+                  selected={
+                    usingWallet
+                      ? (("__wallet__" as unknown) as MethodId)
+                      : (externalId as MethodId)
+                  }
+                  onSelect={(id) => setSelection({ kind: "external", id })}
+                  orderTotal={amountToFund}
+                  orderCurrency={PLATFORM_CURRENCY}
+                  showSummary={false}
+                  enabledMethodIds={enabledMethods}
+                  loading={funding}
+                />
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#6B7280]">
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#F0FDF4] px-2 py-1 text-[#15803D]">
-                  <ShieldCheck className="h-3 w-3" /> {t("escrowProtected")}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-1 text-[#4338CA]">
-                  <Lock className="h-3 w-3" /> {t("pciReadyCheckout")}
-                </span>
+                {depositMethod === "flutterwave" ? (
+                  <div>
+                    <label htmlFor="ugc-fund-phone" className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
+                      {t("phoneMobileMoney")}
+                    </label>
+                    <input
+                      id="ugc-fund-phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="2507…"
+                      autoComplete="tel"
+                      aria-invalid={Boolean(error)}
+                      aria-describedby={error ? "ugc-fund-error" : undefined}
+                      className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
+                    />
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={payDisabled}
+                  onClick={() => void fund()}
+                  aria-describedby={error ? "ugc-fund-error" : undefined}
+                  className={cn(
+                    "flex w-full items-center justify-center gap-2 rounded-sm py-3.5 text-[15px] font-bold text-white transition-all duration-150",
+                    "bg-[#FF5A1F] hover:bg-[#E54E18] active:scale-[0.99]",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
+                  )}
+                >
+                  {funding ? (
+                    "Processing…"
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4" />
+                      {usingWallet
+                        ? `${t("fundAndActivate")} · ${money(amountToFund)}`
+                        : "Complete Secure Payment"}
+                    </>
+                  )}
+                </button>
               </div>
 
               {error ? (
                 <p id="ugc-fund-error" role="alert" className="mt-3 text-[12.5px] font-medium text-red-600">{error}</p>
               ) : null}
 
-              <button
-                type="button"
-                disabled={
-                  funding ||
-                  Boolean(readiness && !readiness.success) ||
-                  (method === "wallet" && walletBalance < amountToFund)
-                }
-                onClick={() => void fund()}
-                aria-describedby={error ? "ugc-fund-error" : undefined}
-                className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50 disabled:opacity-60"
-              >
-                {funding ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Lock className="h-4 w-4" />
-                )}
-                {funding ? t("processing") : method === "wallet" ? `${t("fundAndActivate")} · ${money(amountToFund)}` : `${t("submitFunding")} · ${money(amountToFund)}`}
-              </button>
               <p className="mt-2 text-center text-[11px] text-[#9CA3AF]">
                 {t("activationBlockedUntilEscrow")}
               </p>

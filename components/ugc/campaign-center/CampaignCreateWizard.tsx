@@ -31,7 +31,6 @@ import {
 } from "@/lib/ugc/campaign-wizard-validation";
 import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 import { useLocale } from "@/context/LocaleContext";
-import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/ugc/campaign-schedule";
 
 const STEP_KEY = "jimvio-campaign-center-step-v1";
 
@@ -74,12 +73,6 @@ type FormState = {
   creator_limit: number;
   countries: string;
   languages: string;
-  starts_at: string;
-  ends_at: string;
-  content_deadline: string;
-  live_at: string;
-  submission_deadline: string;
-  payment_at: string;
 };
 
 const DEFAULT_FORM: FormState = {
@@ -106,12 +99,6 @@ const DEFAULT_FORM: FormState = {
   creator_limit: 50,
   countries: "",
   languages: "",
-  starts_at: "",
-  ends_at: "",
-  content_deadline: "",
-  live_at: "",
-  submission_deadline: "",
-  payment_at: "",
 };
 
 const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
@@ -190,14 +177,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             usage: m.usage || "example",
           }))
         : [],
-      starts_at: isoToDatetimeLocal(typeof c.starts_at === "string" ? c.starts_at : null),
-      ends_at: isoToDatetimeLocal(typeof c.ends_at === "string" ? c.ends_at : null),
-      content_deadline: isoToDatetimeLocal(typeof c.content_deadline === "string" ? c.content_deadline : null),
-      live_at: isoToDatetimeLocal(typeof c.live_at === "string" ? c.live_at : null),
-      submission_deadline: isoToDatetimeLocal(
-        typeof c.submission_deadline === "string" ? c.submission_deadline : null,
-      ),
-      payment_at: isoToDatetimeLocal(typeof c.payment_at === "string" ? c.payment_at : null),
     };
     setForm(next);
     return next;
@@ -369,12 +348,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       promotion_target: form.promotion_target || undefined,
       promotion_target_url: form.promotion_target_url || undefined,
       media: form.media,
-      starts_at: datetimeLocalToIso(form.starts_at),
-      ends_at: datetimeLocalToIso(form.ends_at),
-      content_deadline: datetimeLocalToIso(form.content_deadline),
-      live_at: datetimeLocalToIso(form.live_at),
-      submission_deadline: datetimeLocalToIso(form.submission_deadline),
-      payment_at: datetimeLocalToIso(form.payment_at),
       join_config: {
         countries: form.countries
           .split(",")
@@ -405,12 +378,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     required_mentions: payload.required_mentions,
     required_keywords: payload.required_keywords,
     requires_face: payload.requires_face,
-    starts_at: payload.starts_at,
-    ends_at: payload.ends_at,
-    content_deadline: payload.content_deadline,
-    live_at: payload.live_at,
-    submission_deadline: payload.submission_deadline,
-    payment_at: payload.payment_at,
     join_config: payload.join_config,
     status: "draft" as const,
     ...extra,
@@ -839,56 +806,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 className={inputCls}
               />
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Campaign start">
-                <input
-                  type="datetime-local"
-                  value={form.starts_at}
-                  onChange={(e) => set("starts_at", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Campaign end">
-                <input
-                  type="datetime-local"
-                  value={form.ends_at}
-                  onChange={(e) => set("ends_at", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Content deadline">
-                <input
-                  type="datetime-local"
-                  value={form.content_deadline}
-                  onChange={(e) => set("content_deadline", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Live date">
-                <input
-                  type="datetime-local"
-                  value={form.live_at}
-                  onChange={(e) => set("live_at", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Submission deadline">
-                <input
-                  type="datetime-local"
-                  value={form.submission_deadline}
-                  onChange={(e) => set("submission_deadline", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Payment / reward date">
-                <input
-                  type="datetime-local"
-                  value={form.payment_at}
-                  onChange={(e) => set("payment_at", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </div>
           </div>
         )}
 
