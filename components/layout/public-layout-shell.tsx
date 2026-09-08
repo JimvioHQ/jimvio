@@ -6,6 +6,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { DeferredPublicWidgets } from "@/components/layout/deferred-public-widgets";
 import { isWorkspacePublicRoute } from "@/lib/workspace/config";
+import { MOBILE_PRIMARY_BOTTOM_NAV_PAD } from "@/components/layout/mobile-primary-bottom-nav";
 
 type MarketingProfile = {
   email: string;
@@ -61,7 +62,7 @@ export function PublicLayoutShell({
         <main
           id="main-content"
           tabIndex={-1}
-          className="relative isolation-auto flex-1 pt-[var(--navbar-height)]"
+          className={`relative isolation-auto flex-1 pt-[var(--navbar-height)] ${MOBILE_PRIMARY_BOTTOM_NAV_PAD}`}
           style={{
             animation: isMarketplaceListing
               ? "page-enter-fade 220ms ease both"

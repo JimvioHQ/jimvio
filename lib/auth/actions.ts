@@ -116,7 +116,9 @@ function clearFailedAttempts(userId: string) {
 // ─────────────────────────────────────────────
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
-  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? DEFAULT_POST_LOGIN_PATH)
+  // Pass through null/undefined so resolvePostLoginPath treats missing next as
+  // "use role default" — do NOT pass DEFAULT as an explicit next (that skips onboarding).
+  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next))
 }
 
 async function currentSessionIsPasswordRecovery(

@@ -1,5 +1,6 @@
 import { TwoFALoginForm } from "@/components/auth/two-fa-login-form";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
 import { TWO_FA_PENDING_COOKIE } from "@/lib/auth/two-fa-session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function TwoFAPage({
     return (
         <div className="mx-auto max-w-md px-4 py-10">
             <TwoFALoginForm
-                next={params.next && isSafeInternalPath(params.next) ? params.next : "/"}
+                next={params.next && isSafeInternalPath(params.next) ? params.next : DEFAULT_POST_LOGIN_PATH}
             />
         </div>
     );

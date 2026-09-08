@@ -212,16 +212,16 @@ export function FeedPostCard({
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filter = FEED_TAB_FILTERS[tab];
-  const load = useCallback(async (nextCursor?: string | null) => {
+  const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean }) => {
     const isMore = Boolean(nextCursor);
     if (isMore) setLoadingMore(true);
-    else setLoading(true);
+    else if (!opts?.soft) setLoading(true);
     try {
       const params = new URLSearchParams({ limit: "20", filter });
       if (nextCursor) params.set("cursor", nextCursor);
       const res = await fetch(`/api/posts/feed?${params}`, { cache: "no-store" });
       if (res.status === 401) {
-        if (!isMore) {
+        if (!isMore && !opts?.soft) {
           setPosts([]);
           setUsingMock(false);
           setHasMore(false);
@@ -232,12 +232,12 @@ export function FeedPostCard({
       }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        if (!isMore) {
+        if (!isMore && !opts?.soft) {
           setPosts([]);
           setUsingMock(false);
           setLoadError(true);
         }
-        toast.error(data.error || "Failed to load feed");
+        if (!opts?.soft) toast.error(data.error || "Failed to load feed");
         return;
       }
       const mapped = ((data.posts ?? []) as ApiPost[]).map(mapApiPost);
@@ -255,7 +255,7 @@ export function FeedPostCard({
       setHasMore(Boolean(data.next_cursor));
       setCursor(data.next_cursor ?? null);
     } catch {
-      if (!isMore) {
+      if (!isMore && !opts?.soft) {
         setPosts([]);
         setUsingMock(false);
         setLoadError(true);
@@ -267,15 +267,13 @@ export function FeedPostCard({
   }, [filter]);
 
   useEffect(() => {
-    if (
-      !isAuthenticated &&
-      initialPosts.length > 0 &&
-      filter === FEED_TAB_FILTERS["For You"]
-    ) {
+    // Keep SSR/seeded posts visible; soft-refresh likes/membership in background.
+    if (initialPosts.length > 0 && filter === FEED_TAB_FILTERS["For You"]) {
+      void load(undefined, { soft: true });
       return;
     }
     void load();
-  }, [load, initialPosts.length, filter, isAuthenticated]);
+  }, [load, initialPosts.length, filter]);
 
   useEffect(() => {
     const el = sentinelRef.current;

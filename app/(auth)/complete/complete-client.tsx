@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { beginPasswordRecovery } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import { DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
 
 function parseHash(): URLSearchParams {
@@ -23,10 +24,10 @@ export function AuthCompleteClient() {
     const hash = parseHash();
     const err = hash.get("error") || searchParams.get("error");
     const errCode = hash.get("error_code") || searchParams.get("error_code");
-    const nextRaw = searchParams.get("next") ?? "/";
+    const nextRaw = searchParams.get("next") ?? DEFAULT_POST_LOGIN_PATH;
     const next = isSafeInternalPath(nextRaw) && nextRaw !== "/reset-password"
-      ? nextRaw
-      : "/";
+      ? (nextRaw === "/" ? DEFAULT_POST_LOGIN_PATH : nextRaw)
+      : DEFAULT_POST_LOGIN_PATH;
 
     if (err === "access_denied" || errCode === "otp_expired") {
       const looksLikeReset = hash.get("type") === "recovery" || searchParams.get("type") === "recovery";

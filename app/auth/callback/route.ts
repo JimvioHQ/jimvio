@@ -71,8 +71,8 @@ export async function GET(request: Request) {
   const errorParam = searchParams.get("error");
   const errorCode = searchParams.get("error_code");
   const errorDescription = searchParams.get("error_description");
-  const next = searchParams.get("next") ?? "/";
-  const safeNext = sanitizeAuthenticatedNext(next) ?? "/";
+  const next = searchParams.get("next");
+  const safeNext = sanitizeAuthenticatedNext(next);
 
   if (errorParam || errorDescription || errorCode) {
     console.error("[auth/callback] provider error:", { errorParam, errorCode, errorDescription });
@@ -228,7 +228,7 @@ export async function GET(request: Request) {
     destination = await resolvePostLoginPath(user.id, safeNext);
   } catch (err) {
     console.error("[auth/callback] resolvePostLoginPath threw:", err);
-    destination = safeNext === "/" ? DEFAULT_POST_LOGIN_PATH : safeNext;
+    destination = safeNext && safeNext !== "/" ? safeNext : DEFAULT_POST_LOGIN_PATH;
   }
   destination = sanitizeAuthenticatedNext(destination) ?? DEFAULT_POST_LOGIN_PATH;
 
@@ -240,7 +240,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (profile2fa?.two_factor_enabled) {
-    const safeDest = isSafeInternalPath(destination) ? destination : "/";
+    const safeDest = isSafeInternalPath(destination) ? destination : DEFAULT_POST_LOGIN_PATH;
     const challenge = NextResponse.redirect(
       `${origin}/login/2fa?next=${encodeURIComponent(safeDest)}`,
     );

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { AppTopNav } from "@/components/shell/AppTopNav";
-import { UGCWorkspaceSidebar, UGC_BRAND_MOBILE_TABS, UGC_MOBILE_TABS } from "./UGCWorkspaceSidebar";
-import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
+import { UGCWorkspaceSidebar } from "./UGCWorkspaceSidebar";
 import { useLocale } from "@/context/LocaleContext";
-import { cn } from "@/lib/utils";
+import {
+  MobilePrimaryBottomNav,
+  MOBILE_PRIMARY_BOTTOM_NAV_PAD,
+} from "@/components/layout/mobile-primary-bottom-nav";
 
 type UGCWorkspaceShellProps = {
   children: React.ReactNode;
@@ -24,9 +25,6 @@ type UGCWorkspaceShellProps = {
 export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   const [mobileNav, setMobileNav] = useState(false);
   const { t } = useLocale();
-  const pathname = usePathname();
-  const { workspaces } = useUgcBrandWorkspace();
-  const mobileTabs = workspaces.length > 0 ? UGC_BRAND_MOBILE_TABS : UGC_MOBILE_TABS;
 
   useEffect(() => {
     if (!mobileNav) return;
@@ -41,7 +39,6 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
     <div className="flex h-dvh flex-col overflow-hidden bg-[#F8FAFC]">
       <AppTopNav showUtilityBar activeNav="UGC & Clipping" user={user} />
 
-      {/* Viewport-locked row: sidebar stays put; only <main> scrolls (Affiliates pattern). */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <aside className="hidden h-full shrink-0 self-stretch overflow-hidden lg:block">
           <Suspense fallback={<div className="h-full w-[228px] animate-pulse bg-white" />}>
@@ -82,7 +79,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           </div>
         ) : null}
 
-        <main className="min-w-0 flex-1 overflow-y-auto bg-[#F8FAFC] pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        <main className={`min-w-0 flex-1 overflow-y-auto bg-[#F8FAFC] ${MOBILE_PRIMARY_BOTTOM_NAV_PAD}`}>
           <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#E5E7EB] bg-[#F8FAFC]/92 px-4 py-2.5 backdrop-blur-md lg:hidden">
             <button
               type="button"
@@ -108,36 +105,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
         </main>
       </div>
 
-      <nav
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E5E7EB] bg-white px-1 pb-[env(safe-area-inset-bottom)] pt-1 lg:hidden"
-        aria-label="UGC work navigation"
-      >
-        <ul className="grid grid-cols-4">
-          {mobileTabs.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/ugc"
-                ? pathname === "/ugc" || pathname === "/ugc/"
-                : item.href === "/ugc/campaign-center"
-                  ? pathname === "/ugc/campaign-center" || pathname === "/ugc/campaign-center/"
-                  : pathname.startsWith(item.href);
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 text-[11px] font-medium",
-                    active ? "text-[#FF5A1F]" : "text-[#64748B]",
-                  )}
-                >
-                  <Icon className="h-4 w-4" strokeWidth={active ? 2.2 : 1.8} />
-                  <span className="truncate">{item.label.replace(" Campaigns", "")}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </div>
   );
 }

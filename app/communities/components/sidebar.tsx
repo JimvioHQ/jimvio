@@ -739,6 +739,8 @@ interface HubSidebarProps {
     /** Mobile drawer state (controlled by parent layout) */
     mobileOpen?: boolean;
     onMobileClose?: () => void;
+    /** Skip desktop rail — used when PrimarySidebar already owns desktop. */
+    mobileOnly?: boolean;
 }
 
 // ── Nav items ─────────────────────────────────────────────────────────────────
@@ -1267,6 +1269,7 @@ export default function HubSidebar({
     unreadMessages = 0,
     mobileOpen = false,
     onMobileClose,
+    mobileOnly = false,
 }: HubSidebarProps) {
 
     const sidebarBase: React.CSSProperties = {
@@ -1281,6 +1284,7 @@ export default function HubSidebar({
     return (
         <>
             {/* Desktop sidebar rail (hidden below lg) */}
+            {!mobileOnly && (
             <div
                 className="hidden lg:block"
                 style={{
@@ -1299,8 +1303,9 @@ export default function HubSidebar({
                     />
                 </aside>
             </div>
+            )}
 
-            {/* Mobile drawer — slides in from left */}
+            {/* Mobile drawer — always mounted; open is transform-only */}
             <aside
                 className={cn(
                     "lg:hidden fixed left-0 top-14 z-[99] flex flex-col",
@@ -1309,7 +1314,7 @@ export default function HubSidebar({
                     "border-r border-[var(--color-border,rgba(0,0,0,0.08))]",
                     "bg-[var(--color-surface,#ffffff)]",
                     "pb-[env(safe-area-inset-bottom,0px)]",
-                    "transition-transform duration-[220ms] ease-out motion-reduce:transition-none",
+                    "transition-transform duration-[180ms] ease-out motion-reduce:transition-none",
                     mobileOpen ? "translate-x-0" : "-translate-x-full pointer-events-none",
                 )}
                 aria-hidden={!mobileOpen}

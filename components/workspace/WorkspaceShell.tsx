@@ -13,6 +13,10 @@ import {
 import { WorkspaceSidebar } from "@/components/workspace/WorkspaceSidebar";
 import { WorkspaceRightPanel } from "@/components/workspace/WorkspaceRightPanel";
 import { cn } from "@/lib/utils";
+import {
+  MobilePrimaryBottomNav,
+  MOBILE_PRIMARY_BOTTOM_NAV_PAD,
+} from "@/components/layout/mobile-primary-bottom-nav";
 
 type WorkspaceShellProps = {
   workspace: WorkspaceId;
@@ -68,7 +72,7 @@ export function WorkspaceShell({
           />
         </aside>
 
-        {mobileNav && (
+        {mobileNav ? (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
@@ -92,10 +96,10 @@ export function WorkspaceShell({
               />
             </aside>
           </div>
-        )}
+        ) : null}
 
         <div className="flex min-w-0 flex-1 overflow-hidden">
-          <main className="min-w-0 flex-1 overflow-y-auto">
+          <main className={cn("min-w-0 flex-1 overflow-y-auto", MOBILE_PRIMARY_BOTTOM_NAV_PAD)}>
             <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]/90 px-4 py-2 backdrop-blur lg:hidden">
               <button
                 type="button"
@@ -125,6 +129,8 @@ export function WorkspaceShell({
           )}
         </div>
       </div>
+
+      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </div>
   );
 }

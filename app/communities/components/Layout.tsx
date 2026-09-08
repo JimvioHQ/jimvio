@@ -5,16 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     ArrowLeft,
-    Home,
     ChevronDown,
     Search,
     Bell,
     ShoppingCart,
     Sparkles,
     Menu,
-    Radio,
-    Layers,
-    MessageSquare,
     Users,
     Package,
     Wallet,
@@ -43,6 +39,10 @@ import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
+import {
+  MobilePrimaryBottomNav,
+  MOBILE_PRIMARY_BOTTOM_NAV_PAD,
+} from "@/components/layout/mobile-primary-bottom-nav";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -580,53 +580,20 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             )}
                         </div>
                     )}
-                    <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0")}>
+                    <div
+                        className={cn(
+                            "flex min-h-0 flex-1 flex-col",
+                            !isLiveStudio && !isCommunityWorkspace && MOBILE_PRIMARY_BOTTOM_NAV_PAD,
+                        )}
+                    >
                         {children}
                     </div>
                 </main>
             </div>
 
-            {/* ── Mobile bottom nav (hub only — hidden inside Live workspace) ── */}
+            {/* Primary mobile bottom nav — layout-stable, not gated on feed/auth/API */}
             {!isLiveStudio && !isCommunityWorkspace && (
-            <nav
-                className="fixed inset-x-0 bottom-0 z-[60] flex items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden"
-                style={{
-                    paddingBottom: "env(safe-area-inset-bottom, 0px)",
-                    minHeight: "calc(3.5rem + env(safe-area-inset-bottom, 0px))",
-                }}
-                aria-label="Mobile navigation"
-            >
-                {[
-                    { label: "Feed", href: "/communities", auth: false, icon: Home },
-                    { label: "Live", href: "/communities/live", auth: true, icon: Radio },
-                    { label: "Spaces", href: "/communities/spaces", auth: true, icon: Layers },
-                    { label: "Messages", href: "/communities/messages", auth: true, icon: MessageSquare },
-                ].map(({ label, href, auth, icon: Icon }) => {
-                    const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
-                    const active = href === "/communities" ? pathname === "/communities" : pathname.startsWith(href);
-                        return (
-                            <Link
-                                key={href}
-                            href={navHref}
-                                aria-label={label}
-                                aria-current={active ? "page" : undefined}
-                            className={cn(
-                                "relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-                                active ? "text-[#FF5A1F]" : "text-[var(--color-text-muted)]"
-                            )}
-                        >
-                            {active && (
-                                <span
-                                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#FF5A1F] motion-reduce:hidden"
-                                    aria-hidden
-                                />
-                            )}
-                            <Icon className={cn("h-[22px] w-[22px] shrink-0", active && "stroke-[2.25]")} />
-                                <span className="truncate">{label}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
+                <MobilePrimaryBottomNav isAuthenticated={isAuthenticated} />
             )}
 
             <CommunityAiPanel

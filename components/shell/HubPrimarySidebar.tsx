@@ -14,13 +14,15 @@ type HubPrimarySidebarProps = {
 };
 
 export default function HubPrimarySidebar({
-  collapsed,
-  onToggleCollapse,
+  collapsed: _collapsed,
+  onToggleCollapse: _onToggleCollapse,
   username,
   unreadMessages,
   mobileOpen,
   onMobileClose,
 }: HubPrimarySidebarProps) {
+  void _collapsed;
+  void _onToggleCollapse;
   const pathname = usePathname();
 
   return (
@@ -28,15 +30,15 @@ export default function HubPrimarySidebar({
       <div className="hidden h-full shrink-0 lg:block">
         <PrimarySidebar activeItem={resolveSidebarActiveItem(pathname)} />
       </div>
-      {mobileOpen && (
-        <HubSidebar
-          collapsed={false}
-          username={username ?? ""}
-          unreadMessages={unreadMessages ?? 0}
-          mobileOpen={mobileOpen}
-          onMobileClose={onMobileClose}
-        />
-      )}
+      {/* Always mount mobile drawer shell so hamburger open is CSS-only (no cold mount). */}
+      <HubSidebar
+        collapsed={false}
+        username={username ?? ""}
+        unreadMessages={unreadMessages ?? 0}
+        mobileOpen={Boolean(mobileOpen)}
+        onMobileClose={onMobileClose}
+        mobileOnly
+      />
     </>
   );
 }

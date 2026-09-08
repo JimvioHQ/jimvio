@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,7 +48,6 @@ import { CurrencySelector } from "@/context/CurrencyContext";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
-  MOBILE_BOTTOM_NAV_ITEMS,
   PRIMARY_NAV_ITEMS,
   PROFILE_QUICK_ACCESS_ITEMS,
   isOrdersActive,
@@ -58,25 +56,7 @@ import {
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
-
-function useScrollDirection(threshold = 8) {
-  const [hidden, setHidden] = useState(false);
-  const lastY = useRef(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      if (Math.abs(y - lastY.current) < threshold) return;
-      setHidden(y > lastY.current && y > 60);
-      lastY.current = y;
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-
-  return hidden;
-}
+import { MobilePrimaryBottomNav } from "@/components/layout/mobile-primary-bottom-nav";
 
 
 const ConsoleButton = React.forwardRef<
@@ -222,7 +202,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
-  const [portalReady, setPortalReady] = useState(false);
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
   const { isMobile } = useIsMobile();
@@ -231,18 +210,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const pathname = usePathname();
 
-  const navHidden = useScrollDirection();
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 15);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
-  useEffect(() => setPortalReady(true), []);
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
+  // Counts are non-blocking — never gate menu/nav chrome on this.
   useEffect(() => { if (user) refreshCounts(); }, [user, refreshCounts]);
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
@@ -251,8 +229,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
     { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
     { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "#f59e0b" },
   ];
-
-  const mobileBottomLinks = MOBILE_BOTTOM_NAV_ITEMS;
 
   const onMarketplaceEnter = () => {
     if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current);
@@ -486,78 +462,19 @@ export function Navbar({ user, marketing }: NavbarProps) {
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════
-          MOBILE DRAWER PORTAL
-          ══════════════════════════════════════════ */}
-        {portalReady &&
-          createPortal(
-            <MobileDrawer
-              open={mobileOpen}
-              onClose={() => setMobileOpen(false)}
-              user={user}
-              pathname={pathname}
-              marketplaceVariants={marketplaceVariants}
-              navLinks={navLinks}
-              openAssistant={openAssistant}
-            />,
-            document.body
-          )}
+        {/* Mobile drawer — always in tree; open is CSS/animation only (no portal / data gate) */}
+        <MobileDrawer
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          user={user}
+          pathname={pathname}
+          marketplaceVariants={marketplaceVariants}
+          navLinks={navLinks}
+          openAssistant={openAssistant}
+        />
       </div>
 
-      {portalReady &&
-        createPortal(
-          <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] pointer-events-none pb-[env(safe-area-inset-bottom,0px)]">
-            <motion.nav
-              initial={{ y: 80 }}
-              animate={{ y: navHidden ? 80 : 0 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="pointer-events-auto relative grid h-[60px] grid-cols-5 items-stretch border-t border-stone-100 bg-white/95 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md dark:border-white/5 dark:bg-stone-950/95"
-            >
-              {mobileBottomLinks.map((link) => {
-                const href = resolvePrimaryNavHref(link, Boolean(user));
-                const active = isActive(pathname, href);
-                const ariaLabel =
-                  "ariaLabel" in link && typeof link.ariaLabel === "string"
-                    ? link.ariaLabel
-                    : link.label;
-                return (
-                  <Link
-                    key={`${link.label}-${href}`}
-                    href={href}
-                    aria-label={ariaLabel}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 transition-colors duration-200",
-                      active ? "text-orange-600 dark:text-orange-500" : "text-stone-400 dark:text-stone-600"
-                    )}
-                  >
-                    <div className="relative flex h-6 items-center justify-center">
-                      <link.icon
-                        className={cn("h-5 w-5 shrink-0 transition-transform duration-300", active && "scale-105")}
-                        strokeWidth={active ? 2.5 : 2}
-                      />
-                      {active && (
-                        <motion.div layoutId="mobile-glow" className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl" />
-                      )}
-                    </div>
-                    <span
-                      className={cn(
-                        "max-w-full truncate text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap",
-                        active ? "text-orange-600 opacity-100 dark:text-orange-500" : "opacity-70"
-                      )}
-                    >
-                      {link.label}
-                    </span>
-                    {active && (
-                      <motion.div layoutId="mobile-pill-active" className="absolute top-0 h-[2px] w-7 rounded-b-full bg-orange-500" />
-                    )}
-                  </Link>
-                );
-              })}
-            </motion.nav>
-          </div>,
-          document.body
-        )}
+      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </header>
   );
 }
@@ -692,7 +609,7 @@ function MobileDrawer({
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 32, stiffness: 320 }}
+            transition={{ type: "tween", duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
             className="fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl pointer-events-auto"
           >
             {/* Header */}
