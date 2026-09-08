@@ -23,6 +23,10 @@ import type { FeedTab } from "@/lib/feed/mock-data";
 import { FEED_TAB_FILTERS } from "@/lib/feed/tab-filters";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { jimvioPromotionLabel } from "@/lib/community/editorial-origin";
+import {
+  consumeSessionBoostPost,
+  prependUniqueById,
+} from "@/lib/feed/session-boost-post";
 
 export type ApiPost = {
   id: string;
@@ -240,7 +244,11 @@ export function FeedPostCard({
       setUsingMock(false);
       setLoadError(false);
       setPosts((prev) => {
-        if (!isMore) return mapped;
+        if (!isMore) {
+          const boostRaw = consumeSessionBoostPost<ApiPost>();
+          const boost = boostRaw ? mapApiPost(boostRaw) : null;
+          return prependUniqueById(mapped, boost);
+        }
         const seen = new Set(prev.map((p) => p.id));
         return [...prev, ...mapped.filter((p) => !seen.has(p.id))];
       });

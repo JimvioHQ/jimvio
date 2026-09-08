@@ -33,6 +33,7 @@ import {
   loadLocalDraft,
   saveLocalDraft,
 } from "@/lib/feed/composer-utils";
+import { stashSessionBoostPost } from "@/lib/feed/session-boost-post";
 import { toast } from "sonner";
 
 type Audience = "public" | "followers" | "community" | "private";
@@ -62,6 +63,7 @@ export type PublishedPostResult = {
   postId?: string;
   communitySlug?: string | null;
   communityId?: string | null;
+  post?: Record<string, unknown> | null;
 };
 
 export function PostComposer({
@@ -327,7 +329,7 @@ export function PostComposer({
         return;
       }
       const created = (await res.json().catch(() => ({}))) as {
-        post?: { id?: string; community_id?: string };
+        post?: Record<string, unknown> & { id?: string; community_id?: string };
         community?: { id?: string; slug?: string | null };
       };
       setBody("");
@@ -340,11 +342,15 @@ export function PostComposer({
       if (user?.id) clearLocalDraft(draftStorageKey(user.id, communityId));
       toast.success(asDraft ? "Draft saved" : "Post published");
       if (!asDraft) {
+        if (created.post && typeof created.post.id === "string") {
+          stashSessionBoostPost(created.post);
+        }
         const communitySlug = created.community?.slug ?? selectedSlug;
         onPublished?.({
           postId: created.post?.id,
           communitySlug,
           communityId: created.community?.id ?? created.post?.community_id ?? communityId,
+          post: created.post ?? null,
         });
         router.refresh();
       }

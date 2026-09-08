@@ -58,6 +58,10 @@ import {
 } from "@/lib/feed/composer-utils";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { jimvioPromotionLabel } from "@/lib/community/editorial-origin";
+import {
+    consumeSessionBoostPost,
+    prependUniqueById,
+} from "@/lib/feed/session-boost-post";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -370,7 +374,13 @@ export function FeedSection({
                 .filter((p: Post) => !isTechnicalFeedBody(p.body));
 
             if (replace) {
-                setPosts(normalized);
+                const boostRaw = consumeSessionBoostPost<Post>();
+                const boost = boostRaw ? normalizePost(boostRaw) : null;
+                const withBoost =
+                    boost && !isTechnicalFeedBody(boost.body)
+                        ? prependUniqueById(normalized, boost)
+                        : normalized;
+                setPosts(withBoost);
             } else {
                 setPosts((prev) => {
                     const seen = new Set(prev.map((p) => p.id));
@@ -394,6 +404,15 @@ export function FeedSection({
     }, [feedFilter, scopedCommunityId]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Soft re-entry / bfcache restore should fetch a fresh session seed.
+    useEffect(() => {
+        function onPageShow(e: PageTransitionEvent) {
+            if (e.persisted) void load(true);
+        }
+        window.addEventListener("pageshow", onPageShow);
+        return () => window.removeEventListener("pageshow", onPageShow);
+    }, [load]);
 
     // Open post detail from ?post= deep links (notifications, search, share)
     useEffect(() => {
@@ -524,6 +543,14 @@ export function FeedSection({
                             setPosts((prev) => {
                                 if (prev.find((p) => p.id === normalized.id)) return prev;
                                 const without = prev.filter((p) => p.id !== normalized.id);
+                                // Own posts from this session belong at the absolute top
+                                // (session boost), not after community pins.
+                                if (
+                                    currentUserId &&
+                                    normalized.author_id === currentUserId
+                                ) {
+                                    return [normalized, ...without];
+                                }
                                 if (normalized.is_pinned) {
                                     return [normalized, ...without];
                                 }
@@ -585,7 +612,7 @@ export function FeedSection({
             unsubscribeRealtime(supabase, channel, channelName);
             realtimeRef.current = null;
         };
-    }, [supabase, memberships, scopedCommunityId]);
+    }, [supabase, memberships, scopedCommunityId, currentUserId]);
 
     function startQuote(post: Post) {
         const params = new URLSearchParams();

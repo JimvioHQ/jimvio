@@ -14,6 +14,7 @@ import {
 import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { UGCPlatformMarks, campaignFallbackStyle } from "./UGCPlatformMarks";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 type UGCPremiumCampaignCardProps = {
   campaign: UGCCampaign;
@@ -50,7 +51,7 @@ function JoinButton({
   className?: string;
 }) {
   return (
-    <Link
+    <JoinCampaignGateLink
       href={href}
       aria-label={`Join campaign ${title}`}
       className={cn(
@@ -61,7 +62,7 @@ function JoinButton({
       )}
     >
       {label}
-    </Link>
+    </JoinCampaignGateLink>
   );
 }
 

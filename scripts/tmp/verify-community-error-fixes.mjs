@@ -15,7 +15,8 @@ function read(rel) {
 }
 
 const feed = read("app/api/posts/feed/route.ts");
-assert.match(feed, /return NextResponse\.json\(\{ posts, next_cursor \}\)/);
+assert.match(feed, /NextResponse\.json\(\{ posts, next_cursor \}\)/);
+assert.match(feed, /Cache-Control/);
 assert.doesNotMatch(feed, /return NextResponse\.json\(\{ posts: enriched, next_cursor \}\)/);
 
 const perms = read("lib/community/workspace/permissions.ts");

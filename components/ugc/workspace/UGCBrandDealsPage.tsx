@@ -11,6 +11,7 @@ import {
   UGCPageLoading,
   UGCPageShell,
 } from "./UGCPageShell";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 export function UGCBrandDealsPage() {
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
@@ -85,7 +86,7 @@ export function UGCBrandDealsPage() {
                   <Link href={`/ugc/${c.id}`}>View offer</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="rounded-xl">
-                  <Link href={`/ugc/${c.id}/join`}>Accept deal</Link>
+                  <JoinCampaignGateLink href={`/ugc/${c.id}/join`}>Accept deal</JoinCampaignGateLink>
                 </Button>
               </div>
             </div>

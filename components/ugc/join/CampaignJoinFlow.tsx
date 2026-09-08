@@ -28,6 +28,11 @@ import { useLocale } from "@/context/LocaleContext";
 import {
   getCampaignRewardLine,
 } from "@/components/ugc/workspace/ugc-campaign-utils";
+import { createClient } from "@/lib/supabase/client";
+import {
+  loginUrlForReturnPath,
+  ugcCampaignJoinPath,
+} from "@/lib/ugc/join-auth";
 
 type JoinContext = {
   joinMode: UGCJoinMode;
@@ -55,11 +60,25 @@ export function CampaignJoinFlow() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.replace(loginUrlForReturnPath(ugcCampaignJoinPath(id)));
+        return;
+      }
+
       const [cRes, pRes, eRes] = await Promise.all([
         fetch(`/api/ugc/campaigns/${id}`),
         fetch(`/api/ugc/campaigns/${id}/participant`),
         fetch(`/api/ugc/campaigns/${id}/eligibility`),
       ]);
+
+      if (cRes.status === 401 || pRes.status === 401 || eRes.status === 401) {
+        router.replace(loginUrlForReturnPath(ugcCampaignJoinPath(id)));
+        return;
+      }
 
       if (cRes.ok) {
         const { campaign: c } = await cRes.json();
@@ -137,7 +156,11 @@ export function CampaignJoinFlow() {
           applicationMessage: form.bio ?? form.experience ?? "",
         }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        router.replace(loginUrlForReturnPath(ugcCampaignJoinPath(id)));
+        return;
+      }
       if (!res.ok) {
         toast.error(json.error ?? t("couldNotJoinCampaign"));
         return;

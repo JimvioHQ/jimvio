@@ -52,7 +52,10 @@ async function getPublicDiscoveryFeed(
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
-  return NextResponse.json({ posts: result.posts, next_cursor: result.next_cursor });
+  return NextResponse.json(
+    { posts: result.posts, next_cursor: result.next_cursor },
+    { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -202,7 +205,10 @@ export async function GET(req: NextRequest) {
         };
       });
 
-      return NextResponse.json({ posts, next_cursor: global.next_cursor });
+      return NextResponse.json(
+        { posts, next_cursor: global.next_cursor },
+        { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load global feed";
       return NextResponse.json({ error: message }, { status: 400 });
@@ -373,7 +379,9 @@ export async function GET(req: NextRequest) {
   const next_cursor =
     hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.created_at : null;
 
-  return NextResponse.json({ posts, next_cursor });
+  const response = NextResponse.json({ posts, next_cursor });
+  response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+  return response;
 }
 
 export async function POST(req: NextRequest) {

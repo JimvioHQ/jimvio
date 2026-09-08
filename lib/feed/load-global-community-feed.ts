@@ -103,7 +103,9 @@ export type LoadGlobalCommunityFeedResult = {
 
 /**
  * Global community feed: all eligible public posts, excluding Jimvio promo/system posts.
- * Ranked with quality-first + 3-hour deterministic community mix when useRanking=true.
+ * Ranked with quality-first + session-seeded community mix when useRanking=true.
+ * Fresh requests (no cursor) mint a new seed so reloads can change the mix;
+ * pagination locks that seed in the cursor.
  */
 export async function loadGlobalCommunityFeed(
   db: Db,
@@ -111,8 +113,9 @@ export async function loadGlobalCommunityFeed(
 ): Promise<LoadGlobalCommunityFeedResult> {
   const limit = Math.min(Math.max(Number(params.limit ?? 20) || 20, 1), 50);
   const now = Date.now();
-  const bucket = getGlobalFeedRotationBucket(now);
   const parsed = parseGlobalFeedCursor(params.cursor, now);
+  // Fresh loads mint a unique session seed; load-more reuses the cursor seed.
+  const bucket = params.cursor ? parsed.bucket : getGlobalFeedRotationBucket(now);
   const offset = parsed.offset;
 
   const { ids: communityIds, error } = await loadPublicCommunityIds(db);

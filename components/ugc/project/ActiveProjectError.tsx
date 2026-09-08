@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AlertCircle, ArrowLeft, RefreshCw, WifiOff } from "lucide-react";
 import type { ActiveProjectState } from "./use-active-project";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 export function ActiveProjectError({
   state,
@@ -51,12 +52,12 @@ export function ActiveProjectError({
           Retry
         </button>
         {cta ? (
-          <Link
+          <JoinCampaignGateLink
             href={cta.href}
             className="inline-flex items-center gap-2 rounded-xl border border-[#E5E7EB] px-4 py-2 text-sm font-semibold text-[#374151]"
           >
             {cta.label}
-          </Link>
+          </JoinCampaignGateLink>
         ) : null}
         <Link
           href="/ugc"

@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle, Clock, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 type ApplicationState = {
   status: string | null;
@@ -136,7 +137,7 @@ export default function CampaignApplicationPage() {
           <div className="mt-6 flex flex-col gap-2">
             {isRejected ? (
               <Button asChild className="h-11 rounded-xl bg-[#FF5A1F]">
-                <Link href={`/ugc/${id}/join`}>Apply again</Link>
+                <JoinCampaignGateLink href={`/ugc/${id}/join`}>Apply again</JoinCampaignGateLink>
               </Button>
             ) : null}
             {isPending || status === "waitlisted" ? (

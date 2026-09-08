@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Bookmark, Share2, ShieldCheck, Users } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ugc/workspace/ugc-campaign-utils";
 import { MetricTile, Pill, ProgressBar, SectionCard } from "./campaign-detail-ui";
 import { UGCPlatformMarks } from "@/components/ugc/workspace/UGCPlatformMarks";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 type CampaignDetailSidebarProps = {
   campaign: UGCCampaign;
@@ -135,19 +135,19 @@ export function CampaignDetailSidebar({
         </div>
 
         {isActive && !isPending ? (
-          <Link
+          <JoinCampaignGateLink
             href={joinHref}
             className="flex h-11 w-full items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
           >
             {joinLabel}
-          </Link>
+          </JoinCampaignGateLink>
         ) : isPending ? (
-          <Link
+          <JoinCampaignGateLink
             href={joinHref}
             className="flex h-11 w-full items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-[13px] font-bold text-amber-800"
           >
             {joinLabel}
-          </Link>
+          </JoinCampaignGateLink>
         ) : (
           <span className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] text-[13px] font-semibold text-[#9CA3AF]">
             Campaign closed
@@ -234,7 +234,7 @@ export function CampaignDetailMobileCta({
           </p>
         </div>
         {isActive || isPending ? (
-          <Link
+          <JoinCampaignGateLink
             href={joinHref}
             className={cn(
               "flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-bold shadow-[0_4px_16px_rgba(255,90,31,0.3)]",
@@ -244,7 +244,7 @@ export function CampaignDetailMobileCta({
             )}
           >
             {joinLabel}
-          </Link>
+          </JoinCampaignGateLink>
         ) : (
           <div className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-[#F3F4F6] text-sm font-semibold text-[#9CA3AF]">
             Unavailable

@@ -22,6 +22,7 @@ import {
   isFeaturedCampaign,
 } from "@/lib/ugc/campaign-detail";
 import { Pill } from "./campaign-detail-ui";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 type CampaignDetailHeroProps = {
   campaign: UGCCampaign;
@@ -187,19 +188,19 @@ export function CampaignDetailHero({
               {copied ? "Copied" : "Copy link"}
             </button>
             {isActive && !isPending && campaign.join_mode !== "invite_only" ? (
-              <Link
+              <JoinCampaignGateLink
                 href={joinHref}
                 className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,90,31,0.28)] transition hover:bg-[#E54E18]"
               >
                 {joinLabel}
-              </Link>
+              </JoinCampaignGateLink>
             ) : isPending ? (
-              <Link
+              <JoinCampaignGateLink
                 href={joinHref}
                 className="inline-flex h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-5 text-[13px] font-bold text-amber-800"
               >
                 {joinLabel}
-              </Link>
+              </JoinCampaignGateLink>
             ) : (
               <span className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-5 text-[13px] font-semibold text-[#9CA3AF]">
                 Unavailable

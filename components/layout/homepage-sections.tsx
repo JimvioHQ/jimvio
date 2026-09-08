@@ -28,6 +28,7 @@ import { HomepageTrendingProductsClient } from "@/components/layout/homepage-tre
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -587,12 +588,12 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
           </span>
 
           <div className="absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3">
-            <Link
+            <JoinCampaignGateLink
               href={`/ugc/${c.id}/join`}
               className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition-colors hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
             >
               Join Campaign
-            </Link>
+            </JoinCampaignGateLink>
           </div>
         </div>
 

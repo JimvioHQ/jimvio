@@ -15,6 +15,7 @@ import {
 } from "./ugc-campaign-utils";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { campaignFallbackStyle, UGCPlatformMarks } from "./UGCPlatformMarks";
+import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
 /** Clean white stage — orange only as a whisper of atmosphere, never a blob. */
 const STAGE_BG = "#FFFFFF";
@@ -142,7 +143,11 @@ function FeaturedCopy({
 
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {canJoin ? (
-          <Link href={`/ugc/${campaign.id}/join`} data-hero-action onClick={(e) => e.stopPropagation()}>
+          <JoinCampaignGateLink
+            href={`/ugc/${campaign.id}/join`}
+            data-hero-action
+            onClick={(e) => e.stopPropagation()}
+          >
             <span
               className="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:brightness-[0.97] sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
               style={{
@@ -152,7 +157,7 @@ function FeaturedCopy({
             >
               {t("joinCampaign")}
             </span>
-          </Link>
+          </JoinCampaignGateLink>
         ) : null}
         <Link
           href={`/ugc/${campaign.id}`}
