@@ -1,5 +1,4 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
 import DOMPurify from "isomorphic-dompurify";
