@@ -14,31 +14,33 @@ import {
   getClipRateBadge,
 } from "./ugc-campaign-utils";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
-import { campaignFallbackStyle, UGCPlatformMarks } from "./UGCPlatformMarks";
+import { UGCPlatformMarks } from "./UGCPlatformMarks";
 import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
-/** Clean white stage — orange only as a whisper of atmosphere. */
+/** Premium white stage — no atmosphere blobs, radial glows, or tint overlays. */
 const STAGE_BG = "#FFFFFF";
-const STAGE_ATMOSPHERE =
-  "linear-gradient(135deg, #FFFFFF 0%, rgba(255,90,31,0.025) 55%, #FFFFFF 100%)";
 const IMAGE_FADE =
   "linear-gradient(to right, #FFFFFF 0%, rgba(255,255,255,0.96) 18%, rgba(255,255,255,0.55) 42%, transparent 62%)";
 const MOBILE_TEXT =
   "linear-gradient(to right, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 48%, rgba(255,255,255,0.55) 72%, transparent 88%)";
+/** Flat featured fallback — never hue/radial decorative plates. */
+const FEATURED_FALLBACK_BG = { background: "#FFFFFF" } as const;
 
-/** Icon-only carousel control — no disc, border, shadow, or permanent ring. */
+/**
+ * Icon-only carousel control.
+ * Large transparent hit target; visual = chevron only.
+ * Keyboard focus uses ink→orange color (no circular ring/outline).
+ */
 const CAROUSEL_CTRL =
-  "absolute top-1/2 z-20 hidden -translate-y-1/2 appearance-none items-center justify-center border-0 bg-transparent p-0 text-[#111827]/50 shadow-none outline-none ring-0 [--tw-ring-color:#FF5A1F] transition-colors hover:text-[#111827] focus:outline-none focus:ring-0 focus-visible:text-[#111827] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5A1F]/70 focus-visible:ring-offset-0 sm:inline-flex";
+  "absolute top-1/2 z-20 hidden min-h-11 min-w-11 -translate-y-1/2 appearance-none items-center justify-center rounded-none border-0 bg-transparent p-0 text-[#111827]/55 shadow-none outline-none ring-0 ring-offset-0 transition-colors hover:text-[#111827] focus:outline-none focus:ring-0 focus-visible:bg-transparent focus-visible:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:inline-flex";
 
 function FeaturedStage({
   banner,
   brand,
-  campaignId,
   mobile,
 }: {
   banner: string | null;
   brand: string;
-  campaignId: string;
   mobile?: boolean;
 }) {
   return (
@@ -75,8 +77,8 @@ function FeaturedStage({
           />
         </>
       ) : (
-        <div className="absolute inset-0" style={campaignFallbackStyle(brand + campaignId)}>
-          <span className="relative z-10 grid h-full place-items-center text-[42px] font-bold tracking-tight text-[#111827]/18">
+        <div className="absolute inset-0" style={FEATURED_FALLBACK_BG}>
+          <span className="relative z-10 grid h-full place-items-center text-[42px] font-bold tracking-tight text-[#111827]/16">
             {brand.slice(0, 2).toUpperCase()}
           </span>
         </div>
@@ -257,12 +259,6 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
           if (dx < -40) go(1);
         }}
       >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: STAGE_ATMOSPHERE }}
-          aria-hidden
-        />
-
         <div className="relative flex h-full flex-row sm:hidden">
           <div
             className="relative z-10 flex h-full w-[55%] min-w-0 flex-col justify-center p-3 pr-2"
@@ -271,12 +267,12 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
             <FeaturedCopy campaign={c} variant="mobile" />
           </div>
           <div className="relative z-[15] h-full w-[45%] shrink-0 self-stretch">
-            <FeaturedStage banner={banner} brand={brand} campaignId={c.id} mobile />
+            <FeaturedStage banner={banner} brand={brand} mobile />
           </div>
         </div>
 
         <div className="absolute inset-y-0 right-0 hidden w-[56%] bg-white sm:block lg:w-[55%]" style={{ zIndex: 1 }}>
-          <FeaturedStage banner={banner} brand={brand} campaignId={c.id} />
+          <FeaturedStage banner={banner} brand={brand} />
           <div className="pointer-events-none absolute inset-0" style={{ background: IMAGE_FADE }} />
         </div>
 
@@ -325,10 +321,12 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
                   aria-label={`Show featured campaign ${i + 1}`}
                   onClick={() => setIndex(i)}
                   className={cn(
-                    "appearance-none border-0 p-0 shadow-none outline-none ring-0 [--tw-ring-color:#FF5A1F] transition-all",
-                    "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#FF5A1F]/70 focus-visible:ring-offset-0",
-                    "h-1.5 rounded-full",
-                    i === index ? "w-5 bg-[#FF5A1F]" : "w-1.5 bg-[#D1D5DB] hover:bg-[#9CA3AF]",
+                    "appearance-none rounded-full border-0 bg-transparent p-0 shadow-none outline-none ring-0 ring-offset-0 transition-all",
+                    "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                    "h-1.5",
+                    i === index
+                      ? "w-5 bg-[#FF5A1F] focus-visible:bg-[#E54E18]"
+                      : "w-1.5 bg-[#D1D5DB] hover:bg-[#9CA3AF] focus-visible:bg-[#FF5A1F]",
                   )}
                 />
               ))}
