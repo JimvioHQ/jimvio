@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -213,6 +214,7 @@ interface NavbarProps {
 export function Navbar({ user, marketing }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawerPortalEl, setDrawerPortalEl] = useState<HTMLElement | null>(null);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -227,6 +229,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const { openAssistant } = useAIStore();
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const pathname = usePathname();
+
+  // Portal target ready on first client paint (layout) — no data gate.
+  useLayoutEffect(() => {
+    setDrawerPortalEl(document.body);
+  }, []);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -509,20 +516,24 @@ export function Navbar({ user, marketing }: NavbarProps) {
       </div>
 
       {/*
-        Drawer + bottom nav MUST sit outside the backdrop-blur shell.
-        A filtered/blurred ancestor creates a containing block that traps
-        position:fixed to ~header height (blank/clipped drawer).
-        Keep them always mounted — no portal readiness gate.
+        Bottom nav stays in-tree outside the blur shell (no portal gate).
+        Drawer portals to document.body so no ancestor stacking/clipping
+        (including header pointer-events / future transforms) can trap it.
       */}
-      <MobileDrawer
-        open={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        user={user}
-        pathname={pathname}
-        marketplaceVariants={marketplaceVariants}
-        navLinks={navLinks}
-        openAssistant={openAssistant}
-      />
+      {drawerPortalEl
+        ? createPortal(
+            <MobileDrawer
+              open={mobileOpen}
+              onClose={() => setMobileOpen(false)}
+              user={user}
+              pathname={pathname}
+              marketplaceVariants={marketplaceVariants}
+              navLinks={navLinks}
+              openAssistant={openAssistant}
+            />,
+            drawerPortalEl,
+          )
+        : null}
       <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </header>
   );
@@ -647,7 +658,7 @@ function MobileDrawer({
 
   return (
     <>
-      {/* Backdrop — outside blur shell; full viewport */}
+      {/* Backdrop — CSS open only; never both pointer-events utilities at once */}
       <div
         aria-hidden={!open}
         onClick={onClose}
@@ -663,10 +674,12 @@ function MobileDrawer({
         aria-modal={open}
         aria-hidden={!open}
         className={cn(
-          "fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl pointer-events-auto md:hidden",
+          "fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl md:hidden",
           "pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]",
           "transition-transform duration-150 ease-out motion-reduce:transition-none",
-          open ? "translate-x-0" : "translate-x-full pointer-events-none",
+          open
+            ? "translate-x-0 pointer-events-auto"
+            : "translate-x-full pointer-events-none",
         )}
       >
             {/* Header */}
