@@ -594,24 +594,28 @@ function MobileDrawer({
   );
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[9998] bg-black/50"
-          />
+    <>
+      {/* Backdrop — always mounted; visibility is CSS-only */}
+      <div
+        aria-hidden={!open}
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 z-[9998] bg-black/50 transition-opacity duration-150 motion-reduce:transition-none md:hidden",
+          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+        )}
+      />
 
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "tween", duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
-            className="fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl pointer-events-auto"
-          >
+      {/* Drawer shell — always mounted so first open is transform-only (no cold remount) */}
+      <div
+        role="dialog"
+        aria-modal={open}
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl pointer-events-auto md:hidden",
+          "transition-transform duration-150 ease-out motion-reduce:transition-none",
+          open ? "translate-x-0" : "translate-x-full pointer-events-none",
+        )}
+      >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3.5">
               <JimvioLogo href="/" size="sm" onClick={onClose} />
@@ -788,9 +792,7 @@ function MobileDrawer({
               </div>
               <CurrencySelector className="h-8 border-0 bg-transparent text-[12px] font-medium text-[var(--color-text-muted)]" />
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }
