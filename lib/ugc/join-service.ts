@@ -96,6 +96,16 @@ type ProcessJoinInput = {
   existingParticipant?: { id: string; status: string } | null;
 };
 
+function isCapacityFullError(err: { message?: string; code?: string; hint?: string } | null | undefined): boolean {
+  if (!err) return false;
+  const msg = `${err.message ?? ""} ${err.hint ?? ""}`.toLowerCase();
+  return (
+    msg.includes("campaign is full") ||
+    msg.includes("max_participants") ||
+    (err.code === "23514" && msg.includes("full"))
+  );
+}
+
 export async function processCampaignJoin(input: ProcessJoinInput) {
   const {
     db,
@@ -183,11 +193,19 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
       .update(row)
       .eq("id", existingParticipant.id);
     if (error) {
+      if (isCapacityFullError(error)) {
+        return { ok: false as const, status: 409, error: "Campaign is full." };
+      }
       const { error: fallbackErr } = await db
         .from("ugc_campaign_participants")
         .update({ status: outcome.status, joined_at: now })
         .eq("id", existingParticipant.id);
-      if (fallbackErr) return { ok: false as const, status: 500, error: fallbackErr.message };
+      if (fallbackErr) {
+        if (isCapacityFullError(fallbackErr)) {
+          return { ok: false as const, status: 409, error: "Campaign is full." };
+        }
+        return { ok: false as const, status: 500, error: fallbackErr.message };
+      }
     }
   } else {
     const { data, error } = await db
@@ -196,6 +214,16 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
       .select("id")
       .single();
     if (error) {
+      if (isCapacityFullError(error)) {
+        return { ok: false as const, status: 409, error: "Campaign is full." };
+      }
+      if (error.code === "23505") {
+        return {
+          ok: false as const,
+          status: 409,
+          error: "You are already a participant in this campaign.",
+        };
+      }
       const { data: fallback, error: fallbackErr } = await db
         .from("ugc_campaign_participants")
         .insert({
@@ -206,7 +234,19 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
         })
         .select("id")
         .single();
-      if (fallbackErr) return { ok: false as const, status: 500, error: fallbackErr.message };
+      if (fallbackErr) {
+        if (isCapacityFullError(fallbackErr)) {
+          return { ok: false as const, status: 409, error: "Campaign is full." };
+        }
+        if (fallbackErr.code === "23505") {
+          return {
+            ok: false as const,
+            status: 409,
+            error: "You are already a participant in this campaign.",
+          };
+        }
+        return { ok: false as const, status: 500, error: fallbackErr.message };
+      }
       participantId = fallback.id;
     } else {
       participantId = data.id;
@@ -319,7 +359,12 @@ export async function reviewParticipant(
     .select("id")
     .maybeSingle();
 
-  if (updateErr) return { ok: false as const, status: 500, error: updateErr.message };
+  if (updateErr) {
+    if (isCapacityFullError(updateErr)) {
+      return { ok: false as const, status: 409, error: "Campaign is full." };
+    }
+    return { ok: false as const, status: 500, error: updateErr.message };
+  }
   if (!updatedRow) {
     return {
       ok: false as const,

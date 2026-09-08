@@ -101,6 +101,7 @@ export async function creditFixedPayoutIfNeeded(
     .from("ugc_payouts")
     .select("id, amount")
     .eq("submission_id", opts.submissionId)
+    .eq("is_fixed_one_shot", true)
     .limit(1);
 
   if (existingRows?.length) {
@@ -142,6 +143,7 @@ export async function creditFixedPayoutIfNeeded(
     .from("ugc_payouts")
     .select("id, amount")
     .eq("submission_id", opts.submissionId)
+    .eq("is_fixed_one_shot", true)
     .limit(1);
   if (racedRows?.length) {
     await revertBudget();
@@ -167,7 +169,8 @@ export async function creditFixedPayoutIfNeeded(
       amount: payout,
       status: "paid",
       paid_at: new Date().toISOString(),
-    })
+      is_fixed_one_shot: true,
+    } as Record<string, unknown>)
     .select("id")
     .maybeSingle();
 
@@ -183,6 +186,7 @@ export async function creditFixedPayoutIfNeeded(
     .from("ugc_payouts")
     .select("id")
     .eq("submission_id", opts.submissionId)
+    .eq("is_fixed_one_shot", true)
     .order("created_at", { ascending: true });
   if ((siblings?.length ?? 0) > 1 && siblings?.[0]?.id !== ugcPay.id) {
     await db.from("ugc_payouts").delete().eq("id", ugcPay.id);
