@@ -229,6 +229,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
   const pathname = usePathname();
 
   useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 15);
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
@@ -502,18 +506,23 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
           </div>
         </div>
-        {/* Mobile drawer — always in tree; open is CSS/animation only (no portal / data gate) */}
-        <MobileDrawer
-          open={mobileOpen}
-          onClose={() => setMobileOpen(false)}
-          user={user}
-          pathname={pathname}
-          marketplaceVariants={marketplaceVariants}
-          navLinks={navLinks}
-          openAssistant={openAssistant}
-        />
       </div>
 
+      {/*
+        Drawer + bottom nav MUST sit outside the backdrop-blur shell.
+        A filtered/blurred ancestor creates a containing block that traps
+        position:fixed to ~header height (blank/clipped drawer).
+        Keep them always mounted — no portal readiness gate.
+      */}
+      <MobileDrawer
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        user={user}
+        pathname={pathname}
+        marketplaceVariants={marketplaceVariants}
+        navLinks={navLinks}
+        openAssistant={openAssistant}
+      />
       <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </header>
   );
@@ -638,7 +647,7 @@ function MobileDrawer({
 
   return (
     <>
-      {/* Backdrop — always mounted; visibility is CSS-only */}
+      {/* Backdrop — outside blur shell; full viewport */}
       <div
         aria-hidden={!open}
         onClick={onClose}
@@ -655,6 +664,7 @@ function MobileDrawer({
         aria-hidden={!open}
         className={cn(
           "fixed inset-y-0 right-0 z-[9999] flex w-[min(100%,380px)] flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl pointer-events-auto md:hidden",
+          "pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]",
           "transition-transform duration-150 ease-out motion-reduce:transition-none",
           open ? "translate-x-0" : "translate-x-full pointer-events-none",
         )}

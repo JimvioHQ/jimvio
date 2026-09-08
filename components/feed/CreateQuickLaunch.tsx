@@ -21,8 +21,8 @@ type CreateMenuDropdownProps = {
 /**
  * Canonical global Create control.
  * Instant open — no API gating.
- * Header/compact/inline use a portaled Radix menu so ancestors with
- * overflow-x clip/hidden cannot trap or hide the panel (Home/Marketplace).
+ * Portaled via Radix so header overflow / page stacking cannot trap the panel.
+ * modal=true so mobile taps don't fall through to bottom nav / hero.
  */
 export function CreateMenuDropdown({
   variant = "rail",
@@ -45,6 +45,7 @@ export function CreateMenuDropdown({
       type="button"
       aria-expanded={open}
       aria-haspopup="menu"
+      aria-label="Create"
       className={triggerClass}
     >
       <Plus className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" strokeWidth={2.5} />
@@ -70,17 +71,20 @@ export function CreateMenuDropdown({
 
   return (
     <div className={cn(className)}>
-      <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
+      <DropdownMenu modal open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           {trigger}
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align={variant === "rail" ? "start" : "end"}
+          side="bottom"
           sideOffset={8}
-          collisionPadding={12}
+          collisionPadding={16}
           className={cn(
-            "z-[120] border-0 bg-transparent p-0 shadow-none",
-            variant === "rail" ? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-[240px]" : "w-[300px]",
+            "z-[10050] border-0 bg-transparent p-0 shadow-none",
+            variant === "rail"
+              ? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-[240px]"
+              : "w-[min(300px,calc(100vw-1.5rem))]",
           )}
         >
           <CreateMenuPanel context={context} onItemClick={() => setOpen(false)} />

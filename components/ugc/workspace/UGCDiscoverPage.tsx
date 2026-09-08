@@ -16,22 +16,23 @@ import type {
 } from "./ugc-tokens";
 
 const LIMIT = 24;
+/** Mobile: true 2-column equal grid. sm+: fixed-width auto-fill like desktop marketplace cards. */
 const CARD_GRID =
-  "grid grid-cols-1 justify-start gap-2.5 sm:gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,236px))]";
+  "grid grid-cols-2 justify-start gap-2 sm:gap-3 sm:[grid-template-columns:repeat(auto-fill,minmax(220px,236px))]";
 
 function CardSkeleton() {
   return (
     <div className="overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(17,24,39,0.05)]">
-      <div className="aspect-[16/9] animate-pulse bg-[#F3F4F6]" />
-      <div className="space-y-1.5 px-2.5 pb-2.5 pt-2">
+      <div className="aspect-[4/3] animate-pulse bg-[#F3F4F6] sm:aspect-[16/9]" />
+      <div className="space-y-1.5 px-2 pb-2 pt-2 sm:px-2.5 sm:pb-2.5">
         <div className="flex items-center gap-1.5">
-          <div className="h-[18px] w-[18px] animate-pulse rounded-full bg-[#F3F4F6]" />
-          <div className="h-3 w-24 animate-pulse rounded bg-[#F3F4F6]" />
+          <div className="h-3.5 w-3.5 animate-pulse rounded-full bg-[#F3F4F6] sm:h-[18px] sm:w-[18px]" />
+          <div className="h-3 w-16 animate-pulse rounded bg-[#F3F4F6] sm:w-24" />
         </div>
-        <div className="h-4 w-full animate-pulse rounded bg-[#F3F4F6]" />
+        <div className="h-3.5 w-full animate-pulse rounded bg-[#F3F4F6] sm:h-4" />
         <div className="flex items-center justify-between pt-1">
-          <div className="h-3 w-20 animate-pulse rounded bg-[#F3F4F6]" />
-          <div className="h-5 w-14 animate-pulse rounded-full bg-[#EBF5FF]" />
+          <div className="h-3 w-14 animate-pulse rounded bg-[#F3F4F6] sm:w-20" />
+          <div className="h-4 w-10 animate-pulse rounded-full bg-[#EBF5FF] sm:h-5 sm:w-14" />
         </div>
       </div>
     </div>
@@ -322,7 +323,7 @@ export function UGCDiscoverPage() {
             ) : (
               <div className={CARD_GRID}>
                 {campaigns.map((c, i) => (
-                  <UGCPremiumCampaignCard key={c.id} campaign={c} index={i} />
+                  <UGCPremiumCampaignCard key={c.id} campaign={c} index={i} density="compact" />
                 ))}
               </div>
             )}

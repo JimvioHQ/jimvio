@@ -20,6 +20,11 @@ type UGCPremiumCampaignCardProps = {
   campaign: UGCCampaign;
   index?: number;
   featured?: boolean;
+  /**
+   * Compact density for mobile 2-column Discover grids.
+   * On `sm+` the card automatically expands to the default density.
+   */
+  density?: "default" | "compact";
   /** @deprecated Save control removed from Discover cards; API remains elsewhere */
   saved?: boolean;
   onToggleSave?: (campaignId: string) => void;
@@ -55,6 +60,7 @@ function JoinButton({
 function UGCPremiumCampaignCardInner({
   campaign: c,
   featured = false,
+  density = "default",
 }: UGCPremiumCampaignCardProps) {
   const { t } = useLocale();
   const banner = getCampaignBanner(c);
@@ -73,6 +79,7 @@ function UGCPremiumCampaignCardInner({
   const description = c.description?.replace(/\s+/g, " ").trim() || null;
   const descId = description ? `ugc-card-desc-${c.id}` : undefined;
   const joinLabel = t("joinCampaign");
+  const compact = density === "compact";
 
   return (
     <article
@@ -89,7 +96,12 @@ function UGCPremiumCampaignCardInner({
           featured && "shadow-[0_2px_8px_rgba(17,24,39,0.06)]",
         )}
       >
-        <div className="relative aspect-[16/9] shrink-0 overflow-hidden bg-[#F3F4F6]">
+        <div
+          className={cn(
+            "relative shrink-0 overflow-hidden bg-[#F3F4F6]",
+            compact ? "aspect-[4/3] sm:aspect-[16/9]" : "aspect-[16/9]",
+          )}
+        >
           <Link
             href={briefHref}
             className="absolute inset-0 block"
@@ -109,7 +121,12 @@ function UGCPremiumCampaignCardInner({
                 className="absolute inset-0 grid place-items-center"
                 style={campaignFallbackStyle(brand + c.id)}
               >
-                <span className="text-[24px] font-semibold tracking-tight text-[#111827]/25">
+                <span
+                  className={cn(
+                    "font-semibold tracking-tight text-[#111827]/25",
+                    compact ? "text-[18px] sm:text-[24px]" : "text-[24px]",
+                  )}
+                >
                   {brand.slice(0, 2).toUpperCase()}
                 </span>
               </div>
@@ -119,19 +136,29 @@ function UGCPremiumCampaignCardInner({
           {canJoin ? (
             <div
               className={cn(
-                "absolute inset-x-2 bottom-2 z-[1] transition-opacity duration-200",
+                "absolute inset-x-1.5 bottom-1.5 z-[1] transition-opacity duration-200 sm:inset-x-2 sm:bottom-2",
                 "opacity-100 sm:pointer-events-none sm:opacity-0",
                 "sm:group-hover/card:pointer-events-auto sm:group-hover/card:opacity-100",
                 "sm:group-focus-within/card:pointer-events-auto sm:group-focus-within/card:opacity-100",
               )}
             >
-              <JoinButton href={joinHref} title={c.title} label={joinLabel} />
+              <JoinButton
+                href={joinHref}
+                title={c.title}
+                label={joinLabel}
+                className={cn(compact && "h-6 px-2 text-[10px] sm:h-7 sm:px-2.5 sm:text-[11px]")}
+              />
             </div>
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col px-3 pb-3 pt-2.5">
-          <div className="flex min-w-0 items-center gap-1.5">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col",
+            compact ? "px-2 pb-2 pt-2 sm:px-3 sm:pb-3 sm:pt-2.5" : "px-3 pb-3 pt-2.5",
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-1 sm:gap-1.5">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -139,25 +166,56 @@ function UGCPremiumCampaignCardInner({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="h-[18px] w-[18px] shrink-0 rounded-full border border-[#E8EAED] object-cover"
+                className={cn(
+                  "shrink-0 rounded-full border border-[#E8EAED] object-cover",
+                  compact ? "h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" : "h-[18px] w-[18px]",
+                )}
               />
             ) : (
-              <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#111827] text-[8px] font-bold text-white">
+              <span
+                className={cn(
+                  "grid shrink-0 place-items-center rounded-full bg-[#111827] font-bold text-white",
+                  compact
+                    ? "h-3.5 w-3.5 text-[7px] sm:h-[18px] sm:w-[18px] sm:text-[8px]"
+                    : "h-[18px] w-[18px] text-[8px]",
+                )}
+              >
                 {brand[0]?.toUpperCase() ?? "B"}
               </span>
             )}
-            <span className="min-w-0 truncate text-[12px] font-semibold leading-none text-[#111827]">
+            <span
+              className={cn(
+                "min-w-0 truncate font-semibold leading-none text-[#111827]",
+                compact ? "text-[10px] sm:text-[12px]" : "text-[12px]",
+              )}
+            >
               {brand}
             </span>
-            {isVerified ? <UGCVerifiedBadge className="h-3 w-3 shrink-0" /> : null}
-            <UGCPlatformMarks platforms={platforms} size="sm" className="ml-auto shrink-0" />
+            {isVerified ? (
+              <UGCVerifiedBadge
+                className={cn("shrink-0", compact ? "h-2.5 w-2.5 sm:h-3 sm:w-3" : "h-3 w-3")}
+              />
+            ) : null}
+            <UGCPlatformMarks
+              platforms={platforms}
+              size="sm"
+              className={cn("ml-auto shrink-0", compact && "hidden sm:flex")}
+            />
           </div>
 
           {/* Fixed-height title slot: description overlays on hover-capable desktops only */}
-          <div className="relative mt-2.5 min-h-[40px] overflow-hidden">
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              compact ? "mt-1.5 min-h-[32px] sm:mt-2.5 sm:min-h-[40px]" : "mt-2.5 min-h-[40px]",
+            )}
+          >
             <h3
               id={`ugc-card-title-${c.id}`}
-              className="min-w-0 text-[15px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111827]"
+              className={cn(
+                "min-w-0 font-semibold leading-[1.25] tracking-[-0.01em] text-[#111827]",
+                compact ? "text-[12px] sm:text-[15px]" : "text-[15px]",
+              )}
             >
               <Link
                 href={briefHref}
@@ -181,9 +239,19 @@ function UGCPremiumCampaignCardInner({
             ) : null}
           </div>
 
-          <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+          <div
+            className={cn(
+              "mt-auto flex items-center justify-between gap-1.5",
+              compact ? "pt-2 sm:gap-2 sm:pt-3" : "gap-2 pt-3",
+            )}
+          >
             {showBudget ? (
-              <p className="min-w-0 truncate text-[12px] leading-none tabular-nums">
+              <p
+                className={cn(
+                  "min-w-0 truncate leading-none tabular-nums",
+                  compact ? "text-[10px] sm:text-[12px]" : "text-[12px]",
+                )}
+              >
                 <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>
                 <span className="font-medium text-[#9CA3AF]">
                   {" / "}
@@ -194,7 +262,14 @@ function UGCPremiumCampaignCardInner({
               <span className="min-w-0" />
             )}
             {rateBadge ? (
-              <span className="inline-flex h-[22px] shrink-0 items-center rounded-full bg-[#EBF5FF] px-2 text-[11px] font-semibold leading-none tabular-nums text-[#1D4ED8]">
+              <span
+                className={cn(
+                  "inline-flex shrink-0 items-center rounded-full bg-[#EBF5FF] px-1.5 font-semibold leading-none tabular-nums text-[#1D4ED8] sm:px-2",
+                  compact
+                    ? "h-[18px] text-[9px] sm:h-[22px] sm:text-[11px]"
+                    : "h-[22px] text-[11px]",
+                )}
+              >
                 {rateBadge}
               </span>
             ) : null}
