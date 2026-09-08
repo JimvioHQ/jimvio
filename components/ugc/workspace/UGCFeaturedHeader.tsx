@@ -16,11 +16,10 @@ import {
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { campaignFallbackStyle, UGCPlatformMarks } from "./UGCPlatformMarks";
 
-/** Clean white base with a restrained Jimvio-orange atmospheric glow. */
-const STAGE_BG =
-  "linear-gradient(135deg, #FFFFFF 0%, #FFFCFB 42%, #FFF7F3 72%, #FFFFFF 100%)";
-const STAGE_GLOW =
-  "radial-gradient(ellipse at 72% 42%, rgba(255,90,31,0.10) 0%, rgba(255,90,31,0.04) 38%, transparent 68%)";
+/** Clean white stage — orange only as a whisper of atmosphere, never a blob. */
+const STAGE_BG = "#FFFFFF";
+const STAGE_ATMOSPHERE =
+  "linear-gradient(135deg, #FFFFFF 0%, rgba(255,90,31,0.03) 55%, #FFFFFF 100%)";
 const IMAGE_FADE =
   "linear-gradient(to right, #FFFFFF 0%, rgba(255,255,255,0.92) 14%, rgba(255,255,255,0.35) 38%, transparent 58%)";
 const MOBILE_TEXT =
@@ -53,15 +52,8 @@ function FeaturedStage({
             aria-hidden
             className="absolute inset-0 h-full w-full object-cover"
             style={{
-              transform: "translate3d(0,0,0) scale(1.18)",
-              filter: "blur(24px) brightness(1.05) saturate(1.08)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at 50% 45%, rgba(255,90,31,0.08) 0%, transparent 70%)",
+              transform: "translate3d(0,0,0) scale(1.12)",
+              filter: "blur(20px) brightness(1.04) saturate(1.04)",
             }}
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -69,7 +61,6 @@ function FeaturedStage({
             src={banner}
             alt=""
             className="hero-product-float absolute inset-0 z-10 h-full w-full object-cover object-center"
-            style={{ filter: "drop-shadow(0 12px 28px rgba(17,24,39,0.18))" }}
           />
         </>
       ) : (
@@ -251,7 +242,11 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
           if (dx < -40) go(1);
         }}
       >
-        <div className="pointer-events-none absolute inset-0" style={{ background: STAGE_GLOW }} />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: STAGE_ATMOSPHERE }}
+          aria-hidden
+        />
 
         <div className="relative flex h-full flex-row sm:hidden">
           <div
@@ -270,7 +265,12 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
           <div className="pointer-events-none absolute inset-0" style={{ background: IMAGE_FADE }} />
         </div>
 
-        <div className="absolute inset-0 z-10 hidden flex-col justify-center p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">
+        <div
+          className={cn(
+            "absolute inset-0 z-10 hidden flex-col justify-center p-3 sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7",
+            multi && "sm:pl-12 lg:pl-14",
+          )}
+        >
           <FeaturedCopy campaign={c} variant="desktop" />
         </div>
 
@@ -281,18 +281,18 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
               data-hero-action
               onClick={() => go(-1)}
               aria-label="Previous featured campaign"
-              className="absolute left-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_10px_rgba(17,24,39,0.08)] hover:bg-[#F9FAFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:left-3"
+              className="absolute left-1 top-1/2 z-20 hidden min-h-11 min-w-11 -translate-y-1/2 place-items-center bg-transparent text-[#111827]/55 transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 sm:grid sm:left-2"
             >
-              <ChevronLeft className="h-5 w-5" aria-hidden />
+              <ChevronLeft className="h-6 w-6" strokeWidth={1.75} aria-hidden />
             </button>
             <button
               type="button"
               data-hero-action
               onClick={() => go(1)}
               aria-label="Next featured campaign"
-              className="absolute right-2 top-1/2 z-20 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_10px_rgba(17,24,39,0.08)] hover:bg-[#F9FAFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] sm:grid sm:right-3"
+              className="absolute right-1 top-1/2 z-20 hidden min-h-11 min-w-11 -translate-y-1/2 place-items-center bg-transparent text-[#111827]/55 transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 sm:grid sm:right-2"
             >
-              <ChevronRight className="h-5 w-5" aria-hidden />
+              <ChevronRight className="h-6 w-6" strokeWidth={1.75} aria-hidden />
             </button>
             <div
               className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5"

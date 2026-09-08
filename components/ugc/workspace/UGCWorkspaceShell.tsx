@@ -38,11 +38,12 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   }, [mobileNav]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F8FAFC]">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#F8FAFC]">
       <AppTopNav showUtilityBar activeNav="UGC & Clipping" user={user} />
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden shrink-0 lg:block">
+      {/* Viewport-locked row: sidebar stays put; only <main> scrolls (Affiliates pattern). */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside className="hidden h-full shrink-0 self-stretch overflow-hidden lg:block">
           <Suspense fallback={<div className="h-full w-[228px] animate-pulse bg-white" />}>
             <UGCWorkspaceSidebar />
           </Suspense>
