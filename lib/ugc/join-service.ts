@@ -270,6 +270,22 @@ export async function reviewParticipant(
     return { ok: false as const, status: 404, error: "Application not found" };
   }
 
+  const currentStatus = String(participant.status ?? "");
+  const reviewableFrom =
+    opts.action === "approve"
+      ? ["pending", "waitlisted", "invited"]
+      : opts.action === "waitlist"
+        ? ["pending", "invited"]
+        : ["pending", "waitlisted", "invited", "accepted"];
+
+  if (!reviewableFrom.includes(currentStatus)) {
+    return {
+      ok: false as const,
+      status: 400,
+      error: `Cannot ${opts.action} a participant with status “${currentStatus}”.`,
+    };
+  }
+
   const now = new Date().toISOString();
   let newStatus: string;
   let auditAction: "application_approved" | "application_rejected" | "application_waitlisted";
@@ -289,7 +305,7 @@ export async function reviewParticipant(
       break;
   }
 
-  const { error: updateErr } = await db
+  const { data: updatedRow, error: updateErr } = await db
     .from("ugc_campaign_participants")
     .update({
       status: newStatus,
@@ -297,9 +313,20 @@ export async function reviewParticipant(
       reviewed_at: now,
       review_feedback: opts.feedback ?? null,
     })
-    .eq("id", opts.participantId);
+    .eq("id", opts.participantId)
+    .eq("campaign_id", opts.campaignId)
+    .in("status", reviewableFrom)
+    .select("id")
+    .maybeSingle();
 
   if (updateErr) return { ok: false as const, status: 500, error: updateErr.message };
+  if (!updatedRow) {
+    return {
+      ok: false as const,
+      status: 409,
+      error: "Participant was updated by another review. Refresh and try again.",
+    };
+  }
 
   await logJoinAudit(db, {
     campaignId: opts.campaignId,

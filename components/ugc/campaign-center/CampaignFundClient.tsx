@@ -47,6 +47,8 @@ export function CampaignFundClient() {
   const router = useRouter();
   const { t } = useLocale();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
+  const [escrowHeld, setEscrowHeld] = useState(false);
+  const [showFundDespiteActive, setShowFundDespiteActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selection, setSelection] = useState<PaySelection>({
     kind: "external",
@@ -66,18 +68,31 @@ export function CampaignFundClient() {
     let cancelled = false;
     (async () => {
       try {
-        const [campaignRes, walletRes, providersRes] = await Promise.all([
+        const [campaignRes, walletRes, providersRes, escrowRes] = await Promise.all([
           fetch(`/api/ugc/campaigns/${id}`),
           fetch("/api/identity/wallet"),
           fetch("/api/platform/payment-providers"),
+          fetch(`/api/ugc/brand/campaigns/${id}/escrow`),
         ]);
         const json = await campaignRes.json();
         const walletJson = walletRes.ok ? await walletRes.json().catch(() => ({})) : {};
         const providersJson = providersRes.ok
           ? await providersRes.json().catch(() => ({}))
           : {};
+        const escrowJson = escrowRes.ok ? await escrowRes.json().catch(() => ({})) : {};
         if (!cancelled) {
           setCampaign(json.campaign ?? null);
+          const escRows = Array.isArray(escrowJson?.escrow)
+            ? escrowJson.escrow
+            : escrowJson?.escrow
+              ? [escrowJson.escrow]
+              : [];
+          setEscrowHeld(
+            escRows.some((e: { status?: string }) => {
+              const s = String(e?.status ?? "").toLowerCase();
+              return s === "held" || s === "funded" || s === "released";
+            }),
+          );
           setWalletBalance(Number(walletJson.balance ?? 0));
           setWalletCurrency(
             String(walletJson.currency || PLATFORM_CURRENCY).toUpperCase() || PLATFORM_CURRENCY,
@@ -223,7 +238,7 @@ export function CampaignFundClient() {
     );
   }
 
-  if (campaign.status === "active") {
+  if (campaign.status === "active" && escrowHeld) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#ECFDF5]">
@@ -239,6 +254,35 @@ export function CampaignFundClient() {
         >
           {t("viewActiveCampaigns")}
         </Link>
+      </div>
+    );
+  }
+
+  if (campaign.status === "active" && !escrowHeld && !showFundDespiteActive) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-50">
+          <Lock className="h-7 w-7 text-amber-700" />
+        </div>
+        <h1 className="mt-4 text-[22px] font-bold text-[#111827]">{t("alreadyActive")}</h1>
+        <p className="mt-2 text-[13px] text-[#6B7280]">
+          {t("alreadyActiveAdminDetail", { title: campaign.title })}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowFundDespiteActive(true)}
+            className="inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
+          >
+            {t("fundAdminActivatedCta")}
+          </button>
+          <Link
+            href="/ugc/campaign-center/active"
+            className="inline-flex h-10 items-center rounded-full border border-[#E5E7EB] px-5 text-[13px] font-semibold text-[#374151]"
+          >
+            {t("viewActiveCampaigns")}
+          </Link>
+        </div>
       </div>
     );
   }

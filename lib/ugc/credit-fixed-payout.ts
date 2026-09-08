@@ -88,10 +88,12 @@ export async function creditFixedPayoutIfNeeded(
   const payout = isFixed ? Number(campaign.fixed_rate ?? 0) : 0;
 
   if (!isFixed || !(payout > 0)) {
+    const priorApproved = campaign.approved_count ?? 0;
     await db
       .from("ugc_campaigns")
-      .update({ approved_count: (campaign.approved_count ?? 0) + 1 })
-      .eq("id", opts.campaignId);
+      .update({ approved_count: priorApproved + 1 })
+      .eq("id", opts.campaignId)
+      .eq("approved_count", priorApproved);
     return { ok: true, credited: false, amount: 0 };
   }
 

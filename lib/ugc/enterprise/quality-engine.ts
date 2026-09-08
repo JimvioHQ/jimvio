@@ -35,7 +35,9 @@ export async function computeCampaignQuality(db: SupabaseClient, campaignId: str
     reportCount = count ?? 0;
   }
 
-  const funded = Number(escrow?.amount ?? 0) > 0 || escrow?.status === "held" || escrow?.status === "funded";
+  // Only confirmed escrow counts as funded — pending payment intents must not.
+  const funded =
+    escrow?.status === "held" || escrow?.status === "funded" || escrow?.status === "released";
   const budget = Number(campaign.total_budget ?? 0);
   const spent = Number(campaign.spent_budget ?? 0);
   const subs = Number(campaign.submission_count ?? 0);

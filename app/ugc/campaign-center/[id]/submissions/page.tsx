@@ -59,7 +59,14 @@ export default function CampaignSubmissionsPage() {
   const campaignId = String(id ?? "");
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [statusFilter, setStatusFilter] = useState<
+    "pending" | "approved" | "rejected" | "revision_requested" | "all"
+  >("pending");
+  const [pipelineCounts, setPipelineCounts] = useState({
+    pending: 0,
+    approved: 0,
+    revision_requested: 0,
+  });
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -78,11 +85,21 @@ export default function CampaignSubmissionsPage() {
     try {
       const sp = new URLSearchParams({ campaignId });
       if (statusFilter !== "all") sp.set("status", statusFilter);
-      const res = await fetch(`/api/ugc/submissions?${sp.toString()}`, { cache: "no-store" });
+      const [res, countsRes] = await Promise.all([
+        fetch(`/api/ugc/submissions?${sp.toString()}`, { cache: "no-store" }),
+        fetch(`/api/ugc/submissions?campaignId=${campaignId}&limit=50`, { cache: "no-store" }),
+      ]);
       const json = await res.json().catch(() => ({}));
+      const countsJson = await countsRes.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load submissions");
       const list = (json.data ?? []) as SubmissionRow[];
       setSubmissions(list);
+      const allRows = (countsJson.data ?? []) as SubmissionRow[];
+      setPipelineCounts({
+        pending: allRows.filter((s) => s.status === "pending").length,
+        approved: allRows.filter((s) => s.status === "approved").length,
+        revision_requested: allRows.filter((s) => s.status === "revision_requested").length,
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load submissions");
     } finally {
@@ -243,15 +260,15 @@ export default function CampaignSubmissionsPage() {
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">Content Pipeline</p>
               <h2 className="mt-1 text-[18px] font-bold text-[#111827]">Review Queue</h2>
               <p className="mt-1 text-[13px] text-[#6B7280]">
-                {submissions.filter((s) => s.status === "pending").length} pending ·{" "}
-                {submissions.filter((s) => s.status === "approved").length} approved
+                {pipelineCounts.pending} pending · {pipelineCounts.revision_requested} revision ·{" "}
+                {pipelineCounts.approved} approved
               </p>
             </div>
           </div>
 
           <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              {(["pending", "approved", "rejected", "all"] as const).map((s) => (
+              {(["pending", "revision_requested", "approved", "rejected", "all"] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -261,7 +278,7 @@ export default function CampaignSubmissionsPage() {
                     statusFilter === s ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#374151]",
                   )}
                 >
-                  {s}
+                  {s === "revision_requested" ? "Revision" : s}
                 </button>
               ))}
 
@@ -436,7 +453,7 @@ export default function CampaignSubmissionsPage() {
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      {s.status === "pending" ? (
+                      {s.status === "pending" || s.status === "revision_requested" ? (
                         <>
                           <Button
                             size="sm"

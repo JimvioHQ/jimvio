@@ -31,7 +31,7 @@ export async function GET(
       `
       *,
       influencer:influencers!influencer_id (
-        id, display_name, profile_image, user_id, total_followers, engagement_rate, is_verified
+        id, display_name, profile_image, total_followers, engagement_rate, is_verified
       )
     `,
     )

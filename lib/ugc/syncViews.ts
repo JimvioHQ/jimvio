@@ -249,34 +249,15 @@ export async function syncAllApprovedSubmissions(): Promise<{
         continue;
       }
 
-      // 2d. Insert snapshot
-      const snapshotInsert = await db.from('ugc_view_snapshots').insert({
-        submission_id: sub.id,
-        views_at_snapshot: currentViews,
-        delta_views: delta,
-        earnings_this_snapshot: earningsThisSync,
-      });
-      if (snapshotInsert.error) throw new Error(snapshotInsert.error.message);
-
-      // 2e. Update submission totals
-      const { error: subUpdateErr } = await db
-        .from('ugc_submissions')
-        .update({
-          total_views_earned: (sub.total_views_earned ?? 0) + delta,
-          total_earnings: alreadyEarned + earningsThisSync,
-          last_synced_at: new Date().toISOString(),
-        })
-        .eq('id', sub.id);
-      if (subUpdateErr) throw new Error(subUpdateErr.message);
-
-      // 2f. CAS update campaign spent_budget + total_views_tracked (prevents overspend races)
+      // 2d. CAS budget first so a race never leaves orphaned snapshot/earnings.
       const spent = Number(campaign.spent_budget ?? 0);
       const newSpent = spent + earningsThisSync;
+      const viewsTracked = Number(campaign.total_views_tracked ?? 0);
       const { data: budgetRow } = await db
         .from('ugc_campaigns')
         .update({
           spent_budget: newSpent,
-          total_views_tracked: (campaign.total_views_tracked ?? 0) + delta,
+          total_views_tracked: viewsTracked + delta,
         })
         .eq('id', campaign.id)
         .eq('spent_budget', spent)
@@ -284,12 +265,54 @@ export async function syncAllApprovedSubmissions(): Promise<{
         .maybeSingle();
 
       if (!budgetRow) {
-        // Concurrent budget update — skip crediting this sync cycle
         skipped++;
         continue;
       }
+
+      const revertBudget = async () => {
+        await db
+          .from('ugc_campaigns')
+          .update({
+            spent_budget: spent,
+            total_views_tracked: viewsTracked,
+          })
+          .eq('id', campaign.id)
+          .eq('spent_budget', newSpent);
+      };
+
+      // 2e. Insert snapshot (only after budget reserved)
+      const snapshotInsert = await db.from('ugc_view_snapshots').insert({
+        submission_id: sub.id,
+        views_at_snapshot: currentViews,
+        delta_views: delta,
+        earnings_this_snapshot: earningsThisSync,
+      });
+      if (snapshotInsert.error) {
+        await revertBudget();
+        throw new Error(snapshotInsert.error.message);
+      }
+
+      // 2f. Update submission totals with CAS on prior earnings/views
+      const priorViews = sub.total_views_earned ?? 0;
+      const { data: subRow, error: subUpdateErr } = await db
+        .from('ugc_submissions')
+        .update({
+          total_views_earned: priorViews + delta,
+          total_earnings: alreadyEarned + earningsThisSync,
+          last_synced_at: new Date().toISOString(),
+        })
+        .eq('id', sub.id)
+        .eq('total_earnings', alreadyEarned)
+        .select('id')
+        .maybeSingle();
+      if (subUpdateErr || !subRow) {
+        await revertBudget();
+        skipped++;
+        continue;
+      }
+
       campaign.spent_budget = newSpent;
-      campaign.total_views_tracked = (campaign.total_views_tracked ?? 0) + delta;
+      campaign.total_views_tracked = viewsTracked + delta;
 
       // auto-pause if budget exhausted
       if (newSpent >= campaign.total_budget) {
@@ -300,29 +323,59 @@ export async function syncAllApprovedSubmissions(): Promise<{
         campaign.status = 'paused';
       }
 
-      // 2g. Credit influencer in PENDING state (Fraud Delay)
-      await db
+      // 2g. Credit influencer in PENDING state (Fraud Delay) with pending_balance CAS
+      const priorPending = Number(influencer.pending_balance ?? 0);
+      const priorEarned = Number(influencer.total_earnings ?? 0);
+      const { data: infRow } = await db
         .from('influencers')
         .update({
-          total_earnings: (influencer.total_earnings ?? 0) + earningsThisSync,
-          pending_balance: (influencer.pending_balance ?? 0) + earningsThisSync,
+          total_earnings: priorEarned + earningsThisSync,
+          pending_balance: priorPending + earningsThisSync,
         })
-        .eq('id', influencer.id);
+        .eq('id', influencer.id)
+        .eq('pending_balance', priorPending)
+        .select('id')
+        .maybeSingle();
+      if (!infRow) {
+        await revertBudget();
+        skipped++;
+        continue;
+      }
+      influencer.pending_balance = priorPending + earningsThisSync;
+      influencer.total_earnings = priorEarned + earningsThisSync;
 
-      // 2h. Credit wallet (Pending buffer)
+      // 2h. Credit wallet (Pending buffer) with pending_balance CAS
       const { data: walletRow } = await db
         .from('wallets')
         .select('pending_balance, total_earned')
         .eq('user_id', influencer.user_id)
-        .single();
+        .maybeSingle();
       if (walletRow) {
-        await db
+        const wPending = Number((walletRow as { pending_balance: number }).pending_balance ?? 0);
+        const wEarned = Number((walletRow as { total_earned: number }).total_earned ?? 0);
+        const { data: wUpdated } = await db
           .from('wallets')
           .update({
-            pending_balance: ((walletRow as { pending_balance: number }).pending_balance ?? 0) + earningsThisSync,
-            total_earned: ((walletRow as { total_earned: number }).total_earned ?? 0) + earningsThisSync,
+            pending_balance: wPending + earningsThisSync,
+            total_earned: wEarned + earningsThisSync,
           })
-          .eq('user_id', influencer.user_id);
+          .eq('user_id', influencer.user_id)
+          .eq('pending_balance', wPending)
+          .select('user_id')
+          .maybeSingle();
+        if (!wUpdated) {
+          await db
+            .from('influencers')
+            .update({
+              total_earnings: priorEarned,
+              pending_balance: priorPending,
+            })
+            .eq('id', influencer.id)
+            .eq('pending_balance', priorPending + earningsThisSync);
+          await revertBudget();
+          skipped++;
+          continue;
+        }
       }
 
       // 2i. Insert payout record (Pending 48 Hrs)

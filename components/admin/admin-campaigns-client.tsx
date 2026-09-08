@@ -306,9 +306,10 @@ export function AdminCampaignsClient() {
                       <td className="min-w-[140px] px-3 py-3">
                         <CampaignBudgetBar spent={c.spent_budget ?? 0} total={c.total_budget ?? 0} />
                         <p className="mt-1 text-[10.5px] text-[var(--color-text-muted)]">
-                          {formatUgcFundingUsd(c.spent_budget ?? 0)} / {formatUgcFundingUsd(c.total_budget ?? 0)}
+                          Spent {formatUgcFundingUsd(c.spent_budget ?? 0)} / budget{" "}
+                          {formatUgcFundingUsd(c.total_budget ?? 0)}
                           {" · "}
-                          {fundingLabel(c.escrow_state)}
+                          Escrow: {fundingLabel(c.escrow_state)}
                         </p>
                       </td>
                       <td className="px-3 py-3">
@@ -360,7 +361,7 @@ export function AdminCampaignsClient() {
               Funding will not be recorded by this action.
             </p>
             <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
-              Current funding: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · {fundingLabel(pending.escrow_state)}
+              Budget spent: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · Escrow: {fundingLabel(pending.escrow_state)}
             </p>
             <label className="mt-4 block text-[12px] font-medium text-[var(--color-text-secondary)]">
               Reason for activation (optional)
