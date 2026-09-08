@@ -58,6 +58,9 @@ const nextConfig: NextConfig = {
       // Community hub: /c → /communities (permanent for bookmarks + SEO)
       { source: "/c", destination: "/communities", permanent: true },
       { source: "/c/:path*", destination: "/communities/:path*", permanent: true },
+      // Canonical account destinations
+      { source: "/ugc/saved", destination: "/saved", permanent: false },
+      { source: "/inbox", destination: "/notifications", permanent: false },
     ];
   },
 
