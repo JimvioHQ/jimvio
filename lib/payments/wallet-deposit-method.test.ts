@@ -10,7 +10,10 @@ import {
 import {
   normalizeWalletWithdrawalMethod,
   validateWithdrawalDestination,
+  validateWithdrawalDestinationDetails,
   toCreatorPayoutDbMethod,
+  withdrawalSpeedLabel,
+  customerFacingWithdrawalStatus,
   WALLET_WITHDRAWAL_METHODS,
 } from "./wallet-payout-method";
 import { calculateWithdrawalFee } from "./withdrawal-fees";
@@ -76,6 +79,56 @@ describe("wallet withdrawal method normalization", () => {
       [...WALLET_WITHDRAWAL_METHODS].sort(),
       ["bank", "binance_id", "crypto", "mobile_money"].sort(),
     );
+  });
+
+  it("uses neutral processing copy (no admin language)", () => {
+    assert.equal(withdrawalSpeedLabel("binance_id").toLowerCase().includes("admin"), false);
+    assert.equal(withdrawalSpeedLabel("crypto").toLowerCase().includes("admin"), false);
+    assert.equal(customerFacingWithdrawalStatus("paid").label, "Completed");
+    assert.equal(customerFacingWithdrawalStatus("pending").label, "Pending");
+  });
+
+  it("validates Rwanda bank catalog selection and custom banks", () => {
+    const catalog = validateWithdrawalDestinationDetails("bank", {
+      method: "bank",
+      country: "RW",
+      bankId: "rw_bk",
+      accountHolder: "Jane Doe",
+      accountNumber: "1234567890",
+    });
+    assert.equal(catalog.ok, true);
+    if (catalog.ok) {
+      assert.equal(catalog.details.bankName, "Bank of Kigali");
+    }
+    const custom = validateWithdrawalDestinationDetails("bank", {
+      method: "bank",
+      country: "RW",
+      bankId: "custom",
+      bankName: "My Microfinance",
+      accountHolder: "Jane Doe",
+      accountNumber: "1234567890",
+    });
+    assert.equal(custom.ok, true);
+    const missingCustom = validateWithdrawalDestinationDetails("bank", {
+      method: "bank",
+      country: "RW",
+      bankId: "custom",
+      bankName: "",
+      accountHolder: "Jane Doe",
+      accountNumber: "1234567890",
+    });
+    assert.equal(missingCustom.ok, false);
+  });
+
+  it("allows custom mobile money provider", () => {
+    const ok = validateWithdrawalDestinationDetails("mobile_money", {
+      method: "mobile_money",
+      country: "RW",
+      provider: "custom",
+      customProviderName: "Local Wallet Co",
+      phone: "+250788123456",
+    });
+    assert.equal(ok.ok, true);
   });
 });
 

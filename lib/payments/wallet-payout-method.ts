@@ -4,6 +4,11 @@
  * Flutterwave remains fully supported for deposits/payments elsewhere.
  */
 
+import {
+  CUSTOM_INSTITUTION_ID,
+  resolveBankDisplayName,
+} from "@/lib/payments/payout-provider-catalog";
+
 export const WALLET_WITHDRAWAL_METHODS = [
   "bank",
   "mobile_money",
@@ -102,18 +107,19 @@ export function walletWithdrawalMethodLabel(
   }
 }
 
+/** Customer-facing processing estimate — never exposes internal staff workflow. */
 export function withdrawalSpeedLabel(method: WalletWithdrawalMethod): string {
   switch (method) {
     case "binance_id":
-      return "Processed after admin confirmation";
+      return "Usually processed within 1 business day";
     case "mobile_money":
-      return "Typically 1 business day after approval";
+      return "Usually processed within 1 business day";
     case "crypto":
-      return "Processed after admin + network confirmation";
+      return "Network processing required · typically 1–2 business days";
     case "bank":
-      return "2–5 business days after approval";
+      return "Usually processed within 2–5 business days";
     default:
-      return "Pending approval";
+      return "Processing time varies";
   }
 }
 
@@ -121,6 +127,42 @@ export function withdrawalProcessingEstimate(
   method: WalletWithdrawalMethod,
 ): string {
   return withdrawalSpeedLabel(method);
+}
+
+/** Map DB payout status → customer-facing label (no internal ops language). */
+export function customerFacingWithdrawalStatus(
+  status: string | null | undefined,
+): { key: string; label: string } {
+  const s = String(status ?? "").toLowerCase();
+  if (s === "paid" || s === "completed") {
+    return { key: "completed", label: "Completed" };
+  }
+  if (s === "processing") {
+    return { key: "processing", label: "Processing" };
+  }
+  if (s === "failed" || s === "rejected") {
+    return { key: "failed", label: "Failed" };
+  }
+  if (s === "cancelled" || s === "canceled") {
+    return { key: "cancelled", label: "Cancelled" };
+  }
+  if (s === "pending") {
+    return { key: "pending", label: "Pending" };
+  }
+  return { key: s || "pending", label: s ? s.charAt(0).toUpperCase() + s.slice(1) : "Pending" };
+}
+
+/**
+ * Payout methods available for a country.
+ * Bank + global methods always; Mobile Money only where catalogued.
+ */
+export function payoutMethodsForCountry(countryCode: string): WalletWithdrawalMethod[] {
+  const code = String(countryCode || "").toUpperCase();
+  const methods: WalletWithdrawalMethod[] = ["bank", "binance_id", "crypto"];
+  if (MOBILE_MONEY_BY_COUNTRY[code]) {
+    methods.splice(1, 0, "mobile_money");
+  }
+  return methods;
 }
 
 // ─── Country / provider / crypto config ──────────────────────────────────────
@@ -346,6 +388,8 @@ export type WithdrawalDestinationDetails = {
   method: WalletWithdrawalMethod;
   // Bank
   country?: string;
+  /** Catalog bank id, or `custom` for free-text institution */
+  bankId?: string;
   bankName?: string;
   accountHolder?: string;
   accountNumber?: string;
@@ -358,6 +402,8 @@ export type WithdrawalDestinationDetails = {
   currency?: string;
   // Mobile money
   provider?: string;
+  /** When provider === custom */
+  customProviderName?: string;
   phone?: string;
   // Binance
   binanceId?: string;
@@ -381,9 +427,14 @@ export function maskDestinationDisplay(
 ): string {
   switch (method) {
     case "bank":
-      return `Bank ${maskTail(details.accountNumber || details.iban || "")}`;
-    case "mobile_money":
-      return `Mobile Money ${maskTail(details.phone || "", 4)}`;
+      return `${details.bankName || "Bank"} ${maskTail(details.accountNumber || details.iban || "")}`;
+    case "mobile_money": {
+      const providerLabel =
+        details.provider === CUSTOM_INSTITUTION_ID
+          ? details.customProviderName || "Mobile Money"
+          : details.provider || "Mobile Money";
+      return `${providerLabel} ${maskTail(details.phone || "", 4)}`;
+    }
     case "binance_id":
       return `Binance ID ${maskTail(details.binanceId || "", 4)}`;
     case "crypto":
@@ -433,10 +484,21 @@ export function validateWithdrawalDestinationDetails(
     case "bank": {
       const country = String(details.country || "OTHER").toUpperCase();
       const cfg = BANK_COUNTRY_CONFIG[country] ?? BANK_COUNTRY_CONFIG.OTHER;
-      const bankName = String(details.bankName ?? "").trim();
+      const bankId = String(details.bankId ?? "").trim() || CUSTOM_INSTITUTION_ID;
+      const bankName = resolveBankDisplayName(
+        country,
+        bankId,
+        details.bankName,
+      );
       const accountHolder = String(details.accountHolder ?? "").trim();
       if (bankName.length < 2) {
-        return { ok: false, error: "Enter the bank name" };
+        return {
+          ok: false,
+          error:
+            bankId === CUSTOM_INSTITUTION_ID
+              ? "Enter the bank or institution name"
+              : "Select your bank",
+        };
       }
       if (accountHolder.length < 2) {
         return { ok: false, error: "Enter the account holder name" };
@@ -480,6 +542,7 @@ export function validateWithdrawalDestinationDetails(
       const normalized: WithdrawalDestinationDetails = {
         method: "bank",
         country,
+        bankId,
         bankName,
         accountHolder,
         accountNumber: accountNumber || undefined,
@@ -505,25 +568,48 @@ export function validateWithdrawalDestinationDetails(
         return { ok: false, error: "Select a supported mobile money country" };
       }
       const provider = String(details.provider ?? "").trim();
-      if (!cfg.providers.some((p) => p.id === provider)) {
+      const isCustom = provider === CUSTOM_INSTITUTION_ID;
+      if (!isCustom && !cfg.providers.some((p) => p.id === provider)) {
         return { ok: false, error: "Select a mobile money provider for this country" };
+      }
+      const customProviderName = String(details.customProviderName ?? "").trim();
+      if (isCustom && customProviderName.length < 2) {
+        return { ok: false, error: "Enter the mobile money provider name" };
       }
       const phoneRaw = String(details.phone ?? "").replace(/[\s()-]/g, "");
       if (!/^\+?\d{8,15}$/.test(phoneRaw)) {
         return { ok: false, error: "Enter a valid phone number with country code" };
       }
+      // Rwanda: prefer +250 and 9-digit local after country code when provided with dial
+      if (country === "RW") {
+        const digits = phoneRaw.replace(/^\+/, "");
+        const local =
+          digits.startsWith("250") && digits.length >= 12
+            ? digits.slice(3)
+            : digits.replace(/^0+/, "");
+        if (local.length !== 9 || !/^[7]\d{8}$/.test(local)) {
+          // Soft check: only enforce when number is clearly Rwanda-formatted
+          if (phoneRaw.includes("250") || phoneRaw.startsWith("+250") || phoneRaw.startsWith("07")) {
+            return {
+              ok: false,
+              error: "Enter a valid Rwanda mobile number (+250 7XX XXX XXX)",
+            };
+          }
+        }
+      }
       const accountHolder = String(details.accountHolder ?? "").trim();
+      let phone = phoneRaw;
+      if (!phoneRaw.startsWith("+")) {
+        phone = `${cfg.dial}${phoneRaw.replace(/^0+/, "")}`;
+      }
       const normalized: WithdrawalDestinationDetails = {
         method: "mobile_money",
         country,
-        provider,
-        phone: phoneRaw.startsWith("+") ? phoneRaw : `${cfg.dial}${phoneRaw.replace(/^\+?/, "")}`,
+        provider: isCustom ? CUSTOM_INSTITUTION_ID : provider,
+        customProviderName: isCustom ? customProviderName : undefined,
+        phone,
         accountHolder: accountHolder || undefined,
       };
-      // Normalize phone: if user omitted +, prefix dial when local length looks right
-      if (!phoneRaw.startsWith("+")) {
-        normalized.phone = `${cfg.dial}${phoneRaw.replace(/^0+/, "")}`;
-      }
       return {
         ok: true,
         account: JSON.stringify(normalized),

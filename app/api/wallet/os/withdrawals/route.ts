@@ -14,6 +14,7 @@ import {
   validateWithdrawalDestinationDetails,
   walletWithdrawalMethodLabel,
   withdrawalProcessingEstimate,
+  customerFacingWithdrawalStatus,
   type WithdrawalDestinationDetails,
 } from "@/lib/payments/wallet-payout-method";
 import {
@@ -85,13 +86,17 @@ export async function GET(req: NextRequest) {
     created_at: string;
     processed_at: string | null;
     release_date: string | null;
-  }) => ({
+  }) => {
+    const face = customerFacingWithdrawalStatus(row.status);
+    return {
     id: row.id,
     amount: Number(row.amount ?? 0),
     fee: Number(row.fee ?? 0),
     netAmount: Number(row.net_amount ?? row.amount ?? 0),
     currency: row.currency ?? PLATFORM_CURRENCY,
     status: row.status,
+    statusKey: face.key,
+    statusLabel: face.label,
     method: row.payout_method ?? null,
     payoutMethod: row.payout_method ?? null,
     methodLabel: walletWithdrawalMethodLabel(row.payout_method),
@@ -102,24 +107,56 @@ export async function GET(req: NextRequest) {
     ),
     reference: row.provider_reference ?? null,
     providerReference: row.provider_reference ?? null,
-    notes: row.notes ?? null,
+    // Never expose internal operational notes to the customer API surface
     createdAt: row.created_at,
     processedAt: row.processed_at ?? null,
     releaseDate: row.release_date ?? null,
-  }));
+  };
+  });
+
+  const methods = await listPayoutMethods(user.id);
+  const savedMethods = (methods ?? []).map(
+    (row: {
+      id: string;
+      method: string;
+      account_details: Record<string, unknown> | null;
+      is_default: boolean | null;
+      is_active: boolean | null;
+    }) => {
+      const details = (row.account_details ?? {}) as WithdrawalDestinationDetails;
+      const canonical = normalizeWalletWithdrawalMethod(row.method);
+      const accountJson =
+        typeof row.account_details === "object" && row.account_details
+          ? JSON.stringify({ ...details, method: canonical ?? row.method })
+          : String(row.account_details ?? "");
+      return {
+        id: row.id,
+        method: row.method,
+        methodLabel: walletWithdrawalMethodLabel(row.method),
+        isDefault: Boolean(row.is_default),
+        isActive: row.is_active !== false,
+        accountDetails: row.account_details ?? {},
+        maskedDisplay: canonical
+          ? formatStoredPayoutAccount(canonical, accountJson)
+          : "Saved destination",
+      };
+    },
+  );
 
   return NextResponse.json({
     currency: PLATFORM_CURRENCY,
     availableBalance: Number(wallet.available_balance ?? 0),
     feeRules: WITHDRAWAL_FEE_RULES,
     methods: ["bank", "mobile_money", "binance_id", "crypto"],
+    savedMethods,
     withdrawals,
   });
 }
 
 /**
  * POST /api/wallet/os/withdrawals — creates a withdrawal request.
- * Manual admin-confirmed workflow. Session auth required; Wallet PIN not required.
+ * Funds are reserved (available → pending) until payout completes or fails.
+ * Session auth required; Wallet PIN not required.
  *
  * Validation order (intentional):
  * 1) method / destination contract

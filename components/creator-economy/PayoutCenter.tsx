@@ -71,9 +71,9 @@ export function PayoutCenter() {
     }
     setMessage(
       method === "binance_id"
-        ? "Binance ID saved. Withdrawals stay pending until payout is confirmed."
+        ? "Binance ID saved. Withdrawals remain Pending until payout is completed."
         : method === "crypto"
-          ? "Crypto method saved. Withdrawals stay pending until payout is confirmed."
+          ? "Crypto method saved. Withdrawals remain Pending until payout is completed."
           : "Payout method saved.",
     );
     setAccount("");

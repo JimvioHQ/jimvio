@@ -163,9 +163,9 @@ export async function requestWithdrawal(input: {
       payout_account: JSON.stringify(method.account_details),
       notes:
         selectable === "crypto"
-          ? "Crypto payout request; processing pending admin confirmation."
+          ? "Crypto payout request; awaiting payout processing."
           : selectable === "binance_id"
-            ? "Binance ID payout request; processing pending admin confirmation."
+            ? "Binance ID payout request; awaiting payout processing."
             : null,
     })
     .select()
