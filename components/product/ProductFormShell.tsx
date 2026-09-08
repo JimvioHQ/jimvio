@@ -26,6 +26,8 @@ import {
     updateAdminProduct,
     type AdminProductUpdateInput,
 } from "@/lib/actions/admin-products";
+import { upsertSellerProduct, getSellerUploadContext } from "@/lib/actions/seller-products";
+import { CategoryTreeSelect } from "@/components/product/CategoryTreeSelect";
 import { saveProductVideos } from "@/lib/actions/product-videos";
 import { sortProductVideoRows } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -199,7 +201,7 @@ interface FormState {
     show_author: boolean;
     show_reviews: boolean;
     enable_discussions: boolean;
-    status: "active" | "draft" | "paused" | "archived";
+    status: "active" | "draft" | "paused" | "archived" | "pending_review" | "rejected";
     discount_enabled: boolean;
     compare_at_price: string;
     discount_label: string;
@@ -752,13 +754,15 @@ function RightSidebar({
 
 /* ── STEP 1: Details ── */
 function StepDetails({
-    form, handleChange, categories, handleImageUpload, removeImage,
+    form, handleChange, categories, handleImageUpload, removeImage, businessVerified, onContinueDigital,
 }: {
     form: FormState;
     handleChange: (f: string, v: unknown) => void;
     categories: any[];
     handleImageUpload: (url: string) => void;
     removeImage: (i: number) => void;
+    businessVerified: boolean;
+    onContinueDigital: () => void;
 }) {
     const [videoInput, setVideoInput] = React.useState("");
     const [imageUrlInput, setImageUrlInput] = React.useState("");
@@ -794,6 +798,79 @@ function StepDetails({
     return (
         <div className="space-y-6">
             <div>
+                <div className="space-y-3 mb-6">
+                    <SectionTitle label="Product type" />
+                    <div className="grid grid-cols-2 gap-3">
+                        {[
+                            { id: "digital", label: "Digital", Icon: Globe, hint: "Instant delivery / access" },
+                            { id: "physical", label: "Physical", Icon: ShoppingBag, hint: "Ships to customer" },
+                        ].map(type => {
+                            const sel = form.product_type === type.id;
+                            return (
+                                <button
+                                    key={type.id}
+                                    type="button"
+                                    onClick={() => handleChange("product_type", type.id)}
+                                    className="flex min-h-[72px] items-center gap-3 p-3.5 text-left transition-all"
+                                    style={{
+                                        borderRadius: "var(--radius-md)",
+                                        border: `1px solid ${sel ? "var(--color-accent)" : "var(--color-border)"}`,
+                                        background: sel ? "var(--color-accent-light)" : "var(--color-surface-secondary)",
+                                    }}
+                                >
+                                    <div
+                                        className="w-9 h-9 flex items-center justify-center flex-shrink-0"
+                                        style={{
+                                            borderRadius: "var(--radius-sm)",
+                                            background: sel ? "var(--color-accent)" : "var(--color-surface)",
+                                            color: sel ? "#fff" : "var(--color-text-muted)",
+                                        }}
+                                    >
+                                        <type.Icon size={16} />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold" style={{ color: sel ? "var(--color-accent)" : "var(--color-text-primary)" }}>{type.label}</p>
+                                        <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{type.hint}</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {form.product_type === "physical" && !businessVerified && (
+                        <div className="rounded-2xl border border-[#FFDCC7] bg-[#FFF6F1] p-4 space-y-3">
+                            <p className="text-[14px] font-semibold text-[#161512]">Business verification required</p>
+                            <p className="text-[12.5px] leading-relaxed text-[#8B8579]">
+                                Physical products are available to verified businesses. Verify your business to start selling physical products on Jimvio.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    className="inline-flex h-11 min-h-[44px] items-center rounded-full bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white"
+                                    onClick={async () => {
+                                        try {
+                                            const res = await fetch("/api/identity/verification/business", { method: "POST" });
+                                            const json = await res.json();
+                                            if (!res.ok) throw new Error(json.error || "Could not start verification");
+                                            if (json.verificationUrl) window.location.href = json.verificationUrl;
+                                        } catch (err) {
+                                            alert(err instanceof Error ? err.message : "Could not start verification");
+                                        }
+                                    }}
+                                >
+                                    Verify business
+                                </button>
+                                <button
+                                    type="button"
+                                    className="inline-flex h-11 min-h-[44px] items-center rounded-full border border-black/10 bg-white px-4 text-[13px] font-semibold text-[#1C1B19]"
+                                    onClick={onContinueDigital}
+                                >
+                                    Continue with Digital
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex items-start justify-between mb-5">
                     <SectionTitle label="Basic information" />
                     <button
@@ -924,51 +1001,13 @@ function StepDetails({
             <Divider />
 
             <div className="space-y-4">
-                <SectionTitle label="Product type" />
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                    {[
-                        { id: "physical", label: "Physical", Icon: ShoppingBag, hint: "Ships to customer" },
-                        { id: "digital", label: "Digital", Icon: Globe, hint: "Instant download / access" },
-                    ].map(type => {
-                        const sel = form.product_type === type.id;
-                        return (
-                            <button
-                                key={type.id}
-                                onClick={() => handleChange("product_type", type.id)}
-                                className="flex items-center gap-3 p-3.5 text-left transition-all"
-                                style={{
-                                    borderRadius: "var(--radius-md)",
-                                    border: `1px solid ${sel ? "var(--color-accent)" : "var(--color-border)"}`,
-                                    background: sel ? "var(--color-accent-light)" : "var(--color-surface-secondary)",
-                                }}
-                            >
-                                <div
-                                    className="w-9 h-9 flex items-center justify-center flex-shrink-0"
-                                    style={{
-                                        borderRadius: "var(--radius-sm)",
-                                        background: sel ? "var(--color-accent)" : "var(--color-surface)",
-                                        color: sel ? "#fff" : "var(--color-text-muted)",
-                                    }}
-                                >
-                                    <type.Icon size={16} />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-semibold" style={{ color: sel ? "var(--color-accent)" : "var(--color-text-primary)" }}>{type.label}</p>
-                                    <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{type.hint}</p>
-                                </div>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div>
-                    <Label>Category <span style={{ color: "var(--color-accent)" }}>*</span></Label>
-                    <Select value={form.category_id} onChange={e => handleChange("category_id", e.target.value)}>
-                        <option value="">Select a category…</option>
-                        {filteredCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        <option value="">Uncategorized</option>
-                    </Select>
-                </div>
+                <SectionTitle label="Category" />
+                <CategoryTreeSelect
+                    categories={categories}
+                    value={form.category_id}
+                    onChange={(id) => handleChange("category_id", id)}
+                    productType={form.product_type}
+                />
             </div>
 
             <Divider />
@@ -1786,16 +1825,16 @@ function StepPublish({
             >
                 {isPending ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                 {isPending
-                    ? (isEdit ? "Saving…" : "Publishing…")
+                    ? (isEdit ? "Saving…" : "Submitting…")
                     : allDone
-                        ? (isEdit ? "Save changes" : "Publish product")
+                        ? (isEdit ? "Save changes" : "Submit for review")
                         : `Complete ${total - completed} more to continue`}
             </button>
 
             <p className="text-[11px] text-center" style={{ color: t.textMuted }}>
                 {allDone
-                    ? (isEdit ? "Changes will go live immediately" : "Your product will go live immediately after publishing")
-                    : "Complete all required items above"}
+                    ? "New products are reviewed before they appear on Marketplace."
+                    : "Finish the checklist to submit for review."}
             </p>
         </div>
     );
@@ -1821,9 +1860,11 @@ export function ProductFormShell({
     const [isPending, startTransition] = useTransition();
     const [step, setStep] = useState(1);
     const [vendor, setVendor] = useState<any>(null);
+    const [businessVerified, setBusinessVerified] = useState(false);
     const [categories, setCategories] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("Product saved");
     const [loading, setLoading] = useState(isEdit);
 
     const [form, setForm] = useState<FormState>({
@@ -1839,7 +1880,7 @@ export function ProductFormShell({
         button_text: "Join now", tags: "",
         weight: "", dimensions: "", images: [], videoUrls: [],
         show_author: true, show_reviews: true, enable_discussions: false,
-        status: "active",
+        status: "draft",
         discount_enabled: false,
         compare_at_price: "",
         discount_label: "",
@@ -1853,14 +1894,15 @@ export function ProductFormShell({
             if (!user) { router.push("/login"); return; }
 
             if (!isAdminMode) {
-                const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
-                if (!vends || vends.length === 0) { router.push("/activate/vendor"); return; }
-                setVendor(vends[0]);
+                const ctx = await getSellerUploadContext();
+                if (!ctx.authenticated) { router.push("/login"); return; }
+                setVendor(ctx.vendor);
+                setBusinessVerified(ctx.canSellPhysical);
             }
 
             const { data: cats } = await supabase
                 .from("product_categories")
-                .select("id, name, slug, category_type")
+                .select("id, name, slug, category_type, parent_id")
                 .eq("is_active", true)
                 .order("sort_order");
             setCategories(cats ?? []);
@@ -2019,6 +2061,7 @@ export function ProductFormShell({
                     if (isDigital && ct === "physical") updated.category_id = "";
                     if (!isDigital && ct === "digital") updated.category_id = "";
                 }
+                // Keep selection so Business Verification gate can render when Physical is chosen
             }
 
             return updated;
@@ -2034,7 +2077,11 @@ export function ProductFormShell({
 
     async function handleSubmit() {
         setError(null);
-        if (!isAdminMode && !vendor) { setError("Vendor account required."); return; }
+        if (!isAdminMode && !vendor) { setError("Seller account required."); return; }
+        if (!isAdminMode && form.product_type === "physical" && !businessVerified) {
+            setError("Business verification is required to sell physical products.");
+            return;
+        }
         if (!form.name.trim()) { setError("Product name is required."); return; }
         const price = parseFloat(form.price) || 0;
         if (price < 0) { setError("Price cannot be negative."); return; }
@@ -2124,41 +2171,57 @@ export function ProductFormShell({
                     setError(videoResult.error ?? "Product saved but videos failed to update.");
                     return;
                 }
+                setSuccessMessage("Product saved");
                 setSuccess(true);
                 setTimeout(() => router.push(listHref), 1800);
                 return;
             }
 
-            let insertErr: any = null;
-            let savedProductId = productId ?? null;
+            // Vendor create/update — server-authorized (physical gate + review status)
+            const intent = step === 4 ? "submit" : "draft";
+            const result = await upsertSellerProduct({
+                id: isEdit ? productId : undefined,
+                name: form.name,
+                slug: form.slug || slugify(form.name),
+                short_description: form.short_description || null,
+                description: form.description || null,
+                product_type: isDigital ? "digital" : "physical",
+                product_subtype: isDigital ? form.product_subtype || null : null,
+                price,
+                currency: form.currency,
+                pricing_type: isDigital ? form.pricing_type : "one_time",
+                billing_period: billingPeriod,
+                category_id: form.category_id || null,
+                digital_file_url: isDigital ? (form.digital_file_url || null) : null,
+                track_inventory: !isDigital && form.track_inventory,
+                inventory_quantity: isDigital ? 0 : parseInt(form.inventory_quantity || "0"),
+                weight: !isDigital ? (parseFloat(form.weight) || null) : null,
+                dimensions: !isDigital ? (form.dimensions || null) : null,
+                affiliate_enabled: form.affiliate_enabled,
+                affiliate_commission_rate: form.affiliate_enabled
+                    ? parseFloat(form.affiliate_commission_rate || "10")
+                    : null,
+                button_text: form.button_text || null,
+                tags: form.tags
+                    ? form.tags.split(",").map(t => t.trim()).filter(Boolean)
+                    : null,
+                images: form.images,
+                show_author: form.show_author,
+                show_reviews: form.show_reviews,
+                enable_discussions: form.enable_discussions,
+                compare_at_price: resolvedCompareAt,
+                discount_label: resolvedDiscountLabel,
+                is_flash_deal: resolvedFlashDeal,
+                intent,
+            });
 
-            if (isEdit && productId) {
-                const { error } = await supabase.from("products").update(payload).eq("id", productId);
-                insertErr = error;
-            } else {
-                const slug = payload.slug;
-                const { data: existing } = await supabase
-                    .from("products")
-                    .select("id")
-                    .eq("slug", slug)
-                    .eq("vendor_id", vendor.id)
-                    .maybeSingle();
-                if (existing) payload.slug = `${slug}-${Date.now()}`;
-                const { data: inserted, error } = await supabase
-                    .from("products")
-                    .insert({ ...payload, vendor_id: vendor.id })
-                    .select("id")
-                    .single();
-                insertErr = error;
-                savedProductId = inserted?.id ?? null;
-            }
-
-            if (insertErr) {
-                setError(insertErr.message);
+            if (!result.success) {
+                setError(result.error);
                 return;
             }
 
-            if (savedProductId && form.videoUrls.length >= 0) {
+            const savedProductId = result.id;
+            if (savedProductId) {
                 const videoResult = await saveProductVideos(savedProductId, form.videoUrls);
                 if (!videoResult.success) {
                     setError(videoResult.error ?? "Product saved but videos failed to update.");
@@ -2166,6 +2229,7 @@ export function ProductFormShell({
                 }
             }
 
+            setSuccessMessage(result.message);
             setSuccess(true);
             setTimeout(() => router.push(listHref), 1800);
         });
@@ -2186,10 +2250,14 @@ export function ProductFormShell({
             </div>
             <div className="text-center">
                 <p className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>
-                    {isEdit ? "Changes saved!" : "Product published!"}
+                    {successMessage.includes("review")
+                        ? "Submitted for review"
+                        : isEdit
+                          ? "Changes saved!"
+                          : "Product saved"}
                 </p>
-                <p className="text-sm mt-1" style={{ color: "var(--color-text-muted)" }}>
-                    Redirecting to {isAdminMode ? "products…" : "your products…"}
+                <p className="text-sm mt-1 max-w-sm mx-auto" style={{ color: "var(--color-text-muted)" }}>
+                    {successMessage || `Redirecting to ${isAdminMode ? "products…" : "your products…"}`}
                 </p>
             </div>
         </div>
@@ -2315,7 +2383,7 @@ export function ProductFormShell({
                                 style={{ borderRadius: "var(--radius-sm)", background: "var(--color-accent)", boxShadow: "var(--shadow-glow)" }}
                             >
                                 {isPending ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
-                                {isPending ? (isEdit ? "Saving…" : "Publishing…") : (isEdit ? "Save" : "Publish")}
+                                {isPending ? (isEdit ? "Saving…" : "Submitting…") : (isEdit ? "Save" : "Submit")}
                             </button>
                         )}
                     </div>
@@ -2346,7 +2414,7 @@ export function ProductFormShell({
                     {/* form card */}
                     <Card className="overflow-hidden">
                         <div className="p-6 sm:p-8">
-                            {step === 1 && <StepDetails form={form} handleChange={handleChange} categories={categories} handleImageUpload={handleImageUpload} removeImage={removeImage} />}
+                            {step === 1 && <StepDetails form={form} handleChange={handleChange} categories={categories} handleImageUpload={handleImageUpload} removeImage={removeImage} businessVerified={businessVerified || isAdminMode} onContinueDigital={() => handleChange("product_type", "digital")} />}
                             {step === 2 && <StepPricing form={form} handleChange={handleChange} />}
                             {step === 3 && <StepSettings form={form} handleChange={handleChange} />}
                             {step === 4 && <StepPublish form={form} isPending={isPending} handleSubmit={handleSubmit} isEdit={isEdit} />}
@@ -2397,7 +2465,7 @@ export function ProductFormShell({
                                     disabled={isPending}
                                 >
                                     {isPending ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-                                    {isPending ? "…" : (isEdit ? "Save" : "Publish")}
+                                    {isPending ? "…" : (isEdit ? "Save" : "Submit")}
                                 </Button>
                             )}
                         </div>

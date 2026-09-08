@@ -52,12 +52,20 @@ export async function POST(req: NextRequest) {
     status?: string;
     webhook_type?: string;
     vendor_data?: string;
+    session_kind?: string;
+    metadata?: Record<string, unknown>;
     decision?: unknown;
   };
 
   const sessionId = String(envelope.session_id || envelope.business_session_id || "");
   const status = String(envelope.status || "");
   const webhookType = String(envelope.webhook_type || "");
+  const sessionKind = String(envelope.session_kind || "").toLowerCase();
+  const metaPurpose = String(envelope.metadata?.purpose || "").toLowerCase();
+  const isBusinessSession =
+    sessionKind === "business" ||
+    metaPurpose === "business" ||
+    Boolean(envelope.business_session_id && !envelope.session_id);
   const eventId =
     String(envelope.event_id || "").trim() ||
     fingerprintEvent([sessionId, status, webhookType, String(envelope.vendor_data || "")]);
@@ -120,20 +128,41 @@ export async function POST(req: NextRequest) {
   );
 
   if (status === "Approved") {
-    await admin
-      .from("jip_identity")
-      .update({
-        identity_verified: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId);
+    if (isBusinessSession) {
+      // Business verification (KYB) → unlock physical product selling
+      await admin
+        .from("vendors")
+        .update({
+          verification_status: "verified",
+          verified_at: new Date().toISOString(),
+          verification_notes: "Didit business verification approved",
+        })
+        .eq("user_id", userId);
+    } else {
+      await admin
+        .from("jip_identity")
+        .update({
+          identity_verified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId);
 
+      await admin
+        .from("profiles")
+        .update({ is_verified: true })
+        .eq("id", userId);
+    }
+  } else if (status === "Declined" && isBusinessSession) {
     await admin
-      .from("profiles")
-      .update({ is_verified: true })
-      .eq("id", userId);
+      .from("vendors")
+      .update({
+        verification_status: "rejected",
+        verification_notes: "Didit business verification declined",
+      })
+      .eq("user_id", userId)
+      .neq("verification_status", "verified");
   } else if (status === "Declined") {
-    // Do not flip verified on; leave false / previous true untouched if already verified historically
+    // Do not flip personal verified on
     await admin
       .from("jip_identity")
       .update({ updated_at: new Date().toISOString() })

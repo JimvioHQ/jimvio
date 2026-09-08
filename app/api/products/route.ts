@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { slugify } from "@/lib/utils";
+import {
+  assertCanCreateProductType,
+  initialStatusForVendorSubmit,
+  type VendorAuthSnapshot,
+} from "@/lib/products/authorization";
+import { ensureSellerVendor } from "@/lib/actions/seller-products";
 
 const createProductSchema = z.object({
   name: z.string().min(3).max(200),
   short_description: z.string().max(500).optional(),
   description: z.string().optional(),
   category_id: z.string().uuid().optional(),
-  // ── CANONICAL: only two product types allowed ──
   product_type: z.enum(["physical", "digital"]),
   price: z.number().positive(),
   compare_at_price: z.number().positive().optional(),
@@ -20,8 +25,9 @@ const createProductSchema = z.object({
   affiliate_commission_rate: z.number().min(0).max(100).optional(),
   tags: z.array(z.string()).optional(),
   currency: z.string().default("USD"),
+  intent: z.enum(["draft", "submit"]).default("submit"),
 }).refine(
-  (d) => d.product_type !== "digital" || !!d.digital_file_url,
+  (d) => d.product_type !== "digital" || !!d.digital_file_url || d.intent === "draft",
   { message: "digital_file_url is required for digital products", path: ["digital_file_url"] }
 );
 
@@ -100,45 +106,52 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: vendor } = await supabase
-      .from("vendors")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .single();
-
-    if (!vendor) return NextResponse.json({ error: "Vendor account required" }, { status: 403 });
-
+    const vendor = await ensureSellerVendor(user.id);
     const body = await req.json();
     const productData = createProductSchema.parse(body);
 
-    // Auto-derive type-specific fields from product_type
+    const auth = assertCanCreateProductType(
+      user.id,
+      vendor as VendorAuthSnapshot | null,
+      productData.product_type,
+    );
+    if (!auth.ok) {
+      return NextResponse.json(
+        { error: auth.message, code: auth.code },
+        { status: auth.code === "business_verification_required" ? 403 : 403 },
+      );
+    }
+
     const isDigital = productData.product_type === "digital";
     const derivedFields = {
       is_digital: isDigital,
       requires_shipping: !isDigital,
-      // Digital: zero inventory (unlimited access); Physical: keep submitted value
       inventory_quantity: isDigital ? 0 : productData.inventory_quantity,
       track_inventory: isDigital ? false : productData.track_inventory,
-      // Digital: keep file URL; Physical: null it out for safety
       digital_file_url: isDigital ? (productData.digital_file_url ?? null) : null,
     };
 
     let slug = slugify(productData.name);
-    const { data: existingSlug } = await supabase.from("products").select("id").eq("slug", slug).single();
+    const { data: existingSlug } = await supabase.from("products").select("id").eq("slug", slug).maybeSingle();
     if (existingSlug) slug = `${slug}-${Date.now()}`;
+
+    const status = initialStatusForVendorSubmit(productData.intent);
+    const { intent: _intent, ...rest } = productData;
 
     const { data: product, error } = await supabase
       .from("products")
       .insert({
-        ...productData,
-        ...derivedFields, // derived fields override productData values
-        vendor_id: vendor.id,
+        ...rest,
+        ...derivedFields,
+        vendor_id: auth.vendor.id,
         slug,
-        status: "draft",
+        status,
+        is_active: true,
         source: "vendor",
         source_metadata: {},
-      })
+        published_at: null,
+        submitted_for_review_at: productData.intent === "submit" ? new Date().toISOString() : null,
+      } as never)
       .select()
       .single();
 

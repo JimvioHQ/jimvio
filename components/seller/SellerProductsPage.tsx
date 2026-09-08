@@ -343,6 +343,20 @@ export function SellerProductsPage() {
       return;
     }
 
+    const sourceType = String(source.product_type || "").toLowerCase();
+    if (sourceType === "physical") {
+      const { data: vend } = await createClient()
+        .from("vendors")
+        .select("verification_status")
+        .eq("id", source.vendor_id)
+        .maybeSingle();
+      if (String(vend?.verification_status || "").toLowerCase() !== "verified") {
+        toast.error("Business verification is required to duplicate physical products.");
+        setBusyId(null);
+        return;
+      }
+    }
+
     // Strip server-managed fields, generate a new slug
     const newSlug = `${source.slug}-copy-${Date.now().toString(36)}`;
 

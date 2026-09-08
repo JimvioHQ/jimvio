@@ -13045,7 +13045,7 @@ export type Database = {
         | "cancelled"
         | "paid"
       payout_status: "pending" | "processing" | "paid" | "failed"
-      product_status: "draft" | "active" | "paused" | "archived"
+      product_status: "draft" | "active" | "paused" | "archived" | "pending_review" | "rejected" | "pending_review" | "rejected"
       product_type:
         | "physical"
         | "digital"
@@ -13258,7 +13258,7 @@ export const Constants = {
         "paid",
       ],
       payout_status: ["pending", "processing", "paid", "failed"],
-      product_status: ["draft", "active", "paused", "archived"],
+      product_status: ["draft", "active", "paused", "archived", "pending_review", "rejected"],
       product_type: [
         "physical",
         "digital",

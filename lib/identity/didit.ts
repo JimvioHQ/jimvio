@@ -165,14 +165,27 @@ export async function createDiditSession(input: {
   userId: string;
   callbackUrl: string;
   metadata?: Record<string, string>;
+  /** Use DIDIT_BUSINESS_WORKFLOW_ID when set (KYB). Falls back to personal workflow only if business id missing — caller should check diditBusinessConfigured(). */
+  purpose?: "identity" | "business";
+  vendorData?: string;
 }): Promise<
-  | { ok: true; sessionId: string; verificationUrl: string; status: string }
+  | { ok: true; sessionId: string; verificationUrl: string; status: string; sessionKind: string }
   | { ok: false; error: string }
 > {
   const apiKey = process.env.DIDIT_API_KEY?.trim();
-  const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
+  const purpose = input.purpose || "identity";
+  const workflowId =
+    purpose === "business"
+      ? process.env.DIDIT_BUSINESS_WORKFLOW_ID?.trim() || process.env.DIDIT_WORKFLOW_ID?.trim()
+      : process.env.DIDIT_WORKFLOW_ID?.trim();
   if (!apiKey || !workflowId) {
-    return { ok: false, error: "Identity verification is not configured yet" };
+    return {
+      ok: false,
+      error:
+        purpose === "business"
+          ? "Business verification is not configured yet"
+          : "Identity verification is not configured yet",
+    };
   }
 
   const res = await fetch(DIDIT_SESSION_API, {
@@ -183,9 +196,13 @@ export async function createDiditSession(input: {
     },
     body: JSON.stringify({
       workflow_id: workflowId,
-      vendor_data: input.userId,
+      vendor_data: input.vendorData || input.userId,
       callback: input.callbackUrl,
-      metadata: input.metadata ?? {},
+      metadata: {
+        ...(input.metadata ?? {}),
+        purpose,
+        jimvio_user_id: input.userId,
+      },
     }),
   });
 
@@ -194,6 +211,7 @@ export async function createDiditSession(input: {
     verification_url?: string;
     url?: string;
     status?: string;
+    session_kind?: string;
     detail?: string;
     message?: string;
   } | null;
@@ -201,7 +219,7 @@ export async function createDiditSession(input: {
   if (!res.ok || !body?.session_id) {
     console.error("[didit] session create failed", {
       status: res.status,
-      // Never log API key or full PII
+      purpose,
       hasSession: Boolean(body?.session_id),
     });
     return {
@@ -220,7 +238,15 @@ export async function createDiditSession(input: {
     sessionId: body.session_id,
     verificationUrl,
     status: body.status || "Not Started",
+    sessionKind: body.session_kind || (purpose === "business" ? "business" : "user"),
   };
+}
+
+export function diditBusinessConfigured(): boolean {
+  return Boolean(
+    process.env.DIDIT_API_KEY?.trim() &&
+      (process.env.DIDIT_BUSINESS_WORKFLOW_ID?.trim() || process.env.DIDIT_WORKFLOW_ID?.trim()),
+  );
 }
 
 export function fingerprintEvent(parts: string[]): string {
