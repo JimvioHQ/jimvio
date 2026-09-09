@@ -12,3 +12,15 @@ export const dsTransition = {
   fast: "transform var(--ds-duration-fast) ease-out, opacity var(--ds-duration-fast) ease-out",
   colors: "background-color var(--ds-duration-fast) ease-out, border-color var(--ds-duration-fast) ease-out, color var(--ds-duration-fast) ease-out",
 } as const;
+
+/** Re-export Jimvio homepage motion tokens for a single import surface */
+export {
+  jimvioDuration,
+  jimvioEase,
+  jimvioEaseCss,
+  jimvioStagger,
+  jimvioDistance,
+  jimvioFadeUp,
+  jimvioStaggerContainer,
+  jimvioHeroItem,
+} from "@/lib/motion/jimvio-motion";

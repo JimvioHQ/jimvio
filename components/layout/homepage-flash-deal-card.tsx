@@ -137,8 +137,9 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
     <div
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
-        "shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform",
-        "hover:-translate-y-1 hover:border-[var(--color-border-strong)] hover:shadow-[0_16px_36px_rgba(15,23,42,0.12)]",
+        "shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-[transform,box-shadow,border-color] duration-[220ms] ease-out will-change-transform",
+        "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]",
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
       )}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -174,7 +175,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
             imageClassName={cn(
               "transition-[transform,opacity] duration-500 ease-out",
               imageReady ? "opacity-100" : "opacity-0",
-              "group-hover:scale-[1.03] motion-reduce:group-hover:scale-100",
+              "group-hover:scale-[1.03] group-hover:-translate-y-0.5 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:translate-y-0",
             )}
           />
 
@@ -200,7 +201,9 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
             className={cn(
               "pointer-events-auto absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-full",
               "bg-white/95 text-[var(--color-text-primary)] shadow-sm ring-1 ring-black/5",
-              "transition-[transform,background-color,color] duration-200 hover:scale-105",
+              "transition-[transform,background-color,color,box-shadow] duration-200",
+              "hover:scale-105 hover:shadow-md active:scale-95",
+              "motion-reduce:hover:scale-100",
               wishlisted && "text-rose-500",
             )}
           >

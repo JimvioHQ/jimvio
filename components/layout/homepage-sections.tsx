@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment, type ReactNode } from "react";
+import { useState, useMemo, useEffect, Fragment, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
@@ -30,6 +30,8 @@ import { HomepageTrendingProductsClient } from "@/components/layout/homepage-tre
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import { RevealBlock, RevealItem, SectionReveal } from "@/components/motion/section-reveal";
+import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -133,9 +135,13 @@ function flagSrc(code: string, size: 20 | 40 | 80 = 40) {
 
 export function TrustedStrip() {
   return (
-    <div className="border-y border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+    <SectionReveal
+      as="div"
+      className="border-y border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+      threshold={0.2}
+    >
       <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
-        <div className="flex -space-x-2.5">
+        <RevealBlock index={0} className="flex -space-x-2.5">
           {AVATARS.map((src, i) => (
             <img
               key={i}
@@ -148,9 +154,11 @@ export function TrustedStrip() {
               className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9"
             />
           ))}
-        </div>
-        <PlatformStatsRotatingBadge showLiveDot={false} className="shadow-none" />
-        <div className="flex items-center gap-1">
+        </RevealBlock>
+        <RevealBlock index={1}>
+          <PlatformStatsRotatingBadge showLiveDot={false} className="shadow-none" />
+        </RevealBlock>
+        <RevealBlock index={2} className="flex items-center gap-1">
           {FEATURED_COUNTRIES.map((c) => (
             <img
               key={c.code}
@@ -168,9 +176,9 @@ export function TrustedStrip() {
           <span className="ml-1 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-neutral-700">
             +{PLATFORM_STATS.countries - FEATURED_COUNTRIES.length}
           </span>
-        </div>
+        </RevealBlock>
       </div>
-    </div>
+    </SectionReveal>
   );
 }
 
@@ -186,14 +194,16 @@ const OVERVIEW = [
 
 export function PlatformOverviewBar() {
   return (
-    <section className={`${section} py-8 sm:py-10`}>
+    <SectionReveal className={`${section} py-8 sm:py-10`}>
       <div className={shell}>
-        <SectionTitle>Everything You Need In One Platform</SectionTitle>
+        <RevealBlock index={0}>
+          <SectionTitle>Everything You Need In One Platform</SectionTitle>
+        </RevealBlock>
         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-          {OVERVIEW.map((o) => (
-            <div key={o.title} className="flex items-start gap-3">
+          {OVERVIEW.map((o, i) => (
+            <RevealItem key={o.title} index={i + 1} className="flex items-start gap-3">
               <span
-                className="grid size-9 shrink-0 place-items-center rounded-lg"
+                className="grid size-9 shrink-0 place-items-center rounded-lg transition-transform duration-200 group-hover:-translate-y-0.5"
                 style={{ background: `${o.color}14`, color: o.color }}
               >
                 <o.icon className="size-4" strokeWidth={2.2} />
@@ -202,11 +212,11 @@ export function PlatformOverviewBar() {
                 <div className="text-[13px] font-bold text-[var(--color-text-primary)]">{o.title}</div>
                 <div className="text-[11px] leading-snug text-[var(--color-text-muted)]">{o.desc}</div>
               </div>
-            </div>
+            </RevealItem>
           ))}
         </div>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 
@@ -335,11 +345,13 @@ export function HowJimvioWorks() {
   };
 
   return (
-    <section className={`${sectionAlt} py-10 sm:py-14`}>
+    <SectionReveal className={`${sectionAlt} py-10 sm:py-14`}>
       <div className={shell}>
-        <SectionTitle sub="Roughly how it goes — tap a step if you want the detail.">
-          How Jimvio works
-        </SectionTitle>
+        <RevealBlock index={0}>
+          <SectionTitle sub="Roughly how it goes — tap a step if you want the detail.">
+            How Jimvio works
+          </SectionTitle>
+        </RevealBlock>
 
         {/* Showcase cards */}
         <div
@@ -369,18 +381,22 @@ export function HowJimvioWorks() {
                   }
                 }}
                 className={cn(
-                  "relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
+                  "jimvio-reveal-item relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
                   active === index
                     ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
                     : "border-[var(--color-border)] opacity-75 hover:opacity-100",
                 )}
                 style={
-                  active === index
-                    ? {
-                        boxShadow: `0 14px 36px ${s.color}20`,
-                        borderColor: `${s.color}35`,
-                      }
-                    : undefined
+                  {
+                    ["--reveal-i" as string]: index + 1,
+                    ["--reveal-stagger" as string]: `${jimvioStagger.default}ms`,
+                    ...(active === index
+                      ? {
+                          boxShadow: `0 14px 36px ${s.color}20`,
+                          borderColor: `${s.color}35`,
+                        }
+                      : {}),
+                  } as CSSProperties
                 }
               >
                 <span
@@ -453,7 +469,7 @@ export function HowJimvioWorks() {
           </button>
         </p>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 
@@ -488,9 +504,9 @@ export function TrendingProductsRow({
   if (!trending.length) return null;
 
   return (
-    <section className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
-        <div className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
+        <RevealBlock index={0} className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
           <div>
             <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
               Trending Products
@@ -501,18 +517,21 @@ export function TrendingProductsRow({
           </div>
           <Link
             href="/marketplace"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
+            className="group inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
             style={{ color: "#FF5A1F" }}
           >
-            View all <ArrowRight className="size-3.5" />
+            View all{" "}
+            <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0" />
           </Link>
-        </div>
-        <HomepageTrendingProductsClient
-          initialProducts={trending}
-          initialTotal={total ?? trending.length}
-        />
+        </RevealBlock>
+        <RevealItem index={1}>
+          <HomepageTrendingProductsClient
+            initialProducts={trending}
+            initialTotal={total ?? trending.length}
+          />
+        </RevealItem>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 
@@ -576,20 +595,10 @@ function sharedCampaignToUgcCampaign(c: SharedCampaignRow): UGCCampaign {
 export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
   if (!campaigns.length) return null;
 
-  const cards = campaigns.map((c, i) => (
-    <UGCPremiumCampaignCard
-      key={c.id}
-      campaign={sharedCampaignToUgcCampaign(c)}
-      index={i}
-      featured
-      density="compact"
-    />
-  ));
-
   return (
-    <section className="bg-white py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="bg-white py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
-        <div className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
+        <RevealBlock index={0} className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
           <div>
             <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
               Featured UGC Campaigns
@@ -600,21 +609,31 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
           </div>
           <Link
             href="/ugc"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
+            className="group inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
             style={{ color: "#FF5A1F" }}
           >
-            Explore All <ArrowRight className="size-3.5" />
+            Explore All{" "}
+            <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0" />
           </Link>
-        </div>
+        </RevealBlock>
         <HomepageShowcaseLayout
           ariaLabel="Featured UGC campaigns"
           cardMinWidth={188}
           desktopCols="lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
         >
-          {cards}
+          {campaigns.map((c, i) => (
+            <RevealItem key={c.id} index={i + 1} className="h-full">
+              <UGCPremiumCampaignCard
+                campaign={sharedCampaignToUgcCampaign(c)}
+                index={i}
+                featured
+                density="compact"
+              />
+            </RevealItem>
+          ))}
         </HomepageShowcaseLayout>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 

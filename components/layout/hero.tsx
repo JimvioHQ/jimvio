@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/payment-logos";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { jimvioEase } from "@/lib/motion/jimvio-motion";
 
 const ORANGE_GRAD = "linear-gradient(90deg, #fd5000 0%, #ff7a33 55%, #ff9a5c 100%)";
 const CTA_GRAD = "linear-gradient(135deg, #ff7a33 0%, #fd5000 55%, #e84800 100%)";
@@ -315,7 +316,9 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip() {
           className={cn(
             "flex w-max items-center",
             !reduced &&
-              "animate-[hero-partner-marquee_75s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_95s_linear_infinite]",
+              /* Mobile slower (longer duration); desktop slightly snappier continuous loop */
+              "animate-[hero-partner-marquee_110s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_85s_linear_infinite]",
+            "group-hover:[animation-play-state:paused]",
           )}
           style={{ willChange: reduced ? undefined : "transform" }}
         >
@@ -393,8 +396,30 @@ const HeroPremiumBackground = memo(function HeroPremiumBackground({
   );
 });
 
+const HERO_ENTER = {
+  hidden: { opacity: 0, y: 12 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.42,
+      ease: jimvioEase,
+      delay: i * 0.07,
+    },
+  }),
+} as const;
+
+const HERO_ENTER_REDUCED = {
+  hidden: { opacity: 0 },
+  show: (i: number) => ({
+    opacity: 1,
+    transition: { duration: 0.25, delay: i * 0.04 },
+  }),
+} as const;
+
 export function Hero() {
   const reduced = usePrefersReducedMotion();
+  const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
@@ -403,7 +428,14 @@ export function Hero() {
 
         {/* Upper hero — tight top spacing under navbar (no full-viewport vertical centering) */}
         <div className="relative z-10 mx-auto flex w-full max-w-[820px] flex-col items-center px-4 pt-7 text-center sm:px-6 sm:pt-12 lg:pt-14">
-          <HeroStatsRotatingBadge />
+          <motion.div
+            custom={0}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+          >
+            <HeroStatsRotatingBadge />
+          </motion.div>
 
           <h1
             className={cn(
@@ -418,30 +450,79 @@ export function Hero() {
               lineHeight: 1.06,
             }}
           >
-            <span className="block whitespace-nowrap">The platform to</span>
-            <HeroRotatingPhrase />
-            <span className="block whitespace-nowrap">Anywhere.</span>
+            <motion.span
+              custom={1}
+              variants={enter}
+              initial="hidden"
+              animate="show"
+              className="block whitespace-nowrap"
+            >
+              The platform to
+            </motion.span>
+            <motion.span
+              custom={2}
+              variants={enter}
+              initial="hidden"
+              animate="show"
+              className="block w-full"
+            >
+              <HeroRotatingPhrase />
+            </motion.span>
+            <motion.span
+              custom={3}
+              variants={enter}
+              initial="hidden"
+              animate="show"
+              className="block whitespace-nowrap"
+            >
+              Anywhere.
+            </motion.span>
           </h1>
 
-          <p className="mx-auto mt-4 max-w-[700px] text-[14px] leading-[1.5] tracking-[0.01em] text-[var(--color-text-muted)] sm:mt-6 sm:text-[16px] sm:leading-[1.5]">
+          <motion.p
+            custom={4}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+            className="mx-auto mt-4 max-w-[700px] text-[14px] leading-[1.5] tracking-[0.01em] text-[var(--color-text-muted)] sm:mt-6 sm:text-[16px] sm:leading-[1.5]"
+          >
             Sell products. Promote offers. Create content.
             <br />
             Build your community. Grow your audience — all in one place.
-          </p>
+          </motion.p>
 
-          <div className="mt-5 flex w-full max-w-md flex-col items-stretch gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-3.5">
+          <motion.div
+            custom={5}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+            className="mt-5 flex w-full max-w-md flex-col items-stretch gap-3 sm:mt-9 sm:max-w-none sm:flex-row sm:items-center sm:justify-center sm:gap-3.5"
+          >
             <HeroPrimaryCTA />
             <HeroSecondaryCTA />
-          </div>
+          </motion.div>
         </div>
 
         {/* Lower hero — trust badges + Trusted by / payment marquee */}
         <div className="relative z-10 w-full pb-6 pt-9 sm:pb-8 sm:pt-10 lg:pb-10">
-          <HeroTrustBadges />
+          <motion.div
+            custom={6}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+          >
+            <HeroTrustBadges />
+          </motion.div>
 
-          <div className="mt-9 w-full sm:mt-11">
+          <motion.div
+            custom={7}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+            className="mt-9 w-full sm:mt-11"
+          >
             <HeroPartnerStrip />
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>

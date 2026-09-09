@@ -785,6 +785,45 @@
     }
   }
 
+  /* Homepage section reveal — once on enter, GPU-friendly */
+  @keyframes jimvio-reveal-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, var(--jimvio-reveal-y, 24px), 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .jimvio-reveal[data-reveal="ready"] .jimvio-reveal-item {
+    opacity: 0;
+    transform: translate3d(0, var(--jimvio-reveal-y, 24px), 0);
+  }
+
+  .jimvio-reveal[data-reveal="in"] .jimvio-reveal-item {
+    animation: jimvio-reveal-up var(--jimvio-duration-reveal, 600ms) var(--jimvio-ease) both;
+    animation-delay: calc(var(--reveal-i, 0) * var(--reveal-stagger, var(--jimvio-stagger, 70ms)));
+  }
+
+  @media (max-width: 767px) {
+    .jimvio-reveal {
+      --jimvio-reveal-y: var(--jimvio-reveal-y-mobile, 16px);
+      --jimvio-duration-reveal: 480ms;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .jimvio-reveal[data-reveal="ready"] .jimvio-reveal-item,
+    .jimvio-reveal[data-reveal="in"] .jimvio-reveal-item {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+
   @keyframes flash-deals-marquee {
     0% {
       transform: translate3d(0, 0, 0);
@@ -1222,6 +1261,16 @@
     --ds-duration-fast: 150ms;
     --ds-duration-normal: 200ms;
     --ds-duration-slow: 300ms;
+
+    /* Jimvio homepage motion system */
+    --jimvio-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --jimvio-duration-fast: 180ms;
+    --jimvio-duration-hover: 220ms;
+    --jimvio-duration-medium: 380ms;
+    --jimvio-duration-reveal: 600ms;
+    --jimvio-stagger: 70ms;
+    --jimvio-reveal-y: 24px;
+    --jimvio-reveal-y-mobile: 16px;
 
     /* Blur */
     --ds-blur-sm: 4px;

@@ -90,9 +90,12 @@ function UGCPremiumCampaignCardInner({
       <div
         className={cn(
           "relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[#E8EAED] bg-white",
-          "shadow-[0_1px_3px_rgba(17,24,39,0.05)] transition-[transform,box-shadow] duration-200 ease-out",
-          "hover:-translate-y-px hover:shadow-[0_8px_22px_rgba(17,24,39,0.08)]",
+          "shadow-[0_1px_3px_rgba(17,24,39,0.05)] transition-[transform,box-shadow] duration-[220ms] ease-out",
+          featured
+            ? "hover:-translate-y-[3px] hover:shadow-[0_12px_28px_rgba(17,24,39,0.1)]"
+            : "hover:-translate-y-px hover:shadow-[0_8px_22px_rgba(17,24,39,0.08)]",
           "focus-within:shadow-[0_8px_22px_rgba(17,24,39,0.08)]",
+          "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
           featured && "shadow-[0_2px_8px_rgba(17,24,39,0.06)]",
         )}
       >
@@ -114,7 +117,13 @@ function UGCPremiumCampaignCardInner({
                 alt=""
                 loading="lazy"
                 decoding="async"
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 ease-out group-hover/card:scale-[1.025] group-focus-within/card:scale-[1.025]"
+                className={cn(
+                  "absolute inset-0 h-full w-full object-cover transition-transform duration-[220ms] ease-out",
+                  featured
+                    ? "group-hover/card:scale-[1.02] group-focus-within/card:scale-[1.02]"
+                    : "group-hover/card:scale-[1.025] group-focus-within/card:scale-[1.025]",
+                  "motion-reduce:group-hover/card:scale-100",
+                )}
               />
             ) : (
               <div
@@ -137,9 +146,14 @@ function UGCPremiumCampaignCardInner({
             <div
               className={cn(
                 "absolute inset-x-1.5 bottom-1.5 z-[1] transition-opacity duration-200 sm:inset-x-2 sm:bottom-2",
-                "opacity-100 sm:pointer-events-none sm:opacity-0",
-                "sm:group-hover/card:pointer-events-auto sm:group-hover/card:opacity-100",
-                "sm:group-focus-within/card:pointer-events-auto sm:group-focus-within/card:opacity-100",
+                /* Featured homepage rail: keep Join CTA always visible (no hover-gate) */
+                featured
+                  ? "opacity-100"
+                  : cn(
+                      "opacity-100 sm:pointer-events-none sm:opacity-0",
+                      "sm:group-hover/card:pointer-events-auto sm:group-hover/card:opacity-100",
+                      "sm:group-focus-within/card:pointer-events-auto sm:group-focus-within/card:opacity-100",
+                    ),
               )}
             >
               <JoinButton

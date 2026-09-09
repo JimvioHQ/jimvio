@@ -1651,6 +1651,7 @@ import {
     TrustedBrands,
     TakeJimvioEverywhere,
 } from "./homepage-sections-lazy";
+import { HomeMotionSection } from "@/components/motion/home-motion-section";
 
 import {
     GridPattern,
@@ -3118,15 +3119,33 @@ export function HomepageRedesign({
             <FeaturedCommunities communities={communities} loadError={communitiesLoadError} />
             <PlatformOverviewBar />
             <HowJimvioWorks />
-            <OnePlatformOpportunities />
-            <GrowthStack />
-            <WhyChooseJimvio />
-            <GlobalNetworkStats platform={platform} />
-            <TopCreatorsEarnings creators={creators} />
-            <First30Minutes />
-            <FAQSection />
-            <TrustedBrands />
-            <TakeJimvioEverywhere />
+            <HomeMotionSection>
+                <OnePlatformOpportunities />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <GrowthStack />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <WhyChooseJimvio />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <GlobalNetworkStats platform={platform} />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <TopCreatorsEarnings creators={creators} />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <First30Minutes />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <FAQSection />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <TrustedBrands />
+            </HomeMotionSection>
+            <HomeMotionSection>
+                <TakeJimvioEverywhere />
+            </HomeMotionSection>
         </div>
     );
 }

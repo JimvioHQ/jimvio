@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 
 const ORANGE = "#FF5A1F";
 const GREEN = "#16a34a";
@@ -104,20 +105,23 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
     <Link
       href={journey.href}
       className={cn(
-        "jimvio-journey-card group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[24px] p-5 sm:min-h-[292px] sm:p-6",
+        "jimvio-reveal-item jimvio-journey-card group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[24px] p-5 sm:min-h-[292px] sm:p-6",
         "border border-[var(--color-border)] bg-white",
         "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
-        "transition-[transform,box-shadow,border-color] duration-200 ease-out",
+        "transition-[transform,box-shadow,border-color] duration-[220ms] ease-out",
         "hover:-translate-y-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
         "active:translate-y-0 active:scale-[0.995]",
         "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
       )}
-      style={{
-        ["--journey-i" as string]: index,
-        ["--journey-accent" as string]: journey.color,
-        background: `linear-gradient(165deg, color-mix(in srgb, ${journey.color} 5.5%, #ffffff) 0%, #ffffff 42%)`,
-      }}
+      style={
+        {
+          ["--reveal-i" as string]: index + 2,
+          ["--reveal-stagger" as string]: `${jimvioStagger.default}ms`,
+          ["--journey-accent" as string]: journey.color,
+          background: `linear-gradient(165deg, color-mix(in srgb, ${journey.color} 5.5%, #ffffff) 0%, #ffffff 42%)`,
+        } as CSSProperties
+      }
     >
       <span
         aria-hidden
@@ -147,7 +151,10 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
             boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55)`,
           }}
         >
-          <Icon className="size-5 sm:size-[22px]" strokeWidth={1.85} />
+          <Icon
+            className="size-5 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-y-0 sm:size-[22px]"
+            strokeWidth={1.85}
+          />
         </span>
         <div className="min-w-0 flex-1 pt-0.5">
           <h3 className="text-[17px] font-bold leading-tight tracking-[-0.02em] text-[#111827] dark:text-[var(--color-text-primary)] sm:text-[18px]">
@@ -183,7 +190,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         style={{ color: journey.color }}
       >
         {journey.cta}
-        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[4px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
       </span>
     </Link>
   );
@@ -195,13 +202,15 @@ export function ChooseYourJourney() {
   useLayoutEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+
     if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      section.dataset.reveal = "in";
       return;
     }
 
-    section.dataset.motion = "ready";
+    section.dataset.reveal = "ready";
     const play = () => {
-      section.dataset.motion = "in";
+      section.dataset.reveal = "in";
     };
 
     if (typeof IntersectionObserver === "undefined") {
@@ -215,7 +224,7 @@ export function ChooseYourJourney() {
         play();
         observer.disconnect();
       },
-      { threshold: 0.14, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
     );
     observer.observe(section);
     return () => observer.disconnect();
@@ -224,19 +233,24 @@ export function ChooseYourJourney() {
   return (
     <section
       ref={sectionRef}
-      className="jimvio-journey-hub relative bg-white py-12 sm:py-16 lg:py-[4.5rem]"
+      className="jimvio-reveal jimvio-journey-hub relative bg-white py-12 sm:py-16 lg:py-[4.5rem]"
       aria-labelledby="jimvio-journey-title"
+      data-reveal="idle"
     >
       <style>{JOURNEY_CSS}</style>
       <div className={shell}>
         <div className="mb-10 text-center sm:mb-12">
           <h2
             id="jimvio-journey-title"
-            className="text-[clamp(1.625rem,3.6vw,2.125rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]"
+            className="jimvio-reveal-item text-[clamp(1.625rem,3.6vw,2.125rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]"
+            style={{ ["--reveal-i" as string]: 0, ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Choose Your Journey
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-muted)] sm:text-[15px]">
+          <p
+            className="jimvio-reveal-item mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-muted)] sm:text-[15px]"
+            style={{ ["--reveal-i" as string]: 1, ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+          >
             One account — sell, earn, create, or buy depending on what you need right now.
           </p>
         </div>
@@ -252,30 +266,10 @@ export function ChooseYourJourney() {
 }
 
 const JOURNEY_CSS = `
-@keyframes jimvio-journey-enter {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.jimvio-journey-hub[data-motion="ready"] .jimvio-journey-card {
-  opacity: 0;
-  transform: translateY(14px);
-}
-.jimvio-journey-hub[data-motion="in"] .jimvio-journey-card {
-  animation: jimvio-journey-enter 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--journey-i, 0) * 50ms);
-}
 .jimvio-journey-card:hover {
   border-color: color-mix(in srgb, var(--journey-accent) 28%, var(--color-border));
   box-shadow:
     0 16px 40px rgba(17, 24, 39, 0.07),
     0 2px 8px color-mix(in srgb, var(--journey-accent) 8%, transparent);
-}
-@media (prefers-reduced-motion: reduce) {
-  .jimvio-journey-hub[data-motion="ready"] .jimvio-journey-card,
-  .jimvio-journey-hub[data-motion="in"] .jimvio-journey-card {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
 }
 `;

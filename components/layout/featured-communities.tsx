@@ -8,6 +8,7 @@ import {
   defaultShowcaseVisibleCount,
   HomepageShowcaseRail,
 } from "@/components/layout/homepage-showcase-rail";
+import { RevealBlock, RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 
 const ORANGE = "#FF5A1F";
 const GREEN = "#16a34a";
@@ -57,7 +58,13 @@ function communityImages(c: FeaturedCommunityRow) {
   };
 }
 
-function FeaturedCommunityCard({ community }: { community: FeaturedCommunityRow }) {
+function FeaturedCommunityCard({
+  community,
+  index,
+}: {
+  community: FeaturedCommunityRow;
+  index: number;
+}) {
   const tone = categoryTone(community.category, community.name);
   const { hero, avatar } = communityImages(community);
   const heroSrc = safeMediaUrl(hero, 720);
@@ -67,103 +74,105 @@ function FeaturedCommunityCard({ community }: { community: FeaturedCommunityRow 
   const members = community.member_count ?? 0;
 
   return (
-    <Link
-      href={href}
-      title={community.name}
-      className={cn(
-        "group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[24px]",
-        "border border-[var(--color-border)] bg-white",
-        "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
-        "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-        "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)]",
-        "hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
-        "active:translate-y-0 active:scale-[0.995]",
-        "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
-      )}
-    >
-      <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
-        {heroSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element -- community CDN / Cloudinary
-          <img
-            src={heroSrc}
-            alt={community.name}
-            width={720}
-            height={450}
-            className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <div
-            className="flex size-full items-end p-4"
-            style={{
-              background: `linear-gradient(160deg, ${tone.bg} 0%, #F8FAFC 70%)`,
-            }}
-            aria-hidden
-          >
-            <span
-              className="grid size-10 place-items-center rounded-xl"
-              style={{ background: `${tone.color}18`, color: tone.color }}
-            >
-              <Users className="size-5" strokeWidth={1.75} />
-            </span>
-          </div>
+    <RevealItem index={index + 1} className="h-full">
+      <Link
+        href={href}
+        title={community.name}
+        className={cn(
+          "group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[24px]",
+          "border border-[var(--color-border)] bg-white",
+          "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
+          "transition-[transform,box-shadow,border-color] duration-[220ms] ease-out",
+          "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)]",
+          "hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
+          "active:translate-y-0 active:scale-[0.995]",
+          "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent" />
-      </div>
-
-      <div className="relative flex flex-1 flex-col px-4 pb-4 pt-0">
-        <span className="relative z-[1] -mt-7 mb-3 grid size-14 shrink-0 place-items-center overflow-hidden rounded-full border-[3px] border-white bg-[var(--color-surface-secondary)] shadow-[0_4px_14px_rgba(17,24,39,0.12)]">
-          {avatarSrc ? (
+      >
+        <div className="relative aspect-[16/10] w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
+          {heroSrc ? (
             // eslint-disable-next-line @next/next/no-img-element -- community CDN / Cloudinary
             <img
-              src={avatarSrc}
-              alt=""
-              width={56}
-              height={56}
-              className="size-full object-cover"
+              src={heroSrc}
+              alt={community.name}
+              width={720}
+              height={450}
+              className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               loading="lazy"
               decoding="async"
             />
           ) : (
-            <Users className="size-5" style={{ color: tone.color }} strokeWidth={1.75} />
+            <div
+              className="flex size-full items-end p-4"
+              style={{
+                background: `linear-gradient(160deg, ${tone.bg} 0%, #F8FAFC 70%)`,
+              }}
+              aria-hidden
+            >
+              <span
+                className="grid size-10 place-items-center rounded-xl"
+                style={{ background: `${tone.color}18`, color: tone.color }}
+              >
+                <Users className="size-5" strokeWidth={1.75} />
+              </span>
+            </div>
           )}
-        </span>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent" />
+        </div>
 
-        <h3 className="text-[15px] font-bold leading-snug tracking-[-0.02em] text-[#111827] transition-colors group-hover:text-[#FF5A1F] dark:text-[var(--color-text-primary)] sm:text-[16px]">
-          <span className="line-clamp-2">{community.name}</span>
-        </h3>
+        <div className="relative flex flex-1 flex-col px-4 pb-4 pt-0">
+          <span className="relative z-[1] -mt-7 mb-3 grid size-14 shrink-0 place-items-center overflow-hidden rounded-full border-[3px] border-white bg-[var(--color-surface-secondary)] shadow-[0_4px_14px_rgba(17,24,39,0.12)]">
+            {avatarSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element -- community CDN / Cloudinary
+              <img
+                src={avatarSrc}
+                alt=""
+                width={56}
+                height={56}
+                className="size-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <Users className="size-5" style={{ color: tone.color }} strokeWidth={1.75} />
+            )}
+          </span>
 
-        {community.category ? (
-          <p
-            className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.06em]"
-            style={{ color: tone.color }}
+          <h3 className="text-[15px] font-bold leading-snug tracking-[-0.02em] text-[#111827] transition-colors group-hover:text-[#FF5A1F] dark:text-[var(--color-text-primary)] sm:text-[16px]">
+            <span className="line-clamp-2">{community.name}</span>
+          </h3>
+
+          {community.category ? (
+            <p
+              className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.06em]"
+              style={{ color: tone.color }}
+            >
+              {community.category}
+            </p>
+          ) : null}
+
+          {tagline ? (
+            <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+              {tagline}
+            </p>
+          ) : null}
+
+          <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-muted)]">
+            <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
+            <span className="tabular-nums">{fmtCount(members)}</span> members
+          </p>
+
+          <span
+            className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-3 text-[13px] font-bold sm:text-[14px]"
+            style={{ color: ORANGE }}
           >
-            {community.category}
-          </p>
-        ) : null}
-
-        {tagline ? (
-          <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-            {tagline}
-          </p>
-        ) : null}
-
-        <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-muted)]">
-          <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-          <span className="tabular-nums">{fmtCount(members)}</span> members
-        </p>
-
-        <span
-          className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-3 text-[13px] font-bold sm:text-[14px]"
-          style={{ color: ORANGE }}
-        >
-          Join Community
-          <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[4px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
-        </span>
-      </div>
-    </Link>
+            Join Community
+            <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+          </span>
+        </div>
+      </Link>
+    </RevealItem>
   );
 }
 
@@ -192,9 +201,9 @@ export function FeaturedCommunities({
   if (!communities.length) return null;
 
   return (
-    <section className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
-        <div className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
+        <RevealBlock index={0} className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
           <div>
             <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
               Featured Communities
@@ -205,22 +214,23 @@ export function FeaturedCommunities({
           </div>
           <Link
             href="/communities"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
+            className="group inline-flex min-h-11 shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
             style={{ color: ORANGE }}
           >
-            Explore All <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            Explore All{" "}
+            <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-[3px] motion-reduce:group-hover:translate-x-0" />
           </Link>
-        </div>
+        </RevealBlock>
         <HomepageShowcaseRail
           ariaLabel="Featured communities"
           gapPx={16}
           getVisibleCount={defaultShowcaseVisibleCount}
         >
-          {communities.map((community) => (
-            <FeaturedCommunityCard key={community.id} community={community} />
+          {communities.map((community, index) => (
+            <FeaturedCommunityCard key={community.id} community={community} index={index} />
           ))}
         </HomepageShowcaseRail>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
