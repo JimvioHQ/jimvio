@@ -2,9 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Link from "next/link";
 import {
-    ArrowLeft,
     Sparkles,
     Menu,
     Users,
@@ -273,7 +271,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
 
-            {/* Shared product header — same AppTopNav as UGC / Affiliates */}
+            {/* Shared product header — same AppTopNav as UGC / Affiliates (no Community hamburger) */}
             <AppTopNav
                 activeNav="Communities"
                 createContext="communities"
@@ -291,17 +289,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                               },
                           ]
                         : undefined
-                }
-                leadingAction={
-                    <button
-                        type="button"
-                        onClick={() => setMobileNavOpen((o) => !o)}
-                        aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
-                        aria-expanded={mobileNavOpen}
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 lg:hidden"
-                    >
-                        <Menu className="h-5 w-5" />
-                    </button>
                 }
                 extraActions={
                     <button
@@ -358,41 +345,46 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                 {/* Page content */}
                 <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[var(--color-bg)]")}>
-                    {/* Mobile page title bar */}
+                    {/* Community contextual header (Layer 2) — owns the Community hamburger */}
                     {!isLiveStudio && (
-                        <div className="flex min-h-10 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 py-1 lg:hidden">
+                        <div className="sticky top-0 z-20 flex min-h-11 items-center gap-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 py-1.5 lg:hidden">
+                            <button
+                                type="button"
+                                onClick={() => setMobileNavOpen((o) => !o)}
+                                aria-label={mobileNavOpen ? "Close community navigation" : "Open community navigation"}
+                                aria-expanded={mobileNavOpen}
+                                className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                            >
+                                <Menu className="h-4 w-4" />
+                            </button>
+
                             {isCommunityWorkspace && communitySlug ? (
-                                <div className="flex w-full items-center gap-2">
-                                    <Link
-                                        href="/communities"
-                                        className="inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-[13px] font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
-                                    >
-                                        <ArrowLeft className="h-4 w-4" />
-                                        Communities
-                                    </Link>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
-                                            {pageTitle}
-                                        </p>
-                                        <p className="truncate text-[12px] font-semibold text-[var(--color-text-muted)]">
-                                            {pathname.includes("/spaces")
-                                                ? "Spaces"
-                                                : pathname.includes("/courses")
-                                                  ? "Courses"
-                                                  : pathname.includes("/feed")
-                                                    ? "Feeds"
-                                                    : "Overview"}
-                                        </p>
-                                    </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
+                                        {pageTitle}
+                                    </p>
+                                    <p className="truncate text-[12px] font-semibold text-[var(--color-text-muted)]">
+                                        {pathname.includes("/spaces")
+                                            ? "Spaces"
+                                            : pathname.includes("/courses")
+                                              ? "Courses"
+                                              : pathname.includes("/feed")
+                                                ? "Feeds"
+                                                : pathname.includes("/manage")
+                                                  ? "Manager"
+                                                  : "Overview"}
+                                    </p>
                                 </div>
                             ) : (
-                                <div className="min-w-0">
-                                    <p className="text-[12px] font-semibold text-[var(--color-text-muted)]">
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate text-[14px] font-semibold text-[var(--color-text-primary)]">
                                         Communities
                                     </p>
-                                    <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
-                                        {pageTitle || "Feed"}
-                                    </h1>
+                                    {pageTitle && pageTitle !== "Communities" && pageTitle !== "Feed" ? (
+                                        <p className="truncate text-[12px] font-medium text-[var(--color-text-muted)]">
+                                            {pageTitle}
+                                        </p>
+                                    ) : null}
                                 </div>
                             )}
                         </div>

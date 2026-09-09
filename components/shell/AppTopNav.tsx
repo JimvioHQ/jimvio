@@ -36,8 +36,6 @@ type AppTopNavProps = {
   notificationCount?: number;
   messageCount?: number;
   createContext?: CreateMenuContext;
-  /** Optional leading control (e.g. community/hub hamburger). */
-  leadingAction?: ReactNode;
   /** Optional actions rendered before canonical utilities (e.g. community AI). */
   extraActions?: ReactNode;
   /** Extra profile-menu account links (deduped by href in ProfileAccountMenu). */
@@ -100,7 +98,6 @@ export function AppTopNav({
   notificationCount: notificationCountProp,
   messageCount = 0,
   createContext,
-  leadingAction,
   extraActions,
   extraAccountItems,
   signInHref,
@@ -136,7 +133,6 @@ export function AppTopNav({
       )}
     >
       <div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1.5">
-        {leadingAction}
         <Link href="/" aria-label="Jimvio home" className="flex min-w-0 items-center">
           <JimvioLogo
             href={undefined}
