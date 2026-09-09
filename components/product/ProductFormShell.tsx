@@ -843,10 +843,10 @@ function StepDetails({
                 <div className="space-y-4">
                     <div>
                         <Label hint={`${form.name.length}/80`}>Product name <span style={{ color: "var(--color-accent)" }}>*</span></Label>
-                        <Input value={form.name} maxLength={80} onChange={e => handleChange("name", e.target.value)} placeholder="e.g. How to Build a Viral App: 0 to $100k/mo" />
+                        <Input value={form.name} maxLength={80} onChange={e => handleChange("name", e.target.value)} placeholder="Product name" />
                     </div>
                     <div>
-                        <Label hint="Auto-generated from name">URL slug</Label>
+                        <Label>URL slug</Label>
                         <div className="flex">
                             <span
                                 className="flex items-center px-3 h-10 text-[11px] font-mono whitespace-nowrap flex-shrink-0"
@@ -871,7 +871,7 @@ function StepDetails({
                     </div>
                     <div>
                         <Label hint={`${form.short_description.length}/80`}>Headline <span style={{ color: "var(--color-accent)" }}>*</span></Label>
-                        <Input value={form.short_description} maxLength={80} onChange={e => handleChange("short_description", e.target.value)} placeholder="Step-by-step blueprint to build, launch & monetize" />
+                        <Input value={form.short_description} maxLength={80} onChange={e => handleChange("short_description", e.target.value)} placeholder="Short headline" />
                     </div>
                     <div>
                         <div className="flex items-center justify-between mb-1.5">
@@ -912,7 +912,7 @@ function StepDetails({
                                 value={form.description || ""}
                                 rows={8}
                                 onChange={e => handleChange("description", e.target.value)}
-                                placeholder="Describe your product — plain text or HTML (imported listings may include images here)"
+                                placeholder="Describe your product"
                             />
                         ) : (
                             <div
@@ -1148,8 +1148,9 @@ function StepDetails({
     );
 }
 
-/* ── STEP 2: Pricing ── */
+/* ── STEP 2: Pricing (Digital vs Physical are separate UIs) ── */
 function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f: string, v: unknown) => void }) {
+    const isPhysical = form.product_type === "physical";
     const isFree = parseFloat(form.price) === 0;
     const salePrice = parseFloat(form.price) || 0;
     const compareAt = parseFloat(form.compare_at_price) || 0;
@@ -1171,32 +1172,200 @@ function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f
         handleChange("compare_at_price", original.toFixed(2));
     }
 
+    function PriceField({ label, value, onChange, placeholder }: {
+        label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+    }) {
+        return (
+            <div>
+                <Label>{label}</Label>
+                <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>$</span>
+                    <Input
+                        type="number"
+                        value={value}
+                        onChange={e => onChange(e.target.value)}
+                        className="pl-7 font-semibold text-base"
+                        min={0}
+                        step="0.01"
+                        placeholder={placeholder}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-medium" style={{ color: "var(--color-text-muted)" }}>USD</span>
+                </div>
+            </div>
+        );
+    }
+
+    function CompareAtBlock() {
+        return (
+            <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Compare-at price</p>
+                    <Toggle
+                        checked={form.discount_enabled}
+                        onChange={v => handleChange("discount_enabled", v)}
+                    />
+                </div>
+                {form.discount_enabled && (
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <PriceField
+                                label="Original price"
+                                value={form.compare_at_price}
+                                onChange={v => handleChange("compare_at_price", v)}
+                                placeholder="49.99"
+                            />
+                            <div>
+                                <Label>% off</Label>
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        value={savingsPct > 0 ? String(savingsPct) : ""}
+                                        onChange={e => setDiscountPercent(parseFloat(e.target.value) || 0)}
+                                        className="pr-8"
+                                        min={1}
+                                        max={99}
+                                        placeholder="20"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-mono" style={{ color: "var(--color-text-muted)" }}>%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <Label>Sale badge (optional)</Label>
+                            <Input
+                                value={form.discount_label}
+                                onChange={e => handleChange("discount_label", e.target.value)}
+                                placeholder='e.g. "Sale" or leave blank'
+                            />
+                        </div>
+                        {!isPhysical && (
+                            <ToggleRow
+                                title="Flash deal"
+                                description="Show in marketplace flash deals"
+                                checked={form.is_flash_deal}
+                                onChange={v => handleChange("is_flash_deal", v)}
+                            />
+                        )}
+                        {compareAt > salePrice && salePrice > 0 && (
+                            <p className="text-xs" style={{ color: "var(--color-accent)" }}>
+                                Buyers pay <strong>${salePrice.toFixed(2)}</strong>
+                                {" "}(was ${compareAt.toFixed(2)})
+                                {badgeLabel ? ` · ${badgeLabel}` : ""}
+                            </p>
+                        )}
+                        {form.discount_enabled && compareAt > 0 && compareAt <= salePrice && (
+                            <p className="text-xs flex items-center gap-1.5" style={{ color: "#b45309" }}>
+                                <AlertTriangle size={12} />
+                                Original price must be higher than the selling price.
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    function AffiliateBlock() {
+        return (
+            <div>
+                <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Affiliate commission</p>
+                    <Toggle checked={form.affiliate_enabled} onChange={v => handleChange("affiliate_enabled", v)} />
+                </div>
+                {form.affiliate_enabled && (
+                    <div>
+                        <Label>Commission %</Label>
+                        <div className="relative max-w-[160px]">
+                            <Input
+                                type="number"
+                                value={form.affiliate_commission_rate}
+                                onChange={e => handleChange("affiliate_commission_rate", e.target.value)}
+                                className="pr-8 font-mono"
+                                min="1"
+                                max="100"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-mono" style={{ color: "var(--color-text-muted)" }}>%</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    if (isPhysical) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <SectionTitle label="Selling price" />
+                    <div className="space-y-4">
+                        <PriceField
+                            label="Price"
+                            value={form.price}
+                            onChange={v => {
+                                handleChange("price", v);
+                                handleChange("currency", "USD");
+                                handleChange("pricing_type", "one_time");
+                            }}
+                            placeholder="29.99"
+                        />
+                        <CompareAtBlock />
+                    </div>
+                </div>
+
+                <Divider />
+
+                <div>
+                    <SectionTitle label="Inventory" />
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>Track inventory</p>
+                            <Toggle checked={form.track_inventory} onChange={v => handleChange("track_inventory", v)} />
+                        </div>
+                        {form.track_inventory && (
+                            <div>
+                                <Label>Stock quantity</Label>
+                                <Input
+                                    type="number"
+                                    value={form.inventory_quantity}
+                                    onChange={e => handleChange("inventory_quantity", e.target.value)}
+                                    placeholder="0"
+                                    min={0}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <Divider />
+                <AffiliateBlock />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div>
-                <SectionTitle label="Pricing model" />
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <SectionTitle label="Pricing" />
+                <div className="grid grid-cols-2 gap-2.5 mb-5">
                     {[
-                        { id: "free", label: "Free", hint: "No charge to access" },
-                        { id: "paid", label: "Paid", hint: "Charge customers" },
+                        { id: "free", label: "Free" },
+                        { id: "paid", label: "Paid" },
                     ].map(opt => {
                         const sel = opt.id === "free" ? isFree : !isFree;
                         return (
                             <button
                                 key={opt.id}
-                                onClick={() => handleChange("price", opt.id === "free" ? "0" : "9.99")}
-                                className="flex flex-col gap-1 p-4 text-left transition-all"
+                                type="button"
+                                onClick={() => handleChange("price", opt.id === "free" ? "0" : (salePrice > 0 ? form.price : "9.99"))}
+                                className="flex min-h-[48px] items-center justify-between px-3.5 text-left transition-all"
                                 style={{
                                     borderRadius: "var(--radius-md)",
                                     border: `1px solid ${sel ? "var(--color-accent)" : "var(--color-border)"}`,
-                                    background: sel ? "var(--color-accent-light)" : "var(--color-surface-secondary)",
+                                    background: sel ? "var(--color-accent-light)" : "var(--color-surface)",
                                 }}
                             >
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-semibold" style={{ color: sel ? "var(--color-accent)" : "var(--color-text-primary)" }}>{opt.label}</span>
-                                    {sel && <Check size={14} style={{ color: "var(--color-accent)" }} />}
-                                </div>
-                                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{opt.hint}</span>
+                                <span className="text-sm font-semibold" style={{ color: sel ? "var(--color-accent)" : "var(--color-text-primary)" }}>{opt.label}</span>
+                                {sel && <Check size={14} style={{ color: "var(--color-accent)" }} />}
                             </button>
                         );
                     })}
@@ -1204,237 +1373,69 @@ function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f
 
                 {!isFree && (
                     <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <Label>Currency</Label>
-                                <Select value={form.currency} onChange={e => handleChange("currency", e.target.value)}>
-                                    <option value="USD">USD – $</option>
-                                    <option value="EUR">EUR – €</option>
-                                    <option value="GBP">GBP – £</option>
-                                </Select>
-                            </div>
-                            <div className="col-span-2">
-                                <Label>Price</Label>
-                                <div className="relative">
-                                    <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-muted)" }} />
-                                    <Input type="number" value={form.price} onChange={e => handleChange("price", e.target.value)} className="pl-8 font-semibold text-base" min={0} step="0.01" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            className="p-4 space-y-4"
-                            style={{
-                                borderRadius: "var(--radius-md)",
-                                border: "1px solid var(--color-border)",
-                                background: "var(--color-surface-secondary)",
+                        <PriceField
+                            label="Price"
+                            value={form.price}
+                            onChange={v => {
+                                handleChange("price", v);
+                                handleChange("currency", "USD");
                             }}
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                                        Discount
-                                    </p>
-                                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                                        Show a sale price with optional badge on marketplace cards
-                                    </p>
-                                </div>
-                                <Toggle
-                                    checked={form.discount_enabled}
-                                    onChange={v => handleChange("discount_enabled", v)}
-                                />
+                            placeholder="9.99"
+                        />
+
+                        <div className="space-y-2">
+                            <Label>Billing</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { id: "one_time", label: "One-time" },
+                                    { id: "recurring", label: "Subscription" },
+                                ].map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => handleChange("pricing_type", opt.id)}
+                                        className="h-10 text-xs font-medium transition-all"
+                                        style={{
+                                            borderRadius: "var(--radius-sm)",
+                                            border: `1px solid ${form.pricing_type === opt.id ? "var(--color-accent)" : "var(--color-border)"}`,
+                                            background: form.pricing_type === opt.id ? "var(--color-accent-light)" : "var(--color-surface)",
+                                            color: form.pricing_type === opt.id ? "var(--color-accent)" : "var(--color-text-secondary)",
+                                        }}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
                             </div>
-
-                            {form.discount_enabled && (
-                                <div className="space-y-4 pt-4" style={{ borderTop: "1px solid var(--color-border)" }}>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <Label hint="Was">Original price</Label>
-                                            <div className="relative">
-                                                <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-muted)" }} />
-                                                <Input
-                                                    type="number"
-                                                    value={form.compare_at_price}
-                                                    onChange={e => handleChange("compare_at_price", e.target.value)}
-                                                    className="pl-8"
-                                                    min={salePrice > 0 ? salePrice + 0.01 : 0}
-                                                    step="0.01"
-                                                    placeholder="e.g. 49.99"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <Label hint="Shortcut">% off</Label>
-                                            <div className="relative">
-                                                <Input
-                                                    type="number"
-                                                    value={savingsPct > 0 ? String(savingsPct) : ""}
-                                                    onChange={e => setDiscountPercent(parseFloat(e.target.value) || 0)}
-                                                    className="pr-8"
-                                                    min={1}
-                                                    max={99}
-                                                    placeholder="e.g. 20"
-                                                />
-                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-mono" style={{ color: "var(--color-text-muted)" }}>%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <Label hint="Optional">Badge label</Label>
-                                        <Input
-                                            value={form.discount_label}
-                                            onChange={e => handleChange("discount_label", e.target.value)}
-                                            placeholder='e.g. "Flash Sale" or leave blank for "-20%"'
-                                        />
-                                    </div>
-
-                                    <ToggleRow
-                                        title="Flash deal"
-                                        description="Feature this product in marketplace flash deals"
-                                        checked={form.is_flash_deal}
-                                        onChange={v => handleChange("is_flash_deal", v)}
-                                    />
-
-                                    {compareAt > salePrice && salePrice > 0 && (
-                                        <div
-                                            className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs"
+                            {form.pricing_type === "recurring" && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                    {BILLING_PERIODS.map(p => (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            onClick={() => handleChange("billing_period", p.id)}
+                                            className="px-3 h-8 text-[11px] font-semibold transition-all"
                                             style={{
-                                                borderRadius: "var(--radius-sm)",
-                                                border: "1px solid var(--color-accent-subtle)",
-                                                background: "var(--color-accent-light)",
-                                                color: "var(--color-accent)",
+                                                borderRadius: "var(--radius-full)",
+                                                border: "1px solid",
+                                                borderColor: form.billing_period === p.id ? "var(--color-accent)" : "var(--color-border)",
+                                                background: form.billing_period === p.id ? "var(--color-accent)" : "transparent",
+                                                color: form.billing_period === p.id ? "#fff" : "var(--color-text-muted)",
                                             }}
                                         >
-                                            <span>
-                                                Buyers pay <strong>${salePrice.toFixed(2)}</strong>
-                                                {" "}(was <span style={{ textDecoration: "line-through" }}>${compareAt.toFixed(2)}</span>)
-                                            </span>
-                                            {badgeLabel && (
-                                                <span
-                                                    className="px-2 py-0.5 font-bold uppercase tracking-wide shrink-0"
-                                                    style={{
-                                                        borderRadius: "var(--radius-full)",
-                                                        background: "var(--color-accent)",
-                                                        color: "#fff",
-                                                    }}
-                                                >
-                                                    {badgeLabel}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {form.discount_enabled && compareAt > 0 && compareAt <= salePrice && (
-                                        <p className="text-xs flex items-center gap-1.5" style={{ color: "#b45309" }}>
-                                            <AlertTriangle size={12} />
-                                            Original price must be higher than the sale price.
-                                        </p>
-                                    )}
+                                            {p.label}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>
 
-                        {form.product_type === "digital" && (
-                            <div className="space-y-3">
-                                <Label>Billing type</Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { id: "one_time", label: "One-time payment" },
-                                        { id: "recurring", label: "Recurring subscription" },
-                                    ].map(opt => (
-                                        <button
-                                            key={opt.id}
-                                            onClick={() => handleChange("pricing_type", opt.id)}
-                                            className="h-10 text-xs font-medium transition-all"
-                                            style={{
-                                                borderRadius: "var(--radius-sm)",
-                                                border: `1px solid ${form.pricing_type === opt.id ? "var(--color-accent)" : "var(--color-border)"}`,
-                                                background: form.pricing_type === opt.id ? "var(--color-accent-light)" : "var(--color-surface-secondary)",
-                                                color: form.pricing_type === opt.id ? "var(--color-accent)" : "var(--color-text-secondary)",
-                                            }}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                {form.pricing_type === "recurring" && (
-                                    <div>
-                                        <Label>Billing period</Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {BILLING_PERIODS.map(p => (
-                                                <button
-                                                    key={p.id}
-                                                    onClick={() => handleChange("billing_period", p.id)}
-                                                    className="px-4 h-8 text-[11px] font-semibold uppercase tracking-wide transition-all"
-                                                    style={{
-                                                        borderRadius: "var(--radius-full)",
-                                                        border: "1px solid",
-                                                        borderColor: form.billing_period === p.id ? "var(--color-accent)" : "var(--color-border)",
-                                                        background: form.billing_period === p.id ? "var(--color-accent)" : "transparent",
-                                                        color: form.billing_period === p.id ? "#fff" : "var(--color-text-muted)",
-                                                    }}
-                                                >
-                                                    {p.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {form.product_type === "physical" && (
-                            <div
-                                className="flex items-center gap-2 px-3 py-2.5 text-xs"
-                                style={{
-                                    borderRadius: "var(--radius-sm)",
-                                    border: "1px solid var(--color-border)",
-                                    background: "var(--color-surface-secondary)",
-                                    color: "var(--color-text-muted)",
-                                }}
-                            >
-                                <ShoppingBag size={13} />
-                                Physical products are always charged as a one-time payment.
-                            </div>
-                        )}
+                        <CompareAtBlock />
                     </div>
                 )}
             </div>
 
             <Divider />
-
-            <div>
-                <div className="flex items-start justify-between mb-1">
-                    <div>
-                        <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Affiliate program</p>
-                        <p className="text-xs mt-0.5 mb-4" style={{ color: "var(--color-text-muted)" }}>Let others earn by promoting your product</p>
-                    </div>
-                    <Toggle checked={form.affiliate_enabled} onChange={v => handleChange("affiliate_enabled", v)} />
-                </div>
-                {form.affiliate_enabled && (
-                    <div className="space-y-3 pt-4" style={{ borderTop: "1px solid var(--color-border)" }}>
-                        <div>
-                            <Label hint="% of sale price">Commission rate</Label>
-                            <div className="relative">
-                                <Input type="number" value={form.affiliate_commission_rate} onChange={e => handleChange("affiliate_commission_rate", e.target.value)} className="pr-8 font-mono" min="1" max="100" />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-mono" style={{ color: "var(--color-text-muted)" }}>%</span>
-                            </div>
-                        </div>
-                        <div
-                            className="p-3.5 text-xs leading-relaxed"
-                            style={{
-                                borderRadius: "var(--radius-md)",
-                                border: "1px solid var(--color-accent-subtle)",
-                                background: "var(--color-accent-light)",
-                                color: "var(--color-accent)",
-                            }}
-                        >
-                            Affiliates earn <strong>{form.affiliate_commission_rate || 10}%</strong> per sale — approx. <strong>${((parseFloat(form.price) || 0) * (parseFloat(form.affiliate_commission_rate) || 10) / 100).toFixed(2)}</strong> per conversion
-                        </div>
-                    </div>
-                )}
-            </div>
+            <AffiliateBlock />
         </div>
     );
 }
@@ -1480,34 +1481,21 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                 <SectionTitle label="Fulfilment" />
                 {form.product_type === "physical" && (
                     <div className="space-y-4">
-                        <div
-                            className="flex items-center justify-between p-3.5"
-                            style={{
-                                borderRadius: "var(--radius-md)",
-                                border: "1px solid var(--color-border)",
-                                background: "var(--color-surface-secondary)",
-                            }}
-                        >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                                <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>Track inventory</p>
-                                <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>Auto-reduce stock on purchase</p>
-                            </div>
-                            <Toggle checked={form.track_inventory} onChange={v => handleChange("track_inventory", v)} />
-                        </div>
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <Label>Stock quantity</Label>
-                                <Input type="number" value={form.inventory_quantity} onChange={e => handleChange("inventory_quantity", e.target.value)} disabled={!form.track_inventory} placeholder="0" />
-                            </div>
-                            <div>
-                                <Label hint="kg">Weight</Label>
+                                <Label>Weight (kg)</Label>
                                 <Input type="number" step="0.01" value={form.weight} onChange={e => handleChange("weight", e.target.value)} placeholder="0.00" />
                             </div>
                             <div>
-                                <Label hint="L×W×H">Dimensions</Label>
+                                <Label>Dimensions</Label>
                                 <Input value={form.dimensions} onChange={e => handleChange("dimensions", e.target.value)} placeholder="10×10×5 cm" />
                             </div>
                         </div>
+                        {form.track_inventory && (
+                            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                                Stock is managed in Pricing ({form.inventory_quantity || "0"} units).
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -1518,7 +1506,7 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                             style={{
                                 borderRadius: "var(--radius-md)",
                                 border: "1px solid var(--color-border)",
-                                background: "var(--color-surface-secondary)",
+                                background: "var(--color-surface)",
                             }}
                         >
                             <div className="flex items-center gap-2 mb-3">
@@ -1536,7 +1524,7 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                                 >
                                     <CheckCircle2 size={14} style={{ color: "var(--color-success)", flexShrink: 0 }} />
                                     <p className="text-xs font-mono flex-1 truncate" style={{ color: "var(--color-text-secondary)" }}>{form.digital_file_url}</p>
-                                    <button onClick={() => handleChange("digital_file_url", "")} style={{ color: "var(--color-danger)" }}>
+                                    <button type="button" onClick={() => handleChange("digital_file_url", "")} style={{ color: "var(--color-danger)" }}>
                                         <X size={13} />
                                     </button>
                                 </div>
@@ -1550,7 +1538,7 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                             )}
                         </div>
                         <div>
-                            <Label hint="Or paste a direct URL">Manual file URL</Label>
+                            <Label>File URL</Label>
                             <Input
                                 value={form.digital_file_url}
                                 onChange={e => handleChange("digital_file_url", e.target.value)}
@@ -1827,7 +1815,7 @@ export function ProductFormShell({
         product_subtype: "course",
         price: "29.99", currency: "USD", category_id: "",
         is_digital: true,
-        pricing_type: "recurring", billing_period: "monthly",
+        pricing_type: "one_time", billing_period: "monthly",
         digital_file_url: "", track_inventory: true, inventory_quantity: "0",
         affiliate_enabled: false, affiliate_commission_rate: "10",
         is_featured: false,
@@ -1996,6 +1984,13 @@ export function ProductFormShell({
         })();
     }, [isAdminMode]);
 
+    useEffect(() => {
+        if (physicalGateActive && step !== 1) {
+            setStep(1);
+            setError("Business verification required");
+        }
+    }, [physicalGateActive, step]);
+
     function goToStep(next: number) {
         if (
             !isAdminMode &&
@@ -2003,7 +1998,7 @@ export function ProductFormShell({
             !businessVerified &&
             next > 1
         ) {
-            setError("Business verification required. Verify your business to sell physical products.");
+            setError("Business verification required");
             setStep(1);
             return;
         }
@@ -2094,6 +2089,10 @@ export function ProductFormShell({
                 if (!isDigital) {
                     updated.pricing_type = "one_time";
                     updated.billing_period = "";
+                    updated.currency = "USD";
+                    updated.is_flash_deal = false;
+                } else if (!updated.pricing_type) {
+                    updated.pricing_type = "one_time";
                 }
 
                 const currentCat = categories.find(c => c.id === updated.category_id);
@@ -2120,7 +2119,7 @@ export function ProductFormShell({
         setError(null);
         if (!isAdminMode && !vendor) { setError("Seller account required."); return; }
         if (!isAdminMode && form.product_type === "physical" && !businessVerified) {
-            setError("Business verification required. Your business must be verified before you can list physical products.");
+            setError("Business verification required");
             setStep(1);
             return;
         }
@@ -2173,7 +2172,7 @@ export function ProductFormShell({
                 status: form.status,
                 is_active: form.status === "active",
                 price,
-                currency: form.currency,
+                currency: "USD",
                 pricing_type: isDigital ? form.pricing_type : "one_time",
                 billing_period: billingPeriod,
                 category_id: form.category_id || null,
@@ -2230,7 +2229,7 @@ export function ProductFormShell({
                 product_type: isDigital ? "digital" : "physical",
                 product_subtype: isDigital ? form.product_subtype || null : null,
                 price,
-                currency: form.currency,
+                currency: "USD",
                 pricing_type: isDigital ? form.pricing_type : "one_time",
                 billing_period: billingPeriod,
                 category_id: form.category_id || null,

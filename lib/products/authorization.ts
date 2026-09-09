@@ -98,7 +98,7 @@ export function assertCanCreateProductType(
     return {
       ok: false,
       code: "business_verification_required",
-      message: "Business verification is required to sell physical products on Jimvio.",
+      message: "Business verification required",
     };
   }
   return { ok: true, vendor };
