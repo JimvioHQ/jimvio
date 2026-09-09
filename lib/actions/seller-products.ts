@@ -6,6 +6,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { slugify } from "@/lib/utils";
 import {
   assertCanCreateProductType,
+  businessVerificationCustomerStatus,
   initialStatusForVendorSubmit,
   isBusinessVerified,
   toProductTypeBucket,
@@ -113,21 +114,30 @@ export async function getSellerUploadContext(): Promise<{
   vendor: VendorAuthSnapshot | null;
   businessVerified: boolean;
   canSellPhysical: boolean;
+  businessStatus: ReturnType<typeof businessVerificationCustomerStatus>;
 }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return { authenticated: false, vendor: null, businessVerified: false, canSellPhysical: false };
+    return {
+      authenticated: false,
+      vendor: null,
+      businessVerified: false,
+      canSellPhysical: false,
+      businessStatus: businessVerificationCustomerStatus(null),
+    };
   }
   const vendor = await ensureSellerVendor(user.id);
   const businessVerified = isBusinessVerified(vendor);
+  const businessStatus = businessVerificationCustomerStatus(vendor?.verification_status);
   return {
     authenticated: true,
     vendor,
     businessVerified,
     canSellPhysical: businessVerified,
+    businessStatus,
   };
 }
 

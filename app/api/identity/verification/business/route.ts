@@ -7,7 +7,10 @@ import {
   mapDiditStatusToCustomer,
 } from "@/lib/identity/didit";
 import { ensureSellerVendor } from "@/lib/actions/seller-products";
-import { isBusinessVerified } from "@/lib/products/authorization";
+import {
+  businessVerificationCustomerStatus,
+  isBusinessVerified,
+} from "@/lib/products/authorization";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,6 +25,7 @@ export async function GET() {
 
   const vendor = await ensureSellerVendor(user.id);
   const verified = isBusinessVerified(vendor);
+  const businessStatus = businessVerificationCustomerStatus(vendor?.verification_status);
 
   const admin = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
   const { data: session } = await admin
@@ -33,18 +37,15 @@ export async function GET() {
     .limit(1)
     .maybeSingle();
 
-  // Fallback: latest session if metadata filter unsupported
-  let status = verified
-    ? "Approved"
-    : String(vendor?.verification_status === "rejected" ? "Declined" : session?.status || "");
-  if (!status && vendor?.verification_status === "pending") status = "In Progress";
-
   return NextResponse.json({
     configured: diditBusinessConfigured(),
     verified,
     vendorStatus: vendor?.verification_status ?? null,
-    status,
-    customer: mapDiditStatusToCustomer(verified ? "Approved" : status || null),
+    status: businessStatus.key,
+    customer: {
+      key: businessStatus.key,
+      label: businessStatus.label,
+    },
     sessionId: session?.session_id ?? null,
   });
 }

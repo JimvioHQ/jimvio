@@ -28,6 +28,10 @@ import {
 } from "@/lib/actions/admin-products";
 import { upsertSellerProduct, getSellerUploadContext } from "@/lib/actions/seller-products";
 import { CategoryTreeSelect } from "@/components/product/CategoryTreeSelect";
+import {
+    ProductTypeSelector,
+    type BusinessVerificationUi,
+} from "@/components/product/ProductTypeSelector";
 import { saveProductVideos } from "@/lib/actions/product-videos";
 import { sortProductVideoRows } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -399,7 +403,11 @@ function LivePreview({ form }: { form: FormState }) {
 
     const socialProofLine = isPhysical
         ? form.track_inventory
-            ? stockQty > 0 ? `${stockQty} in stock` : "Out of stock"
+            ? stockQty > 0
+                ? `${stockQty} in stock`
+                : form.name.trim()
+                    ? "Inventory tracked"
+                    : "Physical product · ships to customer"
             : "Ships worldwide"
         : subtype?.id === "course"
             ? "Join thousands of students"
@@ -754,21 +762,23 @@ function RightSidebar({
 
 /* ── STEP 1: Details ── */
 function StepDetails({
-    form, handleChange, categories, handleImageUpload, removeImage, businessVerified, onContinueDigital,
+    form, handleChange, categories, handleImageUpload, removeImage, business, onContinueDigital, onVerifyBusiness,
 }: {
     form: FormState;
     handleChange: (f: string, v: unknown) => void;
     categories: any[];
     handleImageUpload: (url: string) => void;
     removeImage: (i: number) => void;
-    businessVerified: boolean;
+    business: BusinessVerificationUi;
     onContinueDigital: () => void;
+    onVerifyBusiness: () => Promise<void>;
 }) {
     const [videoInput, setVideoInput] = React.useState("");
     const [imageUrlInput, setImageUrlInput] = React.useState("");
     const [descTab, setDescTab] = React.useState<"edit" | "preview">("edit");
     const descIsHtml = isHtmlContent(form.description || "");
     const descCharCount = (form.description || "").length;
+    const physicalBlocked = form.product_type === "physical" && !business.verified;
 
     const pullImagesFromDescription = () => {
         const urls = extractImagesFromHtml(form.description);
@@ -797,80 +807,17 @@ function StepDetails({
 
     return (
         <div className="space-y-6">
-            <div>
-                <div className="space-y-3 mb-6">
-                    <SectionTitle label="Product type" />
-                    <div className="grid grid-cols-2 gap-3">
-                        {[
-                            { id: "digital", label: "Digital", Icon: Globe, hint: "Instant delivery / access" },
-                            { id: "physical", label: "Physical", Icon: ShoppingBag, hint: "Ships to customer" },
-                        ].map(type => {
-                            const sel = form.product_type === type.id;
-                            return (
-                                <button
-                                    key={type.id}
-                                    type="button"
-                                    onClick={() => handleChange("product_type", type.id)}
-                                    className="flex min-h-[72px] items-center gap-3 p-3.5 text-left transition-all"
-                                    style={{
-                                        borderRadius: "var(--radius-md)",
-                                        border: `1px solid ${sel ? "var(--color-accent)" : "var(--color-border)"}`,
-                                        background: sel ? "var(--color-accent-light)" : "var(--color-surface-secondary)",
-                                    }}
-                                >
-                                    <div
-                                        className="w-9 h-9 flex items-center justify-center flex-shrink-0"
-                                        style={{
-                                            borderRadius: "var(--radius-sm)",
-                                            background: sel ? "var(--color-accent)" : "var(--color-surface)",
-                                            color: sel ? "#fff" : "var(--color-text-muted)",
-                                        }}
-                                    >
-                                        <type.Icon size={16} />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold" style={{ color: sel ? "var(--color-accent)" : "var(--color-text-primary)" }}>{type.label}</p>
-                                        <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>{type.hint}</p>
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {form.product_type === "physical" && !businessVerified && (
-                        <div className="rounded-2xl border border-[#FFDCC7] bg-[#FFF6F1] p-4 space-y-3">
-                            <p className="text-[14px] font-semibold text-[#161512]">Business verification required</p>
-                            <p className="text-[12.5px] leading-relaxed text-[#8B8579]">
-                                Physical products are available to verified businesses. Verify your business to start selling physical products on Jimvio.
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    className="inline-flex h-11 min-h-[44px] items-center rounded-full bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white"
-                                    onClick={async () => {
-                                        try {
-                                            const res = await fetch("/api/identity/verification/business", { method: "POST" });
-                                            const json = await res.json();
-                                            if (!res.ok) throw new Error(json.error || "Could not start verification");
-                                            if (json.verificationUrl) window.location.href = json.verificationUrl;
-                                        } catch (err) {
-                                            alert(err instanceof Error ? err.message : "Could not start verification");
-                                        }
-                                    }}
-                                >
-                                    Verify business
-                                </button>
-                                <button
-                                    type="button"
-                                    className="inline-flex h-11 min-h-[44px] items-center rounded-full border border-black/10 bg-white px-4 text-[13px] font-semibold text-[#1C1B19]"
-                                    onClick={onContinueDigital}
-                                >
-                                    Continue with Digital
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
+            <ProductTypeSelector
+                value={form.product_type}
+                onChange={(next) => handleChange("product_type", next)}
+                business={business}
+                onVerifyBusiness={onVerifyBusiness}
+                onContinueDigital={onContinueDigital}
+            />
 
+            {physicalBlocked ? null : (
+            <>
+                <div>
                 <div className="flex items-start justify-between mb-5">
                     <SectionTitle label="Basic information" />
                     <button
@@ -1195,6 +1142,8 @@ function StepDetails({
                     </ul>
                 )}
             </div>
+            </>
+            )}
         </div>
     );
 }
@@ -1861,6 +1810,11 @@ export function ProductFormShell({
     const [step, setStep] = useState(1);
     const [vendor, setVendor] = useState<any>(null);
     const [businessVerified, setBusinessVerified] = useState(false);
+    const [businessUi, setBusinessUi] = useState<BusinessVerificationUi>({
+        verified: false,
+        key: "not_started",
+        label: "Business verification required",
+    });
     const [categories, setCategories] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -1887,6 +1841,19 @@ export function ProductFormShell({
         is_flash_deal: false,
     });
 
+    const physicalGateActive =
+        !isAdminMode && form.product_type === "physical" && !businessVerified;
+
+    const applyBusinessContext = (ctx: Awaited<ReturnType<typeof getSellerUploadContext>>) => {
+        setVendor(ctx.vendor);
+        setBusinessVerified(ctx.canSellPhysical);
+        setBusinessUi({
+            verified: ctx.businessStatus.verified,
+            key: ctx.businessStatus.key,
+            label: ctx.businessStatus.label,
+        });
+    };
+
     useEffect(() => {
         async function load() {
             const supabase = createClient();
@@ -1896,8 +1863,7 @@ export function ProductFormShell({
             if (!isAdminMode) {
                 const ctx = await getSellerUploadContext();
                 if (!ctx.authenticated) { router.push("/login"); return; }
-                setVendor(ctx.vendor);
-                setBusinessVerified(ctx.canSellPhysical);
+                applyBusinessContext(ctx);
             }
 
             const { data: cats } = await supabase
@@ -2015,6 +1981,81 @@ export function ProductFormShell({
         load();
     }, [router, isEdit, productId, isAdminMode]);
 
+    // Re-check business verification when returning from Didit KYB
+    useEffect(() => {
+        if (isAdminMode || typeof window === "undefined") return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get("business_verification")) return;
+        void (async () => {
+            const ctx = await getSellerUploadContext();
+            if (ctx.authenticated) applyBusinessContext(ctx);
+            // Clean query without losing the page
+            const url = new URL(window.location.href);
+            url.searchParams.delete("business_verification");
+            window.history.replaceState({}, "", url.pathname + url.search);
+        })();
+    }, [isAdminMode]);
+
+    function goToStep(next: number) {
+        if (
+            !isAdminMode &&
+            form.product_type === "physical" &&
+            !businessVerified &&
+            next > 1
+        ) {
+            setError("Business verification required. Verify your business to sell physical products.");
+            setStep(1);
+            return;
+        }
+        setError(null);
+        setStep(next);
+    }
+
+    async function startBusinessVerification() {
+        // Refresh authoritative status first (webhook may have completed)
+        const statusRes = await fetch("/api/identity/verification/business", { method: "GET" });
+        if (statusRes.ok) {
+            const statusJson = await statusRes.json().catch(() => ({}));
+            if (statusJson.verified) {
+                const ctx = await getSellerUploadContext();
+                if (ctx.authenticated) applyBusinessContext(ctx);
+                return;
+            }
+            if (statusJson.customer?.key && statusJson.customer?.label) {
+                setBusinessUi({
+                    verified: Boolean(statusJson.verified),
+                    key: statusJson.customer.key,
+                    label: statusJson.customer.label,
+                });
+            }
+        }
+
+        const res = await fetch("/api/identity/verification/business", { method: "POST" });
+        const json = await res.json().catch(() => ({}));
+        if (res.status === 503) {
+            throw new Error(
+                "Business verification is being set up. Please try again shortly, or contact Jimvio support.",
+            );
+        }
+        if (!res.ok) {
+            throw new Error(
+                typeof json.error === "string"
+                    ? json.error
+                    : "Could not start business verification. Please try again.",
+            );
+        }
+        if (json.verified) {
+            const ctx = await getSellerUploadContext();
+            if (ctx.authenticated) applyBusinessContext(ctx);
+            return;
+        }
+        if (json.verificationUrl) {
+            window.location.href = json.verificationUrl as string;
+            return;
+        }
+        throw new Error("Verification link was not available. Please try again.");
+    }
+
     function handleChange(field: string, value: unknown) {
         setForm(prev => {
             const updated = { ...prev, [field]: value };
@@ -2079,7 +2120,8 @@ export function ProductFormShell({
         setError(null);
         if (!isAdminMode && !vendor) { setError("Seller account required."); return; }
         if (!isAdminMode && form.product_type === "physical" && !businessVerified) {
-            setError("Business verification is required to sell physical products.");
+            setError("Business verification required. Your business must be verified before you can list physical products.");
+            setStep(1);
             return;
         }
         if (!form.name.trim()) { setError("Product name is required."); return; }
@@ -2324,7 +2366,7 @@ export function ProductFormShell({
                         {STEPS.map((s, i) => (
                             <React.Fragment key={s.id}>
                                 <button
-                                    onClick={() => setStep(s.id)}
+                                    onClick={() => goToStep(s.id)}
                                     className="flex items-center gap-2 px-3 h-8 text-xs font-medium transition-all"
                                     style={{
                                         borderRadius: "var(--radius-sm)",
@@ -2367,11 +2409,22 @@ export function ProductFormShell({
                         </button>
                         {nextStep ? (
                             <button
-                                onClick={() => setStep(step + 1)}
-                                className="flex items-center gap-1.5 h-8 px-4 text-xs font-semibold text-white transition-all"
+                                onClick={() => goToStep(step + 1)}
+                                disabled={physicalGateActive}
+                                aria-disabled={physicalGateActive}
+                                title={
+                                    physicalGateActive
+                                        ? "Verify your business to continue with physical products"
+                                        : undefined
+                                }
+                                className="flex items-center gap-1.5 h-8 min-h-[44px] sm:min-h-0 px-4 text-xs font-semibold text-white transition-all disabled:opacity-45 disabled:cursor-not-allowed"
                                 style={{ borderRadius: "var(--radius-sm)", background: "var(--color-accent)" }}
-                                onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
-                                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+                                onMouseEnter={e => {
+                                    if (!physicalGateActive) e.currentTarget.style.opacity = "0.85";
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.opacity = physicalGateActive ? "0.45" : "1";
+                                }}
                             >
                                 Next: {nextStep.label} <ChevronRight size={13} />
                             </button>
@@ -2414,14 +2467,32 @@ export function ProductFormShell({
                     {/* form card */}
                     <Card className="overflow-hidden">
                         <div className="p-6 sm:p-8">
-                            {step === 1 && <StepDetails form={form} handleChange={handleChange} categories={categories} handleImageUpload={handleImageUpload} removeImage={removeImage} businessVerified={businessVerified || isAdminMode} onContinueDigital={() => handleChange("product_type", "digital")} />}
+                            {step === 1 && (
+                                <StepDetails
+                                    form={form}
+                                    handleChange={handleChange}
+                                    categories={categories}
+                                    handleImageUpload={handleImageUpload}
+                                    removeImage={removeImage}
+                                    business={
+                                        isAdminMode
+                                            ? { verified: true, key: "verified", label: "Business verified" }
+                                            : businessUi
+                                    }
+                                    onContinueDigital={() => handleChange("product_type", "digital")}
+                                    onVerifyBusiness={startBusinessVerification}
+                                />
+                            )}
                             {step === 2 && <StepPricing form={form} handleChange={handleChange} />}
                             {step === 3 && <StepSettings form={form} handleChange={handleChange} />}
                             {step === 4 && <StepPublish form={form} isPending={isPending} handleSubmit={handleSubmit} isEdit={isEdit} />}
                         </div>
 
                         {/* footer */}
-                        <div className="flex items-center justify-between px-6 sm:px-8 py-4" style={{ borderTop: "1px solid var(--color-border)" }}>
+                        <div
+                            className="flex items-center justify-between px-6 sm:px-8 py-4 pb-[max(1rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:pb-4"
+                            style={{ borderTop: "1px solid var(--color-border)" }}
+                        >
                             <button
                                 disabled={step === 1}
                                 onClick={() => setStep(s => Math.max(1, s - 1))}
@@ -2440,7 +2511,7 @@ export function ProductFormShell({
                                 {STEPS.map(s => (
                                     <button
                                         key={s.id}
-                                        onClick={() => setStep(s.id)}
+                                        onClick={() => goToStep(s.id)}
                                         className="h-[5px] rounded-full transition-all duration-300"
                                         style={{
                                             width: step === s.id ? "20px" : "5px",
@@ -2453,8 +2524,15 @@ export function ProductFormShell({
 
                             {nextStep ? (
                                 <button
-                                    onClick={() => setStep(s => Math.min(4, s + 1))}
-                                    className="flex items-center gap-1 h-8 px-3 text-xs font-semibold text-white transition-all"
+                                    onClick={() => goToStep(Math.min(4, step + 1))}
+                                    disabled={physicalGateActive}
+                                    aria-disabled={physicalGateActive}
+                                    title={
+                                        physicalGateActive
+                                            ? "Verify your business to continue with physical products"
+                                            : undefined
+                                    }
+                                    className="flex items-center gap-1 h-11 min-h-[44px] px-4 text-xs font-semibold text-white transition-all disabled:opacity-45 disabled:cursor-not-allowed"
                                     style={{ borderRadius: "var(--radius-full)", background: "var(--color-accent)" }}
                                 >
                                     Next <ChevronRight size={12} />
