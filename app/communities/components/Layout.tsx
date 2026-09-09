@@ -5,34 +5,19 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     ArrowLeft,
-    ChevronDown,
-    Search,
-    Bell,
-    ShoppingCart,
     Sparkles,
     Menu,
     Users,
-    Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
 import { CommunitySidebar } from "@/components/shell/CommunitySidebar";
-import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
-import JimvioLogo from "@/components/ui/logo";
+import { AppTopNav } from "@/components/shell/AppTopNav";
 import { useCartStore } from "@/lib/store/use-cart-store";
-import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath, isHubAuthRequired } from "@/lib/community/hub-auth";
-import {
-  isCommunitiesNavActive,
-  isPrimaryNavActive,
-  isWalletActive,
-  PRIMARY_NAV_ITEMS,
-  resolvePrimaryNavHref,
-} from "@/lib/navigation/primary-nav";
-import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
@@ -41,41 +26,8 @@ import {
   MobilePrimaryBottomNav,
   MOBILE_PRIMARY_BOTTOM_NAV_PAD,
 } from "@/components/layout/mobile-primary-bottom-nav";
-import { formatMoneyAsUSD } from "@/lib/currency/platform";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
-
-// ── Primary navigation (shared design system) ────────────────────────────────
-
-// ── User avatar ───────────────────────────────────────────────────────────────
-function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: number }) {
-    if (profile?.avatar_url) {
-        return (
-            <img
-                src={profile.avatar_url}
-                alt={profile.full_name ?? "Profile"}
-                className="rounded-full object-cover"
-                style={{ width: size, height: size }}
-            />
-        );
-    }
-    const display = profile?.full_name ?? profile?.username ?? "?";
-    const initials =
-        display
-            .split(" ")
-            .map((w) => w[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase() || "?";
-    return (
-        <span
-            className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a30] font-bold text-white"
-            style={{ width: size, height: size, fontSize: size * 0.38 }}
-        >
-            {initials}
-        </span>
-    );
-}
 
 // ── Page title hook (mobile header) ───────────────────────────────────────────
 function usePageTitle(pathname: string): string {
@@ -175,8 +127,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const isLiveStudio =
       pathname.startsWith("/communities/live") ||
       /\/communities\/[^/]+\/live(?:\/|$)/.test(pathname);
-    const { cartCount, refreshCounts } = useCartStore();
-    const { walletBalance, rewardsBalance, currency: walletCurrency } = useHeaderAccountStore();
+    const { refreshCounts } = useCartStore();
     const { openAssistant } = useAIStore();
 
     // Close mobile nav on route change
@@ -295,6 +246,18 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     const profileHref = profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile";
     const loginHref = buildHubLoginUrl(pathname);
+    const navUser =
+        isAuthenticated && profile
+            ? {
+                  name: profile.full_name || profile.username || "Account",
+                  avatarUrl: profile.avatar_url,
+              }
+            : isAuthenticated && feedUser
+              ? {
+                    name: feedUser.fullName || feedUser.username || "Account",
+                    avatarUrl: feedUser.avatarUrl,
+                }
+              : undefined;
 
     // Live Studio is a full-bleed workspace — do not mount hub chrome
     // (header/sidebars/cart). Errors in that chrome were escaping to
@@ -310,186 +273,50 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
 
-            {/* ── Main header (full width, above sidebar) ── */}
-            <header className="relative z-50 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-2.5 sm:gap-x-3 sm:px-6 supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]">
-                {/* Mobile hamburger */}
+            {/* Shared product header — same AppTopNav as UGC / Affiliates */}
+            <AppTopNav
+                activeNav="Communities"
+                createContext="communities"
+                user={navUser}
+                notificationCount={unreadNotifications}
+                messageCount={unreadMessages}
+                signInHref={isAuthenticated === false ? loginHref : undefined}
+                extraAccountItems={
+                    isAuthenticated
+                        ? [
+                              {
+                                  label: myCommunityHome?.label ?? "My Community",
+                                  href: myCommunityHome?.href ?? profileHref,
+                                  icon: Users,
+                              },
+                          ]
+                        : undefined
+                }
+                leadingAction={
                     <button
                         type="button"
                         onClick={() => setMobileNavOpen((o) => !o)}
                         aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
                         aria-expanded={mobileNavOpen}
-                    className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 lg:hidden"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 lg:hidden"
                     >
-                    <Menu className="h-5 w-5" />
+                        <Menu className="h-5 w-5" />
                     </button>
-
-                {/* Logo — icon-only on narrow screens to avoid truncation */}
-                <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="Jimvio home">
-                    {/* Mobile: replace logo icon with compact brand text */}
-                    <span className="sm:hidden inline-flex items-center text-[16px] font-black tracking-tight text-[#fd5000]">
-                        Jimvio
-                    </span>
-                    <JimvioLogo
-                        href={undefined}
-                        size="md"
-                        presentation="header"
-                        variant="full"
-                        className="hidden min-w-0 sm:flex"
-                    />
-                </Link>
-
-                {/* Primary nav (desktop) — breathing room from logo */}
-                <nav className="hidden min-w-0 items-center justify-center gap-1.5 overflow-hidden pl-3 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-2.5 xl:pl-5 2xl:gap-3">
-                    {PRIMARY_NAV_ITEMS.map((item) => {
-                        const { label, icon: Icon, dropdown } = item;
-                        const href = resolvePrimaryNavHref(item, isAuthenticated);
-                        const active =
-                            item.label === "Communities"
-                                ? isCommunitiesNavActive(pathname)
-                                : isPrimaryNavActive(pathname, item, undefined, isAuthenticated);
-                        return (
-                    <Link
-                                key={`${label}-${href}`}
-                                href={href}
-                                aria-current={active ? "page" : undefined}
-                                className={cn(
-                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-1.5 py-1.5 text-[12px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 xl:px-2 xl:text-[13px]",
-                                    active
-                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
-                                        : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                                )}
-                            >
-                                <Icon className="h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
-                                <span className="whitespace-nowrap">{label}</span>
-                                {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
-                    </Link>
-                        );
-                    })}
-                </nav>
-
-                <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-0.5 sm:gap-1.5">
-                    {/* Search → unified Command+K */}
+                }
+                extraActions={
                     <button
                         type="button"
-                        onClick={() => openCommandCenter()}
-                        aria-label="Search everything or run a command"
-                        className="hidden h-9 w-[120px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 text-left min-[1060px]:flex xl:w-[140px] 2xl:w-[160px]"
-                    >
-                        <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
-                        <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search…</span>
-                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 py-px text-[9px] font-semibold text-[var(--color-text-muted)] 2xl:block">⌘K</kbd>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={() => openCommandCenter()}
-                        aria-label="Search"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
-                    >
-                        <Search className="h-[18px] w-[18px]" />
-                    </button>
-
-                    {/* Create */}
-                    <CreateMenuDropdown variant="compact" context="communities" />
-
-                    {/* AI — community panel on hub routes; global copilot otherwise */}
-                    <button
                         onClick={() => {
                             if (pathname.startsWith("/communities")) setAiOpen(true);
                             else openAssistant();
                         }}
                         aria-label="AI assistant"
-                        className="hidden h-9 w-9 shrink-0 place-items-center rounded-full text-[#fd5000] hover:bg-[#fd5000]/10 sm:grid"
+                        className="hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-[#fd5000] transition-colors hover:bg-[#fd5000]/10 sm:grid"
                     >
                         <Sparkles className="h-[18px] w-[18px]" />
                     </button>
-
-                    {/* Notifications */}
-                    <Link
-                        href="/notifications"
-                        aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
-                        className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                    >
-                        <Bell className="h-[18px] w-[18px]" />
-                        {unreadNotifications > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
-                                {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                            </span>
-                        )}
-                    </Link>
-
-                    {/* Cart */}
-                    <Link
-                        href="/cart"
-                        aria-label="Cart"
-                        className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                    >
-                        <ShoppingCart className="h-[18px] w-[18px]" />
-                        {cartCount > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#fd5000] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
-                                {cartCount > 9 ? "9+" : cartCount}
-                            </span>
-                        )}
-                    </Link>
-
-                    {/* Wallet + balance — replaces Orders icon */}
-                    {isAuthenticated && (
-                        <Link
-                            href="/wallet"
-                            aria-label={`Wallet balance ${formatMoneyAsUSD(walletBalance, walletCurrency)}`}
-                            title="Wallet"
-                            className={cn(
-                                "hidden h-9 shrink-0 items-center gap-1.5 rounded-full px-2 transition-colors sm:inline-flex",
-                                isWalletActive(pathname)
-                                    ? "bg-[#fd5000]/10 text-[#fd5000]"
-                                    : "text-[#fd5000] hover:bg-[#fd5000]/10"
-                            )}
-                        >
-                            <Wallet className="h-[18px] w-[18px]" />
-                            <span className="min-w-[3.25rem] text-[12px] font-semibold tabular-nums">
-                              {formatMoneyAsUSD(walletBalance, walletCurrency)}
-                            </span>
-                        </Link>
-                    )}
-
-                    {/* Avatar / Sign in */}
-                    {isAuthenticated === false ? (
-                        <Link
-                            href={loginHref}
-                            className="ml-0.5 shrink-0 rounded-full border border-[#fd5000]/30 bg-[#fd5000]/10 px-3 py-1.5 text-[12px] font-bold text-[#fd5000] transition-colors hover:bg-[#fd5000]/15"
-                        >
-                            Sign in
-                        </Link>
-                    ) : (
-                    <ProfileAccountMenu
-                        user={{
-                            name: profile?.full_name || profile?.username || "Account",
-                            avatarUrl: profile?.avatar_url,
-                        }}
-                        messageCount={unreadMessages}
-                        walletBalance={walletBalance}
-                        rewardsBalance={rewardsBalance}
-                        walletCurrency={walletCurrency}
-                        extraAccountItems={[
-                          {
-                            label: myCommunityHome?.label ?? "My Community",
-                            href: myCommunityHome?.href ?? profileHref,
-                            icon: Users,
-                          },
-                        ]}
-                        trigger={
-                            <button
-                                type="button"
-                                aria-label="Open profile menu"
-                                className="ml-0.5 shrink-0 rounded-full transition-opacity hover:opacity-80 outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-                            >
-                                <UserAvatar profile={profile} size={32} />
-                            </button>
-                        }
-                    />
-                    )}
-                </div>
-                </header>
+                }
+            />
 
             {/* ── Body row: sidebar + content ── */}
             <div className="flex min-h-0 flex-1">
@@ -541,7 +368,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                         className="inline-flex min-w-0 items-center gap-1.5 rounded-lg px-1 py-1 text-[13px] font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
                                     >
                                         <ArrowLeft className="h-4 w-4" />
-                                        Back
+                                        Communities
                                     </Link>
                                     <div className="min-w-0 flex-1">
                                         <p className="truncate text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
@@ -559,9 +386,14 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                     </div>
                                 </div>
                             ) : (
-                                <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
-                                    {pageTitle}
-                                </h1>
+                                <div className="min-w-0">
+                                    <p className="text-[12px] font-semibold text-[var(--color-text-muted)]">
+                                        Communities
+                                    </p>
+                                    <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">
+                                        {pageTitle || "Feed"}
+                                    </h1>
+                                </div>
                             )}
                         </div>
                     )}

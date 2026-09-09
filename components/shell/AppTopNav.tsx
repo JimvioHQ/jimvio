@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
@@ -12,6 +12,7 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useHeaderAccountStore } from "@/lib/store/use-header-account-store";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import {
+  isCommunitiesNavActive,
   isPrimaryNavActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
@@ -35,6 +36,20 @@ type AppTopNavProps = {
   notificationCount?: number;
   messageCount?: number;
   createContext?: CreateMenuContext;
+  /** Optional leading control (e.g. community/hub hamburger). */
+  leadingAction?: ReactNode;
+  /** Optional actions rendered before canonical utilities (e.g. community AI). */
+  extraActions?: ReactNode;
+  /** Extra profile-menu account links (deduped by href in ProfileAccountMenu). */
+  extraAccountItems?: Array<{
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    description?: string;
+  }>;
+  /** When set and user is absent, show a Sign in control. */
+  signInHref?: string;
+  className?: string;
 };
 
 function resolveCreateContext(
@@ -85,6 +100,11 @@ export function AppTopNav({
   notificationCount: notificationCountProp,
   messageCount = 0,
   createContext,
+  leadingAction,
+  extraActions,
+  extraAccountItems,
+  signInHref,
+  className,
 }: AppTopNavProps) {
   void _showUtilityBar;
   const pathname = usePathname() ?? "/";
@@ -108,10 +128,23 @@ export function AppTopNav({
   }, [user, refreshCounts]);
 
   return (
-    <header className="relative z-50 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
-      <div className="flex shrink-0 items-center">
-        <Link href="/" aria-label="Jimvio home">
-          <JimvioLogo href={undefined} size="md" />
+    <header
+      className={cn(
+        "relative z-50 grid h-14 max-w-[100vw] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 sm:gap-x-4 sm:px-5 lg:px-6",
+        "supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1.5">
+        {leadingAction}
+        <Link href="/" aria-label="Jimvio home" className="flex min-w-0 items-center">
+          <JimvioLogo
+            href={undefined}
+            size="md"
+            presentation="header"
+            variant="full"
+            className="min-w-0"
+          />
         </Link>
       </div>
 
@@ -123,11 +156,16 @@ export function AppTopNav({
           const Icon = item.icon;
           const dropdown = item.dropdown ?? false;
           const href = resolvePrimaryNavHref(item, isAuthenticated);
-          const active = isPrimaryNavActive(pathname, item, activeNav, isAuthenticated);
+          const active =
+            item.label === "Communities"
+              ? isCommunitiesNavActive(pathname) ||
+                isPrimaryNavActive(pathname, item, activeNav, isAuthenticated)
+              : isPrimaryNavActive(pathname, item, activeNav, isAuthenticated);
           return (
             <Link
               key={`${item.label}-${href}`}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-1.5 py-1.5 text-[12px] font-medium transition-colors xl:gap-1.5 xl:px-2 xl:text-[13px] 2xl:px-2.5",
                 active
@@ -170,6 +208,8 @@ export function AppTopNav({
 
         <CreateMenuDropdown variant="header" context={menuContext} />
 
+        {extraActions}
+
         <HeaderUtilityActions
           isAuthenticated={isAuthenticated}
           cartCount={cartCount}
@@ -189,6 +229,7 @@ export function AppTopNav({
             walletBalance={walletBalance}
             rewardsBalance={rewardsBalance}
             walletCurrency={walletCurrency}
+            extraAccountItems={extraAccountItems}
             trigger={
               <button
                 type="button"
@@ -199,6 +240,13 @@ export function AppTopNav({
               </button>
             }
           />
+        ) : signInHref ? (
+          <Link
+            href={signInHref}
+            className="ml-0.5 shrink-0 rounded-full border border-[#fd5000]/30 bg-[#fd5000]/10 px-3 py-1.5 text-[12px] font-bold text-[#fd5000] transition-colors hover:bg-[#fd5000]/15"
+          >
+            Sign in
+          </Link>
         ) : null}
       </div>
     </header>

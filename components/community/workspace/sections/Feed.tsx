@@ -228,6 +228,15 @@ export function FeedSection({
     const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
     const loadingMoreRef = useRef(false);
 
+    useEffect(() => {
+        if (!detailId) return;
+        const prev = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = prev;
+        };
+    }, [detailId]);
+
     // ── Bootstrap current user + memberships ──────────────────────────────────
     useEffect(() => {
         let cancelled = false;
@@ -1038,39 +1047,61 @@ export function FeedSection({
                 </>
             )}
 
-            {/* ── Thread detail panel (inline, adjacent logic handled by key) ── */}
+            {/* Comments sheet — stays on the current feed route */}
             {detailId && (
-                <PostDetailPanel
-                    key={detailId}
-                    postId={detailId}
-                    post={detail}
-                    currentUserId={currentUserId}
-                    canPin={Boolean(
-                        detail &&
-                        currentUserId &&
-                        (detail.author_id === currentUserId ||
-                            ["owner", "admin", "moderator"].includes(
-                                memberships.find((m) => m.community_id === detail.community_id)?.role ?? ""
-                            ))
-                    )}
-                    onClose={() => setDetailId(null)}
-                    onCommentAdded={(postId) => {
-                        setPosts((prev) =>
-                            prev.map((p) =>
-                                p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p
-                            )
-                        );
-                    }}
-                    onCommentRemoved={(postId) => {
-                        setPosts((prev) =>
-                            prev.map((p) =>
-                                p.id === postId
-                                    ? { ...p, comment_count: Math.max(0, p.comment_count - 1) }
-                                    : p
-                            )
-                        );
-                    }}
-                />
+                <div className="fixed inset-0 z-[220] flex items-end justify-center lg:items-stretch lg:justify-end">
+                    <button
+                        type="button"
+                        aria-label="Close comments"
+                        className="absolute inset-0 bg-black/35"
+                        onClick={() => setDetailId(null)}
+                    />
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Comments"
+                        className={cn(
+                            "relative flex w-full flex-col overflow-hidden bg-[var(--color-surface)] shadow-[0_-12px_40px_rgba(0,0,0,0.14)]",
+                            "h-[min(82dvh,640px)] rounded-t-2xl pb-[env(safe-area-inset-bottom,0px)]",
+                            "lg:h-full lg:w-[420px] lg:max-w-[42vw] lg:rounded-none lg:border-l lg:border-[var(--color-border)] lg:shadow-[-8px_0_32px_rgba(0,0,0,0.08)]",
+                        )}
+                    >
+                        <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-stone-200 lg:hidden" />
+                        <div className="flex min-h-0 flex-1 flex-col p-4">
+                            <PostDetailPanel
+                                key={detailId}
+                                postId={detailId}
+                                post={detail}
+                                currentUserId={currentUserId}
+                                canPin={Boolean(
+                                    detail &&
+                                    currentUserId &&
+                                    (detail.author_id === currentUserId ||
+                                        ["owner", "admin", "moderator"].includes(
+                                            memberships.find((m) => m.community_id === detail.community_id)?.role ?? ""
+                                        ))
+                                )}
+                                onClose={() => setDetailId(null)}
+                                onCommentAdded={(postId) => {
+                                    setPosts((prev) =>
+                                        prev.map((p) =>
+                                            p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p
+                                        )
+                                    );
+                                }}
+                                onCommentRemoved={(postId) => {
+                                    setPosts((prev) =>
+                                        prev.map((p) =>
+                                            p.id === postId
+                                                ? { ...p, comment_count: Math.max(0, p.comment_count - 1) }
+                                                : p
+                                        )
+                                    );
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -1938,13 +1969,14 @@ function PostDetailPanel({
     };
 
     return (
-        <div className="bg-surface border border-[#fd5000]/30 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4 gap-2">
+        <div className="flex h-full min-h-0 flex-col">
+            <div className="mb-4 flex shrink-0 items-center justify-between gap-2">
                 <button
+                    type="button"
                     onClick={onClose}
-                    className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                    className="rounded-lg p-1 text-text-muted transition-colors hover:bg-surface-secondary hover:text-[#fd5000]"
                 >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="h-4 w-4" />
                 </button>
                 <div className="inline-flex items-center gap-0.5 rounded-lg border border-border p-0.5">
                     {(
@@ -1959,7 +1991,7 @@ function PostDetailPanel({
                             type="button"
                             onClick={() => setCommentSort(s.id)}
                             className={cn(
-                                "text-[10px] font-semibold px-2 py-1 rounded-md transition-colors",
+                                "rounded-md px-2 py-1 text-[10px] font-semibold transition-colors",
                                 commentSort === s.id
                                     ? "bg-[#fd5000]/12 text-[#fd5000]"
                                     : "text-text-muted hover:text-text-primary"
@@ -1975,7 +2007,7 @@ function PostDetailPanel({
             </div>
 
             {post && (
-                <p className="text-[13px] text-text-primary leading-relaxed mb-4 pb-4 border-b border-border">
+                <p className="mb-4 shrink-0 border-b border-border pb-4 text-[13px] leading-relaxed text-text-primary">
                     {post.body}
                 </p>
             )}
@@ -1985,7 +2017,7 @@ function PostDetailPanel({
                     <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
                 </div>
             ) : (
-                <div className="space-y-4 mb-4">
+                <div className="mb-4 min-h-0 flex-1 space-y-4 overflow-y-auto">
                     {topComments.map((c) => (
                         <div key={c.id}>
                             <CommentItem
@@ -2015,7 +2047,7 @@ function PostDetailPanel({
                         </div>
                     ))}
                     {!loadingComments && topComments.length === 0 && (
-                        <p className="text-center text-[12px] text-text-muted py-4">
+                        <p className="py-4 text-center text-[12px] text-text-muted">
                             No comments yet. Be the first!
                         </p>
                     )}
@@ -2024,15 +2056,15 @@ function PostDetailPanel({
 
             {/* Reply context */}
             {replyTo && (
-                <div className="flex items-center gap-2 text-[11px] text-text-muted bg-surface-secondary rounded-lg px-3 py-2 mb-2 border border-border">
+                <div className="mb-2 flex shrink-0 items-center gap-2 rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[11px] text-text-muted">
                     <Reply className="h-3 w-3 shrink-0" />
-                    <span className="truncate flex-1">
+                    <span className="min-w-0 flex-1 truncate">
                         Replying to{" "}
                         <strong>
                             {replyTo.profiles?.full_name || replyTo.profiles?.username || "Member"}
                         </strong>
                     </span>
-                    <button onClick={() => setReplyTo(null)} className="hover:text-[#fd5000] transition-colors">
+                    <button type="button" onClick={() => setReplyTo(null)} className="transition-colors hover:text-[#fd5000]">
                         <X className="h-3.5 w-3.5" />
                     </button>
                 </div>
@@ -2040,13 +2072,13 @@ function PostDetailPanel({
 
             {/* Send error */}
             {sendError && (
-                <div className="flex items-center gap-1.5 text-[11px] text-red-500 mb-2">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <div className="mb-2 flex shrink-0 items-center gap-1.5 text-[11px] text-red-500">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                     <span>{sendError}</span>
                 </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2">
                 <textarea
                     ref={textRef}
                     value={text}
@@ -2057,18 +2089,18 @@ function PostDetailPanel({
                             void sendComment();
                         }
                     }}
-                    placeholder={replyTo ? "Write a reply…" : "Add a comment…"}
+                    placeholder={replyTo ? "Write a reply…" : "Write a comment..."}
                     rows={2}
-                    className="flex-1 bg-surface-secondary text-[13px] text-text-primary placeholder:text-text-muted resize-none focus:outline-none rounded-lg px-3 py-2 border border-border"
+                    className="flex-1 resize-none rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-[#fd5000]/15"
                 />
                 <button
                     type="button"
                     disabled={!text.trim() || sending}
                     onClick={sendComment}
-                    className="self-end inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    className="inline-flex items-center gap-1.5 self-end rounded-lg px-4 py-2 text-[12px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
                     style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
                 >
-                    {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 </button>
             </div>
         </div>

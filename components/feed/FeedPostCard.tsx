@@ -27,6 +27,7 @@ import {
   consumeSessionBoostPost,
   prependUniqueById,
 } from "@/lib/feed/session-boost-post";
+import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
 
 export type ApiPost = {
   id: string;
@@ -209,6 +210,7 @@ export function FeedPostCard({
   const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
   const [usingMock, setUsingMock] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filter = FEED_TAB_FILTERS[tab];
@@ -417,6 +419,7 @@ export function FeedPostCard({
   }
 
   return (
+    <>
     <div className="divide-y divide-gray-100">
       {posts.map((post, index) => (
         <article
@@ -561,14 +564,15 @@ export function FeedPostCard({
                   />
                   {formatEngagement(post.engagement.likes)}
                 </button>
-                <Link
-                  href={post.href ?? `/communities?post=${post.id}`}
+                <button
+                  type="button"
+                  onClick={() => setCommentPostId(post.id)}
                   aria-label={`Comments (${post.engagement.comments})`}
                   className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                 >
                   <MessageCircle className="h-4 w-4" />
                   {post.engagement.comments}
-                </Link>
+                </button>
                 <button
                   type="button"
                   onClick={() => void sharePost(post)}
@@ -597,5 +601,28 @@ export function FeedPostCard({
         </div>
       )}
     </div>
+    {commentPostId ? (
+      <FeedCommentSheet
+        postId={commentPostId}
+        open
+        onClose={() => setCommentPostId(null)}
+        onCommentCountChange={(delta) => {
+          setPosts((prev) =>
+            prev.map((p) =>
+              p.id === commentPostId
+                ? {
+                    ...p,
+                    engagement: {
+                      ...p.engagement,
+                      comments: Math.max(0, p.engagement.comments + delta),
+                    },
+                  }
+                : p,
+            ),
+          );
+        }}
+      />
+    ) : null}
+    </>
   );
 }
