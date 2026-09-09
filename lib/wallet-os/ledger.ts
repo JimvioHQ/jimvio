@@ -20,7 +20,7 @@ async function fetchTransactionEntries(
 ): Promise<LedgerEntry[]> {
   let query = db
     .from("transactions")
-    .select("id, type, amount, currency, status, reference, description, created_at")
+    .select("id, type, amount, currency, status, reference, description, direction, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
@@ -40,9 +40,17 @@ async function fetchTransactionEntries(
     status: string | null;
     reference: string | null;
     description: string | null;
+    direction: string | null;
     created_at: string;
   }) => {
     const amount = Number(row.amount ?? 0);
+    const dirRaw = String(row.direction ?? "").toLowerCase();
+    const direction =
+      dirRaw === "debit" || dirRaw === "credit"
+        ? dirRaw
+        : amount < 0
+          ? "debit"
+          : "credit";
     return {
       id: `tx_${row.id}`,
       source: "transaction",
@@ -50,7 +58,7 @@ async function fetchTransactionEntries(
       type: row.type,
       title: row.description?.trim() ? row.description : prettify(row.type),
       amount: Math.round(Math.abs(amount) * 100) / 100,
-      direction: amount < 0 ? "debit" : "credit",
+      direction,
       currency: row.currency ?? "USD",
       status: String(row.status ?? "completed"),
       reference: row.reference ?? null,

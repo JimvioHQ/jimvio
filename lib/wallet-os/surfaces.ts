@@ -57,6 +57,7 @@ const TRANSACTION_TYPE_SURFACE: Record<string, WalletSurface> = {
   refund: "refunds",
   platform_fee: "fees",
   fee: "fees",
+  business_verification_fee: "fees",
   escrow_lock: "escrow",
   escrow_release: "escrow",
   escrow_refund: "escrow",

@@ -94,25 +94,39 @@ export async function POST(req: NextRequest) {
 
   // Resolve user: vendor_data (preferred) or existing session row
   let userId = String(envelope.vendor_data || "").trim() || null;
-  if (!userId) {
+  let existingPurpose: string | null = null;
+  {
     const { data: existing } = await admin
       .from("jip_didit_sessions")
-      .select("user_id")
+      .select("user_id, decision_summary")
       .eq("session_id", sessionId)
       .maybeSingle();
-    userId = (existing as { user_id?: string } | null)?.user_id ?? null;
+    if (!userId) {
+      userId = (existing as { user_id?: string } | null)?.user_id ?? null;
+    }
+    const summary = (existing as { decision_summary?: { purpose?: string } } | null)
+      ?.decision_summary;
+    if (summary?.purpose) existingPurpose = String(summary.purpose);
   }
+
+  const isBusinessFromDb = existingPurpose === "business";
+  const businessSession = isBusinessSession || isBusinessFromDb;
 
   if (!userId) {
     console.warn("[didit webhook] unknown session", { hasSession: Boolean(sessionId) });
     return NextResponse.json({ ok: true, unmatched: true });
   }
 
-  // Minimal decision summary — never store full document payloads
-  const decisionSummary =
-    envelope.decision && typeof envelope.decision === "object"
-      ? { received: true, at: new Date().toISOString() }
-      : {};
+  // Minimal decision summary — never store full document payloads; preserve purpose
+  const decisionSummary: Record<string, unknown> = {
+    received: true,
+    at: new Date().toISOString(),
+  };
+  if (businessSession || metaPurpose === "business") {
+    decisionSummary.purpose = "business";
+  } else if (existingPurpose) {
+    decisionSummary.purpose = existingPurpose;
+  }
 
   await admin.from("jip_didit_sessions").upsert(
     {
@@ -128,7 +142,7 @@ export async function POST(req: NextRequest) {
   );
 
   if (status === "Approved") {
-    if (isBusinessSession) {
+    if (businessSession) {
       // Business verification (KYB) → unlock physical product selling
       await admin
         .from("vendors")
@@ -152,15 +166,40 @@ export async function POST(req: NextRequest) {
         .update({ is_verified: true })
         .eq("id", userId);
     }
-  } else if (status === "Declined" && isBusinessSession) {
+  } else if (
+    businessSession &&
+    (status === "Declined" || status === "Expired" || status === "Abandoned" || status === "KYC Expired")
+  ) {
     await admin
       .from("vendors")
       .update({
-        verification_status: "rejected",
-        verification_notes: "Didit business verification declined",
+        verification_status: status === "Declined" ? "rejected" : "pending",
+        verification_notes:
+          status === "Declined"
+            ? "Didit business verification declined"
+            : `Didit business verification ${status.toLowerCase()}`,
       })
       .eq("user_id", userId)
       .neq("verification_status", "verified");
+
+    // Consume paid fee so a new KYB attempt requires another $5.65 payment
+    try {
+      const { consumeVerificationFeeForVendor } = await import(
+        "@/lib/identity/confirm-verification-fee"
+      );
+      const { data: vendor } = await admin
+        .from("vendors")
+        .select("id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (vendor?.id) {
+        await consumeVerificationFeeForVendor(admin, vendor.id, sessionId);
+      }
+    } catch (feeErr) {
+      console.error("[Didit webhook] fee consume failed", feeErr);
+    }
   } else if (status === "Declined") {
     // Do not flip personal verified on
     await admin

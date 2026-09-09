@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useState } from "react";
-import { Download, Loader2, Lock, Package, ShieldCheck } from "lucide-react";
+import { Download, Loader2, Lock, Package, ShieldCheck, Wallet } from "lucide-react";
 
 export type ProductTypeBucket = "digital" | "physical";
 
@@ -9,6 +9,17 @@ export type BusinessVerificationUi = {
   verified: boolean;
   key: "not_started" | "in_progress" | "in_review" | "verified" | "failed" | "expired";
   label: string;
+  feePaid?: boolean;
+  feeUsd?: number;
+  feeLabel?: string;
+  phase?:
+    | "verified"
+    | "fee_required"
+    | "fee_paid"
+    | "in_progress"
+    | "in_review"
+    | "failed"
+    | "payment_pending";
 };
 
 type Props = {
@@ -16,41 +27,44 @@ type Props = {
   onChange: (next: ProductTypeBucket) => void;
   business: BusinessVerificationUi;
   onVerifyBusiness: () => Promise<void> | void;
+  onPayVerificationFee: (method: "wallet" | "flutterwave") => Promise<void> | void;
   onContinueDigital: () => void;
   disabled?: boolean;
 };
 
 /**
  * Compact product-type radio group.
- * Verification copy appears only when Physical is selected and business is not verified.
+ * Verification + $5.65 fee UI appears only when Physical is selected and locked.
  */
 export function ProductTypeSelector({
   value,
   onChange,
   business,
   onVerifyBusiness,
+  onPayVerificationFee,
   onContinueDigital,
   disabled = false,
 }: Props) {
   const groupId = useId();
-  const [verifying, setVerifying] = useState(false);
-  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"wallet" | "card" | "verify" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const physicalLocked = !business.verified;
   const showGate = value === "physical" && physicalLocked;
+  const feeLabel = business.feeLabel || `$${(business.feeUsd ?? 5.65).toFixed(2)} USD`;
+  const feePaid = Boolean(business.feePaid);
+  const phase = business.phase || (feePaid ? "fee_paid" : "fee_required");
 
-  async function startVerify() {
-    setVerifyError(null);
-    setVerifying(true);
+  async function run(kind: "wallet" | "card" | "verify", fn: () => Promise<void> | void) {
+    setActionError(null);
+    setBusy(kind);
     try {
-      await onVerifyBusiness();
+      await fn();
     } catch (err) {
-      setVerifyError(
-        err instanceof Error
-          ? err.message
-          : "Could not start business verification. Please try again.",
+      setActionError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
       );
     } finally {
-      setVerifying(false);
+      setBusy(null);
     }
   }
 
@@ -103,43 +117,105 @@ export function ProductTypeSelector({
               Business verification required
             </p>
             <p className="text-[12.5px] leading-snug" style={{ color: "var(--color-text-secondary)" }}>
-              {business.key === "in_progress" || business.key === "in_review"
-                ? "Your business verification is in progress. Physical products unlock when approved."
-                : "Verify your business before creating physical products."}
+              {phase === "in_progress" || phase === "in_review"
+                ? "Business verification is in progress. Physical products unlock when approved."
+                : phase === "failed"
+                  ? "Business verification wasn’t approved. Pay the fee again to start a new attempt."
+                  : feePaid
+                    ? "Payment confirmed. Start verification to unlock physical products."
+                    : "Verify your business before creating physical products."}
             </p>
           </div>
 
-          {verifyError ? (
+          {!feePaid && phase !== "in_progress" && phase !== "in_review" ? (
+            <div
+              className="rounded-lg px-3 py-2.5"
+              style={{
+                background: "var(--color-surface)",
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--color-text-muted)" }}>
+                Verification fee
+              </p>
+              <p className="text-[18px] font-bold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
+                {feeLabel}
+              </p>
+              <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+                One-time fee per verification attempt
+              </p>
+            </div>
+          ) : null}
+
+          {actionError ? (
             <p className="text-[12.5px]" style={{ color: "var(--color-danger)" }} role="alert">
-              {verifyError}
+              {actionError}
             </p>
           ) : null}
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              type="button"
-              onClick={() => void startVerify()}
-              disabled={verifying}
-              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold text-white disabled:opacity-60"
-              style={{ background: "var(--color-accent)" }}
-            >
-              {verifying ? (
-                <Loader2 size={15} className="animate-spin" aria-hidden />
-              ) : (
-                <ShieldCheck size={15} aria-hidden />
-              )}
-              {business.key === "in_progress" || business.key === "in_review"
-                ? "Continue verification"
-                : "Verify business"}
-            </button>
+          <div className="flex flex-col gap-2">
+            {!feePaid && phase !== "in_progress" && phase !== "in_review" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void run("card", () => onPayVerificationFee("flutterwave"))}
+                  disabled={busy !== null}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold text-white disabled:opacity-60"
+                  style={{ background: "var(--color-accent)" }}
+                >
+                  {busy === "card" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <ShieldCheck size={15} aria-hidden />}
+                  Continue to payment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void run("wallet", () => onPayVerificationFee("wallet"))}
+                  disabled={busy !== null}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold disabled:opacity-60"
+                  style={{
+                    border: "1px solid var(--color-border)",
+                    background: "var(--color-surface)",
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  {busy === "wallet" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <Wallet size={15} aria-hidden />}
+                  Pay with Jimvio Wallet
+                </button>
+              </>
+            ) : feePaid && phase !== "in_progress" && phase !== "in_review" ? (
+              <button
+                type="button"
+                onClick={() => void run("verify", () => onVerifyBusiness())}
+                disabled={busy !== null}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold text-white disabled:opacity-60"
+                style={{ background: "var(--color-accent)" }}
+              >
+                {busy === "verify" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <ShieldCheck size={15} aria-hidden />}
+                Start verification
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void run("verify", () => onVerifyBusiness())}
+                disabled={busy !== null}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-4 text-[13px] font-semibold disabled:opacity-60"
+                style={{
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {busy === "verify" ? <Loader2 size={15} className="animate-spin" aria-hidden /> : <ShieldCheck size={15} aria-hidden />}
+                Continue verification
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onContinueDigital}
               className="inline-flex min-h-[44px] items-center justify-center rounded-full px-4 text-[13px] font-semibold"
               style={{
-                border: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
+                border: "1px solid transparent",
+                color: "var(--color-text-muted)",
               }}
             >
               Continue with Digital

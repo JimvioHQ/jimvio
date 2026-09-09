@@ -415,6 +415,27 @@ export async function POST(req: NextRequest) {
       if (eventId) await markWebhookProcessed(supabase, eventId, ugc.campaignId);
       return NextResponse.json({ received: true, ugc: true, campaignId: ugc.campaignId });
     }
+
+    const { confirmBusinessVerificationFeeFromProvider } = await import(
+      "@/lib/identity/confirm-verification-fee"
+    );
+    const fee = await confirmBusinessVerificationFeeFromProvider(supabase, {
+      provider: "flutterwave",
+      providerRef: txRef,
+      providerTransactionId: txId != null ? String(txId) : txRef,
+      amount: amount != null ? Number(amount) : null,
+      currency: currency ?? "USD",
+    });
+    if (fee.handled) {
+      if (eventId) await markWebhookProcessed(supabase, eventId, null);
+      return NextResponse.json({
+        received: true,
+        businessVerificationFee: true,
+        feeId: fee.feeId,
+        alreadyPaid: fee.alreadyPaid,
+      });
+    }
+
     console.warn("[Flutterwave webhook] No transaction row for tx_ref", { txRef });
     if (eventId) await markWebhookFailed(supabase, eventId, "Transaction record not found");
     return NextResponse.json({ received: true });
