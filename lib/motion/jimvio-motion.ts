@@ -1,6 +1,6 @@
 /**
  * Jimvio homepage / product motion tokens.
- * Prefer transform + opacity. Keep timings in one place.
+ * Prefer transform + opacity. Keep timings restrained so the UI feels fast.
  */
 
 export const jimvioEase = [0.22, 1, 0.36, 1] as const;
@@ -8,30 +8,30 @@ export const jimvioEaseCss = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 export const jimvioDuration = {
   /** Micro-interactions (buttons, arrows) */
-  fast: 180,
-  /** Hovers, border/shadow depth */
-  hover: 220,
+  fast: 150,
+  /** Hovers, border depth */
+  hover: 200,
   /** Mid-weight UI transitions */
-  medium: 380,
+  medium: 280,
   /** Section / card viewport reveals */
-  reveal: 600,
+  reveal: 480,
 } as const;
 
 export const jimvioStagger = {
-  tight: 50,
-  default: 70,
-  loose: 90,
+  tight: 40,
+  default: 55,
+  loose: 70,
 } as const;
 
 export const jimvioDistance = {
-  hero: 12,
-  reveal: 24,
-  revealMobile: 16,
-  hoverLift: 3,
+  hero: 10,
+  reveal: 12,
+  revealMobile: 8,
+  hoverLift: 2,
   arrow: 3,
 } as const;
 
-/** Framer-motion friendly section fade-up */
+/** Framer-motion friendly section fade-up (use sparingly) */
 export const jimvioFadeUp = {
   hidden: { opacity: 0, y: jimvioDistance.reveal },
   show: {
@@ -49,7 +49,7 @@ export const jimvioStaggerContainer = {
   show: {
     transition: {
       staggerChildren: jimvioStagger.default / 1000,
-      delayChildren: 0.04,
+      delayChildren: 0.03,
     },
   },
 } as const;
@@ -60,9 +60,9 @@ export const jimvioHeroItem = {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.45,
+      duration: 0.38,
       ease: jimvioEase,
-      delay: i * (jimvioStagger.default / 1000),
+      delay: i * (jimvioStagger.tight / 1000),
     },
   }),
 } as const;

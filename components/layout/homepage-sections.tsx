@@ -24,7 +24,6 @@ import {
 } from "@/components/layout/homepage-showcase-rail";
 import {
   AnimatedPlatformStatValue,
-  PlatformStatsRotatingBadge,
 } from "@/components/platform/platform-stats-provider";
 import { HomepageTrendingProductsClient } from "@/components/layout/homepage-trending-products-client";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
@@ -156,7 +155,13 @@ export function TrustedStrip() {
           ))}
         </RevealBlock>
         <RevealBlock index={1}>
-          <PlatformStatsRotatingBadge showLiveDot={false} className="shadow-none" />
+          <p className="text-center text-[12px] font-medium text-[var(--color-text-secondary)] sm:text-[13px]">
+            Trusted by{" "}
+            <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+              {PLATFORM_STATS.users.toLocaleString()}
+            </span>{" "}
+            creators & businesses
+          </p>
         </RevealBlock>
         <RevealBlock index={2} className="flex items-center gap-1">
           {FEATURED_COUNTRIES.map((c) => (
@@ -329,15 +334,30 @@ function HowJimvioConnector({
 export function HowJimvioWorks() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
-    if (paused) return;
+    const node = document.getElementById("jimvio-how-it-works");
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
+      { threshold: 0.15 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (paused || !inView) return;
     const timer = setInterval(
       () => setActive((current) => (current + 1) % STEPS.length),
-      4200,
+      5200,
     );
     return () => clearInterval(timer);
-  }, [paused]);
+  }, [paused, inView]);
 
   const focusStep = (index: number) => {
     setActive(index);
@@ -345,7 +365,7 @@ export function HowJimvioWorks() {
   };
 
   return (
-    <SectionReveal className={`${sectionAlt} py-10 sm:py-14`}>
+    <SectionReveal id="jimvio-how-it-works" className={`${sectionAlt} py-10 sm:py-14`}>
       <div className={shell}>
         <RevealBlock index={0}>
           <SectionTitle sub="Roughly how it goes — tap a step if you want the detail.">
@@ -381,9 +401,9 @@ export function HowJimvioWorks() {
                   }
                 }}
                 className={cn(
-                  "jimvio-reveal-item relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
+                  "jimvio-reveal-item relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-[transform,opacity,border-color] duration-200 sm:p-5",
                   active === index
-                    ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
+                    ? "-translate-y-0.5 border-transparent"
                     : "border-[var(--color-border)] opacity-75 hover:opacity-100",
                 )}
                 style={
@@ -392,7 +412,6 @@ export function HowJimvioWorks() {
                     ["--reveal-stagger" as string]: `${jimvioStagger.default}ms`,
                     ...(active === index
                       ? {
-                          boxShadow: `0 14px 36px ${s.color}20`,
                           borderColor: `${s.color}35`,
                         }
                       : {}),
@@ -417,8 +436,8 @@ export function HowJimvioWorks() {
                   </span>
                   <span
                     className={cn(
-                      "grid size-10 place-items-center rounded-xl transition-transform duration-300",
-                      active === index && "scale-110",
+                      "grid size-10 place-items-center rounded-xl transition-transform duration-200",
+                      active === index && "scale-[1.04]",
                     )}
                     style={{ background: `${s.color}12`, color: s.color }}
                   >

@@ -82,9 +82,8 @@ function FeaturedCommunityCard({
           "group flex h-full min-h-[300px] flex-col overflow-hidden rounded-[24px]",
           "border border-[var(--color-border)] bg-white",
           "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
-          "transition-[transform,box-shadow,border-color] duration-[220ms] ease-out",
-          "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)]",
-          "hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)]",
+          "transition-[transform,border-color] duration-200 ease-out",
+          "hover:-translate-y-[2px] hover:border-[var(--color-border-strong)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
           "active:translate-y-0 active:scale-[0.995]",
           "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
@@ -98,7 +97,7 @@ function FeaturedCommunityCard({
               alt={community.name}
               width={720}
               height={450}
-              className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+              className="size-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               loading="lazy"
               decoding="async"
             />

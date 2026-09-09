@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -24,14 +24,18 @@ import {
 } from "@/components/ui/payment-logos";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
-import { jimvioEase } from "@/lib/motion/jimvio-motion";
+import {
+  jimvioDuration,
+  jimvioEase,
+  jimvioStagger,
+} from "@/lib/motion/jimvio-motion";
 
 const ORANGE_GRAD = "linear-gradient(90deg, #fd5000 0%, #ff7a33 55%, #ff9a5c 100%)";
 const CTA_GRAD = "linear-gradient(135deg, #ff7a33 0%, #fd5000 55%, #e84800 100%)";
-const PHRASE_EASE = [0.22, 1, 0.36, 1] as const;
-const PHRASE_INTERVAL_MS = 2700;
-const STAT_INTERVAL_MS = 4000;
-const STAT_TRANSITION_S = 0.4;
+const PHRASE_EASE = jimvioEase;
+const PHRASE_INTERVAL_MS = 2800;
+const STAT_INTERVAL_MS = 4200;
+const STAT_TRANSITION_S = 0.28;
 
 const HERO_PHRASES = [
   "Monetize Knowledge",
@@ -64,21 +68,49 @@ const LONGEST_HERO_STAT = HERO_STATS.reduce((a, b) =>
   `${a.value} ${a.label}`.length >= `${b.value} ${b.label}`.length ? a : b,
 );
 
-const HeroRotatingPhrase = memo(function HeroRotatingPhrase() {
+function useInViewActive(ref: React.RefObject<HTMLElement | null>, enabled: boolean) {
+  const [active, setActive] = useState(true);
+
+  useEffect(() => {
+    if (!enabled) {
+      setActive(false);
+      return;
+    }
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setActive(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setActive(Boolean(entry?.isIntersecting)),
+      { threshold: 0.05, rootMargin: "40px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [enabled, ref]);
+
+  return active;
+}
+
+const HeroRotatingPhrase = memo(function HeroRotatingPhrase({
+  play,
+}: {
+  play: boolean;
+}) {
   const [index, setIndex] = useState(0);
   const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
+    if (!play || reduced) return;
     const timer = setInterval(
       () => setIndex((current) => (current + 1) % HERO_PHRASES.length),
       PHRASE_INTERVAL_MS,
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [play, reduced]);
 
   return (
     <span className="relative mx-auto block w-full max-w-[320px] min-w-0 sm:max-w-full">
-      {/* Invisible longest phrase reserves height — prevents CLS; never wraps */}
       <span
         aria-hidden
         className="invisible block whitespace-nowrap bg-clip-text leading-[1.08] text-transparent"
@@ -90,22 +122,10 @@ const HeroRotatingPhrase = memo(function HeroRotatingPhrase() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={HERO_PHRASES[index]}
-            initial={
-              reduced
-                ? { opacity: 0 }
-                : { y: 14, opacity: 0, filter: "blur(8px)" }
-            }
-            animate={
-              reduced
-                ? { opacity: 1 }
-                : { y: 0, opacity: 1, filter: "blur(0px)" }
-            }
-            exit={
-              reduced
-                ? { opacity: 0 }
-                : { y: -14, opacity: 0, filter: "blur(8px)" }
-            }
-            transition={{ duration: 0.48, ease: PHRASE_EASE }}
+            initial={reduced ? { opacity: 0 } : { y: 10, opacity: 0 }}
+            animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
+            exit={reduced ? { opacity: 0 } : { y: -10, opacity: 0 }}
+            transition={{ duration: 0.32, ease: PHRASE_EASE }}
             className="block w-full whitespace-nowrap bg-clip-text leading-[1.08] text-transparent"
             style={{ backgroundImage: ORANGE_GRAD }}
           >
@@ -117,24 +137,28 @@ const HeroRotatingPhrase = memo(function HeroRotatingPhrase() {
   );
 });
 
-const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge() {
+const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
+  play,
+}: {
+  play: boolean;
+}) {
   const reduced = usePrefersReducedMotion();
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
+    if (!play || reduced) return;
     const timer = setInterval(
       () => setIndex((current) => (current + 1) % HERO_STATS.length),
       STAT_INTERVAL_MS,
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [play, reduced]);
 
   const current = HERO_STATS[index];
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-[var(--color-surface)]">
       <span className="relative flex size-2 shrink-0" aria-hidden>
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
         <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
       </span>
 
@@ -148,14 +172,13 @@ const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge() {
             {LONGEST_HERO_STAT.value} {LONGEST_HERO_STAT.label}
           </span>
         </span>
-
         <span className="absolute inset-0 flex items-center">
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
               key={`${current.value}-${current.label}`}
-              initial={reduced ? { opacity: 0 } : { y: 8, opacity: 0 }}
+              initial={reduced ? { opacity: 0 } : { y: 6, opacity: 0 }}
               animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
-              exit={reduced ? { opacity: 0 } : { y: -8, opacity: 0 }}
+              exit={reduced ? { opacity: 0 } : { y: -6, opacity: 0 }}
               transition={{ duration: STAT_TRANSITION_S, ease: PHRASE_EASE }}
               className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
             >
@@ -186,8 +209,8 @@ function HeroPrimaryCTA() {
       aria-busy={pending}
       className={cn(
         "group relative inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full px-7 text-[13px] font-bold text-white sm:h-[50px] sm:w-auto sm:px-8 sm:text-[14px]",
-        "shadow-[0_10px_28px_rgba(253,80,0,0.28)] transition-[transform,box-shadow,opacity] duration-200 ease-out will-change-transform",
-        "hover:scale-[1.02] hover:shadow-[0_14px_36px_rgba(253,80,0,0.36)] active:scale-[0.98]",
+        "shadow-[0_10px_28px_rgba(253,80,0,0.28)] transition-[transform,box-shadow,opacity] duration-150 ease-out",
+        "hover:scale-[1.015] hover:shadow-[0_12px_32px_rgba(253,80,0,0.32)] active:scale-[0.98]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/45 focus-visible:ring-offset-2",
         pending && "pointer-events-none opacity-85",
       )}
@@ -205,7 +228,7 @@ function HeroPrimaryCTA() {
           />
         ) : null}
         Start earning for Free
-        <ArrowRight className="size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
+        <ArrowRight className="size-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" />
       </span>
     </Link>
   );
@@ -217,13 +240,13 @@ function HeroSecondaryCTA() {
       href="/marketplace"
       className={cn(
         "group inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-7 text-[13px] font-bold text-[var(--color-text-primary)] sm:h-[50px] sm:w-auto sm:px-8 sm:text-[14px]",
-        "shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out will-change-transform",
-        "hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] hover:shadow-[0_8px_24px_rgba(15,23,42,0.08)] active:translate-y-0 active:scale-[0.99]",
+        "shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[transform,background-color,border-color] duration-150 ease-out",
+        "hover:-translate-y-0.5 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] active:translate-y-0 active:scale-[0.99]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text-muted)]/30 focus-visible:ring-offset-2",
       )}
     >
       Browse Marketplace
-      <ArrowRight className="size-4 shrink-0 opacity-55 transition-[transform,opacity] duration-200 group-hover:translate-x-0.5 group-hover:opacity-80" />
+      <ArrowRight className="size-4 shrink-0 opacity-55 transition-[transform,opacity] duration-150 group-hover:translate-x-0.5 group-hover:opacity-80" />
     </Link>
   );
 }
@@ -290,8 +313,13 @@ function PartnerLogoTrack({ suffix }: { suffix: string }) {
   );
 }
 
-const HeroPartnerStrip = memo(function HeroPartnerStrip() {
+const HeroPartnerStrip = memo(function HeroPartnerStrip({
+  play,
+}: {
+  play: boolean;
+}) {
   const reduced = usePrefersReducedMotion();
+  const animate = !reduced && play;
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
@@ -315,12 +343,11 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip() {
         <div
           className={cn(
             "flex w-max items-center",
-            !reduced &&
-              /* Mobile slower (longer duration); desktop slightly snappier continuous loop */
-              "animate-[hero-partner-marquee_110s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_85s_linear_infinite]",
+            animate &&
+              "animate-[hero-partner-marquee_120s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_95s_linear_infinite]",
             "group-hover:[animation-play-state:paused]",
+            !play && "[animation-play-state:paused]",
           )}
-          style={{ willChange: reduced ? undefined : "transform" }}
         >
           <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16">
             <PartnerLogoTrack suffix="a" />
@@ -354,37 +381,19 @@ const HeroTrustBadges = memo(function HeroTrustBadges() {
   );
 });
 
-const HERO_NOISE_TEXTURE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
-
-const HeroPremiumBackground = memo(function HeroPremiumBackground({
-  reduced,
-}: {
-  reduced: boolean;
-}) {
-  const auroraTransition = useMemo(
-    () => ({ duration: 32, repeat: Infinity, ease: "easeInOut" as const }),
-    [],
-  );
-
+const HeroPremiumBackground = memo(function HeroPremiumBackground() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute inset-0 bg-[var(--color-bg)]" />
       <div className="absolute inset-0 bg-[var(--color-surface)]/90" />
-
-      <div className="absolute left-1/2 top-[18%] h-[min(420px,55vw)] w-[min(640px,80vw)] -translate-x-1/2 rounded-full bg-[rgba(255,90,31,0.03)] blur-[120px]" />
-
-      <motion.div
-        className="absolute left-1/2 top-[12%] h-[min(480px,58vw)] w-[min(720px,88vw)] -translate-x-1/2 rounded-full opacity-40 blur-[140px]"
-        style={{ background: "rgba(255,90,31,0.035)" }}
-        animate={reduced ? undefined : { x: [0, -12, 10, 0], y: [0, -10, 8, 0] }}
-        transition={auroraTransition}
-      />
-
+      {/* Static soft glow — no animated blur / continuous GPU work */}
       <div
-        className="absolute inset-0 opacity-[0.015] mix-blend-soft-light"
-        style={{ backgroundImage: HERO_NOISE_TEXTURE }}
+        className="absolute left-1/2 top-[16%] h-[min(360px,48vw)] w-[min(560px,78vw)] -translate-x-1/2 rounded-full opacity-70"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(255,90,31,0.06) 0%, transparent 68%)",
+        }}
       />
-
       <div
         className="absolute inset-0"
         style={{
@@ -397,14 +406,14 @@ const HeroPremiumBackground = memo(function HeroPremiumBackground({
 });
 
 const HERO_ENTER = {
-  hidden: { opacity: 0, y: 12 },
+  hidden: { opacity: 0, y: 10 },
   show: (i: number) => ({
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.42,
+      duration: jimvioDuration.reveal / 1000,
       ease: jimvioEase,
-      delay: i * 0.07,
+      delay: i * (jimvioStagger.tight / 1000),
     },
   }),
 } as const;
@@ -413,36 +422,30 @@ const HERO_ENTER_REDUCED = {
   hidden: { opacity: 0 },
   show: (i: number) => ({
     opacity: 1,
-    transition: { duration: 0.25, delay: i * 0.04 },
+    transition: { duration: 0.2, delay: i * 0.03 },
   }),
 } as const;
 
 export function Hero() {
   const reduced = usePrefersReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInViewActive(sectionRef, !reduced);
   const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
-      <section className="relative flex w-full flex-col overflow-hidden">
-        <HeroPremiumBackground reduced={reduced} />
+      <section ref={sectionRef} className="relative flex w-full flex-col overflow-hidden">
+        <HeroPremiumBackground />
 
-        {/* Upper hero — tight top spacing under navbar (no full-viewport vertical centering) */}
         <div className="relative z-10 mx-auto flex w-full max-w-[820px] flex-col items-center px-4 pt-7 text-center sm:px-6 sm:pt-12 lg:pt-14">
-          <motion.div
-            custom={0}
-            variants={enter}
-            initial="hidden"
-            animate="show"
-          >
-            <HeroStatsRotatingBadge />
+          <motion.div custom={0} variants={enter} initial="hidden" animate="show">
+            <HeroStatsRotatingBadge play={inView} />
           </motion.div>
 
           <h1
             className={cn(
               "mt-5 flex w-full flex-col items-center gap-1.5 font-black tracking-tight text-[var(--color-text-primary)] sm:gap-2.5",
-              /* Mobile: sized so longest phrase ("Build Your Marketplace") stays 1 line in ~320px */
               "text-[clamp(1.4rem,4.8vw+0.45rem,1.7rem)]",
-              /* Desktop unchanged */
               "sm:text-[clamp(2.15rem,6.2vw,3.85rem)]",
             )}
             style={{
@@ -466,7 +469,7 @@ export function Hero() {
               animate="show"
               className="block w-full"
             >
-              <HeroRotatingPhrase />
+              <HeroRotatingPhrase play={inView} />
             </motion.span>
             <motion.span
               custom={3}
@@ -503,14 +506,8 @@ export function Hero() {
           </motion.div>
         </div>
 
-        {/* Lower hero — trust badges + Trusted by / payment marquee */}
         <div className="relative z-10 w-full pb-6 pt-9 sm:pb-8 sm:pt-10 lg:pb-10">
-          <motion.div
-            custom={6}
-            variants={enter}
-            initial="hidden"
-            animate="show"
-          >
+          <motion.div custom={6} variants={enter} initial="hidden" animate="show">
             <HeroTrustBadges />
           </motion.div>
 
@@ -521,7 +518,7 @@ export function Hero() {
             animate="show"
             className="mt-9 w-full sm:mt-11"
           >
-            <HeroPartnerStrip />
+            <HeroPartnerStrip play={inView} />
           </motion.div>
         </div>
       </section>

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  type CSSProperties,
-  type PointerEvent,
-} from "react";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -20,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
+import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 
 const ORANGE = "#FF5A1F";
 const GREEN = "#16a34a";
@@ -98,194 +93,84 @@ const ACTIONS: ActionItem[] = [
   },
 ];
 
-const GROUP_WEIGHT: Record<ActionGroup, string> = {
-  commerce: "1",
-  earn: "1.15",
-  creator: "1",
-  community: "0.95",
-};
-
-function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function isCoarsePointer() {
-  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
-}
-
-function ActionHubCta({ label, accent }: { label: string; accent: string }) {
-  const magnetRef = useRef<HTMLSpanElement>(null);
-
-  const resetMagnet = useCallback(() => {
-    const el = magnetRef.current;
-    if (el) el.style.transform = "";
-  }, []);
-
-  const onPointerMove = useCallback((event: PointerEvent<HTMLSpanElement>) => {
-    if (prefersReducedMotion() || isCoarsePointer()) return;
-    const el = magnetRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const dx = Math.max(-5, Math.min(5, (event.clientX - rect.left - rect.width / 2) * 0.22));
-    const dy = Math.max(-3, Math.min(3, (event.clientY - rect.top - rect.height / 2) * 0.22));
-    el.style.transform = `translate(${dx}px, ${dy}px)`;
-  }, []);
-
-  return (
-    <span
-      className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-5 text-[13px] font-bold tracking-[-0.01em] sm:text-[14px]"
-      style={{ color: accent }}
-      onPointerMove={onPointerMove}
-      onPointerLeave={resetMagnet}
-      onPointerCancel={resetMagnet}
-    >
-      {label}
-      <span
-        ref={magnetRef}
-        className="inline-flex will-change-transform"
-        style={{ transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-      >
-        <ArrowRight
-          className="size-3.5 transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 sm:size-4"
-          strokeWidth={2}
-          aria-hidden
-        />
-      </span>
-    </span>
-  );
-}
-
 function ActionHubCard({ action, index }: { action: ActionItem; index: number }) {
   const Icon = action.icon;
-  const tint = GROUP_WEIGHT[action.group];
 
   return (
-    <Link
-      href={action.href}
-      className={cn(
-        "jimvio-reveal-item jimvio-action-hub-card group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-[24px] p-6 sm:min-h-[248px] sm:p-7",
-        "border border-[var(--color-border)] bg-[var(--color-surface)]",
-        "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
-        "transition-[transform,box-shadow,border-color] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-        "hover:-translate-y-[3px]",
-        "active:translate-y-0 active:scale-[0.995]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]",
-        "motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
-      )}
-      style={
-        {
-          "--reveal-i": index + 3,
-          "--reveal-stagger": `${jimvioStagger.default}ms`,
-          "--hub-accent": action.accent,
-          background: `linear-gradient(180deg, color-mix(in srgb, ${action.accent} calc(5% * ${tint}), #ffffff) 0%, #ffffff 48%)`,
-        } as CSSProperties
-      }
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent opacity-70 dark:via-white/20"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-0 top-0 size-28 translate-x-8 -translate-y-8 rounded-full opacity-[0.18] blur-2xl transition-opacity duration-[220ms] group-hover:opacity-40 motion-reduce:transition-none"
-        style={{ background: action.accent }}
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-[220ms] group-hover:opacity-100 motion-reduce:transition-none"
-        style={{
-          background: `radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, ${action.accent} 8%, transparent), transparent 58%)`,
-        }}
-      />
-      <span
-        aria-hidden
-        className="absolute bottom-0 left-0 top-0 w-[2px] rounded-r-full opacity-40 transition-opacity duration-[220ms] group-hover:opacity-80 motion-reduce:transition-none"
-        style={{ background: action.accent }}
-      />
-
-      <span className="relative mb-5 inline-flex size-12 items-center justify-center sm:mb-6 sm:size-[52px]">
+    <RevealItem index={index + 3} as="div" className="h-full">
+      <Link
+        href={action.href}
+        className={cn(
+          "jimvio-action-hub-card group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-[24px] p-6 sm:min-h-[248px] sm:p-7",
+          "border border-[var(--color-border)] bg-[var(--color-surface)]",
+          "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
+          "transition-[transform,border-color] duration-200 ease-out",
+          "hover:-translate-y-[2px]",
+          "active:translate-y-0 active:scale-[0.995]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]",
+          "motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
+        )}
+        style={
+          {
+            ["--hub-accent" as string]: action.accent,
+            background: `linear-gradient(180deg, color-mix(in srgb, ${action.accent} 5%, #ffffff) 0%, #ffffff 48%)`,
+          } as CSSProperties
+        }
+      >
         <span
           aria-hidden
-          className="absolute inset-[-18%] rounded-full opacity-45 blur-xl transition-opacity duration-[220ms] group-hover:opacity-70 motion-reduce:transition-none"
-          style={{ background: `color-mix(in srgb, ${action.accent} 26%, transparent)` }}
+          className="absolute bottom-0 left-0 top-0 w-[2px] rounded-r-full opacity-40 transition-opacity duration-200 group-hover:opacity-90 motion-reduce:transition-none"
+          style={{ background: action.accent }}
         />
-        <span
-          className={cn(
-            "relative grid size-full place-items-center rounded-2xl border border-white/70 dark:border-white/5",
-            "transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-            "group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
-          )}
-          style={{
-            background: `color-mix(in srgb, ${action.accent} calc(10% * ${tint}), #ffffff)`,
-            color: action.accent,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), 0 8px 20px color-mix(in srgb, ${action.accent} 8%, transparent)`,
-          }}
-        >
+
+        <span className="relative mb-5 inline-flex size-12 items-center justify-center sm:mb-6 sm:size-[52px]">
           <span
-            aria-hidden
-            className="pointer-events-none absolute inset-px rounded-[15px] bg-gradient-to-b from-white/55 to-transparent dark:from-white/10"
-          />
-          <Icon
-            className="relative size-5 transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 sm:size-[22px]"
-            strokeWidth={1.75}
+            className={cn(
+              "relative grid size-full place-items-center rounded-2xl",
+              "transition-transform duration-200 ease-out",
+              "group-hover:scale-[1.02] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+            )}
+            style={{
+              background: `${action.accent}12`,
+              color: action.accent,
+            }}
+          >
+            <Icon
+              className="relative size-5 transition-transform duration-200 ease-out group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 sm:size-[22px]"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+          </span>
+        </span>
+
+        <h3 className="relative text-[17px] font-bold leading-tight tracking-[-0.02em] text-[#111827] dark:text-[var(--color-text-primary)] sm:text-[18px]">
+          {action.title}
+        </h3>
+        <p className="relative mt-2 max-w-[34ch] text-[13px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
+          {action.desc}
+        </p>
+        <span
+          className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-5 text-[13px] font-bold tracking-[-0.01em] sm:text-[14px]"
+          style={{ color: action.accent }}
+        >
+          {action.cta}
+          <ArrowRight
+            className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 sm:size-4"
+            strokeWidth={2}
             aria-hidden
           />
         </span>
-      </span>
-
-      <h3 className="relative text-[17px] font-bold leading-tight tracking-[-0.02em] text-[#111827] dark:text-[var(--color-text-primary)] sm:text-[18px]">
-        {action.title}
-      </h3>
-      <p className="relative mt-2 max-w-[34ch] text-[13px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
-        {action.desc}
-      </p>
-      <ActionHubCta label={action.cta} accent={action.accent} />
-    </Link>
+      </Link>
+    </RevealItem>
   );
 }
 
 export function WhatToDoToday() {
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    if (prefersReducedMotion()) {
-      section.dataset.reveal = "in";
-      return;
-    }
-
-    section.dataset.reveal = "ready";
-
-    const play = () => {
-      section.dataset.reveal = "in";
-    };
-
-    if (typeof IntersectionObserver === "undefined") {
-      play();
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        play();
-        observer.disconnect();
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -6% 0px" },
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section
-      ref={sectionRef}
-      className="jimvio-reveal jimvio-action-hub relative overflow-hidden bg-[#F8FAFC] pt-14 pb-12 sm:pt-16 sm:pb-14 lg:pt-[4.5rem] lg:pb-16"
+    <SectionReveal
+      className="jimvio-action-hub relative overflow-hidden bg-[#F8FAFC] pt-14 pb-12 sm:pt-16 sm:pb-14 lg:pt-[4.5rem] lg:pb-16"
       aria-labelledby="jimvio-action-hub-title"
-      data-reveal="idle"
+      threshold={0.1}
     >
       <style>{ACTION_HUB_CSS}</style>
       <div
@@ -294,30 +179,40 @@ export function WhatToDoToday() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-0 h-[280px] w-[min(720px,90vw)] -translate-x-1/2 rounded-full bg-[rgba(255,90,31,0.035)] blur-[100px]"
+        className="pointer-events-none absolute left-1/2 top-0 h-[220px] w-[min(560px,88vw)] -translate-x-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(255,90,31,0.05) 0%, transparent 70%)",
+        }}
       />
 
       <div className={shell}>
         <header className="mx-auto mb-10 max-w-3xl text-center sm:mb-12">
-          <p
-            className="jimvio-reveal-item mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FF5A1F] sm:mb-5 sm:text-[12px] sm:tracking-[0.24em]"
-            style={{ ["--reveal-i" as string]: 0, ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+          <RevealItem
+            index={0}
+            as="p"
+            className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FF5A1F] sm:mb-5 sm:text-[12px] sm:tracking-[0.24em]"
+            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Your Jimvio Journey
-          </p>
-          <h2
+          </RevealItem>
+          <RevealItem
+            index={1}
+            as="h2"
             id="jimvio-action-hub-title"
-            className="jimvio-reveal-item text-[clamp(1.75rem,4.2vw,2.75rem)] font-black leading-[1.12] tracking-[-0.035em] text-[#111827] dark:text-[var(--color-text-primary)]"
-            style={{ ["--reveal-i" as string]: 1, ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+            className="text-[clamp(1.75rem,4.2vw,2.75rem)] font-black leading-[1.12] tracking-[-0.035em] text-[#111827] dark:text-[var(--color-text-primary)]"
+            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             What do you want to build today?
-          </h2>
-          <p
-            className="jimvio-reveal-item mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)] sm:mt-5 sm:text-[16px] sm:leading-[1.55]"
-            style={{ ["--reveal-i" as string]: 2, ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+          </RevealItem>
+          <RevealItem
+            index={2}
+            as="p"
+            className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)] sm:mt-5 sm:text-[16px] sm:leading-[1.55]"
+            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Choose your path and start creating, earning, selling, or growing with Jimvio.
-          </p>
+          </RevealItem>
         </header>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
@@ -326,18 +221,17 @@ export function WhatToDoToday() {
           ))}
         </div>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
 
 const ACTION_HUB_CSS = `
 .jimvio-action-hub-card:hover {
   border-color: color-mix(in srgb, var(--hub-accent) 26%, var(--color-border));
-  box-shadow:
-    0 16px 40px rgba(17, 24, 39, 0.07),
-    0 2px 8px color-mix(in srgb, var(--hub-accent) 8%, transparent);
 }
-.jimvio-action-hub-card:active {
-  box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
+@media (prefers-reduced-motion: reduce) {
+  .jimvio-action-hub-card:hover {
+    transform: none;
+  }
 }
 `;

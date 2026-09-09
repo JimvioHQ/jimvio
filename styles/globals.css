@@ -789,7 +789,7 @@
   @keyframes jimvio-reveal-up {
     from {
       opacity: 0;
-      transform: translate3d(0, var(--jimvio-reveal-y, 24px), 0);
+      transform: translate3d(0, var(--jimvio-reveal-y, 12px), 0);
     }
 
     to {
@@ -800,18 +800,19 @@
 
   .jimvio-reveal[data-reveal="ready"] .jimvio-reveal-item {
     opacity: 0;
-    transform: translate3d(0, var(--jimvio-reveal-y, 24px), 0);
+    transform: translate3d(0, var(--jimvio-reveal-y, 12px), 0);
   }
 
   .jimvio-reveal[data-reveal="in"] .jimvio-reveal-item {
-    animation: jimvio-reveal-up var(--jimvio-duration-reveal, 600ms) var(--jimvio-ease) both;
-    animation-delay: calc(var(--reveal-i, 0) * var(--reveal-stagger, var(--jimvio-stagger, 70ms)));
+    animation: jimvio-reveal-up var(--jimvio-duration-reveal, 480ms) var(--jimvio-ease) both;
+    animation-delay: calc(var(--reveal-i, 0) * var(--reveal-stagger, var(--jimvio-stagger, 55ms)));
   }
 
   @media (max-width: 767px) {
     .jimvio-reveal {
-      --jimvio-reveal-y: var(--jimvio-reveal-y-mobile, 16px);
-      --jimvio-duration-reveal: 480ms;
+      --jimvio-reveal-y: var(--jimvio-reveal-y-mobile, 8px);
+      --jimvio-duration-reveal: 400ms;
+      --jimvio-stagger: 40ms;
     }
   }
 
@@ -1264,13 +1265,13 @@
 
     /* Jimvio homepage motion system */
     --jimvio-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --jimvio-duration-fast: 180ms;
-    --jimvio-duration-hover: 220ms;
-    --jimvio-duration-medium: 380ms;
-    --jimvio-duration-reveal: 600ms;
-    --jimvio-stagger: 70ms;
-    --jimvio-reveal-y: 24px;
-    --jimvio-reveal-y-mobile: 16px;
+    --jimvio-duration-fast: 150ms;
+    --jimvio-duration-hover: 200ms;
+    --jimvio-duration-medium: 280ms;
+    --jimvio-duration-reveal: 480ms;
+    --jimvio-stagger: 55ms;
+    --jimvio-reveal-y: 12px;
+    --jimvio-reveal-y-mobile: 8px;
 
     /* Blur */
     --ds-blur-sm: 4px;

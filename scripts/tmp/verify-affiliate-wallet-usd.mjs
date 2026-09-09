@@ -112,7 +112,7 @@ assert.match(overview, /toPlatformUsd/);
 assert.doesNotMatch(overview, /currency: wallet\.currency \?\? "RWF"/);
 
 const ensure = mustExist("lib/wallet-os/ensure.ts");
-assert.match(ensure, /currency: "USD"/);
+assert.match(ensure, /currency: PLATFORM_CURRENCY/);
 
 const withdrawals = mustExist("app/api/wallet/os/withdrawals/route.ts");
 assert.match(withdrawals, /idempotencyKey|idempotency/);

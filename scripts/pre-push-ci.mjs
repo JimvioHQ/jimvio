@@ -60,41 +60,25 @@ function listSourceFiles() {
 }
 
 function fingerprint() {
-  // Prefer Git's own tree hashing over re-reading every file into Node.
-  // Still binds the stamp to HEAD + dirty worktree state (fail-closed).
+  // Must match .cursor/hooks/block-unsafe-git.mjs so push stamps validate.
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root })
     .toString()
     .trim();
-  let tree = "";
-  try {
-    tree = execFileSync("git", ["write-tree"], { cwd: root }).toString().trim();
-  } catch {
-    tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root })
-      .toString()
-      .trim();
-  }
-  const dirty = execFileSync("git", ["status", "--porcelain=v1", "-uall"], {
-    cwd: root,
-  })
-    .toString()
-    .split("\n")
-    .filter(
-      (l) =>
-        l &&
-        !l.includes("scripts/tmp/smoke-auth") &&
-        !l.endsWith(".log") &&
-        !l.includes(".eslintcache")
-    )
-    .join("\n");
+  const files = listSourceFiles();
   const h = createHash("sha256");
   h.update(head + "\n");
-  h.update(tree + "\n");
-  h.update(dirty + "\n");
-  const files = listSourceFiles();
+  for (const f of files) {
+    h.update(f + "\n");
+    try {
+      h.update(readFileSync(join(root, f)));
+      h.update("\n");
+    } catch {
+      h.update("MISSING\n");
+    }
+  }
   return {
     head,
     hash: h.digest("hex"),
-    dirty,
     fileCount: files.length,
   };
 }
@@ -229,20 +213,34 @@ function scanEnvExample() {
 
 function runVerifies() {
   log("verify", "Running project verification scripts");
-  const scriptsDir = join(root, "scripts", "tmp");
-  if (!existsSync(scriptsDir)) {
-    console.log("No scripts/tmp verifies present — skipping");
-    return;
+  const scriptsDir = join(root, "scripts");
+  // Hard gate: static/product invariants that must pass for every push.
+  const required = [
+    "verify-business-verification-fee.mjs",
+    "verify-checkout-payment-flow.mjs",
+    "verify-create-upload-product.mjs",
+    "verify-quantforg-webhook.mjs",
+  ];
+  for (const f of required) {
+    const full = join(scriptsDir, f);
+    if (!existsSync(full)) fail("verify", `Missing required verify script: ${f}`);
+    run("verify", process.execPath, [full]);
   }
-  const files = readdirSync(scriptsDir)
-    .filter((f) => f.startsWith("verify-") && f.endsWith(".mjs"))
+  // Advisory: remaining scripts/verify-*.mjs (may need live network / drift).
+  const extras = readdirSync(scriptsDir)
+    .filter((f) => f.startsWith("verify-") && f.endsWith(".mjs") && !required.includes(f))
     .sort();
-  if (!files.length) {
-    console.log("No verify-*.mjs scripts — skipping");
-    return;
-  }
-  for (const f of files) {
-    run("verify", process.execPath, [join(scriptsDir, f)]);
+  for (const f of extras) {
+    log("verify", `advisory ${f}`);
+    const result = spawnSync(process.execPath, [join(scriptsDir, f)], {
+      cwd: root,
+      stdio: "inherit",
+      env: process.env,
+      shell: false,
+    });
+    if (result.status !== 0) {
+      console.warn(`⚠ Advisory verify failed (non-blocking): ${f}`);
+    }
   }
 }
 

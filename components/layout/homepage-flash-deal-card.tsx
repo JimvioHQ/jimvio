@@ -21,13 +21,24 @@ import type { TrendingProductCardProduct } from "@/components/marketplace/new/Tr
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 
-export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) {
+export function HomepageFlashDealCard({
+  p,
+  initiallyInCart = false,
+  cartResolved = false,
+  priority = false,
+}: {
+  p: TrendingProductCardProduct;
+  /** When parent batches cart IDs, skip per-card network fetch */
+  initiallyInCart?: boolean;
+  cartResolved?: boolean;
+  priority?: boolean;
+}) {
   const { formatMoney } = useCurrency();
   const incrementCartCount = useCartStore((s) => s.incrementCartCount);
   const [hovered, setHovered] = useState(false);
   const [imgReady, setImgReady] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [inCart, setInCart] = useState(false);
+  const [inCart, setInCart] = useState(initiallyInCart);
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
 
@@ -52,6 +63,11 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
   const vendorId = p.vendor_id ?? null;
 
   useEffect(() => {
+    setInCart(initiallyInCart);
+  }, [initiallyInCart, p.id]);
+
+  useEffect(() => {
+    if (cartResolved) return;
     let cancelled = false;
     void getCartProductIds().then((ids) => {
       if (!cancelled) setInCart(ids.includes(p.id));
@@ -59,7 +75,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
     return () => {
       cancelled = true;
     };
-  }, [p.id]);
+  }, [cartResolved, p.id]);
 
   useEffect(() => {
     if (!displayImage) return;
@@ -137,8 +153,8 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
     <div
       className={cn(
         "group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
-        "shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-[transform,box-shadow,border-color] duration-[220ms] ease-out will-change-transform",
-        "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)] hover:shadow-[0_14px_32px_rgba(15,23,42,0.1)]",
+        "shadow-[0_2px_10px_rgba(15,23,42,0.04)] transition-[transform,border-color] duration-200 ease-out",
+        "hover:-translate-y-[2px] hover:border-[var(--color-border-strong)]",
         "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
       )}
       onMouseEnter={() => setHovered(true)}
@@ -173,10 +189,11 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
             layout="fill"
             imageFit="cover"
             imageClassName={cn(
-              "transition-[transform,opacity] duration-500 ease-out",
+              "transition-[transform,opacity] duration-300 ease-out",
               imageReady ? "opacity-100" : "opacity-0",
-              "group-hover:scale-[1.03] group-hover:-translate-y-0.5 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:translate-y-0",
+              "group-hover:scale-[1.02] motion-reduce:group-hover:scale-100",
             )}
+            priority={priority}
           />
 
           <div className="pointer-events-none absolute left-2 top-2 z-10 flex max-w-[70%] flex-col items-start gap-1">

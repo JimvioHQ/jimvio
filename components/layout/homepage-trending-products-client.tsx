@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
@@ -9,11 +9,9 @@ import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
+import { getCartProductIds } from "@/lib/actions/marketplace-storefront";
 
 const PAGE_SIZE = 12;
-/** ~25px/s at 60fps — premium, non-distracting marquee speed */
-const SCROLL_SPEED = 0.42;
-const INTERACTION_RESUME_MS = 3500;
 const GAP_PX = 14; // gap-3.5
 
 const PRODUCT_SELECT = `
@@ -29,7 +27,6 @@ function getVisibleCount(width: number) {
   if (width >= 1280) return 6;
   if (width >= 1024) return 5;
   if (width >= 768) return 3;
-  /* Mobile: ~2 cards with partial peek of the next */
   return 1.75;
 }
 
@@ -38,6 +35,10 @@ type HomepageTrendingProductsClientProps = {
   initialTotal: number;
 };
 
+/**
+ * Manual horizontal rail — no perpetual RAF / continuous card animation.
+ * Arrow + native touch scroll only (compositor-friendly, mobile-first).
+ */
 export function HomepageTrendingProductsClient({
   initialProducts,
   initialTotal,
@@ -47,28 +48,14 @@ export function HomepageTrendingProductsClient({
     dedupeProductsByIdentity(initialProducts),
   );
   const [total, setTotal] = useState(initialTotal);
-  const [paused, setPaused] = useState(false);
   const [cardWidth, setCardWidth] = useState<number | null>(null);
+  const [cartIds, setCartIds] = useState<Set<string>>(() => new Set());
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const singleWidthRef = useRef(0);
-  const pausedRef = useRef(false);
   const loadingRef = useRef(false);
   const productsRef = useRef(initialProducts);
   const totalRef = useRef(initialTotal);
-  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isDraggingRef = useRef(false);
-  const dragStartXRef = useRef(0);
-  const dragScrollLeftRef = useRef(0);
-  const programmaticScrollRef = useRef(false);
-
-  const loopProducts = useMemo(
-    () => (products.length >= 2 ? [...products, ...products] : products),
-    [products],
-  );
-  const autoScroll = !reducedMotion && products.length >= 2;
 
   useEffect(() => {
     productsRef.current = products;
@@ -79,8 +66,14 @@ export function HomepageTrendingProductsClient({
   }, [total]);
 
   useEffect(() => {
-    pausedRef.current = paused || reducedMotion;
-  }, [paused, reducedMotion]);
+    let cancelled = false;
+    void getCartProductIds().then((ids) => {
+      if (!cancelled) setCartIds(new Set(ids));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const el = viewportRef.current;
@@ -96,20 +89,6 @@ export function HomepageTrendingProductsClient({
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
-
-  const scheduleResume = useCallback(() => {
-    setPaused(true);
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    resumeTimerRef.current = setTimeout(() => {
-      setPaused(false);
-    }, INTERACTION_RESUME_MS);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    };
   }, []);
 
   const loadMore = useCallback(async () => {
@@ -146,150 +125,45 @@ export function HomepageTrendingProductsClient({
     }
   }, []);
 
-  const measureLoopWidth = useCallback(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    singleWidthRef.current = track.scrollWidth / (autoScroll ? 2 : 1);
-  }, [autoScroll]);
+  const scrollByCard = useCallback(
+    (direction: -1 | 1) => {
+      const scroller = scrollerRef.current;
+      if (!scroller || cardWidth == null) return;
+      scroller.scrollBy({
+        left: direction * (cardWidth + GAP_PX),
+        behavior: reducedMotion ? "auto" : "smooth",
+      });
 
-  useEffect(() => {
-    measureLoopWidth();
-    const track = trackRef.current;
-    if (!track) return;
-    const ro = new ResizeObserver(measureLoopWidth);
-    ro.observe(track);
-    return () => ro.disconnect();
-  }, [autoScroll, loopProducts.length, products.length, measureLoopWidth, cardWidth]);
-
-  const wrapScrollPosition = useCallback(() => {
-    const scroller = scrollerRef.current;
-    const loopWidth = singleWidthRef.current;
-    if (!scroller || loopWidth <= 0) return;
-
-    if (scroller.scrollLeft >= loopWidth) {
-      programmaticScrollRef.current = true;
-      scroller.scrollLeft -= loopWidth;
-      programmaticScrollRef.current = false;
-
-      const offset = productsRef.current.length;
-      if (!loadingRef.current && offset < totalRef.current) {
-        void loadMore();
-      }
-    } else if (scroller.scrollLeft < 0) {
-      programmaticScrollRef.current = true;
-      scroller.scrollLeft += loopWidth;
-      programmaticScrollRef.current = false;
-    }
-  }, [loadMore]);
-
-  useEffect(() => {
-    if (!autoScroll) return;
-
-    const scroller = scrollerRef.current;
-    if (!scroller || products.length < 2) return;
-
-    let raf = 0;
-
-    const tick = () => {
-      if (!pausedRef.current && singleWidthRef.current > 0) {
-        programmaticScrollRef.current = true;
-        scroller.scrollLeft += SCROLL_SPEED;
-        programmaticScrollRef.current = false;
-        wrapScrollPosition();
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [autoScroll, products.length, wrapScrollPosition]);
+      const nearEnd =
+        scroller.scrollLeft + scroller.clientWidth >
+        scroller.scrollWidth - cardWidth * 2;
+      if (nearEnd) void loadMore();
+    },
+    [cardWidth, loadMore, reducedMotion],
+  );
 
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
 
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-      e.preventDefault();
-      scroller.scrollLeft += e.deltaY;
-      wrapScrollPosition();
-      scheduleResume();
-    };
-
     const onScroll = () => {
-      if (programmaticScrollRef.current || isDraggingRef.current) return;
-      wrapScrollPosition();
-      scheduleResume();
+      if (cardWidth == null) return;
+      const nearEnd =
+        scroller.scrollLeft + scroller.clientWidth >
+        scroller.scrollWidth - cardWidth * 2.5;
+      if (nearEnd) void loadMore();
     };
 
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      isDraggingRef.current = true;
-      dragStartXRef.current = e.clientX;
-      dragScrollLeftRef.current = scroller.scrollLeft;
-      scroller.setPointerCapture(e.pointerId);
-      scheduleResume();
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const delta = e.clientX - dragStartXRef.current;
-      scroller.scrollLeft = dragScrollLeftRef.current - delta;
-      wrapScrollPosition();
-    };
-
-    const endDrag = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
-      if (scroller.hasPointerCapture(e.pointerId)) {
-        scroller.releasePointerCapture(e.pointerId);
-      }
-      scheduleResume();
-    };
-
-    scroller.addEventListener("wheel", onWheel, { passive: false });
     scroller.addEventListener("scroll", onScroll, { passive: true });
-    scroller.addEventListener("pointerdown", onPointerDown);
-    scroller.addEventListener("pointermove", onPointerMove);
-    scroller.addEventListener("pointerup", endDrag);
-    scroller.addEventListener("pointercancel", endDrag);
-    scroller.addEventListener("touchstart", scheduleResume, { passive: true });
-
-    return () => {
-      scroller.removeEventListener("wheel", onWheel);
-      scroller.removeEventListener("scroll", onScroll);
-      scroller.removeEventListener("pointerdown", onPointerDown);
-      scroller.removeEventListener("pointermove", onPointerMove);
-      scroller.removeEventListener("pointerup", endDrag);
-      scroller.removeEventListener("pointercancel", endDrag);
-      scroller.removeEventListener("touchstart", scheduleResume);
-    };
-  }, [autoScroll, scheduleResume, wrapScrollPosition]);
-
-  const scrollByCard = useCallback(
-    (direction: -1 | 1) => {
-      const scroller = scrollerRef.current;
-      if (!scroller || cardWidth == null) return;
-      scheduleResume();
-      scroller.scrollBy({
-        left: direction * (cardWidth + GAP_PX),
-        behavior: reducedMotion ? "auto" : "smooth",
-      });
-    },
-    [cardWidth, reducedMotion, scheduleResume],
-  );
+    return () => scroller.removeEventListener("scroll", onScroll);
+  }, [cardWidth, loadMore]);
 
   if (!products.length) return null;
-
-  const items = autoScroll ? loopProducts : products;
 
   return (
     <div
       ref={viewportRef}
-      className={cn(
-        "relative -mx-4 sm:-mx-6",
-        autoScroll ? "overflow-hidden" : "px-4 sm:px-6",
-      )}
+      className="relative -mx-4 overflow-hidden sm:-mx-6"
       role="region"
       aria-label="Trending products — horizontal browse"
     >
@@ -297,7 +171,7 @@ export function HomepageTrendingProductsClient({
         type="button"
         onClick={() => scrollByCard(-1)}
         aria-label="Show previous products"
-        className="absolute left-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-[opacity,box-shadow] duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
+        className="absolute left-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] transition-shadow duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
       >
         <ChevronLeft className="size-4" strokeWidth={2.2} />
       </button>
@@ -305,52 +179,36 @@ export function HomepageTrendingProductsClient({
         type="button"
         onClick={() => scrollByCard(1)}
         aria-label="Show next products"
-        className="absolute right-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-[opacity,box-shadow] duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
+        className="absolute right-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] transition-shadow duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
       >
         <ChevronRight className="size-4" strokeWidth={2.2} />
       </button>
-      {autoScroll && (
-        <>
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[var(--color-surface-secondary)] to-transparent sm:w-12"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[var(--color-surface-secondary)] to-transparent sm:w-12"
-            aria-hidden
-          />
-        </>
-      )}
 
       <div
         ref={scrollerRef}
         className={cn(
-          "overscroll-x-contain",
-          autoScroll
-            ? "overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            : "overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)]",
+          "overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1",
+          "scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)]",
+          "[scrollbar-width:thin]",
         )}
-        style={
-          autoScroll
-            ? { WebkitOverflowScrolling: "touch", touchAction: "pan-x" }
-            : undefined
-        }
+        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
       >
         <div
-          ref={trackRef}
-          className={cn(
-            "flex w-max gap-3.5 px-4 sm:px-6",
-            autoScroll && "will-change-scroll",
-          )}
+          className="flex w-max gap-3.5 px-4 sm:px-6"
           style={{ visibility: cardWidth == null ? "hidden" : "visible" }}
         >
-          {items.map((product, index) => (
+          {products.map((product, index) => (
             <div
-              key={autoScroll ? `${product.id}-${index}` : product.id}
+              key={product.id}
               className="shrink-0 snap-start"
               style={cardWidth != null ? { width: cardWidth } : undefined}
             >
-              <HomepageFlashDealCard p={product} />
+              <HomepageFlashDealCard
+                p={product}
+                initiallyInCart={cartIds.has(product.id)}
+                cartResolved
+                priority={index < 2}
+              />
             </div>
           ))}
         </div>
