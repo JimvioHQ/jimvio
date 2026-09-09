@@ -10,6 +10,11 @@ export type ConversationTarget =
   | { kind: "room"; roomId: string }
   | { kind: "inbox"; slug: string; conversationId: string };
 
+/** Hub outbox / optimistic client ids use this prefix. */
+export function isOptimisticMessageId(id: string): boolean {
+  return id.startsWith("opt:");
+}
+
 export function messagesUrl(target: ConversationTarget, opts?: { before?: string; limit?: number }): string {
   const limit = opts?.limit ?? PAGE_SIZE;
   const params = new URLSearchParams({ limit: String(limit) });
@@ -21,9 +26,13 @@ export function messagesUrl(target: ConversationTarget, opts?: { before?: string
   return `/api/communities/${encodeURIComponent(target.slug)}/inbox/${target.conversationId}/messages?${params.toString()}`;
 }
 
+/**
+ * Merge messages by authoritative id, then drop optimistic rows that already
+ * have a matching server message (same sender + body within a short window).
+ */
 export function mergeMessages(existing: Msg[], incoming: Msg[], mode: "append" | "prepend" | "replace"): Msg[] {
   if (mode === "replace") {
-    return dedupeSort(incoming);
+    return reconcileOptimistic(dedupeSort(incoming));
   }
   const map = new Map<string, Msg>();
   const ordered = mode === "prepend" ? [...incoming, ...existing] : [...existing, ...incoming];
@@ -32,8 +41,10 @@ export function mergeMessages(existing: Msg[], incoming: Msg[], mode: "append" |
     const prev = map.get(m.id);
     map.set(m.id, prev ? { ...prev, ...m } : m);
   }
-  return [...map.values()].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  return reconcileOptimistic(
+    [...map.values()].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
   );
 }
 
@@ -43,7 +54,34 @@ export function dedupeSort(messages: Msg[]): Msg[] {
     if (!m?.id) continue;
     map.set(m.id, m);
   }
-  return [...map.values()].sort(
+  return reconcileOptimistic(
+    [...map.values()].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    )
+  );
+}
+
+/**
+ * Remove optimistic (`opt:…`) rows once a real server message exists for the
+ * same sender/body (within 2 minutes). Never dedupe by text alone across users.
+ */
+export function reconcileOptimistic(messages: Msg[]): Msg[] {
+  const server = messages.filter((m) => !isOptimisticMessageId(m.id));
+  if (server.length === messages.length) return messages;
+
+  const keptOptimistic: Msg[] = [];
+  for (const opt of messages) {
+    if (!isOptimisticMessageId(opt.id)) continue;
+    const optTs = new Date(opt.created_at).getTime();
+    const matched = server.some((s) => {
+      if (s.sender_id !== opt.sender_id) return false;
+      if ((s.body ?? "") !== (opt.body ?? "")) return false;
+      const delta = Math.abs(new Date(s.created_at).getTime() - optTs);
+      return delta < 120_000;
+    });
+    if (!matched) keptOptimistic.push(opt);
+  }
+  return [...server, ...keptOptimistic].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 }

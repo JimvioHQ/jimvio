@@ -49,6 +49,7 @@ import {
   removeOutbox,
   type HubOutboxItem,
 } from "@/lib/community/chat/message-outbox";
+import { setActiveChatTarget } from "@/lib/community/chat/active-chat-target";
 
 export function HubMessagesPage() {
   const router = useRouter();
@@ -134,6 +135,22 @@ export function HubMessagesPage() {
     realtimeEnabled: !!conversationTarget,
     userId: currentUserId,
   });
+
+  useEffect(() => {
+    if (!activeThread || activeThread.kind === "space") {
+      setActiveChatTarget({ roomId: null, convId: null });
+      return () => setActiveChatTarget({ roomId: null, convId: null });
+    }
+    if (activeThread.kind === "direct") {
+      setActiveChatTarget({ roomId: null, convId: activeThread.id });
+    } else {
+      setActiveChatTarget({
+        roomId: activeThread.roomId ?? null,
+        convId: null,
+      });
+    }
+    return () => setActiveChatTarget({ roomId: null, convId: null });
+  }, [activeThread]);
 
   const presenceKey = useMemo(() => {
     if (!activeThread) return null;
@@ -226,6 +243,10 @@ export function HubMessagesPage() {
       }, 400);
     };
 
+    // Room messages are scoped by community_id (valid column).
+    // Inbox messages have NO community_id — filtering on it put the whole
+    // channel into CHANNEL_ERROR and killed room listeners too. Rely on RLS
+    // to deliver only conversations this user participates in.
     const channels = communityIdsForRealtime.map((communityId) =>
       supabase
         .channel(`hub-threads:${communityId}`)
@@ -242,15 +263,29 @@ export function HubMessagesPage() {
         .on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*",
             schema: "public",
-            table: "community_inbox_messages",
+            table: "community_inbox_conversations",
             filter: `community_id=eq.${communityId}`,
           },
           scheduleRefresh
         )
         .subscribe()
     );
+
+    // Catch DM inserts even when conversation row update is delayed / unpublished.
+    const inboxChannel = supabase
+      .channel(`hub-threads-inbox:${currentUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "community_inbox_messages",
+        },
+        scheduleRefresh
+      )
+      .subscribe();
 
     const readChannel = supabase
       .channel(`hub-threads-reads:${currentUserId}`)
@@ -268,8 +303,9 @@ export function HubMessagesPage() {
 
     return () => {
       if (debounce) clearTimeout(debounce);
-      channels.forEach((ch) => supabase.removeChannel(ch));
-      supabase.removeChannel(readChannel);
+      channels.forEach((ch) => void supabase.removeChannel(ch));
+      void supabase.removeChannel(inboxChannel);
+      void supabase.removeChannel(readChannel);
     };
   }, [communityIdsForRealtime, currentUserId, loadThreads]);
 
@@ -333,20 +369,26 @@ export function HubMessagesPage() {
     };
   }, [activeThread]);
 
+  const lastVisibleMessageId =
+    visibleMessages[visibleMessages.length - 1]?.id ?? null;
+
   useEffect(() => {
-    if (!activeThread || !visibleMessages.length) return;
+    if (!activeThread || !lastVisibleMessageId) return;
+    // Skip optimistic client ids — wait for the authoritative server message.
+    if (lastVisibleMessageId.startsWith("opt:")) return;
+    if (activeThread.kind === "space") return;
+
     const key = conversationKey(
       activeThread.kind,
       activeThread.id,
       activeThread.roomId
     );
-    const lastId = visibleMessages[visibleMessages.length - 1]?.id;
     void fetch("/api/c/messages/read", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         conversationKey: key,
-        lastReadMessageId: lastId,
+        lastReadMessageId: lastVisibleMessageId,
       }),
     }).then(() => {
       setThreads((prev) =>
@@ -355,7 +397,7 @@ export function HubMessagesPage() {
         )
       );
     });
-  }, [activeThread?.id, visibleMessages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeThread?.id, activeThread?.kind, activeThread?.roomId, lastVisibleMessageId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     return () => {
@@ -367,6 +409,7 @@ export function HubMessagesPage() {
   useEffect(() => {
     const onOnline = () => {
       void flushOutbox();
+      void engine.softResync?.();
     };
     window.addEventListener("online", onOnline);
     if (navigator.onLine) void flushOutbox();
@@ -375,6 +418,7 @@ export function HubMessagesPage() {
   }, [threads.length, activeThreadId]);
 
   useEffect(() => {
+    // Live peer read receipts for 1:1 DMs (delivery ticks).
     if (!activeThread || activeThread.kind !== "direct" || !currentUserId) return;
     const key = conversationKey(activeThread.kind, activeThread.id, activeThread.roomId);
     const supabase = createClient();
@@ -403,7 +447,7 @@ export function HubMessagesPage() {
       .subscribe();
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, [activeThread?.id, activeThread?.kind, activeThread?.roomId, currentUserId]);
 

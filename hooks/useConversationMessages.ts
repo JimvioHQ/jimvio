@@ -15,6 +15,7 @@ import {
   CONVERSATION_PAGE_SIZE,
   dedupeSort,
   fetchConversationPage,
+  isOptimisticMessageId,
   mergeMessages,
   oldestCursor,
   type ConversationTarget,
@@ -67,6 +68,12 @@ function rowToMsg(row: Record<string, unknown>, profiles: Profile | null): Msg {
   };
 }
 
+function channelNameFor(target: ConversationTarget): string {
+  return target.kind === "room"
+    ? `conv_room:${target.roomId}`
+    : `conv_inbox:${target.conversationId}`;
+}
+
 export function useConversationMessages({
   target,
   enabled = true,
@@ -87,8 +94,14 @@ export function useConversationMessages({
   const seenEventIdsRef = useRef<Set<string>>(new Set());
   const onIncomingCallRef = useRef(onIncomingCall);
   const onThreadReplyRef = useRef(onThreadReply);
-  onIncomingCallRef.current = onIncomingCall;
-  onThreadReplyRef.current = onThreadReply;
+  const targetRef = useRef(target);
+  const softResyncInFlightRef = useRef(false);
+
+  useEffect(() => {
+    onIncomingCallRef.current = onIncomingCall;
+    onThreadReplyRef.current = onThreadReply;
+    targetRef.current = target;
+  }, [onIncomingCall, onThreadReply, target]);
 
   const targetKey = target
     ? target.kind === "room"
@@ -112,6 +125,33 @@ export function useConversationMessages({
 
   const replaceMessages = useCallback((next: Msg[]) => {
     setMessages(dedupeSort(next));
+  }, []);
+
+  /** Merge latest page without wiping optimistic rows (reconnect / race catch-up). */
+  const softResync = useCallback(async () => {
+    const t = targetRef.current;
+    if (!t || softResyncInFlightRef.current) return;
+    softResyncInFlightRef.current = true;
+    try {
+      const page = await fetchConversationPage(t, {
+        limit: CONVERSATION_PAGE_SIZE,
+      });
+      const cleaned = page.messages.filter(
+        (m) => !isCallSignalingMessage(m.message_type, m.body)
+      );
+      setMessages((prev) => {
+        const pending = prev.filter((m) => isOptimisticMessageId(m.id));
+        return mergeMessages(cleaned, pending, "append");
+      });
+      if (!nextCursorRef.current) {
+        nextCursorRef.current = page.nextCursor;
+        setHasMore(!!page.nextCursor);
+      }
+    } catch {
+      /* soft resync is best-effort */
+    } finally {
+      softResyncInFlightRef.current = false;
+    }
   }, []);
 
   // Initial load
@@ -140,7 +180,13 @@ export function useConversationMessages({
         const cleaned = page.messages.filter(
           (m) => !isCallSignalingMessage(m.message_type, m.body)
         );
-        setMessages(dedupeSort(cleaned));
+        // Merge — don't replace — so realtime inserts that arrived during
+        // the fetch are not discarded.
+        setMessages((prev) => {
+          const pending = prev.filter((m) => isOptimisticMessageId(m.id));
+          const liveServer = prev.filter((m) => !isOptimisticMessageId(m.id));
+          return mergeMessages(cleaned, [...liveServer, ...pending], "append");
+        });
         nextCursorRef.current = page.nextCursor;
         setHasMore(!!page.nextCursor);
       } catch (e: unknown) {
@@ -162,13 +208,16 @@ export function useConversationMessages({
     };
   }, [enabled, targetKey, target]);
 
-  // Realtime
+  // Realtime — subscribe independently of initial fetch; soft-resync on (re)subscribe
   useEffect(() => {
     if (!live || !target || !targetKey) return;
 
     let cancelled = false;
     let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let wasSubscribed = false;
     const activeTarget = target;
+    const name = channelNameFor(activeTarget);
 
     async function enrich(id: string): Promise<Profile | null> {
       const { data } = await supabase
@@ -189,151 +238,178 @@ export function useConversationMessages({
       return true;
     };
 
-    void (async () => {
-      if (activeTarget.kind === "room") {
-        channel = await subscribePostgresChangesMany(
-          supabase,
-          `conv_room:${activeTarget.roomId}`,
-          [
-            {
-              config: {
-                event: "INSERT",
-                schema: "public",
-                table: "community_messages",
-                filter: `room_id=eq.${activeTarget.roomId}`,
-              },
-              onChange: async (payload) => {
-                const row = payload?.new;
-                if (!row?.id) return;
-                if (!remember(`i:${row.id}`)) return;
-                if (row.message_type === "call_start" && row.sender_id !== userId) {
-                  onIncomingCallRef.current?.({
-                    type: row.body === "video" ? "video" : "audio",
-                    sender: await enrich(String(row.sender_id)),
-                    roomId: String(row.room_id),
-                  });
-                  return;
-                }
-                if (row.thread_id) {
-                  onThreadReplyRef.current?.(String(row.thread_id));
-                  return;
-                }
-                if (isCallSignalingMessage(String(row.message_type ?? ""), String(row.body ?? ""))) {
-                  return;
-                }
-                const prof = await enrich(String(row.sender_id));
-                upsertMessage(rowToMsg(row, prof));
-              },
-            },
-            {
-              config: {
-                event: "UPDATE",
-                schema: "public",
-                table: "community_messages",
-                filter: `room_id=eq.${activeTarget.roomId}`,
-              },
-              onChange: (payload) => {
-                const row = payload?.new;
-                if (!row?.id) return;
-                const eventKey = `u:${row.id}:${row.edited_at ?? row.is_deleted ?? ""}:${JSON.stringify(row.reactions ?? {})}`;
-                if (!remember(eventKey)) return;
-                if (row.is_deleted) {
-                  removeMessage(String(row.id));
-                  return;
-                }
-                patchMessage(String(row.id), {
-                  body: String(row.body ?? ""),
-                  reactions: (row.reactions as Record<string, unknown>) ?? {},
-                  is_edited: (row.is_edited as boolean) ?? false,
-                  edited_at: (row.edited_at as string) ?? null,
-                  reply_count: (row.reply_count as number) ?? 0,
-                  metadata:
-                    row.metadata && typeof row.metadata === "object"
-                      ? (row.metadata as Record<string, unknown>)
-                      : null,
-                  is_pinned: (row.is_pinned as boolean) ?? false,
-                  pinned_at: (row.pinned_at as string) ?? null,
-                  pinned_by: (row.pinned_by as string) ?? null,
-                });
-              },
-            },
-          ],
-          () => cancelled
-        );
-      } else {
-        channel = await subscribePostgresChangesMany(
-          supabase,
-          `conv_inbox:${activeTarget.conversationId}`,
-          [
-            {
-              config: {
-                event: "INSERT",
-                schema: "public",
-                table: "community_inbox_messages",
-                filter: `conversation_id=eq.${activeTarget.conversationId}`,
-              },
-              onChange: async (payload) => {
-                const row = payload?.new;
-                if (!row?.id) return;
-                if (!remember(`i:${row.id}`)) return;
-                if (row.message_type === "call_start" && row.sender_id !== userId) {
-                  onIncomingCallRef.current?.({
-                    type: row.body === "video" ? "video" : "audio",
-                    sender: await enrich(String(row.sender_id)),
-                    roomId: "",
-                    convId: String(row.conversation_id ?? ""),
-                  });
-                  return;
-                }
-                if (isCallSignalingMessage(String(row.message_type ?? ""), String(row.body ?? ""))) {
-                  return;
-                }
-                const prof = await enrich(String(row.sender_id));
-                upsertMessage(rowToMsg(row, prof));
-              },
-            },
-            {
-              config: {
-                event: "UPDATE",
-                schema: "public",
-                table: "community_inbox_messages",
-                filter: `conversation_id=eq.${activeTarget.conversationId}`,
-              },
-              onChange: (payload) => {
-                const row = payload?.new;
-                if (!row?.id) return;
-                const eventKey = `u:${row.id}:${row.edited_at ?? row.is_deleted ?? ""}:${JSON.stringify(row.reactions ?? {})}`;
-                if (!remember(eventKey)) return;
-                if (row.is_deleted) {
-                  removeMessage(String(row.id));
-                  return;
-                }
-                patchMessage(String(row.id), {
-                  body: String(row.body ?? ""),
-                  reactions: (row.reactions as Record<string, unknown>) ?? {},
-                  is_edited: (row.is_edited as boolean) ?? false,
-                  edited_at: (row.edited_at as string) ?? null,
-                  reply_to_id: (row.reply_to_id as string) ?? null,
-                  reply_to_body: (row.reply_to_body as string) ?? null,
-                  reply_to_sender: (row.reply_to_sender as string) ?? null,
-                });
-              },
-            },
-          ],
-          () => cancelled
-        );
+    const handleInsert = async (row: Record<string, unknown>) => {
+      if (!row?.id) return;
+      if (!remember(`i:${row.id}`)) return;
+      if (row.message_type === "call_start" && row.sender_id !== userId) {
+        onIncomingCallRef.current?.({
+          type: row.body === "video" ? "video" : "audio",
+          sender: await enrich(String(row.sender_id)),
+          roomId: String(row.room_id ?? ""),
+          convId: row.conversation_id ? String(row.conversation_id) : undefined,
+        });
+        return;
       }
-    })();
+      if (row.thread_id) {
+        onThreadReplyRef.current?.(String(row.thread_id));
+        return;
+      }
+      if (
+        isCallSignalingMessage(
+          String(row.message_type ?? ""),
+          String(row.body ?? "")
+        )
+      ) {
+        return;
+      }
+      const prof = await enrich(String(row.sender_id));
+      upsertMessage(rowToMsg(row, prof));
+    };
+
+    const handleRoomUpdate = (row: Record<string, unknown>) => {
+      if (!row?.id) return;
+      const eventKey = `u:${row.id}:${row.edited_at ?? row.is_deleted ?? ""}:${JSON.stringify(row.reactions ?? {})}`;
+      if (!remember(eventKey)) return;
+      if (row.is_deleted) {
+        removeMessage(String(row.id));
+        return;
+      }
+      patchMessage(String(row.id), {
+        body: String(row.body ?? ""),
+        reactions: (row.reactions as Record<string, unknown>) ?? {},
+        is_edited: (row.is_edited as boolean) ?? false,
+        edited_at: (row.edited_at as string) ?? null,
+        reply_count: (row.reply_count as number) ?? 0,
+        metadata:
+          row.metadata && typeof row.metadata === "object"
+            ? (row.metadata as Record<string, unknown>)
+            : null,
+        is_pinned: (row.is_pinned as boolean) ?? false,
+        pinned_at: (row.pinned_at as string) ?? null,
+        pinned_by: (row.pinned_by as string) ?? null,
+      });
+    };
+
+    const handleInboxUpdate = (row: Record<string, unknown>) => {
+      if (!row?.id) return;
+      const eventKey = `u:${row.id}:${row.edited_at ?? row.is_deleted ?? ""}:${JSON.stringify(row.reactions ?? {})}`;
+      if (!remember(eventKey)) return;
+      if (row.is_deleted) {
+        removeMessage(String(row.id));
+        return;
+      }
+      patchMessage(String(row.id), {
+        body: String(row.body ?? ""),
+        reactions: (row.reactions as Record<string, unknown>) ?? {},
+        is_edited: (row.is_edited as boolean) ?? false,
+        edited_at: (row.edited_at as string) ?? null,
+        reply_to_id: (row.reply_to_id as string) ?? null,
+        reply_to_body: (row.reply_to_body as string) ?? null,
+        reply_to_sender: (row.reply_to_sender as string) ?? null,
+      });
+    };
+
+    const listeners =
+      activeTarget.kind === "room"
+        ? [
+            {
+              config: {
+                event: "INSERT" as const,
+                schema: "public" as const,
+                table: "community_messages",
+                filter: `room_id=eq.${activeTarget.roomId}`,
+              },
+              onChange: async (payload?: { new: Record<string, unknown> }) => {
+                if (payload?.new) await handleInsert(payload.new);
+              },
+            },
+            {
+              config: {
+                event: "UPDATE" as const,
+                schema: "public" as const,
+                table: "community_messages",
+                filter: `room_id=eq.${activeTarget.roomId}`,
+              },
+              onChange: (payload?: { new: Record<string, unknown> }) => {
+                if (payload?.new) handleRoomUpdate(payload.new);
+              },
+            },
+          ]
+        : [
+            {
+              config: {
+                event: "INSERT" as const,
+                schema: "public" as const,
+                table: "community_inbox_messages",
+                filter: `conversation_id=eq.${activeTarget.conversationId}`,
+              },
+              onChange: async (payload?: { new: Record<string, unknown> }) => {
+                if (payload?.new) await handleInsert(payload.new);
+              },
+            },
+            {
+              config: {
+                event: "UPDATE" as const,
+                schema: "public" as const,
+                table: "community_inbox_messages",
+                filter: `conversation_id=eq.${activeTarget.conversationId}`,
+              },
+              onChange: (payload?: { new: Record<string, unknown> }) => {
+                if (payload?.new) handleInboxUpdate(payload.new);
+              },
+            },
+          ];
+
+    const start = () => {
+      void (async () => {
+        channel = await subscribePostgresChangesMany(
+          supabase,
+          name,
+          listeners,
+          () => cancelled,
+          {
+            onStatus: (status) => {
+              if (cancelled) return;
+              if (status === "SUBSCRIBED") {
+                // Catch messages that arrived between initial fetch and subscribe,
+                // and anything missed while disconnected.
+                void softResync();
+                wasSubscribed = true;
+              } else if (
+                status === "CHANNEL_ERROR" ||
+                status === "TIMED_OUT"
+              ) {
+                if (retryTimer) clearTimeout(retryTimer);
+                retryTimer = setTimeout(() => {
+                  if (cancelled) return;
+                  unsubscribeRealtime(supabase, channel, name);
+                  channel = null;
+                  start();
+                }, wasSubscribed ? 1500 : 800);
+              }
+            },
+          }
+        );
+      })();
+    };
+
+    start();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void softResync();
+    };
+    const onOnline = () => {
+      void softResync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
 
     return () => {
       cancelled = true;
-      unsubscribeRealtime(
-        supabase,
-        channel,
-        activeTarget.kind === "room"
-          ? `conv_room:${activeTarget.roomId}`
-          : `conv_inbox:${activeTarget.conversationId}`
-      );
+      if (retryTimer) clearTimeout(retryTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+      unsubscribeRealtime(supabase, channel, name);
     };
   }, [
     live,
@@ -344,6 +420,7 @@ export function useConversationMessages({
     upsertMessage,
     patchMessage,
     removeMessage,
+    softResync,
   ]);
 
   const loadOlder = useCallback(async (): Promise<{
@@ -392,5 +469,6 @@ export function useConversationMessages({
     removeMessage,
     replaceMessages,
     loadOlder,
+    softResync,
   };
 }

@@ -5,7 +5,7 @@
  * update even when Discussion / ChatRoom is not open.
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
@@ -22,6 +22,10 @@ export function useWorkspaceUnreadSync(opts: {
 }): void {
   const { communityId, userId } = opts;
   const supabase = useMemo(() => createClient(), []);
+  const communityIdRef = useRef(communityId);
+  useEffect(() => {
+    communityIdRef.current = communityId;
+  }, [communityId]);
 
   useEffect(() => {
     if (!communityId || !userId) return;
@@ -29,6 +33,22 @@ export function useWorkspaceUnreadSync(opts: {
     let cancelled = false;
     let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
     const channelName = `shell_unread_${communityId}`;
+    const inboxCommunityCache = new Map<string, string>();
+
+    async function inboxBelongsToCommunity(conversationId: string): Promise<boolean> {
+      const cid = communityIdRef.current;
+      if (!cid) return false;
+      const cached = inboxCommunityCache.get(conversationId);
+      if (cached) return cached === cid;
+      const { data } = await supabase
+        .from("community_inbox_conversations")
+        .select("community_id")
+        .eq("id", conversationId)
+        .maybeSingle();
+      const community = (data?.community_id as string | undefined) ?? "";
+      if (community) inboxCommunityCache.set(conversationId, community);
+      return community === cid;
+    }
 
     void (async () => {
       channel = await subscribePostgresChangesMany(
@@ -44,9 +64,13 @@ export function useWorkspaceUnreadSync(opts: {
             onChange: (payload) => {
               const r = payload?.new;
               if (!r || r.sender_id === userId) return;
+              const conversationId = String(r.conversation_id ?? "");
+              if (!conversationId) return;
               const { convId } = getActiveChatTarget();
-              if (convId && r.conversation_id === convId) return;
-              bumpWorkspaceUnread(String(r.conversation_id));
+              if (convId && conversationId === convId) return;
+              void inboxBelongsToCommunity(conversationId).then((ok) => {
+                if (ok && !cancelled) bumpWorkspaceUnread(conversationId);
+              });
             },
           },
           {

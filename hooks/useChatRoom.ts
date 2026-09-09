@@ -276,6 +276,38 @@ export function useChatRoom({
         }
     }, [roomId, activeConvId]);
 
+    // Persist read cursor so Hub unread counts + peer read receipts stay accurate.
+    useEffect(() => {
+        if (!userId || !isChatting) return;
+        const last = messages[messages.length - 1];
+        if (!last?.id || last.id.startsWith("opt:")) return;
+
+        const conversationKey = activeConvId
+            ? `inbox:${activeConvId}`
+            : roomId
+              ? `room:${roomId}`
+              : null;
+        if (!conversationKey) return;
+
+        void fetch("/api/c/messages/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                conversationKey,
+                lastReadMessageId: last.id,
+            }),
+        }).catch(() => {
+            /* non-fatal */
+        });
+    }, [
+        userId,
+        isChatting,
+        activeConvId,
+        roomId,
+        messages.length,
+        messages[messages.length - 1]?.id,
+    ]);
+
     // Fetch sidebar members (inbox is loaded + subscribed below, scoped to community)
     useEffect(() => {
         const controller = new AbortController();
