@@ -131,6 +131,22 @@ export async function POST(req: NextRequest) {
           if (eventId) await markWebhookProcessed(supabase, eventId, ugc.campaignId);
           continue;
         }
+
+        const { confirmBusinessVerificationFeeFromProvider } = await import(
+          "@/lib/identity/confirm-verification-fee"
+        );
+        const fee = await confirmBusinessVerificationFeeFromProvider(supabase, {
+          provider: "nowpayments",
+          feePaymentId: oid,
+          providerTransactionId: txId,
+          amount: payload.price_amount != null ? Number(payload.price_amount) : null,
+          currency: payload.price_currency ?? "USD",
+        });
+        if (fee.handled) {
+          if (eventId) await markWebhookProcessed(supabase, eventId, fee.feeId);
+          continue;
+        }
+
         if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
         continue;
       }

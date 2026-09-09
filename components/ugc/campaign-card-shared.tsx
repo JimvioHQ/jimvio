@@ -38,12 +38,14 @@ export type SharedCampaignRow = {
     business_slug: string;
     logo_url?: string | null;
     business_logo?: string | null;
+    verification_status?: string | null;
   };
   vendor?: {
     business_name: string;
     business_slug: string;
     logo_url?: string | null;
     business_logo?: string | null;
+    verification_status?: string | null;
   };
 };
 

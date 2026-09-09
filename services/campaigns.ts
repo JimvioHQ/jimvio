@@ -7,9 +7,11 @@ async function fetchHomepageCampaigns(limit: number) {
     .from("ugc_campaigns")
     .select(`
       id, title, payment_model, fixed_rate, rate_per_1k_views,
+      total_budget, spent_budget,
       ends_at, approved_count, submission_count, status, campaign_type,
+      allowed_platforms,
       media:ugc_campaign_media(id, url, usage, type),
-      vendor:vendors!brand_id ( business_name, business_slug, business_logo )
+      vendor:vendors!brand_id ( business_name, business_slug, business_logo, verification_status )
     `)
     .eq("status", "active")
     .order("created_at", { ascending: false })
@@ -26,7 +28,7 @@ async function fetchHomepageCampaigns(limit: number) {
 export async function getHomepageCampaigns(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCampaigns(limit),
-    [`homepage-campaigns-v2-${limit}`],
+    [`homepage-campaigns-v3-budget-${limit}`],
     { revalidate: 120 },
   )();
 }

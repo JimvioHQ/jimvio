@@ -326,6 +326,29 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        const { confirmBusinessVerificationFeeFromProvider } = await import(
+            "@/lib/identity/confirm-verification-fee"
+        );
+        const fee = await confirmBusinessVerificationFeeFromProvider(supabase, {
+            provider: "binancepay",
+            providerRef: data.merchantTradeNo,
+            providerTransactionId: data.transactionId || data.merchantTradeNo,
+            amount: Number(data.orderAmount),
+            currency: "USDT",
+        });
+        if (fee.handled) {
+            await supabase
+                .from("webhook_events")
+                .update({ status: "processed", order_id: null })
+                .eq("id", webhookEvent.id);
+            return NextResponse.json({
+                returnCode: "SUCCESS",
+                returnMessage: fee.alreadyPaid
+                    ? "Verification fee already paid"
+                    : "Verification fee paid",
+            });
+        }
+
         // UGC escrow: merchantTradeNo stored as payment_ref / provider_transaction_id
         const { confirmUgcEscrowPayment } = await import(
             "@/lib/ugc/confirm-escrow-payment"

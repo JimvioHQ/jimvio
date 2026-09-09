@@ -553,6 +553,7 @@ function sharedCampaignToUgcCampaign(c: SharedCampaignRow): UGCCampaign {
     spent_budget: Number(c.spent_budget ?? 0),
     max_payout_per_sub: null,
     allowed_platforms: c.allowed_platforms ?? [],
+    // spent/budget must match UGC Discover cards — never invent placeholders
     content_guidelines: null,
     min_duration: null,
     max_duration: null,
@@ -587,6 +588,15 @@ function sharedCampaignToUgcCampaign(c: SharedCampaignRow): UGCCampaign {
           business_name: vendor.business_name,
           business_logo: logo,
           business_slug: vendor.business_slug,
+          verification_status: (["pending", "verified", "rejected", "suspended"].includes(
+            String((vendor as { verification_status?: string }).verification_status ?? ""),
+          )
+            ? ((vendor as { verification_status?: string }).verification_status as
+                | "pending"
+                | "verified"
+                | "rejected"
+                | "suspended")
+            : null),
         }
       : undefined,
   };

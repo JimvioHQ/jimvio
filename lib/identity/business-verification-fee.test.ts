@@ -6,6 +6,7 @@ import {
   BUSINESS_VERIFICATION_FEE_PURPOSE,
   BUSINESS_VERIFICATION_FEE_USD,
   formatBusinessVerificationFee,
+  normalizeVerificationFeeMethod,
 } from "./business-verification-fee";
 
 describe("business verification fee", () => {
@@ -20,9 +21,24 @@ describe("business verification fee", () => {
     assert.equal(amountsMatchFee(0, "USD"), false);
     assert.equal(amountsMatchFee(0.01, "USD"), false);
     assert.equal(amountsMatchFee(1, "USD"), false);
+    assert.equal(amountsMatchFee(103.91, "USD"), false);
     assert.equal(amountsMatchFee(5.65, "EUR"), false);
     assert.equal(amountsMatchFee(5.65, "USD"), true);
     assert.equal(amountsMatchFee(5.649, "USD"), true);
     assert.equal(amountsMatchFee(null, "USD"), false);
+  });
+
+  it("accepts USDT and exact RWF equivalent charges", () => {
+    assert.equal(amountsMatchFee(5.65, "USDT"), true);
+    assert.equal(amountsMatchFee(7063, "RWF", 7063), true);
+    assert.equal(amountsMatchFee(999999, "RWF", 7063), false);
+  });
+
+  it("normalizes payment method aliases", () => {
+    assert.equal(normalizeVerificationFeeMethod("card"), "flutterwave");
+    assert.equal(normalizeVerificationFeeMethod("crypto"), "nowpayments");
+    assert.equal(normalizeVerificationFeeMethod("binance_pay"), "binancepay");
+    assert.equal(normalizeVerificationFeeMethod("momo"), "mobile_money");
+    assert.equal(normalizeVerificationFeeMethod("stripe"), null);
   });
 });

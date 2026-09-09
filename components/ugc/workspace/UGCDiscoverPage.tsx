@@ -281,10 +281,6 @@ export function UGCDiscoverPage() {
               <h2 className="min-w-0 truncate text-[16px] font-semibold tracking-tight text-[#111827] sm:text-[18px]">
                 {search ? `Results for “${search}”` : "All Campaigns"}
               </h2>
-              <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-[#94A3B8] sm:text-[12px]">
-                {total.toLocaleString()}{" "}
-                {total === 1 ? "campaign" : "campaigns"}
-              </span>
             </div>
 
             {fetchError && campaigns.length === 0 ? (

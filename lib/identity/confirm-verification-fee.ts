@@ -17,6 +17,7 @@ export type FeePaymentRow = {
   provider_ref: string | null;
   didit_session_id: string | null;
   paid_at: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 /** Latest usable paid fee for a vendor (not yet consumed by a declined attempt cycle). */
@@ -27,7 +28,7 @@ export async function getOpenPaidVerificationFee(
   const { data } = await db
     .from("business_verification_fee_payments")
     .select(
-      "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at",
+      "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at, metadata",
     )
     .eq("vendor_id", vendorId)
     .eq("status", "paid")
@@ -51,6 +52,7 @@ export async function confirmBusinessVerificationFeeFromProvider(
   opts: {
     providerRef?: string | null;
     providerTransactionId?: string | null;
+    feePaymentId?: string | null;
     amount?: number | null;
     currency?: string | null;
     provider?: string | null;
@@ -60,22 +62,36 @@ export async function confirmBusinessVerificationFeeFromProvider(
     .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
     .map((v) => v.trim());
 
-  if (!keys.length) return { handled: false };
-
   let fee: FeePaymentRow | null = null;
-  for (const key of keys) {
+
+  if (opts.feePaymentId) {
     const { data } = await db
       .from("business_verification_fee_payments")
       .select(
-        "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at",
+        "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at, metadata",
       )
-      .eq("provider_ref", key)
+      .eq("id", opts.feePaymentId)
       .maybeSingle();
-    if (data) {
-      fee = data as FeePaymentRow;
-      break;
+    if (data) fee = data as FeePaymentRow;
+  }
+
+  if (!fee && keys.length) {
+    for (const key of keys) {
+      const { data } = await db
+        .from("business_verification_fee_payments")
+        .select(
+          "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at, metadata",
+        )
+        .eq("provider_ref", key)
+        .maybeSingle();
+      if (data) {
+        fee = data as FeePaymentRow;
+        break;
+      }
     }
   }
+
+  if (!fee && !keys.length && !opts.feePaymentId) return { handled: false };
 
   if (!fee) {
     // Fallback: look up pending transaction metadata
@@ -90,7 +106,7 @@ export async function confirmBusinessVerificationFeeFromProvider(
       const { data } = await db
         .from("business_verification_fee_payments")
         .select(
-          "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at",
+          "id, user_id, vendor_id, amount_usd, currency, status, method, provider_ref, didit_session_id, paid_at, metadata",
         )
         .eq("id", meta.fee_payment_id)
         .maybeSingle();
@@ -111,12 +127,28 @@ export async function confirmBusinessVerificationFeeFromProvider(
     return { handled: true, feeId: fee.id, alreadyPaid: false };
   }
 
-  if (!amountsMatchFee(opts.amount ?? fee.amount_usd, opts.currency ?? fee.currency)) {
+  const feeMeta = (fee.metadata ?? {}) as {
+    charged_amount?: number | string;
+    charged_currency?: string;
+  };
+  const expectedRwf =
+    String(feeMeta.charged_currency || "").toUpperCase() === "RWF"
+      ? Number(feeMeta.charged_amount)
+      : null;
+
+  if (
+    !amountsMatchFee(
+      opts.amount ?? fee.amount_usd,
+      opts.currency ?? feeMeta.charged_currency ?? fee.currency,
+      expectedRwf,
+    )
+  ) {
     await db
       .from("business_verification_fee_payments")
       .update({
         status: "failed",
         metadata: {
+          ...feeMeta,
           fail_reason: "amount_mismatch",
           received_amount: opts.amount,
           received_currency: opts.currency,
@@ -136,6 +168,7 @@ export async function confirmBusinessVerificationFeeFromProvider(
       paid_at: now,
       updated_at: now,
       metadata: {
+        ...feeMeta,
         confirmed_by: opts.provider || "flutterwave",
         provider_transaction_id: opts.providerTransactionId || null,
       },

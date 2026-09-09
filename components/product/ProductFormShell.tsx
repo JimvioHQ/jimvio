@@ -478,7 +478,18 @@ function LivePreview({ form }: { form: FormState }) {
                             <span className="text-[10px]">Cover image</span>
                         </div>
                     )}
-                    {subtype && (
+                    {isPhysical ? (
+                        <div
+                            className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                            style={{
+                                borderRadius: t.radiusFull,
+                                background: t.accent,
+                                color: "#fff",
+                            }}
+                        >
+                            Physical
+                        </div>
+                    ) : subtype ? (
                         <div
                             className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
                             style={{
@@ -489,7 +500,7 @@ function LivePreview({ form }: { form: FormState }) {
                         >
                             {subtype.previewBadge}
                         </div>
-                    )}
+                    ) : null}
                     {form.status === "draft" && (
                         <div
                             className="absolute top-2 right-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
@@ -576,7 +587,9 @@ function LivePreview({ form }: { form: FormState }) {
                     className="w-full py-2 text-xs font-semibold text-white cursor-default"
                     style={{ borderRadius: t.radiusSm, background: t.accent }}
                 >
-                    {form.button_text || subtype?.suggestedButtonText || "Buy Now"}
+                    {isPhysical
+                        ? "Buy Now"
+                        : form.button_text || subtype?.suggestedButtonText || "Buy Now"}
                 </button>
 
                 {tags.length > 0 && (
@@ -772,7 +785,7 @@ function StepDetails({
     business: BusinessVerificationUi;
     onContinueDigital: () => void;
     onVerifyBusiness: () => Promise<void>;
-    onPayVerificationFee: (method: "wallet" | "flutterwave") => Promise<void>;
+    onPayVerificationFee: (method: "wallet" | "flutterwave" | "mobile_money" | "nowpayments" | "binancepay") => Promise<void>;
 }) {
     const [videoInput, setVideoInput] = React.useState("");
     const [imageUrlInput, setImageUrlInput] = React.useState("");
@@ -1825,7 +1838,7 @@ export function ProductFormShell({
         digital_file_url: "", track_inventory: true, inventory_quantity: "0",
         affiliate_enabled: false, affiliate_commission_rate: "10",
         is_featured: false,
-        button_text: "Join now", tags: "",
+        button_text: "Buy Now", tags: "",
         weight: "", dimensions: "", images: [], videoUrls: [],
         show_author: true, show_reviews: true, enable_discussions: false,
         status: "draft",
@@ -1867,6 +1880,11 @@ export function ProductFormShell({
             feePaid: Boolean(json.feePaid),
             feeUsd: typeof json.feeUsd === "number" ? json.feeUsd : 5.65,
             feeLabel: typeof json.feeLabel === "string" ? json.feeLabel : "$5.65 USD",
+            availableBalance:
+                typeof json.availableBalance === "number" ? json.availableBalance : undefined,
+            supportedMethods: Array.isArray(json.supportedMethods)
+                ? json.supportedMethods
+                : undefined,
             phase: json.phase || (json.verified ? "verified" : json.feePaid ? "fee_paid" : "fee_required"),
         });
         if (json.verified) {
@@ -2058,7 +2076,9 @@ export function ProductFormShell({
         setStep(next);
     }
 
-    async function payVerificationFee(method: "wallet" | "flutterwave") {
+    async function payVerificationFee(
+        method: "wallet" | "flutterwave" | "mobile_money" | "nowpayments" | "binancepay",
+    ) {
         const idempotencyKey =
             typeof crypto !== "undefined" && "randomUUID" in crypto
                 ? crypto.randomUUID()
@@ -2176,6 +2196,7 @@ export function ProductFormShell({
                     updated.billing_period = "";
                     updated.currency = "USD";
                     updated.is_flash_deal = false;
+                    updated.button_text = "Buy Now";
                 } else if (!updated.pricing_type) {
                     updated.pricing_type = "one_time";
                 }

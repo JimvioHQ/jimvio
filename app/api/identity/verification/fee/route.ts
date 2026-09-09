@@ -9,6 +9,8 @@ import {
   BUSINESS_VERIFICATION_FEE_PURPOSE,
   BUSINESS_VERIFICATION_FEE_USD,
   formatBusinessVerificationFee,
+  normalizeVerificationFeeMethod,
+  type VerificationFeeMethod,
 } from "@/lib/identity/business-verification-fee";
 import {
   confirmBusinessVerificationFeeFromProvider,
@@ -21,13 +23,34 @@ import {
   isFlutterwaveSuccessfulStatus,
   verifyFlutterwaveTransaction,
 } from "@/lib/flutterwave";
+import { createNowPaymentsInvoice } from "@/lib/nowpayments";
+import { createBinancePayOrder } from "@/lib/binance-pay";
 import { generateTxRef } from "@/lib/payments/tx-ref";
 import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
+import { getSiteUrl } from "@/lib/site-url";
+import { usdToRwfAmount } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
+
+/** Exact USD fee — never accept client amount. */
+function serverFeeUsd(): number {
+  return Math.round(BUSINESS_VERIFICATION_FEE_USD * 100) / 100;
+}
+
+function configuredFeeMethods(): VerificationFeeMethod[] {
+  const methods: VerificationFeeMethod[] = ["wallet"];
+  if (process.env.FLW_SECRET_KEY || process.env.FLUTTERWAVE_SECRET_KEY) {
+    methods.push("flutterwave", "mobile_money");
+  }
+  if (process.env.NOWPAYMENTS_API_KEY) methods.push("nowpayments");
+  if (process.env.BINANCE_PAY_API_KEY || process.env.BINANCEPAY_API_KEY) {
+    methods.push("binancepay");
+  }
+  return methods;
+}
 
 async function tryConfirmFlutterwaveFee(
   db: ServiceClient,
@@ -37,7 +60,6 @@ async function tryConfirmFlutterwaveFee(
   const txId = opts.transactionId?.trim() || null;
   if (!ref && !txId) return false;
 
-  // Ownership check: fee row must belong to this user
   if (ref) {
     const { data: fee } = await db
       .from("business_verification_fee_payments")
@@ -108,7 +130,11 @@ async function refundWallet(
     .eq("available_balance", availableAfterDebit);
 }
 
-/** GET — fee status for the signed-in seller. Optional ?ref=&transaction_id= confirms Flutterwave return. */
+function sanitizeMerchantTradeNo(seed: string): string {
+  return seed.replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
+}
+
+/** GET — fee status + optional Flutterwave return confirmation. */
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -137,6 +163,8 @@ export async function GET(req: NextRequest) {
 
   const paid = await hasPaidVerificationFee(admin, vendor.id);
   const open = paid ? await getOpenPaidVerificationFee(admin, vendor.id) : null;
+  const wallet = await ensureWallet(user.id, admin);
+  const availableBalance = Number(wallet.available_balance ?? 0);
 
   const { data: latest } = await admin
     .from("business_verification_fee_payments")
@@ -152,6 +180,9 @@ export async function GET(req: NextRequest) {
     feeLabel: formatBusinessVerificationFee(),
     feePaid: paid,
     verified: isBusinessVerified(vendor),
+    availableBalance,
+    walletSufficient: availableBalance >= serverFeeUsd(),
+    supportedMethods: configuredFeeMethods(),
     latest: latest
       ? {
           id: latest.id,
@@ -165,7 +196,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-/** POST — initiate $5.65 payment (wallet or Flutterwave). Never trusts client amount. */
+/** POST — initiate exactly $5.65. Never trusts client amount. */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -197,49 +228,77 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  let body: { method?: string; idempotencyKey?: string } = {};
+  let body: { method?: string; idempotencyKey?: string; phone?: string; amount?: unknown } = {};
   try {
     body = await req.json();
   } catch {
     body = {};
   }
 
-  const methodRaw = String(body.method || "flutterwave").toLowerCase();
-  const method = methodRaw === "wallet" ? "wallet" : "flutterwave";
+  // Explicitly ignore any client-supplied amount (tamper resistance)
+  void body.amount;
+
+  const amount = serverFeeUsd();
+  if (amount !== 5.65) {
+    return NextResponse.json({ error: "Fee configuration error" }, { status: 500 });
+  }
+
+  const method = normalizeVerificationFeeMethod(body.method) || "flutterwave";
+  const available = configuredFeeMethods();
+  if (!available.includes(method)) {
+    return NextResponse.json(
+      { error: "That payment method is not available for business verification." },
+      { status: 400 },
+    );
+  }
+
   const idempotencyKey =
     String(body.idempotencyKey || "").trim() ||
     req.headers.get("idempotency-key")?.trim() ||
     randomUUID();
 
-  // Idempotent replay
   const { data: existingByKey } = await admin
     .from("business_verification_fee_payments")
-    .select("id, status, provider_ref, method, metadata")
+    .select("id, status, provider_ref, method, amount_usd, metadata")
     .eq("idempotency_key", idempotencyKey)
     .maybeSingle();
 
   if (existingByKey?.status === "paid") {
     return NextResponse.json({
       feePaid: true,
-      feeUsd: BUSINESS_VERIFICATION_FEE_USD,
+      feeUsd: amount,
       feePaymentId: existingByKey.id,
     });
   }
-  if (existingByKey?.status === "pending" && existingByKey.method === "flutterwave") {
-    const meta = (existingByKey.metadata ?? {}) as { checkout_url?: string };
-    if (meta.checkout_url) {
+
+  if (existingByKey?.status === "pending") {
+    const meta = (existingByKey.metadata ?? {}) as {
+      checkout_url?: string;
+      charged_amount?: number;
+      charged_currency?: string;
+    };
+    const storedUsd = Number(existingByKey.amount_usd);
+    const chargedOk =
+      Math.abs(storedUsd - amount) < 0.011 &&
+      (meta.charged_amount == null || Math.abs(Number(meta.charged_amount) - Number(meta.charged_currency === "RWF" ? usdToRwfAmount(amount) : amount)) < 1 || meta.charged_currency === "USD" || meta.charged_currency === "USDT");
+    if (meta.checkout_url && chargedOk && Math.abs(storedUsd - amount) < 0.011) {
       return NextResponse.json({
         feePaid: false,
-        feeUsd: BUSINESS_VERIFICATION_FEE_USD,
+        feeUsd: amount,
         feePaymentId: existingByKey.id,
         checkoutUrl: meta.checkout_url,
         providerRef: existingByKey.provider_ref,
+        method: existingByKey.method,
       });
     }
   }
 
-  const amount = BUSINESS_VERIFICATION_FEE_USD;
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.jimvio.com").replace(/\/$/, "");
+  const appUrl = getSiteUrl().replace(/\/$/, "");
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("email, full_name, phone")
+    .eq("id", user.id)
+    .maybeSingle();
 
   if (method === "wallet") {
     const debit = await debitWallet(admin, user.id, amount);
@@ -261,14 +320,13 @@ export async function POST(req: NextRequest) {
         provider_ref: providerRef,
         idempotency_key: idempotencyKey,
         paid_at: now,
-        metadata: { purpose: BUSINESS_VERIFICATION_FEE_PURPOSE },
+        metadata: { purpose: BUSINESS_VERIFICATION_FEE_PURPOSE, charged_amount: amount, charged_currency: "USD" },
       })
       .select("id")
       .single();
 
     if (feeErr || !feeRow) {
       await refundWallet(admin, user.id, amount, debit.availableAfter);
-      // Unique paid-open index clash = already paid
       if (String(feeErr?.code) === "23505") {
         return NextResponse.json({
           feePaid: true,
@@ -306,9 +364,24 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Flutterwave card / mobile money
   const providerRef = generateTxRef("BVFEE");
   const redirectUrl = `${appUrl}/marketplace/new?business_verification_fee=1&ref=${encodeURIComponent(providerRef)}`;
+
+  // Charge currency: USD for card/crypto/binance; RWF for Rwanda Mobile Money only
+  const isMomo = method === "mobile_money";
+  const chargeCurrency = isMomo ? "RWF" : method === "binancepay" ? "USDT" : "USD";
+  const chargeAmount = isMomo ? usdToRwfAmount(amount) : amount;
+
+  if (!Number.isFinite(chargeAmount) || chargeAmount <= 0) {
+    return NextResponse.json({ error: "Could not compute verification fee charge." }, { status: 500 });
+  }
+  // Guard: never send product-sized amounts for this fee
+  if (!isMomo && Math.abs(chargeAmount - amount) > 0.001) {
+    return NextResponse.json({ error: "Fee amount integrity check failed." }, { status: 500 });
+  }
+  if (isMomo && chargeAmount > 100_000) {
+    return NextResponse.json({ error: "Mobile money fee conversion out of range." }, { status: 500 });
+  }
 
   const { data: feeRow, error: feeErr } = await admin
     .from("business_verification_fee_payments")
@@ -318,10 +391,14 @@ export async function POST(req: NextRequest) {
       amount_usd: amount,
       currency: BUSINESS_VERIFICATION_FEE_CURRENCY,
       status: "pending",
-      method: "flutterwave",
+      method: method === "mobile_money" ? "mobile_money" : method === "nowpayments" ? "nowpayments" : method === "binancepay" ? "binancepay" : "flutterwave",
       provider_ref: providerRef,
       idempotency_key: idempotencyKey,
-      metadata: { purpose: BUSINESS_VERIFICATION_FEE_PURPOSE },
+      metadata: {
+        purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
+        charged_amount: chargeAmount,
+        charged_currency: chargeCurrency,
+      },
     })
     .select("id")
     .single();
@@ -334,38 +411,123 @@ export async function POST(req: NextRequest) {
         message: "Verification fee already paid.",
       });
     }
+    // Method check constraint may reject new methods until migration applies
+    console.error("[verification-fee] insert failed", feeErr);
     return NextResponse.json({ error: "Could not start verification fee payment." }, { status: 500 });
   }
 
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("email, full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
   try {
-    const checkoutUrl = await createFlutterwavePaymentLink({
-      txRef: providerRef,
-      amount,
-      currency: BUSINESS_VERIFICATION_FEE_CURRENCY,
-      redirectUrl,
-      customerEmail: profile?.email || user.email || "payments@jimvio.com",
-      customerName: profile?.full_name || "Jimvio Seller",
-      orderDescription: "Jimvio Business Verification Fee",
-      meta: {
-        purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
-        fee_payment_id: feeRow.id,
-        vendor_id: vendor.id,
+    let checkoutUrl: string | null = null;
+
+    if (method === "flutterwave" || method === "mobile_money") {
+      checkoutUrl = await createFlutterwavePaymentLink({
+        txRef: providerRef,
+        amount: chargeAmount,
+        currency: chargeCurrency,
+        redirectUrl,
+        customerEmail: profile?.email || user.email || "payments@jimvio.com",
+        customerName: profile?.full_name || "Jimvio Seller",
+        customerPhone: body.phone || profile?.phone || "",
+        orderDescription: "Jimvio Business Verification Fee",
+        paymentOptions: isMomo
+          ? "mobilemoneyrwanda"
+          : "card,googlepay,applepay",
+        country: isMomo ? "RW" : "US",
+        meta: {
+          purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
+          fee_payment_id: feeRow.id,
+          vendor_id: vendor.id,
+          user_id: user.id,
+          amount_usd: String(amount),
+          charged_amount: String(chargeAmount),
+          charged_currency: chargeCurrency,
+        },
+      });
+    } else if (method === "nowpayments") {
+      const invoice = await createNowPaymentsInvoice({
+        jimvioOrderId: feeRow.id,
+        amount,
+        currency: "USD",
+        description: "Jimvio Business Verification Fee",
+        buyerEmail: profile?.email || user.email || "payments@jimvio.com",
+        successUrl: redirectUrl,
+        cancelUrl: `${appUrl}/marketplace/new?business_verification_fee=0&ref=${encodeURIComponent(providerRef)}`,
+      });
+      checkoutUrl = invoice.invoiceUrl ?? null;
+      if (!checkoutUrl) throw new Error("NOWPayments invoice URL missing");
+    } else if (method === "binancepay") {
+      const merchantTradeNo = sanitizeMerchantTradeNo(
+        `BVFEE${feeRow.id.replace(/-/g, "").slice(0, 18)}${Date.now().toString(36)}`,
+      );
+      const binanceOrder = await createBinancePayOrder({
+        merchantOrderId: merchantTradeNo,
+        orderAmount: amount,
+        currency: "USDT",
+        description: "Jimvio Business Verification Fee",
+        returnUrl: redirectUrl,
+        cancelUrl: `${appUrl}/marketplace/new?business_verification_fee=0&ref=${encodeURIComponent(providerRef)}`,
+      });
+      checkoutUrl =
+        binanceOrder.checkoutUrl ||
+        binanceOrder.universalUrl ||
+        binanceOrder.qrcodeLink ||
+        null;
+      if (!checkoutUrl) throw new Error("Binance Pay checkout URL missing");
+      await admin
+        .from("business_verification_fee_payments")
+        .update({
+          provider_ref: merchantTradeNo,
+          metadata: {
+            purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
+            charged_amount: amount,
+            charged_currency: "USDT",
+            checkout_url: checkoutUrl,
+            binance_merchant_trade_no: merchantTradeNo,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", feeRow.id);
+
+      await admin.from("transactions").insert({
         user_id: user.id,
-        amount_usd: String(amount),
-      },
-    });
+        type: "business_verification_fee",
+        amount,
+        currency: BUSINESS_VERIFICATION_FEE_CURRENCY,
+        status: "pending",
+        direction: "debit",
+        provider: "binancepay",
+        provider_transaction_id: merchantTradeNo,
+        reference: feeRow.id,
+        description: "Jimvio Business Verification Fee",
+        metadata: {
+          purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
+          fee_payment_id: feeRow.id,
+          vendor_id: vendor.id,
+        },
+      });
+
+      return NextResponse.json({
+        feePaid: false,
+        feeUsd: amount,
+        currency: BUSINESS_VERIFICATION_FEE_CURRENCY,
+        feePaymentId: feeRow.id,
+        checkoutUrl,
+        providerRef: merchantTradeNo,
+        method: "binancepay",
+        chargedAmount: amount,
+        chargedCurrency: "USDT",
+      });
+    }
+
+    if (!checkoutUrl) throw new Error("Checkout URL missing");
 
     await admin
       .from("business_verification_fee_payments")
       .update({
         metadata: {
           purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
+          charged_amount: chargeAmount,
+          charged_currency: chargeCurrency,
           checkout_url: checkoutUrl,
         },
         updated_at: new Date().toISOString(),
@@ -379,7 +541,7 @@ export async function POST(req: NextRequest) {
       currency: BUSINESS_VERIFICATION_FEE_CURRENCY,
       status: "pending",
       direction: "debit",
-      provider: "flutterwave",
+      provider: method === "nowpayments" ? "nowpayments" : "flutterwave",
       provider_transaction_id: providerRef,
       reference: feeRow.id,
       description: "Jimvio Business Verification Fee",
@@ -387,6 +549,8 @@ export async function POST(req: NextRequest) {
         purpose: BUSINESS_VERIFICATION_FEE_PURPOSE,
         fee_payment_id: feeRow.id,
         vendor_id: vendor.id,
+        charged_amount: chargeAmount,
+        charged_currency: chargeCurrency,
       },
     });
 
@@ -397,7 +561,9 @@ export async function POST(req: NextRequest) {
       feePaymentId: feeRow.id,
       checkoutUrl,
       providerRef,
-      method: "flutterwave",
+      method,
+      chargedAmount: chargeAmount,
+      chargedCurrency: chargeCurrency,
     });
   } catch (err) {
     await admin
@@ -406,7 +572,7 @@ export async function POST(req: NextRequest) {
       .eq("id", feeRow.id)
       .eq("status", "pending");
     return NextResponse.json(
-      { error: safeDepositInitiateError("flutterwave", err) },
+      { error: safeDepositInitiateError(method === "nowpayments" ? "nowpayments" : method === "binancepay" ? "binancepay" : "flutterwave", err) },
       { status: 502 },
     );
   }

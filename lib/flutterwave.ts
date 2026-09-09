@@ -158,6 +158,8 @@ export interface CreatePaymentLinkParams {
   customerPhone?: string;
   orderDescription?: string;
   paymentOptions?: string;
+  /** Override merchant default country (e.g. RW for Rwanda MoMo, US for USD card). */
+  country?: string;
   channel?: "sms" | "whatsapp" | "sms,whatsapp";
   meta?: Record<string, string>;
 }
@@ -203,6 +205,10 @@ export async function createFlutterwavePaymentLink(
   const phone = formatPhone(params.customerPhone);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
+  const country =
+    params.country?.trim().toUpperCase() || getCountryCode(currency) || undefined;
+  const paymentOptions = params.paymentOptions ?? getPaymentOptions(currency);
+
   const payload = {
     tx_ref: params.txRef,
     amount,
@@ -213,8 +219,8 @@ export async function createFlutterwavePaymentLink(
       name: params.customerName,
       ...(phone && { phonenumber: phone }),
     },
-    payment_options: params.paymentOptions ?? getPaymentOptions(currency),
-    ...(getCountryCode(currency) && { country: getCountryCode(currency) }),
+    payment_options: paymentOptions,
+    ...(country && { country }),
     ...(params.channel && { channel: params.channel }),
     ...(params.meta && { meta: params.meta }),
     customizations: {
@@ -230,6 +236,8 @@ export async function createFlutterwavePaymentLink(
     txRef: params.txRef,
     amount,
     currency,
+    country: country ?? null,
+    paymentOptions,
     phone,
   });
 
