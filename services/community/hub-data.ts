@@ -526,7 +526,7 @@ export async function getHubStories(userId: string): Promise<HubStory[]> {
         username: profile?.username ?? null,
         avatar_url: profile?.avatar_url ?? null,
         href: profile?.username
-          ? `/communities/profile/${profile.username}`
+          ? `/u/${profile.username}`
           : "/communities/profile",
         live: (row.created_at ?? "") >= liveCutoff,
       });
@@ -567,7 +567,7 @@ export async function getHubStories(userId: string): Promise<HubStory[]> {
       name,
       username: profile?.username ?? null,
       avatar_url: profile?.avatar_url ?? null,
-      href: profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile",
+      href: profile?.username ? `/u/${profile.username}` : "/communities/profile",
       live: (post.created_at ?? "") >= liveCutoff,
     });
 

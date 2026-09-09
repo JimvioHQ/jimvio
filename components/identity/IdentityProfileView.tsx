@@ -35,6 +35,7 @@ import { IdentityAiPanel } from "@/components/identity/IdentityAiPanel";
 import { IdentitySocialLinks } from "@/components/identity/IdentitySocialLinks";
 import { IdentityBookingForm } from "@/components/identity/IdentityBookingForm";
 import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
+import { IdentityProfileActions } from "@/components/identity/IdentityProfileActions";
 
 const AVAILABILITY_META: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
   open: { label: "Open to work", tone: "success" },
@@ -58,12 +59,15 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
   const availability = AVAILABILITY_META[profile.availability] ?? AVAILABILITY_META.open;
 
   const socialFollowers = useMemo(() => payload.social.reduce((sum, s) => sum + s.followers, 0), [payload.social]);
-  const totalReach = socialFollowers + (payload.jimvioFollowers ?? 0);
+  /** Jimvio user→user followers (includes showcase display floor). Not community members. */
+  const jimvioFollowers = payload.jimvioFollowers ?? 0;
+  const jimvioFollowing = payload.jimvioFollowing ?? 0;
+  const totalReach = socialFollowers + jimvioFollowers;
 
   const stats = useMemo(
     () =>
       computeIdentityStats({
-        totalFollowers: totalReach,
+        totalFollowers: jimvioFollowers,
         avgEngagementRate:
           payload.social.length > 0
             ? payload.social.reduce((sum, s) => sum + s.engagementRate, 0) / payload.social.length
@@ -72,7 +76,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
         joinedAt: profile.joinedAt,
         stats: payload.stats,
       }),
-    [payload.social, payload.portfolio.length, profile.joinedAt, payload.stats, totalReach],
+    [payload.social, payload.portfolio.length, profile.joinedAt, payload.stats, jimvioFollowers],
   );
 
   const tabs: IdentityTab[] = useMemo(() => {
@@ -164,11 +168,17 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
             </div>
 
             {!isOwner && (
+              <IdentityProfileActions
+                userId={profile.userId}
+                username={profile.username}
+                canBook={canBook}
+                onBook={goToBookings}
+                bookLabel={`Book ${profile.fullName?.split(" ")[0] || "them"}`}
+              />
+            )}
+            {isOwner && (
               <div className="flex items-center gap-2 pb-1">
                 <IdentitySocialLinks accounts={payload.social} compact />
-                {canBook && (
-                  <IdentityButton onClick={goToBookings}>Book {profile.fullName?.split(" ")[0] || "them"}</IdentityButton>
-                )}
               </div>
             )}
           </div>
@@ -234,8 +244,18 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
               </MetaChip>
             )}
             <MetaChip icon={Users}>
-              <span className="font-semibold text-[#1C1B19]">{formatNumber(totalReach)}</span> followers
+              <span className="font-semibold text-[#1C1B19]">{formatNumber(jimvioFollowers)}</span>{" "}
+              {jimvioFollowers === 1 ? "follower" : "followers"}
             </MetaChip>
+            <MetaChip icon={Users}>
+              <span className="font-semibold text-[#1C1B19]">{formatNumber(jimvioFollowing)}</span>{" "}
+              following
+            </MetaChip>
+            {socialFollowers > 0 && (
+              <MetaChip icon={Globe}>
+                <span className="font-semibold text-[#1C1B19]">{formatNumber(totalReach)}</span> total reach
+              </MetaChip>
+            )}
             {profile.responseTimeHours != null && (
               <MetaChip icon={Clock}>
                 Responds in <span className="font-semibold text-[#1C1B19]">{Math.round(profile.responseTimeHours)}h</span>

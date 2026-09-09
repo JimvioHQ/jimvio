@@ -273,7 +273,7 @@ export function HubUserCard({
       </div>
       {username && (
         <Link
-          href={`/communities/profile/${username}`}
+          href={`/u/${username}`}
           className="mt-2 block text-[10px] font-semibold text-[#fd5000] hover:underline"
         >
           View profile

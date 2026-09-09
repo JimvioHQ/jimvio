@@ -275,7 +275,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId,
         roomId: null,
-        href: peer?.username ? `/communities/profile/${peer.username}` : null,
+        href: peer?.username ? `/u/${peer.username}` : null,
       });
     }
 

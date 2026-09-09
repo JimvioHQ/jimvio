@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { PRIORITY_POPULAR_USERNAMES } from "@/lib/community/discovery-priorities";
+import { resolveProfileFollowerCount } from "@/lib/community/follower-count";
 
 export const POPULAR_USER_COUNT = 5;
 
@@ -25,7 +26,7 @@ export type FeedSidebarLiveCreator = {
 };
 
 function profileHref(username: string | null | undefined, userId: string): string {
-  if (username?.trim()) return `/communities/profile/${username.trim()}`;
+  if (username?.trim()) return `/u/${encodeURIComponent(username.trim())}`;
   return `/influencers/u/${userId}`;
 }
 
@@ -110,11 +111,11 @@ export async function loadFeedSidebarPopularUsers(
       (isValidAvatar(profile?.avatar_url) ? profile.avatar_url : null) ??
       (isValidAvatar(inf.profile_image) ? inf.profile_image : null);
     const avatarUrl = avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null;
-    const followerCount = Math.max(
-      Number(profile?.follower_count ?? inf.total_followers ?? 0) || 0,
-      0
-    );
     const username = profile?.username?.trim() || null;
+    const followerCount = resolveProfileFollowerCount({
+      username,
+      follower_count: profile?.follower_count ?? inf.total_followers ?? 0,
+    });
 
     seen.add(inf.user_id);
     candidates.push({
@@ -151,14 +152,17 @@ export async function loadFeedSidebarPopularUsers(
         avatarUrl: isValidAvatar(profile.avatar_url)
           ? mediaUrlOrNull(profile.avatar_url, 96)
           : null,
-        followerCount: Math.max(Number(profile.follower_count ?? 0) || 0, 0),
+        followerCount: resolveProfileFollowerCount({
+          username: profile.username,
+          follower_count: profile.follower_count,
+        }),
         verified: Boolean(profile.is_verified),
         href: profileHref(profile.username, profile.id),
       });
     }
   }
 
-  // Product-level priority inclusion for real active profiles (no fabricated followers).
+  // Prefer owned community logo when the profile avatar is a weak OAuth thumbnail.
   if (PRIORITY_POPULAR_USERNAMES.length) {
     const { data: priorityProfiles } = (await admin
       .from("profiles")
@@ -166,20 +170,65 @@ export async function loadFeedSidebarPopularUsers(
       .in("username", [...PRIORITY_POPULAR_USERNAMES])
       .eq("is_active", true)) as { data: ProfileRow[] | null };
 
+    const priorityUsernames = (priorityProfiles ?? [])
+      .map((p) => p.username?.trim().toLowerCase())
+      .filter(Boolean) as string[];
+
+    const communityAvatarByUsername = new Map<string, string>();
+    if (priorityUsernames.length) {
+      const { data: ownedCommunities } = (await admin
+        .from("communities")
+        .select("slug, avatar_url, owner_id")
+        .in("slug", priorityUsernames)
+        .eq("is_active", true)) as {
+        data: Array<{ slug: string; avatar_url: string | null; owner_id: string }> | null;
+      };
+      for (const c of ownedCommunities ?? []) {
+        if (c.avatar_url && isValidAvatar(c.avatar_url)) {
+          communityAvatarByUsername.set(c.slug.toLowerCase(), c.avatar_url);
+        }
+      }
+    }
+
     for (const profile of priorityProfiles ?? []) {
       if (!profile.id || profile.id === excludeUserId) continue;
-      if (seen.has(profile.id)) continue;
+      if (seen.has(profile.id)) {
+        // Upgrade existing candidate avatar/count if we already inserted them.
+        const idx = candidates.findIndex((c) => c.userId === profile.id);
+        if (idx >= 0) {
+          const uname = profile.username?.trim().toLowerCase() ?? "";
+          const communityAvatar = communityAvatarByUsername.get(uname);
+          if (communityAvatar && (!candidates[idx].avatarUrl || candidates[idx].avatarUrl?.includes("googleusercontent"))) {
+            candidates[idx] = {
+              ...candidates[idx],
+              avatarUrl: mediaUrlOrNull(communityAvatar, 96),
+              followerCount: resolveProfileFollowerCount({
+                username: profile.username,
+                follower_count: profile.follower_count,
+              }),
+            };
+          }
+        }
+        continue;
+      }
       const name = displayName(profile.full_name, profile.username);
       if (!name || !profile.username?.trim()) continue;
+
+      const uname = profile.username.trim().toLowerCase();
+      const communityAvatar = communityAvatarByUsername.get(uname);
+      const avatarRaw =
+        (communityAvatar && isValidAvatar(communityAvatar) ? communityAvatar : null) ??
+        (isValidAvatar(profile.avatar_url) ? profile.avatar_url : null);
 
       const entry: FeedSidebarPopularUser = {
         userId: profile.id,
         name,
         username: profile.username.trim(),
-        avatarUrl: isValidAvatar(profile.avatar_url)
-          ? mediaUrlOrNull(profile.avatar_url, 96)
-          : null,
-        followerCount: Math.max(Number(profile.follower_count ?? 0) || 0, 0),
+        avatarUrl: avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null,
+        followerCount: resolveProfileFollowerCount({
+          username: profile.username,
+          follower_count: profile.follower_count,
+        }),
         verified: Boolean(profile.is_verified),
         href: profileHref(profile.username, profile.id),
       };

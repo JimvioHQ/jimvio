@@ -59,7 +59,7 @@ export async function resolveMyCommunityHome(
   }
 
   const profileHref = username?.trim()
-    ? `/communities/profile/${encodeURIComponent(username.trim())}`
+    ? `/u/${encodeURIComponent(username.trim())}`
     : "/communities/profile";
 
   return {

@@ -625,6 +625,7 @@ export interface IdentityProfilePayload {
   stats: IdentityCreatorStatsSnapshot | null;
   reviews: IdentityReview[];
   jimvioFollowers?: number;
+  jimvioFollowing?: number;
   isOwner: boolean;
   canBook: boolean;
   restricted: boolean;

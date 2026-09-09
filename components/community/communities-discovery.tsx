@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CommunityCoverImage } from "@/components/community/community-media";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   SharedCommunityCard,
   CreateCommunityTile,
@@ -880,12 +880,9 @@ export function CommunitiesDiscovery({
           <p className="text-[13px] text-[var(--color-text-muted)]">
             {loading ? (
               "Loading…"
-            ) : (
+            ) : debounced || category !== "All" || priceFilter !== "all" ? (
               <>
-                <span className="font-medium tabular-nums text-[var(--color-text-primary)]">
-                  {formatNumber(priceFilter === "all" ? total : visibleItems.length)}
-                </span>{" "}
-                {visibleItems.length === 1 ? "community" : "communities"}
+                Showing matches
                 {debounced && (
                   <>
                     {" "}
@@ -912,6 +909,8 @@ export function CommunitiesDiscovery({
                   </>
                 )}
               </>
+            ) : (
+              "Discover public communities"
             )}
           </p>
 

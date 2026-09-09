@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
           name: p?.full_name || p?.username || "Affiliate",
           subtitle: `${Number(row.total_conversions ?? 0)} conversions`,
           score: Math.round(Number(row.total_earnings ?? 0)),
-          href: p?.username ? `/communities/profile/${p.username}` : "/affiliates",
+          href: p?.username ? `/u/${p.username}` : "/affiliates",
           rank: i + 1,
         };
       }),
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
           name: p?.full_name || p?.username || "UGC creator",
           subtitle: "UGC earnings",
           score: Math.round(Number(row.total_earnings ?? 0)),
-          href: p?.username ? `/communities/profile/${p.username}` : "/ugc",
+          href: p?.username ? `/u/${p.username}` : "/ugc",
           rank: i + 1,
         };
       }),
@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
       name: p?.full_name || p?.username || "Creator",
       subtitle: `Level ${row.level ?? 1}`,
       score: Number(row.total_points ?? 0),
-      href: p?.username ? `/communities/profile/${p.username}` : "/communities/explore",
+      href: p?.username ? `/u/${p.username}` : "/communities/explore",
       rank: rows.length + 1,
     });
     if (rows.length >= 25) break;

@@ -242,7 +242,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         }
     }, [authLoading, isAuthenticated, pathname, router]);
 
-    const profileHref = profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile";
+    const profileHref = profile?.username ? `/u/${profile.username}` : "/communities/profile";
     const loginHref = buildHubLoginUrl(pathname);
     const navUser =
         isAuthenticated && profile

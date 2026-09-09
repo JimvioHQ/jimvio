@@ -83,7 +83,8 @@ export function useFollowUser(targetUserId: string | null | undefined) {
     const prevCount = followerCount;
     const nextFollowing = !prevFollowing;
     setFollowing(nextFollowing);
-    setFollowerCount(Math.max(0, prevCount + (nextFollowing ? 1 : -1)));
+    // Keep displayed count until the server returns the resolved floor
+    // (avoids flicker below showcase display floors).
     setBusy(true);
     setError(null);
     try {

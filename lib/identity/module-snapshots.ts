@@ -7,6 +7,7 @@
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -57,6 +58,8 @@ export interface CommunityModuleSnapshot {
     avatarUrl: string | null;
     totalPoints: number;
     level: number;
+    role?: "owner" | "admin" | "moderator" | "member";
+    memberCount?: number;
   }>;
 }
 
@@ -202,28 +205,145 @@ async function getMarketplaceSnapshot(db: ServiceClient, userId: string): Promis
 
 async function getCommunitySnapshot(db: ServiceClient, userId: string): Promise<CommunityModuleSnapshot> {
   try {
-    const { data: points } = await db
-      .from("member_points")
-      .select("community_id, total_points, level, community:communities(id, name, slug, avatar_url)")
-      .eq("user_id", userId);
+    const [{ data: points }, { data: owned }, { data: memberships }] = await Promise.all([
+      db
+        .from("member_points")
+        .select("community_id, total_points, level, community:communities(id, name, slug, avatar_url, member_count, settings)")
+        .eq("user_id", userId),
+      db
+        .from("communities")
+        .select("id, name, slug, avatar_url, member_count, settings, owner_id")
+        .eq("owner_id", userId)
+        .eq("is_active", true),
+      db
+        .from("community_memberships")
+        .select("community_id, role, community:communities(id, name, slug, avatar_url, member_count, settings)")
+        .eq("user_id", userId)
+        .eq("status", "active"),
+    ]);
 
-    const communitiesJoined = (points ?? []).map((row) => {
+    const byId = new Map<
+      string,
+      CommunityModuleSnapshot["communitiesJoined"][number]
+    >();
+
+    for (const row of owned ?? []) {
+      byId.set(row.id, {
+        communityId: row.id,
+        name: row.name ?? "Community",
+        slug: row.slug ?? "",
+        avatarUrl: row.avatar_url ?? null,
+        totalPoints: 0,
+        level: 1,
+        role: "owner",
+        memberCount: resolveCommunityMemberCount({
+          slug: row.slug,
+          member_count: row.member_count,
+          settings: row.settings,
+        }),
+      });
+    }
+
+    for (const row of memberships ?? []) {
       const community = row.community as
-        | { id?: string; name?: string; slug?: string; avatar_url?: string }
-        | Array<{ id?: string; name?: string; slug?: string; avatar_url?: string }>
+        | {
+            id?: string;
+            name?: string;
+            slug?: string;
+            avatar_url?: string;
+            member_count?: number;
+            settings?: unknown;
+          }
+        | Array<{
+            id?: string;
+            name?: string;
+            slug?: string;
+            avatar_url?: string;
+            member_count?: number;
+            settings?: unknown;
+          }>
         | null;
       const c = Array.isArray(community) ? community[0] : community;
-      return {
-        communityId: row.community_id,
+      if (!c?.id) continue;
+      const role = (row.role as string | null) ?? "member";
+      const existing = byId.get(c.id);
+      const memberCount = resolveCommunityMemberCount({
+        slug: c.slug,
+        member_count: c.member_count,
+        settings: c.settings,
+      });
+      if (existing) {
+        existing.memberCount = memberCount;
+        if (existing.role !== "owner") {
+          existing.role =
+            role === "admin" || role === "moderator" || role === "owner"
+              ? role
+              : "member";
+        }
+        continue;
+      }
+      byId.set(c.id, {
+        communityId: c.id,
+        name: c.name ?? "Community",
+        slug: c.slug ?? "",
+        avatarUrl: c.avatar_url ?? null,
+        totalPoints: 0,
+        level: 1,
+        role:
+          role === "owner" || role === "admin" || role === "moderator"
+            ? role
+            : "member",
+        memberCount,
+      });
+    }
+
+    for (const row of points ?? []) {
+      const community = row.community as
+        | {
+            id?: string;
+            name?: string;
+            slug?: string;
+            avatar_url?: string;
+            member_count?: number;
+            settings?: unknown;
+          }
+        | Array<{
+            id?: string;
+            name?: string;
+            slug?: string;
+            avatar_url?: string;
+            member_count?: number;
+            settings?: unknown;
+          }>
+        | null;
+      const c = Array.isArray(community) ? community[0] : community;
+      const id = c?.id ?? row.community_id;
+      if (!id) continue;
+      const existing = byId.get(id);
+      const memberCount = resolveCommunityMemberCount({
+        slug: c?.slug,
+        member_count: c?.member_count,
+        settings: c?.settings,
+      });
+      if (existing) {
+        existing.totalPoints = Number(row.total_points ?? 0);
+        existing.level = Number(row.level ?? 1);
+        existing.memberCount = existing.memberCount ?? memberCount;
+        continue;
+      }
+      byId.set(id, {
+        communityId: id,
         name: c?.name ?? "Community",
         slug: c?.slug ?? "",
         avatarUrl: c?.avatar_url ?? null,
         totalPoints: Number(row.total_points ?? 0),
         level: Number(row.level ?? 1),
-      };
-    });
+        role: "member",
+        memberCount,
+      });
+    }
 
-    return { communitiesJoined };
+    return { communitiesJoined: [...byId.values()] };
   } catch (err) {
     console.error("getModuleSnapshots: community section failed", err);
     return emptyCommunity();

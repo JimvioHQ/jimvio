@@ -269,28 +269,34 @@ function CommunityModuleView({ data, meta }: { data: CommunityModuleSnapshot; me
       ) : (
         <div className="grid gap-2.5 sm:grid-cols-2">
           {data.communitiesJoined.map((c) => (
-            <IdentityCard key={c.communityId} className="flex items-center gap-3 p-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF5A1F] text-[13px] font-semibold text-white">
-                {c.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  c.name.slice(0, 2).toUpperCase()
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-[#1C1B19]">{c.name}</p>
-                <p className="text-[11px] text-[#9A9388]">Level {c.level} · {formatNumber(c.totalPoints)} pts</p>
-              </div>
-              {c.slug && (
-                <Link
-                  href={`/communities/${c.slug}`}
-                  className="shrink-0 text-[11.5px] font-semibold text-[#D6480F] hover:underline"
-                >
-                  View
-                </Link>
-              )}
-            </IdentityCard>
+            <Link key={c.communityId} href={c.slug ? `/communities/${c.slug}` : "/communities"}>
+              <IdentityCard className="flex items-center gap-3 p-3.5 transition-colors hover:border-[#FF5A1F]/30">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF5A1F] text-[13px] font-semibold text-white">
+                  {c.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    c.name.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[13px] font-semibold text-[#1C1B19]">{c.name}</p>
+                    {c.role && c.role !== "member" ? (
+                      <span className="shrink-0 rounded-full bg-[#FFF1EA] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#D6480F]">
+                        {c.role}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="truncate text-[11.5px] text-[#9A9388]">
+                    {typeof c.memberCount === "number" && c.memberCount > 0
+                      ? `${formatNumber(c.memberCount)} members`
+                      : `Level ${c.level}`}
+                    {c.totalPoints > 0 ? ` · ${formatNumber(c.totalPoints)} pts` : ""}
+                  </p>
+                </div>
+              </IdentityCard>
+            </Link>
           ))}
         </div>
       )}

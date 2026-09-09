@@ -188,7 +188,7 @@ export async function searchCommunities(
               .filter(Boolean)
               .join(" · "),
             href: username
-              ? `/communities/profile/${username}`
+              ? `/u/${username}`
               : community
                 ? `/communities/${community.slug}/members`
                 : "/communities",

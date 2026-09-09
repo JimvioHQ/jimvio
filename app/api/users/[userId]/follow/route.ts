@@ -29,7 +29,7 @@ export async function GET(
 
   const { data: profile } = await db
     .from("profiles")
-    .select("id, follower_count")
+    .select("id, username, follower_count")
     .eq("id", targetId)
     .maybeSingle();
 
@@ -48,9 +48,17 @@ export async function GET(
     following = Boolean(row?.id);
   }
 
+  const { resolveProfileFollowerCount } = await import(
+    "@/lib/community/follower-count"
+  );
+
   return NextResponse.json({
     following,
-    followerCount: Number(profile.follower_count ?? 0),
+    followerCount: resolveProfileFollowerCount({
+      username: profile.username,
+      follower_count: profile.follower_count,
+    }),
+    realFollowerCount: Number(profile.follower_count ?? 0),
   });
 }
 
@@ -84,7 +92,7 @@ export async function POST(
 
   const { data: profile } = await db
     .from("profiles")
-    .select("id, follower_count")
+    .select("id, username, follower_count")
     .eq("id", targetId)
     .maybeSingle();
   if (!profile) {
@@ -122,13 +130,22 @@ export async function POST(
 
   const { data: updated } = await db
     .from("profiles")
-    .select("follower_count")
+    .select("follower_count, username")
     .eq("id", targetId)
     .maybeSingle();
 
+  const { resolveProfileFollowerCount } = await import(
+    "@/lib/community/follower-count"
+  );
+  const real = Number(updated?.follower_count ?? profile.follower_count ?? 0);
+
   return NextResponse.json({
     following: wantFollow,
-    followerCount: Number(updated?.follower_count ?? profile.follower_count ?? 0),
+    followerCount: resolveProfileFollowerCount({
+      username: updated?.username ?? profile.username,
+      follower_count: real,
+    }),
+    realFollowerCount: real,
     action: wantFollow ? "followed" : "unfollowed",
   });
 }

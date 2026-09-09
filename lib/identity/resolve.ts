@@ -10,6 +10,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { resolveProfileFollowerCount, SHOWCASE_PROFILE_FOLLOWER_COUNTS } from "@/lib/community/follower-count";
 import { levelProgress as computeLevelProgress } from "./levels";
 import { canViewFullDetails, canViewIdentity, privacyFieldVisible } from "./privacy";
 import { computeCreatorStats } from "./stats";
@@ -292,15 +293,37 @@ async function loadPublicReviews(db: ServiceClient, subjectUserId: string): Prom
   }
 }
 
-async function countJimvioFollowers(db: ServiceClient, userId: string): Promise<number> {
+async function countJimvioFollowers(
+  db: ServiceClient,
+  userId: string,
+  username?: string | null
+): Promise<number> {
+  let real = 0;
   try {
     const { count } = await db
       .from("user_follows")
       .select("id", { count: "exact", head: true })
       .eq("following_id", userId);
-    return count ?? 0;
+    real = count ?? 0;
   } catch (err) {
     console.error("resolve: countJimvioFollowers failed", err);
+    real = 0;
+  }
+  return resolveProfileFollowerCount({
+    username,
+    follower_count: real,
+  });
+}
+
+async function countJimvioFollowing(db: ServiceClient, userId: string): Promise<number> {
+  try {
+    const { count } = await db
+      .from("user_follows")
+      .select("id", { count: "exact", head: true })
+      .eq("follower_id", userId);
+    return count ?? 0;
+  } catch (err) {
+    console.error("resolve: countJimvioFollowing failed", err);
     return 0;
   }
 }
@@ -345,11 +368,31 @@ async function buildProfilePayload(
     booking: identity.contact_preferences?.booking !== false,
   };
 
+  let avatarUrl = profile.avatar_url;
+  const handle = profile.username?.toLowerCase?.() ?? "";
+  if (
+    handle &&
+    SHOWCASE_PROFILE_FOLLOWER_COUNTS[handle] != null &&
+    (!avatarUrl || avatarUrl.includes("googleusercontent"))
+  ) {
+    try {
+      const { data: owned } = await db
+        .from("communities")
+        .select("avatar_url")
+        .eq("slug", handle)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (owned?.avatar_url) avatarUrl = owned.avatar_url as string;
+    } catch {
+      /* keep profile avatar */
+    }
+  }
+
   const profileCore: IdentityProfileCore = {
     userId: profile.id,
     username: profile.username,
     fullName: profile.full_name,
-    avatarUrl: profile.avatar_url,
+    avatarUrl,
     bio: profile.bio,
     website: profile.website,
     city: profile.city,
@@ -386,7 +429,10 @@ async function buildProfilePayload(
     reviewCount: Number(identity.review_count ?? 0),
   };
 
-  const jimvioFollowers = await countJimvioFollowers(db, profile.id);
+  const [jimvioFollowers, jimvioFollowing] = await Promise.all([
+    countJimvioFollowers(db, profile.id, profile.username),
+    countJimvioFollowing(db, profile.id),
+  ]);
 
   const canBook =
     !isSelf && Boolean(viewerId) && identity.availability !== "unavailable" && contactPreferences.booking;
@@ -406,6 +452,7 @@ async function buildProfilePayload(
       stats: null,
       reviews: [],
       jimvioFollowers,
+      jimvioFollowing,
       isOwner: isSelf,
       canBook: false,
       restricted: true,
@@ -486,6 +533,7 @@ async function buildProfilePayload(
     stats: toStatsSnapshot(creatorStats),
     reviews,
     jimvioFollowers,
+    jimvioFollowing,
     isOwner: isSelf,
     canBook,
     restricted: false,
