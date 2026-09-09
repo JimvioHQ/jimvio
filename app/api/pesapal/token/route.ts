@@ -1,23 +1,16 @@
-import { NextResponse } from 'next/server';
-import { getPesapalToken } from '@/lib/pesapal';
+import { NextResponse } from "next/server";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
- * AUTH TOKEN API
- * Endpoint: /api/pesapal/token
- * Method: POST
- * Fetches an access token from PesaPal for use in subsequent requests.
+ * SECURITY: This endpoint previously returned a live PesaPal access token
+ * to unauthenticated callers. It is permanently disabled.
+ * Server-side code must call getPesapalToken() directly — never via HTTP.
  */
 export async function POST() {
-  try {
-    const token = await getPesapalToken();
-    return NextResponse.json({ token });
-  } catch (error) {
-    console.error('[PesaPal Token API]', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch token' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
+}
+
+export async function GET() {
+  return NextResponse.json({ error: "Not found" }, { status: 404 });
 }

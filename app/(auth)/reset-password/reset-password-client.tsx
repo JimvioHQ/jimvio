@@ -178,7 +178,7 @@ export function ResetPasswordClient() {
             placeholder="••••••••"
             autoComplete="new-password"
             required
-            minLength={8}
+            minLength={12}
             className="pr-10"
           />
           <button
@@ -197,7 +197,7 @@ export function ResetPasswordClient() {
             placeholder="••••••••"
             autoComplete="new-password"
             required
-            minLength={8}
+            minLength={12}
             className="pr-10"
           />
           <button

@@ -22,6 +22,7 @@ export function IdentityAccountClient({
   language: string;
 }) {
   const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [prefLanguage, setPrefLanguage] = useState(language || "en");
   const [pending, startTransition] = useTransition();
 
@@ -53,17 +54,29 @@ export function IdentityAccountClient({
               placeholder="new@email.com"
             />
           </label>
+          <label className="block text-[12px] font-medium text-[#726D64]">
+            Current password (required if you sign in with email/password)
+            <input
+              className="mt-1.5 h-11 w-full rounded-xl border border-black/[0.08] px-3.5 text-[14px] outline-none focus:border-[#FF5A1F]/50"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </label>
           <IdentityButton
             loading={pending}
             onClick={() => {
               startTransition(async () => {
-                const result = await requestEmailChange(newEmail);
+                const result = await requestEmailChange(newEmail, currentPassword || undefined);
                 if (!result.success) {
                   toast.error(result.error || "Could not request email change");
                   return;
                 }
                 toast.success(result.data?.message || "Check your inbox to confirm the email change");
                 setNewEmail("");
+                setCurrentPassword("");
               });
             }}
           >

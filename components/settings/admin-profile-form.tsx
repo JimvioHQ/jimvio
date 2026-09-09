@@ -19,6 +19,7 @@ import { requestEmailChange } from "@/lib/actions/account-settings";
 export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
     const [profile, setProfile] = useState(initial);
     const [newEmail, setNewEmail] = useState("");
+    const [emailChangePassword, setEmailChangePassword] = useState("");
     const [dirty, setDirty] = useState(false);
     const [pending, startTransition] = useTransition();
     const [toast, setToast] = useState<ToastMsg | null>(null);
@@ -55,7 +56,7 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
 
     function handleEmailChange() {
         startTransition(async () => {
-            const result = await requestEmailChange(newEmail);
+            const result = await requestEmailChange(newEmail, emailChangePassword || undefined);
             if (!result.success) {
                 setToast({ msg: result.error, type: "err" });
                 return;
@@ -65,6 +66,7 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
                 type: "ok",
             });
             setNewEmail("");
+            setEmailChangePassword("");
         });
     }
 
@@ -225,18 +227,26 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
                                 type="email"
                             />
                         </Field>
-                        <div className="flex items-end">
-                            <button
-                                type="button"
-                                onClick={handleEmailChange}
-                                disabled={pending || !newEmail.trim()}
-                                className="h-9 px-4 rounded-sm text-[13px] font-semibold text-white"
-                                style={{ background: "var(--color-accent)" }}
-                            >
-                                Send confirmation
-                            </button>
-                        </div>
+                        <Field label="Current password">
+                            <TextInput
+                                value={emailChangePassword}
+                                onChange={setEmailChangePassword}
+                                placeholder="Required for password accounts"
+                                type="password"
+                            />
+                        </Field>
                     </Grid>
+                    <div className="mt-3 flex items-end">
+                        <button
+                            type="button"
+                            onClick={handleEmailChange}
+                            disabled={pending || !newEmail.trim()}
+                            className="h-9 px-4 rounded-sm text-[13px] font-semibold text-white"
+                            style={{ background: "var(--color-accent)" }}
+                        >
+                            Send confirmation
+                        </button>
+                    </div>
                 </section>
 
                 <div className="h-20" />

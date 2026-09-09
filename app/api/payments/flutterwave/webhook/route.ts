@@ -373,8 +373,10 @@ export async function POST(req: NextRequest) {
       console.info("[Flutterwave webhook] ✓ Secondary verify passed", { txId });
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
-        // Timeout — Flutterwave API slow; proceed cautiously but log clearly
-        console.warn("[Flutterwave webhook] Verify timed out after 8s — proceeding without verify");
+        // Fail closed: do not finalize without secondary verify. Ask Flutterwave to retry.
+        console.warn("[Flutterwave webhook] Verify timed out after 8s — returning 500 for retry");
+        if (eventId) await markWebhookFailed(supabase, eventId, "Secondary verify timeout");
+        return NextResponse.json({ error: "Verification timeout" }, { status: 500 });
       } else {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("[Flutterwave webhook] ✗ Verify API error — aborting", { msg, txId });

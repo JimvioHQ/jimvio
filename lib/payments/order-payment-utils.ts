@@ -321,15 +321,21 @@ export function computeOrderEconomicsBreakdown(params: {
   };
 }
 
+/**
+ * Symmetric amount check. Default tolerance is $0.05 (not $1) to prevent
+ * underpayment finalization while allowing minor FX/rounding drift.
+ */
 export function paymentAmountsMatch(
   receivedAmount: number,
   receivedCurrency: string,
   expectedAmount: number,
   expectedCurrency: string,
-  tolerance = 1
+  tolerance = 0.05
 ): boolean {
   if (receivedCurrency.toUpperCase() !== expectedCurrency.toUpperCase()) return false;
-  return receivedAmount + tolerance >= expectedAmount;
+  if (!Number.isFinite(receivedAmount) || !Number.isFinite(expectedAmount)) return false;
+  if (receivedAmount <= 0 || expectedAmount <= 0) return false;
+  return Math.abs(receivedAmount - expectedAmount) <= tolerance;
 }
 
 function round2(n: number): number {

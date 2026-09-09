@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { resendSignUpConfirmation, signUp } from "@/lib/auth/actions";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
 import { GoogleAuthButton } from "@/components/auth/google-button";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_HINT } from "@/lib/auth/password-rules";
 
 export function RegisterForm() {
   const searchParams = useSearchParams();
@@ -19,18 +21,27 @@ export function RegisterForm() {
   const [success, setSuccess] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA challenge.");
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     if (next) fd.set("next", next);
+    fd.set("captchaToken", captchaToken);
     const email = String(fd.get("email") ?? "");
     startTransition(async () => {
       try {
         const res = await signUp(fd);
-        if (res?.error) setError(res.error);
+        if (res?.error) {
+          setError(res.error);
+          setCaptchaToken(null);
+        }
         if (res?.success) {
           setSubmittedEmail(email);
           setSuccess(res.success);
@@ -38,6 +49,7 @@ export function RegisterForm() {
       } catch (err: unknown) {
         if (isNextRedirectError(err)) throw err;
         setError("Something went wrong. Please try again.");
+        setCaptchaToken(null);
       }
     });
   }
@@ -152,10 +164,10 @@ export function RegisterForm() {
                 id="password"
                 type={showPw ? "text" : "password"}
                 name="password"
-                placeholder="8+ characters, letter and number"
+                placeholder={PASSWORD_REQUIREMENTS_HINT}
                 className="pl-11 pr-11 h-12 rounded-sm border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
                 required
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 autoComplete="new-password"
                 disabled={pending}
               />
@@ -170,10 +182,12 @@ export function RegisterForm() {
             </div>
           </div>
 
+          <TurnstileWidget onToken={setCaptchaToken} className="flex justify-center" />
+
           <Button
             type="submit"
             className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-6"
-            disabled={pending}
+            disabled={pending || !captchaToken}
           >
             {pending ? "Creating account…" : "Create account"}
           </Button>

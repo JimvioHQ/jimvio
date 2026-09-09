@@ -7,19 +7,29 @@ import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/lib/auth/actions";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 
 export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA challenge.");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
+    formData.set("captchaToken", captchaToken);
     startTransition(async () => {
       const result = await resetPassword(formData);
-      if (result?.error) setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setCaptchaToken(null);
+      }
       if (result?.success) setSuccess(result.success);
     });
   }
@@ -70,10 +80,11 @@ export function ForgotPasswordForm() {
             {error}
           </div>
         )}
+        <TurnstileWidget onToken={setCaptchaToken} className="flex justify-center" />
         <Button
           type="submit"
           className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none"
-          disabled={isPending}
+          disabled={isPending || !captchaToken}
         >
           {isPending ? "Sending…" : "Send reset link"}
         </Button>

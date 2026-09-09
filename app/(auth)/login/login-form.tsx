@@ -11,6 +11,7 @@ import { formatAuthQueryStatus, formatLoginQueryError } from "@/lib/auth/sign-in
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import { GoogleAuthButton } from "@/components/auth/google-button";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 
 export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boolean }) {
   const searchParams = useSearchParams();
@@ -26,6 +27,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -36,17 +38,24 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA challenge.");
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     if (next) fd.set("next", next);
+    fd.set("captchaToken", captchaToken);
     startTransition(async () => {
       try {
         const result = await signIn(fd);
         if (result && typeof result === "object" && "error" in result && result.error) {
           setError(String(result.error));
+          setCaptchaToken(null);
         }
       } catch (err: unknown) {
         if (isNextRedirectError(err)) throw err;
         setError("Something went wrong. Please try again.");
+        setCaptchaToken(null);
       }
     });
   }
@@ -154,10 +163,12 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
             </Field>
           </div>
 
+          <TurnstileWidget onToken={setCaptchaToken} className="flex justify-center" />
+
           <Button
             type="submit"
             className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-2"
-            disabled={pending}
+            disabled={pending || !captchaToken}
           >
             {pending ? "Signing in…" : "Sign in"}
           </Button>

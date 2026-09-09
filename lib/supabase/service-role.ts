@@ -8,6 +8,8 @@ export { getSupabasePublishableKey, getSupabaseUrl };
 
 /** Secret key for server admin / cron / webhooks (bypasses RLS). */
 export function getSupabaseSecretKey(): string {
+  // Runtime guard: this module is transitively imported by some client paths
+  // (e.g. post-login-redirect helpers). Do not use import "server-only" here.
   if (typeof window !== "undefined") {
     throw new Error("getSupabaseSecretKey is server-only");
   }
@@ -32,6 +34,9 @@ export function hasSupabaseSecretKey(): boolean {
 
 /** Server-only client that bypasses RLS. Use only after authorizing the user in application code. */
 export function createServiceRoleClient() {
+  if (typeof window !== "undefined") {
+    throw new Error("createServiceRoleClient is server-only");
+  }
   return createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
   });

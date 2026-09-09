@@ -21,6 +21,7 @@ import {
   cookieMatchesUser,
   isTwoFaChallengePath,
   twoFaPendingCookieOptions,
+  verifiedTwoFaMatchesUser,
 } from "@/lib/auth/two-fa-session";
 import {
   PASSWORD_RECOVERY_COOKIE,
@@ -161,16 +162,33 @@ export async function updateSession(request: NextRequest) {
       const user = await resolveUser();
 
       if (user && hasSupabaseSecretKey()) {
+        // Authoritative gate: profiles.is_active (DB). user_metadata.account_status is
+        // client-editable and must NOT be trusted alone.
+        const { data: accessProfile } = await supabase
+          .from("profiles")
+          .select("is_active, email")
+          .eq("id", user.id)
+          .maybeSingle();
         const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
         const accountStatus = meta.account_status as string | undefined;
 
-        if (isAccountAccessBlocked(accountStatus, user.email, undefined)) {
+        if (
+          isAccountAccessBlocked(
+            accountStatus,
+            accessProfile?.email ?? user.email,
+            accessProfile?.is_active,
+          )
+        ) {
           await supabase.auth.signOut();
           const url = request.nextUrl.clone();
           url.pathname = "/login";
           url.searchParams.set(
             "error",
-            accountStatus === "deleted" ? "account_deleted" : "account_suspended",
+            accountStatus === "deleted" || accessProfile?.is_active === false
+              ? accountStatus === "deleted"
+                ? "account_deleted"
+                : "account_suspended"
+              : "account_suspended",
           );
           url.searchParams.set("redirect", request.nextUrl.pathname);
           return NextResponse.redirect(url);
@@ -214,7 +232,7 @@ export async function updateSession(request: NextRequest) {
         (isProtected || isGuestAuth) &&
         !onTwoFa &&
         !skipTwoFaForRecovery &&
-        !cookieMatchesUser(verified, user.id)
+        !verifiedTwoFaMatchesUser(verified, user.id)
       ) {
         const { data: profile2fa } = await supabase
           .from("profiles")

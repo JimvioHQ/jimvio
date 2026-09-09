@@ -34,7 +34,11 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackMemoryOptimizations: true,
     serverActions: {
-      allowedOrigins: ["*"],
+      allowedOrigins: [
+        "www.jimvio.com",
+        "jimvio.com",
+        "localhost:3000",
+      ],
     },
   },
 
@@ -86,6 +90,14 @@ const nextConfig: NextConfig = {
           {
             key: "X-Frame-Options",
             value: "SAMEORIGIN",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
           {
             key: "Content-Security-Policy",

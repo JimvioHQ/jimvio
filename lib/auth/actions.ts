@@ -50,10 +50,27 @@ import {
   TWO_FA_PENDING_COOKIE,
   TWO_FA_VERIFIED_COOKIE,
   cookieMatchesUser,
+  createTwoFaVerifiedToken,
   twoFaPendingCookieOptions,
   twoFaVerifiedCookieOptions,
 } from "@/lib/auth/two-fa-session"
 import type { UserIdentity } from "@supabase/supabase-js"
+
+function captchaTokenFromForm(formData: FormData): string | undefined {
+  const token = String(formData.get("captchaToken") ?? "").trim()
+  return token || undefined
+}
+
+function setTwoFaVerifiedCookie(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  userId: string,
+) {
+  cookieStore.set(
+    TWO_FA_VERIFIED_COOKIE,
+    createTwoFaVerifiedToken(userId),
+    twoFaVerifiedCookieOptions(),
+  )
+}
 
 // ─────────────────────────────────────────────
 // Constants
@@ -206,6 +223,7 @@ export async function signUp(formData: FormData) {
 
     const next = (formData.get("next") as string)?.trim()
     const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), next || "/verify")
+    const captchaToken = captchaTokenFromForm(formData)
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -213,6 +231,7 @@ export async function signUp(formData: FormData) {
       options: {
         data: { full_name: fullName },
         emailRedirectTo: callbackUrl,
+        ...(captchaToken ? { captchaToken } : {}),
       },
     })
 
@@ -258,10 +277,14 @@ export async function resendSignUpConfirmation(formData: FormData) {
 
     const supabase = await createClient()
     const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), "/verify")
+    const captchaToken = captchaTokenFromForm(formData)
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: callbackUrl },
+      options: {
+        emailRedirectTo: callbackUrl,
+        ...(captchaToken ? { captchaToken } : {}),
+      },
     })
     if (error && isRateLimitAuthError(error)) {
       return { error: "Too many attempts. Please wait a moment and try again." }
@@ -304,8 +327,13 @@ export async function signIn(formData: FormData) {
 
   try {
     const supabase = await createClient()
+    const captchaToken = captchaTokenFromForm(formData)
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    })
     if (error) return { error: await messageForFailedPasswordSignIn(email, error) }
     if (!data.user) return { error: "Sign in failed. Please try again." }
 
@@ -453,7 +481,7 @@ export async function verify2FAAndLogin(formData: FormData) {
     }
 
     cookieStore.delete(TWO_FA_PENDING_COOKIE)
-    cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
+    setTwoFaVerifiedCookie(cookieStore, pendingUserId)
     const allowed = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
     if (!allowed) {
       await supabase.auth.signOut()
@@ -496,7 +524,7 @@ export async function verify2FAAndLogin(formData: FormData) {
 
     clearFailedAttempts(pendingUserId)
     cookieStore.delete(TWO_FA_PENDING_COOKIE)
-    cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
+    setTwoFaVerifiedCookie(cookieStore, pendingUserId)
     const allowedBackup = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
     if (!allowedBackup) {
       await supabase.auth.signOut()
@@ -518,7 +546,7 @@ export async function verify2FAAndLogin(formData: FormData) {
 
   clearFailedAttempts(pendingUserId)
   cookieStore.delete(TWO_FA_PENDING_COOKIE)
-  cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
+  setTwoFaVerifiedCookie(cookieStore, pendingUserId)
   const allowedTotp = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
   if (!allowedTotp) {
     await supabase.auth.signOut()
@@ -597,8 +625,12 @@ export async function resetPassword(formData: FormData) {
 
     const supabase = await createClient()
     const redirectTo = buildAuthCallbackUrl(await getPublicAppUrl(), "/reset-password")
+    const captchaToken = captchaTokenFromForm(formData)
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+      ...(captchaToken ? { captchaToken } : {}),
+    })
     if (error && isRateLimitAuthError(error)) {
       return { error: "Too many attempts. Please wait a moment and try again." }
     }

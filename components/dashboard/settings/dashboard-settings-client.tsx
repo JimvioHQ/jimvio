@@ -233,6 +233,7 @@ export default function DashboardSettingsClient() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  const [emailChangePassword, setEmailChangePassword] = useState("");
   const [authMethods, setAuthMethods] = useState<AuthMethods | null>(null);
   const [preferredCurrency, setPreferredCurrency] = useState("USD");
   const [activeRoles, setActiveRoles] = useState<string[]>([]);
@@ -432,7 +433,7 @@ export default function DashboardSettingsClient() {
 
   function handleEmailChange() {
     startTransition(async () => {
-      const r = await requestEmailChange(newEmail);
+      const r = await requestEmailChange(newEmail, emailChangePassword || undefined);
       if (!r.success) showToast(r.error, "err");
       else {
         showToast(
@@ -440,6 +441,7 @@ export default function DashboardSettingsClient() {
           "ok"
         );
         setNewEmail("");
+        setEmailChangePassword("");
       }
     });
   }
@@ -807,14 +809,23 @@ export default function DashboardSettingsClient() {
                   placeholder="new@email.com"
                 />
               </Field>
-              <div className="flex items-end">
-                <BrandBtn onClick={handleEmailChange} disabled={isPending || !newEmail.trim()}>
-                  Send confirmation
-                </BrandBtn>
-              </div>
+              <Field label="Current password">
+                <FieldInput
+                  type="password"
+                  autoComplete="current-password"
+                  value={emailChangePassword}
+                  onChange={(e) => setEmailChangePassword(e.target.value)}
+                  placeholder="Required for password accounts"
+                />
+              </Field>
             </Grid>
+            <div className="flex items-end">
+              <BrandBtn onClick={handleEmailChange} disabled={isPending || !newEmail.trim()}>
+                Send confirmation
+              </BrandBtn>
+            </div>
             <p className="text-[11px] text-[var(--color-text-muted)]">
-              We&apos;ll email a confirmation link to the new address before it takes effect.
+              Password accounts must confirm with the current password. OAuth-only accounts confirm via email.
             </p>
             {authMethods?.pendingEmail ? (
               <p className="text-[12px] text-amber-600">

@@ -14,7 +14,10 @@ export type VendorPolicies = {
   return_policy: string;
 };
 
-export async function requestEmailChange(newEmail: string): Promise<ActionResult<{ message: string }>> {
+export async function requestEmailChange(
+  newEmail: string,
+  currentPassword?: string,
+): Promise<ActionResult<{ message: string }>> {
   const email = normalizeSignInEmail(newEmail);
   if (!isValidAuthEmail(email)) {
     return { success: false, error: "Enter a valid email address." };
@@ -28,6 +31,27 @@ export async function requestEmailChange(newEmail: string): Promise<ActionResult
 
   if (email === (user.email ?? "").toLowerCase()) {
     return { success: false, error: "That is already your email address." };
+  }
+
+  const providers = (user.identities ?? []).map((identity) => identity.provider);
+  const hasPassword = providers.includes("email");
+
+  // Password users must re-authenticate before email change (stolen-session defense).
+  // OAuth-only users rely on Supabase secure email-change confirmation emails.
+  if (hasPassword) {
+    if (!currentPassword?.trim()) {
+      return { success: false, error: "Current password is required to change email." };
+    }
+    if (!user.email) {
+      return { success: false, error: "Account email required to change email." };
+    }
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (verifyErr) {
+      return { success: false, error: "Current password is incorrect." };
+    }
   }
 
   const { error } = await supabase.auth.updateUser(

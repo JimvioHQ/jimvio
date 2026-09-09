@@ -31,14 +31,15 @@ export function verifyTOTP(secret: string, token: string): boolean {
 }
 
 export function generateBackupCodes(count: number = 8): string[] {
-    const codes: string[] = []
-    for (let i = 0; i < count; i++) {
-        const code = Array.from({ length: 8 }, () =>
-            Math.random().toString(36).charAt(2).toUpperCase()
-        ).join('')
-        codes.push(`${code.slice(0, 4)}-${code.slice(4)}`)
-    }
-    return codes
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const codes: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    const code = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+    codes.push(`${code.slice(0, 4)}-${code.slice(4)}`);
+  }
+  return codes;
 }
 
 export function generateTOTPCode(secret: string): string {

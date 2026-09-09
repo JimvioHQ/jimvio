@@ -366,7 +366,10 @@ export const verifyAfriPay: ProviderVerifier = async (headers, rawBody) => {
     return { ok: false, reason: "Missing transactionId", status: 400 };
   }
 
-  const rawStatus = (body.status || "").toLowerCase();
+  // Fail closed: confirm with AfriPay API before marking paid.
+  const { checkAfriPayStatus } = await import("@/lib/payments/afripay");
+  const verified = await checkAfriPayStatus(transactionId);
+  const rawStatus = (verified.status || "").toLowerCase();
   let status: PaymentEventStatus = "pending";
   if (rawStatus === "success" || rawStatus === "completed" || rawStatus === "paid") {
     status = "paid";
@@ -380,7 +383,7 @@ export const verifyAfriPay: ProviderVerifier = async (headers, rawBody) => {
       provider: "afripay",
       providerTransactionId: transactionId,
       jimvioOrderId: null, // resolved by DB lookup on payment_external_reference
-      idempotencyKey: `afripay-${transactionId}`,
+      idempotencyKey: `afripay-${transactionId}-${status}`,
       status,
       rawBody,
     },
@@ -408,20 +411,25 @@ export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
       ? ((body.data as Record<string, unknown>).depositId as string)
       : null);
 
-  const rawStatus =
-    (typeof body.status === "string" ? body.status : "") ||
-    (typeof (body.data as Record<string, unknown>)?.status === "string"
-      ? ((body.data as Record<string, unknown>).status as string)
-      : "");
-
   if (!depositId) {
-    return { ok: true, event: { provider: "pawapay", providerTransactionId: "unknown", idempotencyKey: `pawapay-noop-${Date.now()}`, status: "ignored", rawBody } };
+    return {
+      ok: true,
+      event: {
+        provider: "pawapay",
+        providerTransactionId: "unknown",
+        idempotencyKey: `pawapay-noop-${Date.now()}`,
+        status: "ignored",
+        rawBody,
+      },
+    };
   }
 
-  const upperStatus = rawStatus.toUpperCase();
-  let status: PaymentEventStatus = "pending";
-  if (upperStatus === "COMPLETED") status = "paid";
-  else if (upperStatus === "FAILED") status = "failed";
+  // Fail closed: never trust callback body status alone.
+  const { confirmPawaPayDepositCompleted } = await import(
+    "@/lib/payments/confirm-pawapay-deposit"
+  );
+  const completed = await confirmPawaPayDepositCompleted(depositId);
+  const status: PaymentEventStatus = completed ? "paid" : "pending";
 
   return {
     ok: true,
@@ -429,7 +437,7 @@ export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
       provider: "pawapay",
       providerTransactionId: depositId,
       jimvioOrderId: null, // resolved by DB lookup on pawapay_deposit_id in resolveOrderId
-      idempotencyKey: `pawapay-${depositId}`,
+      idempotencyKey: `pawapay-${depositId}-${status}`,
       status,
       rawBody,
     },

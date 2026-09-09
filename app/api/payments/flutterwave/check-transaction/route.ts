@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction, FlutterwaveError, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { paymentAmountsMatch } from "@/lib/payments/order-payment-utils";
 import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 
 const supabase = createClient(
     getSupabaseUrl(),
@@ -38,6 +40,8 @@ export async function POST(req: NextRequest) {
             id: string;
             payment_status: string;
             buyer_id: string;
+            total_amount: number | null;
+            currency: string | null;
             flutterwave_tx_ref: string | null;
             flutterwave_transaction_id: string | null;
         } | null = null;
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
         if (orderId) {
             const { data } = await supabase
                 .from("orders")
-                .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
+                .select("id, payment_status, buyer_id, total_amount, currency, flutterwave_tx_ref, flutterwave_transaction_id")
                 .eq("id", orderId)
                 .eq("buyer_id", session.user.id)
                 .single();
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
         } else if (txRef) {
             const { data } = await supabase
                 .from("orders")
-                .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
+                .select("id, payment_status, buyer_id, total_amount, currency, flutterwave_tx_ref, flutterwave_transaction_id")
                 .eq("flutterwave_tx_ref", txRef)
                 .eq("buyer_id", session.user.id)
                 .single();
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
         } else if (transactionId) {
             const { data } = await supabase
                 .from("orders")
-                .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
+                .select("id, payment_status, buyer_id, total_amount, currency, flutterwave_tx_ref, flutterwave_transaction_id")
                 .eq("flutterwave_transaction_id", String(transactionId))
                 .eq("buyer_id", session.user.id)
                 .single();
@@ -125,6 +129,20 @@ export async function POST(req: NextRequest) {
         const expectedRef = order.flutterwave_tx_ref;
         if (expectedRef && verifiedRef && verifiedRef !== expectedRef) {
             return NextResponse.json({ error: "Transaction does not match this order" }, { status: 409 });
+        }
+
+        const expectedAmount = Number(order.total_amount ?? 0);
+        const expectedCurrency = (order.currency || PLATFORM_CURRENCY).toUpperCase();
+        const receivedAmount = Number(verified.amount ?? 0);
+        const receivedCurrency = String(verified.currency || expectedCurrency).toUpperCase();
+        if (
+          expectedAmount > 0 &&
+          !paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency)
+        ) {
+            return NextResponse.json(
+              { error: "Payment amount does not match this order" },
+              { status: 409 },
+            );
         }
 
         await finalizeOrderPayment(supabase, order.id, {

@@ -48,7 +48,7 @@ async function getAuthenticatedUser() {
   const supabase = await createClient()
   const { data: { user }, error } = await supabase.auth.getUser()
   if (error || !user) throw new Error('Not authenticated')
-  return { user, supabase }
+  return { user, supabase, admin: createAdminClient() }
 }
 
 // ─────────────────────────────────────────────
@@ -56,7 +56,7 @@ async function getAuthenticatedUser() {
 // ─────────────────────────────────────────────
 
 export async function initiate2FASetup(): Promise<TwoFASetupData> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
   if (!user.email) {
     throw new Error('Account email required for 2FA setup')
@@ -73,7 +73,8 @@ export async function initiate2FASetup(): Promise<TwoFASetupData> {
   })
 
   // Store as pending — not active until the user verifies with a valid token
-  const { error } = await supabase
+  // Secrets are service-role only (RLS blocks authenticated clients).
+  const { error } = await admin
     .from('user_2fa_secrets')
     .upsert(
       {
@@ -89,7 +90,7 @@ export async function initiate2FASetup(): Promise<TwoFASetupData> {
   if (error) {
     // Fallback if `secret` column is still NOT NULL
     if (error.message.includes('not-null constraint')) {
-      const { error: fallbackError } = await supabase
+      const { error: fallbackError } = await admin
         .from('user_2fa_secrets')
         .upsert(
           {
@@ -124,9 +125,9 @@ export async function initiate2FASetup(): Promise<TwoFASetupData> {
 // ─────────────────────────────────────────────
 
 export async function verify2FASetup(token: string): Promise<ActionResult> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
-  const { data, error: fetchError } = await supabase
+  const { data, error: fetchError } = await admin
     .from('user_2fa_secrets')
     .select('pending_secret, pending_backup_codes, pending_expires_at')
     .eq('user_id', user.id)
@@ -137,7 +138,7 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
   }
 
   if (data.pending_expires_at && new Date(data.pending_expires_at) < new Date()) {
-    await supabase
+    await admin
       .from('user_2fa_secrets')
       .update({
         pending_secret: null,
@@ -153,7 +154,7 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
     return { success: false, error: 'Invalid verification code. Please try again.' }
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await admin
     .from('user_2fa_secrets')
     .update({
       secret: data.pending_secret,
@@ -167,13 +168,13 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
 
   if (updateError) return { success: false, error: `Failed to activate 2FA: ${updateError.message}` }
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await admin
     .from('profiles')
     .update({ two_factor_enabled: true, updated_at: new Date().toISOString() })
     .eq('id', user.id)
 
   if (profileError) {
-    await supabase
+    await admin
       .from('user_2fa_secrets')
       .update({ secret: null, backup_codes: null })
       .eq('user_id', user.id)
@@ -188,9 +189,9 @@ export async function verify2FASetup(token: string): Promise<ActionResult> {
 // ─────────────────────────────────────────────
 
 export async function disable2FA(token: string): Promise<ActionResult> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('user_2fa_secrets')
     .select('secret')
     .eq('user_id', user.id)
@@ -199,14 +200,14 @@ export async function disable2FA(token: string): Promise<ActionResult> {
   if (!data?.secret) return { success: false, error: '2FA is not enabled.' }
   if (!verifyTOTP(data.secret, token)) return { success: false, error: 'Invalid verification code.' }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await admin
     .from('user_2fa_secrets')
     .delete()
     .eq('user_id', user.id)
 
   if (deleteError) return { success: false, error: `Failed to disable 2FA: ${deleteError.message}` }
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await admin
     .from('profiles')
     .update({ two_factor_enabled: false, updated_at: new Date().toISOString() })
     .eq('id', user.id)
@@ -224,9 +225,9 @@ export async function check2FAStatus(): Promise<{
   enabled: boolean
   backupCodesRemaining?: number
 }> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('user_2fa_secrets')
     .select('secret, backup_codes')
     .eq('user_id', user.id)
@@ -242,9 +243,9 @@ export async function check2FAStatus(): Promise<{
 // ─────────────────────────────────────────────
 
 export async function verify2FALogin(token: string): Promise<ActionResult> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('user_2fa_secrets')
     .select('secret, backup_codes')
     .eq('user_id', user.id)
@@ -262,7 +263,7 @@ export async function verify2FALogin(token: string): Promise<ActionResult> {
     const remaining = [...codes]
     remaining.splice(codeIndex, 1)
 
-    const { error, count } = await supabase
+    const { error, count } = await admin
       .from('user_2fa_secrets')
       .update(
         { backup_codes: remaining, updated_at: new Date().toISOString() },
@@ -288,9 +289,9 @@ export async function verify2FALogin(token: string): Promise<ActionResult> {
 export async function regenerateBackupCodes(
   token: string
 ): Promise<ActionResult<{ backupCodes: string[] }>> {
-  const { user, supabase } = await getAuthenticatedUser()
+  const { user, admin } = await getAuthenticatedUser()
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('user_2fa_secrets')
     .select('secret')
     .eq('user_id', user.id)
@@ -301,7 +302,7 @@ export async function regenerateBackupCodes(
 
   const newBackupCodes = generateBackupCodes(8)
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('user_2fa_secrets')
     .update({ backup_codes: newBackupCodes, updated_at: new Date().toISOString() })
     .eq('user_id', user.id)
