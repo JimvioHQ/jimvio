@@ -212,12 +212,19 @@ export function FeedPostCard({
   const [loadError, setLoadError] = useState(false);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
+  const cursorRef = useRef<string | null>(initialNextCursor);
 
   const filter = FEED_TAB_FILTERS[tab];
   const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean }) => {
     const isMore = Boolean(nextCursor);
-    if (isMore) setLoadingMore(true);
-    else if (!opts?.soft) setLoading(true);
+    if (isMore) {
+      if (loadingMoreRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+    } else if (!opts?.soft) {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams({ limit: "20", filter });
       if (nextCursor) params.set("cursor", nextCursor);
@@ -227,6 +234,7 @@ export function FeedPostCard({
           setPosts([]);
           setUsingMock(false);
           setHasMore(false);
+          cursorRef.current = null;
           setCursor(null);
           setLoadError(true);
         }
@@ -254,8 +262,10 @@ export function FeedPostCard({
         const seen = new Set(prev.map((p) => p.id));
         return [...prev, ...mapped.filter((p) => !seen.has(p.id))];
       });
-      setHasMore(Boolean(data.next_cursor));
-      setCursor(data.next_cursor ?? null);
+      const next = (data.next_cursor as string | null | undefined) ?? null;
+      cursorRef.current = next;
+      setHasMore(Boolean(next));
+      setCursor(next);
     } catch {
       if (!isMore && !opts?.soft) {
         setPosts([]);
@@ -265,6 +275,7 @@ export function FeedPostCard({
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
   }, [filter]);
 
@@ -282,15 +293,17 @@ export function FeedPostCard({
     if (!el || !hasMore || usingMock) return;
     const obs = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting && cursor && !loadingMore) {
-          void load(cursor);
-        }
+        if (!entries[0]?.isIntersecting) return;
+        const next = cursorRef.current;
+        if (!next || loadingMoreRef.current) return;
+        void load(next);
       },
-      { rootMargin: "240px" }
+      // Prefetch earlier so mobile never hits a hard empty bottom mid-scroll.
+      { rootMargin: "480px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [hasMore, cursor, loadingMore, usingMock, load]);
+  }, [hasMore, usingMock, load]);
 
   async function toggleLike(postId: string) {
     const next =
@@ -594,11 +607,14 @@ export function FeedPostCard({
           </div>
         </article>
       ))}
-      <div ref={sentinelRef} className="h-4" />
+      <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
       {loadingMore && (
-        <div className="flex justify-center py-4 text-gray-400">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="flex justify-center py-5 text-gray-400">
+          <Loader2 className="h-5 w-5 animate-spin" aria-label="Loading more posts" />
         </div>
+      )}
+      {!loading && !loadingMore && !hasMore && posts.length > 0 && (
+        <p className="py-6 text-center text-[12px] text-gray-400">You’re all caught up</p>
       )}
     </div>
     {commentPostId ? (
