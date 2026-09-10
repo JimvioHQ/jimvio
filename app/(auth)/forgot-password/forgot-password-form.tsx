@@ -2,24 +2,26 @@
 
 import React, { useState, useTransition } from "react";
 import Link from "next/link";
-import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/lib/auth/actions";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import { TurnstileWidget } from "@/components/auth/turnstile-widget";
+import { AuthAlert } from "@/components/auth/auth-alert";
 
 export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     if (!captchaToken) {
-      setError("Please complete the CAPTCHA challenge.");
+      setError("Please complete the security check.");
       return;
     }
     const formData = new FormData(e.currentTarget);
@@ -29,6 +31,7 @@ export function ForgotPasswordForm() {
       if (result?.error) {
         setError(result.error);
         setCaptchaToken(null);
+        setCaptchaReset((n) => n + 1);
       }
       if (result?.success) setSuccess(result.success);
     });
@@ -36,17 +39,19 @@ export function ForgotPasswordForm() {
 
   if (success) {
     return (
-      <div className="w-full text-center animate-fade-in">
-        <div className="w-16 h-16 rounded-sm bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
-          <CheckCircle className="h-8 w-8 text-green-500" />
+      <div className="w-full text-center">
+        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 ring-4 ring-emerald-50 dark:bg-emerald-500/10 dark:ring-emerald-500/10">
+          <CheckCircle className="h-7 w-7 text-emerald-500" aria-hidden />
         </div>
-        <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">
+        <h1 className="mb-2 text-[1.65rem] font-black tracking-tight text-zinc-900 dark:text-white">
           Check your email
-        </h2>
-        <p className="text-[14px] font-medium text-zinc-500 mb-8 max-w-sm mx-auto">{success}</p>
+        </h1>
+        <p className="mx-auto mb-8 max-w-sm text-[14px] leading-relaxed text-zinc-500">
+          {success}
+        </p>
         <Link href="/login">
-          <Button className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none">
-            <ArrowLeft className="h-4 w-4" /> Back to sign in
+          <Button className="h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none hover:bg-zinc-800">
+            <ArrowLeft className="h-4 w-4" aria-hidden /> Back to sign in
           </Button>
         </Link>
       </div>
@@ -55,16 +60,23 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="w-full">
-      <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+      <header className="mb-8 space-y-2">
+        <h1 className="text-[1.75rem] font-black tracking-tight text-zinc-900 dark:text-white sm:text-[2rem]">
           Forgot password?
         </h1>
-        <p className="text-[14px] font-medium text-zinc-500">
+        <p className="text-[14px] leading-relaxed text-zinc-500">
           Enter your email and we&apos;ll send a reset link if an account exists.
         </p>
-      </div>
-      <form method="post" action="/forgot-password" onSubmit={handleSubmit} className="space-y-5">
-        <Field label="Email address" required icon={<Mail className="h-5 w-5" />}>
+      </header>
+
+      <form
+        method="post"
+        action="/forgot-password"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        noValidate
+      >
+        <Field label="Email" required icon={<Mail className="h-4 w-4" />}>
           <FieldInput
             name="email"
             type="email"
@@ -75,23 +87,34 @@ export function ForgotPasswordForm() {
             disabled={isPending}
           />
         </Field>
-        {error && (
-          <div role="alert" className="p-3.5 rounded-sm text-[13px] font-semibold bg-red-50 text-red-600 text-center">
-            {error}
-          </div>
-        )}
-        <TurnstileWidget onToken={setCaptchaToken} className="flex justify-center" />
+        {error && <AuthAlert tone="error">{error}</AuthAlert>}
+        <TurnstileWidget
+          onToken={setCaptchaToken}
+          resetSignal={captchaReset}
+          className="flex justify-center"
+        />
         <Button
           type="submit"
-          className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none"
+          className="h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none hover:bg-zinc-800 disabled:opacity-60"
           disabled={isPending || !captchaToken}
         >
-          {isPending ? "Sending…" : "Send reset link"}
+          {isPending ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Sending…
+            </span>
+          ) : (
+            "Send reset link"
+          )}
         </Button>
       </form>
-      <div className="mt-6 text-center">
-        <Link href="/login" className="text-sm text-zinc-500 hover:text-orange-600 flex items-center justify-center gap-2 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to sign in
+
+      <div className="mt-8 text-center">
+        <Link
+          href="/login"
+          className="inline-flex items-center justify-center gap-2 text-[13px] font-medium text-zinc-500 transition-colors hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 rounded-sm"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden /> Back to sign in
         </Link>
       </div>
     </div>

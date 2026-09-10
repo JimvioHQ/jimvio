@@ -9,7 +9,8 @@ import { beginPasswordRecovery, completePasswordReset, hasPasswordRecoverySessio
 import { createClient } from "@/lib/supabase/client";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
-import { validateNewPassword } from "@/lib/auth/password-rules";
+import { validateNewPassword, PASSWORD_MIN_LENGTH } from "@/lib/auth/password-rules";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
 
 function parseHashParams(): {
@@ -39,6 +40,7 @@ export function ResetPasswordClient() {
   const [done, setDone] = useState(false);
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [password, setPassword] = useState("");
 
   const queryError = searchParams.get("error");
   const queryErrorCode = searchParams.get("error_code");
@@ -178,18 +180,22 @@ export function ResetPasswordClient() {
             placeholder="••••••••"
             autoComplete="new-password"
             required
-            minLength={12}
+            minLength={PASSWORD_MIN_LENGTH}
             className="pr-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
           <button
             type="button"
             onClick={() => setShowPw((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1"
             aria-label={showPw ? "Hide password" : "Show password"}
+            aria-pressed={showPw}
           >
             {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </Field>
+        <PasswordRequirements password={password} />
         <Field label="Confirm password" required icon={<KeyRound className="h-4 w-4" />}>
           <FieldInput
             name="password_confirm"
@@ -197,7 +203,7 @@ export function ResetPasswordClient() {
             placeholder="••••••••"
             autoComplete="new-password"
             required
-            minLength={12}
+            minLength={PASSWORD_MIN_LENGTH}
             className="pr-10"
           />
           <button
@@ -205,6 +211,7 @@ export function ResetPasswordClient() {
             onClick={() => setShowConfirm((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1"
             aria-label={showConfirm ? "Hide password" : "Show password"}
+            aria-pressed={showConfirm}
           >
             {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>

@@ -4,6 +4,7 @@ import React, { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogle } from "@/lib/auth/actions";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
+import { Loader2 } from "lucide-react";
 
 export function GoogleAuthButton({
   next,
@@ -13,6 +14,7 @@ export function GoogleAuthButton({
   disabled?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const busy = disabled || pending;
 
   return (
     <Button
@@ -26,16 +28,35 @@ export function GoogleAuthButton({
           }
         })
       }
-      disabled={disabled || pending}
-      className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
+      disabled={busy}
+      aria-busy={pending}
+      className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white text-zinc-800 shadow-none transition-colors hover:bg-zinc-50 disabled:opacity-60 dark:border-border dark:bg-surface dark:text-zinc-200 dark:hover:bg-surface-secondary"
     >
-      <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
-        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-      </svg>
-      <span className="text-[14px]">{pending ? "Continuing…" : "Continue with Google"}</span>
+      {pending ? (
+        <Loader2 className="h-5 w-5 animate-spin text-zinc-400" aria-hidden />
+      ) : (
+        <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" aria-hidden>
+          <path
+            fill="#4285F4"
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+          />
+          <path
+            fill="#34A853"
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+          />
+          <path
+            fill="#FBBC05"
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+          />
+          <path
+            fill="#EA4335"
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+          />
+        </svg>
+      )}
+      <span className="text-[14px] font-bold">
+        {pending ? "Continuing…" : "Continue with Google"}
+      </span>
     </Button>
   );
 }

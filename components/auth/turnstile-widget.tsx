@@ -24,7 +24,8 @@ declare global {
 }
 
 const SCRIPT_ID = "cf-turnstile-api";
-const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onJimvioTurnstileLoad";
+const SCRIPT_SRC =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onJimvioTurnstileLoad";
 
 function loadTurnstileScript(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
@@ -57,6 +58,8 @@ export function getTurnstileSiteKey(): string | null {
 
 type TurnstileWidgetProps = {
   onToken: (token: string | null) => void;
+  /** Increment to force a widget reset after auth failure / expired token. */
+  resetSignal?: number;
   className?: string;
 };
 
@@ -64,7 +67,11 @@ type TurnstileWidgetProps = {
  * Cloudflare Turnstile widget. Passes the real token to the parent;
  * never reports success via a boolean bypass.
  */
-export function TurnstileWidget({ onToken, className }: TurnstileWidgetProps) {
+export function TurnstileWidget({
+  onToken,
+  resetSignal = 0,
+  className,
+}: TurnstileWidgetProps) {
   const siteKey = getTurnstileSiteKey();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -81,6 +88,10 @@ export function TurnstileWidget({ onToken, className }: TurnstileWidgetProps) {
       }
     }
   }, [onToken]);
+
+  useEffect(() => {
+    if (resetSignal > 0) reset();
+  }, [resetSignal, reset]);
 
   useEffect(() => {
     if (!siteKey || !containerRef.current) return;
@@ -137,9 +148,11 @@ export function TurnstileWidget({ onToken, className }: TurnstileWidgetProps) {
   }, [siteKey, onToken, reactId]);
 
   if (!siteKey) {
-    // Site key missing — do not invent a bypass. Auth may fail until configured.
     return (
-      <p className="text-[12px] font-medium text-amber-700 dark:text-amber-300" role="status">
+      <p
+        className="text-[12px] font-medium text-amber-700 dark:text-amber-300"
+        role="status"
+      >
         CAPTCHA is required but NEXT_PUBLIC_TURNSTILE_SITE_KEY is not configured.
       </p>
     );
@@ -155,7 +168,7 @@ export function TurnstileWidget({ onToken, className }: TurnstileWidgetProps) {
           </p>
           <button
             type="button"
-            className="text-[12px] font-semibold text-zinc-600 underline"
+            className="text-[12px] font-semibold text-zinc-600 underline underline-offset-2 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 rounded-sm"
             onClick={reset}
           >
             Retry

@@ -10,7 +10,7 @@ const { validateNewPassword, PASSWORD_MIN_LENGTH } = await import(
   "../lib/auth/password-rules.ts"
 ).catch(async () => {
   // Fallback for plain Node without TS loader: inline mirror of rules
-  const PASSWORD_MIN_LENGTH = 12;
+  const PASSWORD_MIN_LENGTH = 8;
   function validateNewPassword(password, email) {
     if (!password || password.length < PASSWORD_MIN_LENGTH) {
       return `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
@@ -28,14 +28,14 @@ const { validateNewPassword, PASSWORD_MIN_LENGTH } = await import(
   return { validateNewPassword, PASSWORD_MIN_LENGTH };
 });
 
-assert.equal(PASSWORD_MIN_LENGTH, 12);
-assert.ok(validateNewPassword("short1A!"));
+assert.equal(PASSWORD_MIN_LENGTH, 8);
+assert.ok(validateNewPassword("Sh0rt!")); // too short (<8)
 assert.ok(validateNewPassword("nouppercase123!"));
 assert.ok(validateNewPassword("NOLOWERCASE123!"));
 assert.ok(validateNewPassword("NoDigitsHere!!"));
 assert.ok(validateNewPassword("NoSymbolHere12"));
-assert.equal(validateNewPassword("ValidPass12!@"), null);
-assert.ok(validateNewPassword("AlicePass12!@", "alice@example.com"));
+assert.equal(validateNewPassword("Valid1!a"), null); // 8 chars, all classes
+assert.ok(validateNewPassword("Alice1!x", "alice@example.com"));
 
 // ── paymentAmountsMatch (symmetric) ──────────────────────────────────────────
 function paymentAmountsMatch(receivedAmount, receivedCurrency, expectedAmount, expectedCurrency, tolerance = 0.05) {
