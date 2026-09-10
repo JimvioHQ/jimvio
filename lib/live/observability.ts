@@ -38,6 +38,12 @@ export type LiveStudioEvent =
   | "tiktok_oauth_state_invalid"
   | "tiktok_oauth_token_exchange_failed"
   | "tiktok_oauth_disconnect"
+  | "youtube_oauth_start"
+  | "youtube_oauth_callback"
+  | "youtube_oauth_success"
+  | "youtube_oauth_denied"
+  | "youtube_oauth_state_invalid"
+  | "youtube_oauth_token_exchange_failed"
   | "unhandled";
 
 type Fields = Record<string, string | number | boolean | null | undefined>;

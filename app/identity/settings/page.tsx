@@ -4,6 +4,7 @@ import {
   Bell,
   ChevronRight,
   Lock,
+  Radio,
   Settings2,
   ShieldCheck,
   UserCircle,
@@ -22,7 +23,7 @@ type SettingsLink = {
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  group: "identity" | "account" | "verification" | "financial";
+  group: "identity" | "account" | "live" | "verification" | "financial";
 };
 
 async function getOwnUsername(): Promise<string | null> {
@@ -80,6 +81,13 @@ export default async function IdentitySettingsPage() {
       icon: Bell,
     },
     {
+      group: "live",
+      href: "/identity/live-destinations",
+      title: "Live Destinations",
+      description: "Connect YouTube, Twitch, TikTok, and Custom RTMP for multistream.",
+      icon: Radio,
+    },
+    {
       group: "verification",
       href: "/identity/verification",
       title: "Verification",
@@ -98,6 +106,7 @@ export default async function IdentitySettingsPage() {
   const groups: Array<{ id: SettingsLink["group"]; title: string }> = [
     { id: "identity", title: "Identity" },
     { id: "account", title: "Account" },
+    { id: "live", title: "Live" },
     { id: "verification", title: "Verification" },
     { id: "financial", title: "Financial" },
   ];

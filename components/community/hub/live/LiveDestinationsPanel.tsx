@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Loader2,
@@ -74,15 +75,96 @@ function platformIconLabel(platform: DestinationPlatform): string {
   }
 }
 
+type Theme = {
+  shell: string;
+  title: string;
+  subtitle: string;
+  warn: string;
+  error: string;
+  row: string;
+  iconMuted: string;
+  iconJimvio: string;
+  name: string;
+  meta: string;
+  badge: string;
+  message: string;
+  connectBtn: string;
+  dashedBtn: string;
+  form: string;
+  input: string;
+  cancel: string;
+  enableOn: string;
+  enableOff: string;
+  iconBtn: string;
+  focus: string;
+};
+
+const STUDIO_THEME: Theme = {
+  shell: "border border-white/10 bg-black/45 text-left backdrop-blur-md",
+  title: "text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55",
+  subtitle: "mt-0.5 text-[12px] text-white/40",
+  warn: "mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100",
+  error: "mb-3 text-[12px] text-red-300",
+  row: "flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5",
+  iconMuted: "flex h-8 w-8 items-center justify-center rounded-lg bg-white/8 text-[11px] font-bold text-white/70",
+  iconJimvio: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5A1F]/20 text-[11px] font-bold text-[#FF5A1F]",
+  name: "text-[13px] font-medium text-white",
+  meta: "text-[11px] text-white/45",
+  badge: "rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/50",
+  message: "mt-0.5 line-clamp-2 text-[11px] text-white/35",
+  connectBtn: "rounded-lg bg-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-white/15",
+  dashedBtn:
+    "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-[12px] font-medium text-white/60 hover:border-white/25 hover:text-white/80",
+  form: "space-y-2 rounded-xl border border-white/10 bg-black/30 p-3",
+  input:
+    "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-white/30",
+  cancel: "flex-1 rounded-lg px-3 py-2 text-[12px] text-white/50 hover:text-white/80",
+  enableOn: "bg-emerald-500/20 text-emerald-300",
+  enableOff: "bg-white/10 text-white/70 hover:bg-white/15",
+  iconBtn: "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/50 hover:bg-white/15 hover:text-white/80",
+  focus: FOCUS_RING_DARK,
+};
+
+const SETTINGS_THEME: Theme = {
+  shell: "border border-[#E8E4DC] bg-white text-left shadow-sm",
+  title: "text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]",
+  subtitle: "mt-0.5 text-[12px] text-[#8B8579]",
+  warn: "mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900",
+  error: "mb-3 text-[12px] text-red-600",
+  row: "flex items-center gap-3 rounded-xl border border-[#EFEBE3] bg-[#FBF9F6] px-3 py-2.5",
+  iconMuted: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0EBE3] text-[11px] font-bold text-[#6B655C]",
+  iconJimvio: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF1EA] text-[11px] font-bold text-[#D6480F]",
+  name: "text-[13px] font-medium text-[#1C1B19]",
+  meta: "text-[11px] text-[#8B8579]",
+  badge: "rounded-md bg-[#F0EBE3] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#8B8579]",
+  message: "mt-0.5 line-clamp-2 text-[11px] text-[#8B8579]",
+  connectBtn:
+    "rounded-lg bg-[#1C1B19] px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-[#2c2a26]",
+  dashedBtn:
+    "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#D9D3C8] px-3 py-2.5 text-[12px] font-medium text-[#8B8579] hover:border-[#C7C1B4] hover:text-[#1C1B19]",
+  form: "space-y-2 rounded-xl border border-[#E8E4DC] bg-[#FBF9F6] p-3",
+  input:
+    "w-full rounded-lg border border-[#E8E4DC] bg-white px-3 py-2 text-[13px] text-[#1C1B19] placeholder:text-[#B0A99C]",
+  cancel: "flex-1 rounded-lg px-3 py-2 text-[12px] text-[#8B8579] hover:text-[#1C1B19]",
+  enableOn: "bg-emerald-50 text-emerald-700",
+  enableOff: "bg-[#F0EBE3] text-[#6B655C] hover:bg-[#E8E4DC]",
+  iconBtn:
+    "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0EBE3] text-[#8B8579] hover:bg-[#E8E4DC] hover:text-[#1C1B19]",
+  focus: "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6480F]/35 focus-visible:ring-offset-2",
+};
+
 export function LiveDestinationsPanel({
   dest,
   compact = false,
   isLive = false,
+  variant = "studio",
 }: {
   dest: DestHook;
   compact?: boolean;
   isLive?: boolean;
+  variant?: "studio" | "settings";
 }) {
+  const t = variant === "settings" ? SETTINGS_THEME : STUDIO_THEME;
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customName, setCustomName] = useState("");
   const [customUrl, setCustomUrl] = useState("");
@@ -117,54 +199,58 @@ export function LiveDestinationsPanel({
   return (
     <section
       className={cn(
-        "w-full rounded-2xl border border-white/10 bg-black/45 text-left backdrop-blur-md",
-        compact ? "p-3" : "p-4",
-        MOTION_COLORS
+        "w-full rounded-2xl",
+        t.shell,
+        compact ? "p-3" : "p-4 sm:p-5",
+        variant === "studio" && MOTION_COLORS
       )}
       aria-label="Live destinations"
     >
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div>
-          <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55">
-            Live Destinations
-          </h3>
-          {!compact ? (
-            <p className="mt-0.5 text-[12px] text-white/40">
-              Stream once on Jimvio — fan out to connected platforms.
-            </p>
+      {variant === "studio" ? (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <h3 className={t.title}>Live Destinations</h3>
+            {!compact ? (
+              <p className={t.subtitle}>
+                Stream once on Jimvio — fan out to connected platforms.
+              </p>
+            ) : null}
+          </div>
+          {dest.loading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-white/40" aria-hidden />
           ) : null}
         </div>
-        {dest.loading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-white/40" aria-hidden />
-        ) : null}
-      </div>
+      ) : (
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <p className={t.subtitle}>
+            Enable destinations before Go Live. Connect accounts here — Jimvio Live
+            is never interrupted by an external destination failure.
+          </p>
+          {dest.loading ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#B0A99C]" aria-hidden />
+          ) : null}
+        </div>
+      )}
 
       {!dest.encryptionConfigured ? (
-        <p className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+        <p className={t.warn}>
           Destination encryption is not configured on this deployment.
         </p>
       ) : null}
 
-      {dest.error ? (
-        <p className="mb-3 text-[12px] text-red-300">{dest.error}</p>
-      ) : null}
+      {dest.error ? <p className={t.error}>{dest.error}</p> : null}
 
       <ul className="space-y-2">
-        {/* Jimvio always on */}
-        <li className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5A1F]/20 text-[11px] font-bold text-[#FF5A1F]">
-            JV
-          </span>
+        <li className={t.row}>
+          <span className={t.iconJimvio}>JV</span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-medium text-white">Jimvio</span>
+              <span className={t.name}>Jimvio</span>
               <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(isLive ? "live" : "ready"))} />
-              <span className="text-[11px] text-white/45">
-                {isLive ? "LIVE" : "Always on"}
-              </span>
+              <span className={t.meta}>{isLive ? "LIVE" : "Always on"}</span>
             </div>
           </div>
-          <Check className="h-4 w-4 text-emerald-400" aria-hidden />
+          <Check className="h-4 w-4 text-emerald-500" aria-hidden />
         </li>
 
         {dest.catalog
@@ -177,38 +263,28 @@ export function LiveDestinationsPanel({
               const requiresApproval = entry.status === "requires_approval";
               const canConnectAccount = Boolean(entry.connectPath);
               return (
-                <li
-                  key={entry.platform}
-                  className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5"
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/8 text-[11px] font-bold text-white/70">
+                <li key={entry.platform} className={t.row}>
+                  <span className={t.iconMuted}>
                     {platformIconLabel(entry.platform)}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[13px] font-medium text-white">
-                        {entry.label}
-                      </span>
+                      <span className={t.name}>{entry.label}</span>
                       {requiresApproval ? (
-                        <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/50">
-                          Live requires approval
-                        </span>
-                      ) : null}
+                        <span className={t.badge}>Live requires approval</span>
+                      ) : (
+                        <span className={t.badge}>Not connected</span>
+                      )}
                     </div>
                     {requiresApproval && entry.message ? (
-                      <p className="mt-0.5 line-clamp-2 text-[11px] text-white/35">
-                        {entry.message}
-                      </p>
+                      <p className={t.message}>{entry.message}</p>
                     ) : null}
                   </div>
                   {canConnectAccount ? (
                     <button
                       type="button"
                       onClick={() => dest.connect(entry.platform)}
-                      className={cn(
-                        "rounded-lg bg-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-white/15",
-                        FOCUS_RING_DARK
-                      )}
+                      className={cn(t.connectBtn, t.focus)}
                     >
                       Connect
                     </button>
@@ -220,13 +296,19 @@ export function LiveDestinationsPanel({
             return connected.map((d) => {
               const sess = sessionByDest.get(d.id);
               const accountConnected = d.accountConnected || d.status === "connected";
-              const rowStatus = sess?.status
-                ?? (accountConnected ? "connected" : d.requiresApproval ? "requires_approval" : "connected");
+              const rowStatus =
+                sess?.status ??
+                (accountConnected
+                  ? "connected"
+                  : d.requiresApproval
+                    ? "requires_approval"
+                    : "connected");
               const selected = dest.selectedIds.includes(d.id);
               const canEnableLive = d.liveStreamingAllowed !== false;
               return (
                 <DestinationRow
                   key={d.id}
+                  theme={t}
                   name={d.displayName}
                   platform={d.platform}
                   status={rowStatus}
@@ -263,7 +345,6 @@ export function LiveDestinationsPanel({
             });
           })}
 
-        {/* Custom RTMP destinations */}
         {dest.destinations
           .filter((d) => d.platform === "custom_rtmp")
           .map((d) => {
@@ -272,6 +353,7 @@ export function LiveDestinationsPanel({
             return (
               <DestinationRow
                 key={d.id}
+                theme={t}
                 name={d.displayName}
                 platform="custom_rtmp"
                 status={rowStatus}
@@ -305,27 +387,24 @@ export function LiveDestinationsPanel({
           <button
             type="button"
             onClick={() => setShowCustomForm(true)}
-            className={cn(
-              "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-[12px] font-medium text-white/60 hover:border-white/25 hover:text-white/80",
-              FOCUS_RING_DARK
-            )}
+            className={cn(t.dashedBtn, t.focus)}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden />
             Add Custom RTMP
           </button>
         ) : (
-          <div className="space-y-2 rounded-xl border border-white/10 bg-black/30 p-3">
+          <div className={t.form}>
             <input
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               placeholder="Name"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-white/30"
+              className={t.input}
             />
             <input
               value={customUrl}
               onChange={(e) => setCustomUrl(e.target.value)}
               placeholder="rtmps://example.com/live"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-white/30"
+              className={t.input}
               autoComplete="off"
             />
             <input
@@ -333,17 +412,15 @@ export function LiveDestinationsPanel({
               onChange={(e) => setCustomKey(e.target.value)}
               placeholder="Stream key"
               type="password"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-white/30"
+              className={t.input}
               autoComplete="new-password"
             />
-            {formError ? (
-              <p className="text-[11px] text-red-300">{formError}</p>
-            ) : null}
+            {formError ? <p className={t.error}>{formError}</p> : null}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setShowCustomForm(false)}
-                className="flex-1 rounded-lg px-3 py-2 text-[12px] text-white/50 hover:text-white/80"
+                className={t.cancel}
               >
                 Cancel
               </button>
@@ -353,7 +430,7 @@ export function LiveDestinationsPanel({
                 onClick={() => void onAddCustom()}
                 className={cn(
                   "flex-1 rounded-lg bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
-                  FOCUS_RING_DARK
+                  t.focus
                 )}
               >
                 {busyId === "custom" ? "Saving…" : "Save"}
@@ -363,7 +440,17 @@ export function LiveDestinationsPanel({
         )}
       </div>
 
-      {isLive && dest.sessionStatuses.length > 0 && !compact ? (
+      {variant === "settings" ? (
+        <p className="mt-4 text-[12px] text-[#8B8579]">
+          Prefer managing from Live Studio? Open{" "}
+          <Link href="/communities/live" className="font-semibold text-[#D6480F] hover:underline">
+            Live Studio
+          </Link>{" "}
+          — destination fan-out still uses destinations you enable here.
+        </p>
+      ) : null}
+
+      {isLive && dest.sessionStatuses.length > 0 && !compact && variant === "studio" ? (
         <DesktopHealthTable sessions={dest.sessionStatuses} />
       ) : null}
     </section>
@@ -371,6 +458,7 @@ export function LiveDestinationsPanel({
 }
 
 function DestinationRow({
+  theme: t,
   name,
   platform,
   status,
@@ -385,6 +473,7 @@ function DestinationRow({
   onRetry,
   busy,
 }: {
+  theme: Theme;
   name: string;
   platform: DestinationPlatform;
   status: string;
@@ -400,7 +489,7 @@ function DestinationRow({
   busy?: boolean;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5">
+    <li className={t.row}>
       {avatarUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -409,21 +498,17 @@ function DestinationRow({
           className="h-8 w-8 rounded-lg object-cover"
         />
       ) : (
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/8 text-[11px] font-bold text-white/70">
-          {platformIconLabel(platform)}
-        </span>
+        <span className={t.iconMuted}>{platformIconLabel(platform)}</span>
       )}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate text-[13px] font-medium text-white">{name}</span>
+          <span className={cn("truncate", t.name)}>{name}</span>
           <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(status))} />
-          <span className="text-[11px] text-white/45">{statusLabel(status)}</span>
+          <span className={t.meta}>{statusLabel(status)}</span>
         </div>
-        {subtitle ? (
-          <p className="truncate text-[11px] text-white/35">{subtitle}</p>
-        ) : null}
+        {subtitle ? <p className={cn("truncate", t.message)}>{subtitle}</p> : null}
         {lastError ? (
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-200/80">{lastError}</p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-700">{lastError}</p>
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
@@ -435,10 +520,8 @@ function DestinationRow({
             onClick={onToggle}
             className={cn(
               "rounded-lg px-2 py-1.5 text-[11px] font-medium",
-              FOCUS_RING_DARK,
-              selected
-                ? "bg-emerald-500/20 text-emerald-300"
-                : "bg-white/10 text-white/70 hover:bg-white/15"
+              t.focus,
+              selected ? t.enableOn : t.enableOff
             )}
           >
             {selected ? "Enabled" : "Enable"}
@@ -450,10 +533,7 @@ function DestinationRow({
             onClick={onRetry}
             disabled={busy}
             aria-label="Retry destination"
-            className={cn(
-              "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/70 hover:bg-white/15",
-              FOCUS_RING_DARK
-            )}
+            className={cn(t.iconBtn, t.focus)}
           >
             <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
           </button>
@@ -463,10 +543,7 @@ function DestinationRow({
           onClick={onDisconnect}
           disabled={busy}
           aria-label="Disconnect destination"
-          className={cn(
-            "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/50 hover:bg-white/15 hover:text-white/80",
-            FOCUS_RING_DARK
-          )}
+          className={cn(t.iconBtn, t.focus)}
         >
           <Unplug className="h-3.5 w-3.5" />
         </button>
@@ -501,13 +578,7 @@ function DesktopHealthTable({
             {statusLabel(s.status)}
           </span>
           <span className="truncate text-white/45">
-            {s.health?.errorReason
-              ? "—"
-              : s.status === "live"
-                ? "Good"
-                : s.status === "failed"
-                  ? "—"
-                  : "—"}
+            {s.status === "live" ? "Good" : "—"}
           </span>
         </div>
       ))}

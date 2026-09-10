@@ -9,6 +9,19 @@ import type { EncryptedCredentialPayload, PreparedIngest } from "../types";
 const YT_API = "https://www.googleapis.com/youtube/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 
+/**
+ * Minimum scope for YouTube Live Streaming API (liveBroadcasts / liveStreams).
+ * Either `youtube` or `youtube.force-ssl` is sufficient — request only one.
+ * Do not also request the broader `youtube` scope (redundant sensitive scope).
+ * Separate from Supabase Google login OAuth.
+ */
+export const YOUTUBE_OAUTH_SCOPES = [
+  "https://www.googleapis.com/auth/youtube.force-ssl",
+] as const;
+
+export const YOUTUBE_OAUTH_REDIRECT_PATH =
+  "/api/integrations/youtube/callback";
+
 function clientCreds(): { id: string; secret: string } | null {
   const id = process.env.YOUTUBE_CLIENT_ID?.trim();
   const secret = process.env.YOUTUBE_CLIENT_SECRET?.trim();
@@ -405,20 +418,71 @@ export async function exchangeYouTubeCode(input: {
   };
 }
 
+/** Safe user-facing copy for Google OAuth callback errors (no secrets). */
+export function mapYouTubeOAuthError(
+  error: string | null | undefined,
+  description?: string | null
+): string {
+  const code = (error ?? "").trim().toLowerCase();
+  const desc = (description ?? "").trim();
+  const descLower = desc.toLowerCase();
+
+  if (
+    /unverified|hasn't verified|has not verified|verification required|app is in testing/i.test(
+      desc
+    ) ||
+    /unverified|verification/i.test(code)
+  ) {
+    return "Google has not verified this YouTube app yet. Test users can continue from Google's warning, or complete Google Cloud OAuth verification for public use.";
+  }
+
+  if (code === "access_denied") {
+    return "YouTube authorization was cancelled or denied.";
+  }
+  if (code === "redirect_uri_mismatch" || /redirect_uri/i.test(descLower)) {
+    return "YouTube redirect URI mismatch. Confirm Google Cloud authorized redirect is https://www.jimvio.com/api/integrations/youtube/callback.";
+  }
+  if (code === "invalid_client" || /invalid_client/i.test(descLower)) {
+    return "YouTube OAuth client is misconfigured. Check YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET.";
+  }
+  if (code === "invalid_grant" || /invalid_grant|expired/i.test(descLower)) {
+    return "YouTube authorization expired. Please connect YouTube again.";
+  }
+  if (!code && !desc) {
+    return "YouTube authorization was incomplete.";
+  }
+  if (desc && desc.length <= 160 && !/secret|token|client_id/i.test(desc)) {
+    return desc;
+  }
+  return "YouTube authorization failed. Please try again.";
+}
+
 export function youtubeAuthUrl(input: {
   state: string;
   redirectUri: string;
 }): string | null {
   const creds = clientCreds();
   if (!creds) return null;
+
+  let redirectUri: string;
+  try {
+    const parsed = new URL(input.redirectUri);
+    if (parsed.protocol !== "https:" && process.env.NODE_ENV === "production") {
+      return null;
+    }
+    if (/^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname) && process.env.NODE_ENV === "production") {
+      return null;
+    }
+    redirectUri = input.redirectUri;
+  } catch {
+    return null;
+  }
+
   const params = new URLSearchParams({
     client_id: creds.id,
-    redirect_uri: input.redirectUri,
+    redirect_uri: redirectUri,
     response_type: "code",
-    scope: [
-      "https://www.googleapis.com/auth/youtube",
-      "https://www.googleapis.com/auth/youtube.force-ssl",
-    ].join(" "),
+    scope: YOUTUBE_OAUTH_SCOPES.join(" "),
     access_type: "offline",
     prompt: "consent",
     state: input.state,

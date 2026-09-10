@@ -36,6 +36,9 @@ export function getDestinationAdapter(
 export {
   youtubeAuthUrl,
   exchangeYouTubeCode,
+  mapYouTubeOAuthError,
+  YOUTUBE_OAUTH_SCOPES,
+  YOUTUBE_OAUTH_REDIRECT_PATH,
 } from "./youtube";
 export { twitchAuthUrl, exchangeTwitchCode } from "./twitch";
 export { facebookAuthUrl, exchangeFacebookCode } from "./facebook";

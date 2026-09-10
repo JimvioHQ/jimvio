@@ -8,6 +8,7 @@ import {
   resolveAppOrigin,
 } from "@/lib/live/destinations/oauth-state";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
+import { liveStudioLog } from "@/lib/live/observability";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const returnPath = url.searchParams.get("return") ?? "/communities/live";
+  const returnPath = url.searchParams.get("return") ?? "/identity/live-destinations";
   const origin = resolveAppOrigin(req);
   const redirectUri = integrationCallbackUrl("youtube", origin);
   const { state } = await createOAuthState({
@@ -46,8 +47,19 @@ export async function GET(req: Request) {
 
   const authUrl = youtubeAuthUrl({ state, redirectUri });
   if (!authUrl) {
-    return NextResponse.json({ error: "YouTube OAuth is not configured" }, { status: 503 });
+    return NextResponse.json(
+      {
+        error:
+          "YouTube OAuth is not configured or redirect URI is invalid for production.",
+      },
+      { status: 503 }
+    );
   }
+
+  liveStudioLog("info", "youtube_oauth_start", {
+    userId: user.id,
+    redirectHost: new URL(redirectUri).host,
+  });
 
   return NextResponse.redirect(authUrl);
 }

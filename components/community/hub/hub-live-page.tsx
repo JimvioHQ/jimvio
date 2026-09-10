@@ -43,7 +43,7 @@ import { canonicalLiveUrl } from "@/lib/live/live-url";
 import { copyTextToClipboard } from "@/lib/live/native-share";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
-import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
+import { LiveDestinationsStudioLink } from "./live/LiveDestinationsStudioLink";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
 import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import { LiveMobileDock } from "./live/LiveMobileDock";
@@ -1290,11 +1290,7 @@ export function HubLivePage({
     />
       {isLiveHost || canStartLive ? (
         <div className="rounded-xl border border-neutral-200 bg-neutral-950 p-1">
-          <LiveDestinationsPanel
-            dest={destinations}
-            compact
-            isLive={hasSession && isLiveHost}
-          />
+          <LiveDestinationsStudioLink dest={destinations} />
         </div>
       ) : null}
     </div>
@@ -1745,7 +1741,7 @@ export function HubLivePage({
                     onToggleCam={() => void toggleCam()}
                     destinationsSlot={
                       live.userId ? (
-                        <LiveDestinationsPanel dest={destinations} compact />
+                        <LiveDestinationsStudioLink dest={destinations} />
                       ) : null
                     }
                   />
