@@ -109,6 +109,13 @@ export type PublicDestination = {
   rtmpUrlMasked: string | null;
   requiresApproval: boolean;
   approvalMessage: string | null;
+  /**
+   * Account OAuth connected (e.g. TikTok Login Kit).
+   * Independent of LIVE multistream readiness.
+   */
+  accountConnected: boolean;
+  /** When false, destination cannot be enabled for LIVE fan-out. */
+  liveStreamingAllowed: boolean;
 };
 
 export type PublicDestinationSession = {

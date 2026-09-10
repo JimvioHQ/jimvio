@@ -31,6 +31,13 @@ export type LiveStudioEvent =
   | "multistream_egress_started"
   | "multistream_egress_start_failed"
   | "multistream_stopped"
+  | "tiktok_oauth_start"
+  | "tiktok_oauth_callback"
+  | "tiktok_oauth_success"
+  | "tiktok_oauth_denied"
+  | "tiktok_oauth_state_invalid"
+  | "tiktok_oauth_token_exchange_failed"
+  | "tiktok_oauth_disconnect"
   | "unhandled";
 
 type Fields = Record<string, string | number | boolean | null | undefined>;

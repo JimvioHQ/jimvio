@@ -175,6 +175,7 @@ export function LiveDestinationsPanel({
             );
             if (connected.length === 0) {
               const requiresApproval = entry.status === "requires_approval";
+              const canConnectAccount = Boolean(entry.connectPath);
               return (
                 <li
                   key={entry.platform}
@@ -190,7 +191,7 @@ export function LiveDestinationsPanel({
                       </span>
                       {requiresApproval ? (
                         <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/50">
-                          Requires approval
+                          Live requires approval
                         </span>
                       ) : null}
                     </div>
@@ -200,7 +201,7 @@ export function LiveDestinationsPanel({
                       </p>
                     ) : null}
                   </div>
-                  {!requiresApproval && entry.connectPath ? (
+                  {canConnectAccount ? (
                     <button
                       type="button"
                       onClick={() => dest.connect(entry.platform)}
@@ -218,8 +219,11 @@ export function LiveDestinationsPanel({
 
             return connected.map((d) => {
               const sess = sessionByDest.get(d.id);
-              const rowStatus = sess?.status ?? (d.requiresApproval ? "requires_approval" : "connected");
+              const accountConnected = d.accountConnected || d.status === "connected";
+              const rowStatus = sess?.status
+                ?? (accountConnected ? "connected" : d.requiresApproval ? "requires_approval" : "connected");
               const selected = dest.selectedIds.includes(d.id);
+              const canEnableLive = d.liveStreamingAllowed !== false;
               return (
                 <DestinationRow
                   key={d.id}
@@ -229,14 +233,22 @@ export function LiveDestinationsPanel({
                   selected={selected}
                   isLive={isLive}
                   avatarUrl={d.avatarUrl}
+                  subtitle={
+                    d.platform === "tiktok" && d.requiresApproval
+                      ? "Account connected · Live streaming requires approval"
+                      : undefined
+                  }
                   lastError={sess?.lastError ?? d.lastError}
+                  canEnable={canEnableLive}
                   onToggle={() => dest.toggleSelected(d.id)}
                   onDisconnect={() => {
                     setBusyId(d.id);
                     void dest.disconnect(d.id).finally(() => setBusyId(null));
                   }}
                   onRetry={
-                    sess && (sess.status === "failed" || sess.status === "reconnecting")
+                    canEnableLive &&
+                    sess &&
+                    (sess.status === "failed" || sess.status === "reconnecting")
                       ? () => {
                           setBusyId(d.id);
                           void dest
@@ -367,6 +379,7 @@ function DestinationRow({
   avatarUrl,
   subtitle,
   lastError,
+  canEnable = true,
   onToggle,
   onDisconnect,
   onRetry,
@@ -380,6 +393,7 @@ function DestinationRow({
   avatarUrl?: string | null;
   subtitle?: string;
   lastError?: string | null;
+  canEnable?: boolean;
   onToggle: () => void;
   onDisconnect: () => void;
   onRetry?: () => void;
@@ -413,7 +427,8 @@ function DestinationRow({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
-        {!isLive || status === "connected" || status === "ready" || status === "stopped" ? (
+        {canEnable &&
+        (!isLive || status === "connected" || status === "ready" || status === "stopped") ? (
           <button
             type="button"
             aria-pressed={selected}

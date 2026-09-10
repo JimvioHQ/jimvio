@@ -180,6 +180,7 @@ export function platformReadiness(platform: DestinationPlatform): {
       };
     }
     case "tiktok": {
+      // LIVE streaming requires explicit product enablement — Login Kit alone is insufficient.
       const approved =
         process.env.TIKTOK_LIVE_ENABLED === "true" &&
         Boolean(
@@ -190,7 +191,7 @@ export function platformReadiness(platform: DestinationPlatform): {
         status: approved ? "supported" : "requires_approval",
         message: approved
           ? null
-          : "TikTok Live is not currently enabled for this Jimvio integration.",
+          : "TikTok Live streaming requires official TikTok Live API access and App Review. Connecting a TikTok account (Login Kit) does not enable Live multistream.",
         oauthConfigured: Boolean(
           process.env.TIKTOK_CLIENT_KEY?.trim() &&
             process.env.TIKTOK_CLIENT_SECRET?.trim()

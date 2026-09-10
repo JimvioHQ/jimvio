@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { revokeTikTokAccess } from "@/lib/live/destinations/adapters";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
 import { validateRtmpUrl } from "@/lib/live/destinations/ssrf";
 import {
+  getDestinationCredentials,
   getDestinationForUser,
   revokeDestination,
   updateCustomRtmpDestination,
 } from "@/lib/live/destinations/repository";
+import { liveStudioLog } from "@/lib/live/observability";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +92,18 @@ export async function DELETE(
   const row = await getDestinationForUser(id, user.id);
   if (!row) {
     return NextResponse.json({ error: "Destination not found" }, { status: 404 });
+  }
+
+  if (row.platform === "tiktok") {
+    try {
+      const creds = await getDestinationCredentials(id, user.id);
+      if (creds?.accessToken) {
+        await revokeTikTokAccess(creds.accessToken);
+      }
+    } catch {
+      /* local disconnect still proceeds */
+    }
+    liveStudioLog("info", "tiktok_oauth_disconnect", { userId: user.id });
   }
 
   await revokeDestination(id, user.id);

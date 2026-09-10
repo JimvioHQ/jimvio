@@ -64,6 +64,11 @@ function db() {
 function toPublic(row: DestinationRow): PublicDestination {
   const readiness = platformReadiness(row.platform);
   const requiresApproval = readiness.status === "requires_approval";
+  const hasCredentials = Boolean(row.encrypted_credentials);
+  const accountConnected =
+    hasCredentials &&
+    row.status === "connected" &&
+    !row.revoked_at;
   let streamKeyMasked: string | null = null;
   let rtmpUrlMasked: string | null = null;
   if (row.platform === "custom_rtmp" && row.encrypted_credentials) {
@@ -78,13 +83,19 @@ function toPublic(row: DestinationRow): PublicDestination {
     }
   }
 
+  // Account connection status must not be overwritten by LIVE approval gate.
+  // LIVE streaming eligibility remains requiresApproval / liveStreamingAllowed.
+  const status: PublicDestination["status"] = accountConnected
+    ? "connected"
+    : requiresApproval
+      ? "requires_approval"
+      : (row.status as PublicDestination["status"]);
+
   return {
     id: row.id,
     platform: row.platform,
     displayName: row.display_name,
-    status: requiresApproval
-      ? "requires_approval"
-      : (row.status as PublicDestination["status"]),
+    status,
     providerAccountId: row.provider_account_id,
     providerChannelId: row.provider_channel_id,
     avatarUrl: row.avatar_url,
@@ -95,11 +106,13 @@ function toPublic(row: DestinationRow): PublicDestination {
     lastConnectedAt: row.last_connected_at,
     lastUsedAt: row.last_used_at,
     lastError: row.last_error,
-    hasCredentials: Boolean(row.encrypted_credentials),
+    hasCredentials,
     streamKeyMasked,
     rtmpUrlMasked,
     requiresApproval,
     approvalMessage: readiness.message,
+    accountConnected,
+    liveStreamingAllowed: !requiresApproval,
   };
 }
 

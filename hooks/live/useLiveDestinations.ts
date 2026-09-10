@@ -22,6 +22,8 @@ type CatalogEntry = {
   oauthConfigured: boolean;
   connectPath: string | null;
   canAddCustom: boolean;
+  loginKitAvailable?: boolean;
+  liveStreamingAllowed?: boolean;
 };
 
 export function useLiveDestinations(liveSessionId?: string | null) {
@@ -100,13 +102,18 @@ export function useLiveDestinations(liveSessionId?: string | null) {
 
   const toggleSelected = useCallback(
     (id: string) => {
+      const destRow = destinations.find((d) => d.id === id);
+      // Never enable LIVE fan-out for approval-gated platforms (e.g. TikTok LIVE).
+      if (destRow && destRow.liveStreamingAllowed === false) {
+        return;
+      }
       persistSelection(
         selectedIds.includes(id)
           ? selectedIds.filter((x) => x !== id)
           : [...selectedIds, id]
       );
     },
-    [persistSelection, selectedIds]
+    [destinations, persistSelection, selectedIds]
   );
 
   const connect = useCallback((platform: DestinationPlatform) => {

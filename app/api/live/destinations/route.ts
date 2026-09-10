@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { platformLabel, platformReadiness } from "@/lib/live/destinations/capabilities";
+import { isTikTokLoginKitConfigured } from "@/lib/live/destinations/adapters";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
 import { validateRtmpUrl } from "@/lib/live/destinations/ssrf";
 import {
@@ -21,6 +22,21 @@ const CATALOG: DestinationPlatform[] = [
   "custom_rtmp",
 ];
 
+function connectPathFor(platform: DestinationPlatform, readinessStatus: string): string | null {
+  if (platform === "tiktok") {
+    // Login Kit connect is available when client credentials exist,
+    // even while LIVE streaming remains requires_approval.
+    return isTikTokLoginKitConfigured() ? `/api/integrations/tiktok/start` : null;
+  }
+  if (
+    readinessStatus === "supported" &&
+    (platform === "youtube" || platform === "twitch" || platform === "facebook")
+  ) {
+    return `/api/integrations/${platform}/start`;
+  }
+  return null;
+}
+
 /** GET — list connected destinations + platform catalog readiness */
 export async function GET() {
   const supabase = await createClient();
@@ -40,12 +56,11 @@ export async function GET() {
       status: readiness.status,
       message: readiness.message,
       oauthConfigured: readiness.oauthConfigured,
-      connectPath:
-        readiness.status === "supported" &&
-        ["youtube", "twitch", "facebook"].includes(platform)
-          ? `/api/integrations/${platform}/start`
-          : null,
+      connectPath: connectPathFor(platform, readiness.status),
       canAddCustom: platform === "custom_rtmp",
+      /** Login Kit account OAuth available (TikTok only). Not LIVE streaming. */
+      loginKitAvailable: platform === "tiktok" ? isTikTokLoginKitConfigured() : false,
+      liveStreamingAllowed: readiness.status === "supported",
     };
   });
 

@@ -40,4 +40,11 @@ export {
 export { twitchAuthUrl, exchangeTwitchCode } from "./twitch";
 export { facebookAuthUrl, exchangeFacebookCode } from "./facebook";
 export { instagramAuthUrl } from "./instagram";
-export { tiktokAuthUrl } from "./tiktok";
+export {
+  tiktokAuthUrl,
+  exchangeTikTokCode,
+  refreshTikTokCredentials,
+  revokeTikTokAccess,
+  isTikTokLoginKitConfigured,
+  TIKTOK_LOGIN_KIT_SCOPE,
+} from "./tiktok";

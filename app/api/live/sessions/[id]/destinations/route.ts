@@ -6,7 +6,11 @@ import {
   stopAllDestinations,
   reconnectDestination,
 } from "@/lib/live/destinations/destination-manager";
-import { listDestinationSessions } from "@/lib/live/destinations/repository";
+import {
+  getDestinationForUser,
+  listDestinationSessions,
+} from "@/lib/live/destinations/repository";
+import { platformReadiness } from "@/lib/live/destinations/capabilities";
 import { getSession } from "@/services/live/session-service";
 import { liveStudioLog } from "@/lib/live/observability";
 import type { LiveMetadata } from "@/lib/live/destinations/types";
@@ -83,13 +87,36 @@ export async function POST(
       return NextResponse.json({ destinations: [], failures: [] });
     }
 
+    // Drop destinations that are approval-gated for LIVE (e.g. TikTok Login Kit ≠ LIVE).
+    const allowedIds: string[] = [];
+    const blocked: Array<{ destinationId: string; error: string }> = [];
+    for (const destinationId of ids) {
+      const row = await getDestinationForUser(destinationId, user.id);
+      if (!row) {
+        blocked.push({ destinationId, error: "Destination not found" });
+        continue;
+      }
+      const readiness = platformReadiness(row.platform);
+      if (readiness.status === "requires_approval") {
+        blocked.push({
+          destinationId,
+          error:
+            readiness.message ??
+            "This destination requires platform approval for Live streaming.",
+        });
+        continue;
+      }
+      allowedIds.push(destinationId);
+    }
+
     // Fire-and-forget-safe: prepare + egress without blocking Jimvio session creation
     const { prepared, failures } = await prepareLiveDestinations({
       userId: user.id,
       liveSessionId: sessionId,
-      destinationIds: ids,
+      destinationIds: allowedIds,
       metadata,
     });
+    const allFailures = [...blocked, ...failures];
 
     // Start egress asynchronously so slow providers don't block the response long —
     // but we still await a bounded start for correctness.
@@ -104,17 +131,17 @@ export async function POST(
       sessionId,
       userId: user.id,
       prepared: prepared.length,
-      failures: failures.length,
+      failures: allFailures.length,
       egressId: egress.egressId,
     });
 
     const destinations = await listDestinationSessions(sessionId);
     return NextResponse.json({
       destinations,
-      failures,
+      failures: allFailures,
       egress,
       note:
-        failures.length > 0
+        allFailures.length > 0
           ? "Some destinations failed. Jimvio Live is still running."
           : undefined,
     });
