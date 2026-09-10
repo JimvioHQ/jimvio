@@ -56,6 +56,11 @@ export interface ProductCardVideoMediaProps {
   fallback?: ReactNode;
   children?: ReactNode;
   grayscale?: boolean;
+  /**
+   * `auto` (default): visibility/hover may activate video via VideoCommerceEngine.
+   * `poster`: image only — no video element, engine, or decode (use on mobile Home).
+   */
+  playbackMode?: "auto" | "poster";
 }
 
 const VISIBILITY_THRESHOLD = 0.2;
@@ -83,6 +88,7 @@ export function ProductCardVideoMedia({
   fallback,
   children,
   grayscale = false,
+  playbackMode = "auto",
 }: ProductCardVideoMediaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,7 +104,10 @@ export function ProductCardVideoMedia({
   const [isDesktop, setIsDesktop] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
 
-  const hasVideo = useMemo(() => productHasVideos(product), [product]);
+  const hasVideo = useMemo(
+    () => playbackMode !== "poster" && productHasVideos(product),
+    [playbackMode, product],
+  );
   const slideshowImages = useMemo(() => {
     if (hasVideo) return [] as string[];
     const fromProp = (previewImages ?? []).filter(isRenderableImageSrc).slice(0, 3);

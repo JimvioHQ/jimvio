@@ -49,7 +49,12 @@ export function SectionReveal({
     const section = ref.current;
     if (!section) return;
 
-    if (prefersReducedMotion()) {
+    const isMobile =
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches;
+
+    // Mobile: show immediately — opacity-gated reveals feel like scroll lag.
+    if (prefersReducedMotion() || isMobile) {
       section.dataset.reveal = "in";
       return;
     }

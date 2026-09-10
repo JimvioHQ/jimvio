@@ -79,33 +79,38 @@ export function RegisterForm() {
     return (
       <div className="w-full">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 ring-4 ring-emerald-50 dark:bg-emerald-500/10 dark:ring-emerald-500/10">
-            <CheckCircle className="h-7 w-7 text-emerald-500" aria-hidden />
+          <div
+            className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FF5A1F]/20 bg-[#FF5A1F]/[0.08]"
+            aria-hidden
+          >
+            <CheckCircle className="h-6 w-6 text-[#FF5A1F]" strokeWidth={2} />
           </div>
-          <h1 className="mb-2 text-[1.65rem] font-black tracking-tight text-zinc-900 dark:text-white">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF5A1F]">
+            Account created
+          </p>
+          <h1 className="mb-3 text-[1.65rem] font-black tracking-tight text-zinc-900 dark:text-white">
             Check your email
           </h1>
           <p className="max-w-sm text-[14px] leading-relaxed text-zinc-500">
-            {success}
-            {submittedEmail ? (
+            Confirm your email before signing in with email and password.
+            {submittedEmail.includes("@") ? (
               <>
                 {" "}
-                We sent a confirmation link
-                {submittedEmail.includes("@") ? (
-                  <>
-                    {" "}
-                    to <span className="font-semibold text-zinc-700 dark:text-zinc-300">{submittedEmail}</span>
-                  </>
-                ) : null}
+                We sent a confirmation link to{" "}
+                <span className="inline-block rounded-md border border-zinc-200 bg-white px-2 py-0.5 font-semibold text-zinc-800 dark:border-border dark:bg-surface dark:text-zinc-200">
+                  {submittedEmail}
+                </span>
                 .
               </>
-            ) : null}
+            ) : (
+              <> {success}</>
+            )}
           </p>
         </div>
 
-        <div className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-border dark:bg-surface-secondary/40">
+        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.04)] dark:border-border dark:bg-surface-secondary/40">
           <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Didn&apos;t get it? Check spam, then resend. Confirmation is required before you can sign in with email.
+            Didn&apos;t get it? Check spam or promotions, then resend below.
           </p>
           {resendNotice && <AuthAlert tone="success">{resendNotice}</AuthAlert>}
           <TurnstileWidget
@@ -116,7 +121,7 @@ export function RegisterForm() {
             type="button"
             variant="outline"
             disabled={pending || !resendCaptcha}
-            className="h-11 w-full rounded-lg text-[14px] font-bold"
+            className="h-11 w-full rounded-lg border-zinc-200 text-[14px] font-bold hover:bg-zinc-50"
             onClick={() => {
               if (!resendCaptcha) return;
               const fd = new FormData();

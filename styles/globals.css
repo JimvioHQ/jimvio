@@ -212,10 +212,23 @@
     padding: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    scroll-behavior: smooth;
+    /* Native scroll by default — smooth scroll janks mobile touch scrolling */
+    scroll-behavior: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color-scheme: light;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto !important;
+    }
   }
 
   html.dark {
@@ -810,9 +823,15 @@
 
   @media (max-width: 767px) {
     .jimvio-reveal {
-      --jimvio-reveal-y: var(--jimvio-reveal-y-mobile, 8px);
-      --jimvio-duration-reveal: 400ms;
-      --jimvio-stagger: 40ms;
+      --jimvio-reveal-y: var(--jimvio-reveal-y-mobile, 6px);
+      --jimvio-duration-reveal: 320ms;
+      --jimvio-stagger: 28ms;
+    }
+
+    /* Avoid opacity-gated blank sections while fast-scrolling on mobile */
+    .jimvio-reveal[data-reveal="ready"] .jimvio-reveal-item {
+      opacity: 1;
+      transform: none;
     }
   }
 

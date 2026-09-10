@@ -26,12 +26,14 @@ export function HomepageFlashDealCard({
   initiallyInCart = false,
   cartResolved = false,
   priority = false,
+  playbackMode = "auto",
 }: {
   p: TrendingProductCardProduct;
   /** When parent batches cart IDs, skip per-card network fetch */
   initiallyInCart?: boolean;
   cartResolved?: boolean;
   priority?: boolean;
+  playbackMode?: "auto" | "poster";
 }) {
   const { formatMoney } = useCurrency();
   const incrementCartCount = useCartStore((s) => s.incrementCartCount);
@@ -188,6 +190,7 @@ export function HomepageFlashDealCard({
             useNextImage={true}
             layout="fill"
             imageFit="cover"
+            playbackMode={playbackMode}
             imageClassName={cn(
               "transition-[transform,opacity] duration-300 ease-out",
               imageReady ? "opacity-100" : "opacity-0",

@@ -48,6 +48,12 @@ export function PublicLayoutShell({
   // containing block that disables position:sticky for Marketplace's sidebar.
   const isMarketplaceRoute =
     pathname === "/marketplace" || pathname.startsWith("/marketplace/");
+  // Home: opacity-only enter — avoid translate + overscroll contain fighting native scroll on mobile.
+  const isHomeRoute = pathname === "/";
+  const pageEnterAnimation =
+    isMarketplaceRoute || isHomeRoute
+      ? "page-enter-fade 220ms ease both"
+      : "page-enter 220ms ease both";
 
   if (isWorkspace) {
     return <>{children}</>;
@@ -65,10 +71,9 @@ export function PublicLayoutShell({
           tabIndex={-1}
           className={`relative isolation-auto flex-1 pt-[var(--navbar-height)] ${MOBILE_PRIMARY_BOTTOM_NAV_PAD}`}
           style={{
-            animation: isMarketplaceRoute
-              ? "page-enter-fade 220ms ease both"
-              : "page-enter 220ms ease both",
-            overscrollBehaviorY: "contain",
+            animation: pageEnterAnimation,
+            // Do not trap document scroll on Home; nested rails already use overscroll-x-contain.
+            ...(isHomeRoute ? null : { overscrollBehaviorY: "contain" as const }),
           }}
         >
           {children}

@@ -1,10 +1,10 @@
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { Hero } from "./hero";
+import { WhatToDoToday } from "./action-hub";
+import { ChooseYourJourney } from "./choose-your-journey";
 import {
-  WhatToDoToday,
   TrustedStrip,
   PlatformOverviewBar,
-  ChooseYourJourney,
   TrendingProductsRow,
 } from "./homepage-sections";
 import {

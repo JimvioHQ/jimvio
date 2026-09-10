@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
 import { HomepageFlashDealCard } from "@/components/layout/homepage-flash-deal-card";
-import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
+import { useIsMobile, usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
@@ -44,6 +44,8 @@ export function HomepageTrendingProductsClient({
   initialTotal,
 }: HomepageTrendingProductsClientProps) {
   const reducedMotion = usePrefersReducedMotion();
+  const { isMobile } = useIsMobile();
+  const posterOnly = isMobile;
   const [products, setProducts] = useState(() =>
     dedupeProductsByIdentity(initialProducts),
   );
@@ -112,11 +114,19 @@ export function HomepageTrendingProductsClient({
       const batch = (data ?? []) as TrendingProductCardProduct[];
       if (!batch.length) return;
 
-      const videoMap = await fetchProductVideosMap(
-        supabase,
-        batch.map((p) => p.id),
-      );
-      const enriched = attachProductVideos(batch, videoMap);
+      // Mobile Home uses poster-only cards — skip video map waterfall.
+      const mobilePoster =
+        typeof window !== "undefined" &&
+        window.matchMedia("(max-width: 767px)").matches;
+      const enriched = mobilePoster
+        ? batch
+        : attachProductVideos(
+            batch,
+            await fetchProductVideosMap(
+              supabase,
+              batch.map((p) => p.id),
+            ),
+          );
 
       setProducts((prev) => dedupeProductsByIdentity([...prev, ...enriched]));
       if (count != null) setTotal(count);
@@ -191,7 +201,7 @@ export function HomepageTrendingProductsClient({
           "scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)]",
           "[scrollbar-width:thin]",
         )}
-        style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x" }}
+        style={{ WebkitOverflowScrolling: "touch" }}
       >
         <div
           className="flex w-max gap-3.5 px-4 sm:px-6"
@@ -208,6 +218,7 @@ export function HomepageTrendingProductsClient({
                 initiallyInCart={cartIds.has(product.id)}
                 cartResolved
                 priority={index < 2}
+                playbackMode={posterOnly ? "poster" : "auto"}
               />
             </div>
           ))}
