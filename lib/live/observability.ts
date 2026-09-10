@@ -22,6 +22,15 @@ export type LiveStudioEvent =
   | "egress_webhook"
   | "egress_webhook_failed"
   | "security_denied"
+  | "destination_prepare"
+  | "destination_prepare_failed"
+  | "destination_start"
+  | "destination_failed"
+  | "destination_reconnect"
+  | "destination_stop"
+  | "multistream_egress_started"
+  | "multistream_egress_start_failed"
+  | "multistream_stopped"
   | "unhandled";
 
 type Fields = Record<string, string | number | boolean | null | undefined>;

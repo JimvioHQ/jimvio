@@ -43,7 +43,9 @@ import { canonicalLiveUrl } from "@/lib/live/live-url";
 import { copyTextToClipboard } from "@/lib/live/native-share";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
+import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
+import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import { LiveMobileDock } from "./live/LiveMobileDock";
 import { LiveConfirmDialog } from "./live/LiveConfirmDialog";
 import { LiveStageFallback } from "./live/LiveStageFallback";
@@ -152,6 +154,9 @@ export function HubLivePage({
 
   const media = useLiveMediaPlane(true);
   const live = useLiveSession(sessionIdProp ?? null);
+  const destinations = useLiveDestinations(
+    live.session?.status === "live" && live.session.id ? live.session.id : null
+  );
   const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
   const liveChat = useLiveChat(
     chatRoomId,
@@ -229,6 +234,27 @@ export function HubLivePage({
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get("dest_connected");
+    const destError = params.get("dest_error");
+    if (connected) {
+      showToast(`${connected} connected`);
+      void destinations.refreshList();
+    }
+    if (destError) {
+      showToast(destError);
+    }
+    if (connected || destError) {
+      params.delete("dest_connected");
+      params.delete("dest_error");
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+      window.history.replaceState({}, "", next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot URL flash
+  }, []);
 
   /* Resume active live session, or join viewer sessionId from route */
   const autoJoinedRef = useRef<string | null>(null);
@@ -1206,7 +1232,8 @@ export function HubLivePage({
     : null;
 
   const liveSettingsPanel = (
-    <SettingsPanel
+    <div className="space-y-4">
+      <SettingsPanel
       mode={mode}
       onMode={persistMode}
       title={displayTitle}
@@ -1261,6 +1288,16 @@ export function HubLivePage({
         });
       }}
     />
+      {isLiveHost || canStartLive ? (
+        <div className="rounded-xl border border-neutral-200 bg-neutral-950 p-1">
+          <LiveDestinationsPanel
+            dest={destinations}
+            compact
+            isLive={hasSession && isLiveHost}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 
   if (loading) {
@@ -1706,6 +1743,11 @@ export function HubLivePage({
                     onGoLive={canStartLive ? () => void createOrJoinLive() : undefined}
                     onToggleMic={() => void toggleMic()}
                     onToggleCam={() => void toggleCam()}
+                    destinationsSlot={
+                      live.userId ? (
+                        <LiveDestinationsPanel dest={destinations} compact />
+                      ) : null
+                    }
                   />
                 </div>
               )}

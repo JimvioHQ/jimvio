@@ -893,6 +893,17 @@ async function finalizeEndedSession(
     .eq("session_id", session.id)
     .neq("status", "removed");
 
+  // Stop multistream destinations without blocking Jimvio Live end.
+  void import("@/lib/live/destinations/destination-manager")
+    .then(({ stopAllDestinations }) =>
+      stopAllDestinations({
+        userId: session.host_id,
+        liveSessionId: session.id,
+        metadata: { title: session.title || "Jimvio Live" },
+      })
+    )
+    .catch(() => undefined);
+
   const slug = await communitySlug(session.community_id);
   if (slug && session.community_id) {
     void notifyCommunityLiveEvent(db(), {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Loader2, Mic, MicOff, Radio, Video, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING, FOCUS_RING_DARK } from "./studio-ui";
@@ -20,6 +21,7 @@ export function LivePrepareStage({
   onToggleMic,
   onToggleCam,
   canGoLive = true,
+  destinationsSlot,
 }: {
   previewStream?: MediaStream | null;
   title?: string;
@@ -32,6 +34,7 @@ export function LivePrepareStage({
   onToggleMic?: () => void;
   onToggleCam?: () => void;
   canGoLive?: boolean;
+  destinationsSlot?: ReactNode;
 }) {
   return (
     <div className="relative flex h-full min-h-[min(72vh,640px)] w-full flex-col overflow-hidden bg-gradient-to-b from-[#0f1115] via-[#141820] to-[#0a0c10]">
@@ -49,7 +52,7 @@ export function LivePrepareStage({
         />
       ) : null}
 
-      <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-6 pb-28 pt-10 text-center">
+      <div className="relative z-[1] flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-28 pt-10 text-center">
         {!previewStream ? (
           <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10">
             <Radio className="h-7 w-7 text-white/40" strokeWidth={1.5} aria-hidden />
@@ -75,6 +78,10 @@ export function LivePrepareStage({
                 : "Microphone permission denied — allow access in browser settings.")}
           </p>
         )}
+
+        {destinationsSlot ? (
+          <div className="mt-5 w-full max-w-md text-left">{destinationsSlot}</div>
+        ) : null}
 
         {canGoLive && onGoLive ? (
           <button
