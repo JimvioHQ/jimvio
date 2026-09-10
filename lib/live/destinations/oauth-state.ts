@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { getSiteUrl } from "@/lib/site-url";
 
 export async function createOAuthState(input: {
   userId: string;
@@ -65,14 +66,13 @@ export function integrationCallbackUrl(platform: string, origin: string): string
   return `${origin.replace(/\/$/, "")}/api/integrations/${platform}/callback`;
 }
 
-export function resolveAppOrigin(req: Request): string {
-  const env =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "";
-  if (env) return env.replace(/\/$/, "");
-  const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
-  const proto = req.headers.get("x-forwarded-proto") || "https";
-  if (host) return `${proto}://${host}`;
-  return "http://localhost:3000";
+/**
+ * Canonical public origin for OAuth start/callback redirects.
+ *
+ * Must never emit localhost / preview hosts in production. A localhost
+ * TikTok redirect_uri is classified as Desktop Login Kit and requires PKCE
+ * (`code_challenge`). Jimvio is Web Login Kit only (HTTPS jimvio.com).
+ */
+export function resolveAppOrigin(_req?: Request): string {
+  return getSiteUrl().replace(/\/$/, "");
 }

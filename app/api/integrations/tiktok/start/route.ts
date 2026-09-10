@@ -63,8 +63,23 @@ export async function GET(req: Request) {
 
     const authUrl = tiktokAuthUrl({ state, redirectUri });
     if (!authUrl) {
+      liveStudioLog("warn", "tiktok_oauth_start", {
+        reason: "invalid_web_redirect_uri",
+        userId: user.id,
+        redirectHost: (() => {
+          try {
+            return new URL(redirectUri).host;
+          } catch {
+            return "invalid";
+          }
+        })(),
+      });
       return NextResponse.json(
-        { error: "TikTok Login Kit is not configured" },
+        {
+          error:
+            "TikTok Web Login Kit requires an https redirect URI (not localhost). Check NEXT_PUBLIC_APP_URL.",
+          status: "invalid_redirect_uri",
+        },
         { status: 503 }
       );
     }
@@ -72,6 +87,7 @@ export async function GET(req: Request) {
     liveStudioLog("info", "tiktok_oauth_start", {
       userId: user.id,
       redirectHost: new URL(redirectUri).host,
+      pkce: false,
     });
 
     return NextResponse.redirect(authUrl);

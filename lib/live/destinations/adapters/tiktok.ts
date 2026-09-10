@@ -46,20 +46,47 @@ export function createTikTokAdapter(): DestinationAdapter {
   );
 }
 
+/**
+ * Build TikTok Login Kit **Web** authorization URL.
+ *
+ * Web OAuth (official docs): client_key, scope, response_type=code,
+ * redirect_uri (https), state. CSRF via state only.
+ *
+ * Do NOT include PKCE (`code_challenge` / `code_challenge_method`) — those
+ * are for Desktop / iOS / Android. Sending or omitting them incorrectly
+ * against a Desktop-classified redirect_uri causes TikTok "code_challenge" errors.
+ */
 export function tiktokAuthUrl(input: {
   state: string;
   redirectUri: string;
 }): string | null {
   const creds = tikTokClientCreds();
   if (!creds) return null;
+  if (!input.state?.trim()) return null;
+
+  let redirectUri: string;
+  try {
+    const parsed = new URL(input.redirectUri);
+    // Web Login Kit requires absolute https URIs — never localhost (Desktop).
+    if (parsed.protocol !== "https:") return null;
+    if (/^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) return null;
+    if (parsed.search || parsed.hash) return null;
+    redirectUri = input.redirectUri;
+  } catch {
+    return null;
+  }
 
   const params = new URLSearchParams({
     client_key: creds.key,
     scope: TIKTOK_LOGIN_KIT_SCOPE,
     response_type: "code",
-    redirect_uri: input.redirectUri,
+    redirect_uri: redirectUri,
     state: input.state,
   });
+
+  // Hard guarantee: Web authorize URL never carries PKCE parameters.
+  params.delete("code_challenge");
+  params.delete("code_challenge_method");
 
   return `${AUTH_URL}?${params.toString()}`;
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * TikTok Login Kit OAuth — static + safety verification.
+ * TikTok Login Kit OAuth — static + Web PKCE regression verification.
  * Run: VERIFY_FILTER=tiktok npm test
  */
 import { readFileSync, existsSync } from "node:fs";
@@ -38,21 +38,50 @@ function mustNot(file, needles, label) {
   checks.push({ ok: true, label });
 }
 
-function testAuthUrl() {
-  process.env.TIKTOK_CLIENT_KEY = "test_client_key";
-  process.env.TIKTOK_CLIENT_SECRET = "test_client_secret";
-  // Inline mirror of tiktokAuthUrl query construction
+/** Mirror of production Web authorize URL builder (no PKCE). */
+function buildWebAuthUrl(input) {
   const params = new URLSearchParams({
-    client_key: "test_client_key",
+    client_key: input.clientKey,
     scope: "user.info.basic",
     response_type: "code",
-    redirect_uri: "https://www.jimvio.com/api/integrations/tiktok/callback",
-    state: "abc123",
+    redirect_uri: input.redirectUri,
+    state: input.state,
   });
-  const url = `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+  params.delete("code_challenge");
+  params.delete("code_challenge_method");
+  params.delete("code_verifier");
+  return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
+}
+
+function isValidWebRedirectUri(redirectUri) {
+  try {
+    const parsed = new URL(redirectUri);
+    if (parsed.protocol !== "https:") return false;
+    if (/^(localhost|127\.0\.0\.1)$/i.test(parsed.hostname)) return false;
+    if (parsed.search || parsed.hash) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function testAuthUrl() {
+  const redirect =
+    "https://www.jimvio.com/api/integrations/tiktok/callback";
+  const state = randomBytes(24).toString("base64url");
+  const url = buildWebAuthUrl({
+    clientKey: "test_client_key",
+    redirectUri: redirect,
+    state,
+  });
   const u = new URL(url);
+
   if (u.origin + u.pathname !== "https://www.tiktok.com/v2/auth/authorize/") {
     checks.push({ ok: false, label: "Auth URL endpoint" });
+    return;
+  }
+  if (u.searchParams.get("client_key") !== "test_client_key") {
+    checks.push({ ok: false, label: "Auth URL client_key" });
     return;
   }
   if (u.searchParams.get("scope") !== "user.info.basic") {
@@ -63,18 +92,105 @@ function testAuthUrl() {
     checks.push({ ok: false, label: "Auth URL response_type" });
     return;
   }
-  if (
-    u.searchParams.get("redirect_uri") !==
-    "https://www.jimvio.com/api/integrations/tiktok/callback"
-  ) {
+  if (u.searchParams.get("redirect_uri") !== redirect) {
     checks.push({ ok: false, label: "Auth URL redirect_uri" });
     return;
   }
-  if (u.searchParams.get("client_key") !== "test_client_key") {
-    checks.push({ ok: false, label: "Auth URL client_key" });
+  if (!u.searchParams.get("state") || u.searchParams.get("state") !== state) {
+    checks.push({ ok: false, label: "Auth URL state present" });
     return;
   }
-  checks.push({ ok: true, label: "Authorization URL construction" });
+  if (u.searchParams.has("code_challenge")) {
+    checks.push({ ok: false, label: "Web Auth URL must not include code_challenge" });
+    return;
+  }
+  if (u.searchParams.has("code_challenge_method")) {
+    checks.push({
+      ok: false,
+      label: "Web Auth URL must not include code_challenge_method",
+    });
+    return;
+  }
+  if (u.searchParams.has("code_verifier")) {
+    checks.push({ ok: false, label: "Web Auth URL must not include code_verifier" });
+    return;
+  }
+  checks.push({ ok: true, label: "Authorization URL Web params (no PKCE)" });
+}
+
+function testRejectLocalhostRedirect() {
+  const bad = [
+    "http://localhost:3000/api/integrations/tiktok/callback",
+    "https://localhost/api/integrations/tiktok/callback",
+    "http://127.0.0.1:3000/api/integrations/tiktok/callback",
+  ];
+  for (const uri of bad) {
+    if (isValidWebRedirectUri(uri)) {
+      checks.push({
+        ok: false,
+        label: `Must reject Desktop/localhost redirect: ${uri}`,
+      });
+      return;
+    }
+  }
+  if (
+    !isValidWebRedirectUri(
+      "https://www.jimvio.com/api/integrations/tiktok/callback"
+    )
+  ) {
+    checks.push({ ok: false, label: "Must accept production https callback" });
+    return;
+  }
+  checks.push({
+    ok: true,
+    label: "Reject localhost redirect (Desktop PKCE class)",
+  });
+}
+
+function testOriginResolutionSource() {
+  const oauth = readFileSync(
+    join(root, "lib/live/destinations/oauth-state.ts"),
+    "utf8"
+  );
+  if (!oauth.includes('from "@/lib/site-url"') || !oauth.includes("getSiteUrl()")) {
+    checks.push({
+      ok: false,
+      label: "resolveAppOrigin must use getSiteUrl (not raw localhost APP_URL)",
+    });
+    return;
+  }
+  const fnStart = oauth.indexOf("function resolveAppOrigin");
+  const fn = fnStart >= 0 ? oauth.slice(fnStart, fnStart + 400) : "";
+  if (fn.includes("localhost:3000")) {
+    checks.push({
+      ok: false,
+      label: "resolveAppOrigin must not fall back to localhost",
+    });
+    return;
+  }
+  checks.push({
+    ok: true,
+    label: "OAuth origin uses canonical getSiteUrl()",
+  });
+}
+
+function testCanonicalSiteUrlRejectsLocalhostInProd() {
+  const site = readFileSync(join(root, "lib/site-url.ts"), "utf8");
+  if (
+    !site.includes("isUntrustedPublicOrigin") ||
+    !site.includes("localhost") ||
+    !site.includes("https://www.jimvio.com")
+  ) {
+    checks.push({
+      ok: false,
+      label: "getSiteUrl production localhost rejection missing",
+    });
+    return;
+  }
+  checks.push({
+    ok: true,
+    label: "getSiteUrl rejects localhost in production",
+  });
 }
 
 function testState() {
@@ -88,18 +204,21 @@ function testState() {
 }
 
 function testLiveGateSafety() {
-  const cap = readFileSync(join(root, "lib/live/destinations/capabilities.ts"), "utf8");
-  const adapter = readFileSync(join(root, "lib/live/destinations/adapters/tiktok.ts"), "utf8");
+  const cap = readFileSync(
+    join(root, "lib/live/destinations/capabilities.ts"),
+    "utf8"
+  );
+  const adapter = readFileSync(
+    join(root, "lib/live/destinations/adapters/tiktok.ts"),
+    "utf8"
+  );
   if (!cap.includes("TIKTOK_LIVE_ENABLED") || !adapter.includes("ApprovalRequiredAdapter")) {
     checks.push({ ok: false, label: "LIVE approval gate intact" });
     return;
   }
-  if (!adapter.includes("Login Kit") || !adapter.includes("does not activate LIVE")) {
-    // soft — check createTikTokAdapter always ApprovalRequired
-    if (!adapter.includes("return new ApprovalRequiredAdapter")) {
-      checks.push({ ok: false, label: "LIVE adapter remains gated" });
-      return;
-    }
+  if (!adapter.includes("return new ApprovalRequiredAdapter")) {
+    checks.push({ ok: false, label: "LIVE adapter remains gated" });
+    return;
   }
   if (adapter.includes("rtmp://") || adapter.includes("StreamOutput")) {
     checks.push({ ok: false, label: "No fake TikTok RTMP/LIVE egress" });
@@ -109,8 +228,14 @@ function testLiveGateSafety() {
 }
 
 function testNoV1() {
-  const adapter = readFileSync(join(root, "lib/live/destinations/adapters/tiktok.ts"), "utf8");
-  if (adapter.includes("open-api.tiktok.com/oauth/access_token") || adapter.includes("/oauth/authorize/?")) {
+  const adapter = readFileSync(
+    join(root, "lib/live/destinations/adapters/tiktok.ts"),
+    "utf8"
+  );
+  if (
+    adapter.includes("open-api.tiktok.com/oauth/access_token") ||
+    adapter.includes("www.tiktok.com/auth/authorize/")
+  ) {
     checks.push({ ok: false, label: "No deprecated OAuth v1 endpoints" });
     return;
   }
@@ -118,7 +243,10 @@ function testNoV1() {
 }
 
 function testUgcSeparation() {
-  const adapter = readFileSync(join(root, "lib/live/destinations/adapters/tiktok.ts"), "utf8");
+  const adapter = readFileSync(
+    join(root, "lib/live/destinations/adapters/tiktok.ts"),
+    "utf8"
+  );
   if (adapter.includes("process.env.TIKTOK_ACCESS_TOKEN")) {
     checks.push({ ok: false, label: "Must not use UGC TIKTOK_ACCESS_TOKEN" });
     return;
@@ -131,6 +259,28 @@ function testUgcSeparation() {
   checks.push({ ok: true, label: "UGC TikTok token remains separate" });
 }
 
+function testTokenExchangeNoVerifier() {
+  const adapter = readFileSync(
+    join(root, "lib/live/destinations/adapters/tiktok.ts"),
+    "utf8"
+  );
+  if (adapter.includes("code_verifier")) {
+    checks.push({
+      ok: false,
+      label: "Web token exchange must not send code_verifier",
+    });
+    return;
+  }
+  if (
+    !adapter.includes('grant_type: "authorization_code"') ||
+    !adapter.includes("redirect_uri: input.redirectUri")
+  ) {
+    checks.push({ ok: false, label: "Token exchange Web fields" });
+    return;
+  }
+  checks.push({ ok: true, label: "Token exchange is Web (no PKCE verifier)" });
+}
+
 must(
   "lib/live/destinations/adapters/tiktok.ts",
   [
@@ -141,13 +291,15 @@ must(
     "TIKTOK_CLIENT_KEY",
     "TIKTOK_CLIENT_SECRET",
     "ApprovalRequiredAdapter",
+    'params.delete("code_challenge")',
+    'params.delete("code_challenge_method")',
   ],
-  "TikTok Login Kit adapter + LIVE gate"
+  "TikTok Login Kit adapter + LIVE gate + PKCE strip"
 );
 
 must(
   "app/api/integrations/tiktok/start/route.ts",
-  ["createOAuthState", "tiktokAuthUrl", "platform: \"tiktok\""],
+  ["createOAuthState", "tiktokAuthUrl", 'platform: "tiktok"', "pkce: false"],
   "TikTok OAuth start route"
 );
 
@@ -169,11 +321,21 @@ must(
   "LIVE start blocks approval-gated destinations"
 );
 
+mustNot(
+  "lib/live/destinations/adapters/tiktok.ts",
+  ["code_challenge_method=S256", "code_challenge:"],
+  "Adapter source never assigns Web PKCE challenge"
+);
+
 testAuthUrl();
+testRejectLocalhostRedirect();
+testOriginResolutionSource();
+testCanonicalSiteUrlRejectsLocalhostInProd();
 testState();
 testLiveGateSafety();
 testNoV1();
 testUgcSeparation();
+testTokenExchangeNoVerifier();
 
 const failed = checks.filter((c) => !c.ok);
 for (const c of checks) console.log(`${c.ok ? "✓" : "✗"} ${c.label}`);
