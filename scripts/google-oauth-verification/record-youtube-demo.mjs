@@ -197,6 +197,57 @@ function printBanner(title, lines) {
   console.log("==================================================\n");
 }
 
+async function pageLooksLikeLogin(page) {
+  const url = page.url();
+  if (/\/login/i.test(url)) return true;
+  const body = await page.locator("body").innerText().catch(() => "");
+  return /Welcome back|Sign in to continue|Continue with Google|CAPTCHA|security check/i.test(
+    body
+  );
+}
+
+async function detectTurnstileChallenge(page) {
+  if (!(await pageLooksLikeLogin(page))) return null;
+  const body = await page.locator("body").innerText().catch(() => "");
+  const hasWidget = await page
+    .locator('[data-testid="turnstile-widget"], iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"]')
+    .first()
+    .isVisible()
+    .catch(() => false);
+  const failed = /Verification failed|CAPTCHA failed|CAPTCHA expired|Unable to load CAPTCHA|Please complete the security check/i.test(
+    body
+  );
+  const present =
+    hasWidget ||
+    failed ||
+    /I'm not a robot|security check|Cloudflare/i.test(body);
+  if (!present) return null;
+  return { failed, bodySnippet: body.slice(0, 240) };
+}
+
+function printTurnstileGuidance(failed) {
+  console.log("\n==================================================");
+  console.log("CLOUDFLARE TURNSTILE ACTION REQUIRED");
+  console.log("==================================================\n");
+  console.log(
+    'Complete the real "I\'m not a robot" verification in the visible Chrome window.'
+  );
+  if (failed) {
+    console.log(
+      'If Turnstile shows "Verification failed" / "CAPTCHA failed", click Retry and complete the challenge normally.'
+    );
+  }
+  console.log("\nDO NOT CLOSE THE CHROME WINDOW.");
+  console.log("Do NOT bypass Cloudflare. Do NOT use CAPTCHA solvers.");
+  console.log(
+    "After Turnstile succeeds, complete Jimvio login (email/password or Continue with Google)."
+  );
+  console.log(
+    "The recorder continues automatically after a real authenticated Live Studio session.\n"
+  );
+  console.log("==================================================\n");
+}
+
 async function waitUntil(page, predicate, label) {
   printBanner(label, [
     "Waiting for authenticated / completed state…",
@@ -204,8 +255,22 @@ async function waitUntil(page, predicate, label) {
   ]);
   const started = Date.now();
   let beat = 0;
+  let turnstileAnnounced = false;
   for (;;) {
     assertAlive(page);
+
+    const turnstile = await detectTurnstileChallenge(page).catch(() => null);
+    if (turnstile && !turnstileAnnounced) {
+      printTurnstileGuidance(turnstile.failed);
+      turnstileAnnounced = true;
+      checklist.notes.push(
+        turnstile.failed
+          ? "Turnstile showed Verification/CAPTCHA failed — waiting for human Retry + completion"
+          : "Turnstile challenge detected — waiting for human completion (no bypass)"
+      );
+      writeChecklist();
+    }
+
     if (await predicate().catch(() => false)) {
       console.log(`✓ ${label}\n`);
       return;
@@ -216,8 +281,13 @@ async function waitUntil(page, predicate, label) {
     }
     if (elapsed - beat >= 15_000) {
       beat = elapsed;
+      const hint = turnstile
+        ? turnstile.failed
+          ? "Turnstile still failing — click Retry in Chrome"
+          : "complete Turnstile + Jimvio login in Chrome"
+        : "complete Jimvio login in Chrome";
       console.log(
-        `[waiting ${Math.floor(elapsed / 1000)}s] ${label} — Chrome still open`
+        `[waiting ${Math.floor(elapsed / 1000)}s] ${label} — Chrome still open (${hint})`
       );
       if (process.platform === "darwin") {
         spawnSync(
@@ -238,8 +308,10 @@ async function isJimvioAuthenticated(page) {
   if (/accounts\.google\.com/i.test(url)) return false;
   if (!/jimvio\.com\/communities\/live/i.test(url)) return false;
   const body = await page.locator("body").innerText().catch(() => "");
-  if (/Sign in|Log in|Continue with Google|Create account/i.test(body) &&
-      !/Go Live|Live Settings|Live Destinations|YouTube/i.test(body)) {
+  if (
+    /Sign in|Log in|Continue with Google|Create account|CAPTCHA failed/i.test(body) &&
+    !/Go Live|Live Settings|Live Destinations|YouTube/i.test(body)
+  ) {
     return false;
   }
   return /Live Settings|Live Destinations|Go Live|YouTube|STREAMING|Streaming/i.test(
@@ -253,20 +325,51 @@ async function ensureJimvioSession(page) {
     timeout: 60_000,
   });
   if (await isJimvioAuthenticated(page)) return;
+
+  // Land on the real login page so Turnstile is visible for the operator.
+  await page.goto(
+    `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`,
+    { waitUntil: "domcontentloaded", timeout: 60_000 }
+  );
   await setBanner(page, "Step 2 — Jimvio login (session only)");
   await shot(page, "02-login");
+
+  const turnstile = await detectTurnstileChallenge(page).catch(() => null);
+  if (turnstile) {
+    printTurnstileGuidance(turnstile.failed);
+    checklist.notes.push(
+      "Login page presents Cloudflare Turnstile — human completion required (no bypass)"
+    );
+    writeChecklist();
+  }
+
   await waitUntil(
     page,
     () => isJimvioAuthenticated(page),
     "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
   );
   await page.goto(`${BASE}/communities/live?open=settings`, {
-    waitUntil: "networkidle",
+    waitUntil: "domcontentloaded",
     timeout: 60_000,
   });
   if (!(await isJimvioAuthenticated(page))) {
+    // Stay alive: re-enter wait instead of exiting with code 2 while human is still working.
+    console.log(
+      "Session not stable yet — keeping Chrome open for another login/Turnstile attempt…"
+    );
+    await waitUntil(
+      page,
+      () => isJimvioAuthenticated(page),
+      "JIMVIO LOGIN REQUIRED (retry after Turnstile / auth)"
+    );
+    await page.goto(`${BASE}/communities/live?open=settings`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+  }
+  if (!(await isJimvioAuthenticated(page))) {
     throw new Error(
-      "Jimvio session not established after login — complete login in Chrome and keep the window open"
+      "Jimvio session not established after login — complete Turnstile + login in Chrome and keep the window open"
     );
   }
 }
@@ -493,6 +596,17 @@ async function main() {
   console.log(
     "Safety: never revoke Sign in with Google / Supabase login — only YouTube Live grant via Disconnect revoke."
   );
+  console.log(
+    "Local headed Chrome: no --no-sandbox; Turnstile must be completed by a human (no bypass)."
+  );
+
+  // Local macOS headed recording: use installed Chrome without unsupported
+  // automation sandbox flags. Never weakens production Turnstile.
+  const launchArgs = [`--window-size=${VIEWPORT.width},${VIEWPORT.height}`];
+  // --disable-dev-shm-usage is a Linux CI convenience; omit on macOS desktop.
+  if (process.platform !== "darwin") {
+    launchArgs.push("--disable-dev-shm-usage");
+  }
 
   const context = await chromium.launchPersistentContext(PROFILE, {
     channel: "chrome",
@@ -504,7 +618,10 @@ async function main() {
       dir: path.join(OUT_DIR, "video"),
       size: VIEWPORT,
     },
-    args: [`--window-size=${VIEWPORT.width},${VIEWPORT.height}`, "--disable-dev-shm-usage"],
+    // Drop Playwright defaults that make Chrome warn / hurt human Turnstile UX.
+    // Do NOT disable Turnstile or spoof tokens — human completes the challenge.
+    ignoreDefaultArgs: ["--enable-automation", "--no-sandbox"],
+    args: launchArgs,
     ...(STORAGE && fs.existsSync(STORAGE) ? { storageState: STORAGE } : {}),
     permissions: ["camera", "microphone"],
   });

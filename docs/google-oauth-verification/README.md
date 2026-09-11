@@ -29,7 +29,19 @@ Google Cloud project referenced for verification: **Jimvio Auth** (`jimvio-auth`
 4. Callback: `GET /api/integrations/youtube/callback` → returns to Live Settings with Connected toast
 5. Functionality: Live Studio Go Live → destination prepare creates YouTube `liveBroadcasts` + `liveStreams` + bind (+ transition)
 
-## Prepare (reset YouTube Live grant only)
+## Cloudflare Turnstile (login)
+
+Production login uses real Cloudflare Turnstile. The recorder **never** bypasses it.
+
+When Turnstile appears (or shows “Verification failed” / “CAPTCHA failed”):
+
+1. Keep the Playwright Chrome window open  
+2. Click **Retry** if needed and complete the real challenge  
+3. Finish Jimvio login (email/password after Turnstile, or Continue with Google)  
+4. The script continues automatically after a stable Live Studio session  
+
+`--no-sandbox` is not used by this local headed workflow (`ignoreDefaultArgs` drops it if Playwright would inject it).
+
 
 Disconnects YouTube inside Jimvio so production can revoke **only** the YouTube Live Google client grant (`oauth2.googleapis.com/revoke`). This does **not** remove Sign in with Google / Supabase login.
 

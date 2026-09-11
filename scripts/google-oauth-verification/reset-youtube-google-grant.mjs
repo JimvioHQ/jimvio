@@ -268,7 +268,8 @@ async function main() {
     headless: false,
     viewport: { width: 1920, height: 1080 },
     locale: "en-US",
-    args: ["--disable-dev-shm-usage"],
+    ignoreDefaultArgs: ["--enable-automation", "--no-sandbox"],
+    args: ["--window-size=1920,1080"],
     ...(STORAGE && fs.existsSync(STORAGE) ? { storageState: STORAGE } : {}),
   });
   const page = context.pages()[0] || (await context.newPage());
