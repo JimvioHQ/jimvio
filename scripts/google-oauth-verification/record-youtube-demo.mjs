@@ -235,11 +235,62 @@ async function isJimvioAuthenticated(page) {
   assertAlive(page);
   const url = page.url();
   if (/\/login/i.test(url)) return false;
-  if (!/jimvio\.com/i.test(url)) return false;
+  if (/accounts\.google\.com/i.test(url)) return false;
+  if (!/jimvio\.com\/communities\/live/i.test(url)) return false;
   const body = await page.locator("body").innerText().catch(() => "");
-  return /Live Settings|Live Destinations|Go Live|Streaming|Live Studio|Account|Settings/i.test(
+  if (/Sign in|Log in|Continue with Google|Create account/i.test(body) &&
+      !/Go Live|Live Settings|Live Destinations|YouTube/i.test(body)) {
+    return false;
+  }
+  return /Live Settings|Live Destinations|Go Live|YouTube|STREAMING|Streaming/i.test(
     body
   );
+}
+
+async function ensureJimvioSession(page) {
+  await page.goto(`${BASE}/communities/live?open=settings`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+  if (await isJimvioAuthenticated(page)) return;
+  await setBanner(page, "Step 2 — Jimvio login (session only)");
+  await shot(page, "02-login");
+  await waitUntil(
+    page,
+    () => isJimvioAuthenticated(page),
+    "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
+  );
+  await page.goto(`${BASE}/communities/live?open=settings`, {
+    waitUntil: "networkidle",
+    timeout: 60_000,
+  });
+  if (!(await isJimvioAuthenticated(page))) {
+    throw new Error(
+      "Jimvio session not established after login — complete login in Chrome and keep the window open"
+    );
+  }
+}
+
+async function youtubeRow(page) {
+  return page.locator("li").filter({ hasText: /YouTube/i }).first();
+}
+
+async function openLiveDestinations(page) {
+  await page.goto(`${BASE}/communities/live?open=settings`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+  // If auth bounced (e.g. Google Sign-in rejected), wait again — do not fail the pause.
+  if (!(await isJimvioAuthenticated(page))) {
+    await ensureJimvioSession(page);
+  }
+  await page
+    .getByText(/Live Settings|Live Destinations|Streaming|YouTube/i)
+    .first()
+    .waitFor({ timeout: 90_000 });
+  const yt = await youtubeRow(page);
+  await yt.scrollIntoViewIfNeeded().catch(() => undefined);
+  await dwell(1000);
 }
 
 function looksLikeYouTubePermission(text) {
@@ -260,24 +311,6 @@ function looksLikeConsentControls(text) {
     (/Allow/i.test(text) && /Cancel/i.test(text)) ||
     /Select what .+ can access/i.test(text)
   );
-}
-
-async function youtubeRow(page) {
-  return page.locator("li").filter({ hasText: /YouTube/i }).first();
-}
-
-async function openLiveDestinations(page) {
-  await page.goto(`${BASE}/communities/live?open=settings`, {
-    waitUntil: "networkidle",
-    timeout: 60_000,
-  });
-  await page
-    .getByText(/Live Settings|Live Destinations|Streaming|YouTube/i)
-    .first()
-    .waitFor({ timeout: 60_000 });
-  const yt = await youtubeRow(page);
-  await yt.scrollIntoViewIfNeeded().catch(() => undefined);
-  await dwell(1000);
 }
 
 async function disconnectYouTubeIfPresent(page) {
@@ -501,21 +534,9 @@ async function main() {
     await shot(page, "01-homepage");
     stamp("homepage_end");
 
-    // 2 Login
+    // 2 Login — require a stable Live Studio session (not a transient false positive)
     stamp("login_start");
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
-    });
-    if (!(await isJimvioAuthenticated(page))) {
-      await setBanner(page, "Step 2 — Jimvio login (session only)");
-      await shot(page, "02-login");
-      await waitUntil(
-        page,
-        () => isJimvioAuthenticated(page),
-        "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
-      );
-    }
+    await ensureJimvioSession(page);
     checklist.authenticatedApp = true;
     try {
       fs.mkdirSync(path.dirname(SAVE_STORAGE), { recursive: true });
