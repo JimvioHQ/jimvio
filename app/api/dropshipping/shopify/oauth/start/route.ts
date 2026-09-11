@@ -8,8 +8,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Start Shopify OAuth when SHOPIFY_CLIENT_ID is configured.
- * Fallback (no OAuth app): POST /api/dropshipping/stores with
- * { platform: "shopify", domain, accessToken } for token-connect.
+ * Merchant UI is OAuth-only — do not advertise Admin API token paste here.
  */
 export async function GET(req: NextRequest) {
   const auth = await requireDropshippingMerchant();
@@ -23,19 +22,8 @@ export async function GET(req: NextRequest) {
   if (!clientId) {
     return NextResponse.json(
       {
-        error: "Shopify OAuth is not configured.",
+        error: "Shopify connection is temporarily unavailable. Please try again later.",
         code: "OAUTH_NOT_CONFIGURED",
-        fallback: {
-          method: "POST",
-          path: "/api/dropshipping/stores",
-          body: {
-            platform: "shopify",
-            domain: "your-store.myshopify.com",
-            accessToken: "shpat_…",
-            name: "Optional display name",
-          },
-          note: "Create a custom app Admin API token in Shopify and use token-connect.",
-        },
       },
       { status: 501 }
     );

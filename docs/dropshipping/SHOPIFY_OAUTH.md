@@ -8,7 +8,7 @@ encrypted credentials in `merchant_store_credentials` (never a global token).
 ```
 Merchant → /commerce/integrations → Connect Shopify
   → GET /api/dropshipping/shopify/oauth/start?shop=store.myshopify.com
-  → Shopify authorize
+  → Shopify authorize (merchant login / store selection)
   → GET /api/dropshipping/shopify/oauth/callback
   → token exchange (server-only)
   → connectShopifyStore (test shop.json + persist)
@@ -16,10 +16,12 @@ Merchant → /commerce/integrations → Connect Shopify
   → /commerce/connected-stores (Connected)
 ```
 
-Token-connect fallback (custom app Admin API token):
+Merchant production UX is **OAuth-only**. The Integrations page does not expose
+Admin API token paste. If OAuth env is missing, merchants see a temporary
+unavailable message (no secrets, no token instructions).
 
-`POST /api/dropshipping/stores` with `{ platform, domain, accessToken }`.
-
+Internal break-glass (not merchant UI): `POST /api/dropshipping/stores` with
+`{ platform, domain, accessToken }` remains available for authorized ops only.
 ## Shopify Partner app settings
 
 1. Create a Shopify app (Partner Dashboard or Dev Dashboard).

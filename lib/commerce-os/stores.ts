@@ -4,6 +4,10 @@ import {
   assertCanCreateJimvioStore,
   slugifyHandle,
 } from "./tenant";
+import {
+  storefrontBrowsePath,
+  storefrontDisplayUrl,
+} from "./storefront-url";
 
 export type CreateStoreInput = {
   vendorId: string;
@@ -21,7 +25,7 @@ export type CreateStoreInput = {
 };
 
 export type CreateStoreResult =
-  | { ok: true; storeId: string; handle: string; url: string }
+  | { ok: true; storeId: string; handle: string; url: string; publicUrl: string }
   | { ok: false; error: string; code: string };
 
 export async function createJimvioStore(
@@ -92,8 +96,9 @@ export async function createJimvioStore(
           home: [
             { id: "announcement", type: "announcement", enabled: true },
             { id: "header", type: "header", enabled: true },
-            { id: "hero", type: "hero", enabled: true, props: { headline: name, subhead: "Shop the latest" } },
-            { id: "featured_products", type: "featured_products", enabled: true },
+            { id: "hero", type: "hero", enabled: true, props: { headline: name, subhead: "Curated products. Fast checkout. Global fulfillment.", cta: "Shop the collection" } },
+            { id: "featured_products", type: "featured_products", enabled: true, props: { title: "Featured" } },
+            { id: "trust", type: "banner", enabled: true, props: { headline: "Why shop with us", subhead: "Secure checkout · Verified sourcing · Order tracking" } },
             { id: "footer", type: "footer", enabled: true },
           ],
         },
@@ -117,38 +122,38 @@ export async function createJimvioStore(
     };
   }
 
-  // Default subdomain record (verification pending until DNS/platform wiring)
+  // Default Jimvio subdomain — platform wildcard DNS activates public host routing
   await cosTable(db, "jimvio_store_domains").insert({
     store_id: store.id,
     vendor_id: input.vendorId,
     hostname: `${store.handle}.jimvio.com`,
     kind: "jimvio_subdomain",
     is_primary: true,
-    verification_status: "pending",
+    verification_status: "verified",
     ssl_status: "pending",
     dns_instructions: {
-      note: "Jimvio subdomain routing is pending platform DNS configuration. Path storefront is available at /s/" + store.handle,
+      note: `Canonical storefront host: ${storefrontDisplayUrl(store.handle)}. Path fallback: ${storefrontBrowsePath(store.handle)}.`,
     },
   });
 
-  // Default navigation + policy pages
+  // Default navigation + policy pages (path-based for reliable in-app browse)
   await cosTable(db, "jimvio_store_navigation").insert([
     {
       store_id: store.id,
       location: "header",
       items: [
-        { label: "Home", href: `/s/${store.handle}` },
-        { label: "All products", href: `/s/${store.handle}/collections/all` },
+        { label: "Home", href: storefrontBrowsePath(store.handle) },
+        { label: "All products", href: storefrontBrowsePath(store.handle, "/collections/all") },
       ],
     },
     {
       store_id: store.id,
       location: "footer",
       items: [
-        { label: "About", href: `/s/${store.handle}/pages/about` },
-        { label: "Contact", href: `/s/${store.handle}/pages/contact` },
-        { label: "Shipping", href: `/s/${store.handle}/pages/shipping-policy` },
-        { label: "Refunds", href: `/s/${store.handle}/pages/refund-policy` },
+        { label: "About", href: storefrontBrowsePath(store.handle, "/pages/about") },
+        { label: "Contact", href: storefrontBrowsePath(store.handle, "/pages/contact") },
+        { label: "Shipping", href: storefrontBrowsePath(store.handle, "/pages/shipping-policy") },
+        { label: "Refunds", href: storefrontBrowsePath(store.handle, "/pages/refund-policy") },
       ],
     },
   ]);
@@ -191,7 +196,8 @@ export async function createJimvioStore(
     ok: true,
     storeId: store.id,
     handle: store.handle,
-    url: `/s/${store.handle}`,
+    url: storefrontBrowsePath(store.handle),
+    publicUrl: storefrontDisplayUrl(store.handle),
   };
 }
 

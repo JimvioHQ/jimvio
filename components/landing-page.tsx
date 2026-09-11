@@ -1342,7 +1342,7 @@ const DATA_SHARING_ROWS: TableRow[] = [
         col3: "Only data required to operate Jimvio Commerce for that merchant’s connected store",
     },
     {
-        col1: "Fulfillment suppliers (e.g. CJ Dropshipping)",
+        col1: "Fulfillment suppliers (e.g. Jimvio Store)",
         col2: "Route and fulfill merchant orders when the merchant enables supplier integration",
         col3: "Order line items, shipping destination, and tracking as needed for fulfillment",
     },
@@ -1886,7 +1886,7 @@ function PrivacyPage() {
                     <p className="text-[15px] text-[var(--color-text-secondary)] leading-[1.75] font-light mb-3.5">
                         When a merchant connects a Shopify store to Jimvio Commerce OS, Jimvio acts as a processor
                         of store data needed to operate Commerce features (products, inventory, orders, fulfillment,
-                        and optional supplier routing such as CJ Dropshipping). Access tokens are stored encrypted
+                        and optional supplier routing such as Jimvio Store). Access tokens are stored encrypted
                         server-side and are never exposed in the browser.
                     </p>
                     <LegalList

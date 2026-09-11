@@ -152,7 +152,11 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
 
   return (
     <Link
-      href={`/marketplace?type=${type}&category=${c.slug}`}
+      href={
+        type === "physical"
+          ? `/marketplace/physical?category=${c.slug}`
+          : `/marketplace?type=${type}&category=${c.slug}`
+      }
       className="group relative mx-auto flex w-[84%] max-w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface)] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.02] hover:border-[var(--color-border)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.1)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 md:w-full md:rounded-2xl"
     >
       <div className="relative aspect-[5/3] w-full overflow-hidden md:aspect-[4/3]">
@@ -301,6 +305,11 @@ export function MarketplacePageClient({
     setProductsLoading(false);
     setLoadingMore(false);
 
+    // Physical Marketplace is canonical at /marketplace/physical
+    if (t === "physical") {
+      router.replace("/marketplace/physical", { scroll: false });
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set("type", t);
     params.delete("category");

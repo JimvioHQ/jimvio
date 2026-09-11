@@ -13,17 +13,18 @@ tables and APIs remain `merchant_stores`, `store_product_links`, `ds_*`, and
 |---------|--------|
 | Operations | Overview, Stores (Jimvio), Products, Orders, Inventory |
 | Channels | Integrations, Connected Stores, Channel Products/Orders/Inventory, Pricing, Sync |
-| Supply | Suppliers (CJ), Fulfillment, Shipping |
+| Supply | Suppliers (Jimvio Store), Fulfillment, Shipping |
 | Storefront | Builder, Collections, Customers, Discounts, Analytics, Payments, Pages, Domains |
 | System | Settings, API Keys, Channel Settings |
 
 Public top navigation (do not reorder): Marketplace · Communities · Commerce · Affiliates · UGC & Clipping. (Home remains via logo / direct URL only.)
 
+Physical Marketplace canonical route: `/marketplace/physical` (query `?type=physical` redirects here).
+
 ## Dual store models (do not merge)
 
-- **Jimvio Store** → `jimvio_stores` → `/commerce/stores`, orders via `jimvio_store_id`
+- **Jimvio Store** → `jimvio_stores` → `/commerce/stores`, storefront `{handle}.jimvio.com` (path fallback `/s/{handle}`), orders via `jimvio_store_id`
 - **Connected Store (Shopify)** → `merchant_stores` → `/commerce/connected-stores`, orders via `merchant_store_id`
-
 ## Channel flow (Shopify)
 
 ```

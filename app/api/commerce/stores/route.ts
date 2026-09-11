@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
         id: result.storeId,
         handle: result.handle,
         url: result.url,
+        publicUrl: result.publicUrl,
       },
     },
     { status: 201 }

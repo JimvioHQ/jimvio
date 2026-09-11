@@ -1,14 +1,35 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle, loadStoreProducts } from "@/lib/commerce-os";
 import {
   StorefrontHero,
   StorefrontFeaturedProducts,
+  StorefrontTrustBar,
 } from "@/components/commerce-os/storefront-sections";
+import { storefrontDisplayUrl } from "@/lib/commerce-os/storefront-url";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ handle: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle } = await params;
+  const supabase = await createClient();
+  const store = await loadPublishedStoreByHandle(supabase, handle);
+  if (!store) return { title: "Store" };
+  const canonical = storefrontDisplayUrl(handle);
+  return {
+    title: store.name,
+    description: store.description || `Shop ${store.name} on Jimvio`,
+    alternates: { canonical },
+    openGraph: {
+      title: store.name,
+      description: store.description || undefined,
+      url: canonical,
+    },
+  };
+}
 
 export default async function StorefrontHomePage({ params }: Props) {
   const { handle } = await params;
@@ -31,7 +52,7 @@ export default async function StorefrontHomePage({ params }: Props) {
     )
     .map((section) => {
       const props = section.props || {};
-      if (section.type === "hero" || section.type === "banner") {
+      if (section.type === "hero") {
         return (
           <StorefrontHero
             key={section.id}
@@ -45,6 +66,15 @@ export default async function StorefrontHomePage({ params }: Props) {
                 : store.description || undefined
             }
             cta={typeof props.cta === "string" ? props.cta : undefined}
+          />
+        );
+      }
+      if (section.type === "banner") {
+        return (
+          <StorefrontTrustBar
+            key={section.id}
+            headline={typeof props.headline === "string" ? props.headline : undefined}
+            subhead={typeof props.subhead === "string" ? props.subhead : undefined}
           />
         );
       }
@@ -78,7 +108,7 @@ export default async function StorefrontHomePage({ params }: Props) {
         return (
           <div
             key={section.id}
-            className="mx-auto max-w-5xl px-4 py-8 prose prose-sm"
+            className="prose prose-sm mx-auto max-w-6xl px-4 py-8 sm:px-6"
             dangerouslySetInnerHTML={{ __html: props.html }}
           />
         );

@@ -20,14 +20,14 @@ import type {
  */
 export class CjSupplierConnector implements SupplierConnector {
   readonly code = "cj" as const;
-  readonly displayName = "CJ Dropshipping";
+  readonly displayName = "Jimvio Store";
 
   constructor(private readonly db: SupabaseClient) {}
 
   async getProduct(supplierProductId: string): Promise<SupplierProduct | null> {
     if (!(await assertCjQuotaAvailableForBackground())) {
       throw new Error(
-        "CJ inventory is temporarily unavailable. Sync will retry automatically."
+        "Jimvio Store inventory is temporarily unavailable. Sync will retry automatically."
       );
     }
     const { getOrRefreshAccessToken } = await import("@/lib/cj/auth");
@@ -46,7 +46,7 @@ export class CjSupplierConnector implements SupplierConnector {
     return {
       supplierCode: "cj",
       supplierProductId: String(d.pid ?? supplierProductId),
-      title: String(d.productNameEn ?? d.productName ?? "CJ Product"),
+      title: String(d.productNameEn ?? d.productName ?? "Jimvio Store product"),
       descriptionHtml: (d.description as string) ?? null,
       images: Array.isArray(d.productImage)
         ? (d.productImage as string[])
@@ -62,7 +62,7 @@ export class CjSupplierConnector implements SupplierConnector {
   async getVariants(supplierProductId: string): Promise<SupplierVariant[]> {
     if (!(await assertCjQuotaAvailableForBackground())) {
       throw new Error(
-        "CJ inventory is temporarily unavailable. Sync will retry automatically."
+        "Jimvio Store inventory is temporarily unavailable. Sync will retry automatically."
       );
     }
     const product = await this.getProduct(supplierProductId);
@@ -96,7 +96,7 @@ export class CjSupplierConnector implements SupplierConnector {
     if (!supplierVariantIds.length) return [];
     if (!(await assertCjQuotaAvailableForBackground())) {
       throw new Error(
-        "CJ inventory is temporarily unavailable. Sync will retry automatically."
+        "Jimvio Store inventory is temporarily unavailable. Sync will retry automatically."
       );
     }
     const { getOrRefreshAccessToken } = await import("@/lib/cj/auth");

@@ -174,5 +174,6 @@ export async function getCommerceOverviewDashboard(
     checklist,
     storeLive,
     storefrontPath: `/s/${storeHandle}`,
+    storefrontUrl: `https://${storeHandle}.jimvio.com`,
   };
 }

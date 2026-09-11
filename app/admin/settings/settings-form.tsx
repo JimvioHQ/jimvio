@@ -943,7 +943,7 @@ export default function AdminPlatformSettingsForm({
               {(["vendor", "shopify", "cj"] as const).map(ch => (
                 <div key={ch} className="bg-accent/50 border rounded-md p-4 flex flex-col gap-3 transition-all hover:border-primary hover:bg-primary/5">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{ch === "cj" ? "CJ Dropshipping" : ch.charAt(0).toUpperCase() + ch.slice(1)}</span>
+                    <span className="text-sm font-medium">{ch === "cj" ? "Jimvio Store" : ch.charAt(0).toUpperCase() + ch.slice(1)}</span>
                     <Badge variant="secondary" className="text-[10px]">{ch}</Badge>
                   </div>
                   <Toggle checked={supplier[ch].enabled} onChange={v => setSup(ch, "enabled", v)} label={supplier[ch].enabled ? "Enabled" : "Disabled"} />

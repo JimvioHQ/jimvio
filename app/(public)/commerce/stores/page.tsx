@@ -66,7 +66,7 @@ export default async function CommerceStoresPage() {
               <div>
                 <p className="font-medium text-[#111827]">{s.name}</p>
                 <p className="text-xs text-[#6B7280]">
-                  /s/{s.handle} · {s.status} · {s.default_currency}
+                  {s.handle}.jimvio.com · {s.status} · {s.default_currency}
                   {s.published_at
                     ? ` · published ${new Date(s.published_at).toLocaleDateString()}`
                     : ""}
@@ -84,7 +84,7 @@ export default async function CommerceStoresPage() {
                   className="rounded-md bg-[#FF5A1F] px-2.5 py-1.5 text-xs font-semibold text-white"
                   target="_blank"
                 >
-                  Open storefront
+                  Open Store
                 </Link>
               </div>
             </div>

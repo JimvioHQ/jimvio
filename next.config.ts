@@ -59,6 +59,13 @@ const nextConfig: NextConfig = {
       { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
       { source: "/creators/:path*", destination: "/influencers/:path*", permanent: true },
       { source: "/vendors/jimvio-dropshipping", destination: "/vendors/jimvio-store", permanent: true },
+      // Canonical Physical Marketplace (avoid duplicate ?type=physical indexation)
+      {
+        source: "/marketplace",
+        has: [{ type: "query", key: "type", value: "physical" }],
+        destination: "/marketplace/physical",
+        permanent: true,
+      },
       // Community hub: /c → /communities (permanent for bookmarks + SEO)
       { source: "/c", destination: "/communities", permanent: true },
       { source: "/c/:path*", destination: "/communities/:path*", permanent: true },

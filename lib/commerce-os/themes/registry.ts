@@ -67,16 +67,33 @@ export function mergeThemeSettings(
 
 export function defaultHomeSections(storeName: string): ThemeSection[] {
   return [
-    { id: "announcement", type: "announcement", enabled: true, props: { text: "Free shipping on select orders" } },
+    {
+      id: "announcement",
+      type: "announcement",
+      enabled: true,
+      props: { text: "Free shipping on select orders · Secure Jimvio checkout" },
+    },
     { id: "header", type: "header", enabled: true },
     {
       id: "hero",
       type: "hero",
       enabled: true,
-      props: { headline: storeName, subhead: "Discover products curated for you", cta: "Shop now" },
+      props: {
+        headline: storeName,
+        subhead: "Curated products. Fast checkout. Global fulfillment.",
+        cta: "Shop the collection",
+      },
     },
     { id: "featured_products", type: "featured_products", enabled: true, props: { title: "Featured" } },
-    { id: "collections", type: "collections", enabled: true, props: { title: "Collections" } },
+    {
+      id: "trust",
+      type: "banner",
+      enabled: true,
+      props: {
+        headline: "Why shop with us",
+        subhead: "Secure checkout · Verified sourcing · Order tracking",
+      },
+    },
     { id: "footer", type: "footer", enabled: true },
   ];
 }

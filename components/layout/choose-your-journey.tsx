@@ -45,7 +45,7 @@ const JOURNEYS: readonly Journey[] = [
     tagline: "Browse verified suppliers and track every order in one place.",
     items: ["Verified sellers", "Order tracking", "Buyer protection"],
     cta: "Browse marketplace",
-    href: "/marketplace",
+    href: "/marketplace/physical",
   },
   {
     role: "Seller",

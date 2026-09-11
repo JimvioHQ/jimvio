@@ -28,7 +28,7 @@ const CHANNELS: {
 }[] = [
     { key: "vendor", label: "Direct vendors", hint: "Products listed by verified sellers on Jimvio" },
     { key: "shopify", label: "Shopify", hint: "Vendor-connected Shopify stores" },
-    { key: "cj", label: "CJ Dropshipping", hint: "Catalog and fulfillment via CJ" },
+    { key: "cj", label: "Jimvio Store", hint: "Catalog and fulfillment via Jimvio Store" },
 ];
 
 export function SuppliersForm({ initial }: { initial: unknown }) {

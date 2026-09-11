@@ -3,36 +3,36 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+/**
+ * Shopify Integrations — OAuth-only merchant connect.
+ * Manual Admin API token paste is not part of the production UX.
+ */
 export default function DropshippingIntegrationsPage() {
   const [shop, setShop] = useState("");
-  const [domain, setDomain] = useState("");
-  const [token, setToken] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [oauthNote, setOauthNote] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const fromQuery = params.get("shop");
       const err = params.get("error");
-      if (fromQuery) {
-        setShop(fromQuery);
-        setDomain(fromQuery);
-      }
+      if (fromQuery) setShop(fromQuery);
       if (err) {
         const friendly: Record<string, string> = {
-          invalid_state: "Shopify connection could not be completed. Please reconnect your store.",
-          invalid_shop: "That Shopify store domain is not valid. Use your-store.myshopify.com.",
+          invalid_state:
+            "Shopify connection could not be completed. Please try connecting again.",
+          invalid_shop:
+            "That Shopify store domain is not valid. Use your-store.myshopify.com.",
           oauth_denied: "Shopify connection was cancelled. You can try again anytime.",
           token_exchange_failed:
-            "Shopify connection could not be completed. Please reconnect your store.",
+            "Shopify connection could not be completed. Please try again.",
           connection_failed:
-            "Shopify connection needs attention. Please reconnect your store.",
+            "Shopify connection needs attention. Please try connecting again.",
+          oauth_not_configured:
+            "Shopify connection is temporarily unavailable. Please try again later.",
         };
-        setError(friendly[err] || err.replace(/_/g, " "));
+        setError(friendly[err] || "Shopify connection could not be completed. Please try again.");
       }
     } catch {
       /* ignore */
@@ -41,63 +41,49 @@ export default function DropshippingIntegrationsPage() {
 
   async function startOAuth() {
     setError(null);
-    setOauthNote(null);
     if (!shop.trim()) {
-      setError("Enter your myshopify.com domain first.");
+      setError("Enter your myshopify.com domain to continue.");
       return;
     }
-    const res = await fetch(
-      `/api/dropshipping/shopify/oauth/start?shop=${encodeURIComponent(shop.trim())}`,
-      { redirect: "manual" }
-    );
-    if (res.status === 501) {
-      const json = await res.json().catch(() => ({}));
-      setOauthNote(
-        typeof json.error === "string"
-          ? `${json.error} Use token-connect below.`
-          : "OAuth is not configured. Use token-connect below."
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/dropshipping/shopify/oauth/start?shop=${encodeURIComponent(shop.trim())}`,
+        { redirect: "manual" }
       );
-      return;
-    }
-    if (res.status >= 300 && res.status < 400) {
-      const loc = res.headers.get("Location");
-      if (loc) {
-        window.location.href = loc;
+      if (res.status === 501) {
+        setError(
+          "Shopify connection is temporarily unavailable. Please try again later."
+        );
         return;
       }
-    }
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      setError(typeof json.error === "string" ? json.error : "Could not start OAuth.");
-      return;
-    }
-    // Same-origin redirect follow
-    window.location.href = `/api/dropshipping/shopify/oauth/start?shop=${encodeURIComponent(shop.trim())}`;
-  }
-
-  async function tokenConnect() {
-    setBusy(true);
-    setError(null);
-    setSuccess(null);
-    const res = await fetch("/api/dropshipping/stores", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        platform: "shopify",
-        domain,
-        accessToken: token,
-        name: name || undefined,
-      }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(typeof json.error === "string" ? json.error : "Connection failed.");
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("Location");
+        if (loc) {
+          window.location.href = loc;
+          return;
+        }
+      }
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const code = typeof json.code === "string" ? json.code : "";
+        if (code === "OAUTH_NOT_CONFIGURED" || res.status === 501) {
+          setError(
+            "Shopify connection is temporarily unavailable. Please try again later."
+          );
+        } else {
+          setError(
+            typeof json.error === "string"
+              ? json.error
+              : "Could not start Shopify connection."
+          );
+        }
+        return;
+      }
+      window.location.href = `/api/dropshipping/shopify/oauth/start?shop=${encodeURIComponent(shop.trim())}`;
+    } finally {
       setBusy(false);
-      return;
     }
-    setSuccess(`Connected ${json.store?.name || domain}.`);
-    setToken("");
-    setBusy(false);
   }
 
   return (
@@ -105,7 +91,7 @@ export default function DropshippingIntegrationsPage() {
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Integrations</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Connect Shopify. OAuth when configured; otherwise Admin API token-connect.
+          Connect sales channels to sync products, inventory, and orders.
         </p>
       </div>
 
@@ -113,85 +99,49 @@ export default function DropshippingIntegrationsPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-[#111827]">Shopify</p>
-            <p className="mt-1 text-sm text-[#6B7280]">
-              Connect your Shopify store
-            </p>
+            <p className="mt-1 text-sm text-[#6B7280]">Connect your Shopify store</p>
           </div>
-          <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#6B7280]">
-            OAuth
+          <span className="rounded-full bg-[#EEF2FF] px-2.5 py-1 text-[11px] font-semibold text-[#4338CA]">
+            Secure OAuth
           </span>
         </div>
-        <p className="mt-2 text-xs text-[#9CA3AF]">
-          Requires <code className="text-[11px]">SHOPIFY_CLIENT_ID</code> and{" "}
-          <code className="text-[11px]">SHOPIFY_CLIENT_SECRET</code> on the server.
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-[#6B7280]">
+          You will be redirected to Shopify to sign in and authorize Jimvio. When you
+          finish, your store appears under Connected Stores and sync can begin.
         </p>
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center">
           <input
-            className="h-10 flex-1 rounded-xl border border-[#E5E7EB] px-3 text-sm"
+            className="h-11 flex-1 rounded-xl border border-[#E5E7EB] px-3.5 text-sm outline-none transition focus:border-[#FF5A1F]/50 focus:ring-2 focus:ring-[#FF5A1F]/15"
             placeholder="your-store.myshopify.com"
             value={shop}
             onChange={(e) => setShop(e.target.value)}
             aria-label="Shopify store domain"
-          />
-          <button
-            type="button"
-            onClick={() => void startOAuth()}
-            className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-xs font-semibold text-white"
-          >
-            Connect Shopify
-          </button>
-        </div>
-        {oauthNote ? <p className="mt-2 text-sm text-amber-700">{oauthNote}</p> : null}
-      </div>
-
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <p className="text-sm font-medium text-[#111827]">Token connect (fallback)</p>
-        <p className="mt-1 text-xs text-[#6B7280]">
-          Create a custom app in Shopify Admin → Settings → Apps → Develop apps, then paste
-          the Admin API access token.
-        </p>
-        <div className="mt-3 grid gap-2">
-          <input
-            className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
-            placeholder="Display name (optional)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
-            placeholder="your-store.myshopify.com"
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-          />
-          <input
-            className="h-10 rounded-md border border-[#E5E7EB] px-3 text-sm"
-            placeholder="shpat_…"
-            type="password"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
             autoComplete="off"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void startOAuth();
+            }}
           />
           <button
             type="button"
             disabled={busy}
-            onClick={() => void tokenConnect()}
-            className="h-10 w-fit rounded-md border border-[#E5E7EB] px-4 text-xs font-semibold text-[#374151] disabled:opacity-50"
+            onClick={() => void startOAuth()}
+            className="h-11 shrink-0 rounded-xl bg-[#FF5A1F] px-5 text-sm font-semibold text-white transition hover:bg-[#E04E1A] disabled:opacity-60"
           >
-            {busy ? "Connecting…" : "Connect with token"}
+            {busy ? "Connecting…" : "Connect Shopify"}
           </button>
         </div>
-      </div>
-
-      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-      {success ? (
-        <p className="text-sm font-medium text-emerald-700">
-          {success}{" "}
-          <Link href="/commerce/connected-stores" className="text-[#FF5A1F] underline">
-            View stores
+        {error ? (
+          <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <p className="mt-4 text-xs text-[#9CA3AF]">
+          Already connected?{" "}
+          <Link href="/commerce/connected-stores" className="font-medium text-[#FF5A1F] hover:underline">
+            View Connected Stores
           </Link>
         </p>
-      ) : null}
-
       </div>
+    </div>
   );
 }

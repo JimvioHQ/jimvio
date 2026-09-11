@@ -62,7 +62,7 @@ export function IntegrationsForm({ cjEnabled, shopifyPlatformConfigured }: Props
                 <Truck className="size-5 text-[var(--color-accent)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold">CJ Dropshipping</p>
+                <p className="text-sm font-semibold">Jimvio Store</p>
                 <p className="text-[12px] text-muted-foreground mt-0.5">
                   Channel {cjEnabled ? "enabled" : "disabled"} in{" "}
                   <Link href="/admin/settings/suppliers" className="text-[var(--color-accent)] hover:underline">

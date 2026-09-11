@@ -250,7 +250,7 @@ export function resolveEmptyStatePreset(
         title: "Your library is waiting",
         description: "Save products, courses, and content you want to return to.",
         illustration: <ProductsShelfIllustration />,
-        actions: [{ label: "Browse marketplace", href: "/marketplace", icon: ShoppingBag, variant: "primary" }],
+        actions: [{ label: "Browse marketplace", href: "/marketplace/physical", icon: ShoppingBag, variant: "primary" }],
       };
 
     case "search":

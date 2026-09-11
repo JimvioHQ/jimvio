@@ -47,7 +47,7 @@ const SURFACE_META: Record<IdentitySurface, { title: string; description: string
   marketplace: {
     title: "Marketplace store",
     description: "Products listed and sales performance as a vendor.",
-    exploreHref: "/marketplace",
+    exploreHref: "/marketplace/physical",
     exploreLabel: "Browse marketplace",
   },
   community: {

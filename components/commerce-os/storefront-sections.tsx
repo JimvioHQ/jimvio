@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ThemeSection } from "@/lib/commerce-os/themes/registry";
+import { storefrontBrowsePath } from "@/lib/commerce-os/storefront-url";
 
 type ProductCard = {
   id: string;
@@ -44,7 +45,7 @@ export function StorefrontAnnouncement({
 }) {
   const message = text?.trim() || `Welcome to ${storeName}`;
   return (
-    <div className="bg-[var(--store-primary,#FF5A1F)] px-4 py-2 text-center text-xs font-medium text-white">
+    <div className="bg-[var(--store-primary,#FF5A1F)] px-4 py-2.5 text-center text-[11px] font-semibold tracking-wide text-white sm:text-xs">
       {message}
     </div>
   );
@@ -61,40 +62,49 @@ export function StorefrontHeader({
   logoUrl?: string | null;
   navItems?: Array<{ label: string; href: string }>;
 }) {
+  const home = storefrontBrowsePath(handle);
   const items =
     navItems && navItems.length
       ? navItems
       : [
-          { label: "Home", href: `/s/${handle}` },
-          { label: "All products", href: `/s/${handle}/collections/all` },
-          { label: "Search", href: `/s/${handle}/search` },
+          { label: "Home", href: home },
+          { label: "Shop", href: storefrontBrowsePath(handle, "/collections/all") },
+          { label: "Search", href: storefrontBrowsePath(handle, "/search") },
         ];
 
   return (
-    <header className="border-b border-black/10 bg-[var(--store-bg,#F8FAFC)]">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-        <Link href={`/s/${handle}`} className="flex items-center gap-2">
+    <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-[var(--store-bg,#F8FAFC)]/90 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+        <Link href={home} className="flex min-w-0 items-center gap-2.5">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" className="h-8 w-8 rounded object-cover" />
-          ) : null}
-          <span className="text-lg font-semibold tracking-tight text-[var(--store-text,#111827)]">
+            <img src={logoUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
+          ) : (
+            <span
+              className="grid h-9 w-9 place-items-center rounded-lg text-xs font-bold text-white"
+              style={{ background: "var(--store-primary,#FF5A1F)" }}
+              aria-hidden
+            >
+              {storeName.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span className="truncate text-base font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-lg">
             {storeName}
           </span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-3 text-sm text-[var(--store-text,#111827)]">
+        <nav className="flex flex-wrap items-center gap-1 text-sm text-[var(--store-text,#111827)] sm:gap-2">
           {items.map((item) => (
             <Link
               key={`${item.href}-${item.label}`}
               href={item.href}
-              className="opacity-80 hover:opacity-100"
+              className="rounded-lg px-2.5 py-1.5 opacity-75 transition hover:bg-black/[0.04] hover:opacity-100"
             >
               {item.label}
             </Link>
           ))}
           <Link
-            href={`/s/${handle}/cart`}
-            className="rounded-md bg-[var(--store-primary,#FF5A1F)] px-3 py-1.5 text-xs font-semibold text-white"
+            href={storefrontBrowsePath(handle, "/cart")}
+            className="ml-1 rounded-full bg-[var(--store-primary,#FF5A1F)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95"
           >
             Cart
           </Link>
@@ -116,21 +126,63 @@ export function StorefrontHero({
   handle: string;
 }) {
   return (
-    <section className="mx-auto max-w-5xl px-4 py-12 sm:py-16">
-      <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-4xl">
-        {headline || "Shop the collection"}
-      </h1>
-      {subhead ? (
-        <p className="mt-3 max-w-xl text-base text-[var(--store-text,#111827)]/70">
-          {subhead}
-        </p>
-      ) : null}
-      <Link
-        href={`/s/${handle}/collections/all`}
-        className="mt-6 inline-flex rounded-md bg-[var(--store-primary,#FF5A1F)] px-4 py-2.5 text-sm font-semibold text-white"
-      >
-        {cta || "Shop now"}
-      </Link>
+    <section className="relative overflow-hidden border-b border-black/[0.04]">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.55]"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--store-primary,#FF5A1F) 18%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 20%, color-mix(in srgb, var(--store-primary,#FF5A1F) 10%, transparent), transparent 50%)",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--store-primary,#FF5A1F)]">
+            Official store
+          </p>
+          <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-5xl">
+            {headline || "Shop the collection"}
+          </h1>
+          {subhead ? (
+            <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--store-text,#111827)]/70 sm:text-lg">
+              {subhead}
+            </p>
+          ) : null}
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href={storefrontBrowsePath(handle, "/collections/all")}
+              className="inline-flex rounded-full bg-[var(--store-primary,#FF5A1F)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+            >
+              {cta || "Shop now"}
+            </Link>
+            <Link
+              href={storefrontBrowsePath(handle, "/search")}
+              className="inline-flex rounded-full border border-black/10 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
+            >
+              Search
+            </Link>
+          </div>
+        </div>
+        <div className="hidden rounded-3xl border border-black/[0.06] bg-white/60 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] backdrop-blur lg:block">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--store-text,#111827)]/45">
+            Shopping with confidence
+          </p>
+          <ul className="mt-4 space-y-3 text-sm text-[var(--store-text,#111827)]/80">
+            <li className="flex gap-2">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+              Secure checkout powered by Jimvio
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+              Verified sourcing & fulfillment
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+              Order tracking after purchase
+            </li>
+          </ul>
+        </div>
+      </div>
     </section>
   );
 }
@@ -145,37 +197,55 @@ export function StorefrontFeaturedProducts({
   products: ProductCard[];
 }) {
   return (
-    <section className="mx-auto max-w-5xl px-4 pb-12">
-      <h2 className="text-xl font-semibold text-[var(--store-text,#111827)]">
-        {title || "Featured"}
-      </h2>
+    <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight text-[var(--store-text,#111827)]">
+            {title || "Featured"}
+          </h2>
+          <p className="mt-1 text-sm text-[var(--store-text,#111827)]/55">
+            Hand-picked products from this store
+          </p>
+        </div>
+        <Link
+          href={storefrontBrowsePath(handle, "/collections/all")}
+          className="hidden text-sm font-semibold text-[var(--store-primary,#FF5A1F)] sm:inline"
+        >
+          View all
+        </Link>
+      </div>
       {!products.length ? (
-        <p className="mt-4 text-sm text-[var(--store-text,#111827)]/60">
+        <p className="mt-8 rounded-2xl border border-dashed border-black/10 bg-white/50 px-6 py-12 text-center text-sm text-[var(--store-text,#111827)]/60">
           No products published yet.
         </p>
       ) : (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p) => {
             const img = firstImage(p.images);
             return (
               <Link
                 key={p.id}
-                href={`/s/${handle}/product/${p.slug}`}
-                className="group overflow-hidden rounded-[var(--store-radius,12px)] border border-black/10 bg-white"
+                href={storefrontBrowsePath(handle, `/product/${p.slug}`)}
+                className="group overflow-hidden rounded-[calc(var(--store-radius,12px)+4px)] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
               >
-                <div className="aspect-[4/3] bg-[#F3F4F6]">
+                <div className="aspect-[4/3] overflow-hidden bg-[#F3F4F6]">
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={img}
                       alt=""
-                      className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                     />
                   ) : null}
                 </div>
-                <div className="p-3">
+                <div className="p-4">
                   <p className="font-medium text-[var(--store-text,#111827)]">{p.name}</p>
-                  <p className="mt-1 text-sm text-[var(--store-text,#111827)]/70">
+                  {p.short_description ? (
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--store-text,#111827)]/55">
+                      {p.short_description}
+                    </p>
+                  ) : null}
+                  <p className="mt-3 text-sm font-semibold text-[var(--store-text,#111827)]">
                     {formatMoney(p.price, p.currency)}
                   </p>
                 </div>
@@ -184,6 +254,40 @@ export function StorefrontFeaturedProducts({
           })}
         </div>
       )}
+    </section>
+  );
+}
+
+export function StorefrontTrustBar({
+  headline,
+  subhead,
+}: {
+  headline?: string;
+  subhead?: string;
+}) {
+  const items = (subhead || "Secure checkout · Verified sourcing · Order tracking")
+    .split("·")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return (
+    <section className="border-y border-black/[0.05] bg-white/70">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        {headline ? (
+          <p className="text-center text-sm font-semibold text-[var(--store-text,#111827)]">
+            {headline}
+          </p>
+        ) : null}
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          {items.map((item) => (
+            <div
+              key={item}
+              className="rounded-2xl border border-black/[0.05] bg-[var(--store-bg,#F8FAFC)] px-4 py-5 text-center text-sm font-medium text-[var(--store-text,#111827)]/80"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -201,20 +305,23 @@ export function StorefrontFooter({
     navItems && navItems.length
       ? navItems
       : [
-          { label: "About", href: `/s/${handle}/pages/about` },
-          { label: "Contact", href: `/s/${handle}/pages/contact` },
-          { label: "Account", href: `/s/${handle}/account` },
+          { label: "About", href: storefrontBrowsePath(handle, "/pages/about") },
+          { label: "Contact", href: storefrontBrowsePath(handle, "/pages/contact") },
+          { label: "Account", href: storefrontBrowsePath(handle, "/account") },
         ];
 
   return (
-    <footer className="mt-auto border-t border-black/10 bg-white">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-medium text-[var(--store-text,#111827)]">
-          {storeName}
-        </p>
-        <nav className="flex flex-wrap gap-3 text-sm text-[var(--store-text,#111827)]/70">
+    <footer className="mt-auto border-t border-black/[0.06] bg-white">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <p className="text-sm font-semibold text-[var(--store-text,#111827)]">{storeName}</p>
+          <p className="mt-1 text-xs text-[var(--store-text,#111827)]/50">
+            Powered by Jimvio
+          </p>
+        </div>
+        <nav className="flex flex-wrap gap-4 text-sm text-[var(--store-text,#111827)]/65">
           {items.map((item) => (
-            <Link key={`${item.href}-${item.label}`} href={item.href}>
+            <Link key={`${item.href}-${item.label}`} href={item.href} className="hover:opacity-100">
               {item.label}
             </Link>
           ))}
@@ -272,12 +379,27 @@ export function renderHomeSections(opts: {
               cta={typeof props.cta === "string" ? props.cta : undefined}
             />
           );
+        case "banner":
+          return (
+            <StorefrontTrustBar
+              key={section.id}
+              headline={typeof props.headline === "string" ? props.headline : undefined}
+              subhead={typeof props.subhead === "string" ? props.subhead : undefined}
+            />
+          );
         case "featured_products":
+        case "collections":
           return (
             <StorefrontFeaturedProducts
               key={section.id}
               handle={opts.handle}
-              title={typeof props.title === "string" ? props.title : "Featured"}
+              title={
+                typeof props.title === "string"
+                  ? props.title
+                  : section.type === "collections"
+                    ? "Collections"
+                    : "Featured"
+              }
               products={opts.products}
             />
           );
