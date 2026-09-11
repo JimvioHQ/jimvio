@@ -62,7 +62,7 @@ describe("commerce host routing", () => {
       false
     );
     assert.equal(
-      isMerchantStorefrontRequest("www.jimvio.com", "/", "brand"),
+      isMerchantStorefrontRequest("www.jimvio.com", "/", null, "1"),
       true
     );
   });

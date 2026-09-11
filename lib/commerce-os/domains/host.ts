@@ -101,8 +101,10 @@ export function isMerchantStorefrontPath(pathname: string): boolean {
 export function isMerchantStorefrontRequest(
   hostname: string,
   pathname: string,
-  storeHandleHeader?: string | null
+  storeHandleHeader?: string | null,
+  storefrontPathHeader?: string | null
 ): boolean {
+  if (storefrontPathHeader === "1") return true;
   if (storeHandleHeader && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(storeHandleHeader)) {
     return true;
   }

@@ -29,6 +29,7 @@ export async function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-jimvio-store-handle", subdomainHandle);
+    requestHeaders.set("x-jimvio-storefront-path", "1");
 
     const rewrite = NextResponse.rewrite(url, {
       request: { headers: requestHeaders },
@@ -41,6 +42,19 @@ export async function proxy(request: NextRequest) {
     rewrite.headers.set("Vary", "Host");
     rewrite.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
     return rewrite;
+  }
+
+  // Path browse `/s/[handle]` on www — mark for merchant shell (no platform Navbar props).
+  if (pathname === "/s" || pathname.startsWith("/s/")) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-jimvio-storefront-path", "1");
+    const next = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    sessionResponse.cookies.getAll().forEach((c) => {
+      next.cookies.set(c.name, c.value);
+    });
+    return next;
   }
 
   return sessionResponse;

@@ -19,7 +19,8 @@ export default async function PublicLayout({
   const merchantStorefront = isMerchantStorefrontRequest(
     hostname,
     pathname,
-    headerStore.get("x-jimvio-store-handle")
+    headerStore.get("x-jimvio-store-handle"),
+    headerStore.get("x-jimvio-storefront-path")
   );
 
   let profile = null;
@@ -56,12 +57,18 @@ export default async function PublicLayout({
   const marketing =
     platformSettings?.marketing ?? PLATFORM_SETTINGS_DEFAULTS.marketing;
 
+  // Merchant hosts must not mount PublicLayoutShell at all — otherwise
+  // Navbar marketing/nav payloads still serialize into the RSC stream.
+  if (merchantStorefront) {
+    return <>{children}</>;
+  }
+
   return (
     <PublicLayoutShell
       profile={profile}
       marketing={marketing}
       contact={platformSettings?.contact}
-      merchantStorefront={merchantStorefront}
+      merchantStorefront={false}
     >
       {children}
     </PublicLayoutShell>
