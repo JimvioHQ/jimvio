@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { revokeTikTokAccess } from "@/lib/live/destinations/adapters";
+import {
+  revokeTikTokAccess,
+  revokeYouTubeAccess,
+} from "@/lib/live/destinations/adapters";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
 import { validateRtmpUrl } from "@/lib/live/destinations/ssrf";
 import {
@@ -104,6 +107,21 @@ export async function DELETE(
       /* local disconnect still proceeds */
     }
     liveStudioLog("info", "tiktok_oauth_disconnect", { userId: user.id });
+  }
+
+  // Revoke ONLY the YouTube Live OAuth client grant (YOUTUBE_CLIENT_ID).
+  // Never touches Supabase Google Login / Sign in with Google.
+  if (row.platform === "youtube") {
+    try {
+      const creds = await getDestinationCredentials(id, user.id);
+      const token = creds?.refreshToken || creds?.accessToken;
+      if (token) {
+        await revokeYouTubeAccess(token);
+      }
+    } catch {
+      /* local disconnect still proceeds */
+    }
+    liveStudioLog("info", "youtube_oauth_disconnect", { userId: user.id });
   }
 
   await revokeDestination(id, user.id);

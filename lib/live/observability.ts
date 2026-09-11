@@ -38,6 +38,7 @@ export type LiveStudioEvent =
   | "tiktok_oauth_state_invalid"
   | "tiktok_oauth_token_exchange_failed"
   | "tiktok_oauth_disconnect"
+  | "youtube_oauth_disconnect"
   | "youtube_oauth_start"
   | "youtube_oauth_callback"
   | "youtube_oauth_success"

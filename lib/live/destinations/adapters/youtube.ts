@@ -457,6 +457,28 @@ export function mapYouTubeOAuthError(
   return "YouTube authorization failed. Please try again.";
 }
 
+/**
+ * Best-effort revoke of the YouTube Live OAuth grant via Google's official
+ * revoke endpoint. Uses the YouTube Live client tokens only — never touches
+ * Supabase Google Login / Sign in with Google.
+ * Never throws secrets.
+ */
+export async function revokeYouTubeAccess(token: string): Promise<void> {
+  if (!token?.trim()) return;
+  try {
+    await fetch("https://oauth2.googleapis.com/revoke", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({ token: token.trim() }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    /* local disconnect still proceeds */
+  }
+}
+
 export function youtubeAuthUrl(input: {
   state: string;
   redirectUri: string;

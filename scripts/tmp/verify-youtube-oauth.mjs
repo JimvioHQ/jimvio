@@ -37,6 +37,29 @@ function mustNot(file, needles, label) {
   checks.push({ ok: true, label });
 }
 
+
+function testYouTubeRevokeOnDisconnect() {
+  must(
+    "lib/live/destinations/adapters/youtube.ts",
+    ["revokeYouTubeAccess", "oauth2.googleapis.com/revoke"],
+    "YouTube adapter exposes Google revoke helper"
+  );
+  must(
+    "app/api/live/destinations/[id]/route.ts",
+    ["revokeYouTubeAccess", 'platform === "youtube"'],
+    "YouTube disconnect revokes Google grant for YouTube client only"
+  );
+  const del = readFileSync(
+    join(root, "app/api/live/destinations/[id]/route.ts"),
+    "utf8"
+  );
+  if (/Stop using Sign in with Google|Delete all/i.test(del)) {
+    checks.push({ ok: false, label: "Disconnect must not touch Sign in with Google UI" });
+  } else {
+    checks.push({ ok: true, label: "Disconnect does not reference Sign in with Google deletion" });
+  }
+}
+
 function testAuthUrlScopes() {
   const adapter = readFileSync(
     join(root, "lib/live/destinations/adapters/youtube.ts"),
@@ -157,6 +180,7 @@ mustNot(
   "Callback route does not expose token field names"
 );
 
+testYouTubeRevokeOnDisconnect();
 testAuthUrlScopes();
 testSettingsRoute();
 testStudioNoCenterPanel();

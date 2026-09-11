@@ -37,6 +37,7 @@ export {
   youtubeAuthUrl,
   exchangeYouTubeCode,
   mapYouTubeOAuthError,
+  revokeYouTubeAccess,
   YOUTUBE_OAUTH_SCOPES,
   YOUTUBE_OAUTH_REDIRECT_PATH,
 } from "./youtube";

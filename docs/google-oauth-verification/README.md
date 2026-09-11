@@ -29,37 +29,35 @@ Google Cloud project referenced for verification: **Jimvio Auth** (`jimvio-auth`
 4. Callback: `GET /api/integrations/youtube/callback` → returns to Live Settings with Connected toast
 5. Functionality: Live Studio Go Live → destination prepare creates YouTube `liveBroadcasts` + `liveStreams` + bind (+ transition)
 
+## Prepare (reset YouTube Live grant only)
+
+Disconnects YouTube inside Jimvio so production can revoke **only** the YouTube Live Google client grant (`oauth2.googleapis.com/revoke`). This does **not** remove Sign in with Google / Supabase login.
+
+```bash
+DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-reset
+```
+
+Optional (high-confidence Google UI only; never Delete all / Sign-in):
+
+```bash
+DEMO_FORCE_GOOGLE_UI_RESET=1 DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-reset
+```
+
 ## Record (headed Chrome)
 
 ```bash
-# Optional: reuse a Jimvio Playwright storage state (NOT Google YouTube tokens)
-# node --experimental-strip-types scripts/setup-live-e2e-auth.ts
-
-DEMO_BASE_URL=https://www.jimvio.com \
-DEMO_STORAGE_STATE=.auth/live-host.json \
-node scripts/google-oauth-verification/record-youtube-demo.mjs
+DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-record
 ```
 
-**Do not close the Playwright Chrome window** during pauses. The script keeps Chrome open indefinitely (`DEMO_MANUAL_TIMEOUT_MS=0` default), prints heartbeats, and continues only after detecting success.
+Uses a persistent profile under `tmp/google-oauth-verification/chrome-profile` (gitignored). The recorder:
 
-When the terminal prints `JIMVIO LOGIN REQUIRED` or `GOOGLE OAUTH CONSENT REQUIRED`:
+1. Keeps Chrome open during Jimvio login if needed  
+2. Disconnects YouTube first (YouTube-client revoke only)  
+3. Connects YouTube and drives the real Google UI (account → Advanced if needed → wait for YouTube permission → Allow)  
+4. Refuses success unless YouTube permission was visible  
+5. Demonstrates Live Studio + Disconnect  
 
-1. Complete the step in the **visible** Chrome window.
-2. Leave Chrome open.
-3. For Google: account → (Advanced if unverified) → **leave the YouTube permission consent visible** → Allow.
-4. If consent is skipped, revoke Jimvio at https://myaccount.google.com/permissions — the recorder will reconnect.
-5. Return to the terminal — recording continues automatically.
-
-If you manually close Chrome, the run fails with: `Browser was closed before OAuth demo completion.` Incomplete `.webm` files are archived under `tmp/google-oauth-verification/incomplete/`.
-
-After a successful Jimvio login the recorder saves `.auth/demo-jimvio.json` (gitignored) for faster re-runs:
-
-```bash
-DEMO_BASE_URL=https://www.jimvio.com \
-DEMO_STORAGE_STATE=.auth/demo-jimvio.json \
-npm run demo:youtube-oauth-record
-```
-
+**Never** revoke “How Google helps you sign in to Jimvio” / Sign in with Google.
 Outputs (gitignored):
 
 - `tmp/google-oauth-verification/jimvio-youtube-oauth-verification.webm`
