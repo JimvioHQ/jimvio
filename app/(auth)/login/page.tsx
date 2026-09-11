@@ -2,6 +2,7 @@
 import { LoginForm } from "./login-form";
 import { getMaintenanceModeEnabled } from "@/lib/platform-maintenance";
 import { redirectIfAuthenticated } from "@/lib/auth/redirect-authenticated";
+import { isAuthTurnstileEnabled } from "@/lib/auth/turnstile";
 
 export const metadata = {
   title: "Sign In - Jimvio",
@@ -17,6 +18,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
   await redirectIfAuthenticated(next);
 
   const maintenanceMode = await getMaintenanceModeEnabled();
+  const turnstileEnabled = isAuthTurnstileEnabled();
 
   return (
     <Suspense
@@ -29,7 +31,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
         </div>
       }
     >
-      <LoginForm maintenanceMode={maintenanceMode} />
+      <LoginForm
+        maintenanceMode={maintenanceMode}
+        turnstileEnabled={turnstileEnabled}
+      />
     </Suspense>
   );
 }

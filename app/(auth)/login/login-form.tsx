@@ -15,7 +15,14 @@ import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { AuthDivider } from "@/components/auth/auth-divider";
 import { AuthAlert } from "@/components/auth/auth-alert";
 
-export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boolean }) {
+export function LoginForm({
+  maintenanceMode = false,
+  turnstileEnabled = true,
+}: {
+  maintenanceMode?: boolean;
+  /** When false, login skips Turnstile UI/gate (temporary demo flag). */
+  turnstileEnabled?: boolean;
+}) {
   const searchParams = useSearchParams();
 
   const next =
@@ -44,6 +51,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
     (!suppressUrlMessages && urlStatus ? formatAuthQueryStatus(urlStatus) : null);
 
   function bumpCaptcha() {
+    if (!turnstileEnabled) return;
     setCaptchaToken(null);
     setCaptchaReset((n) => n + 1);
   }
@@ -53,13 +61,15 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
     setSuppressUrlMessages(true);
     setFormError(null);
     setFormNotice(null);
-    if (!captchaToken) {
+    if (turnstileEnabled && !captchaToken) {
       setFormError("Please complete the security check.");
       return;
     }
     const fd = new FormData(e.currentTarget);
     if (next) fd.set("next", next);
-    fd.set("captchaToken", captchaToken);
+    if (turnstileEnabled && captchaToken) {
+      fd.set("captchaToken", captchaToken);
+    }
     startTransition(async () => {
       try {
         const result = await signIn(fd);
@@ -156,16 +166,18 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
             </Field>
           </div>
 
-          <TurnstileWidget
-            onToken={setCaptchaToken}
-            resetSignal={captchaReset}
-            className="flex justify-center pt-1"
-          />
+          {turnstileEnabled ? (
+            <TurnstileWidget
+              onToken={setCaptchaToken}
+              resetSignal={captchaReset}
+              className="flex justify-center pt-1"
+            />
+          ) : null}
 
           <Button
             type="submit"
             className="mt-1 h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none transition-colors hover:bg-zinc-800 disabled:opacity-60"
-            disabled={pending || !captchaToken}
+            disabled={pending || (turnstileEnabled && !captchaToken)}
           >
             {pending ? (
               <span className="inline-flex items-center gap-2">
