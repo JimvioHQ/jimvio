@@ -50,6 +50,7 @@ export async function handleCustomersDataRequest(
 ): Promise<ComplianceResult> {
   const store = await findShopifyStore(db, shopDomain);
   const customer = asRecord(payload.customer);
+  const dataRequest = asRecord(payload.data_request);
   const ordersRequested = Array.isArray(payload.orders_requested)
     ? payload.orders_requested.map(String)
     : [];
@@ -65,7 +66,7 @@ export async function handleCustomersDataRequest(
       shop_domain: shopDomain,
       customer_id: customer.id ?? null,
       orders_requested_count: ordersRequested.length,
-      data_request_id: payload.data_request?.id ?? payload.data_request_id ?? null,
+      data_request_id: dataRequest.id ?? payload.data_request_id ?? null,
     },
   });
 
