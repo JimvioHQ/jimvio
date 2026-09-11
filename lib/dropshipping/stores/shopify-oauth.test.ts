@@ -124,7 +124,7 @@ describe("shopify webhook hmac", () => {
 });
 
 describe("shopify oauth scopes", () => {
-  it("includes fulfillment-order scopes for tracking pushback", async () => {
+  it("includes merchant-managed FO scopes and locations; excludes unused assigned FO", async () => {
     const { SHOPIFY_DEFAULT_OAUTH_SCOPES, getShopifyOAuthScopes } = await import(
       "./shopify-scopes.ts"
     );
@@ -133,10 +133,21 @@ describe("shopify oauth scopes", () => {
         "write_merchant_managed_fulfillment_orders"
       )
     );
-    assert.ok(
-      SHOPIFY_DEFAULT_OAUTH_SCOPES.includes("read_assigned_fulfillment_orders")
-    );
+    assert.ok(SHOPIFY_DEFAULT_OAUTH_SCOPES.includes("read_locations"));
+    assert.ok(!SHOPIFY_DEFAULT_OAUTH_SCOPES.includes("read_assigned_fulfillment_orders"));
+    assert.ok(!SHOPIFY_DEFAULT_OAUTH_SCOPES.includes("read_shipping"));
     const csv = getShopifyOAuthScopes();
     assert.match(csv, /write_merchant_managed_fulfillment_orders/);
+    assert.match(csv, /read_locations/);
+  });
+});
+
+describe("shopify compliance topic helpers", () => {
+  it("recognizes mandatory compliance topics", async () => {
+    const { isShopifyComplianceTopic } = await import("./shopify-compliance-topics.ts");
+    assert.equal(isShopifyComplianceTopic("customers/data_request"), true);
+    assert.equal(isShopifyComplianceTopic("customers/redact"), true);
+    assert.equal(isShopifyComplianceTopic("shop/redact"), true);
+    assert.equal(isShopifyComplianceTopic("orders/create"), false);
   });
 });

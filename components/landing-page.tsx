@@ -1325,12 +1325,27 @@ const DATA_COLLECTION_ROWS: TableRow[] = [
     { col1: "Content Data", col2: "Posts, campaign submissions, listings", col3: "Platform functionality" },
     { col1: "Support Data", col2: "Tickets, messages, feedback", col3: "Customer support" },
     { col1: "Cookie & Tracking", col2: "Session cookies, analytics cookies, preference data", col3: "UX optimization" },
+    {
+        col1: "Commerce / Shopify store data",
+        col2: "Shop domain, product catalog metadata, inventory levels, order identifiers, shipping addresses needed for fulfillment, tracking numbers",
+        col3: "Jimvio Commerce OS: sync products, inventory, orders, and fulfillment with connected Shopify stores",
+    },
 ];
 
 const DATA_SHARING_ROWS: TableRow[] = [
     { col1: "Payment Processors", col2: "Execute transactions and payouts", col3: "Financial data only" },
     { col1: "Analytics Providers", col2: "Understand platform usage", col3: "Anonymized usage data" },
     { col1: "Cloud Infrastructure", col2: "Host platform data securely", col3: "Encrypted storage" },
+    {
+        col1: "Shopify (connected stores)",
+        col2: "Authorize store connection; exchange order/product/inventory/fulfillment data via Shopify Admin APIs and webhooks",
+        col3: "Only data required to operate Jimvio Commerce for that merchant’s connected store",
+    },
+    {
+        col1: "Fulfillment suppliers (e.g. CJ Dropshipping)",
+        col2: "Route and fulfill merchant orders when the merchant enables supplier integration",
+        col3: "Order line items, shipping destination, and tracking as needed for fulfillment",
+    },
     { col1: "Legal Authorities", col2: "Comply with lawful requests", col3: "As required by law" },
 ];
 
@@ -1865,6 +1880,24 @@ function PrivacyPage() {
                         retained for 7 years as required by international tax regulations. Anonymized analytics
                         data may be retained indefinitely.
                     </p>
+                </SectionBlock>
+
+                <SectionBlock title="07 — Shopify & Jimvio Commerce">
+                    <p className="text-[15px] text-[var(--color-text-secondary)] leading-[1.75] font-light mb-3.5">
+                        When a merchant connects a Shopify store to Jimvio Commerce OS, Jimvio acts as a processor
+                        of store data needed to operate Commerce features (products, inventory, orders, fulfillment,
+                        and optional supplier routing such as CJ Dropshipping). Access tokens are stored encrypted
+                        server-side and are never exposed in the browser.
+                    </p>
+                    <LegalList
+                        items={[
+                            "We request only Shopify Admin scopes required for live Jimvio Commerce features.",
+                            "Order and customer contact fields used for fulfillment may include name, email, phone, and shipping address.",
+                            "Shopify mandatory compliance webhooks (customers/data_request, customers/redact, shop/redact) are processed with HMAC verification.",
+                            "Merchants can disconnect a store in Jimvio Commerce; uninstalling the app from Shopify also clears stored access tokens.",
+                            "Privacy requests: info@jimvio.com or support@jimvio.com.",
+                        ]}
+                    />
                 </SectionBlock>
 
                 <p className="text-[13px] text-[var(--color-text-muted)] pt-10 border-t border-[var(--color-border)]">

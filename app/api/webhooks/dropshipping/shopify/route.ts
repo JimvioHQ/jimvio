@@ -9,12 +9,16 @@ import { ingestStoreOrder } from "@/lib/dropshipping/orders/ingest";
 import { ShopifyStoreConnector } from "@/lib/dropshipping/stores/shopify-connector";
 import { getShopifyApiVersionFromEnv } from "@/lib/platform-shopify";
 import { enqueueSyncJob } from "@/lib/dropshipping/sync/engine";
+import {
+  handleShopifyComplianceTopic,
+  isShopifyComplianceTopic,
+} from "@/lib/dropshipping/stores/shopify-compliance";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Dropshipping OS inbound Shopify webhooks.
- * Handles orders/create, products/*, app/uninstalled.
+ * Jimvio Commerce inbound Shopify webhooks.
+ * Handles orders/*, products/*, app/uninstalled, and App Store compliance topics.
  * Does NOT replace /api/webhooks/shopify (fulfillment earnings path).
  */
 export async function POST(req: NextRequest) {
@@ -36,18 +40,24 @@ export async function POST(req: NextRequest) {
   }
 
   const db = dsAdminDb();
+  const compliance = isShopifyComplianceTopic(topic);
   const idempotencyKey =
     webhookId ||
-    `shopify_ds:${shopDomain}:${topic}:${String(payload.id ?? "")}:${payload.updated_at ?? ""}`;
+    `shopify_ds:${shopDomain}:${topic}:${String(payload.id ?? payload.shop_id ?? "")}:${payload.updated_at ?? payload.created_at ?? ""}`;
 
-  const { data: store } = shopDomain
-    ? await db
+  // Compliance (esp. shop/redact) may arrive after uninstall — include disconnected stores.
+  let storeQuery = shopDomain
+    ? db
         .from("merchant_stores")
         .select("id, vendor_id, status, platform")
         .eq("platform", "shopify")
         .ilike("domain", shopDomain)
-        .neq("status", "disconnected")
-        .maybeSingle()
+    : null;
+  if (storeQuery && !compliance) {
+    storeQuery = storeQuery.neq("status", "disconnected");
+  }
+  const { data: store } = storeQuery
+    ? await storeQuery.maybeSingle()
     : { data: null };
 
   const persisted = await persistWebhookEvent(db, {
@@ -69,6 +79,20 @@ export async function POST(req: NextRequest) {
 
   // Fast-ack path: process synchronously but keep work bounded; always 200 after verify
   try {
+    if (compliance) {
+      const result = await handleShopifyComplianceTopic(
+        db,
+        topic,
+        shopDomain,
+        payload
+      );
+      await markWebhookProcessed(db, persisted.eventId, {
+        status: result.ok ? "processed" : "failed",
+        error: result.ok ? undefined : result.action,
+      });
+      return NextResponse.json({ received: true, compliance: result });
+    }
+
     if (topic === "orders/create" || topic === "orders/updated") {
       if (!store?.id || !store.vendor_id) {
         await markWebhookProcessed(db, persisted.eventId, {

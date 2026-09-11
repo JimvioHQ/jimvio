@@ -1,0 +1,54 @@
+# Learn more: https://shopify.dev/docs/apps/tools/cli/configuration
+# Jimvio Commerce — Partner Dashboard / Shopify CLI config for App Store distribution.
+#
+# Architecture note:
+# Jimvio remains an EXTERNAL (non-embedded) Commerce OS. Merchants authorize via
+# Jimvio-hosted OAuth (offline access token → merchant_stores). Do NOT convert to
+# App Bridge unless Partner review explicitly requires it for this distribution.
+#
+# MANUAL ACTION (Partner Dashboard / CLI):
+# 1. Set client_id to the existing Jimvio Commerce app client id (public).
+# 2. Ensure Distribution = Public (App Store) — not Custom.
+# 3. Run `shopify app deploy` so compliance webhooks are registered at the app level
+#    (Admin API registration alone is NOT sufficient for App Store automated checks).
+# 4. Upload 1200×1200 icon: public/icons/shopify-app-icon-1200.png
+# 5. Complete listing copy from docs/shopify/APP_STORE_LISTING.md
+
+name = "Jimvio Commerce"
+# Replace with Partner app client id before `shopify app deploy` (do not commit secrets).
+client_id = "REPLACE_WITH_SHOPIFY_CLIENT_ID"
+application_url = "https://www.jimvio.com/commerce"
+embedded = false
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,write_orders,read_inventory,write_inventory,read_locations,read_fulfillments,write_fulfillments,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders"
+
+[auth]
+redirect_urls = [
+  "https://www.jimvio.com/api/dropshipping/shopify/oauth/callback"
+]
+
+[webhooks]
+api_version = "2024-07"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/api/webhooks/dropshipping/shopify"
+
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create", "orders/updated" ]
+  uri = "/api/webhooks/dropshipping/shopify"
+
+  [[webhooks.subscriptions]]
+  topics = [ "products/create", "products/update", "products/delete" ]
+  uri = "/api/webhooks/dropshipping/shopify"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+  uri = "/api/webhooks/dropshipping/shopify"
+
+[app_proxy]
+# Not used — Jimvio is not storefront-proxy based.
+
+[pos]
+embedded = false

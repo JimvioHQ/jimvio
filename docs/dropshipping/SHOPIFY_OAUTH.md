@@ -32,11 +32,12 @@ Token-connect fallback (custom app Admin API token):
 
    - `read_products`, `write_products`
    - `read_orders`, `write_orders`
-   - `read_inventory`, `write_inventory`
+   - `read_inventory`, `write_inventory`, `read_locations`
    - `read_fulfillments`, `write_fulfillments`
    - `read_merchant_managed_fulfillment_orders`, `write_merchant_managed_fulfillment_orders`
-   - `read_assigned_fulfillment_orders`, `write_assigned_fulfillment_orders`
-   - `read_shipping`
+
+   Justification for each scope: see `SHOPIFY_SCOPE_JUSTIFICATION` in `shopify-scopes.ts`.
+   Do **not** request assigned fulfillment-order or shipping scopes unless a feature requires them.
 
 ## Environment variables
 
@@ -70,6 +71,14 @@ After a successful connect, Jimvio attempts **idempotent** registration for:
 - `app/uninstalled`
 
 Endpoint: `{SHOPIFY_APP_URL}/api/webhooks/dropshipping/shopify`
+
+**App Store compliance webhooks** (mandatory for public apps) are also handled on the same endpoint:
+
+- `customers/data_request`
+- `customers/redact`
+- `shop/redact`
+
+These must be subscribed via `shopify.app.toml` + `shopify app deploy` (app-level). Admin API registration alone fails Shopify automated checks.
 
 Legacy marketplace webhooks remain at `/api/webhooks/shopify` (product sync + fulfillment earnings).
 

@@ -40,6 +40,29 @@ export class ShopifyStoreConnector implements StoreConnector {
     });
   }
 
+  /** Admin GraphQL — preferred for Product APIs (App Store / deprecation-safe). */
+  private async adminGraphql<T>(
+    query: string,
+    variables?: Record<string, unknown>
+  ): Promise<T> {
+    const res = await this.adminFetch("/graphql.json", {
+      method: "POST",
+      body: JSON.stringify({ query, variables }),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      data?: T;
+      errors?: Array<{ message?: string }>;
+    };
+    if (!res.ok || json.errors?.length) {
+      const msg =
+        json.errors?.map((e) => e.message).filter(Boolean).join("; ") ||
+        "Shopify GraphQL request failed.";
+      throw new Error(msg);
+    }
+    if (!json.data) throw new Error("Shopify GraphQL returned no data.");
+    return json.data;
+  }
+
   async testConnection() {
     const res = await this.adminFetch("/shop.json");
     if (!res.ok) {
@@ -55,71 +78,204 @@ export class ShopifyStoreConnector implements StoreConnector {
     return { ok: true, shopName: json.shop?.name };
   }
 
+  /**
+   * Publish via GraphQL Product APIs (productCreate + productVariantsBulkCreate).
+   * Inventory quantities are applied afterward through updateInventory (location-aware).
+   */
   async publishProduct(input: PublishProductInput): Promise<PublishedProduct> {
-    const options = (input.options ?? []).slice(0, 3).map((name) => ({ name }));
-    const variants = input.variants.map((v) => {
-      const optionValues = Object.values(v.options ?? {});
+    const optionNames = (input.options ?? []).slice(0, 3);
+    const productOptions =
+      optionNames.length > 0
+        ? optionNames.map((name) => {
+            const values = new Set<string>();
+            for (const v of input.variants) {
+              const val = v.options?.[name];
+              if (val) values.add(String(val));
+            }
+            if (!values.size) values.add("Default");
+            return { name, values: [...values].map((v) => ({ name: v })) };
+          })
+        : undefined;
+
+    const media = (input.images ?? [])
+      .filter(Boolean)
+      .slice(0, 20)
+      .map((src) => ({
+        originalSource: src,
+        mediaContentType: "IMAGE" as const,
+      }));
+
+    type CreateResult = {
+      productCreate: {
+        product: {
+          id: string;
+          handle: string;
+          legacyResourceId: string;
+        } | null;
+        userErrors: Array<{ field?: string[]; message: string }>;
+      };
+    };
+
+    const createData = await this.adminGraphql<CreateResult>(
+      `mutation productCreate($product: ProductCreateInput!, $media: [CreateMediaInput!]) {
+        productCreate(product: $product, media: $media) {
+          product { id handle legacyResourceId }
+          userErrors { field message }
+        }
+      }`,
+      {
+        product: {
+          title: input.title,
+          descriptionHtml: input.descriptionHtml ?? undefined,
+          status: "ACTIVE",
+          productOptions,
+        },
+        media: media.length ? media : undefined,
+      }
+    );
+
+    const createErrors = createData.productCreate.userErrors;
+    if (createErrors?.length) {
+      throw new Error(
+        `Shopify product publish failed: ${createErrors.map((e) => e.message).join("; ")}`
+      );
+    }
+    const product = createData.productCreate.product;
+    if (!product?.id) throw new Error("Shopify did not return a product id.");
+
+    const variantInputs = input.variants.map((v) => {
+      const optionValues =
+        optionNames.length > 0
+          ? optionNames.map((name) => ({
+              optionName: name,
+              name: String(v.options?.[name] ?? "Default"),
+            }))
+          : [{ optionName: "Title", name: "Default Title" }];
+
       return {
-        sku: v.sku ?? undefined,
         price: String(v.price),
-        compare_at_price: v.compareAtPrice != null ? String(v.compareAtPrice) : undefined,
-        inventory_management: "shopify",
-        inventory_quantity: v.inventory ?? 0,
-        option1: optionValues[0],
-        option2: optionValues[1],
-        option3: optionValues[2],
-        weight: v.weightGrams != null ? v.weightGrams / 1000 : undefined,
-        weight_unit: "kg",
+        compareAtPrice:
+          v.compareAtPrice != null ? String(v.compareAtPrice) : undefined,
+        optionValues,
+        inventoryItem: {
+          sku: v.sku ?? undefined,
+          tracked: true,
+        },
         metafields: v.jimvioVariantId
           ? [
               {
                 namespace: "jimvio",
                 key: "variant_id",
-                value: v.jimvioVariantId,
                 type: "single_line_text_field",
+                value: v.jimvioVariantId,
               },
             ]
           : undefined,
       };
     });
 
-    const body = {
-      product: {
-        title: input.title,
-        body_html: input.descriptionHtml,
-        options: options.length ? options : undefined,
-        variants,
-        images: input.images.map((src) => ({ src })),
-        status: "active",
-      },
+    type BulkResult = {
+      productVariantsBulkCreate: {
+        productVariants: Array<{
+          id: string;
+          legacyResourceId: string;
+          sku: string | null;
+        }> | null;
+        userErrors: Array<{ field?: string[]; message: string }>;
+      };
     };
 
-    const res = await this.adminFetch("/products.json", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
+    const bulkData = await this.adminGraphql<BulkResult>(
+      `mutation productVariantsBulkCreate(
+        $productId: ID!
+        $variants: [ProductVariantsBulkInput!]!
+        $strategy: ProductVariantsBulkCreateStrategy
+      ) {
+        productVariantsBulkCreate(
+          productId: $productId
+          variants: $variants
+          strategy: $strategy
+        ) {
+          productVariants { id legacyResourceId sku }
+          userErrors { field message }
+        }
+      }`,
+      {
+        productId: product.id,
+        strategy: "REMOVE_STANDALONE_VARIANT",
+        variants: variantInputs,
+      }
+    );
+
+    const bulkErrors = bulkData.productVariantsBulkCreate.userErrors;
+    if (bulkErrors?.length) {
       throw new Error(
-        (json as { errors?: string })?.errors
-          ? `Shopify product publish failed: ${JSON.stringify((json as { errors: unknown }).errors)}`
-          : "Shopify product publish failed."
+        `Shopify variant create failed: ${bulkErrors.map((e) => e.message).join("; ")}`
       );
     }
 
-    const product = (json as { product?: Record<string, unknown> }).product;
-    if (!product?.id) throw new Error("Shopify did not return a product id.");
+    const storeVariants = bulkData.productVariantsBulkCreate.productVariants ?? [];
 
-    const storeVariants = (product.variants as Array<Record<string, unknown>>) ?? [];
-    return {
-      storeProductId: String(product.id),
-      handle: (product.handle as string) ?? null,
+    // Publish to Online Store so the product is sellable (productCreate defaults unpublished).
+    await this.adminGraphql(
+      `mutation publishablePublish($id: ID!, $input: [PublicationInput!]!) {
+        publishablePublish(id: $id, input: $input) {
+          userErrors { field message }
+        }
+      }`,
+      {
+        id: product.id,
+        input: [{ publicationId: await this.getOnlineStorePublicationId() }],
+      }
+    ).catch(() => {
+      // Non-fatal: merchant can publish manually if publication lookup fails
+    });
+
+    const published: PublishedProduct = {
+      storeProductId: String(product.legacyResourceId || product.id.replace(/\D/g, "")),
+      handle: product.handle ?? null,
       storeVariantIds: storeVariants.map((sv, i) => ({
-        storeVariantId: String(sv.id),
+        storeVariantId: String(sv.legacyResourceId || sv.id.replace(/\D/g, "")),
         jimvioVariantId: input.variants[i]?.jimvioVariantId ?? null,
-        sku: (sv.sku as string) ?? null,
+        sku: sv.sku ?? input.variants[i]?.sku ?? null,
       })),
     };
+
+    const inventoryUpdates = input.variants
+      .map((v, i) => {
+        const storeVariantId = published.storeVariantIds[i]?.storeVariantId;
+        if (!storeVariantId || v.inventory == null) return null;
+        return { storeVariantId, quantity: v.inventory };
+      })
+      .filter(Boolean) as Array<{ storeVariantId: string; quantity: number }>;
+
+    if (inventoryUpdates.length) {
+      await this.updateInventory(inventoryUpdates).catch(() => {
+        // Inventory can be synced later via INVENTORY_SYNC jobs
+      });
+    }
+
+    return published;
+  }
+
+  private async getOnlineStorePublicationId(): Promise<string> {
+    type PubResult = {
+      publications: {
+        nodes: Array<{ id: string; name: string }>;
+      };
+    };
+    const data = await this.adminGraphql<PubResult>(
+      `query {
+        publications(first: 20) {
+          nodes { id name }
+        }
+      }`
+    );
+    const online =
+      data.publications.nodes.find((p) => /online store/i.test(p.name)) ||
+      data.publications.nodes[0];
+    if (!online?.id) throw new Error("No Shopify publication found.");
+    return online.id;
   }
 
   async updateInventory(updates: StoreInventoryUpdate[]): Promise<void> {
@@ -161,19 +317,41 @@ export class ShopifyStoreConnector implements StoreConnector {
 
   async updatePrices(updates: StorePriceUpdate[]): Promise<void> {
     for (const u of updates) {
-      const res = await this.adminFetch(`/variants/${u.storeVariantId}.json`, {
-        method: "PUT",
-        body: JSON.stringify({
-          variant: {
-            id: Number(u.storeVariantId),
+      const variantGid = u.storeVariantId.startsWith("gid://")
+        ? u.storeVariantId
+        : `gid://shopify/ProductVariant/${u.storeVariantId}`;
+
+      type UpdateResult = {
+        productVariantUpdate: {
+          productVariant: { id: string } | null;
+          userErrors: Array<{ message: string }>;
+        };
+      };
+
+      const data = await this.adminGraphql<UpdateResult>(
+        `mutation productVariantUpdate($input: ProductVariantInput!) {
+          productVariantUpdate(input: $input) {
+            productVariant { id }
+            userErrors { message }
+          }
+        }`,
+        {
+          input: {
+            id: variantGid,
             price: String(u.price),
-            compare_at_price:
+            compareAtPrice:
               u.compareAtPrice != null ? String(u.compareAtPrice) : undefined,
           },
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`Shopify price update failed for variant ${u.storeVariantId}.`);
+        }
+      );
+
+      const errors = data.productVariantUpdate.userErrors;
+      if (errors?.length) {
+        throw new Error(
+          `Shopify price update failed for variant ${u.storeVariantId}: ${errors
+            .map((e) => e.message)
+            .join("; ")}`
+        );
       }
     }
   }
