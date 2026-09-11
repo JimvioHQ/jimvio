@@ -1,12 +1,22 @@
 # Google OAuth verification demo — status report
 
-**Status:** Recorder lifecycle hardened (keep Chrome open during manual pauses; archive incomplete videos; 1080p). **Final submit-ready video still requires a headed interactive run** (real Google consent cannot be automated).
+**Status:** Recorder lifecycle fixed and pushed (`2b5d08ea`). A headed run reached real Google OAuth + Live Studio once, but frame inspection showed **account picker + unverified-app warning without a clear YouTube permission consent UI**, and Disconnect was missing — that file was archived as incomplete. Later re-runs failed because Chrome was closed during Jimvio login.
 
 This is **not** a claim of Google verification approval.
 
 ### Previous code 2 root cause (2026-09-11)
 
-`page.waitForURL: Target page, context or browser has been closed` during Jimvio login pause (~42s). The script did **not** close Chrome during the pause; Chrome was closed externally. `finally` then set `exitCode=2` because blockers were non-empty. Incomplete video lacked consent / connected / Live Studio.
+`page.waitForURL: Target page, context or browser has been closed` during Jimvio login pause (~42s). The script did **not** close Chrome during the pause; Chrome was closed externally. `finally` then set `exitCode=2` because blockers were non-empty.
+
+### Recorder fixes shipped
+
+- Indefinite headed pause with heartbeats; clear “DO NOT CLOSE” guidance
+- Fail with `Browser was closed before OAuth demo completion.` (no fake success)
+- Archive incomplete `.webm` under `tmp/google-oauth-verification/incomplete/`
+- Require detected YouTube permission text before accepting Google return; auto-reconnect if skipped
+- Disconnect via `aria-label="Disconnect destination"`
+- 1920×1080 recording; save `.auth/demo-jimvio.json` after login (gitignored)
+
 
 ## A. Previous Google rejection root cause
 
