@@ -90,3 +90,51 @@ export async function POST(req: NextRequest) {
     { status: 201 }
   );
 }
+
+export async function PATCH(req: NextRequest) {
+  const auth = await requireCommerceMerchant();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const body = (await req.json().catch(() => null)) as {
+    storeId?: string;
+    productId?: string;
+    status?: "published" | "draft" | "archived";
+  } | null;
+
+  if (!body?.storeId || !body?.productId || !body?.status) {
+    return NextResponse.json(
+      { error: "storeId, productId, and status are required." },
+      { status: 400 }
+    );
+  }
+
+  const db = cosAdminDb();
+  const owned = await assertStoreOwnedByVendor(db, body.storeId, auth.vendorId);
+  if (!owned) {
+    return NextResponse.json({ error: "Store not found." }, { status: 404 });
+  }
+
+  const { data, error } = await cosTable(db, "jimvio_store_products")
+    .update({
+      status: body.status,
+      published_at:
+        body.status === "published" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("store_id", body.storeId)
+    .eq("product_id", body.productId)
+    .eq("vendor_id", auth.vendorId)
+    .select("id, status")
+    .maybeSingle();
+
+  if (error || !data) {
+    return NextResponse.json(
+      { error: error?.message || "Product link not found." },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json({ updated: true, product: data });
+}

@@ -1,43 +1,53 @@
 # Jimvio Commerce OS — Architecture
 
-## What it is
+Jimvio Commerce OS is an **additive** native storefront layer on top of the existing Marketplace, cart, checkout, payments, orders, and Dropshipping OS.
 
-Commerce OS is the **native Jimvio storefront layer**: merchants create branded stores at `/s/[handle]`, publish catalog products onto them, and manage theme drafts, collections, discounts, domains, and pages.
+## Principles
 
-It is additive. It does **not** replace Marketplace, Dropshipping OS, or shared checkout.
-
-## Native store vs `merchant_stores`
-
-| | `jimvio_stores` (Commerce OS) | `merchant_stores` (Dropshipping OS) |
-|--|-------------------------------|-------------------------------------|
-| Purpose | Hosted Jimvio storefront | External connector (Shopify, etc.) |
-| URL | `/s/{handle}` (+ custom domain later) | Merchant’s own Shopify domain |
-| Products | `jimvio_store_products` → same `products` rows | `store_product_links` + push to Shopify |
-| Checkout | Shared Jimvio `/cart` + `/checkout` | External store checkout |
-| Orders | `orders.jimvio_store_id` / channel `jimvio_store` | `orders.merchant_store_id` |
-| Merchant UI | `/commerce` | `/dropshipping` |
-
-## Core modules
-
-Import from `@/lib/commerce-os`:
-
-- `requireCommerceMerchant` / `cosAdminDb` — tenant auth + service DB
-- `createJimvioStore` / `publishJimvioStore`
-- `publishProductToJimvioStore`
-- `loadPublishedStoreByHandle` / `loadStoreProducts` / `loadStoreProductBySlug`
-- `getStoreAnalytics` — real order/product counts only; visitors/conversion stay `null`
-- Theme helpers: `mergeThemeSettings`, `defaultHomeSections`, `reorderSections`
+- **ONE** product / variant / inventory / cart / checkout / order / fulfillment core
+- Native Jimvio stores are **primary**; Shopify/WooCommerce are **optional connectors**
+- Never duplicate Marketplace checkout or CJ fulfillment
+- Public nav stays: Home · Marketplace · Communities · Affiliates · UGC & Clipping
 
 ## Surfaces
 
-- **Merchant dashboard:** `/commerce/*` (auth-protected)
-- **Public storefront:** `/s/[handle]/*`
-- **APIs:** `/api/commerce/*`, plus `/api/v1/jimvio-stores` for API keys
-- **Admin:** `/admin/commerce`
+| Surface | Path | Role |
+|---|---|---|
+| Merchant OS | `/commerce/*` | Create/manage Jimvio stores |
+| Storefront | `/s/[handle]/*` | Public native store |
+| Subdomain | `{handle}.jimvio.com` | Rewrites to `/s/[handle]` via `proxy.ts` |
+| Admin | `/admin/commerce` | Platform inspection |
+| Dropshipping | `/dropshipping/*` | External connectors + CJ routing |
 
-## Guardrails
+## Data model (native)
 
-- No fake analytics numbers
-- Domain SSL / verification remain `pending` until actually verified
-- No second checkout — cart reuses marketplace `addToCart`
-- Public primary nav (Home / Marketplace / Communities / Affiliates / UGC) unchanged
+- `jimvio_stores` — merchant-owned stores (`published_theme` is the live theme snapshot)
+- `jimvio_store_products` — links shared `products` into a store
+- `jimvio_store_collections` (+ `_collection_products`)
+- `jimvio_store_domains` — hostnames (SSL stays pending until verified)
+- `jimvio_store_discounts`, shipping zones/rates, tax rules, staff, abandoned carts
+- `carts.jimvio_store_id` — **store-scoped carts** (`NULL` = Marketplace)
+- `orders.jimvio_store_id` + `order_channel = jimvio_store`
+- `jimvio_inventory_holds` — soft reservation for store checkouts
+- `jimvio_store_returns` — return requests (refunds via payment providers)
+
+## Theme draft vs publish
+
+- Builder writes `theme_draft` only
+- Publish copies draft → `published_theme` + `theme_settings`
+- Public storefront reads **`published_theme` only** (never draft)
+
+## Cart isolation
+
+- Marketplace cart: `carts.jimvio_store_id IS NULL`
+- Store A cart: `jimvio_store_id = A`
+- Add-to-cart from storefront validates product is published on that store
+- Checkout prefers cart’s `jimvio_store_id`, cookie handle is fallback
+
+## Fulfillment
+
+Native store orders enter the **same** Dropshipping OS fulfillment router when lines are supplier-mapped (CJ VID preserved). No second fulfillment engine.
+
+## Compatibility layer
+
+`cosTable()` remains for tables not yet fully reflected in generated types beyond carts. Prefer regenerating Supabase types when safe.

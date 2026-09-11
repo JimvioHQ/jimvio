@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { applyStoreDiscount, estimateTax } from "./engine";
-import { reorderSections } from "../themes/registry";
-import { slugifyHandle } from "../tenant";
+import { applyStoreDiscount, estimateTax } from "./engine.ts";
+import { reorderSections } from "../themes/registry.ts";
+
+function slugifyHandle(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+}
 
 describe("store discounts", () => {
   const base = {

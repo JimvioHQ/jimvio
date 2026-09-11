@@ -47,6 +47,7 @@
     "build",
     "out",
     ".vercel",
-    ".turbo"
+    ".turbo",
+    "**/*.test.ts"
   ]
 }

@@ -8,6 +8,7 @@ export { createJimvioStore, publishJimvioStore } from "./stores";
 export { publishProductToJimvioStore } from "./products";
 export {
   loadPublishedStoreByHandle,
+  loadPublishedStoreByHostname,
   loadStoreProducts,
   loadStoreProductBySlug,
 } from "./storefront/load";
@@ -25,3 +26,17 @@ export {
   pickActiveStore,
   type MerchantStoreSummary,
 } from "./merchant-store";
+export {
+  getOrCreateScopedCart,
+  resolveJimvioStoreIdByHandle,
+} from "./cart/scoped";
+export { assertStorePermission, roleAllows } from "./staff/permissions";
+export {
+  handleFromJimvioSubdomain,
+  shouldAttemptStoreHostRewrite,
+  isPlatformHostname,
+} from "./domains/host";
+export {
+  reserveInventoryForOrder,
+  commitInventoryHolds,
+} from "./inventory/holds";

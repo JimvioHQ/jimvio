@@ -840,6 +840,7 @@ export type Database = {
           subtotal: number
           updated_at: string
           user_id: string
+          jimvio_store_id: string | null
         }
         Insert: {
           created_at?: string
@@ -851,6 +852,7 @@ export type Database = {
           subtotal?: number
           updated_at?: string
           user_id: string
+          jimvio_store_id?: string | null
         }
         Update: {
           created_at?: string
@@ -862,12 +864,13 @@ export type Database = {
           subtotal?: number
           updated_at?: string
           user_id?: string
+          jimvio_store_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "carts_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },

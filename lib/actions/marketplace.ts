@@ -1213,6 +1213,9 @@ interface CJProductMeta {
 
 type AddToCartOptions = {
   allowPendingVariant?: boolean;
+  /** Native Jimvio store scope — never trust raw client store UUID alone */
+  jimvioStoreId?: string | null;
+  jimvioStoreHandle?: string | null;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1490,6 +1493,7 @@ export async function getNavbarCounts(): Promise<NavbarCounts> {
             .from("carts")
             .select("item_count")
             .eq("user_id", user.id)
+            .is("jimvio_store_id", null)
             .maybeSingle(),
 
           supabase
@@ -1698,16 +1702,49 @@ export async function addToCart(
 
     const lineSource = toOrderItemSource(product.source);
 
-    const { data: cart, error: cartError } = await supabase
-      .from("carts")
-      .upsert(
-        { user_id: user.id, currency: PLATFORM_CURRENCY },
-        { onConflict: "user_id" }
-      )
-      .select("id")
-      .single();
+    // Resolve store-scoped cart (Marketplace = null). Validate handle → store id server-side.
+    let scopedStoreId: string | null = null;
+    if (options?.jimvioStoreId && uuidRe.test(options.jimvioStoreId)) {
+      scopedStoreId = options.jimvioStoreId;
+    } else if (options?.jimvioStoreHandle) {
+      const { resolveJimvioStoreIdByHandle } = await import(
+        "@/lib/commerce-os/cart/scoped"
+      );
+      const store = await resolveJimvioStoreIdByHandle(
+        supabase,
+        options.jimvioStoreHandle
+      );
+      if (store?.id) scopedStoreId = store.id;
+    }
 
-    if (cartError || !cart) throw cartError ?? new Error("Could not get or create cart");
+    if (scopedStoreId) {
+      // Product must be published on this store
+      const { cosTable } = await import("@/lib/commerce-os/db");
+      const { data: link } = await cosTable(supabase, "jimvio_store_products")
+        .select("id")
+        .eq("store_id", scopedStoreId)
+        .eq("product_id", productId)
+        .eq("status", "published")
+        .maybeSingle();
+      if (!link) {
+        return {
+          success: false,
+          error: "This product is not available in the selected Jimvio store.",
+        };
+      }
+    }
+
+    const { getOrCreateScopedCart, upsertAbandonedCartSnapshot } = await import(
+      "@/lib/commerce-os/cart/scoped"
+    );
+    const cart = await getOrCreateScopedCart(
+      supabase,
+      user.id,
+      PLATFORM_CURRENCY,
+      scopedStoreId
+    );
+
+    if (!cart) throw new Error("Could not get or create cart");
 
     const existingQuery = supabase
       .from("cart_items")
@@ -1777,6 +1814,31 @@ export async function addToCart(
       if (insertError) throw insertError;
     }
 
+    if (scopedStoreId) {
+      try {
+        const { upsertAbandonedCartSnapshot } = await import(
+          "@/lib/commerce-os/cart/scoped"
+        );
+        const { cosTable: cos } = await import("@/lib/commerce-os/db");
+        const { data: storeRow } = await cos(supabase, "jimvio_stores")
+          .select("vendor_id")
+          .eq("id", scopedStoreId)
+          .maybeSingle();
+        if (storeRow?.vendor_id) {
+          await upsertAbandonedCartSnapshot(supabase, {
+            storeId: scopedStoreId,
+            vendorId: storeRow.vendor_id,
+            cartId: cart.id,
+            email: user.email,
+            items: [{ product_id: productId, quantity }],
+            subtotal: effectivePrice * quantity,
+          });
+        }
+      } catch {
+        // Abandoned tracking is best-effort
+      }
+    }
+
     return { success: true };
   } catch (error: any) {
     console.error("Add to cart error:", error);
@@ -1788,7 +1850,7 @@ export async function addToCart(
 // GET CART
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getCart() {
+export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStoreHandle?: string | null }) {
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -1796,7 +1858,21 @@ export async function getCart() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { cart: null, items: [], total: 0 };
 
-      const { data: cart, error: cartError } = await supabase
+      let storeId: string | null | undefined = opts?.jimvioStoreId;
+      if (storeId === undefined && opts?.jimvioStoreHandle) {
+        const { resolveJimvioStoreIdByHandle } = await import(
+          "@/lib/commerce-os/cart/scoped"
+        );
+        const store = await resolveJimvioStoreIdByHandle(
+          supabase,
+          opts.jimvioStoreHandle
+        );
+        storeId = store?.id ?? null;
+      }
+      // Default marketplace cart when no store scope requested
+      if (storeId === undefined) storeId = null;
+
+      let cartQuery = supabase
         .from("carts")
         .select(`
           *,
@@ -1814,8 +1890,15 @@ export async function getCart() {
             )
           )
         `)
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
+
+      if (storeId) {
+        cartQuery = cartQuery.eq("jimvio_store_id", storeId);
+      } else {
+        cartQuery = cartQuery.is("jimvio_store_id", null);
+      }
+
+      const { data: cart, error: cartError } = await cartQuery.maybeSingle();
 
       if (cartError) throw cartError;
       if (!cart) return { cart: null, items: [], total: 0 };
@@ -2039,6 +2122,7 @@ export async function clearCart() {
       .from("carts")
       .select("id")
       .eq("user_id", user.id)
+      .is("jimvio_store_id", null)
       .maybeSingle();
 
     if (!cart) return { success: true };
@@ -2123,6 +2207,7 @@ export async function getCartProductIds(): Promise<string[]> {
       .from("carts")
       .select("id")
       .eq("user_id", user.id)
+      .is("jimvio_store_id", null)
       .maybeSingle();
 
     if (!cart) return [];

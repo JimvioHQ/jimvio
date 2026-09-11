@@ -1,11 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  loadPublishedStoreByHandle,
-  loadStoreProducts,
-  defaultHomeSections,
-} from "@/lib/commerce-os";
-import type { ThemeDraft, ThemeSection } from "@/lib/commerce-os/themes/registry";
+import { loadPublishedStoreByHandle, loadStoreProducts } from "@/lib/commerce-os";
 import {
   StorefrontHero,
   StorefrontFeaturedProducts,
@@ -22,18 +17,21 @@ export default async function StorefrontHomePage({ params }: Props) {
   if (!store) notFound();
 
   const products = await loadStoreProducts(supabase, store.id, { limit: 12 });
-  const draft = store.theme_draft as ThemeDraft | null;
-  const sections: ThemeSection[] =
-    draft?.sections?.home?.length
-      ? draft.sections.home
-      : defaultHomeSections(store.name);
+  const sections = store.published_sections.home;
 
   const content = sections
     .filter((s) => s.enabled)
-    .filter((s) => s.type === "hero" || s.type === "featured_products" || s.type === "collections")
+    .filter(
+      (s) =>
+        s.type === "hero" ||
+        s.type === "featured_products" ||
+        s.type === "collections" ||
+        s.type === "banner" ||
+        s.type === "rich_text"
+    )
     .map((section) => {
       const props = section.props || {};
-      if (section.type === "hero") {
+      if (section.type === "hero" || section.type === "banner") {
         return (
           <StorefrontHero
             key={section.id}
@@ -50,21 +48,38 @@ export default async function StorefrontHomePage({ params }: Props) {
           />
         );
       }
-      if (section.type === "featured_products") {
+      if (section.type === "featured_products" || section.type === "collections") {
         return (
           <StorefrontFeaturedProducts
             key={section.id}
             handle={store.handle}
-            title={typeof props.title === "string" ? props.title : "Featured"}
-            products={products as Array<{
-              id: string;
-              name: string;
-              slug: string;
-              price: number | string | null;
-              currency?: string | null;
-              images?: unknown;
-              short_description?: string | null;
-            }>}
+            title={
+              typeof props.title === "string"
+                ? props.title
+                : section.type === "collections"
+                  ? "Collections"
+                  : "Featured"
+            }
+            products={
+              products as Array<{
+                id: string;
+                name: string;
+                slug: string;
+                price: number | string | null;
+                currency?: string | null;
+                images?: unknown;
+                short_description?: string | null;
+              }>
+            }
+          />
+        );
+      }
+      if (section.type === "rich_text" && typeof props.html === "string") {
+        return (
+          <div
+            key={section.id}
+            className="mx-auto max-w-5xl px-4 py-8 prose prose-sm"
+            dangerouslySetInnerHTML={{ __html: props.html }}
           />
         );
       }

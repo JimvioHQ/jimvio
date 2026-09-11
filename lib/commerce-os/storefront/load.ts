@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { mergeThemeSettings, type ThemeDraft, type ThemeSettings } from "../themes/registry";
+import {
+  mergeThemeSettings,
+  defaultHomeSections,
+  type ThemeDraft,
+  type ThemeSettings,
+  type ThemeSection,
+} from "../themes/registry";
 import { cosTable } from "../db";
 
 export type StorefrontStore = {
@@ -13,6 +19,14 @@ export type StorefrontStore = {
   status: string;
   default_currency: string;
   theme_settings: ThemeSettings;
+  /** Published sections only — never draft on public paths */
+  published_sections: {
+    home: ThemeSection[];
+    product?: ThemeSection[];
+    collection?: ThemeSection[];
+    cart?: ThemeSection[];
+  };
+  /** Draft for owner preview only */
   theme_draft: ThemeDraft | null;
   announcement_bar: string | null;
   seo: Record<string, unknown>;
@@ -20,27 +34,73 @@ export type StorefrontStore = {
   settings: Record<string, unknown>;
 };
 
+function resolvePublishedTheme(
+  data: Record<string, unknown>,
+  opts?: { useDraft?: boolean }
+): {
+  settings: ThemeSettings;
+  sections: StorefrontStore["published_sections"];
+  draft: ThemeDraft | null;
+} {
+  const draft = (data.theme_draft as ThemeDraft) || null;
+  const published = (data.published_theme as ThemeDraft | null) || null;
+
+  if (opts?.useDraft && draft) {
+    return {
+      settings: mergeThemeSettings(
+        data.theme_settings as Partial<ThemeSettings>,
+        draft.settings
+      ),
+      sections: {
+        home:
+          draft.sections?.home?.length
+            ? draft.sections.home
+            : defaultHomeSections(String(data.name || "Store")),
+        product: draft.sections?.product,
+        collection: draft.sections?.collection,
+        cart: draft.sections?.cart,
+      },
+      draft,
+    };
+  }
+
+  const pubSettings = published?.settings || (data.theme_settings as Partial<ThemeSettings>);
+  const home =
+    published?.sections?.home?.length
+      ? published.sections.home
+      : defaultHomeSections(String(data.name || "Store"));
+
+  return {
+    settings: mergeThemeSettings(pubSettings, null),
+    sections: {
+      home,
+      product: published?.sections?.product,
+      collection: published?.sections?.collection,
+      cart: published?.sections?.cart,
+    },
+    draft,
+  };
+}
+
 export async function loadPublishedStoreByHandle(
   db: SupabaseClient,
   handle: string,
   opts?: { allowDraftForVendorId?: string | null; preview?: boolean }
 ): Promise<StorefrontStore | null> {
-  let query = cosTable(db, "jimvio_stores").select("*").eq("handle", handle);
-  const { data } = await query.maybeSingle();
+  const { data } = await cosTable(db, "jimvio_stores")
+    .select("*")
+    .eq("handle", handle)
+    .maybeSingle();
   if (!data) return null;
 
   const isOwnerPreview =
-    opts?.preview &&
-    opts.allowDraftForVendorId &&
-    data.vendor_id === opts.allowDraftForVendorId;
+    Boolean(opts?.preview) &&
+    Boolean(opts?.allowDraftForVendorId) &&
+    data.vendor_id === opts?.allowDraftForVendorId;
 
   if (data.status !== "published" && !isOwnerPreview) return null;
 
-  const draft = (data.theme_draft as ThemeDraft) || null;
-  const settings = mergeThemeSettings(
-    data.theme_settings as Partial<ThemeSettings>,
-    draft?.settings
-  );
+  const resolved = resolvePublishedTheme(data, { useDraft: isOwnerPreview });
 
   return {
     id: data.id,
@@ -52,8 +112,75 @@ export async function loadPublishedStoreByHandle(
     favicon_url: data.favicon_url,
     status: data.status,
     default_currency: data.default_currency,
-    theme_settings: settings,
-    theme_draft: draft,
+    theme_settings: resolved.settings,
+    published_sections: resolved.sections,
+    theme_draft: resolved.draft,
+    announcement_bar: data.announcement_bar,
+    seo: (data.seo as Record<string, unknown>) || {},
+    social: (data.social as Record<string, unknown>) || {},
+    settings: (data.settings as Record<string, unknown>) || {},
+  };
+}
+
+export async function loadPublishedStoreByHostname(
+  db: SupabaseClient,
+  hostname: string
+): Promise<StorefrontStore | null> {
+  const host = hostname.toLowerCase().split(":")[0];
+  if (!host) return null;
+
+  const { data: domain } = await cosTable(db, "jimvio_store_domains")
+    .select("store_id, verification_status")
+    .eq("hostname", host)
+    .maybeSingle();
+
+  // Only serve custom hosts that are verified (jimvio subdomains may be pending until DNS)
+  if (!domain?.store_id) return null;
+  if (
+    domain.verification_status !== "verified" &&
+    domain.verification_status !== "pending"
+  ) {
+    return null;
+  }
+  // Custom domains must be verified; jimvio_subdomain can serve while pending
+  // (path fallback still works). We only auto-route verified custom domains.
+  if (domain.verification_status !== "verified") {
+    // Allow jimvio_subdomain pending via explicit kind check
+    const { data: full } = await cosTable(db, "jimvio_store_domains")
+      .select("kind, verification_status")
+      .eq("hostname", host)
+      .maybeSingle();
+    if (
+      !(
+        full?.kind === "jimvio_subdomain" ||
+        full?.verification_status === "verified"
+      )
+    ) {
+      return null;
+    }
+  }
+
+  const { data } = await cosTable(db, "jimvio_stores")
+    .select("*")
+    .eq("id", domain.store_id)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!data) return null;
+
+  const resolved = resolvePublishedTheme(data);
+  return {
+    id: data.id,
+    vendor_id: data.vendor_id,
+    name: data.name,
+    handle: data.handle,
+    description: data.description,
+    logo_url: data.logo_url,
+    favicon_url: data.favicon_url,
+    status: data.status,
+    default_currency: data.default_currency,
+    theme_settings: resolved.settings,
+    published_sections: resolved.sections,
+    theme_draft: resolved.draft,
     announcement_bar: data.announcement_bar,
     seo: (data.seo as Record<string, unknown>) || {},
     social: (data.social as Record<string, unknown>) || {},
@@ -73,7 +200,7 @@ export async function loadStoreProducts(
     .order("sort_order", { ascending: true })
     .limit(opts?.limit ?? 48);
 
-  const ids = (links ?? []).map((l) => l.product_id);
+  const ids = (links ?? []).map((l: { product_id: string }) => l.product_id);
   if (!ids.length) return [];
 
   let q = db
@@ -90,7 +217,7 @@ export async function loadStoreProducts(
 
   const { data: products } = await q;
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
-  return ids.map((id) => byId.get(id)).filter(Boolean);
+  return ids.map((id: string) => byId.get(id)).filter(Boolean);
 }
 
 export async function loadStoreProductBySlug(
@@ -119,8 +246,11 @@ export async function loadStoreProductBySlug(
 
   const { data: variants } = await db
     .from("product_variants")
-    .select("id, sku, price, compare_at_price, inventory_quantity, attributes, cj_vid")
-    .eq("product_id", product.id);
+    .select(
+      "id, name, sku, price, compare_at_price, inventory_quantity, attributes, options, image_url, cj_vid, is_active"
+    )
+    .eq("product_id", product.id)
+    .eq("is_active", true);
 
   return { product, variants: variants ?? [] };
 }

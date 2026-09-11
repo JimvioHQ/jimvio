@@ -301,28 +301,38 @@ async function createVendorOrder(
 
   const safeCurrency = PLATFORM_CURRENCY;
 
-  // Optional Commerce OS attribution from storefront cookie (never trust client store id)
+  // Commerce OS attribution: prefer cart.jimvio_store_id (server-owned), cookie as fallback
   let jimvioStoreId: string | null = null;
   let orderChannel: string = "marketplace";
   try {
-    const jar = await cookies();
-    const handle = jar.get("jimvio_store_handle")?.value;
-    if (handle) {
-      const decoded = decodeURIComponent(handle).toLowerCase().trim();
-      if (decoded) {
-        const { data: store } = await cosTable(admin, "jimvio_stores")
-          .select("id, vendor_id, status")
-          .eq("handle", decoded)
-          .eq("vendor_id", vendorId)
-          .maybeSingle();
-        if (store?.id && (store.status === "published" || store.status === "draft")) {
-          jimvioStoreId = store.id;
-          orderChannel = "jimvio_store";
+    const { data: cartRow } = await admin
+      .from("carts")
+      .select("jimvio_store_id")
+      .eq("id", cartId)
+      .maybeSingle();
+    if (cartRow && (cartRow as { jimvio_store_id?: string | null }).jimvio_store_id) {
+      jimvioStoreId = (cartRow as { jimvio_store_id: string }).jimvio_store_id;
+      orderChannel = "jimvio_store";
+    } else {
+      const jar = await cookies();
+      const handle = jar.get("jimvio_store_handle")?.value;
+      if (handle) {
+        const decoded = decodeURIComponent(handle).toLowerCase().trim();
+        if (decoded) {
+          const { data: store } = await cosTable(admin, "jimvio_stores")
+            .select("id, vendor_id, status")
+            .eq("handle", decoded)
+            .eq("vendor_id", vendorId)
+            .maybeSingle();
+          if (store?.id && (store.status === "published" || store.status === "draft")) {
+            jimvioStoreId = store.id;
+            orderChannel = "jimvio_store";
+          }
         }
       }
     }
   } catch {
-    // Cookie resolution is best-effort; marketplace checkout must continue
+    // Cookie/cart resolution is best-effort; marketplace checkout must continue
   }
 
   const { data: order, error: orderError } = await admin
@@ -370,6 +380,34 @@ async function createVendorOrder(
       `Order items insert failed for vendor ${vendorId}: ${itemsError.message}${itemsError.details ? ` | details: ${itemsError.details}` : ""
       }${itemsError.hint ? ` | hint: ${itemsError.hint}` : ""}`
     );
+  }
+
+  if (jimvioStoreId) {
+    try {
+      const { reserveInventoryForOrder } = await import(
+        "@/lib/commerce-os/inventory/holds"
+      );
+      const hold = await reserveInventoryForOrder(admin, {
+        storeId: jimvioStoreId,
+        orderId: order.id,
+        lines: orderItemsPayload.map((oi) => ({
+          productId: oi.product_id as string,
+          variantId: (oi as { variant_id?: string | null }).variant_id ?? null,
+          quantity: Number(oi.quantity || 1),
+        })),
+      });
+      if (!hold.ok) {
+        await admin.from("order_items").delete().eq("order_id", order.id);
+        await admin.from("orders").delete().eq("id", order.id);
+        throw new Error(hold.error);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("Insufficient inventory")) {
+        throw e;
+      }
+      // Soft-fail hold insert errors so marketplace-compatible checkout continues
+      console.warn("[checkout] inventory hold skipped:", e);
+    }
   }
 
   await notifyUser(admin, {
@@ -737,12 +775,33 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   if (!user?.id) return err("Sign in to check out");
   const userId = user.id;
 
-  // ── Cart ───────────────────────────────────────────────────────────────────
-  const { data: cart } = await supabase
+  // ── Cart (marketplace vs Jimvio store scope) ───────────────────────────────
+  const jar = await cookies();
+  const storeHandleCookie = jar.get("jimvio_store_handle")?.value;
+  let scopedStoreId: string | null = null;
+  if (storeHandleCookie) {
+    try {
+      const decoded = decodeURIComponent(storeHandleCookie).toLowerCase().trim();
+      const { resolveJimvioStoreIdByHandle } = await import(
+        "@/lib/commerce-os/cart/scoped"
+      );
+      const store = await resolveJimvioStoreIdByHandle(supabase, decoded);
+      if (store?.id) scopedStoreId = store.id;
+    } catch {
+      scopedStoreId = null;
+    }
+  }
+
+  let cartQuery = supabase
     .from("carts")
-    .select("id, currency")
-    .eq("user_id", userId)
-    .maybeSingle();
+    .select("id, currency, jimvio_store_id")
+    .eq("user_id", userId);
+  if (scopedStoreId) {
+    cartQuery = cartQuery.eq("jimvio_store_id", scopedStoreId);
+  } else {
+    cartQuery = cartQuery.is("jimvio_store_id", null);
+  }
+  const { data: cart } = await cartQuery.maybeSingle();
   if (!cart?.id) return err("Cart is empty");
   const cartId = cart.id;
 

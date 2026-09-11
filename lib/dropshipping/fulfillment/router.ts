@@ -38,7 +38,7 @@ export async function routeOrderFulfillment(
   const { data: order } = await db
     .from("orders")
     .select(
-      "id, order_number, vendor_id, merchant_store_id, cj_order_id, cj_shipping_method, shipping_address, currency, fulfillment_status_normalized"
+      "id, order_number, vendor_id, merchant_store_id, jimvio_store_id, order_channel, cj_order_id, cj_shipping_method, shipping_address, currency, fulfillment_status_normalized"
     )
     .eq("id", orderId)
     .maybeSingle();
@@ -191,7 +191,12 @@ export async function routeOrderFulfillment(
       status: "success",
       durationMs: Date.now() - started,
       externalId: created.supplierOrderId,
-      metadata: { orderId },
+      metadata: {
+        orderId,
+        order_channel: (order as { order_channel?: string }).order_channel,
+        jimvio_store_id: (order as { jimvio_store_id?: string | null })
+          .jimvio_store_id,
+      },
     });
     await completeIdempotency(db, scope, idemKey, 200, result);
     return result;

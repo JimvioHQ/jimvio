@@ -32,7 +32,6 @@ export default async function StorefrontProductPage({ params }: Props) {
 
   const { product, variants } = loaded;
   const img = firstImage(product.images);
-  const primaryVariant = variants[0];
 
   return (
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 lg:grid-cols-2">
@@ -65,8 +64,16 @@ export default async function StorefrontProductPage({ params }: Props) {
           <StorefrontAddToCartButton
             productId={product.id}
             vendorId={product.vendor_id || store.vendor_id}
-            variantId={primaryVariant?.id ?? null}
+            variants={variants.map((v) => ({
+              id: v.id,
+              name: (v as { name?: string | null }).name,
+              price: v.price,
+              options: (v as { options?: unknown }).options,
+              inventory_quantity: v.inventory_quantity,
+            }))}
             storeHandle={store.handle}
+            storeId={store.id}
+            currency={(product.currency || store.default_currency || "USD").toUpperCase()}
           />
         </div>
       </div>

@@ -208,12 +208,21 @@ export async function publishJimvioStore(
   if (!store) return { ok: false, error: "Store not found." };
 
   const draft = (store.theme_draft as Record<string, unknown>) || {};
-  const settings = (draft.settings as Record<string, unknown>) || store.theme_settings || {};
+  const settings =
+    (draft.settings as Record<string, unknown>) ||
+    (store.theme_settings as Record<string, unknown>) ||
+    {};
+  // Publish full theme snapshot — public storefront never reads theme_draft
+  const publishedTheme = {
+    settings,
+    sections: (draft.sections as Record<string, unknown>) || {},
+  };
 
   const { error } = await cosTable(db, "jimvio_stores")
     .update({
       status: "published",
       theme_settings: settings,
+      published_theme: publishedTheme,
       published_at: new Date().toISOString(),
       published_theme_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

@@ -1,12 +1,7 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  loadPublishedStoreByHandle,
-  mergeThemeSettings,
-  defaultHomeSections,
-} from "@/lib/commerce-os";
-import type { ThemeDraft, ThemeSection } from "@/lib/commerce-os/themes/registry";
+import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
 import {
   StorefrontAnnouncement,
@@ -27,15 +22,8 @@ export default async function StorefrontLayout({ children, params }: Props) {
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
 
-  const draft = store.theme_draft as ThemeDraft | null;
-  const settings = mergeThemeSettings(
-    store.theme_settings,
-    draft?.settings ?? null
-  );
-  const homeSections: ThemeSection[] =
-    draft?.sections?.home?.length
-      ? draft.sections.home
-      : defaultHomeSections(store.name);
+  const settings = store.theme_settings;
+  const homeSections = store.published_sections.home;
 
   const { data: navRows } = await cosTable(supabase, "jimvio_store_navigation")
     .select("location, items")
@@ -43,17 +31,13 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   const headerNav =
     (
-      navRows?.find((n) => n.location === "header")?.items as Array<{
-        label: string;
-        href: string;
-      }>
+      navRows?.find((n: { location: string }) => n.location === "header")
+        ?.items as Array<{ label: string; href: string }>
     ) || undefined;
   const footerNav =
     (
-      navRows?.find((n) => n.location === "footer")?.items as Array<{
-        label: string;
-        href: string;
-      }>
+      navRows?.find((n: { location: string }) => n.location === "footer")
+        ?.items as Array<{ label: string; href: string }>
     ) || undefined;
 
   const showAnnouncement = homeSections.some(
