@@ -40,8 +40,7 @@ When Turnstile appears (or shows “Verification failed” / “CAPTCHA failed�
 3. Finish Jimvio login (email/password after Turnstile, or Continue with Google)  
 4. The script continues automatically after a stable Live Studio session  
 
-`--no-sandbox` is not used by this local headed workflow (`ignoreDefaultArgs` drops it if Playwright would inject it).
-
+`--no-sandbox` is not used. Chrome is started by the OS and attached over CDP.
 
 Disconnects YouTube inside Jimvio so production can revoke **only** the YouTube Live Google client grant (`oauth2.googleapis.com/revoke`). This does **not** remove Sign in with Google / Supabase login.
 
@@ -55,13 +54,20 @@ Optional (high-confidence Google UI only; never Delete all / Sign-in):
 DEMO_FORCE_GOOGLE_UI_RESET=1 DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-reset
 ```
 
-## Record (headed Chrome)
+## Record (headed installed Google Chrome)
 
 ```bash
+# Pre-flight (required before expensive full recording)
+npm run demo:youtube-oauth-validate-chrome
+
 DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-record
 ```
 
-Uses a persistent profile under `tmp/google-oauth-verification/chrome-profile` (gitignored). The recorder:
+Launches **installed Google Chrome** as a normal OS process, then attaches Playwright over CDP. This avoids Playwright Chromium / automation launch flags that trigger Google’s “This browser or app may not be secure” during account sign-in.
+
+Does **not** spoof user-agent, hide `navigator.webdriver`, or use AutomationControlled evasions. Does **not** use `--no-sandbox`.
+
+Uses a dedicated profile under `tmp/google-oauth-verification/chrome-profile-supported` (gitignored). The recorder:
 
 1. Keeps Chrome open during Jimvio login if needed  
 2. Disconnects YouTube first (YouTube-client revoke only)  

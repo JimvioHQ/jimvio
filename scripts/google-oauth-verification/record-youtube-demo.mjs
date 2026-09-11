@@ -18,7 +18,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { chromium } from "@playwright/test";
+import { launchSupportedChrome } from "./supported-chrome.mjs";
+import { startCdpVideo } from "./cdp-video.mjs";
 
 const BASE = (process.env.DEMO_BASE_URL || "https://www.jimvio.com").replace(
   /\/$/,
@@ -30,9 +31,9 @@ const OUT_DIR = path.resolve(
 );
 const PROFILE = path.resolve(
   process.cwd(),
-  process.env.DEMO_USER_DATA_DIR || path.join(OUT_DIR, "chrome-profile")
+  process.env.DEMO_USER_DATA_DIR ||
+    path.join(OUT_DIR, "chrome-profile-supported")
 );
-const STORAGE = process.env.DEMO_STORAGE_STATE?.trim() || "";
 const SAVE_STORAGE =
   process.env.DEMO_SAVE_STORAGE_STATE?.trim() ||
   path.join(process.cwd(), ".auth", "demo-jimvio.json");
@@ -79,8 +80,14 @@ const checklist = {
 
 let browserClosedByOperator = false;
 let intentionalClose = false;
+/** @type {import('@playwright/test').BrowserContext | null} */
 let contextRef = null;
+/** @type {import('@playwright/test').Page | null} */
 let pageRef = null;
+/** @type {null | (() => Promise<void>)} */
+let closeChrome = null;
+/** @type {null | { stop: () => Promise<string | null>, path: string }} */
+let cdpVideo = null;
 let consentShotIndex = 0;
 
 function stamp(key) {
@@ -304,29 +311,46 @@ async function waitUntil(page, predicate, label) {
 async function isJimvioAuthenticated(page) {
   assertAlive(page);
   const url = page.url();
-  if (/\/login/i.test(url)) return false;
+  if (/\/login(?:\/|\?|$)/i.test(url)) return false;
+  if (/\/auth\/callback/i.test(url)) return false;
   if (/accounts\.google\.com/i.test(url)) return false;
   if (!/jimvio\.com\/communities\/live/i.test(url)) return false;
   const body = await page.locator("body").innerText().catch(() => "");
+  // Unauthenticated bounce / marketing chrome must never count as a session.
   if (
-    /Sign in|Log in|Continue with Google|Create account|CAPTCHA failed/i.test(body) &&
-    !/Go Live|Live Settings|Live Destinations|YouTube/i.test(body)
+    /Welcome back|Sign in to continue|Continue with Google|Create account|CAPTCHA failed|Please complete the security check/i.test(
+      body
+    )
   ) {
     return false;
   }
-  return /Live Settings|Live Destinations|Go Live|YouTube|STREAMING|Streaming/i.test(
-    body
-  );
+  if (
+    /Sign in|Log in/i.test(body) &&
+    !/Go Live|Live Settings|Live Destinations/i.test(body)
+  ) {
+    return false;
+  }
+  // Require Live Studio chrome — "YouTube" alone is too weak (appears in many places).
+  return /Live Settings|Live Destinations|Go Live/i.test(body);
+}
+
+/** Confirmed session: Live Studio loads twice without bouncing to login. */
+async function hasStableJimvioSession(page) {
+  for (let i = 0; i < 2; i++) {
+    await page.goto(`${BASE}/communities/live?open=settings`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await dwell(1500);
+    if (!(await isJimvioAuthenticated(page))) return false;
+  }
+  return true;
 }
 
 async function ensureJimvioSession(page) {
-  await page.goto(`${BASE}/communities/live?open=settings`, {
-    waitUntil: "domcontentloaded",
-    timeout: 60_000,
-  });
-  if (await isJimvioAuthenticated(page)) return;
+  if (await hasStableJimvioSession(page)) return;
 
-  // Land on the real login page so Turnstile is visible for the operator.
+  // Land on the real login page (Turnstile may be temporarily disabled for demos).
   await page.goto(
     `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`,
     { waitUntil: "domcontentloaded", timeout: 60_000 }
@@ -341,37 +365,53 @@ async function ensureJimvioSession(page) {
       "Login page presents Cloudflare Turnstile — human completion required (no bypass)"
     );
     writeChecklist();
+  } else {
+    checklist.notes.push(
+      "Login page has no Turnstile widget — complete email/password or Continue with Google"
+    );
+    writeChecklist();
   }
 
-  await waitUntil(
-    page,
-    () => isJimvioAuthenticated(page),
-    "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
+  // Keep waiting until Live Studio is stable. Do not exit after a single transient hit.
+  const maxAttempts = Math.max(
+    1,
+    Number(process.env.DEMO_LOGIN_STABLE_ATTEMPTS || "8")
   );
-  await page.goto(`${BASE}/communities/live?open=settings`, {
-    waitUntil: "domcontentloaded",
-    timeout: 60_000,
-  });
-  if (!(await isJimvioAuthenticated(page))) {
-    // Stay alive: re-enter wait instead of exiting with code 2 while human is still working.
-    console.log(
-      "Session not stable yet — keeping Chrome open for another login/Turnstile attempt…"
-    );
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await waitUntil(
       page,
-      () => isJimvioAuthenticated(page),
-      "JIMVIO LOGIN REQUIRED (retry after Turnstile / auth)"
+      async () => {
+        // Success = left login and Live Studio chrome is present (may still need stability).
+        if (/\/login(?:\/|\?|$)/i.test(page.url())) return false;
+        if (await isJimvioAuthenticated(page)) return true;
+        // After password/Google login, next= may land on Live Studio asynchronously.
+        return false;
+      },
+      attempt === 1
+        ? "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
+        : `JIMVIO LOGIN REQUIRED (stable session attempt ${attempt}/${maxAttempts})`
     );
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
-    });
-  }
-  if (!(await isJimvioAuthenticated(page))) {
-    throw new Error(
-      "Jimvio session not established after login — complete Turnstile + login in Chrome and keep the window open"
+
+    if (await hasStableJimvioSession(page)) {
+      console.log("✓ Jimvio Live Studio session is stable\n");
+      return;
+    }
+
+    console.log(
+      `Session not stable yet (attempt ${attempt}/${maxAttempts}) — keeping Chrome open for login…`
     );
+    if (/\/login(?:\/|\?|$)/i.test(page.url()) === false) {
+      await page.goto(
+        `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`,
+        { waitUntil: "domcontentloaded", timeout: 60_000 }
+      );
+      await setBanner(page, "Step 2 — Jimvio login (retry)");
+    }
   }
+
+  throw new Error(
+    "Jimvio session not established after login — complete login in Chrome and keep the window open"
+  );
 }
 
 async function youtubeRow(page) {
@@ -500,6 +540,30 @@ async function driveGoogleConsent(page) {
         }
       }
 
+      // Google rejected this automation-launched browser — do NOT bypass.
+      // Operator must complete real Google sign-in in the OS Chrome window.
+      if (
+        /This browser or app may not be secure/i.test(text) ||
+        /Couldn.?t sign you in/i.test(text) ||
+        /browser might not be secure/i.test(text)
+      ) {
+        if (!checklist.notes.some((n) => /insecure-browser/i.test(n))) {
+          checklist.notes.push(
+            "Google insecure-browser message shown — waiting for human Google sign-in in supported Chrome (no bypass)"
+          );
+          writeChecklist();
+          printBanner("GOOGLE LOGIN REQUIRED", [
+            "Complete Google sign-in in the visible Chrome window.",
+            "Do not close the browser.",
+            "The recorder will continue automatically after authentication.",
+            "Do NOT bypass Google security. Do NOT use automation evasions.",
+          ]);
+          await shot(page, `04-insecure-browser-${consentShotIndex++}`).catch(
+            () => undefined
+          );
+        }
+      }
+
       // Account chooser — pick first non "Use another account"
       if (/Choose an account/i.test(text)) {
         const account = page
@@ -597,34 +661,20 @@ async function main() {
     "Safety: never revoke Sign in with Google / Supabase login — only YouTube Live grant via Disconnect revoke."
   );
   console.log(
-    "Local headed Chrome: no --no-sandbox; Turnstile must be completed by a human (no bypass)."
+    "Browser: installed Google Chrome via OS launch + CDP (no Playwright Chromium, no --no-sandbox, no automation evasions)."
   );
 
-  // Local macOS headed recording: use installed Chrome without unsupported
-  // automation sandbox flags. Never weakens production Turnstile.
-  const launchArgs = [`--window-size=${VIEWPORT.width},${VIEWPORT.height}`];
-  // --disable-dev-shm-usage is a Linux CI convenience; omit on macOS desktop.
-  if (process.platform !== "darwin") {
-    launchArgs.push("--disable-dev-shm-usage");
-  }
-
-  const context = await chromium.launchPersistentContext(PROFILE, {
-    channel: "chrome",
-    headless: false,
+  const chromeSession = await launchSupportedChrome({
+    profileDir: PROFILE,
     viewport: VIEWPORT,
-    locale: "en-US",
-    slowMo: 60,
-    recordVideo: {
-      dir: path.join(OUT_DIR, "video"),
-      size: VIEWPORT,
-    },
-    // Drop Playwright defaults that make Chrome warn / hurt human Turnstile UX.
-    // Do NOT disable Turnstile or spoof tokens — human completes the challenge.
-    ignoreDefaultArgs: ["--enable-automation", "--no-sandbox"],
-    args: launchArgs,
-    ...(STORAGE && fs.existsSync(STORAGE) ? { storageState: STORAGE } : {}),
-    permissions: ["camera", "microphone"],
   });
+  console.log(`Chrome:   ${chromeSession.executable}`);
+  console.log(`CDP:      ${chromeSession.endpoint}`);
+  console.log(`Version:  ${chromeSession.browserVersion}`);
+
+  const context = chromeSession.context;
+  const page = chromeSession.page;
+  closeChrome = chromeSession.close;
   contextRef = context;
   context.on("close", () => {
     if (!intentionalClose) {
@@ -633,8 +683,13 @@ async function main() {
     }
   });
 
-  const page = context.pages()[0] || (await context.newPage());
   pageRef = page;
+  const videoOut = path.join(
+    OUT_DIR,
+    "video",
+    `cdp-${Date.now()}.webm`
+  );
+  cdpVideo = await startCdpVideo(page, videoOut);
   let completedOk = false;
 
   try {
@@ -861,9 +916,22 @@ async function main() {
   } finally {
     let finalVideo = null;
     try {
-      const videoPath = pageRef ? await pageRef.video()?.path() : null;
       intentionalClose = true;
-      await context.close().catch(() => undefined);
+      let videoPath = null;
+      if (cdpVideo) {
+        videoPath = await cdpVideo.stop().catch(() => cdpVideo?.path || null);
+        cdpVideo = null;
+      }
+      if (!videoPath || !fs.existsSync(videoPath)) {
+        videoPath = pageRef ? await pageRef.video()?.path().catch(() => null) : null;
+      }
+
+      if (closeChrome) {
+        await closeChrome().catch(() => undefined);
+        closeChrome = null;
+      } else {
+        await contextRef?.close?.().catch(() => undefined);
+      }
 
       if (videoPath && fs.existsSync(videoPath)) {
         if (completedOk && criticalOk()) {

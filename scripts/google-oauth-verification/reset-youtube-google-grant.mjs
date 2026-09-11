@@ -19,7 +19,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "@playwright/test";
+import { launchSupportedChrome } from "./supported-chrome.mjs";
 
 const BASE = (process.env.DEMO_BASE_URL || "https://www.jimvio.com").replace(
   /\/$/,
@@ -32,9 +32,8 @@ const OUT_DIR = path.resolve(
 const PROFILE = path.resolve(
   process.cwd(),
   process.env.DEMO_USER_DATA_DIR ||
-    path.join(OUT_DIR, "chrome-profile")
+    path.join(OUT_DIR, "chrome-profile-supported")
 );
-const STORAGE = process.env.DEMO_STORAGE_STATE?.trim() || "";
 const MANUAL_TIMEOUT_MS = Number(process.env.DEMO_MANUAL_TIMEOUT_MS || "0");
 
 const LOGIN_MARKERS =
@@ -263,16 +262,12 @@ async function main() {
   console.log(`Base: ${BASE}`);
   console.log("Will NEVER revoke Sign in with Google / Supabase login.\n");
 
-  const context = await chromium.launchPersistentContext(PROFILE, {
-    channel: "chrome",
-    headless: false,
+  const chromeSession = await launchSupportedChrome({
+    profileDir: PROFILE,
     viewport: { width: 1920, height: 1080 },
-    locale: "en-US",
-    ignoreDefaultArgs: ["--enable-automation", "--no-sandbox"],
-    args: ["--window-size=1920,1080"],
-    ...(STORAGE && fs.existsSync(STORAGE) ? { storageState: STORAGE } : {}),
   });
-  const page = context.pages()[0] || (await context.newPage());
+  const context = chromeSession.context;
+  const page = chromeSession.page;
 
   const report = {
     jimvioDisconnect: null,
@@ -321,7 +316,7 @@ async function main() {
       path.join(OUT_DIR, "reset-report.json"),
       JSON.stringify(report, null, 2)
     );
-    await context.close();
+    await chromeSession.close();
   }
 
   console.log("\nReset report:", JSON.stringify(report, null, 2));

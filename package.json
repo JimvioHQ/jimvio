@@ -41,7 +41,8 @@
     "icons:generate": "node scripts/generate-icons.mjs",
     "demo:youtube-oauth-record": "node scripts/google-oauth-verification/record-youtube-demo.mjs",
     "demo:youtube-oauth-inspect": "node scripts/google-oauth-verification/inspect-recording.mjs",
-    "demo:youtube-oauth-reset": "node scripts/google-oauth-verification/reset-youtube-google-grant.mjs"
+    "demo:youtube-oauth-reset": "node scripts/google-oauth-verification/reset-youtube-google-grant.mjs",
+    "demo:youtube-oauth-validate-chrome": "node scripts/google-oauth-verification/validate-chrome.mjs"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",
