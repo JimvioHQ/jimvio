@@ -1,0 +1,181 @@
+import { NextRequest, NextResponse } from "next/server";
+import { dsAdminDb } from "@/lib/dropshipping/tenant";
+import {
+  verifyShopifyWebhookHmac,
+  persistWebhookEvent,
+  markWebhookProcessed,
+} from "@/lib/dropshipping/webhooks/verify";
+import { ingestStoreOrder } from "@/lib/dropshipping/orders/ingest";
+import { ShopifyStoreConnector } from "@/lib/dropshipping/stores/shopify-connector";
+import { getShopifyApiVersionFromEnv } from "@/lib/platform-shopify";
+import { enqueueSyncJob } from "@/lib/dropshipping/sync/engine";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * Dropshipping OS inbound Shopify webhooks.
+ * Handles orders/create, products/*, app/uninstalled.
+ * Does NOT replace /api/webhooks/shopify (fulfillment earnings path).
+ */
+export async function POST(req: NextRequest) {
+  const rawBody = await req.text();
+  const hmac = req.headers.get("x-shopify-hmac-sha256");
+  const topic = req.headers.get("x-shopify-topic") || "";
+  const shopDomain = (req.headers.get("x-shopify-shop-domain") || "").toLowerCase();
+  const webhookId = req.headers.get("x-shopify-webhook-id") || "";
+
+  if (!verifyShopifyWebhookHmac(rawBody, hmac)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const db = dsAdminDb();
+  const idempotencyKey =
+    webhookId ||
+    `shopify_ds:${shopDomain}:${topic}:${String(payload.id ?? "")}:${payload.updated_at ?? ""}`;
+
+  const { data: store } = shopDomain
+    ? await db
+        .from("merchant_stores")
+        .select("id, vendor_id, status, platform")
+        .eq("platform", "shopify")
+        .ilike("domain", shopDomain)
+        .neq("status", "disconnected")
+        .maybeSingle()
+    : { data: null };
+
+  const persisted = await persistWebhookEvent(db, {
+    provider: "shopify_dropshipping",
+    idempotencyKey,
+    payload,
+    merchantStoreId: store?.id ?? null,
+    topic,
+  });
+
+  if (!persisted.ok) {
+    // Fast ack so Shopify retries; log failure via event insert error
+    return NextResponse.json({ received: true, deferred: true });
+  }
+
+  if (persisted.alreadyProcessed) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  // Fast-ack path: process synchronously but keep work bounded; always 200 after verify
+  try {
+    if (topic === "orders/create" || topic === "orders/updated") {
+      if (!store?.id || !store.vendor_id) {
+        await markWebhookProcessed(db, persisted.eventId, {
+          error: "No connected merchant store for this shop domain.",
+          status: "skipped",
+        });
+        return NextResponse.json({ received: true, skipped: true });
+      }
+
+      const connector = new ShopifyStoreConnector({
+        shopDomain,
+        accessToken: "unused",
+        apiVersion: getShopifyApiVersionFromEnv(),
+      });
+      const normalized = connector.normalizeOrder(payload);
+      const ingest = await ingestStoreOrder(db, {
+        vendorId: store.vendor_id,
+        storeId: store.id,
+        orderChannel: "shopify",
+        normalized,
+        idempotencyKey: `shopify:${normalized.externalOrderId}`,
+      });
+
+      if (ingest.ok) {
+        await markWebhookProcessed(db, persisted.eventId, {
+          orderId: ingest.orderId,
+          status: "processed",
+        });
+        // Route to supplier asynchronously after ack — enqueue fulfillment sync
+        if (ingest.created) {
+          await enqueueSyncJob(db, {
+            vendorId: store.vendor_id,
+            storeId: store.id,
+            jobType: "FULFILLMENT_SYNC",
+            metadata: { orderId: ingest.orderId, reason: "orders_create" },
+          });
+          // Best-effort immediate route (idempotent); failures retry via sync
+          try {
+            const { routeOrderFulfillment } = await import(
+              "@/lib/dropshipping/fulfillment/router"
+            );
+            await routeOrderFulfillment(db, ingest.orderId);
+          } catch {
+            // Retry via cron dropshipping-sync / FULFILLMENT_SYNC
+          }
+        }
+      } else {
+        await markWebhookProcessed(db, persisted.eventId, {
+          error: ingest.error,
+          status: "failed",
+        });
+      }
+      return NextResponse.json({ received: true, ingest });
+    }
+
+    if (topic === "app/uninstalled") {
+      if (store?.id) {
+        await db
+          .from("merchant_stores")
+          .update({
+            status: "disconnected",
+            disconnected_at: new Date().toISOString(),
+            last_error: "Shopify app uninstalled",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", store.id);
+        await db
+          .from("merchant_store_credentials")
+          .update({
+            access_token_encrypted: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("store_id", store.id);
+      }
+      await markWebhookProcessed(db, persisted.eventId, { status: "processed" });
+      return NextResponse.json({ received: true, uninstalled: true });
+    }
+
+    if (topic === "products/create" || topic === "products/update" || topic === "products/delete") {
+      if (store?.id && store.vendor_id) {
+        await enqueueSyncJob(db, {
+          vendorId: store.vendor_id,
+          storeId: store.id,
+          jobType: "PRODUCT_UPDATE",
+          metadata: {
+            topic,
+            storeProductId: payload.id != null ? String(payload.id) : null,
+            source: "webhook",
+          },
+        });
+      }
+      await markWebhookProcessed(db, persisted.eventId, { status: "processed" });
+      return NextResponse.json({ received: true, queued: true });
+    }
+
+    await markWebhookProcessed(db, persisted.eventId, {
+      status: "skipped",
+      error: `Unhandled topic: ${topic}`,
+    });
+    return NextResponse.json({ received: true, skipped: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Webhook processing failed.";
+    await markWebhookProcessed(db, persisted.eventId, {
+      error: message,
+      status: "failed",
+    });
+    // Still ack — Shopify will not retry endlessly on 5xx for already-persisted events
+    return NextResponse.json({ received: true, error: message });
+  }
+}

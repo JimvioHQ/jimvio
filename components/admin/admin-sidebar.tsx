@@ -40,6 +40,7 @@ const navSections = [
       { label: "Products",  href: "/admin/products", icon: Boxes },
       { label: "Import Intel", href: "/admin/products/import/cj", icon: Sparkles },
       { label: "Orders",    href: "/admin/orders",   icon: ClipboardList },
+      { label: "Dropshipping", href: "/admin/dropshipping", icon: Store },
     ],
   },
   {

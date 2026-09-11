@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn, normalizeImages, getEffectiveCompareAtPrice, getProductDiscountPercent, hasRealProductDiscount } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
+import { AddToStoreButton } from "@/components/dropshipping/add-to-store-button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ProductQA, ProductAiSummary } from "@/components/marketplace/product-qa";
@@ -1447,6 +1448,13 @@ export function PhysicalProductDetail({
                         <span>This option is out of stock</span>
                       </div>
                     )}
+                    <div className="mt-2">
+                      <AddToStoreButton
+                        productId={product.id}
+                        productName={product.name}
+                        className="w-full border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
+                      />
+                    </div>
                   </div>
 
                   {/* Mobile-only: shipping + buyer protection */}

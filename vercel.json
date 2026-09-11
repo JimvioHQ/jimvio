@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/community-stories-refresh",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/dropshipping-sync",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
