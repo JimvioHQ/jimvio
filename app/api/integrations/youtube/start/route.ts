@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const returnPath = url.searchParams.get("return") ?? "/communities/live";
+  const returnPath = url.searchParams.get("return") ?? "/communities/live?open=settings";
   const origin = resolveAppOrigin(req);
   const redirectUri = integrationCallbackUrl("youtube", origin);
   const { state } = await createOAuthState({

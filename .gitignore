@@ -49,6 +49,9 @@ scratch/
 test-results/
 playwright-report/
 
+# Google OAuth verification recordings (may contain private test-account UI)
+tmp/google-oauth-verification/
+
 # scripts/tmp — keep verify-*.mjs tracked; ignore logs & QA scratch
 scripts/tmp/*.log
 scripts/tmp/qa-*

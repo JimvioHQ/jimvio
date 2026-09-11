@@ -119,10 +119,15 @@ export function useLiveDestinations(liveSessionId?: string | null) {
   const connect = useCallback((platform: DestinationPlatform) => {
     const returnPath =
       typeof window !== "undefined"
-        ? `${window.location.pathname}${window.location.search}`
-        : "/communities/live";
+        ? `${window.location.pathname}${window.location.search || "?open=settings"}`
+        : "/communities/live?open=settings";
+    // Ensure Live Settings opens after OAuth when connecting from Live Studio.
+    const ensured =
+      returnPath.includes("open=settings") || !returnPath.startsWith("/communities/live")
+        ? returnPath
+        : `${returnPath}${returnPath.includes("?") ? "&" : "?"}open=settings`;
     window.location.assign(
-      `/api/integrations/${platform}/start?return=${encodeURIComponent(returnPath)}`
+      `/api/integrations/${platform}/start?return=${encodeURIComponent(ensured)}`
     );
   }, []);
 
