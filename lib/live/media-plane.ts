@@ -3,6 +3,12 @@
  * No UI — consumed by hooks only.
  */
 
+import {
+  classifyMediaError,
+  logMediaError,
+  type MediaAccessKind,
+} from "@/lib/live/media-errors";
+
 export type LiveMediaDevice = {
   deviceId: string;
   label: string;
@@ -20,8 +26,14 @@ export type MediaPlaneSnapshot = {
   videoDevices: LiveMediaDevice[];
   activeAudioId: string | null;
   activeVideoId: string | null;
+  /** @deprecated Prefer audioAccess / videoAccess */
   permissionDenied: { audio: boolean; video: boolean };
   lastError: string | null;
+  /** Whether the user has attempted to request media at least once. */
+  permissionRequested: boolean;
+  audioAccess: MediaAccessKind;
+  videoAccess: MediaAccessKind;
+  secureContext: boolean;
 };
 
 type Listener = (snap: MediaPlaneSnapshot) => void;
@@ -53,11 +65,16 @@ export class LiveMediaPlane {
   private videoDevices: LiveMediaDevice[] = [];
   private permissionDenied = { audio: false, video: false };
   private lastError: string | null = null;
+  private permissionRequested = false;
+  private audioAccess: MediaAccessKind = "idle";
+  private videoAccess: MediaAccessKind = "idle";
   private listeners = new Set<Listener>();
   private deviceHandler: (() => void) | null = null;
   private disposed = false;
   private shareStarting = false;
   private facingMode: "user" | "environment" | null = "user";
+  private videoRequestGen = 0;
+  private audioRequestGen = 0;
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn);
@@ -77,6 +94,10 @@ export class LiveMediaPlane {
       activeVideoId: this.activeVideoId,
       permissionDenied: { ...this.permissionDenied },
       lastError: this.lastError,
+      permissionRequested: this.permissionRequested,
+      audioAccess: this.audioAccess,
+      videoAccess: this.videoAccess,
+      secureContext: typeof window === "undefined" ? true : window.isSecureContext,
     };
   }
 
@@ -108,7 +129,16 @@ export class LiveMediaPlane {
 
   async init(): Promise<void> {
     if (typeof navigator === "undefined" || !navigator.mediaDevices) {
-      this.lastError = "Media devices unavailable";
+      this.lastError = "Media devices unavailable in this browser.";
+      this.audioAccess = "security";
+      this.videoAccess = "security";
+      this.emit();
+      return;
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      this.lastError = "Camera and microphone require a secure (HTTPS) connection.";
+      this.audioAccess = "security";
+      this.videoAccess = "security";
       this.emit();
       return;
     }
@@ -121,38 +151,67 @@ export class LiveMediaPlane {
     }
   }
 
+  /**
+   * User-initiated studio prepare: request camera + mic independently so one
+   * failure does not permanently block the other.
+   */
+  async enableStudioMedia(): Promise<{ camera: boolean; microphone: boolean }> {
+    this.permissionRequested = true;
+    this.lastError = null;
+    this.emit();
+    const camera = await this.enableCamera();
+    const microphone = this.hasLiveAudio()
+      ? true
+      : await this.ensureMicrophone();
+    if (!camera && !microphone && !this.lastError) {
+      this.lastError = "Could not access your camera or microphone.";
+      this.emit();
+    }
+    return { camera, microphone };
+  }
+
   async enableCamera(deviceId?: string): Promise<boolean> {
     this.lastError = null;
+    this.permissionRequested = true;
+    const gen = ++this.videoRequestGen;
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.lastError = "Camera unavailable";
-      this.emit();
+      this.applyVideoError(
+        classifyMediaError(new DOMException("getUserMedia unavailable", "NotSupportedError"), "video")
+      );
       return false;
     }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      this.applyVideoError(
+        classifyMediaError(new DOMException("Insecure context", "SecurityError"), "video")
+      );
+      return false;
+    }
+    this.videoAccess = "requesting";
+    this.emit();
     try {
-      const constraints: MediaStreamConstraints = {
-        video: deviceId
-          ? { deviceId: { exact: deviceId } }
-          : this.activeVideoId
-            ? { deviceId: { ideal: this.activeVideoId } }
-            : true,
-        audio: this.camStream
-          ? false
-          : this.activeAudioId
-            ? { deviceId: { ideal: this.activeAudioId } }
-            : true,
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // Prefer video-only first so a mic failure cannot block camera preview.
+      const videoConstraints: MediaTrackConstraints | boolean = deviceId
+        ? { deviceId: { exact: deviceId } }
+        : this.activeVideoId
+          ? { deviceId: { ideal: this.activeVideoId } }
+          : { facingMode: this.facingMode ?? "user" };
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: false,
+      });
+      if (this.disposed || gen !== this.videoRequestGen) {
+        stream.getTracks().forEach((t) => t.stop());
+        return false;
+      }
       this.permissionDenied.video = false;
+      this.videoAccess = "granted";
       if (!this.camStream) {
         this.camStream = stream;
-        const a = stream.getAudioTracks()[0];
-        if (a) {
-          a.enabled = this.micEnabled;
-          this.activeAudioId = a.getSettings().deviceId ?? this.activeAudioId;
-        }
       } else {
         this.replaceVideoTrack(stream.getVideoTracks()[0] ?? null);
-        stream.getAudioTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((t) => {
+          if (t.kind !== "video") t.stop();
+        });
       }
       const v = this.camStream.getVideoTracks()[0];
       if (v) {
@@ -164,27 +223,39 @@ export class LiveMediaPlane {
       this.emit();
       return true;
     } catch (err) {
-      this.permissionDenied.video = true;
-      this.lastError = err instanceof Error ? err.message : "Camera access denied";
-      this.camEnabled = false;
-      this.emit();
+      const classified = classifyMediaError(err, "video");
+      // Stale exact deviceId — retry once with default device.
+      if (classified.kind === "overconstrained" && deviceId) {
+        return this.enableCamera();
+      }
+      if (classified.kind === "overconstrained" && this.activeVideoId && !deviceId) {
+        this.activeVideoId = null;
+        return this.enableCamera();
+      }
+      this.applyVideoError(classified);
       return false;
     }
   }
 
   async ensureMicrophone(deviceId?: string): Promise<boolean> {
     this.lastError = null;
+    this.permissionRequested = true;
+    const gen = ++this.audioRequestGen;
     if (!navigator.mediaDevices?.getUserMedia) {
-      this.lastError = "Microphone unavailable";
-      this.emit();
+      this.applyAudioError(
+        classifyMediaError(new DOMException("getUserMedia unavailable", "NotSupportedError"), "audio")
+      );
       return false;
     }
     try {
       if (this.camStream?.getAudioTracks().some((t) => t.readyState === "live")) {
         this.permissionDenied.audio = false;
+        this.audioAccess = "granted";
         this.setMicEnabled(true);
         return true;
       }
+      this.audioAccess = "requesting";
+      this.emit();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: deviceId
           ? { deviceId: { exact: deviceId } }
@@ -193,9 +264,20 @@ export class LiveMediaPlane {
             : true,
         video: false,
       });
+      if (this.disposed || gen !== this.audioRequestGen) {
+        stream.getTracks().forEach((t) => t.stop());
+        return false;
+      }
       this.permissionDenied.audio = false;
+      this.audioAccess = "granted";
       const track = stream.getAudioTracks()[0];
-      if (!track) return false;
+      if (!track) {
+        stream.getTracks().forEach((t) => t.stop());
+        this.applyAudioError(
+          classifyMediaError(new DOMException("No audio track", "NotFoundError"), "audio")
+        );
+        return false;
+      }
       track.enabled = true;
       this.micEnabled = true;
       this.activeAudioId = track.getSettings().deviceId ?? deviceId ?? this.activeAudioId;
@@ -207,14 +289,21 @@ export class LiveMediaPlane {
           t.stop();
         });
         this.camStream.addTrack(track);
+        stream.getTracks().filter((t) => t !== track).forEach((t) => t.stop());
       }
       await this.refreshDevices();
       this.emit();
       return true;
     } catch (err) {
-      this.permissionDenied.audio = true;
-      this.lastError = err instanceof Error ? err.message : "Microphone access denied";
-      this.emit();
+      const classified = classifyMediaError(err, "audio");
+      if (classified.kind === "overconstrained" && deviceId) {
+        return this.ensureMicrophone();
+      }
+      if (classified.kind === "overconstrained" && this.activeAudioId && !deviceId) {
+        this.activeAudioId = null;
+        return this.ensureMicrophone();
+      }
+      this.applyAudioError(classified);
       return false;
     }
   }
@@ -301,6 +390,12 @@ export class LiveMediaPlane {
       return true;
     } catch (err) {
       this.lastError = err instanceof Error ? err.message : "Camera flip failed";
+      const classified = classifyMediaError(err, "video");
+      if (classified.kind === "denied") {
+        this.permissionDenied.video = true;
+        this.videoAccess = "denied";
+        this.lastError = classified.message;
+      }
       this.emit();
       return false;
     }
@@ -525,6 +620,23 @@ export class LiveMediaPlane {
     this.listeners.clear();
   }
 
+  private applyVideoError(classified: ReturnType<typeof classifyMediaError>): void {
+    logMediaError("camera", classified);
+    this.permissionDenied.video = classified.kind === "denied";
+    this.videoAccess = classified.kind === "requesting" ? "unknown" : classified.kind;
+    this.camEnabled = false;
+    this.lastError = classified.message;
+    this.emit();
+  }
+
+  private applyAudioError(classified: ReturnType<typeof classifyMediaError>): void {
+    logMediaError("microphone", classified);
+    this.permissionDenied.audio = classified.kind === "denied";
+    this.audioAccess = classified.kind === "requesting" ? "unknown" : classified.kind;
+    this.lastError = classified.message;
+    this.emit();
+  }
+
   private async onDeviceChange(): Promise<void> {
     if (this.disposed) return;
     await this.refreshDevices();
@@ -544,17 +656,17 @@ export class LiveMediaPlane {
     try {
       const all = await navigator.mediaDevices.enumerateDevices();
       this.audioDevices = all
-        .filter((d) => d.kind === "audioinput")
-        .map((d) => ({
+        .filter((d) => d.kind === "audioinput" && d.deviceId)
+        .map((d, i) => ({
           deviceId: d.deviceId,
-          label: d.label || `Microphone ${d.deviceId.slice(0, 4)}`,
+          label: d.label || `Microphone ${i + 1}`,
           kind: "audioinput" as const,
         }));
       this.videoDevices = all
-        .filter((d) => d.kind === "videoinput")
-        .map((d) => ({
+        .filter((d) => d.kind === "videoinput" && d.deviceId)
+        .map((d, i) => ({
           deviceId: d.deviceId,
-          label: d.label || `Camera ${d.deviceId.slice(0, 4)}`,
+          label: d.label || `Camera ${i + 1}`,
           kind: "videoinput" as const,
         }));
     } catch {

@@ -442,11 +442,11 @@ export function LiveDestinationsPanel({
 
       {variant === "settings" ? (
         <p className="mt-4 text-[12px] text-[#8B8579]">
-          Prefer managing from Live Studio? Open{" "}
+          Destinations enabled here are used when you Go Live from{" "}
           <Link href="/communities/live" className="font-semibold text-[#D6480F] hover:underline">
             Live Studio
-          </Link>{" "}
-          — destination fan-out still uses destinations you enable here.
+          </Link>
+          . Jimvio Live is never interrupted by an external destination failure.
         </p>
       ) : null}
 

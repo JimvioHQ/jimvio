@@ -70,14 +70,21 @@ function testAuthUrlScopes() {
 function testSettingsRoute() {
   must(
     "app/identity/live-destinations/page.tsx",
-    ["IdentityLiveDestinationsClient", "Live Destinations"],
-    "Settings Live Destinations page exists"
+    ["/communities/live", "open=settings"],
+    "Legacy Live Destinations route redirects into Live Settings"
   );
-  must(
-    "app/identity/settings/page.tsx",
-    ["/identity/live-destinations", "Live Destinations"],
-    "Settings nav includes Live Destinations"
-  );
+  const settings = readFileSync(join(root, "app/identity/settings/page.tsx"), "utf8");
+  if (settings.includes("Live Destinations") || settings.includes("/identity/live-destinations")) {
+    checks.push({
+      ok: false,
+      label: "General Settings must not include Live Destinations",
+    });
+  } else {
+    checks.push({
+      ok: true,
+      label: "General Settings does not include Live Destinations",
+    });
+  }
 }
 
 function testStudioNoCenterPanel() {
@@ -85,23 +92,30 @@ function testStudioNoCenterPanel() {
     join(root, "components/community/hub/hub-live-page.tsx"),
     "utf8"
   );
-  if (hub.includes("LiveDestinationsPanel")) {
+  if (!hub.includes("LiveDestinationsPanel")) {
     checks.push({
       ok: false,
-      label: "Live Studio must not render LiveDestinationsPanel",
+      label: "Live Settings must embed LiveDestinationsPanel",
     });
     return;
   }
   if (!hub.includes("LiveDestinationsStudioLink")) {
     checks.push({
       ok: false,
-      label: "Live Studio must use lightweight destinations link",
+      label: "Live Studio must keep compact destinations summary",
+    });
+    return;
+  }
+  if (hub.includes("destinationsSlot=")) {
+    checks.push({
+      ok: false,
+      label: "Prepare stage must not mount full destinations card slot",
     });
     return;
   }
   checks.push({
     ok: true,
-    label: "Live Studio uses lightweight destinations entry only",
+    label: "Live Destinations live in Live Settings with compact stage summary",
   });
 }
 

@@ -13,7 +13,7 @@ import { liveStudioLog } from "@/lib/live/observability";
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT_RETURN = "/identity/live-destinations";
+const DEFAULT_RETURN = "/communities/live";
 
 function safeReturnPath(path: string | undefined): string {
   if (!path || !path.startsWith("/") || path.startsWith("//")) return DEFAULT_RETURN;

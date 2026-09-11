@@ -120,7 +120,7 @@ export function useLiveDestinations(liveSessionId?: string | null) {
     const returnPath =
       typeof window !== "undefined"
         ? `${window.location.pathname}${window.location.search}`
-        : "/identity/live-destinations";
+        : "/communities/live";
     window.location.assign(
       `/api/integrations/${platform}/start?return=${encodeURIComponent(returnPath)}`
     );

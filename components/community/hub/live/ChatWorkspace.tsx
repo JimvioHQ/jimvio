@@ -16,12 +16,30 @@ import { HubAvatar } from "../hub-ui";
 import { formatTime } from "./studio-utils";
 import { CHAT_RENDER_CAP, FOCUS_RING, FOCUS_RING_INSET, MOTION_COLORS } from "./studio-ui";
 import { ChatEmojiPickerDialog } from "@/components/community/chat/chat-emoji-picker-dialog";
-import type { LiveTypingUser } from "@/hooks/live/useLiveChat";
+import type { LiveTypingUser, LiveChatConnectionStatus } from "@/hooks/live/useLiveChat";
 
 type Enriched = ChatMessage & {
   pinned?: boolean;
   replyTo?: string | null;
 };
+
+function chatStatusLabel(status: LiveChatConnectionStatus): string {
+  switch (status) {
+    case "connecting":
+      return "Connecting…";
+    case "connected":
+      return "Connected";
+    case "reconnecting":
+      return "Reconnecting…";
+    case "disconnected":
+      return "Disconnected";
+    case "unavailable":
+      return "Unavailable";
+    case "idle":
+    default:
+      return "Waiting for live";
+  }
+}
 
 function ChatWorkspaceImpl({
   messages,
@@ -43,6 +61,7 @@ function ChatWorkspaceImpl({
   canModerate = false,
   roomActions = false,
   connected = true,
+  connectionStatus,
   queuedCount = 0,
   slowModeSeconds = 0,
   onlineCount,
@@ -69,10 +88,15 @@ function ChatWorkspaceImpl({
   canModerate?: boolean;
   roomActions?: boolean;
   connected?: boolean;
+  connectionStatus?: LiveChatConnectionStatus;
   queuedCount?: number;
   slowModeSeconds?: number;
   onlineCount?: number;
 }) {
+  const status: LiveChatConnectionStatus =
+    connectionStatus ?? (connected ? "connected" : "reconnecting");
+  const statusLabel = chatStatusLabel(status);
+  const showStatusBadge = status !== "connected" && status !== "idle";
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<Enriched | null>(null);
@@ -212,9 +236,19 @@ function ChatWorkspaceImpl({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!connected && (
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              Reconnecting…
+          {showStatusBadge && (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                status === "connecting" || status === "reconnecting"
+                  ? "bg-amber-50 text-amber-700"
+                  : status === "disconnected" || status === "unavailable"
+                    ? "bg-neutral-100 text-neutral-600"
+                    : "bg-amber-50 text-amber-700"
+              )}
+              role="status"
+            >
+              {statusLabel}
             </span>
           )}
           {queuedCount > 0 && (
@@ -278,7 +312,19 @@ function ChatWorkspaceImpl({
         >
           {enriched.length === 0 ? (
             <p className="py-14 text-center text-[12px] leading-relaxed text-neutral-400">
-              No messages yet. Say hello to start the conversation.
+              {status === "idle"
+                ? "Chat opens when you go live."
+                : status === "connecting"
+                  ? "Connecting to chat…"
+                  : status === "unavailable"
+                    ? "Chat is unavailable right now."
+                    : (
+                      <>
+                        No messages yet.
+                        <br />
+                        Say hello to start the conversation.
+                      </>
+                    )}
             </p>
           ) : (
             enriched.map((m) => {
@@ -545,15 +591,19 @@ function ChatWorkspaceImpl({
           <span
             className={cn(
               "h-1.5 w-1.5 rounded-full",
-              connected ? "bg-emerald-400" : "bg-amber-400"
+              status === "connected"
+                ? "bg-emerald-400"
+                : status === "connecting" || status === "reconnecting"
+                  ? "bg-amber-400"
+                  : "bg-neutral-300"
             )}
             aria-hidden
           />
           {slowModeSeconds > 0
             ? `Slow mode ${slowModeSeconds}s`
-            : connected
+            : status === "connected"
               ? "Chat connected"
-              : "Reconnecting…"}
+              : statusLabel}
         </p>
       </div>
 

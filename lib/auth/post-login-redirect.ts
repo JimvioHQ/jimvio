@@ -23,10 +23,12 @@ function sanitizePath(raw: string | null | undefined): string {
 /** Default destination after a successful login when no deep-link is present. */
 export const DEFAULT_POST_LOGIN_PATH = "/communities"
 
-// Role priority — highest wins
+// Role priority — highest wins.
+// Vendors land on /communities like other members; UGC Campaign Center is intentional
+// navigation only (never the global post-login default).
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
-  vendor: "/ugc/campaign-center",
+  vendor: DEFAULT_POST_LOGIN_PATH,
   affiliate: DEFAULT_POST_LOGIN_PATH,
   influencer: DEFAULT_POST_LOGIN_PATH,
   buyer: DEFAULT_POST_LOGIN_PATH,

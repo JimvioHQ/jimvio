@@ -96,8 +96,11 @@ const nextConfig: NextConfig = {
             value: "max-age=63072000; includeSubDomains; preload",
           },
           {
+            // Live Studio needs first-party camera/mic. Empty allowlists (camera=())
+            // force NotAllowedError/"Permission denied" even when the user clicks Allow.
+            // Keep geolocation/payment locked; do not grant to third-party origins.
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(), payment=()",
+            value: "camera=(self), microphone=(self), geolocation=(), payment=()",
           },
           {
             key: "Content-Security-Policy",

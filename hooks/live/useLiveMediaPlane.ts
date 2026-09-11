@@ -14,6 +14,10 @@ const INITIAL: MediaPlaneSnapshot = {
   activeVideoId: null,
   permissionDenied: { audio: false, video: false },
   lastError: null,
+  permissionRequested: false,
+  audioAccess: "idle",
+  videoAccess: "idle",
+  secureContext: true,
 };
 
 export function useLiveMediaPlane(enabled = true) {
@@ -77,6 +81,15 @@ export function useLiveMediaPlane(enabled = true) {
 
   const toggleCamera = useCallback(async () => {
     return (await planeRef.current?.toggleCamera()) ?? false;
+  }, []);
+
+  const enableStudioMedia = useCallback(async () => {
+    return (
+      (await planeRef.current?.enableStudioMedia()) ?? {
+        camera: false,
+        microphone: false,
+      }
+    );
   }, []);
 
   const switchCamera = useCallback(async (deviceId: string) => {
@@ -151,6 +164,7 @@ export function useLiveMediaPlane(enabled = true) {
     shareStream,
     toggleMic,
     toggleCamera,
+    enableStudioMedia,
     switchCamera,
     flipCamera,
     switchMicrophone,

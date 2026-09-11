@@ -7,8 +7,8 @@ import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import { LiveDestinationsPanel } from "@/components/community/hub/live/LiveDestinationsPanel";
 
 /**
- * Settings → Live Destinations management surface.
- * OAuth return flashes (?dest_connected / ?dest_error) are handled here.
+ * Settings → Live Destinations management surface (legacy).
+ * Primary entry is Live → Settings. This client remains for deep links/OAuth.
  */
 export function IdentityLiveDestinationsClient() {
   const dest = useLiveDestinations(null);

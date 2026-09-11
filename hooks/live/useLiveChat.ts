@@ -40,6 +40,15 @@ type ApiMessage = {
 
 export type LiveTypingUser = { id: string; name: string };
 
+/** Honest chat transport state — never map idle/unavailable to "Reconnecting". */
+export type LiveChatConnectionStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected"
+  | "unavailable";
+
 function reactionCount(reactions: Record<string, string[]> | null | undefined): number {
   if (!reactions || typeof reactions !== "object") return 0;
   return Object.values(reactions).reduce((n, users) => n + (Array.isArray(users) ? users.length : 0), 0);
@@ -83,8 +92,10 @@ export function useLiveChat(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connected, setConnected] = useState(true);
+  const [connectionStatus, setConnectionStatus] =
+    useState<LiveChatConnectionStatus>("idle");
   const [typingUsers, setTypingUsers] = useState<LiveTypingUser[]>([]);
+  const hadConnectionRef = useRef(false);
   const [queuedCount, setQueuedCount] = useState(0);
   const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const typingSelfRef = useRef<{ active: boolean; lastSentAt: number }>({
@@ -120,7 +131,8 @@ export function useLiveChat(
       const json = (await res.json()) as { messages?: ApiMessage[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed to load chat");
       setMessages((json.messages ?? []).map(toChatMessage));
-      setConnected(true);
+      hadConnectionRef.current = true;
+      setConnectionStatus("connected");
       setError(null);
       return;
     }
@@ -129,7 +141,8 @@ export function useLiveChat(
       const json = (await res.json()) as { messages?: ApiMessage[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed to load chat");
       setMessages((json.messages ?? []).map(toChatMessage));
-      setConnected(true);
+      hadConnectionRef.current = true;
+      setConnectionStatus("connected");
       setError(null);
     }
   }, [mode, roomKey, sessionKey]);
@@ -144,17 +157,28 @@ export function useLiveChat(
   useEffect(() => {
     if (mode === "none") {
       setMessages([]);
-      setConnected(false);
+      hadConnectionRef.current = false;
+      setConnectionStatus("idle");
+      setError(null);
       return;
     }
     let cancelled = false;
+    setConnectionStatus((prev) =>
+      prev === "connected" || hadConnectionRef.current ? "reconnecting" : "connecting"
+    );
     const run = async () => {
       try {
         await load();
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Chat load failed");
-          setConnected(false);
+          setConnectionStatus(
+            hadConnectionRef.current
+              ? navigator.onLine
+                ? "reconnecting"
+                : "disconnected"
+              : "unavailable"
+          );
         }
       }
     };
@@ -397,19 +421,29 @@ export function useLiveChat(
   useEffect(() => {
     refreshQueued();
     const onOnline = () => {
-      setConnected(true);
-      void load().catch(() => setConnected(false));
+      if (mode === "none") return;
+      setConnectionStatus(hadConnectionRef.current ? "reconnecting" : "connecting");
+      void load()
+        .then(() => undefined)
+        .catch(() => {
+          setConnectionStatus("disconnected");
+        });
       void flushOutbox();
     };
-    const onOffline = () => setConnected(false);
+    const onOffline = () => {
+      if (mode === "none") return;
+      setConnectionStatus("disconnected");
+    };
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    setConnected(navigator.onLine);
+    if (mode !== "none" && !navigator.onLine) {
+      setConnectionStatus("disconnected");
+    }
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [load, flushOutbox, refreshQueued]);
+  }, [load, flushOutbox, refreshQueued, mode]);
 
   const send = useCallback(
     async (
@@ -590,7 +624,8 @@ export function useLiveChat(
     messages: mode === "none" ? [] : messages,
     sending,
     error,
-    connected: mode !== "none" && connected && !error,
+    connected: connectionStatus === "connected",
+    connectionStatus: mode === "none" ? "idle" : connectionStatus,
     typingUsers,
     queuedCount,
     roomActions,

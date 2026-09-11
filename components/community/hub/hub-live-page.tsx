@@ -44,6 +44,7 @@ import { copyTextToClipboard } from "@/lib/live/native-share";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
 import { LiveDestinationsStudioLink } from "./live/LiveDestinationsStudioLink";
+import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
 import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import { LiveMobileDock } from "./live/LiveMobileDock";
@@ -148,6 +149,7 @@ export function HubLivePage({
   const [egressRecording, setEgressRecording] = useState(false);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
+  const [mediaBusy, setMediaBusy] = useState(false);
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { msg: toast, show: showToast } = useEphemeralToast();
@@ -160,7 +162,7 @@ export function HubLivePage({
   const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
   const liveChat = useLiveChat(
     chatRoomId,
-    live.session?.status === "live" ? live.session.id : null,
+    live.session?.id ?? null,
     {
       userId: live.userId,
       displayName: "You",
@@ -240,6 +242,7 @@ export function HubLivePage({
     const params = new URLSearchParams(window.location.search);
     const connected = params.get("dest_connected");
     const destError = params.get("dest_error");
+    const openSettings = params.get("open") === "settings";
     if (connected) {
       showToast(`${connected} connected`);
       void destinations.refreshList();
@@ -247,9 +250,13 @@ export function HubLivePage({
     if (destError) {
       showToast(destError);
     }
-    if (connected || destError) {
+    if (openSettings) {
+      updateDrawer({ leftPanel: "settings" });
+    }
+    if (connected || destError || openSettings) {
       params.delete("dest_connected");
       params.delete("dest_error");
+      params.delete("open");
       const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
       window.history.replaceState({}, "", next);
     }
@@ -513,6 +520,20 @@ export function HubLivePage({
     const on = await media.toggleCamera();
     void live.syncMedia({ camOn: on });
   }, [gate, live, media]);
+
+  const enableStudioMedia = useCallback(async () => {
+    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    setMediaBusy(true);
+    try {
+      const result = await media.enableStudioMedia();
+      void live.syncMedia({ micOn: result.microphone, camOn: result.camera });
+      if (!result.camera && !result.microphone) {
+        showToast(media.lastError || "Could not access camera or microphone");
+      }
+    } finally {
+      setMediaBusy(false);
+    }
+  }, [gate, live, media, showToast]);
 
   const toggleRecord = useCallback(async () => {
     if (!online) {
@@ -1232,7 +1253,15 @@ export function HubLivePage({
     : null;
 
   const liveSettingsPanel = (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div>
+        <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+          Live Settings
+        </p>
+        <p className="mb-3 px-1 text-[12px] text-neutral-500">
+          Devices, destinations, and studio preferences.
+        </p>
+      </div>
       <SettingsPanel
       mode={mode}
       onMode={persistMode}
@@ -1289,8 +1318,16 @@ export function HubLivePage({
       }}
     />
       {isLiveHost || canStartLive ? (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-950 p-1">
-          <LiveDestinationsStudioLink dest={destinations} />
+        <div className="space-y-2 px-1">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+            Streaming
+          </p>
+          <LiveDestinationsPanel
+            dest={destinations}
+            variant="settings"
+            compact
+            isLive={live.session?.status === "live"}
+          />
         </div>
       ) : null}
     </div>
@@ -1734,14 +1771,24 @@ export function HubLivePage({
                     micOn={micOn}
                     camOn={camOn}
                     permissionDenied={media.permissionDenied}
+                    permissionRequested={media.permissionRequested}
+                    audioAccess={media.audioAccess}
+                    videoAccess={media.videoAccess}
                     lastError={media.lastError}
+                    mediaBusy={mediaBusy}
                     canGoLive={canStartLive}
                     onGoLive={canStartLive ? () => void createOrJoinLive() : undefined}
+                    onEnableMedia={
+                      live.userId ? () => void enableStudioMedia() : undefined
+                    }
                     onToggleMic={() => void toggleMic()}
                     onToggleCam={() => void toggleCam()}
-                    destinationsSlot={
+                    destinationsHint={
                       live.userId ? (
-                        <LiveDestinationsStudioLink dest={destinations} />
+                        <LiveDestinationsStudioLink
+                          dest={destinations}
+                          onOpenSettings={() => toggleLeft("settings")}
+                        />
                       ) : null
                     }
                   />
@@ -1905,6 +1952,7 @@ export function HubLivePage({
                     typingUsers={liveChat.typingUsers}
                     onTyping={() => liveChat.signalTyping()}
                     connected={liveChat.connected}
+                    connectionStatus={liveChat.connectionStatus}
                     queuedCount={liveChat.queuedCount}
                     roomActions={liveChat.roomActions}
                     canModerate={canModerateChat(live.myRole)}
