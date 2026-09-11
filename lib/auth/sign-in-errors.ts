@@ -71,6 +71,15 @@ export function isUnconfirmedDuplicateSignUp(user: {
   return Boolean(user && Array.isArray(user.identities) && user.identities.length === 0);
 }
 
+export function isCaptchaAuthError(error: AuthErrorLike): boolean {
+  const { code, lower } = errorParts(error);
+  return (
+    code === "captcha_failed" ||
+    lower.includes("captcha") ||
+    lower.includes("turnstile")
+  );
+}
+
 export function mapSignInAuthError(error: AuthErrorLike): string {
   const { code, lower, status } = errorParts(error);
 
@@ -82,6 +91,11 @@ export function mapSignInAuthError(error: AuthErrorLike): string {
   }
   if (code === "user_banned" || lower.includes("user is banned")) {
     return "This account is suspended and cannot sign in.";
+  }
+  // Must run before the generic 400/401 → invalid-credentials mapping.
+  // Missing/failed Turnstile tokens are not wrong passwords.
+  if (isCaptchaAuthError(error)) {
+    return "Security check failed. Refresh the page and try again.";
   }
   if (
     code === "unexpected_failure" ||

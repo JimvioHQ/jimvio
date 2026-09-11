@@ -334,7 +334,20 @@ export async function signIn(formData: FormData) {
       password,
       options: captchaToken ? { captchaToken } : undefined,
     })
-    if (error) return { error: await messageForFailedPasswordSignIn(email, error) }
+    if (error) {
+      // Secure diagnostics only: never log email/password/tokens.
+      console.error("[auth] signInWithPassword failed", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+        hasCaptchaToken: Boolean(captchaToken),
+        messageClass: /captcha|turnstile/i.test(error.message ?? "")
+          ? "captcha"
+          : /invalid login credentials/i.test(error.message ?? "")
+            ? "invalid_credentials"
+            : "other",
+      })
+      return { error: await messageForFailedPasswordSignIn(email, error) }
+    }
     if (!data.user) return { error: "Sign in failed. Please try again." }
 
     userId = data.user.id
