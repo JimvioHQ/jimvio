@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { mergeThemeSettings, type ThemeDraft, type ThemeSettings } from "../themes/registry";
+import { cosTable } from "../db";
 
 export type StorefrontStore = {
   id: string;
@@ -24,7 +25,7 @@ export async function loadPublishedStoreByHandle(
   handle: string,
   opts?: { allowDraftForVendorId?: string | null; preview?: boolean }
 ): Promise<StorefrontStore | null> {
-  let query = db.from("jimvio_stores").select("*").eq("handle", handle);
+  let query = cosTable(db, "jimvio_stores").select("*").eq("handle", handle);
   const { data } = await query.maybeSingle();
   if (!data) return null;
 
@@ -65,8 +66,7 @@ export async function loadStoreProducts(
   storeId: string,
   opts?: { limit?: number; search?: string }
 ) {
-  const { data: links } = await db
-    .from("jimvio_store_products")
+  const { data: links } = await cosTable(db, "jimvio_store_products")
     .select("product_id, sort_order")
     .eq("store_id", storeId)
     .eq("status", "published")
@@ -108,8 +108,7 @@ export async function loadStoreProductBySlug(
 
   if (!product || product.status !== "active") return null;
 
-  const { data: link } = await db
-    .from("jimvio_store_products")
+  const { data: link } = await cosTable(db, "jimvio_store_products")
     .select("id, status")
     .eq("store_id", storeId)
     .eq("product_id", product.id)

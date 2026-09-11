@@ -3,6 +3,7 @@ import { ensureSellerVendor } from "@/lib/actions/seller-products";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getOrCreateEntitlements } from "@/lib/dropshipping/entitlements/plans";
+import { cosTable } from "./db";
 
 export function cosAdminDb() {
   return createServiceRoleClient();
@@ -40,8 +41,7 @@ export async function assertCanCreateJimvioStore(
   vendorId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const ent = await getOrCreateEntitlements(db, vendorId);
-  const { count } = await db
-    .from("jimvio_stores")
+  const { count } = await cosTable(db, "jimvio_stores")
     .select("id", { count: "exact", head: true })
     .eq("vendor_id", vendorId)
     .neq("status", "archived");
@@ -62,8 +62,7 @@ export async function assertStoreOwnedByVendor(
   storeId: string,
   vendorId: string
 ): Promise<boolean> {
-  const { data } = await db
-    .from("jimvio_stores")
+  const { data } = await cosTable(db, "jimvio_stores")
     .select("id")
     .eq("id", storeId)
     .eq("vendor_id", vendorId)

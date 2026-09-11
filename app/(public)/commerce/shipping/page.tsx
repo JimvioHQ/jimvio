@@ -7,6 +7,7 @@ import {
   pickActiveStore,
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,7 @@ export default async function CommerceShippingPage({ searchParams }: Props) {
     );
   }
 
-  const { data: zones } = await db
-    .from("jimvio_shipping_zones")
+  const { data: zones } = await cosTable(db, "jimvio_shipping_zones")
     .select("id, name, countries, jimvio_shipping_rates(id, name, rate_type, price, currency)")
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId)

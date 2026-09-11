@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -13,17 +14,15 @@ export default async function AdminCommercePage() {
     domains,
     storeOrders,
   ] = await Promise.all([
-    db.from("jimvio_stores").select("id", { count: "exact", head: true }),
-    db
-      .from("jimvio_stores")
+    cosTable(db, "jimvio_stores").select("id", { count: "exact", head: true }),
+    cosTable(db, "jimvio_stores")
       .select("id", { count: "exact", head: true })
       .eq("status", "published"),
-    db
-      .from("jimvio_stores")
+    cosTable(db, "jimvio_stores")
       .select("id", { count: "exact", head: true })
       .eq("status", "draft"),
-    db.from("jimvio_store_products").select("id", { count: "exact", head: true }),
-    db.from("jimvio_store_domains").select("id", { count: "exact", head: true }),
+    cosTable(db, "jimvio_store_products").select("id", { count: "exact", head: true }),
+    cosTable(db, "jimvio_store_domains").select("id", { count: "exact", head: true }),
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
@@ -39,8 +38,7 @@ export default async function AdminCommercePage() {
     { label: "Store-channel orders", value: storeOrders.count ?? 0 },
   ];
 
-  const { data: recent } = await db
-    .from("jimvio_stores")
+  const { data: recent } = await cosTable(db, "jimvio_stores")
     .select("id, name, handle, status, vendor_id, created_at, published_at")
     .order("created_at", { ascending: false })
     .limit(20);

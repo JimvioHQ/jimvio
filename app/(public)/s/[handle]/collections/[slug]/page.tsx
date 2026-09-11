@@ -5,6 +5,7 @@ import {
   loadPublishedStoreByHandle,
   loadStoreProducts,
 } from "@/lib/commerce-os";
+import { cosTable } from "@/lib/commerce-os/db";
 import { StorefrontFeaturedProducts } from "@/components/commerce-os/storefront-sections";
 
 export const dynamic = "force-dynamic";
@@ -40,8 +41,7 @@ export default async function StorefrontCollectionPage({ params }: Props) {
     );
   }
 
-  const { data: collection } = await supabase
-    .from("jimvio_store_collections")
+  const { data: collection } = await cosTable(supabase, "jimvio_store_collections")
     .select("id, title, handle, description")
     .eq("store_id", store.id)
     .eq("handle", slug)
@@ -50,8 +50,7 @@ export default async function StorefrontCollectionPage({ params }: Props) {
 
   if (!collection) notFound();
 
-  const { data: links } = await supabase
-    .from("jimvio_store_collection_products")
+  const { data: links } = await cosTable(supabase, "jimvio_store_collection_products")
     .select("product_id, position")
     .eq("collection_id", collection.id)
     .order("position", { ascending: true });

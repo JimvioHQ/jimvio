@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireCommerceMerchant, cosAdminDb } from "@/lib/commerce-os";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,7 @@ export async function GET() {
   }
 
   const db = cosAdminDb();
-  const { data, error } = await db
-    .from("jimvio_themes")
+  const { data, error } = await cosTable(db, "jimvio_themes")
     .select(
       "id, code, name, description, category, preview_image, default_settings, templates, is_active"
     )

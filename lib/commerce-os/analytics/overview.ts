@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cosTable } from "../db";
 
 export async function getStoreAnalytics(
   db: SupabaseClient,
@@ -19,8 +20,7 @@ export async function getStoreAnalytics(
   const paid = list.filter((o) => o.payment_status === "paid" || o.payment_status === "completed");
   const revenue = paid.reduce((s, o) => s + Number(o.total_amount || 0), 0);
 
-  const { count: productCount } = await db
-    .from("jimvio_store_products")
+  const { count: productCount } = await cosTable(db, "jimvio_store_products")
     .select("id", { count: "exact", head: true })
     .eq("store_id", storeId)
     .eq("status", "published");

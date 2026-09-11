@@ -8,6 +8,7 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { StoreSettingsForm } from "@/components/commerce-os/store-settings-form";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,7 @@ export default async function CommerceSettingsPage({ searchParams }: Props) {
     );
   }
 
-  const { data: store } = await db
-    .from("jimvio_stores")
+  const { data: store } = await cosTable(db, "jimvio_stores")
     .select(
       "id, name, handle, description, logo_url, favicon_url, contact_email, contact_phone, announcement_bar, default_currency, default_country, status, industry"
     )

@@ -8,6 +8,7 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { CreateCollectionForm } from "@/components/commerce-os/create-collection-form";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,7 @@ export default async function CommerceCollectionsPage({ searchParams }: Props) {
     );
   }
 
-  const { data: collections } = await db
-    .from("jimvio_store_collections")
+  const { data: collections } = await cosTable(db, "jimvio_store_collections")
     .select("id, title, handle, published, sort_order, created_at")
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId)

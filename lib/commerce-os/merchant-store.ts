@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cosTable } from "./db";
 
 export type MerchantStoreSummary = {
   id: string;
@@ -13,8 +14,7 @@ export async function listVendorJimvioStores(
   db: SupabaseClient,
   vendorId: string
 ): Promise<MerchantStoreSummary[]> {
-  const { data } = await db
-    .from("jimvio_stores")
+  const { data } = await cosTable(db, "jimvio_stores")
     .select("id, name, handle, status, logo_url, default_currency")
     .eq("vendor_id", vendorId)
     .neq("status", "archived")

@@ -6,6 +6,7 @@ import {
   listVendorJimvioStores,
 } from "@/lib/commerce-os";
 import { CreateStoreForm } from "@/components/commerce-os/create-store-form";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +20,7 @@ export default async function CommerceStoresPage() {
   const db = cosAdminDb();
   const stores = await listVendorJimvioStores(db, auth.vendorId);
 
-  const { data: full } = await db
-    .from("jimvio_stores")
+  const { data: full } = await cosTable(db, "jimvio_stores")
     .select(
       "id, name, handle, status, default_currency, published_at, created_at, primary_domain"
     )

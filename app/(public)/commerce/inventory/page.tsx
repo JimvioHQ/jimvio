@@ -7,6 +7,7 @@ import {
   pickActiveStore,
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,7 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
     );
   }
 
-  const { data: links } = await db
-    .from("jimvio_store_products")
+  const { data: links } = await cosTable(db, "jimvio_store_products")
     .select(
       "id, status, products(id, name, slug, track_inventory, inventory_quantity, allow_backorder)"
     )

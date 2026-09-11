@@ -9,6 +9,7 @@ import {
 import type { ThemeDraft } from "@/lib/commerce-os/themes/registry";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { BuilderClient } from "@/components/commerce-os/builder-client";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +38,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
     );
   }
 
-  const { data: store } = await db
-    .from("jimvio_stores")
+  const { data: store } = await cosTable(db, "jimvio_stores")
     .select("id, name, handle, theme_draft")
     .eq("id", active.id)
     .eq("vendor_id", auth.vendorId)

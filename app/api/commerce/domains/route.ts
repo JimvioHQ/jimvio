@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   requireCommerceMerchant,
   cosAdminDb,
@@ -36,8 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Store not found." }, { status: 404 });
   }
 
-  const { data, error } = await db
-    .from("jimvio_store_domains")
+  const { data, error } = await cosTable(db, "jimvio_store_domains")
     .select(
       "id, hostname, kind, is_primary, verification_status, ssl_status, dns_instructions, verified_at, created_at"
     )
@@ -95,8 +95,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Never claim verified/SSL active — pending until real DNS + platform verification.
-  const { data, error } = await db
-    .from("jimvio_store_domains")
+  const { data, error } = await cosTable(db, "jimvio_store_domains")
     .insert({
       store_id: body.storeId,
       vendor_id: auth.vendorId,

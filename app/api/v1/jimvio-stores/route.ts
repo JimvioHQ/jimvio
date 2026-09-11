@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { cosAdminDb } from "@/lib/commerce-os";
 import { authenticateApiKey, apiError } from "@/lib/dropshipping/api/auth";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,7 @@ export async function GET(req: NextRequest) {
   );
   if (!auth.ok) return apiError(auth.status, "unauthorized", auth.error);
 
-  const { data, error } = await db
-    .from("jimvio_stores")
+  const { data, error } = await cosTable(db, "jimvio_stores")
     .select(
       "id, name, handle, status, default_currency, default_country, primary_domain, published_at, created_at"
     )

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cosTable } from "../db";
 
 export type ShippingQuote = {
   rateId: string;
@@ -19,8 +20,7 @@ export async function getStoreShippingQuotes(
   subtotal: number
 ): Promise<ShippingQuote[]> {
   const country = countryCode.toUpperCase();
-  const { data: zones } = await db
-    .from("jimvio_shipping_zones")
+  const { data: zones } = await cosTable(db, "jimvio_shipping_zones")
     .select("id, name, countries")
     .eq("store_id", storeId);
 
@@ -32,8 +32,7 @@ export async function getStoreShippingQuotes(
   if (!matched.length) return [];
 
   const zoneIds = matched.map((z) => z.id);
-  const { data: rates } = await db
-    .from("jimvio_shipping_rates")
+  const { data: rates } = await cosTable(db, "jimvio_shipping_rates")
     .select("*")
     .in("zone_id", zoneIds);
 

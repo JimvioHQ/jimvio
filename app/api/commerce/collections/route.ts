@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   requireCommerceMerchant,
   cosAdminDb,
@@ -28,8 +29,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Store not found." }, { status: 404 });
   }
 
-  const { data, error } = await db
-    .from("jimvio_store_collections")
+  const { data, error } = await cosTable(db, "jimvio_store_collections")
     .select(
       "id, title, handle, description, image_url, collection_type, published, sort_order, created_at"
     )
@@ -83,8 +83,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { data, error } = await db
-    .from("jimvio_store_collections")
+  const { data, error } = await cosTable(db, "jimvio_store_collections")
     .insert({
       store_id: body.storeId,
       vendor_id: auth.vendorId,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   requireCommerceMerchant,
   cosAdminDb,
@@ -14,8 +15,7 @@ export async function GET() {
   }
 
   const db = cosAdminDb();
-  const { data, error } = await db
-    .from("jimvio_stores")
+  const { data, error } = await cosTable(db, "jimvio_stores")
     .select(
       "id, name, handle, description, logo_url, status, default_currency, default_country, primary_domain, published_at, created_at, updated_at"
     )

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,7 @@ export default async function StorefrontContentPage({ params }: Props) {
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
 
-  const { data: page } = await supabase
-    .from("jimvio_store_pages")
+  const { data: page } = await cosTable(supabase, "jimvio_store_pages")
     .select("title, handle, body_html, published")
     .eq("store_id", store.id)
     .eq("handle", pageSlug)

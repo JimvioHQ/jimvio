@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   requireCommerceMerchant,
   cosAdminDb,
@@ -17,8 +18,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 
   const { id } = await ctx.params;
   const db = cosAdminDb();
-  const { data, error } = await db
-    .from("jimvio_stores")
+  const { data, error } = await cosTable(db, "jimvio_stores")
     .select("*")
     .eq("id", id)
     .eq("vendor_id", auth.vendorId)
@@ -68,8 +68,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   }
 
   const db = cosAdminDb();
-  const { data: existing } = await db
-    .from("jimvio_stores")
+  const { data: existing } = await cosTable(db, "jimvio_stores")
     .select("id, theme_settings, settings")
     .eq("id", id)
     .eq("vendor_id", auth.vendorId)
@@ -126,8 +125,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     }
   }
 
-  const { data, error } = await db
-    .from("jimvio_stores")
+  const { data, error } = await cosTable(db, "jimvio_stores")
     .update(patch)
     .eq("id", id)
     .eq("vendor_id", auth.vendorId)

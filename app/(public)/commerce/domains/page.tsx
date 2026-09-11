@@ -8,6 +8,7 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { AddDomainForm } from "@/components/commerce-os/add-domain-form";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,7 @@ export default async function CommerceDomainsPage({ searchParams }: Props) {
     );
   }
 
-  const { data: domains } = await db
-    .from("jimvio_store_domains")
+  const { data: domains } = await cosTable(db, "jimvio_store_domains")
     .select(
       "id, hostname, kind, is_primary, verification_status, ssl_status, dns_instructions, created_at"
     )

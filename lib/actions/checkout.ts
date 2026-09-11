@@ -20,6 +20,7 @@ import {
 import { buildLineAttribution } from "@/lib/affiliate/attribution";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import { cookies } from "next/headers";
+import { cosTable } from "@/lib/commerce-os/db";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -309,8 +310,7 @@ async function createVendorOrder(
     if (handle) {
       const decoded = decodeURIComponent(handle).toLowerCase().trim();
       if (decoded) {
-        const { data: store } = await admin
-          .from("jimvio_stores")
+        const { data: store } = await cosTable(admin, "jimvio_stores")
           .select("id, vendor_id, status")
           .eq("handle", decoded)
           .eq("vendor_id", vendorId)

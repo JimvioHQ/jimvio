@@ -7,6 +7,7 @@ import {
   pickActiveStore,
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,7 @@ export default async function CommercePagesPage({ searchParams }: Props) {
     );
   }
 
-  const { data: pages } = await db
-    .from("jimvio_store_pages")
+  const { data: pages } = await cosTable(db, "jimvio_store_pages")
     .select("id, title, handle, published, updated_at")
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId)

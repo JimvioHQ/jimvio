@@ -8,6 +8,7 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { CreateDiscountForm } from "@/components/commerce-os/create-discount-form";
+import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,7 @@ export default async function CommerceDiscountsPage({ searchParams }: Props) {
     );
   }
 
-  const { data: discounts } = await db
-    .from("jimvio_store_discounts")
+  const { data: discounts } = await cosTable(db, "jimvio_store_discounts")
     .select(
       "id, code, title, discount_type, value, is_active, used_count, usage_limit, starts_at, ends_at"
     )

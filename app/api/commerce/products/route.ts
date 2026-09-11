@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   requireCommerceMerchant,
   cosAdminDb,
@@ -28,8 +29,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Store not found." }, { status: 404 });
   }
 
-  const { data: links, error } = await db
-    .from("jimvio_store_products")
+  const { data: links, error } = await cosTable(db, "jimvio_store_products")
     .select(
       "id, product_id, status, sort_order, published_at, created_at, products(id, name, slug, price, currency, images, status, inventory_quantity)"
     )

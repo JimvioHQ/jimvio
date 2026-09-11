@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cosTable } from "./db";
 import {
   assertCanCreateJimvioStore,
   slugifyHandle,
@@ -46,8 +47,7 @@ export async function createJimvioStore(
     return { ok: false, error: entitlement.error, code: "ENTITLEMENT" };
   }
 
-  const { data: conflict } = await db
-    .from("jimvio_stores")
+  const { data: conflict } = await cosTable(db, "jimvio_stores")
     .select("id")
     .eq("handle", handle)
     .maybeSingle();
@@ -62,8 +62,7 @@ export async function createJimvioStore(
   let themeId: string | null = null;
   let themeSettings: Record<string, unknown> = {};
   const themeCode = input.themeCode || "modern";
-  const { data: theme } = await db
-    .from("jimvio_themes")
+  const { data: theme } = await cosTable(db, "jimvio_themes")
     .select("id, default_settings")
     .eq("code", themeCode)
     .eq("is_active", true)
@@ -73,8 +72,7 @@ export async function createJimvioStore(
     themeSettings = (theme.default_settings as Record<string, unknown>) || {};
   }
 
-  const { data: store, error } = await db
-    .from("jimvio_stores")
+  const { data: store, error } = await cosTable(db, "jimvio_stores")
     .insert({
       vendor_id: input.vendorId,
       name,
@@ -120,7 +118,7 @@ export async function createJimvioStore(
   }
 
   // Default subdomain record (verification pending until DNS/platform wiring)
-  await db.from("jimvio_store_domains").insert({
+  await cosTable(db, "jimvio_store_domains").insert({
     store_id: store.id,
     vendor_id: input.vendorId,
     hostname: `${store.handle}.jimvio.com`,
@@ -134,7 +132,7 @@ export async function createJimvioStore(
   });
 
   // Default navigation + policy pages
-  await db.from("jimvio_store_navigation").insert([
+  await cosTable(db, "jimvio_store_navigation").insert([
     {
       store_id: store.id,
       location: "header",
@@ -164,7 +162,7 @@ export async function createJimvioStore(
     { title: "Terms", handle: "terms", body_html: "<p>Terms of service coming soon.</p>" },
   ];
 
-  await db.from("jimvio_store_pages").insert(
+  await cosTable(db, "jimvio_store_pages").insert(
     defaultPages.map((p) => ({
       store_id: store.id,
       vendor_id: input.vendorId,
@@ -180,7 +178,7 @@ export async function createJimvioStore(
     .eq("id", input.vendorId)
     .maybeSingle();
   if (vendor?.user_id) {
-    await db.from("jimvio_store_staff").insert({
+    await cosTable(db, "jimvio_store_staff").insert({
       store_id: store.id,
       vendor_id: input.vendorId,
       user_id: vendor.user_id,
@@ -202,8 +200,7 @@ export async function publishJimvioStore(
   storeId: string,
   vendorId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data: store } = await db
-    .from("jimvio_stores")
+  const { data: store } = await cosTable(db, "jimvio_stores")
     .select("id, theme_draft, theme_settings")
     .eq("id", storeId)
     .eq("vendor_id", vendorId)
@@ -213,8 +210,7 @@ export async function publishJimvioStore(
   const draft = (store.theme_draft as Record<string, unknown>) || {};
   const settings = (draft.settings as Record<string, unknown>) || store.theme_settings || {};
 
-  const { error } = await db
-    .from("jimvio_stores")
+  const { error } = await cosTable(db, "jimvio_stores")
     .update({
       status: "published",
       theme_settings: settings,

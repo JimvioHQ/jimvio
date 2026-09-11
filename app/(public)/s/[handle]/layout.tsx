@@ -7,6 +7,7 @@ import {
   defaultHomeSections,
 } from "@/lib/commerce-os";
 import type { ThemeDraft, ThemeSection } from "@/lib/commerce-os/themes/registry";
+import { cosTable } from "@/lib/commerce-os/db";
 import {
   StorefrontAnnouncement,
   StorefrontHeader,
@@ -26,15 +27,17 @@ export default async function StorefrontLayout({ children, params }: Props) {
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
 
-  const settings = mergeThemeSettings(store.theme_settings);
   const draft = store.theme_draft as ThemeDraft | null;
+  const settings = mergeThemeSettings(
+    store.theme_settings,
+    draft?.settings ?? null
+  );
   const homeSections: ThemeSection[] =
     draft?.sections?.home?.length
       ? draft.sections.home
       : defaultHomeSections(store.name);
 
-  const { data: navRows } = await supabase
-    .from("jimvio_store_navigation")
+  const { data: navRows } = await cosTable(supabase, "jimvio_store_navigation")
     .select("location, items")
     .eq("store_id", store.id);
 

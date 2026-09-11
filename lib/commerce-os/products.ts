@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cosTable } from "./db";
 
 export type PublishProductToStoreInput = {
   vendorId: string;
@@ -19,8 +20,7 @@ export async function publishProductToJimvioStore(
   db: SupabaseClient,
   input: PublishProductToStoreInput
 ): Promise<PublishProductToStoreResult> {
-  const { data: store } = await db
-    .from("jimvio_stores")
+  const { data: store } = await cosTable(db, "jimvio_stores")
     .select("id, vendor_id, status")
     .eq("id", input.storeId)
     .eq("vendor_id", input.vendorId)
@@ -41,8 +41,7 @@ export async function publishProductToJimvioStore(
   }
 
   const publish = input.publish !== false;
-  const { data: row, error } = await db
-    .from("jimvio_store_products")
+  const { data: row, error } = await cosTable(db, "jimvio_store_products")
     .upsert(
       {
         store_id: input.storeId,
