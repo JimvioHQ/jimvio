@@ -46,11 +46,19 @@ When the terminal prints `JIMVIO LOGIN REQUIRED` or `GOOGLE OAUTH CONSENT REQUIR
 
 1. Complete the step in the **visible** Chrome window.
 2. Leave Chrome open.
-3. Return to the terminal — recording continues automatically.
-
-For Google consent: complete the **real** account selection / MFA / Allow (including any unverified-app warning). Do not bypass Google.
+3. For Google: account → (Advanced if unverified) → **leave the YouTube permission consent visible** → Allow.
+4. If consent is skipped, revoke Jimvio at https://myaccount.google.com/permissions — the recorder will reconnect.
+5. Return to the terminal — recording continues automatically.
 
 If you manually close Chrome, the run fails with: `Browser was closed before OAuth demo completion.` Incomplete `.webm` files are archived under `tmp/google-oauth-verification/incomplete/`.
+
+After a successful Jimvio login the recorder saves `.auth/demo-jimvio.json` (gitignored) for faster re-runs:
+
+```bash
+DEMO_BASE_URL=https://www.jimvio.com \
+DEMO_STORAGE_STATE=.auth/demo-jimvio.json \
+npm run demo:youtube-oauth-record
+```
 
 Outputs (gitignored):
 

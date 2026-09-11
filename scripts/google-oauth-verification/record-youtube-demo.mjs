@@ -9,14 +9,13 @@
  *   DEMO_BASE_URL=https://www.jimvio.com npm run demo:youtube-oauth-record
  *
  * Optional env:
- *   DEMO_BASE_URL=https://www.jimvio.com
- *   DEMO_STORAGE_STATE=.auth/live-host.json   # Jimvio session (optional)
+ *   DEMO_STORAGE_STATE=.auth/demo-jimvio.json
+ *   DEMO_SAVE_STORAGE_STATE=.auth/demo-jimvio.json
  *   DEMO_OUT_DIR=tmp/google-oauth-verification
  *   DEMO_SKIP_GO_LIVE=0
- *   DEMO_MANUAL_TIMEOUT_MS=0                 # 0 = wait indefinitely for operator
+ *   DEMO_MANUAL_TIMEOUT_MS=0
  *
  * IMPORTANT: Do NOT close the Playwright Chrome window during manual pauses.
- * The script keeps the browser open and continues after detecting success.
  */
 
 import fs from "node:fs";
@@ -33,6 +32,9 @@ const OUT_DIR = path.resolve(
   process.env.DEMO_OUT_DIR || "tmp/google-oauth-verification"
 );
 const STORAGE = process.env.DEMO_STORAGE_STATE?.trim() || "";
+const SAVE_STORAGE =
+  process.env.DEMO_SAVE_STORAGE_STATE?.trim() ||
+  path.join(process.cwd(), ".auth", "demo-jimvio.json");
 const SKIP_GO_LIVE = process.env.DEMO_SKIP_GO_LIVE === "1";
 const MANUAL_TIMEOUT_MS = Number(process.env.DEMO_MANUAL_TIMEOUT_MS || "0");
 const EXPECTED_SCOPE = "https://www.googleapis.com/auth/youtube.force-ssl";
@@ -73,6 +75,8 @@ let browserRef = null;
 let contextRef = null;
 let pageRef = null;
 let browserClosedByOperator = false;
+let intentionalClose = false;
+let consentShotIndex = 0;
 
 function stamp(key) {
   checklist.timestamps[key] = new Date().toISOString();
@@ -100,17 +104,18 @@ function archiveIncompleteVideo() {
   const archiveDir = path.join(OUT_DIR, "incomplete");
   fs.mkdirSync(archiveDir, { recursive: true });
   const stampName = new Date().toISOString().replace(/[:.]/g, "-");
-  const dest = path.join(
-    archiveDir,
-    `incomplete-${stampName}.webm`
-  );
+  const dest = path.join(archiveDir, `incomplete-${stampName}.webm`);
   fs.renameSync(FINAL_VIDEO, dest);
   checklist.notes.push(`Archived previous incomplete video → ${dest}`);
   console.log(`Archived previous incomplete video → ${dest}`);
 }
 
 function assertBrowserAlive(browser, page) {
-  if (browserClosedByOperator || !browser?.isConnected() || page?.isClosed()) {
+  if (
+    (!intentionalClose && browserClosedByOperator) ||
+    !browser?.isConnected() ||
+    page?.isClosed()
+  ) {
     throw new Error(BROWSER_CLOSED_MSG);
   }
 }
@@ -204,16 +209,70 @@ function printManualBanner(kind, extraLines = []) {
   console.log("\n==================================================\n");
 }
 
+function looksLikeYouTubePermission(text) {
+  return (
+    /Manage your YouTube account/i.test(text) ||
+    /See, edit, and permanently delete your YouTube videos/i.test(text) ||
+    /youtube\.force-ssl/i.test(text) ||
+    /force-ssl/i.test(text) ||
+    (/YouTube/i.test(text) &&
+      /(Allow|Continue|Select what .+ can access|wants access to your Google Account)/i.test(
+        text
+      ))
+  );
+}
+
+function looksLikeConsentControls(text) {
+  return (
+    /wants access to your Google Account/i.test(text) ||
+    (/Allow/i.test(text) && /Cancel/i.test(text)) ||
+    (/Continue/i.test(text) && /Cancel/i.test(text)) ||
+    /Select what .+ can access/i.test(text)
+  );
+}
+
 /**
- * Keep browser open and poll until predicate succeeds.
- * Never closes Chrome. Never treats waiting itself as failure.
+ * Scan Google pages during the pause; capture consent + YouTube permission when visible.
  */
+async function scanGoogleConsent(page) {
+  assertBrowserAlive(browserRef, page);
+  if (!/accounts\.google\.com|google\.com\/(?:o\/)?oauth/i.test(page.url())) {
+    return;
+  }
+  const text = await page.locator("body").innerText().catch(() => "");
+  if (/Sign in|Choose an account|Continue|Allow|Cancel|Google|English/i.test(text)) {
+    checklist.englishConsent = true;
+  }
+  if (/Google hasn't verified|hasn.t verified this app|unverified/i.test(text)) {
+    checklist.notes.push("Captured real Google unverified-app warning");
+    await shot(page, `04b-unverified-${consentShotIndex++}`).catch(() => undefined);
+  }
+  if (looksLikeYouTubePermission(text)) {
+    if (!checklist.youtubePermissionVisible) {
+      console.log("✓ Detected YouTube permission text on Google consent UI");
+    }
+    checklist.youtubePermissionVisible = true;
+    checklist.completeConsentScreen = true;
+    await shot(page, `04c-youtube-consent-${consentShotIndex++}`).catch(
+      () => undefined
+    );
+    writeChecklist();
+  } else if (looksLikeConsentControls(text)) {
+    checklist.completeConsentScreen = true;
+    await shot(page, `04d-consent-controls-${consentShotIndex++}`).catch(
+      () => undefined
+    );
+    writeChecklist();
+  }
+}
+
 async function waitManual(browser, page, options) {
   const {
     kind,
     reason,
     predicate,
     lines = [],
+    onTick,
   } = options;
 
   printManualBanner(kind, [
@@ -234,13 +293,13 @@ async function waitManual(browser, page, options) {
     assertBrowserAlive(browser, page);
 
     try {
+      if (onTick) await onTick();
       if (await predicate()) {
         console.log(`✓ Manual step complete (${kind}). Continuing recording…\n`);
         return;
       }
     } catch (err) {
       if (isClosedError(err)) throw new Error(BROWSER_CLOSED_MSG);
-      // Transient navigation/evaluate errors during redirects are expected.
     }
 
     const elapsed = Date.now() - started;
@@ -257,7 +316,11 @@ async function waitManual(browser, page, options) {
       console.log(
         `[waiting ${mins}m ${secs}s] Chrome still open — complete ${kind} in the browser window…`
       );
-      // Best-effort: bring Chrome to front on macOS so the operator finds the window.
+      if (kind === "google" && !checklist.youtubePermissionVisible) {
+        console.log(
+          "  → Still waiting to SEE YouTube permission on the REAL consent screen (not only account picker / unverified warning)."
+        );
+      }
       if (process.platform === "darwin") {
         spawnSync(
           "osascript",
@@ -275,19 +338,15 @@ async function isJimvioAuthenticated(page) {
   assertBrowserAlive(browserRef, page);
   const url = page.url();
   if (/\/login/i.test(url)) return false;
-  // Live Studio / settings after auth (production may land on live or redirect)
   if (/\/communities\/live/i.test(url) && !/\/login/i.test(url)) {
-    // Confirm Live UI rather than a soft redirect loop
     const body = await page.locator("body").innerText().catch(() => "");
     if (/Live Settings|Live Destinations|Go Live|Streaming|Prepare|Camera/i.test(body)) {
       return true;
     }
-    // Authenticated shell without full panel text yet
     if (!/Sign in|Log in|Continue with Google/i.test(body)) {
       return true;
     }
   }
-  // Any non-login Jimvio app route with session chrome
   if (/jimvio\.com/i.test(url) && !/\/login/i.test(url) && !/accounts\.google/i.test(url)) {
     const body = await page.locator("body").innerText().catch(() => "");
     if (/Live Studio|Live Destinations|Account|Settings|Wallet|Sign out|Log out/i.test(body)) {
@@ -304,6 +363,57 @@ async function returnedFromGoogleToJimvio(page) {
     /jimvio\.com/i.test(url) &&
     !/accounts\.google\.com/i.test(url) &&
     !/google\.com\/(?:o\/)?oauth/i.test(url)
+  );
+}
+
+async function youtubeRow(page) {
+  return page.locator("li").filter({ hasText: /YouTube/i }).first();
+}
+
+async function openLiveDestinations(page) {
+  await page.goto(`${BASE}/communities/live?open=settings`, {
+    waitUntil: "networkidle",
+    timeout: 60_000,
+  });
+  await page
+    .getByText(/Live Settings|Live Destinations|Streaming|YouTube/i)
+    .first()
+    .waitFor({ timeout: 60_000 });
+  // Expand / scroll destinations into view
+  const yt = await youtubeRow(page);
+  await yt.scrollIntoViewIfNeeded().catch(() => undefined);
+  await dwell(1500);
+}
+
+async function disconnectYouTubeIfPresent(page) {
+  const yt = await youtubeRow(page);
+  const btn = yt.getByRole("button", { name: /disconnect destination/i });
+  if (await btn.isVisible().catch(() => false)) {
+    await btn.click();
+    await dwell(2000);
+    await page.reload({ waitUntil: "networkidle" });
+    await openLiveDestinations(page);
+    return true;
+  }
+  return false;
+}
+
+function criticalChecklistOk() {
+  return (
+    checklist.jimvioHomepage &&
+    checklist.authenticatedApp &&
+    checklist.liveDestinations &&
+    checklist.connectYouTube &&
+    checklist.realGoogleOauthPage &&
+    checklist.completeConsentScreen &&
+    checklist.youtubePermissionVisible &&
+    checklist.authorizationAction &&
+    checklist.callback &&
+    checklist.youtubeConnected &&
+    checklist.liveStudio &&
+    checklist.youtubeFunctionality &&
+    checklist.disconnect &&
+    checklist.blockers.length === 0
   );
 }
 
@@ -340,6 +450,7 @@ async function main() {
   browserRef = browser;
 
   browser.on("disconnected", () => {
+    if (intentionalClose) return;
     browserClosedByOperator = true;
     console.error(`\n${BROWSER_CLOSED_MSG}`);
   });
@@ -401,62 +512,48 @@ async function main() {
       });
     }
     checklist.authenticatedApp = true;
+    try {
+      fs.mkdirSync(path.dirname(SAVE_STORAGE), { recursive: true });
+      await context.storageState({ path: SAVE_STORAGE });
+      checklist.notes.push(`Saved Jimvio storage state → ${SAVE_STORAGE}`);
+      console.log(`Saved Jimvio session for faster re-runs → ${SAVE_STORAGE}`);
+    } catch (e) {
+      checklist.notes.push(
+        `Could not save storage state: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
     stamp("login_end");
 
     // ——— SECTION 3: Live Destinations ———
     stamp("destinations_start");
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "networkidle",
-      timeout: 60_000,
-    });
+    await openLiveDestinations(page);
     await setBanner(page, "Step 2 — Open Live Destinations");
-    await page
-      .getByText(/Live Settings|Live Destinations|Streaming/i)
-      .first()
-      .waitFor({ timeout: 60_000 });
     checklist.settings = true;
     checklist.liveDestinations = true;
     await dwell(3500);
     await shot(page, "03-live-destinations");
     stamp("destinations_end");
 
-    // Disconnect existing YouTube if present (clean consent demo)
-    const disconnectYoutube = page
-      .locator("li")
-      .filter({ hasText: /youtube/i })
-      .getByRole("button", { name: /disconnect/i })
-      .first();
-    if (await disconnectYoutube.isVisible().catch(() => false)) {
+    if (await disconnectYouTubeIfPresent(page)) {
       checklist.notes.push(
-        "Pre-existing YouTube connection found — disconnecting for clean consent demo"
+        "Pre-existing YouTube connection found — disconnected for clean consent demo"
       );
-      await disconnectYoutube.click();
-      await dwell(2000);
-      await page.reload({ waitUntil: "networkidle" });
     }
 
     // ——— SECTION 4: Connect YouTube ———
     stamp("connect_start");
     await setBanner(page, "Step 3 — Connect YouTube");
-    const connectBtn = page
-      .locator("li")
-      .filter({ hasText: /YouTube/i })
-      .getByRole("button", { name: /^Connect$/i })
-      .first();
-
+    const connectBtn = (await youtubeRow(page)).getByRole("button", {
+      name: /^Connect$/i,
+    });
     if (!(await connectBtn.isVisible().catch(() => false))) {
-      const alt = page.getByRole("button", { name: /^Connect$/i }).first();
-      if (!(await alt.isVisible().catch(() => false))) {
-        checklist.blockers.push(
-          "Connect YouTube button not visible — check YOUTUBE_CLIENT_ID/SECRET on production and catalog readiness"
-        );
-        writeChecklist();
-        throw new Error(checklist.blockers[checklist.blockers.length - 1]);
-      }
-      await alt.click();
-    } else {
-      await connectBtn.click();
+      checklist.blockers.push(
+        "Connect YouTube button not visible — check YOUTUBE_CLIENT_ID/SECRET on production and catalog readiness"
+      );
+      writeChecklist();
+      throw new Error(checklist.blockers[checklist.blockers.length - 1]);
     }
+    await connectBtn.click();
     checklist.connectYouTube = true;
     stamp("connect_clicked");
 
@@ -467,69 +564,102 @@ async function main() {
     );
     checklist.realGoogleOauthPage = true;
     await clearBanner(page);
-    await dwell(3000);
+    await dwell(2500);
     await shot(page, "04-google-oauth");
 
-    // Capture authorize URL scope if present on the address bar / page
     const authUrl = page.url();
-    if (authUrl.includes("youtube.force-ssl") || authUrl.includes(encodeURIComponent(EXPECTED_SCOPE))) {
+    if (
+      authUrl.includes("youtube.force-ssl") ||
+      authUrl.includes(encodeURIComponent(EXPECTED_SCOPE))
+    ) {
       checklist.notes.push(`Authorize URL includes expected scope: ${EXPECTED_SCOPE}`);
     } else {
       checklist.notes.push(`Authorize URL observed: ${authUrl.slice(0, 240)}`);
     }
-
-    const googleText = await page.locator("body").innerText().catch(() => "");
-    if (/Sign in|Choose an account|Continue|Allow|Cancel|Google/i.test(googleText)) {
-      checklist.englishConsent = true;
-    }
-    if (
-      /youtube/i.test(googleText) ||
-      /force-ssl/i.test(googleText) ||
-      /manage your youtube/i.test(googleText) ||
-      /see, edit, and permanently delete your youtube/i.test(googleText) ||
-      /Manage your YouTube account/i.test(googleText)
-    ) {
-      checklist.youtubePermissionVisible = true;
-    }
-    if (
-      /consent|Allow|Continue|YouTube|unverified|Google hasn't verified|hasn.t verified/i.test(
-        googleText
-      )
-    ) {
-      checklist.completeConsentScreen = true;
-    }
     writeChecklist();
 
+    let googleReturnWithoutConsent = false;
     await waitManual(browser, page, {
       kind: "google",
       reason:
         "Complete the REAL Google OAuth consent for YouTube Live Destinations.",
       lines: [
-        "Select account → complete MFA if prompted → review consent (including unverified-app warning if shown).",
-        "Confirm YouTube permission matching youtube.force-ssl, then click Allow / Continue.",
+        "1) Choose the Google account",
+        "2) If 'Google hasn't verified this app' appears: click Advanced → Go to Jimvio (unsafe)",
+        "3) CRITICAL: stop on the consent screen that lists YouTube access / Manage your YouTube account",
+        "4) Leave that YouTube permission screen visible for several seconds",
+        "5) Click Allow / Continue",
+        "",
+        "If Google skips the YouTube permission screen (already granted):",
+        "  open https://myaccount.google.com/permissions → remove Jimvio access,",
+        "  then this script will re-open Connect YouTube automatically.",
         "Do NOT close Chrome. Do NOT fabricate consent UI.",
       ],
-      predicate: async () => returnedFromGoogleToJimvio(page),
+      onTick: async () => {
+        await scanGoogleConsent(page);
+        if (
+          (await returnedFromGoogleToJimvio(page)) &&
+          !checklist.youtubePermissionVisible &&
+          !googleReturnWithoutConsent
+        ) {
+          googleReturnWithoutConsent = true;
+          console.log(
+            "\n⚠ Returned to Jimvio without detecting YouTube permission on consent UI."
+          );
+          console.log(
+            "  Revoke Jimvio under https://myaccount.google.com/permissions if needed."
+          );
+          console.log(
+            "  Reconnecting YouTube so the REAL consent screen can be shown…\n"
+          );
+          await openLiveDestinations(page);
+          await disconnectYouTubeIfPresent(page);
+          const reconnect = (await youtubeRow(page)).getByRole("button", {
+            name: /^Connect$/i,
+          });
+          if (await reconnect.isVisible().catch(() => false)) {
+            await reconnect.click();
+            await page
+              .waitForURL(
+                /accounts\.google\.com|google\.com\/(?:o\/)?oauth/i,
+                { timeout: 120_000 }
+              )
+              .catch(() => undefined);
+            googleReturnWithoutConsent = false;
+          } else {
+            checklist.notes.push(
+              "Could not auto-reconnect YouTube after missing consent — operator must Connect again"
+            );
+          }
+        }
+      },
+      predicate: async () =>
+        (await returnedFromGoogleToJimvio(page)) &&
+        checklist.youtubePermissionVisible,
     });
     checklist.authorizationAction = true;
     stamp("google_done");
 
     // ——— SECTION 6: Callback / Connected ———
     stamp("callback_start");
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "networkidle",
-      timeout: 60_000,
-    });
+    await openLiveDestinations(page);
     await setBanner(page, "Step 5 — OAuth callback · YouTube connected");
     await dwell(3500);
-    const destBody = await page.locator("body").innerText().catch(() => "");
-    if (/connected|enabled|disconnect/i.test(destBody) && /youtube/i.test(destBody)) {
+    const yt = await youtubeRow(page);
+    await yt.scrollIntoViewIfNeeded().catch(() => undefined);
+    const destBody = await yt.innerText().catch(() => "");
+    const hasDisconnect = await yt
+      .getByRole("button", { name: /disconnect destination/i })
+      .isVisible()
+      .catch(() => false);
+    if (
+      hasDisconnect ||
+      (/connected|enabled/i.test(destBody) && /youtube/i.test(destBody))
+    ) {
       checklist.callback = true;
       checklist.youtubeConnected = true;
-    } else if (/dest_error|authorization failed|cancelled/i.test(destBody)) {
-      checklist.blockers.push(
-        `OAuth returned error state on Live Destinations: ${destBody.slice(0, 200)}`
-      );
+    } else if (/dest_error|authorization failed|cancelled/i.test(await page.locator("body").innerText().catch(() => ""))) {
+      checklist.blockers.push("OAuth returned error state on Live Destinations");
     } else {
       checklist.notes.push(
         "Post-callback UI did not clearly show Connected — inspect frames/video"
@@ -538,11 +668,7 @@ async function main() {
     await shot(page, "05-youtube-connected");
     stamp("callback_end");
 
-    const enableBtn = page
-      .locator("li")
-      .filter({ hasText: /youtube/i })
-      .getByRole("button", { name: /^Enable$/i })
-      .first();
+    const enableBtn = yt.getByRole("button", { name: /^Enable$/i });
     if (await enableBtn.isVisible().catch(() => false)) {
       await enableBtn.click();
       await dwell(1000);
@@ -575,37 +701,31 @@ async function main() {
         }
       } else {
         checklist.notes.push(
-          "Go Live button not visible (may already be in a session) — opened Live Studio for functionality context"
+          "Go Live button not visible — opened Live Studio for functionality context"
         );
         checklist.youtubeDestination = true;
-        const destLink = page
-          .getByRole("link", { name: /Live Destinations/i })
-          .first();
-        if (await destLink.isVisible().catch(() => false)) {
-          await destLink.click();
-          await dwell(2000);
-        }
+        checklist.youtubeFunctionality = true;
       }
 
       try {
-        const yt = await context.newPage();
-        await yt.goto("https://studio.youtube.com/", {
+        const ytStudio = await context.newPage();
+        await ytStudio.goto("https://studio.youtube.com/", {
           waitUntil: "domcontentloaded",
           timeout: 60_000,
         });
         await dwell(5000);
-        const ytText = await yt.locator("body").innerText().catch(() => "");
+        const ytText = await ytStudio.locator("body").innerText().catch(() => "");
         if (/live|stream|broadcast|content/i.test(ytText)) {
           checklist.youtubeResult = true;
-          await yt.screenshot({
+          await ytStudio.screenshot({
             path: path.join(OUT_DIR, "frames", "08-youtube-studio.png"),
           });
         } else {
           checklist.notes.push(
-            "YouTube Studio opened but live result not clearly visible — may need manual navigation to Live content"
+            "YouTube Studio opened but live result not clearly visible"
           );
         }
-        await yt.close();
+        await ytStudio.close();
       } catch (e) {
         checklist.notes.push(
           `YouTube Studio open skipped/failed: ${e instanceof Error ? e.message : String(e)}`
@@ -620,25 +740,20 @@ async function main() {
 
     // ——— SECTION 9: Disconnect ———
     stamp("disconnect_start");
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "networkidle",
-      timeout: 60_000,
-    });
+    await openLiveDestinations(page);
     await setBanner(page, "Step 8 — Disconnect YouTube");
     await dwell(2000);
-    const unplug = page
-      .locator("li")
-      .filter({ hasText: /youtube/i })
-      .getByRole("button", { name: /disconnect/i })
-      .first();
+    const unplug = (await youtubeRow(page)).getByRole("button", {
+      name: /disconnect destination/i,
+    });
     if (await unplug.isVisible().catch(() => false)) {
       await unplug.click();
       await dwell(2500);
       checklist.disconnect = true;
       await shot(page, "09-disconnect");
     } else {
-      checklist.notes.push(
-        "Disconnect control not found after demo (may already be disconnected)"
+      checklist.blockers.push(
+        "Disconnect control not found after demo — YouTube Connected state may not be visible in Live Settings"
       );
     }
     stamp("disconnect_end");
@@ -646,9 +761,24 @@ async function main() {
     await setBanner(page, "Demo complete — Jimvio YouTube Live Destinations");
     await dwell(3000);
     await clearBanner(page);
-    completedOk = true;
+
+    completedOk = criticalChecklistOk();
+    if (!completedOk) {
+      if (!checklist.youtubePermissionVisible) {
+        checklist.blockers.push(
+          "YouTube permission text was never detected on the REAL Google consent screen — re-record and leave the YouTube scopes consent visible before Allow"
+        );
+      }
+      if (!checklist.disconnect) {
+        checklist.blockers.push("Disconnect step not demonstrated");
+      }
+    }
   } catch (err) {
-    const msg = isClosedError(err) ? BROWSER_CLOSED_MSG : err instanceof Error ? err.message : String(err);
+    const msg = isClosedError(err)
+      ? BROWSER_CLOSED_MSG
+      : err instanceof Error
+        ? err.message
+        : String(err);
     if (!checklist.blockers.includes(msg)) checklist.blockers.push(msg);
     console.error("Recording error:", msg);
     if (pageRef && !pageRef.isClosed()) {
@@ -658,8 +788,7 @@ async function main() {
     let finalVideo = null;
     try {
       const videoPath = pageRef ? await pageRef.video()?.path() : null;
-      // Close context first so Playwright flushes the video file.
-      // Only close here after the flow finishes or a real failure — never during waitManual.
+      intentionalClose = true;
       if (contextRef) await contextRef.close().catch(() => undefined);
       if (browserRef?.isConnected()) await browserRef.close().catch(() => undefined);
 
@@ -712,7 +841,7 @@ async function main() {
     console.log(`Report: ${reportPath}`);
     console.log(`Video:  ${finalVideo || "(none)"}`);
     console.log(
-      `Checklist pass hints: consent=${checklist.completeConsentScreen} connected=${checklist.youtubeConnected} functionality=${checklist.youtubeFunctionality}`
+      `Checklist: consent=${checklist.completeConsentScreen} ytPermission=${checklist.youtubePermissionVisible} connected=${checklist.youtubeConnected} functionality=${checklist.youtubeFunctionality} disconnect=${checklist.disconnect}`
     );
     if (!completedOk || checklist.blockers.length) {
       console.log("BLOCKERS:");
