@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function DropshippingDashboardPage() {
   const auth = await requireDropshippingMerchant();
   if (!auth.ok) {
-    if (auth.status === 401) redirect("/login?next=/dropshipping");
+    if (auth.status === 401) redirect("/login?next=/commerce");
     return (
       <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 text-sm text-[#4B5563]">
         {auth.error}{" "}
@@ -56,10 +56,10 @@ export default async function DropshippingDashboardPage() {
 
   const metrics = [
     { label: "Connected stores", value: storesRes.count ?? 0, href: "/commerce/connected-stores" },
-    { label: "Imported products", value: linksRes.count ?? 0, href: "/dropshipping/products" },
-    { label: "Store orders", value: ordersRes.count ?? 0, href: "/dropshipping/orders" },
-    { label: "Pending sync jobs", value: pendingJobsRes.count ?? 0, href: "/dropshipping/sync" },
-    { label: "Failed sync jobs", value: failedJobsRes.count ?? 0, href: "/dropshipping/sync" },
+    { label: "Imported products", value: linksRes.count ?? 0, href: "/commerce/channel-products" },
+    { label: "Store orders", value: ordersRes.count ?? 0, href: "/commerce/channel-orders" },
+    { label: "Pending sync jobs", value: pendingJobsRes.count ?? 0, href: "/commerce/sync" },
+    { label: "Failed sync jobs", value: failedJobsRes.count ?? 0, href: "/commerce/sync" },
   ];
 
   return (

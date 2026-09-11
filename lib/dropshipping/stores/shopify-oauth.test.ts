@@ -122,3 +122,21 @@ describe("shopify webhook hmac", () => {
     assert.equal(verifyShopifyWebhookHmac("{}", "abc", ""), false);
   });
 });
+
+describe("shopify oauth scopes", () => {
+  it("includes fulfillment-order scopes for tracking pushback", async () => {
+    const { SHOPIFY_DEFAULT_OAUTH_SCOPES, getShopifyOAuthScopes } = await import(
+      "./shopify-scopes.ts"
+    );
+    assert.ok(
+      SHOPIFY_DEFAULT_OAUTH_SCOPES.includes(
+        "write_merchant_managed_fulfillment_orders"
+      )
+    );
+    assert.ok(
+      SHOPIFY_DEFAULT_OAUTH_SCOPES.includes("read_assigned_fulfillment_orders")
+    );
+    const csv = getShopifyOAuthScopes();
+    assert.match(csv, /write_merchant_managed_fulfillment_orders/);
+  });
+});

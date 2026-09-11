@@ -22,7 +22,18 @@ export default function DropshippingIntegrationsPage() {
         setShop(fromQuery);
         setDomain(fromQuery);
       }
-      if (err) setError(err);
+      if (err) {
+        const friendly: Record<string, string> = {
+          invalid_state: "Shopify connection could not be completed. Please reconnect your store.",
+          invalid_shop: "That Shopify store domain is not valid. Use your-store.myshopify.com.",
+          oauth_denied: "Shopify connection was cancelled. You can try again anytime.",
+          token_exchange_failed:
+            "Shopify connection could not be completed. Please reconnect your store.",
+          connection_failed:
+            "Shopify connection needs attention. Please reconnect your store.",
+        };
+        setError(friendly[err] || err.replace(/_/g, " "));
+      }
     } catch {
       /* ignore */
     }

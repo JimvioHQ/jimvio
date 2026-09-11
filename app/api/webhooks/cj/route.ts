@@ -237,6 +237,28 @@ async function syncOrderFromWebhook(
             },
             { onConflict: "order_id" }
         );
+
+        // Push tracking to connected sales channels (Shopify) via Sync Center.
+        const { data: orderRow } = await supabase
+            .from("orders")
+            .select("id, vendor_id, merchant_store_id")
+            .eq("id", orderId)
+            .maybeSingle();
+        if (orderRow?.vendor_id && orderRow.merchant_store_id) {
+            const { enqueueSyncJob } = await import(
+                "@/lib/dropshipping/sync/engine"
+            );
+            await enqueueSyncJob(supabase, {
+                vendorId: orderRow.vendor_id,
+                storeId: orderRow.merchant_store_id,
+                supplierCode: "cj",
+                jobType: "TRACKING_SYNC",
+                idempotencyKey: `tracking:${orderId}:${trackingNumber}`,
+                metadata: { orderId, source: "cj_webhook" },
+            }).catch(() => {
+                /* best-effort — cron FULFILLMENT_SYNC remains the safety net */
+            });
+        }
     }
 }
 

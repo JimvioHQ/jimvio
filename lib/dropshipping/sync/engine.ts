@@ -109,7 +109,12 @@ export async function runSyncJob(
         result = await testStoreConnection(db, job.store_id);
         break;
       case "TRACKING_SYNC":
-        result = await syncTrackingToStores(db, job.vendor_id, job.store_id);
+        result = await syncTrackingToStores(
+          db,
+          job.vendor_id,
+          job.store_id,
+          job.metadata
+        );
         break;
       case "FULFILLMENT_SYNC":
         result = await syncFulfillmentJobs(db, job.vendor_id, job.store_id, job.metadata);
@@ -485,11 +490,18 @@ async function syncFulfillmentJobs(
 async function syncTrackingToStores(
   db: SupabaseClient,
   vendorId: string,
-  storeId: string | null
+  storeId: string | null,
+  metadata?: unknown
 ): Promise<{ processed: number; succeeded: number; failed: number }> {
+  const meta = (metadata as Record<string, unknown>) || {};
+  const specificOrderId =
+    typeof meta.orderId === "string" ? meta.orderId : null;
+
   let query = db
     .from("orders")
-    .select("id, merchant_store_id, external_order_id, tracking_number, tracking_status, order_channel")
+    .select(
+      "id, merchant_store_id, external_order_id, tracking_number, tracking_status, order_channel, shopify_fulfillment_status, fulfillment_status_normalized"
+    )
     .eq("vendor_id", vendorId)
     .not("tracking_number", "is", null)
     .not("external_order_id", "is", null)
@@ -497,6 +509,7 @@ async function syncTrackingToStores(
     .limit(50);
 
   if (storeId) query = query.eq("merchant_store_id", storeId);
+  if (specificOrderId) query = query.eq("id", specificOrderId);
 
   const { data: orders } = await query;
   let succeeded = 0;
@@ -504,6 +517,13 @@ async function syncTrackingToStores(
 
   for (const order of orders ?? []) {
     try {
+      const shopifyStatus = (order.shopify_fulfillment_status || "").toLowerCase();
+      // Idempotent: already pushed to Shopify — skip re-create attempts.
+      if (shopifyStatus === "fulfilled" || shopifyStatus === "success") {
+        succeeded += 1;
+        continue;
+      }
+
       const loaded = await loadStoreConnector(db, order.merchant_store_id!);
       if (!loaded) {
         failed += 1;
@@ -514,6 +534,8 @@ async function syncTrackingToStores(
         trackingNumber: order.tracking_number,
         notifyCustomer: true,
       });
+      // createFulfillment is a no-op when no open fulfillment orders remain;
+      // mark fulfilled either way so cron does not retry forever.
       await db
         .from("orders")
         .update({

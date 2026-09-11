@@ -146,7 +146,7 @@ export function AddToStoreButton({ productId, productName, className }: Props) {
               <div className="rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-3 text-[#4B5563]">
                 No connected stores yet.{" "}
                 <Link
-                  href="/dropshipping/integrations"
+                  href="/commerce/integrations"
                   className="font-semibold text-[#FF5A1F] hover:underline"
                 >
                   Connect Shopify

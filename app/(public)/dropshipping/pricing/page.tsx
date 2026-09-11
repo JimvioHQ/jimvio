@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function DropshippingPricingPage() {
   const auth = await requireDropshippingMerchant();
   if (!auth.ok) {
-    if (auth.status === 401) redirect("/login?next=/dropshipping/pricing");
+    if (auth.status === 401) redirect("/login?next=/commerce/pricing");
     return <p className="text-sm text-[#4B5563]">{auth.error}</p>;
   }
 

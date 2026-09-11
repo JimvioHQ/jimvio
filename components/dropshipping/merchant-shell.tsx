@@ -5,16 +5,16 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { href: "/dropshipping", label: "Dashboard", exact: true },
-  { href: "/dropshipping/stores", label: "My Stores" },
-  { href: "/dropshipping/products", label: "Products" },
-  { href: "/dropshipping/orders", label: "Orders" },
-  { href: "/dropshipping/inventory", label: "Inventory" },
-  { href: "/dropshipping/pricing", label: "Pricing" },
-  { href: "/dropshipping/sync", label: "Sync" },
-  { href: "/dropshipping/integrations", label: "Integrations" },
-  { href: "/dropshipping/api", label: "API" },
-  { href: "/dropshipping/settings", label: "Settings" },
+  { href: "/commerce", label: "Overview", exact: true },
+  { href: "/commerce/connected-stores", label: "Connected Stores" },
+  { href: "/commerce/channel-products", label: "Products" },
+  { href: "/commerce/channel-orders", label: "Orders" },
+  { href: "/commerce/channel-inventory", label: "Inventory" },
+  { href: "/commerce/pricing", label: "Pricing" },
+  { href: "/commerce/sync", label: "Sync" },
+  { href: "/commerce/integrations", label: "Integrations" },
+  { href: "/commerce/api-keys", label: "API" },
+  { href: "/commerce/channel-settings", label: "Settings" },
 ] as const;
 
 export function MerchantShell({

@@ -221,7 +221,12 @@ export async function routeOrderFulfillment(
       durationMs: Date.now() - started,
       metadata: { orderId },
     });
-    await completeIdempotency(db, scope, idemKey, 502, result);
+    // Do not cache transient supplier failures — retries must be allowed.
+    await db
+      .from("ds_idempotency_keys")
+      .delete()
+      .eq("scope", scope)
+      .eq("idempotency_key", idemKey);
     return result;
   }
 }

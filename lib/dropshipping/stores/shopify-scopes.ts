@@ -11,6 +11,11 @@ export const SHOPIFY_DEFAULT_OAUTH_SCOPES = [
   "write_inventory",
   "read_fulfillments",
   "write_fulfillments",
+  // Required for Fulfillment Orders API used by createFulfillment / tracking pushback
+  "read_merchant_managed_fulfillment_orders",
+  "write_merchant_managed_fulfillment_orders",
+  "read_assigned_fulfillment_orders",
+  "write_assigned_fulfillment_orders",
   "read_shipping",
 ] as const;
 

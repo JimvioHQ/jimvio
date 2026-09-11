@@ -34,6 +34,8 @@ Token-connect fallback (custom app Admin API token):
    - `read_orders`, `write_orders`
    - `read_inventory`, `write_inventory`
    - `read_fulfillments`, `write_fulfillments`
+   - `read_merchant_managed_fulfillment_orders`, `write_merchant_managed_fulfillment_orders`
+   - `read_assigned_fulfillment_orders`, `write_assigned_fulfillment_orders`
    - `read_shipping`
 
 ## Environment variables
@@ -91,4 +93,10 @@ If auto-registration is skipped (missing public URL / localhost), register the D
 ## Live verification
 
 Live OAuth round-trip requires a Shopify development store + app credentials in the environment.
-Without them, mark **LIVE SHOPIFY OAUTH ROUND-TRIP: BLOCKED**.
+Without an authenticated Jimvio session and a Shopify Dev Store, mark **LIVE SHOPIFY OAUTH ROUND-TRIP: BLOCKED**.
+
+Production must include `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`,
+`SHOPIFY_APP_URL=https://www.jimvio.com`, and
+`SHOPIFY_OAUTH_REDIRECT_URI=https://www.jimvio.com/api/dropshipping/shopify/oauth/callback`.
+Preferred: `SHOPIFY_WEBHOOK_SECRET`. Encryption uses `SHOPIFY_ENCRYPTION_KEY` or
+`LIVE_DESTINATION_ENCRYPTION_KEY`.

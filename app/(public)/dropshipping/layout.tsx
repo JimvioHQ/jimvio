@@ -12,7 +12,7 @@ export default async function DropshippingLayout({
   } = await getCachedUser();
 
   if (!user) {
-    redirect("/login?next=/dropshipping");
+    redirect("/login?next=/commerce");
   }
 
   return <MerchantShell>{children}</MerchantShell>;
