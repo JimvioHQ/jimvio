@@ -65,6 +65,54 @@ const nextConfig: NextConfig = {
       // Canonical account destinations
       { source: "/ugc/saved", destination: "/saved", permanent: false },
       { source: "/inbox", destination: "/notifications", permanent: false },
+      // Commerce OS consolidation — Dropshipping OS → Commerce (preserve deep links)
+      { source: "/dropshipping", destination: "/commerce", permanent: false },
+      {
+        source: "/dropshipping/stores",
+        destination: "/commerce/connected-stores",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/integrations",
+        destination: "/commerce/integrations",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/products",
+        destination: "/commerce/channel-products",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/orders",
+        destination: "/commerce/channel-orders",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/inventory",
+        destination: "/commerce/channel-inventory",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/pricing",
+        destination: "/commerce/pricing",
+        permanent: false,
+      },
+      { source: "/dropshipping/sync", destination: "/commerce/sync", permanent: false },
+      {
+        source: "/dropshipping/api",
+        destination: "/commerce/api-keys",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/settings",
+        destination: "/commerce/channel-settings",
+        permanent: false,
+      },
+      {
+        source: "/dropshipping/dashboard",
+        destination: "/commerce",
+        permanent: false,
+      },
     ];
   },
 

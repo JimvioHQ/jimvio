@@ -3,8 +3,7 @@
  * Personal tools live in the header utilities + profile menu.
  *
  * Canonical public destinations:
- * Marketplace | Communities | Commerce | Affiliates | UGC & Clipping
- * (Home is not part of this primary strip.)
+ * Home | Marketplace | Communities | Commerce | Affiliates | UGC & Clipping
  */
 import type { LucideIcon } from "lucide-react";
 import {
@@ -12,6 +11,7 @@ import {
   Clapperboard,
   DollarSign,
   Heart,
+  Home,
   MessageSquare,
   Package,
   ShoppingBag,
@@ -39,6 +39,7 @@ export type ProfileMenuItem = {
 };
 
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
+  { label: "Home", href: "/", icon: Home },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Commerce", href: "/commerce", icon: Store },
@@ -47,7 +48,7 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
 ];
 
-/** Compact mobile bottom bar — same destinations as PRIMARY_NAV_ITEMS. */
+/** Compact mobile bottom bar — discovery destinations (Home is logo / desktop strip). */
 export const MOBILE_BOTTOM_NAV_ITEMS = [
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
   { label: "Communities", href: "/communities", icon: Users },

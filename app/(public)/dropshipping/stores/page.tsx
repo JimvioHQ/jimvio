@@ -84,7 +84,7 @@ export default function DropshippingStoresPage() {
           </p>
         </div>
         <Link
-          href="/dropshipping/integrations"
+          href="/commerce/integrations"
           className="rounded-md bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
         >
           Connect store
@@ -139,7 +139,7 @@ export default function DropshippingStoresPage() {
               <div className="flex flex-wrap gap-2">
                 {(s.status === "expired" || s.status === "error" || s.status === "disconnected") && (
                   <Link
-                    href={`/dropshipping/integrations?shop=${encodeURIComponent(s.domain || "")}`}
+                    href={`/commerce/integrations?shop=${encodeURIComponent(s.domain || "")}`}
                     className="rounded-md bg-[#FF5A1F] px-2.5 py-1.5 text-xs font-semibold text-white"
                   >
                     Reconnect

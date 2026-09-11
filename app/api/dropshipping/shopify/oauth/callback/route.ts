@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     return clearCookie(
       NextResponse.redirect(
         new URL(
-          `/dropshipping/integrations?error=${encodeURIComponent(oauthError)}`,
+          `/commerce/integrations?error=${encodeURIComponent(oauthError)}`,
           url.origin
         )
       )
@@ -150,9 +150,9 @@ export async function GET(req: NextRequest) {
   const clear = clearCookie(
     NextResponse.redirect(
       result.ok
-        ? new URL(`/dropshipping/stores?connected=${result.storeId}`, url.origin)
+        ? new URL(`/commerce/connected-stores?connected=${result.storeId}`, url.origin)
         : new URL(
-            `/dropshipping/integrations?error=${encodeURIComponent(result.error)}`,
+            `/commerce/integrations?error=${encodeURIComponent(result.error)}`,
             url.origin
           )
     )

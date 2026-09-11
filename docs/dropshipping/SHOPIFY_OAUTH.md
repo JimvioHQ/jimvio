@@ -6,14 +6,14 @@ encrypted credentials in `merchant_store_credentials` (never a global token).
 ## Architecture
 
 ```
-Merchant → /dropshipping/integrations → Connect with OAuth
+Merchant → /commerce/integrations → Connect Shopify
   → GET /api/dropshipping/shopify/oauth/start?shop=store.myshopify.com
   → Shopify authorize
   → GET /api/dropshipping/shopify/oauth/callback
   → token exchange (server-only)
   → connectShopifyStore (test shop.json + persist)
   → idempotent webhook registration
-  → /dropshipping/stores (Connected)
+  → /commerce/connected-stores (Connected)
 ```
 
 Token-connect fallback (custom app Admin API token):

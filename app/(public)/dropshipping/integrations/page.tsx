@@ -175,7 +175,7 @@ export default function DropshippingIntegrationsPage() {
       {success ? (
         <p className="text-sm font-medium text-emerald-700">
           {success}{" "}
-          <Link href="/dropshipping/stores" className="text-[#FF5A1F] underline">
+          <Link href="/commerce/connected-stores" className="text-[#FF5A1F] underline">
             View stores
           </Link>
         </p>

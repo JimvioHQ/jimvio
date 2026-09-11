@@ -55,7 +55,7 @@ export default async function DropshippingDashboardPage() {
   ]);
 
   const metrics = [
-    { label: "Connected stores", value: storesRes.count ?? 0, href: "/dropshipping/stores" },
+    { label: "Connected stores", value: storesRes.count ?? 0, href: "/commerce/connected-stores" },
     { label: "Imported products", value: linksRes.count ?? 0, href: "/dropshipping/products" },
     { label: "Store orders", value: ordersRes.count ?? 0, href: "/dropshipping/orders" },
     { label: "Pending sync jobs", value: pendingJobsRes.count ?? 0, href: "/dropshipping/sync" },
@@ -90,7 +90,7 @@ export default async function DropshippingDashboardPage() {
         <p className="font-medium text-[#111827]">Quick actions</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <Link
-            href="/dropshipping/integrations"
+            href="/commerce/integrations"
             className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-xs font-semibold text-white"
           >
             Connect store

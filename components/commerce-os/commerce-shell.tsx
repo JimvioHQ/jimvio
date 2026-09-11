@@ -5,15 +5,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Boxes,
   CircleHelp,
   CreditCard,
   FileText,
   Globe,
+  KeyRound,
   LayoutDashboard,
   LayoutGrid,
+  Link2,
   Menu,
   Package,
   Percent,
+  Plug,
+  RefreshCw,
   Settings,
   ShoppingBag,
   Store,
@@ -25,37 +30,91 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/commerce", label: "Overview", exact: true, icon: LayoutDashboard },
-  { href: "/commerce/stores", label: "Stores", icon: Store },
-  { href: "/commerce/products", label: "Products", icon: Package },
-  { href: "/commerce/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/commerce/customers", label: "Customers", icon: Users },
-  { href: "/commerce/collections", label: "Collections", icon: LayoutGrid },
-  { href: "/commerce/inventory", label: "Inventory", icon: Warehouse },
-  { href: "/commerce/discounts", label: "Discounts", icon: Percent },
-  { href: "/commerce/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/commerce/builder", label: "Builder", icon: Wand2 },
-  { href: "/commerce/shipping", label: "Shipping", icon: Truck },
-  { href: "/commerce/payments", label: "Payments", icon: CreditCard },
-  { href: "/commerce/pages", label: "Pages", icon: FileText },
-  { href: "/commerce/domains", label: "Domains", icon: Globe },
-  { href: "/commerce/settings", label: "Settings", icon: Settings },
-] as const;
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  exact?: boolean;
+};
+
+type NavGroup = { id: string; label: string; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    id: "core",
+    label: "Operations",
+    items: [
+      { href: "/commerce", label: "Overview", exact: true, icon: LayoutDashboard },
+      { href: "/commerce/stores", label: "Stores", icon: Store },
+      { href: "/commerce/products", label: "Products", icon: Package },
+      { href: "/commerce/orders", label: "Orders", icon: ShoppingBag },
+      { href: "/commerce/inventory", label: "Inventory", icon: Warehouse },
+    ],
+  },
+  {
+    id: "channels",
+    label: "Channels",
+    items: [
+      { href: "/commerce/integrations", label: "Integrations", icon: Plug },
+      { href: "/commerce/connected-stores", label: "Connected Stores", icon: Link2 },
+      { href: "/commerce/channel-products", label: "Channel Products", icon: Boxes },
+      { href: "/commerce/channel-orders", label: "Channel Orders", icon: ShoppingBag },
+      { href: "/commerce/channel-inventory", label: "Channel Inventory", icon: Warehouse },
+      { href: "/commerce/pricing", label: "Pricing", icon: Percent },
+      { href: "/commerce/sync", label: "Sync", icon: RefreshCw },
+    ],
+  },
+  {
+    id: "supply",
+    label: "Supply",
+    items: [
+      { href: "/commerce/suppliers", label: "Suppliers", icon: Package },
+      { href: "/commerce/fulfillment", label: "Fulfillment", icon: Truck },
+      { href: "/commerce/shipping", label: "Shipping", icon: Truck },
+    ],
+  },
+  {
+    id: "storefront",
+    label: "Storefront",
+    items: [
+      { href: "/commerce/builder", label: "Builder", icon: Wand2 },
+      { href: "/commerce/collections", label: "Collections", icon: LayoutGrid },
+      { href: "/commerce/customers", label: "Customers", icon: Users },
+      { href: "/commerce/discounts", label: "Discounts", icon: Percent },
+      { href: "/commerce/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/commerce/payments", label: "Payments", icon: CreditCard },
+      { href: "/commerce/pages", label: "Pages", icon: FileText },
+      { href: "/commerce/domains", label: "Domains", icon: Globe },
+    ],
+  },
+  {
+    id: "system",
+    label: "System",
+    items: [
+      { href: "/commerce/settings", label: "Settings", icon: Settings },
+      { href: "/commerce/api-keys", label: "API Keys", icon: KeyRound },
+      { href: "/commerce/channel-settings", label: "Channel Settings", icon: Settings },
+    ],
+  },
+];
+
+const FLAT_NAV = NAV_GROUPS.flatMap((g) => g.items);
+
+function isNavActive(pathname: string, item: NavItem) {
+  if (item.exact) return pathname === item.href;
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
 
 function NavLink({
   item,
   pathname,
   onNavigate,
 }: {
-  item: (typeof NAV)[number];
+  item: NavItem;
   pathname: string;
   onNavigate?: () => void;
 }) {
-  const active =
-    "exact" in item && item.exact
-      ? pathname === item.href
-      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = isNavActive(pathname, item);
   const Icon = item.icon;
 
   return (
@@ -98,19 +157,27 @@ function SidebarBody({
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#111827]">
           Commerce OS
         </p>
-        <p className="mt-1 text-[11px] text-[#9CA3AF]">Jimvio merchant workspace</p>
+        <p className="mt-1 text-[11px] text-[#9CA3AF]">
+          Stores · channels · suppliers
+        </p>
       </div>
-      <nav
-        aria-label="Commerce OS"
-        className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3"
-      >
-        {NAV.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            pathname={pathname}
-            onNavigate={onNavigate}
-          />
+      <nav aria-label="Commerce OS" className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.id}>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
       <div className="border-t border-[#E5E7EB] p-3">
@@ -120,7 +187,7 @@ function SidebarBody({
             <div>
               <p className="text-xs font-semibold text-[#111827]">Need help?</p>
               <p className="mt-0.5 text-[11px] leading-snug text-[#6B7280]">
-                Guides for stores, products, and orders.
+                Stores, Shopify, suppliers, and orders.
               </p>
             </div>
           </div>
@@ -163,19 +230,15 @@ export function CommerceShell({
   return (
     <div className="min-h-[70vh] bg-[#F8FAFC] text-[#111827]">
       <div className="mx-auto flex w-full max-w-[1440px]">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-[calc(100vh-0px)] w-[232px] shrink-0 border-r border-[#E5E7EB] bg-white lg:block">
+        <aside className="sticky top-0 hidden h-[calc(100vh-0px)] w-[248px] shrink-0 border-r border-[#E5E7EB] bg-white lg:block">
           <SidebarBody pathname={pathname} />
         </aside>
 
         <div className="min-w-0 flex-1">
-          {/* Mobile commerce header */}
           <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[#E5E7EB] bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111827]">
-                Commerce OS
-              </p>
-            </div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111827]">
+              Commerce OS
+            </p>
             <button
               type="button"
               aria-label={mobileOpen ? "Close commerce menu" : "Open commerce menu"}
@@ -187,7 +250,6 @@ export function CommerceShell({
             </button>
           </div>
 
-          {/* Mobile drawer */}
           {mobileOpen ? (
             <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
               <button
@@ -205,18 +267,13 @@ export function CommerceShell({
             </div>
           ) : null}
 
-          {/* Horizontal scroll chips on tablet */}
           <div className="hidden border-b border-[#E5E7EB] bg-white md:block lg:hidden">
             <nav
               aria-label="Commerce sections"
               className="flex gap-1 overflow-x-auto px-4 py-2"
             >
-              {NAV.map((item) => {
-                const active =
-                  "exact" in item && item.exact
-                    ? pathname === item.href
-                    : pathname === item.href ||
-                      pathname.startsWith(`${item.href}/`);
+              {FLAT_NAV.map((item) => {
+                const active = isNavActive(pathname, item);
                 return (
                   <Link
                     key={item.href}

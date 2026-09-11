@@ -35,7 +35,7 @@ export function MerchantShell({
           <div className="flex items-baseline justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-[#FF5A1F]">
-                Jimvio Dropshipping OS
+                Jimvio Commerce OS
               </p>
               {title ? (
                 <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-[#111827]">

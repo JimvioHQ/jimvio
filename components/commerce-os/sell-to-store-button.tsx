@@ -236,7 +236,7 @@ export function SellToStoreButton({ productId, productName, className }: Props) 
                   <>
                     No connected Shopify stores.{" "}
                     <Link
-                      href="/dropshipping/integrations"
+                      href="/commerce/integrations"
                       className="font-semibold text-[#FF5A1F] hover:underline"
                     >
                       Connect Shopify

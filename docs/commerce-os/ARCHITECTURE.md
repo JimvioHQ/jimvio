@@ -1,53 +1,35 @@
-# Jimvio Commerce OS — Architecture
+# Jimvio Commerce OS
 
-Jimvio Commerce OS is an **additive** native storefront layer on top of the existing Marketplace, cart, checkout, payments, orders, and Dropshipping OS.
+Canonical merchant product: **Jimvio Commerce OS** at `/commerce`.
 
-## Principles
+Dropshipping OS capabilities (Shopify connect, channel products/orders, pricing,
+sync, API keys) are consolidated under Commerce **Channels** — they still use
+`merchant_stores`, `store_product_links`, `ds_*` tables and `/api/dropshipping/**`.
 
-- **ONE** product / variant / inventory / cart / checkout / order / fulfillment core
-- Native Jimvio stores are **primary**; Shopify/WooCommerce are **optional connectors**
-- Never duplicate Marketplace checkout or CJ fulfillment
-- Public nav stays: Home · Marketplace · Communities · Affiliates · UGC & Clipping
+## Information architecture
 
-## Surfaces
+| Section | Routes |
+|---------|--------|
+| Operations | Overview, Stores (Jimvio), Products, Orders, Inventory |
+| Channels | Integrations, Connected Stores, Channel Products/Orders/Inventory, Pricing, Sync |
+| Supply | Suppliers, Fulfillment, Shipping |
+| Storefront | Builder, Collections, Customers, Discounts, Analytics, Payments, Pages, Domains |
+| System | Settings, API Keys, Channel Settings |
 
-| Surface | Path | Role |
-|---|---|---|
-| Merchant OS | `/commerce/*` | Create/manage Jimvio stores |
-| Storefront | `/s/[handle]/*` | Public native store |
-| Subdomain | `{handle}.jimvio.com` | Rewrites to `/s/[handle]` via `proxy.ts` |
-| Admin | `/admin/commerce` | Platform inspection |
-| Dropshipping | `/dropshipping/*` | External connectors + CJ routing |
+## Dual store models (do not merge)
 
-## Data model (native)
+- **Jimvio Store** → `jimvio_stores` → `/commerce/stores`, orders via `jimvio_store_id`
+- **Connected Store (Shopify)** → `merchant_stores` → `/commerce/connected-stores`, orders via `merchant_store_id`
 
-- `jimvio_stores` — merchant-owned stores (`published_theme` is the live theme snapshot)
-- `jimvio_store_products` — links shared `products` into a store
-- `jimvio_store_collections` (+ `_collection_products`)
-- `jimvio_store_domains` — hostnames (SSL stays pending until verified)
-- `jimvio_store_discounts`, shipping zones/rates, tax rules, staff, abandoned carts
-- `carts.jimvio_store_id` — **store-scoped carts** (`NULL` = Marketplace)
-- `orders.jimvio_store_id` + `order_channel = jimvio_store`
-- `jimvio_inventory_holds` — soft reservation for store checkouts
-- `jimvio_store_returns` — return requests (refunds via payment providers)
+## Legacy URLs
 
-## Theme draft vs publish
+`/dropshipping/*` redirects to Commerce equivalents (see `lib/commerce-os/legacy-redirects.ts`).
+API and webhook paths are **not** redirected.
 
-- Builder writes `theme_draft` only
-- Publish copies draft → `published_theme` + `theme_settings`
-- Public storefront reads **`published_theme` only** (never draft)
+## Shopify
 
-## Cart isolation
+See [SHOPIFY_OAUTH.md](./SHOPIFY_OAUTH.md). Connect UI: `/commerce/integrations`.
 
-- Marketplace cart: `carts.jimvio_store_id IS NULL`
-- Store A cart: `jimvio_store_id = A`
-- Add-to-cart from storefront validates product is published on that store
-- Checkout prefers cart’s `jimvio_store_id`, cookie handle is fallback
+## Suppliers / CJ
 
-## Fulfillment
-
-Native store orders enter the **same** Dropshipping OS fulfillment router when lines are supplier-mapped (CJ VID preserved). No second fulfillment engine.
-
-## Compatibility layer
-
-`cosTable()` remains for tables not yet fully reflected in generated types beyond carts. Prefer regenerating Supabase types when safe.
+CJ remains the existing connector + fulfillment router. Merchant entry: `/commerce/suppliers`.

@@ -9,7 +9,6 @@ import {
   Plus,
   Settings,
   ShoppingBag,
-  Tag,
   Wand2,
 } from "lucide-react";
 import {
@@ -69,10 +68,22 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
             Overview
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            Create your first Jimvio store to manage products, orders, and sales.
+            Create a Jimvio storefront or connect Shopify to start selling.
           </p>
         </div>
         <CreateStoreForm />
+        <CommerceCard className="p-5">
+          <p className="text-sm font-semibold text-[#111827]">Or connect Shopify</p>
+          <p className="mt-1 text-sm text-[#6B7280]">
+            Publish Jimvio products to your Shopify store and ingest orders.
+          </p>
+          <Link
+            href="/commerce/integrations"
+            className="mt-3 inline-flex rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
+          >
+            Connect Store
+          </Link>
+        </CommerceCard>
       </div>
     );
   }
@@ -84,6 +95,21 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
     active.handle,
     days
   );
+
+  // Channel (Shopify / connected store) health — real counts only
+  const [{ count: connectedStoreCount }, { count: failedSyncCount }] =
+    await Promise.all([
+      db
+        .from("merchant_stores")
+        .select("id", { count: "exact", head: true })
+        .eq("vendor_id", auth.vendorId)
+        .eq("status", "connected"),
+      db
+        .from("ds_sync_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("vendor_id", auth.vendorId)
+        .eq("status", "failed"),
+    ]);
 
   const kpis = [
     {
@@ -115,24 +141,24 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
       icon: Plus,
     },
     {
-      href: `/commerce/collections?storeId=${active.id}`,
-      label: "Create Collection",
-      icon: Tag,
+      href: "/commerce/integrations",
+      label: "Connect Store",
+      icon: Plus,
     },
     {
-      href: `/commerce/builder?storeId=${active.id}`,
-      label: "Customize Store",
-      icon: Wand2,
-    },
-    {
-      href: `/commerce/discounts?storeId=${active.id}`,
-      label: "Set Discount",
-      icon: Tag,
+      href: "/commerce/suppliers",
+      label: "Add Supplier",
+      icon: Package,
     },
     {
       href: `/commerce/orders?storeId=${active.id}`,
       label: "View Orders",
       icon: ShoppingBag,
+    },
+    {
+      href: `/commerce/builder?storeId=${active.id}`,
+      label: "Customize Store",
+      icon: Wand2,
     },
     {
       href: `/commerce/settings?storeId=${active.id}`,
@@ -219,6 +245,51 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
               </CommerceCard>
             ))}
           </div>
+
+          <CommerceCard className="p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-[#111827]">
+                  Channel health
+                </h2>
+                <p className="mt-1 text-sm text-[#6B7280]">
+                  Connected stores (Shopify) and sync job status.
+                </p>
+              </div>
+              <Link
+                href="/commerce/connected-stores"
+                className="text-xs font-semibold text-[#FF5A1F]"
+              >
+                Manage channels
+              </Link>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
+                <p className="text-[11px] font-medium text-[#6B7280]">
+                  Connected stores
+                </p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-[#111827]">
+                  {connectedStoreCount ?? 0}
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
+                <p className="text-[11px] font-medium text-[#6B7280]">
+                  Failed sync jobs
+                </p>
+                <p className="mt-1 text-xl font-semibold tabular-nums text-[#111827]">
+                  {failedSyncCount ?? 0}
+                </p>
+                {(failedSyncCount ?? 0) > 0 ? (
+                  <Link
+                    href="/commerce/sync"
+                    className="mt-1 inline-flex text-[11px] font-semibold text-[#FF5A1F]"
+                  >
+                    Open Sync Center
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </CommerceCard>
 
           {/* Sales + Recent orders */}
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
