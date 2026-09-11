@@ -827,19 +827,19 @@ function MobileDrawer({
                 </div>
               )}
 
-              {/* Navigation */}
+              {/* Navigation — same five primary destinations as desktop (Home via logo only) */}
               <div className="px-4 py-4">
                 <SectionLabel>Menu</SectionLabel>
                 <div className="space-y-1">
-                  <NavRow href="/" icon={Home} label="Home" active={pathname === "/"} />
                   <ExpandSection id="market" icon={ShoppingBag} label="Marketplace">
                     {marketplaceVariants.map((v) => (
                       <SubItem key={v.href} href={v.href} icon={v.icon} color={v.color} title={v.title} desc={v.desc} />
                     ))}
                   </ExpandSection>
                   <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
-                  <NavRow href="/ugc" icon={Clapperboard} label="UGC & Clipping" active={pathname.startsWith("/ugc")} />
+                  <NavRow href="/commerce" icon={Store} label="Commerce" active={pathname === "/commerce" || pathname.startsWith("/commerce/")} />
                   <NavRow href="/affiliates" icon={BanknoteIcon} label="Affiliates" active={pathname.startsWith("/affiliates")} />
+                  <NavRow href="/ugc" icon={Clapperboard} label="UGC & Clipping" active={pathname.startsWith("/ugc")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />
                 </div>
               </div>

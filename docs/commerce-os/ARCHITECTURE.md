@@ -17,7 +17,7 @@ tables and APIs remain `merchant_stores`, `store_product_links`, `ds_*`, and
 | Storefront | Builder, Collections, Customers, Discounts, Analytics, Payments, Pages, Domains |
 | System | Settings, API Keys, Channel Settings |
 
-Public top navigation (do not reorder): Home · Marketplace · Communities · Commerce · Affiliates · UGC & Clipping.
+Public top navigation (do not reorder): Marketplace · Communities · Commerce · Affiliates · UGC & Clipping. (Home remains via logo / direct URL only.)
 
 ## Dual store models (do not merge)
 

@@ -2,8 +2,8 @@
  * Global primary navigation — discovery destinations only.
  * Personal tools live in the header utilities + profile menu.
  *
- * Canonical public destinations:
- * Home | Marketplace | Communities | Commerce | Affiliates | UGC & Clipping
+ * Canonical public destinations (Home is logo / direct URL only — not a top-level item):
+ * Marketplace | Communities | Commerce | Affiliates | UGC & Clipping
  */
 import type { LucideIcon } from "lucide-react";
 import {
@@ -11,7 +11,6 @@ import {
   Clapperboard,
   DollarSign,
   Heart,
-  Home,
   MessageSquare,
   Package,
   ShoppingBag,
@@ -39,7 +38,6 @@ export type ProfileMenuItem = {
 };
 
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
-  { label: "Home", href: "/", icon: Home },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Commerce", href: "/commerce", icon: Store },
@@ -48,7 +46,7 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
 ];
 
-/** Compact mobile bottom bar — discovery destinations (Home is logo / desktop strip). */
+/** Compact mobile bottom bar — same five destinations (Home is logo only). */
 export const MOBILE_BOTTOM_NAV_ITEMS = [
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
   { label: "Communities", href: "/communities", icon: Users },
@@ -150,9 +148,6 @@ export function isPrimaryNavActive(
   if (item.label === "Communities") return isCommunitiesNavActive(pathname);
   if (item.label === "Commerce" || item.href === "/commerce") {
     return isCommerceNavActive(pathname);
-  }
-  if (item.label === "Home" || item.href === "/") {
-    return pathname === "/" || pathname === "";
   }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }

@@ -28,6 +28,11 @@ import {
   Warehouse,
   X,
 } from "lucide-react";
+import { AppTopNav } from "@/components/shell/AppTopNav";
+import {
+  MobilePrimaryBottomNav,
+  MOBILE_PRIMARY_BOTTOM_NAV_PAD,
+} from "@/components/layout/mobile-primary-bottom-nav";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -152,8 +157,8 @@ function SidebarBody({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-[#E5E7EB] px-4 py-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-[#E5E7EB] px-4 py-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#111827]">
           Commerce OS
         </p>
@@ -161,7 +166,10 @@ function SidebarBody({
           Stores · channels · suppliers
         </p>
       </div>
-      <nav aria-label="Commerce OS" className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+      <nav
+        aria-label="Commerce OS"
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-3"
+      >
         {NAV_GROUPS.map((group) => (
           <div key={group.id}>
             <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]">
@@ -180,7 +188,7 @@ function SidebarBody({
           </div>
         ))}
       </nav>
-      <div className="border-t border-[#E5E7EB] p-3">
+      <div className="shrink-0 border-t border-[#E5E7EB] p-3">
         <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
           <div className="flex items-start gap-2">
             <CircleHelp className="mt-0.5 h-4 w-4 text-[#FF5A1F]" />
@@ -206,95 +214,148 @@ function SidebarBody({
 
 export function CommerceShell({
   children,
+  user,
 }: {
   children: React.ReactNode;
   title?: string;
   description?: string;
+  user?: {
+    name: string;
+    avatarUrl?: string | null;
+    isPremium?: boolean;
+  };
 }) {
   const pathname = usePathname() ?? "/commerce";
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
 
   useEffect(() => {
-    setMobileOpen(false);
+    setMobileNav(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!mobileOpen) return;
-    const prev = document.body.style.overflow;
+    if (!mobileNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNav(false);
+    };
+    window.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
     };
-  }, [mobileOpen]);
+  }, [mobileNav]);
 
   return (
-    <div className="min-h-[70vh] bg-[#F8FAFC] text-[#111827]">
-      <div className="mx-auto flex w-full max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-[calc(100vh-0px)] w-[248px] shrink-0 border-r border-[#E5E7EB] bg-white lg:block">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#F8FAFC] text-[#111827]">
+      <AppTopNav showUtilityBar activeNav="Commerce" user={user} />
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Desktop sidebar — stationary; only its inner nav scrolls when needed */}
+        <aside className="sticky top-0 hidden h-full w-[248px] shrink-0 self-stretch overflow-hidden border-r border-[#E5E7EB] bg-white lg:block">
           <SidebarBody pathname={pathname} />
         </aside>
 
-        <div className="min-w-0 flex-1">
-          <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-[#E5E7EB] bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#111827]">
-              Commerce OS
-            </p>
-            <button
-              type="button"
-              aria-label={mobileOpen ? "Close commerce menu" : "Open commerce menu"}
-              aria-expanded={mobileOpen}
-              onClick={() => setMobileOpen((v) => !v)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#111827]"
-            >
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-
-          {mobileOpen ? (
-            <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
+        {/* Mobile drawer — always mounted; CSS open only (matches Affiliates) */}
+        <div
+          className={cn(
+            "fixed inset-0 z-[110] lg:hidden",
+            mobileNav ? "pointer-events-auto" : "pointer-events-none"
+          )}
+          aria-hidden={!mobileNav}
+        >
+          <button
+            type="button"
+            aria-label="Close navigation"
+            tabIndex={mobileNav ? 0 : -1}
+            className={cn(
+              "absolute inset-0 bg-black/40 transition-opacity duration-150",
+              mobileNav ? "opacity-100" : "opacity-0"
+            )}
+            onClick={() => setMobileNav(false)}
+          />
+          <aside
+            className={cn(
+              "relative flex h-full w-[min(300px,88vw)] flex-col border-r border-[#E5E7EB] bg-white shadow-xl transition-transform duration-150 ease-out",
+              mobileNav ? "translate-x-0" : "-translate-x-full"
+            )}
+            role="dialog"
+            aria-modal={mobileNav}
+            aria-label="Commerce OS"
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+              <span className="text-sm font-semibold text-[#111827]">Commerce OS</span>
               <button
                 type="button"
-                aria-label="Close menu overlay"
-                className="absolute inset-0 bg-black/40"
-                onClick={() => setMobileOpen(false)}
-              />
-              <aside className="absolute left-0 top-0 flex h-full w-[min(300px,88vw)] flex-col bg-white shadow-xl">
-                <SidebarBody
-                  pathname={pathname}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              </aside>
+                onClick={() => setMobileNav(false)}
+                aria-label="Close"
+                tabIndex={mobileNav ? 0 : -1}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-[#E5E7EB]"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          ) : null}
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <SidebarBody
+                pathname={pathname}
+                onNavigate={() => setMobileNav(false)}
+              />
+            </div>
+          </aside>
+        </div>
 
-          <div className="hidden border-b border-[#E5E7EB] bg-white md:block lg:hidden">
-            <nav
-              aria-label="Commerce sections"
-              className="flex gap-1 overflow-x-auto px-4 py-2"
-            >
-              {FLAT_NAV.map((item) => {
-                const active = isNavActive(pathname, item);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold",
-                      active
-                        ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
-                        : "text-[#6B7280] hover:bg-[#F3F4F6]"
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+        <div className="flex min-w-0 flex-1 overflow-hidden">
+          <main
+            className={cn(
+              "min-w-0 flex-1 overflow-x-hidden overflow-y-auto",
+              MOBILE_PRIMARY_BOTTOM_NAV_PAD
+            )}
+          >
+            {/* Mobile page header — Affiliates pattern: [☰] title */}
+            <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#E5E7EB] bg-white/95 px-4 py-2 backdrop-blur lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileNav(true)}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-[#E5E7EB]"
+                aria-label="Open navigation"
+                aria-expanded={mobileNav}
+              >
+                <Menu className="h-4 w-4" />
+              </button>
+              <span className="text-sm font-semibold text-[#111827]">Commerce OS</span>
+            </div>
 
-          <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</div>
+            {/* Tablet horizontal chips when permanent sidebar is hidden */}
+            <div className="hidden border-b border-[#E5E7EB] bg-white md:block lg:hidden">
+              <nav
+                aria-label="Commerce sections"
+                className="flex gap-1 overflow-x-auto px-4 py-2"
+              >
+                {FLAT_NAV.map((item) => {
+                  const active = isNavActive(pathname, item);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold",
+                        active
+                          ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
+                          : "text-[#6B7280] hover:bg-[#F3F4F6]"
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</div>
+          </main>
         </div>
       </div>
+
+      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </div>
   );
 }

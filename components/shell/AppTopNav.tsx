@@ -58,6 +58,7 @@ function resolveCreateContext(
   if (explicit) return explicit;
   if (activeNav === "UGC & Clipping" || pathname.startsWith("/ugc")) return "ugc";
   if (pathname.startsWith("/affiliates")) return "affiliates";
+  if (pathname.startsWith("/commerce")) return "marketplace";
   if (pathname.startsWith("/marketplace")) return "marketplace";
   if (pathname.startsWith("/communities")) return "communities";
   return "global";

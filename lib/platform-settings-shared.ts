@@ -171,7 +171,6 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
       { title: "Creator Network", desc: "Affiliates & influencers worldwide" },
     ],
     nav_links: [
-      { label: "Home", href: "/" },
       { label: "Marketplace", href: "/marketplace" },
       { label: "Communities", href: "/communities" },
       { label: "Commerce", href: "/commerce" },

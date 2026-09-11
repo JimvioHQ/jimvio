@@ -223,7 +223,9 @@ export function isWorkspacePublicRoute(pathname: string): boolean {
     pathname === "/communities" ||
     pathname.startsWith("/communities/") ||
     pathname === "/affiliates" ||
-    pathname.startsWith("/affiliates/")
+    pathname.startsWith("/affiliates/") ||
+    pathname === "/commerce" ||
+    pathname.startsWith("/commerce/")
   );
 }
 
