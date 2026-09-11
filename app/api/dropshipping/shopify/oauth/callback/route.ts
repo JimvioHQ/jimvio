@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dsAdminDb } from "@/lib/dropshipping/tenant";
 import { connectShopifyStore } from "@/lib/dropshipping/stores/connect-shopify";
-import { normalizeShopifyDomain } from "@/lib/platform-shopify";
+import {
+  parseAndVerifyShopifyOAuthState,
+  safeEqualString,
+} from "@/lib/dropshipping/stores/credential-crypto";
+import { assertValidShopifyShopDomain } from "@/lib/dropshipping/stores/shopify-domain";
+import { parseShopifyScopes } from "@/lib/dropshipping/stores/shopify-scopes";
 
 export const dynamic = "force-dynamic";
-
-type OAuthState = {
-  vendorId: string;
-  userId: string;
-  nonce: string;
-  shop: string;
-};
 
 /**
  * Shopify OAuth callback. Requires SHOPIFY_CLIENT_ID + SHOPIFY_CLIENT_SECRET.
@@ -39,36 +37,70 @@ export async function GET(req: NextRequest) {
 
   const cookieState = req.cookies.get("jimvio_shopify_oauth_state")?.value;
 
+  const clearCookie = (res: NextResponse) => {
+    res.cookies.set("jimvio_shopify_oauth_state", "", {
+      httpOnly: true,
+      path: "/",
+      maxAge: 0,
+    });
+    return res;
+  };
+
   if (oauthError) {
-    return NextResponse.redirect(
-      new URL(
-        `/dropshipping/integrations?error=${encodeURIComponent(oauthError)}`,
-        url.origin
+    return clearCookie(
+      NextResponse.redirect(
+        new URL(
+          `/dropshipping/integrations?error=${encodeURIComponent(oauthError)}`,
+          url.origin
+        )
       )
     );
   }
 
-  if (!code || !shop || !stateParam || !cookieState || stateParam !== cookieState) {
-    return NextResponse.json(
-      { error: "Invalid OAuth callback. Start again from Integrations." },
-      { status: 400 }
+  if (!code || !shop || !stateParam || !cookieState) {
+    return clearCookie(
+      NextResponse.json(
+        { error: "Invalid OAuth callback. Start again from Integrations." },
+        { status: 400 }
+      )
     );
   }
 
-  let state: OAuthState;
-  try {
-    state = JSON.parse(Buffer.from(stateParam, "base64url").toString("utf8")) as OAuthState;
-  } catch {
-    return NextResponse.json({ error: "OAuth state could not be parsed." }, { status: 400 });
-  }
-
-  const domain = normalizeShopifyDomain(shop);
-  if (normalizeShopifyDomain(state.shop) !== domain) {
-    return NextResponse.json(
-      { error: "OAuth shop domain does not match the authorize request." },
-      { status: 400 }
+  if (!safeEqualString(stateParam, cookieState)) {
+    return clearCookie(
+      NextResponse.json(
+        { error: "OAuth state mismatch. Start Connect again." },
+        { status: 400 }
+      )
     );
   }
+
+  const verified = parseAndVerifyShopifyOAuthState(stateParam);
+  if (!verified.ok) {
+    return clearCookie(
+      NextResponse.json({ error: verified.error }, { status: 400 })
+    );
+  }
+  const state = verified.payload;
+
+  const domainCheck = assertValidShopifyShopDomain(shop);
+  if (!domainCheck.ok) {
+    return clearCookie(
+      NextResponse.json({ error: domainCheck.error }, { status: 400 })
+    );
+  }
+  const domain = domainCheck.domain;
+  if (state.shop !== domain) {
+    return clearCookie(
+      NextResponse.json(
+        { error: "OAuth shop domain does not match the authorize request." },
+        { status: 400 }
+      )
+    );
+  }
+
+  // Clear cookie immediately to reduce replay window before token exchange
+  // (authorization codes are single-use on Shopify's side)
 
   const tokenRes = await fetch(`https://${domain}/admin/oauth/access_token`, {
     method: "POST",
@@ -88,42 +120,42 @@ export async function GET(req: NextRequest) {
   } | null;
 
   if (!tokenRes.ok || !tokenJson?.access_token) {
-    return NextResponse.json(
-      {
-        error:
-          tokenJson?.error_description ||
-          tokenJson?.error ||
-          "Shopify did not return an access token.",
-      },
-      { status: 400 }
+    return clearCookie(
+      NextResponse.json(
+        {
+          error:
+            tokenJson?.error_description ||
+            tokenJson?.error ||
+            "Shopify did not return an access token.",
+        },
+        { status: 400 }
+      )
     );
   }
 
+  const accessToken = tokenJson.access_token;
+  // Never log accessToken
+
   const db = dsAdminDb();
-  const scopes = (tokenJson.scope || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const scopes = parseShopifyScopes(tokenJson.scope);
 
   const result = await connectShopifyStore(db, {
     vendorId: state.vendorId,
     shopDomain: domain,
-    accessToken: tokenJson.access_token,
+    accessToken,
     scopes,
+    registerWebhooks: true,
   });
 
-  const clear = NextResponse.redirect(
-    result.ok
-      ? new URL(`/dropshipping/stores?connected=${result.storeId}`, url.origin)
-      : new URL(
-          `/dropshipping/integrations?error=${encodeURIComponent(result.error)}`,
-          url.origin
-        )
+  const clear = clearCookie(
+    NextResponse.redirect(
+      result.ok
+        ? new URL(`/dropshipping/stores?connected=${result.storeId}`, url.origin)
+        : new URL(
+            `/dropshipping/integrations?error=${encodeURIComponent(result.error)}`,
+            url.origin
+          )
+    )
   );
-  clear.cookies.set("jimvio_shopify_oauth_state", "", {
-    httpOnly: true,
-    path: "/",
-    maxAge: 0,
-  });
   return clear;
 }

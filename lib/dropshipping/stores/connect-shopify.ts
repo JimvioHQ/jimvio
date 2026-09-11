@@ -6,6 +6,10 @@ import {
 import { assertCanConnectStore } from "../entitlements/plans";
 import { createShopifyConnector } from "./registry";
 import { logIntegration } from "../observability/log";
+import { encryptShopifySecret } from "./credential-crypto";
+import { assertValidShopifyShopDomain } from "./shopify-domain";
+import { ensureShopifyWebhooksRegistered } from "./shopify-webhooks";
+import { parseShopifyScopes } from "./shopify-scopes";
 
 export type ConnectShopifyInput = {
   vendorId: string;
@@ -16,6 +20,8 @@ export type ConnectShopifyInput = {
   apiVersion?: string;
   /** When updating an existing merchant_stores row */
   storeId?: string;
+  /** When true, attempt idempotent webhook registration after connect */
+  registerWebhooks?: boolean;
 };
 
 export type ConnectShopifyResult =
@@ -25,6 +31,12 @@ export type ConnectShopifyResult =
       shopName: string;
       domain: string;
       created: boolean;
+      webhooks?: {
+        registered: string[];
+        skipped: string[];
+        address?: string;
+        error?: string;
+      };
     }
   | { ok: false; error: string; code: string };
 
@@ -36,11 +48,15 @@ export async function connectShopifyStore(
   db: SupabaseClient,
   input: ConnectShopifyInput
 ): Promise<ConnectShopifyResult> {
-  const domain = normalizeShopifyDomain(input.shopDomain);
+  const domainCheck = assertValidShopifyShopDomain(input.shopDomain);
+  if (!domainCheck.ok) {
+    return { ok: false, error: domainCheck.error, code: "INVALID_DOMAIN" };
+  }
+  const domain = domainCheck.domain;
   const accessToken = input.accessToken.trim();
   const apiVersion = input.apiVersion || getShopifyApiVersionFromEnv();
 
-  if (!domain || !accessToken) {
+  if (!accessToken) {
     return {
       ok: false,
       error: "Shop domain and access token are required.",
@@ -65,6 +81,7 @@ export async function connectShopifyStore(
   const shopName = test.shopName || domain;
   let storeId = input.storeId ?? null;
   let created = false;
+  const scopes = input.scopes ?? [];
 
   if (storeId) {
     const { data: existing } = await db
@@ -74,7 +91,11 @@ export async function connectShopifyStore(
       .eq("vendor_id", input.vendorId)
       .maybeSingle();
     if (!existing) {
-      return { ok: false, error: "Store not found for this merchant.", code: "STORE_NOT_FOUND" };
+      return {
+        ok: false,
+        error: "Store not found for this merchant.",
+        code: "STORE_NOT_FOUND",
+      };
     }
     const { error: updErr } = await db
       .from("merchant_stores")
@@ -83,7 +104,7 @@ export async function connectShopifyStore(
         domain,
         platform: "shopify",
         status: "connected",
-        scopes: input.scopes ?? [],
+        scopes,
         last_error: null,
         connected_at: new Date().toISOString(),
         disconnected_at: null,
@@ -109,7 +130,7 @@ export async function connectShopifyStore(
         .update({
           name: input.name || shopName,
           status: "connected",
-          scopes: input.scopes ?? [],
+          scopes,
           last_error: null,
           connected_at: new Date().toISOString(),
           disconnected_at: null,
@@ -130,7 +151,7 @@ export async function connectShopifyStore(
           name: input.name || shopName,
           domain,
           status: "connected",
-          scopes: input.scopes ?? [],
+          scopes,
           connected_at: new Date().toISOString(),
         })
         .select("id")
@@ -159,14 +180,13 @@ export async function connectShopifyStore(
   });
   if (!credResult.ok) return credResult;
 
-  // Link legacy shopify_credentials row when present
   await db
     .from("shopify_credentials")
     .update({ merchant_store_id: storeId, is_active: true })
     .eq("vendor_id", input.vendorId)
     .eq("shop_domain", domain);
 
-  // Also upsert a legacy row so older sync paths keep working
+  const encryptedLegacy = encryptShopifySecret(accessToken);
   const { data: legacy } = await db
     .from("shopify_credentials")
     .select("id")
@@ -178,7 +198,7 @@ export async function connectShopifyStore(
     await db
       .from("shopify_credentials")
       .update({
-        access_token: accessToken,
+        access_token: encryptedLegacy,
         api_version: apiVersion,
         merchant_store_id: storeId,
         is_active: true,
@@ -188,11 +208,36 @@ export async function connectShopifyStore(
     await db.from("shopify_credentials").insert({
       vendor_id: input.vendorId,
       shop_domain: domain,
-      access_token: accessToken,
+      access_token: encryptedLegacy,
       api_version: apiVersion,
       merchant_store_id: storeId,
       is_active: true,
     });
+  }
+
+  let webhooks:
+    | { registered: string[]; skipped: string[]; address?: string; error?: string }
+    | undefined;
+  if (input.registerWebhooks !== false) {
+    try {
+      const wh = await ensureShopifyWebhooksRegistered({
+        shopDomain: domain,
+        accessToken,
+        apiVersion,
+      });
+      webhooks = {
+        registered: wh.registered,
+        skipped: wh.skipped,
+        address: wh.address,
+        error: wh.error,
+      };
+    } catch {
+      webhooks = {
+        registered: [],
+        skipped: [],
+        error: "Webhook registration failed unexpectedly.",
+      };
+    }
   }
 
   await logIntegration(db, {
@@ -200,7 +245,13 @@ export async function connectShopifyStore(
     storeId,
     operation: "store_connect",
     status: "success",
-    metadata: { platform: "shopify", domain, created },
+    metadata: {
+      platform: "shopify",
+      domain,
+      created,
+      scopes: parseShopifyScopes(scopes.join(",")),
+      webhookRegistered: webhooks?.registered?.length ?? 0,
+    },
   });
 
   return {
@@ -209,6 +260,7 @@ export async function connectShopifyStore(
     shopName,
     domain,
     created,
+    webhooks,
   };
 }
 
@@ -217,6 +269,17 @@ export async function updateShopifyCredentials(
   params: { storeId: string; accessToken: string; apiVersion?: string }
 ): Promise<{ ok: true } | { ok: false; error: string; code: string }> {
   const apiVersion = params.apiVersion || getShopifyApiVersionFromEnv();
+  let encrypted: string;
+  try {
+    encrypted = encryptShopifySecret(params.accessToken);
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to encrypt Shopify token.",
+      code: "CREDENTIALS_ENCRYPT_FAILED",
+    };
+  }
+
   const { data: existing } = await db
     .from("merchant_store_credentials")
     .select("id")
@@ -227,7 +290,7 @@ export async function updateShopifyCredentials(
     const { error } = await db
       .from("merchant_store_credentials")
       .update({
-        access_token_encrypted: params.accessToken,
+        access_token_encrypted: encrypted,
         api_version: apiVersion,
         updated_at: new Date().toISOString(),
       })
@@ -238,7 +301,7 @@ export async function updateShopifyCredentials(
   } else {
     const { error } = await db.from("merchant_store_credentials").insert({
       store_id: params.storeId,
-      access_token_encrypted: params.accessToken,
+      access_token_encrypted: encrypted,
       api_version: apiVersion,
     });
     if (error) {
@@ -269,7 +332,11 @@ export async function testShopifyStoreConnection(
     await db
       .from("merchant_stores")
       .update({
-        status: result.ok ? "connected" : "error",
+        status: result.ok
+          ? "connected"
+          : result.error?.includes("expired") || result.error?.includes("Reconnect")
+            ? "expired"
+            : "error",
         last_error: result.ok ? null : result.error ?? "Connection test failed.",
         updated_at: new Date().toISOString(),
       })
@@ -278,10 +345,11 @@ export async function testShopifyStoreConnection(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Shopify connection test failed.";
+    const reconnect = /encrypt|expired|401|reconnect|not configured/i.test(message);
     await db
       .from("merchant_stores")
       .update({
-        status: "error",
+        status: reconnect ? "expired" : "error",
         last_error: message,
         updated_at: new Date().toISOString(),
       })
@@ -312,7 +380,6 @@ export async function disconnectShopifyStore(
     })
     .eq("id", storeId);
 
-  // Clear tokens from credential tables (do not leave active tokens after disconnect)
   await db
     .from("merchant_store_credentials")
     .update({
@@ -331,6 +398,16 @@ export async function disconnectShopifyStore(
     })
     .eq("merchant_store_id", storeId);
 
+  await db
+    .from("ds_sync_jobs")
+    .update({
+      status: "cancelled",
+      error: "Store disconnected",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("store_id", storeId)
+    .in("status", ["pending", "running"]);
+
   await logIntegration(db, {
     vendorId,
     storeId,
@@ -340,3 +417,5 @@ export async function disconnectShopifyStore(
 
   return { ok: true };
 }
+
+export { normalizeShopifyDomain };

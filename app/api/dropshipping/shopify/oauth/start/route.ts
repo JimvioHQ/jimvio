@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { requireDropshippingMerchant } from "@/lib/dropshipping/tenant";
-import { normalizeShopifyDomain } from "@/lib/platform-shopify";
+import { createShopifyOAuthState } from "@/lib/dropshipping/stores/credential-crypto";
+import { assertValidShopifyShopDomain } from "@/lib/dropshipping/stores/shopify-domain";
+import { getShopifyOAuthScopes } from "@/lib/dropshipping/stores/shopify-scopes";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_SCOPES = [
-  "read_products",
-  "write_products",
-  "read_orders",
-  "write_orders",
-  "read_inventory",
-  "write_inventory",
-  "read_fulfillments",
-  "write_fulfillments",
-  "read_shipping",
-].join(",");
 
 /**
  * Start Shopify OAuth when SHOPIFY_CLIENT_ID is configured.
@@ -59,29 +48,39 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const domain = normalizeShopifyDomain(shop);
-  if (!domain.includes(".")) {
-    return NextResponse.json(
-      { error: "Provide a full shop domain like your-store.myshopify.com." },
-      { status: 400 }
-    );
+  const domainCheck = assertValidShopifyShopDomain(shop);
+  if (!domainCheck.ok) {
+    return NextResponse.json({ error: domainCheck.error }, { status: 400 });
   }
+  const domain = domainCheck.domain;
 
   const origin = req.nextUrl.origin;
   const redirectUri =
     process.env.SHOPIFY_OAUTH_REDIRECT_URI?.trim() ||
     `${origin}/api/dropshipping/shopify/oauth/callback`;
 
-  const state = Buffer.from(
-    JSON.stringify({
+  let state: string;
+  try {
+    state = createShopifyOAuthState({
       vendorId: auth.vendorId,
       userId: auth.userId,
-      nonce: randomBytes(16).toString("hex"),
       shop: domain,
-    })
-  ).toString("base64url");
+      ttlSeconds: 600,
+    });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error:
+          e instanceof Error
+            ? e.message
+            : "Cannot start OAuth — server signing secret missing.",
+        code: "OAUTH_STATE_FAILED",
+      },
+      { status: 501 }
+    );
+  }
 
-  const scopes = process.env.SHOPIFY_OAUTH_SCOPES?.trim() || DEFAULT_SCOPES;
+  const scopes = getShopifyOAuthScopes();
   const authorizeUrl = new URL(`https://${domain}/admin/oauth/authorize`);
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("scope", scopes);

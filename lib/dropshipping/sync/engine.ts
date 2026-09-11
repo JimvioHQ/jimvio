@@ -114,6 +114,12 @@ export async function runSyncJob(
       case "FULFILLMENT_SYNC":
         result = await syncFulfillmentJobs(db, job.vendor_id, job.store_id, job.metadata);
         break;
+      case "PRODUCT_UPDATE":
+      case "PRODUCT_IMPORT":
+        // Webhook-driven: refresh inventory/price for mapped products (idempotent).
+        // Does not create duplicate Jimvio catalog rows.
+        result = await handleProductWebhookSync(db, job.vendor_id, job.store_id, job.metadata);
+        break;
       default:
         result = { processed: 0, succeeded: 0, failed: 0 };
     }
@@ -218,6 +224,49 @@ async function testStoreConnection(
     })
     .eq("id", storeId);
   return { processed: 1, succeeded: result.ok ? 1 : 0, failed: result.ok ? 0 : 1 };
+}
+
+/**
+ * Handle Shopify product webhook jobs without inventing a second catalog sync.
+ * Re-pushes inventory/price for mapped store products when present.
+ */
+async function handleProductWebhookSync(
+  db: SupabaseClient,
+  vendorId: string,
+  storeId: string | null,
+  metadata: unknown
+): Promise<{ processed: number; succeeded: number; failed: number }> {
+  if (!storeId) return { processed: 0, succeeded: 0, failed: 0 };
+
+  const meta =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata)
+      ? (metadata as Record<string, unknown>)
+      : {};
+  const storeProductId =
+    typeof meta.storeProductId === "string" ? meta.storeProductId : null;
+  const topic = typeof meta.topic === "string" ? meta.topic : "";
+
+  if (topic === "products/delete" && storeProductId) {
+    await db
+      .from("store_product_links")
+      .update({
+        connection_status: "disconnected",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("store_id", storeId)
+      .eq("vendor_id", vendorId)
+      .eq("store_product_id", storeProductId);
+    return { processed: 1, succeeded: 1, failed: 0 };
+  }
+
+  // Prefer targeted inventory+price sync for the store (idempotent push)
+  const inv = await syncInventoryForStore(db, vendorId, storeId);
+  const price = await syncPricesForStore(db, vendorId, storeId);
+  return {
+    processed: inv.processed + price.processed,
+    succeeded: inv.succeeded + price.succeeded,
+    failed: inv.failed + price.failed,
+  };
 }
 
 export async function syncInventoryForStore(

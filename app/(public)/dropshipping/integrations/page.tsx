@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function DropshippingIntegrationsPage() {
@@ -12,6 +12,21 @@ export default function DropshippingIntegrationsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [oauthNote, setOauthNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = params.get("shop");
+      const err = params.get("error");
+      if (fromQuery) {
+        setShop(fromQuery);
+        setDomain(fromQuery);
+      }
+      if (err) setError(err);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   async function startOAuth() {
     setError(null);
@@ -83,25 +98,36 @@ export default function DropshippingIntegrationsPage() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-[#E5E7EB] bg-white p-4">
-        <p className="text-sm font-medium text-[#111827]">Shopify OAuth</p>
-        <p className="mt-1 text-xs text-[#6B7280]">
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-[#111827]">Shopify</p>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              Connect your Shopify store
+            </p>
+          </div>
+          <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#6B7280]">
+            OAuth
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-[#9CA3AF]">
           Requires <code className="text-[11px]">SHOPIFY_CLIENT_ID</code> and{" "}
-          <code className="text-[11px]">SHOPIFY_CLIENT_SECRET</code>.
+          <code className="text-[11px]">SHOPIFY_CLIENT_SECRET</code> on the server.
         </p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <input
-            className="h-10 flex-1 rounded-md border border-[#E5E7EB] px-3 text-sm"
+            className="h-10 flex-1 rounded-xl border border-[#E5E7EB] px-3 text-sm"
             placeholder="your-store.myshopify.com"
             value={shop}
             onChange={(e) => setShop(e.target.value)}
+            aria-label="Shopify store domain"
           />
           <button
             type="button"
             onClick={() => void startOAuth()}
-            className="h-10 rounded-md bg-[#FF5A1F] px-4 text-xs font-semibold text-white"
+            className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-xs font-semibold text-white"
           >
-            Connect with OAuth
+            Connect Shopify
           </button>
         </div>
         {oauthNote ? <p className="mt-2 text-sm text-amber-700">{oauthNote}</p> : null}

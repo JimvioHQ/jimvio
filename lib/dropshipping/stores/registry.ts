@@ -2,10 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ShopifyStoreConnector } from "./shopify-connector";
 import type { StoreConnector, StorePlatform } from "./types";
 import { getShopifyApiVersionFromEnv } from "@/lib/platform-shopify";
+import { decryptShopifySecret } from "./credential-crypto";
 
 /**
- * Minimal credential decrypt/pass-through.
- * Tokens are stored in merchant_store_credentials; prefer encryption at rest via DB.
+ * Load store connector with server-side credential decryption.
  * Never return tokens to client responses.
  */
 export async function loadStoreConnector(
@@ -19,6 +19,9 @@ export async function loadStoreConnector(
     .maybeSingle();
 
   if (!store) return null;
+  if (store.status === "disconnected") {
+    throw new Error("This Shopify store is disconnected. Reconnect to continue.");
+  }
 
   const { data: creds } = await db
     .from("merchant_store_credentials")
@@ -28,11 +31,11 @@ export async function loadStoreConnector(
 
   if (store.platform === "shopify") {
     // Fallback: legacy shopify_credentials linked by merchant_store_id or vendor domain
-    let token = creds?.access_token_encrypted ?? null;
+    let encryptedOrPlain = creds?.access_token_encrypted ?? null;
     let apiVersion = creds?.api_version ?? getShopifyApiVersionFromEnv();
     let domain = store.domain;
 
-    if (!token) {
+    if (!encryptedOrPlain) {
       const { data: legacy } = await db
         .from("shopify_credentials")
         .select("access_token, api_version, shop_domain, vendor_id")
@@ -42,12 +45,13 @@ export async function loadStoreConnector(
         .limit(1)
         .maybeSingle();
       if (legacy?.access_token) {
-        token = legacy.access_token;
+        encryptedOrPlain = legacy.access_token;
         apiVersion = legacy.api_version || apiVersion;
         domain = legacy.shop_domain || domain;
       }
     }
 
+    const token = decryptShopifySecret(encryptedOrPlain);
     if (!token || !domain) {
       throw new Error("Shopify connection is not configured. Connect your store first.");
     }

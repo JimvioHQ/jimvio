@@ -11,7 +11,11 @@ export function verifyShopifyWebhookHmac(
   hmacHeader: string | null,
   clientSecret?: string
 ): boolean {
-  const secret = clientSecret ?? process.env.SHOPIFY_WEBHOOK_SECRET ?? "";
+  const secret =
+    clientSecret ??
+    process.env.SHOPIFY_WEBHOOK_SECRET?.trim() ??
+    process.env.SHOPIFY_CLIENT_SECRET?.trim() ??
+    "";
   if (!secret || !hmacHeader) return false;
   try {
     const calculatedB64 = crypto

@@ -6,6 +6,7 @@ import {
   isPlatformShopifyEnvCredentialsComplete,
   normalizeShopifyDomain,
 } from "@/lib/platform-shopify";
+import { decryptShopifySecret } from "@/lib/dropshipping/stores/credential-crypto";
 
 const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -20,11 +21,14 @@ export interface ShopifyCredentials {
 }
 
 export async function saveVendorToken(creds: ShopifyCredentials) {
+  const { encryptShopifySecret } = await import(
+    "@/lib/dropshipping/stores/credential-crypto"
+  );
   const { error } = await supabase.from("shopify_credentials").upsert(
     {
       vendor_id: creds.vendorId,
       shop_domain: creds.shopDomain,
-      access_token: creds.accessToken,
+      access_token: encryptShopifySecret(creds.accessToken),
       api_version: creds.apiVersion,
       platform_commission_rate: creds.platformCommissionRate,
       connected_at: new Date().toISOString(),
@@ -59,10 +63,14 @@ export async function getVendorTokenByVendorId(vendorId: string): Promise<Shopif
     .eq("is_active", true)
     .single();
   if (error || !data) throw new Error(`No active Shopify credentials for vendor: ${vendorId}`);
+  const accessToken = decryptShopifySecret(data.access_token);
+  if (!accessToken) {
+    throw new Error(`No active Shopify credentials for vendor: ${vendorId}`);
+  }
   return {
     vendorId: data.vendor_id,
     shopDomain: data.shop_domain,
-    accessToken: data.access_token,
+    accessToken,
     apiVersion: data.api_version,
     platformCommissionRate: Number(data.platform_commission_rate),
   };
@@ -85,10 +93,12 @@ export async function getVendorTokenByDomain(shopDomain: string): Promise<Shopif
     .eq("is_active", true)
     .single();
   if (!data) return null;
+  const accessToken = decryptShopifySecret(data.access_token);
+  if (!accessToken) return null;
   return {
     vendorId: data.vendor_id,
     shopDomain: data.shop_domain,
-    accessToken: data.access_token,
+    accessToken,
     apiVersion: data.api_version,
     platformCommissionRate: Number(data.platform_commission_rate),
   };
