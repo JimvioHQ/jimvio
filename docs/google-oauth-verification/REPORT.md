@@ -1,8 +1,12 @@
 # Google OAuth verification demo — status report
 
-**Status:** Tooling + OAuth return UX ready. **Final submit-ready video requires a headed interactive run** (real Google consent cannot be automated).
+**Status:** Recorder lifecycle hardened (keep Chrome open during manual pauses; archive incomplete videos; 1080p). **Final submit-ready video still requires a headed interactive run** (real Google consent cannot be automated).
 
 This is **not** a claim of Google verification approval.
+
+### Previous code 2 root cause (2026-09-11)
+
+`page.waitForURL: Target page, context or browser has been closed` during Jimvio login pause (~42s). The script did **not** close Chrome during the pause; Chrome was closed externally. `finally` then set `exitCode=2` because blockers were non-empty. Incomplete video lacked consent / connected / Live Studio.
 
 ## A. Previous Google rejection root cause
 

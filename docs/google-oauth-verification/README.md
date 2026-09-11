@@ -40,13 +40,17 @@ DEMO_STORAGE_STATE=.auth/live-host.json \
 node scripts/google-oauth-verification/record-youtube-demo.mjs
 ```
 
-When the script prints:
+**Do not close the Playwright Chrome window** during pauses. The script keeps Chrome open indefinitely (`DEMO_MANUAL_TIMEOUT_MS=0` default), prints heartbeats, and continues only after detecting success.
 
-```text
-MANUAL ACTION REQUIRED — Google authentication/consent
-```
+When the terminal prints `JIMVIO LOGIN REQUIRED` or `GOOGLE OAUTH CONSENT REQUIRED`:
 
-complete the **real** Google account selection / MFA / consent (including any unverified-app warning) in the opened window. Do not bypass Google.
+1. Complete the step in the **visible** Chrome window.
+2. Leave Chrome open.
+3. Return to the terminal — recording continues automatically.
+
+For Google consent: complete the **real** account selection / MFA / Allow (including any unverified-app warning). Do not bypass Google.
+
+If you manually close Chrome, the run fails with: `Browser was closed before OAuth demo completion.` Incomplete `.webm` files are archived under `tmp/google-oauth-verification/incomplete/`.
 
 Outputs (gitignored):
 
