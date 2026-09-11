@@ -9,10 +9,55 @@ function cleanPath(path = ""): string {
   return path.startsWith("/") ? path : `/${path}`;
 }
 
+export function storefrontSubdomainsEnabled(): boolean {
+  return (
+    process.env.JIMVIO_STORE_SUBDOMAINS_ENABLED === "1" ||
+    process.env.NEXT_PUBLIC_JIMVIO_STORE_SUBDOMAINS === "1"
+  );
+}
+
 /** In-app path that always works on www (and as rewrite target). */
 export function storefrontBrowsePath(handle: string, path = ""): string {
   const h = handle.trim().toLowerCase();
   return `/s/${h}${cleanPath(path)}`;
+}
+
+/**
+ * Link href for storefront UI.
+ * On a merchant store host, use bare paths so the browser stays on
+ * `{handle}.jimvio.com/cart` instead of `{handle}.jimvio.com/s/{handle}/cart`.
+ * On the platform host, use `/s/{handle}/…` compatibility paths.
+ */
+export function storefrontHref(
+  handle: string,
+  path = "",
+  options?: { onStoreHost?: boolean }
+): string {
+  if (options?.onStoreHost) {
+    const bare = cleanPath(path);
+    return bare || "/";
+  }
+  return storefrontBrowsePath(handle, path);
+}
+
+/**
+ * Normalize a stored nav href for the current host mode.
+ * Strips `/s/{handle}` when already on the merchant subdomain.
+ */
+export function normalizeStorefrontHref(
+  handle: string,
+  href: string,
+  options?: { onStoreHost?: boolean }
+): string {
+  if (!href) return storefrontHref(handle, "", options);
+  if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("#")) {
+    return href;
+  }
+  if (!options?.onStoreHost) return href;
+  const prefix = `/s/${handle.trim().toLowerCase()}`;
+  if (href === prefix || href === `${prefix}/`) return "/";
+  if (href.startsWith(`${prefix}/`)) return href.slice(prefix.length) || "/";
+  return href.startsWith("/") ? href : `/${href}`;
 }
 
 /**
@@ -22,11 +67,8 @@ export function storefrontBrowsePath(handle: string, path = ""): string {
 export function storefrontPublicUrl(handle: string, path = ""): string {
   const h = handle.trim().toLowerCase();
   const suffix = cleanPath(path);
-  const subdomainsOn =
-    process.env.JIMVIO_STORE_SUBDOMAINS_ENABLED === "1" ||
-    process.env.NEXT_PUBLIC_JIMVIO_STORE_SUBDOMAINS === "1";
 
-  if (subdomainsOn) {
+  if (storefrontSubdomainsEnabled()) {
     return `https://${h}.jimvio.com${suffix}`;
   }
 

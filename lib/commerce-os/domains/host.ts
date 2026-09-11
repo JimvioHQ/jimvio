@@ -11,6 +11,11 @@ const PLATFORM_HOSTS = new Set([
   "127.0.0.1",
 ]);
 
+/**
+ * Paths that must stay on the platform router even when requested on a
+ * merchant store host (APIs, workspaces, auth). Storefront-owned surfaces
+ * like /cart are intentionally NOT listed — they rewrite to /s/{handle}/….
+ */
 const PLATFORM_PATH_PREFIXES = [
   "/api",
   "/admin",
@@ -20,21 +25,30 @@ const PLATFORM_PATH_PREFIXES = [
   "/communities",
   "/affiliates",
   "/ugc",
-  "/cart",
   "/checkout",
   "/login",
   "/register",
+  "/signup",
   "/wallet",
   "/settings",
   "/orders",
   "/messages",
   "/seller",
+  "/dashboard",
   "/s/", // already path-based storefront
   "/_next",
 ];
 
+export function normalizeHostname(hostname: string): string {
+  return hostname
+    .toLowerCase()
+    .trim()
+    .replace(/\.$/, "")
+    .split(":")[0];
+}
+
 export function isPlatformHostname(hostname: string): boolean {
-  const host = hostname.toLowerCase().split(":")[0];
+  const host = normalizeHostname(hostname);
   if (PLATFORM_HOSTS.has(host)) return true;
   if (host.endsWith(".vercel.app")) return true;
   return false;
@@ -46,9 +60,12 @@ export function shouldAttemptStoreHostRewrite(
 ): boolean {
   if (isPlatformHostname(hostname)) return false;
   for (const prefix of PLATFORM_PATH_PREFIXES) {
-    if (pathname === prefix || pathname.startsWith(prefix + "/") || pathname.startsWith(prefix)) {
-      if (prefix === "/s/") return false;
-      if (pathname.startsWith(prefix)) return false;
+    if (
+      pathname === prefix ||
+      pathname.startsWith(prefix + "/") ||
+      (prefix.endsWith("/") && pathname.startsWith(prefix))
+    ) {
+      return false;
     }
   }
   return true;
@@ -57,9 +74,12 @@ export function shouldAttemptStoreHostRewrite(
 /**
  * Extract store handle from *.jimvio.com subdomain (not www).
  * brand.jimvio.com → brand
+ *
+ * Future custom domains resolve via DB hostname lookup separately;
+ * this helper only covers the Jimvio subdomain pattern.
  */
 export function handleFromJimvioSubdomain(hostname: string): string | null {
-  const host = hostname.toLowerCase().split(":")[0];
+  const host = normalizeHostname(hostname);
   if (!host.endsWith(".jimvio.com")) return null;
   const sub = host.slice(0, -".jimvio.com".length);
   if (!sub || sub === "www" || sub === "api" || sub === "admin" || sub.includes(".")) {
@@ -67,4 +87,26 @@ export function handleFromJimvioSubdomain(hostname: string): string | null {
   }
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(sub)) return null;
   return sub;
+}
+
+/** Path-based Jimvio storefront (/s/{handle}/…). */
+export function isMerchantStorefrontPath(pathname: string): boolean {
+  return pathname === "/s" || pathname.startsWith("/s/");
+}
+
+/**
+ * Whether this request should render the merchant storefront shell
+ * (no global Jimvio Marketplace/Communities/Commerce nav).
+ */
+export function isMerchantStorefrontRequest(
+  hostname: string,
+  pathname: string,
+  storeHandleHeader?: string | null
+): boolean {
+  if (storeHandleHeader && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(storeHandleHeader)) {
+    return true;
+  }
+  if (handleFromJimvioSubdomain(hostname)) return true;
+  if (isMerchantStorefrontPath(pathname)) return true;
+  return false;
 }

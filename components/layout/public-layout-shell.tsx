@@ -19,6 +19,8 @@ type PublicLayoutShellProps = {
   profile: MarketingProfile;
   marketing: Parameters<typeof Navbar>[0]["marketing"];
   contact: Parameters<typeof Footer>[0]["contact"];
+  /** Merchant store host or /s/[handle] — no global Jimvio platform chrome. */
+  merchantStorefront?: boolean;
 };
 
 function NavbarSkeleton() {
@@ -41,9 +43,12 @@ export function PublicLayoutShell({
   profile,
   marketing,
   contact,
+  merchantStorefront = false,
 }: PublicLayoutShellProps) {
   const pathname = usePathname();
   const isWorkspace = isWorkspacePublicRoute(pathname);
+  const isStorefrontPath =
+    pathname === "/s" || pathname.startsWith("/s/");
   // `translate` on #main-content (even 0 0 via animation fill-mode) creates a
   // containing block that disables position:sticky for Marketplace's sidebar.
   const isMarketplaceRoute =
@@ -55,7 +60,8 @@ export function PublicLayoutShell({
       ? "page-enter-fade 220ms ease both"
       : "page-enter 220ms ease both";
 
-  if (isWorkspace) {
+  // Merchant storefronts get their own header/footer — never the global Jimvio shell.
+  if (isWorkspace || merchantStorefront || isStorefrontPath) {
     return <>{children}</>;
   }
 

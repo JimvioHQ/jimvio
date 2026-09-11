@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { getCart } from "@/lib/actions/marketplace";
+import { storefrontHref } from "@/lib/commerce-os/storefront-url";
+import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,8 @@ type Props = { params: Promise<{ handle: string }> };
 
 export default async function StorefrontCartPage({ params }: Props) {
   const { handle } = await params;
+  const onStoreHost = await isRequestOnStoreHost();
+  const linkOpts = { onStoreHost };
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) redirect("/cart");
@@ -18,7 +22,8 @@ export default async function StorefrontCartPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?next=/s/${handle}/cart`);
+    const next = storefrontHref(handle, "/cart", linkOpts);
+    redirect(`/login?next=${encodeURIComponent(next)}`);
   }
 
   const { items, total } = await getCart({
@@ -36,7 +41,10 @@ export default async function StorefrontCartPage({ params }: Props) {
       {!items.length ? (
         <div className="mt-8 rounded-lg border border-black/10 bg-white p-6 text-sm opacity-70">
           Your store cart is empty.{" "}
-          <Link href={`/s/${handle}/collections/all`} className="font-semibold underline">
+          <Link
+            href={storefrontHref(handle, "/collections/all", linkOpts)}
+            className="font-semibold underline"
+          >
             Continue shopping
           </Link>
         </div>
@@ -72,7 +80,7 @@ export default async function StorefrontCartPage({ params }: Props) {
         </p>
         <div className="flex gap-2">
           <Link
-            href={`/s/${handle}/collections/all`}
+            href={storefrontHref(handle, "/collections/all", linkOpts)}
             className="rounded-md border border-black/10 px-3 py-2 text-xs font-semibold"
           >
             Continue shopping

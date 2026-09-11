@@ -37,13 +37,20 @@ export {
   handleFromJimvioSubdomain,
   shouldAttemptStoreHostRewrite,
   isPlatformHostname,
+  isMerchantStorefrontPath,
+  isMerchantStorefrontRequest,
+  normalizeHostname,
 } from "./domains/host";
 export {
   storefrontBrowsePath,
+  storefrontHref,
+  normalizeStorefrontHref,
   storefrontPublicUrl,
   storefrontDisplayHost,
   storefrontDisplayUrl,
+  storefrontSubdomainsEnabled,
 } from "./storefront-url";
+export { isRequestOnStoreHost } from "./storefront-request";
 export {
   reserveInventoryForOrder,
   commitInventoryHolds,

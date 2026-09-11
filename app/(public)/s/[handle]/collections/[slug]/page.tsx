@@ -7,6 +7,8 @@ import {
 } from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
 import { StorefrontFeaturedProducts } from "@/components/commerce-os/storefront-sections";
+import { storefrontHref } from "@/lib/commerce-os/storefront-url";
+import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ type Props = { params: Promise<{ handle: string; slug: string }> };
 
 export default async function StorefrontCollectionPage({ params }: Props) {
   const { handle, slug } = await params;
+  const onStoreHost = await isRequestOnStoreHost();
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
@@ -27,6 +30,7 @@ export default async function StorefrontCollectionPage({ params }: Props) {
         </div>
         <StorefrontFeaturedProducts
           handle={store.handle}
+          onStoreHost={onStoreHost}
           title=""
           products={products as Array<{
             id: string;
@@ -79,7 +83,9 @@ export default async function StorefrontCollectionPage({ params }: Props) {
     <div className="py-8">
       <div className="mx-auto max-w-5xl px-4">
         <p className="text-xs uppercase tracking-wide opacity-60">
-          <Link href={`/s/${handle}/collections/all`}>Collections</Link>
+          <Link href={storefrontHref(handle, "/collections/all", { onStoreHost })}>
+            Collections
+          </Link>
         </p>
         <h1 className="mt-1 text-2xl font-semibold">{collection.title}</h1>
         {collection.description ? (
@@ -88,6 +94,7 @@ export default async function StorefrontCollectionPage({ params }: Props) {
       </div>
       <StorefrontFeaturedProducts
         handle={store.handle}
+        onStoreHost={onStoreHost}
         title=""
         products={products}
       />

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ThemeSection } from "@/lib/commerce-os/themes/registry";
-import { storefrontBrowsePath } from "@/lib/commerce-os/storefront-url";
+import {
+  normalizeStorefrontHref,
+  storefrontHref,
+} from "@/lib/commerce-os/storefront-url";
 
 type ProductCard = {
   id: string;
@@ -56,20 +59,26 @@ export function StorefrontHeader({
   handle,
   logoUrl,
   navItems,
+  onStoreHost = false,
 }: {
   storeName: string;
   handle: string;
   logoUrl?: string | null;
   navItems?: Array<{ label: string; href: string }>;
+  onStoreHost?: boolean;
 }) {
-  const home = storefrontBrowsePath(handle);
+  const linkOpts = { onStoreHost };
+  const home = storefrontHref(handle, "", linkOpts);
   const items =
     navItems && navItems.length
-      ? navItems
+      ? navItems.map((item) => ({
+          ...item,
+          href: normalizeStorefrontHref(handle, item.href, linkOpts),
+        }))
       : [
           { label: "Home", href: home },
-          { label: "Shop", href: storefrontBrowsePath(handle, "/collections/all") },
-          { label: "Search", href: storefrontBrowsePath(handle, "/search") },
+          { label: "Shop", href: storefrontHref(handle, "/collections/all", linkOpts) },
+          { label: "Search", href: storefrontHref(handle, "/search", linkOpts) },
         ];
 
   return (
@@ -103,7 +112,7 @@ export function StorefrontHeader({
             </Link>
           ))}
           <Link
-            href={storefrontBrowsePath(handle, "/cart")}
+            href={storefrontHref(handle, "/cart", linkOpts)}
             className="ml-1 rounded-full bg-[var(--store-primary,#FF5A1F)] px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:opacity-95"
           >
             Cart
@@ -119,12 +128,15 @@ export function StorefrontHero({
   subhead,
   cta,
   handle,
+  onStoreHost = false,
 }: {
   headline?: string;
   subhead?: string;
   cta?: string;
   handle: string;
+  onStoreHost?: boolean;
 }) {
+  const linkOpts = { onStoreHost };
   return (
     <section className="relative overflow-hidden border-b border-black/[0.04]">
       <div
@@ -150,13 +162,13 @@ export function StorefrontHero({
           ) : null}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href={storefrontBrowsePath(handle, "/collections/all")}
+              href={storefrontHref(handle, "/collections/all", linkOpts)}
               className="inline-flex rounded-full bg-[var(--store-primary,#FF5A1F)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
             >
               {cta || "Shop now"}
             </Link>
             <Link
-              href={storefrontBrowsePath(handle, "/search")}
+              href={storefrontHref(handle, "/search", linkOpts)}
               className="inline-flex rounded-full border border-black/10 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
             >
               Search
@@ -191,11 +203,14 @@ export function StorefrontFeaturedProducts({
   title,
   handle,
   products,
+  onStoreHost = false,
 }: {
   title?: string;
   handle: string;
   products: ProductCard[];
+  onStoreHost?: boolean;
 }) {
+  const linkOpts = { onStoreHost };
   return (
     <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="flex items-end justify-between gap-4">
@@ -208,7 +223,7 @@ export function StorefrontFeaturedProducts({
           </p>
         </div>
         <Link
-          href={storefrontBrowsePath(handle, "/collections/all")}
+          href={storefrontHref(handle, "/collections/all", linkOpts)}
           className="hidden text-sm font-semibold text-[var(--store-primary,#FF5A1F)] sm:inline"
         >
           View all
@@ -225,7 +240,7 @@ export function StorefrontFeaturedProducts({
             return (
               <Link
                 key={p.id}
-                href={storefrontBrowsePath(handle, `/product/${p.slug}`)}
+                href={storefrontHref(handle, `/product/${p.slug}`, linkOpts)}
                 className="group overflow-hidden rounded-[calc(var(--store-radius,12px)+4px)] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
               >
                 <div className="aspect-[4/3] overflow-hidden bg-[#F3F4F6]">
@@ -296,18 +311,24 @@ export function StorefrontFooter({
   storeName,
   handle,
   navItems,
+  onStoreHost = false,
 }: {
   storeName: string;
   handle: string;
   navItems?: Array<{ label: string; href: string }>;
+  onStoreHost?: boolean;
 }) {
+  const linkOpts = { onStoreHost };
   const items =
     navItems && navItems.length
-      ? navItems
+      ? navItems.map((item) => ({
+          ...item,
+          href: normalizeStorefrontHref(handle, item.href, linkOpts),
+        }))
       : [
-          { label: "About", href: storefrontBrowsePath(handle, "/pages/about") },
-          { label: "Contact", href: storefrontBrowsePath(handle, "/pages/contact") },
-          { label: "Account", href: storefrontBrowsePath(handle, "/account") },
+          { label: "About", href: storefrontHref(handle, "/pages/about", linkOpts) },
+          { label: "Contact", href: storefrontHref(handle, "/pages/contact", linkOpts) },
+          { label: "Account", href: storefrontHref(handle, "/account", linkOpts) },
         ];
 
   return (
@@ -340,7 +361,9 @@ export function renderHomeSections(opts: {
   products: ProductCard[];
   headerNav?: Array<{ label: string; href: string }>;
   footerNav?: Array<{ label: string; href: string }>;
+  onStoreHost?: boolean;
 }) {
+  const onStoreHost = opts.onStoreHost ?? false;
   return opts.sections
     .filter((s) => s.enabled)
     .map((section) => {
@@ -365,6 +388,7 @@ export function renderHomeSections(opts: {
               handle={opts.handle}
               logoUrl={opts.logoUrl}
               navItems={opts.headerNav}
+              onStoreHost={onStoreHost}
             />
           );
         case "hero":
@@ -372,6 +396,7 @@ export function renderHomeSections(opts: {
             <StorefrontHero
               key={section.id}
               handle={opts.handle}
+              onStoreHost={onStoreHost}
               headline={
                 typeof props.headline === "string" ? props.headline : opts.storeName
               }
@@ -393,6 +418,7 @@ export function renderHomeSections(opts: {
             <StorefrontFeaturedProducts
               key={section.id}
               handle={opts.handle}
+              onStoreHost={onStoreHost}
               title={
                 typeof props.title === "string"
                   ? props.title
@@ -410,6 +436,7 @@ export function renderHomeSections(opts: {
               storeName={opts.storeName}
               handle={opts.handle}
               navItems={opts.footerNav}
+              onStoreHost={onStoreHost}
             />
           );
         default:

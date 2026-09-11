@@ -1,6 +1,6 @@
 
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { DialogProvider } from "@/components/providers/dialog-provider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
@@ -20,6 +20,7 @@ import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
 import { normalizeUgcLocale, UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
+import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -47,6 +48,13 @@ const jetbrainsMono = JetBrains_Mono({
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const lang = normalizeUgcLocale(cookieStore.get(UGC_LOCALE_COOKIE)?.value);
+  const headerStore = await headers();
+  const hostname =
+    headerStore.get("x-forwarded-host") || headerStore.get("host") || "";
+  const onMerchantStoreHost = Boolean(
+    headerStore.get("x-jimvio-store-handle") ||
+      handleFromJimvioSubdomain(hostname)
+  );
   return (
     <html
       lang={lang}
@@ -58,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         suppressHydrationWarning
         className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
       >
-        <JimvioJsonLd />
+        {!onMerchantStoreHost ? <JimvioJsonLd /> : null}
         <ThemeProvider>
           <DialogProvider>
           <NextTopLoader
@@ -73,8 +81,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <PlatformStatsProvider>
             <CurrencyProvider>{children}</CurrencyProvider>
           </PlatformStatsProvider>
-          <JimvioCopilotLoader />
-          <CommandCenterLoader />
+          {!onMerchantStoreHost ? (
+            <>
+              <JimvioCopilotLoader />
+              <CommandCenterLoader />
+            </>
+          ) : null}
           <SoftLaunchProviders />
           <Toaster
             richColors

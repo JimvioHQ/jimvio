@@ -8,6 +8,7 @@ import {
   StorefrontTrustBar,
 } from "@/components/commerce-os/storefront-sections";
 import { storefrontDisplayUrl } from "@/lib/commerce-os/storefront-url";
+import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function StorefrontHomePage({ params }: Props) {
   const { handle } = await params;
+  const onStoreHost = await isRequestOnStoreHost();
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
@@ -57,6 +59,7 @@ export default async function StorefrontHomePage({ params }: Props) {
           <StorefrontHero
             key={section.id}
             handle={store.handle}
+            onStoreHost={onStoreHost}
             headline={
               typeof props.headline === "string" ? props.headline : store.name
             }
@@ -83,6 +86,7 @@ export default async function StorefrontHomePage({ params }: Props) {
           <StorefrontFeaturedProducts
             key={section.id}
             handle={store.handle}
+            onStoreHost={onStoreHost}
             title={
               typeof props.title === "string"
                 ? props.title

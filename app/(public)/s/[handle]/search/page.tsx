@@ -5,6 +5,7 @@ import {
   loadStoreProducts,
 } from "@/lib/commerce-os";
 import { StorefrontFeaturedProducts } from "@/components/commerce-os/storefront-sections";
+import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ type Props = {
 export default async function StorefrontSearchPage({ params, searchParams }: Props) {
   const { handle } = await params;
   const { q } = await searchParams;
+  const onStoreHost = await isRequestOnStoreHost();
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
@@ -48,6 +50,7 @@ export default async function StorefrontSearchPage({ params, searchParams }: Pro
       {query ? (
         <StorefrontFeaturedProducts
           handle={store.handle}
+          onStoreHost={onStoreHost}
           title=""
           products={products as Array<{
             id: string;

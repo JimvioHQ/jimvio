@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
+import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 import {
   StorefrontAnnouncement,
   StorefrontHeader,
@@ -18,6 +20,14 @@ type Props = {
 
 export default async function StorefrontLayout({ children, params }: Props) {
   const { handle } = await params;
+  const headerStore = await headers();
+  const hostname =
+    headerStore.get("x-forwarded-host") || headerStore.get("host") || "";
+  const onStoreHost = Boolean(
+    headerStore.get("x-jimvio-store-handle") ||
+      handleFromJimvioSubdomain(hostname)
+  );
+
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
@@ -56,7 +66,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   return (
     <div
-      className="flex min-h-[70vh] flex-col"
+      className="flex min-h-dvh flex-col"
       style={{
         ...cssVars,
         backgroundColor: settings.backgroundColor,
@@ -65,6 +75,8 @@ export default async function StorefrontLayout({ children, params }: Props) {
           ? `${settings.fontFamily}, system-ui, sans-serif`
           : undefined,
       }}
+      data-jimvio-storefront={store.handle}
+      data-jimvio-store-host={onStoreHost ? "1" : "0"}
     >
       {showAnnouncement ? (
         <StorefrontAnnouncement
@@ -82,6 +94,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           handle={store.handle}
           logoUrl={store.logo_url || settings.logoUrl}
           navItems={headerNav}
+          onStoreHost={onStoreHost}
         />
       ) : null}
       <main className="flex-1">{children}</main>
@@ -90,6 +103,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           storeName={store.name}
           handle={store.handle}
           navItems={footerNav}
+          onStoreHost={onStoreHost}
         />
       ) : null}
     </div>
