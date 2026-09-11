@@ -15,6 +15,8 @@ export {
 export { applyStoreDiscount, estimateTax } from "./discounts/engine";
 export { getStoreShippingQuotes } from "./shipping/zones";
 export { getStoreAnalytics } from "./analytics/overview";
+export { getCommerceOverviewDashboard } from "./analytics/dashboard";
+export { resolveJimvioStoreCheckoutTotals } from "./checkout/totals";
 export {
   DEFAULT_THEME_SETTINGS,
   mergeThemeSettings,

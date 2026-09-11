@@ -21,6 +21,7 @@ import { buildLineAttribution } from "@/lib/affiliate/attribution";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import { cookies } from "next/headers";
 import { cosTable } from "@/lib/commerce-os/db";
+import { resolveJimvioStoreCheckoutTotals } from "@/lib/commerce-os/checkout/totals";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,9 @@ const ShippingSchema = z.object({
   ),
   zip: z.string().trim().max(20).default(""),
   shippingAmount: z.number().nonnegative().optional(),
+  /** Marketplace-only client hint; Jimvio Store discounts are server-validated via discountCode. */
   discountAmount: z.number().nonnegative().optional(),
+  discountCode: z.string().trim().max(64).optional(),
 });
 
 export type ShippingPayload = z.input<typeof ShippingSchema>;
@@ -644,19 +647,37 @@ export async function updatePendingOrdersShipping(
   const admin = getAdminDB();
 
   // ✅ Pre-check: fetch the actual state of those orders so we can give a real error
-  const { data: existingOrders, error: fetchError } = await admin
-    .from("orders")
+  // jimvio_store_id is not in generated Database types yet — use cosTable accessor
+  const { data: existingOrdersRaw, error: fetchError } = await cosTable(admin, "orders")
     .select(
-      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata"
+      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata, jimvio_store_id, currency"
     )
     .in("id", payload.orderIds);
+
+  type ShippingOrderRow = {
+    id: string;
+    buyer_id: string;
+    status: string | null;
+    payment_status: string | null;
+    subtotal: number | string | null;
+    shipping_amount: number | string | null;
+    discount_amount: number | string | null;
+    tax_amount: number | string | null;
+    total_amount: number | string | null;
+    shipping_address: unknown;
+    metadata: unknown;
+    jimvio_store_id: string | null;
+    currency: string | null;
+  };
+
+  const existingOrders = (existingOrdersRaw ?? []) as ShippingOrderRow[];
 
   if (fetchError) {
     console.error("[updatePendingOrdersShipping] Fetch failed:", fetchError);
     return err(`Could not read orders: ${fetchError.message}`);
   }
 
-  if (!existingOrders?.length) {
+  if (!existingOrders.length) {
     console.warn("[updatePendingOrdersShipping] No orders exist for IDs:", payload.orderIds);
     return err("Those orders no longer exist. Please return to the cart and try again.");
   }
@@ -688,27 +709,71 @@ export async function updatePendingOrdersShipping(
   const updatedIds: string[] = [];
 
   for (const order of existingOrders) {
-    const shippingAmount =
+    const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
+    let shippingAmount =
       typeof payload.shippingAmount === "number"
         ? payload.shippingAmount
         : Number(order.shipping_amount ?? 0);
-    const discountAmount =
+    let discountAmount =
       typeof payload.discountAmount === "number"
         ? payload.discountAmount
         : Number(order.discount_amount ?? 0);
-    const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
+    let taxAmount = Number(order.tax_amount ?? 0);
 
-    const taxEstimate = estimateOrderTax({
-      subtotal,
-      shippingAmount,
-      countryCode: payload.countryCode,
-      currency: undefined,
-    });
+    const existingMeta =
+      order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+        ? (order.metadata as Record<string, unknown>)
+        : {};
 
-    const taxAmount =
-      taxEstimate.taxAmount > 0
-        ? taxEstimate.taxAmount
-        : Number(order.tax_amount ?? 0);
+    let totalsMeta: Record<string, unknown> = {};
+
+    // Jimvio Store checkouts: server-authoritative discount + tax + shipping quotes
+    if (order.jimvio_store_id) {
+      try {
+        const storeTotals = await resolveJimvioStoreCheckoutTotals(admin, {
+          storeId: order.jimvio_store_id as string,
+          subtotal,
+          countryCode: payload.countryCode,
+          proposedShippingAmount:
+            typeof payload.shippingAmount === "number"
+              ? payload.shippingAmount
+              : undefined,
+          discountCode: payload.discountCode ?? null,
+        });
+        shippingAmount = storeTotals.shippingAmount;
+        discountAmount = storeTotals.discountAmount;
+        taxAmount = storeTotals.taxAmount;
+        totalsMeta = {
+          jimvio_checkout_totals: {
+            subtotal: storeTotals.subtotal,
+            discount: storeTotals.discountAmount,
+            shipping: storeTotals.shippingAmount,
+            tax: storeTotals.taxAmount,
+            grand_total: storeTotals.totalAmount,
+            discount_id: storeTotals.discountId,
+            discount_label: storeTotals.discountLabel,
+            tax_rate: storeTotals.taxRate,
+            shipping_source: storeTotals.shippingSource,
+            free_shipping: storeTotals.freeShipping,
+            verified_at: new Date().toISOString(),
+          },
+        };
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : "Could not calculate store checkout totals.";
+        return err(message);
+      }
+    } else {
+      const taxEstimate = estimateOrderTax({
+        subtotal,
+        shippingAmount,
+        countryCode: payload.countryCode,
+        currency: order.currency ?? undefined,
+      });
+      if (taxEstimate.taxAmount > 0) {
+        taxAmount = taxEstimate.taxAmount;
+      }
+    }
 
     const totalAmount = computeOrderTotalAmount({
       subtotal,
@@ -717,11 +782,6 @@ export async function updatePendingOrdersShipping(
       tax_amount: taxAmount,
     });
 
-    const existingMeta =
-      order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
-        ? (order.metadata as Record<string, unknown>)
-        : {};
-
     const orderUpdate: Record<string, unknown> = {
       shipping_address,
       shipping_amount: shippingAmount,
@@ -729,7 +789,10 @@ export async function updatePendingOrdersShipping(
       tax_amount: taxAmount,
       total_amount: totalAmount,
       updated_at: new Date().toISOString(),
-      metadata: mergeAffiliateMetadata(existingMeta, attribution) as Json,
+      metadata: mergeAffiliateMetadata(
+        { ...existingMeta, ...totalsMeta },
+        attribution
+      ) as Json,
     };
 
     if (referralCode) {

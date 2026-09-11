@@ -1,13 +1,21 @@
+/**
+ * Global primary navigation — discovery destinations only.
+ * Personal tools live in the header utilities + profile menu.
+ *
+ * Canonical public destinations:
+ * Marketplace | Communities | Commerce | Affiliates | UGC & Clipping
+ * (Home is not part of this primary strip.)
+ */
 import type { LucideIcon } from "lucide-react";
 import {
   CircleHelp,
   Clapperboard,
   DollarSign,
   Heart,
-  Home,
   MessageSquare,
   Package,
   ShoppingBag,
+  Store,
   User,
   Users,
 } from "lucide-react";
@@ -30,26 +38,22 @@ export type ProfileMenuItem = {
   badge?: "messages";
 };
 
-/**
- * Global primary navigation — discovery destinations only.
- * Personal tools live in the header utilities + profile menu.
- */
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
-  { label: "Home", href: "/", icon: Home },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
   { label: "Communities", href: "/communities", icon: Users },
+  { label: "Commerce", href: "/commerce", icon: Store },
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
   /** Full label everywhere in desktop primary nav; bottom nav uses MOBILE_BOTTOM_NAV_ITEMS. */
   { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
 ];
 
-/** Compact mobile bottom bar — discovery destinations (Affiliates replaces Menu). */
+/** Compact mobile bottom bar — same destinations as PRIMARY_NAV_ITEMS. */
 export const MOBILE_BOTTOM_NAV_ITEMS = [
-  { label: "Home", href: "/", icon: Home },
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
   { label: "Communities", href: "/communities", icon: Users },
-  { label: "UGC", href: "/ugc", icon: Clapperboard },
+  { label: "Commerce", href: "/commerce", icon: Store },
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
+  { label: "UGC", href: "/ugc", icon: Clapperboard },
 ] as const;
 
 /**
@@ -116,6 +120,7 @@ export const CART_HREF = "/cart";
 export const MY_PRODUCTS_HREF = "/seller/products";
 export const SAVED_HREF = "/saved";
 export const HOME_HREF = "/";
+export const COMMERCE_HREF = "/commerce";
 
 export function resolvePrimaryNavHref(
   item: Pick<PrimaryNavItem, "href">,
@@ -129,6 +134,10 @@ export function isCommunitiesNavActive(pathname: string): boolean {
   return pathname === "/communities" || pathname.startsWith("/communities/");
 }
 
+export function isCommerceNavActive(pathname: string): boolean {
+  return pathname === "/commerce" || pathname.startsWith("/commerce/");
+}
+
 export function isPrimaryNavActive(
   pathname: string,
   item: PrimaryNavItem,
@@ -138,6 +147,9 @@ export function isPrimaryNavActive(
   void _isAuthenticated;
   if (activeNav && activeNav === item.label) return true;
   if (item.label === "Communities") return isCommunitiesNavActive(pathname);
+  if (item.label === "Commerce" || item.href === "/commerce") {
+    return isCommerceNavActive(pathname);
+  }
   if (item.label === "Home" || item.href === "/") {
     return pathname === "/" || pathname === "";
   }

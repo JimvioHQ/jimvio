@@ -388,6 +388,7 @@ export function CheckoutExperience({
             city: shipping.city || (isAllDigital ? "Online" : ""),
             shippingAmount: shippingCost ?? 0,
             discountAmount: discount,
+            ...(promoCode.trim() ? { discountCode: promoCode.trim() } : {}),
          });
          if (!save.success) throw new Error(save.error ?? "Couldn't save shipping");
 

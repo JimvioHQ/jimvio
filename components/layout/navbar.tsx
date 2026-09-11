@@ -28,6 +28,7 @@ import {
   DollarSign,
   Bell,
   Wallet,
+  Store,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -190,6 +191,7 @@ function iconForHref(href: string): LucideIcon {
   if (h.startsWith("/ugc")) return Clapperboard;
   if (h.startsWith("/marketplace")) return ShoppingBag;
   if (h.startsWith("/affiliates")) return DollarSign;
+  if (h.startsWith("/commerce")) return Store;
   if (h.startsWith("/influencers")) return User;
   if (h.startsWith("/vendors")) return Factory;
   if (h.startsWith("/shorts")) return Clapperboard;
