@@ -19,6 +19,7 @@ import {
 } from "@/lib/commerce/affiliate-hooks";
 import { buildLineAttribution } from "@/lib/affiliate/attribution";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { cookies } from "next/headers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -299,6 +300,31 @@ async function createVendorOrder(
 
   const safeCurrency = PLATFORM_CURRENCY;
 
+  // Optional Commerce OS attribution from storefront cookie (never trust client store id)
+  let jimvioStoreId: string | null = null;
+  let orderChannel: string = "marketplace";
+  try {
+    const jar = await cookies();
+    const handle = jar.get("jimvio_store_handle")?.value;
+    if (handle) {
+      const decoded = decodeURIComponent(handle).toLowerCase().trim();
+      if (decoded) {
+        const { data: store } = await admin
+          .from("jimvio_stores")
+          .select("id, vendor_id, status")
+          .eq("handle", decoded)
+          .eq("vendor_id", vendorId)
+          .maybeSingle();
+        if (store?.id && (store.status === "published" || store.status === "draft")) {
+          jimvioStoreId = store.id;
+          orderChannel = "jimvio_store";
+        }
+      }
+    }
+  } catch {
+    // Cookie resolution is best-effort; marketplace checkout must continue
+  }
+
   const { data: order, error: orderError } = await admin
     .from("orders")
     .insert({
@@ -311,8 +337,13 @@ async function createVendorOrder(
       currency: safeCurrency,
       referral_code: referralCode,
       affiliate_attributed_at: referralCode ? new Date().toISOString() : null,
+      order_channel: orderChannel,
+      jimvio_store_id: jimvioStoreId,
       metadata: mergeAffiliateMetadata(
-        { cart_id: cartId },
+        {
+          cart_id: cartId,
+          ...(jimvioStoreId ? { jimvio_store_id: jimvioStoreId } : {}),
+        },
         buildAffiliateAttribution({
           referralCode,
           source: referralCode ? "cookie" : "none",
