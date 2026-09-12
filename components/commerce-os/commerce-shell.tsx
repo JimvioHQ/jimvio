@@ -227,8 +227,12 @@ export function CommerceShell({
 }) {
   const pathname = usePathname() ?? "/commerce";
   const [mobileNav, setMobileNav] = useState(false);
+  const isBuilder =
+    pathname === "/commerce/builder" || pathname.startsWith("/commerce/builder/");
 
   useEffect(() => {
+    // Close mobile drawer when navigating between Commerce routes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset on route change
     setMobileNav(false);
   }, [pathname]);
 
@@ -244,6 +248,18 @@ export function CommerceShell({
       document.body.style.overflow = "";
     };
   }, [mobileNav]);
+
+  /* Store Builder 3.0 — dedicated full-page editor shell (no Commerce OS chrome). */
+  if (isBuilder) {
+    return (
+      <div
+        className="h-dvh overflow-hidden bg-[#F3F4F6] text-[#111827]"
+        data-jimvio-builder-shell="1"
+      >
+        {children}
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#F8FAFC] text-[#111827]">

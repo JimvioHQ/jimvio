@@ -9,7 +9,6 @@ import {
   loadStoreCollections,
 } from "@/lib/commerce-os";
 import type { ThemeDraft } from "@/lib/commerce-os/themes/registry";
-import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { BuilderClient } from "@/components/commerce-os/builder-client";
 import { cosTable } from "@/lib/commerce-os/db";
 import type { NavItem } from "@/lib/commerce-os/builder/nav-safe";
@@ -35,7 +34,11 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
   const auth = await requireCommerceMerchant();
   if (!auth.ok) {
     if (auth.status === 401) redirect("/login?next=/commerce/builder");
-    return <p className="text-sm text-[#4B5563]">{auth.error}</p>;
+    return (
+      <div className="grid h-dvh place-items-center p-6 text-sm text-[#4B5563]">
+        {auth.error}
+      </div>
+    );
   }
 
   const { storeId } = await searchParams;
@@ -45,11 +48,22 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
 
   if (!active) {
     return (
-      <div className="space-y-3">
-        <h1 className="text-xl font-semibold text-[#111827]">Builder</h1>
-        <Link href="/commerce/stores" className="text-sm font-semibold text-[#FF5A1F]">
-          Create a store
-        </Link>
+      <div className="grid h-dvh place-items-center p-6">
+        <div className="space-y-3 text-center">
+          <h1 className="text-xl font-semibold text-[#111827]">Store Builder</h1>
+          <p className="text-sm text-[#6B7280]">Create a store to start designing.</p>
+          <Link
+            href="/commerce/stores"
+            className="inline-flex rounded-lg bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white"
+          >
+            Create a store
+          </Link>
+          <div>
+            <Link href="/commerce" className="text-xs font-semibold text-[#6B7280] underline">
+              Back to Commerce
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -84,63 +98,46 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-[#111827]">Store Builder</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            Design {active.name} for{" "}
-            <a
-              href={`https://${active.handle}.jimvio.com`}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-[#FF5A1F] hover:underline"
-            >
-              {active.handle}.jimvio.com ↗
-            </a>
-          </p>
-        </div>
-        <StoreSelector
-          stores={stores}
-          activeId={active.id}
-          basePath="/commerce/builder"
-        />
-      </div>
-      <BuilderClient
-        storeId={active.id}
-        storeName={store?.name || active.name}
-        handle={store?.handle || active.handle}
-        logoUrl={store?.logo_url}
-        status={store?.status || active.status}
-        initialDraft={(store?.theme_draft as ThemeDraft) || null}
-        initialNav={{ header: headerNav, footer: footerNav }}
-        initialPages={(pageRows || []) as Array<{
+    <BuilderClient
+      storeId={active.id}
+      storeName={store?.name || active.name}
+      handle={store?.handle || active.handle}
+      logoUrl={store?.logo_url}
+      status={store?.status || active.status}
+      stores={stores.map((s) => ({
+        id: s.id,
+        name: s.name,
+        handle: s.handle,
+        status: s.status,
+      }))}
+      initialDraft={(store?.theme_draft as ThemeDraft) || null}
+      initialNav={{ header: headerNav, footer: footerNav }}
+      initialPages={(pageRows || []) as Array<{
+        id: string;
+        title: string;
+        handle: string;
+        body_html: string | null;
+        seo: Record<string, unknown> | null;
+        published: boolean;
+      }>}
+      initialSeo={(store?.seo as Record<string, unknown>) || {}}
+      initialSocial={(store?.social as Record<string, unknown>) || {}}
+      initialDescription={store?.description}
+      previewProducts={
+        products as Array<{
           id: string;
-          title: string;
-          handle: string;
-          body_html: string | null;
-          seo: Record<string, unknown> | null;
-          published: boolean;
-        }>}
-        initialSeo={(store?.seo as Record<string, unknown>) || {}}
-        initialSocial={(store?.social as Record<string, unknown>) || {}}
-        initialDescription={store?.description}
-        previewProducts={
-          products as Array<{
-            id: string;
-            name: string;
-            slug: string;
-            price: number | string | null;
-            compare_at_price?: number | string | null;
-            currency?: string | null;
-            images?: unknown;
-            short_description?: string | null;
-            inventory_quantity?: number | null;
-            track_inventory?: boolean | null;
-          }>
-        }
-        previewCollections={collections}
-      />
-    </div>
+          name: string;
+          slug: string;
+          price: number | string | null;
+          compare_at_price?: number | string | null;
+          currency?: string | null;
+          images?: unknown;
+          short_description?: string | null;
+          inventory_quantity?: number | null;
+          track_inventory?: boolean | null;
+        }>
+      }
+      previewCollections={collections}
+    />
   );
 }

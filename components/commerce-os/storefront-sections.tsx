@@ -67,6 +67,7 @@ export function StorefrontHeader({
   sticky = true,
   centered = false,
   showPoweredBy = true,
+  previewDevice,
 }: {
   storeName: string;
   handle: string;
@@ -76,6 +77,8 @@ export function StorefrontHeader({
   sticky?: boolean;
   centered?: boolean;
   showPoweredBy?: boolean;
+  /** Builder canvas only — forces mobile/desktop chrome without viewport breakpoints */
+  previewDevice?: "desktop" | "tablet" | "mobile";
 }) {
   const linkOpts = { onStoreHost };
   const home = storefrontHref(handle, "", linkOpts);
@@ -93,6 +96,13 @@ export function StorefrontHeader({
           },
           { label: "Search", href: storefrontHref(handle, "/search", linkOpts) },
         ];
+
+  const showDesktopNav = previewDevice
+    ? previewDevice === "desktop"
+    : null;
+  const showMobileNav = previewDevice
+    ? previewDevice !== "desktop"
+    : null;
 
   return (
     <header
@@ -138,8 +148,14 @@ export function StorefrontHeader({
         </Link>
 
         <nav
-          className={`hidden min-w-0 flex-1 items-center gap-1 text-sm lg:flex ${
+          className={`min-w-0 flex-1 items-center gap-1 text-sm ${
             centered ? "justify-center" : "justify-center"
+          } ${
+            showDesktopNav === null
+              ? "hidden lg:flex"
+              : showDesktopNav
+                ? "flex"
+                : "hidden"
           }`}
           aria-label="Store"
         >
@@ -159,7 +175,13 @@ export function StorefrontHeader({
         </div>
       </div>
       <nav
-        className="flex gap-1 overflow-x-auto border-t border-[var(--store-border,rgba(0,0,0,0.05))] px-4 py-2 text-xs lg:hidden"
+        className={`gap-1 overflow-x-auto border-t border-[var(--store-border,rgba(0,0,0,0.05))] px-4 py-2 text-xs ${
+          showMobileNav === null
+            ? "flex lg:hidden"
+            : showMobileNav
+              ? "flex"
+              : "hidden"
+        }`}
         aria-label="Store mobile"
       >
         {items.map((item) => (
@@ -457,24 +479,36 @@ export function StorefrontFeaturedProducts({
   products,
   onStoreHost = false,
   subtitle,
+  previewDevice,
 }: {
   title?: string;
   handle: string;
   products: ProductCard[];
   onStoreHost?: boolean;
   subtitle?: string;
+  previewDevice?: "desktop" | "tablet" | "mobile";
 }) {
   const linkOpts = { onStoreHost };
+  const gridClass =
+    previewDevice === "mobile"
+      ? "mt-6 grid grid-cols-2 gap-2.5"
+      : previewDevice === "tablet"
+        ? "mt-7 grid grid-cols-2 gap-4"
+        : "mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]";
+  const padClass =
+    previewDevice === "mobile" ? "px-3" : "px-4 sm:px-6";
   return (
     <section
-      className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 sm:px-6"
+      className={`mx-auto max-w-[var(--store-max-width,72rem)] min-w-0 ${padClass}`}
       style={{ paddingTop: "var(--store-section-space,3.5rem)", paddingBottom: "var(--store-section-space,3.5rem)" }}
     >
       {(title || title === "") && title !== "" ? (
         <div className="flex items-end justify-between gap-4">
-          <div>
+          <div className="min-w-0">
             <h2
-              className="text-2xl font-semibold tracking-tight text-[var(--store-text,#111827)]"
+              className={`font-semibold tracking-tight text-[var(--store-text,#111827)] ${
+                previewDevice === "mobile" ? "text-xl" : "text-2xl"
+              }`}
               style={{ fontFamily: "var(--store-heading-font, inherit)" }}
             >
               {title || "Featured"}
@@ -485,7 +519,11 @@ export function StorefrontFeaturedProducts({
           </div>
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}
-            className="hidden text-sm font-semibold text-[var(--store-primary,#FF5A1F)] sm:inline"
+            className={
+              previewDevice === "mobile"
+                ? "hidden"
+                : "hidden text-sm font-semibold text-[var(--store-primary,#FF5A1F)] sm:inline"
+            }
           >
             View all →
           </Link>
@@ -496,7 +534,7 @@ export function StorefrontFeaturedProducts({
           No products published yet.
         </p>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]">
+        <div className={gridClass}>
           {products.map((p) => (
             <StorefrontProductCard
               key={p.id}

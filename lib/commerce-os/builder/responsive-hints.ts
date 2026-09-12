@@ -24,9 +24,105 @@ export type ResponsiveHint = {
 export function detectBuilderHints(input: {
   settings: ThemeSettings;
   sections: ThemeSection[];
+  logo?: string | null;
+  headerNavCount?: number;
+  pages?: Array<{ handle: string; published?: boolean }>;
+  seo?: Record<string, unknown>;
+  products?: Array<{ images?: unknown }>;
 }): ResponsiveHint[] {
   const hints: ResponsiveHint[] = [];
   const { settings, sections } = input;
+
+  if (!input.logo && !settings.logoUrl) {
+    hints.push({
+      id: "missing-logo",
+      severity: "info",
+      breakpoint: "all",
+      message: "No store logo configured.",
+      suggestion: "Upload a logo in Media/Settings so the header uses merchant branding.",
+    });
+  }
+
+  if (!settings.faviconUrl) {
+    hints.push({
+      id: "missing-favicon",
+      severity: "info",
+      breakpoint: "all",
+      message: "No favicon configured.",
+      suggestion: "Add a favicon for browser tabs and bookmarks.",
+    });
+  }
+
+  if ((input.headerNavCount ?? 0) === 0) {
+    hints.push({
+      id: "missing-nav",
+      severity: "warn",
+      breakpoint: "all",
+      message: "Header navigation is empty.",
+      suggestion: "Add menu links under Navigation.",
+    });
+  }
+
+  const hasFooter = sections.some((s) => s.type === "footer" && s.enabled);
+  if (!hasFooter) {
+    hints.push({
+      id: "missing-footer",
+      severity: "warn",
+      breakpoint: "all",
+      message: "Footer section is disabled or missing.",
+      suggestion: "Enable the footer section for store policies and links.",
+    });
+  }
+
+  const legalHandles = ["privacy", "terms", "refund-policy", "shipping-policy"];
+  const pageHandles = new Set((input.pages || []).map((p) => p.handle));
+  for (const h of legalHandles) {
+    if (!pageHandles.has(h)) {
+      hints.push({
+        id: `missing-page-${h}`,
+        severity: "info",
+        breakpoint: "all",
+        message: `Missing legal page: ${h}.`,
+        suggestion: "Create it from Policies templates (templates are not legal advice).",
+      });
+    }
+  }
+
+  const seoTitle =
+    typeof input.seo?.title === "string" ? input.seo.title.trim() : "";
+  const seoDesc =
+    typeof input.seo?.description === "string"
+      ? input.seo.description.trim()
+      : "";
+  if (!seoTitle) {
+    hints.push({
+      id: "missing-seo-title",
+      severity: "warn",
+      breakpoint: "all",
+      message: "SEO title is empty.",
+      suggestion: "Add a store SEO title for search and social previews.",
+    });
+  }
+  if (!seoDesc) {
+    hints.push({
+      id: "missing-seo-description",
+      severity: "info",
+      breakpoint: "all",
+      message: "SEO description is empty.",
+      suggestion: "Add a meta description under SEO.",
+    });
+  }
+
+  const products = input.products || [];
+  if (products.length && products.every((p) => !p.images || (Array.isArray(p.images) && !p.images.length))) {
+    hints.push({
+      id: "missing-product-images",
+      severity: "warn",
+      breakpoint: "all",
+      message: "Published products are missing images.",
+      suggestion: "Add product images in the catalog for better merchandising.",
+    });
+  }
 
   const contrast = contrastWarning(settings.backgroundColor, settings.textColor);
   if (contrast) {

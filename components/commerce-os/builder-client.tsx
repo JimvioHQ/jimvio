@@ -36,6 +36,17 @@ import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { isSafeNavHref, type NavItem } from "@/lib/commerce-os/builder/nav-safe";
 import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
 import { detectBuilderHints } from "@/lib/commerce-os/builder/responsive-hints";
+import {
+  builderWorkspaceGrid,
+  openInspectorForSection,
+  toggleBuilderNav,
+  type BuilderPanelId,
+} from "@/lib/commerce-os/builder/panel-layout";
+import {
+  MOBILE_PREVIEW_WIDTHS,
+  previewFrameWidth,
+  type MobilePreviewWidth,
+} from "@/lib/commerce-os/builder/preview-viewport";
 import { insertIndexForNewTemplateSection } from "@/lib/commerce-os/builder/section-zones";
 import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
 import { StorefrontHomeSections } from "@/components/commerce-os/storefront-home-sections";
@@ -48,6 +59,8 @@ import { SectionPickerModal } from "@/components/commerce-os/builder/section-pic
 import { SectionTree } from "@/components/commerce-os/builder/section-tree";
 import { ProductPicker } from "@/components/commerce-os/builder/product-picker";
 import { CanvasSectionFrame } from "@/components/commerce-os/builder/canvas-section-frame";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type StorePage = {
   id: string;
@@ -84,6 +97,7 @@ type Props = {
   handle: string;
   logoUrl?: string | null;
   status?: string;
+  stores?: Array<{ id: string; name: string; handle: string; status: string }>;
   initialDraft: ThemeDraft | null;
   initialNav: { header: NavItem[]; footer: NavItem[] };
   initialPages: StorePage[];
@@ -94,16 +108,7 @@ type Props = {
   previewCollections?: PreviewCollection[];
 };
 
-type Panel =
-  | "design"
-  | "sections"
-  | "navigation"
-  | "theme"
-  | "pages"
-  | "seo"
-  | "policies"
-  | "settings"
-  | "media";
+type Panel = BuilderPanelId;
 
 type Device = "desktop" | "tablet" | "mobile";
 
@@ -128,6 +133,7 @@ const PANELS: Array<{ id: Panel; label: string }> = [
   { id: "seo", label: "SEO" },
   { id: "policies", label: "Policies" },
   { id: "settings", label: "Settings" },
+  { id: "issues", label: "Issues" },
 ];
 
 export function BuilderClient({
@@ -136,6 +142,7 @@ export function BuilderClient({
   handle,
   logoUrl,
   status,
+  stores = [],
   initialDraft,
   initialNav,
   initialPages,
@@ -145,6 +152,7 @@ export function BuilderClient({
   previewProducts,
   previewCollections = [],
 }: Props) {
+  const router = useRouter();
   const [sections, setSections] = useState<ThemeSection[]>(() =>
     ensureHomeSections(initialDraft, storeName)
   );
@@ -161,6 +169,7 @@ export function BuilderClient({
   );
   const [panel, setPanel] = useState<Panel>("sections");
   const [device, setDevice] = useState<Device>("desktop");
+  const [mobileWidth, setMobileWidth] = useState<MobilePreviewWidth>(390);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -177,12 +186,16 @@ export function BuilderClient({
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [zoom, setZoom] = useState(100);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [storeStatus, setStoreStatus] = useState(status || "draft");
   const [hintsOpen, setHintsOpen] = useState(false);
   const [leftMode, setLeftMode] = useState<"tree" | "panels">("tree");
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [panelQuery, setPanelQuery] = useState("");
 
   const past = useRef<Snapshot[]>([]);
   const future = useRef<Snapshot[]>([]);
@@ -494,138 +507,263 @@ export function BuilderClient({
 
   const contrast = contrastWarning(settings.backgroundColor, settings.textColor);
   const hints = useMemo(
-    () => detectBuilderHints({ settings, sections }),
-    [settings, sections]
+    () =>
+      detectBuilderHints({
+        settings,
+        sections,
+        logo,
+        headerNavCount: headerNav.length,
+        pages,
+        seo,
+        products: previewProducts,
+      }),
+    [settings, sections, logo, headerNav.length, pages, seo, previewProducts]
   );
-  const canvasWidth =
-    device === "mobile" ? 390 : device === "tablet" ? 768 : "100%";
+  const canvasWidth = previewFrameWidth(device, mobileWidth);
+  const workspaceGrid = builderWorkspaceGrid({
+    leftOpen: focusMode ? false : leftOpen,
+    rightOpen: focusMode ? false : rightOpen,
+    focusMode,
+  });
 
   const enabledSections = sections.filter((s) => s.enabled);
   const selectedLabel = selected
     ? selected.type.replace(/_/g, " ")
     : null;
+  const filteredPanels = PANELS.filter((p) =>
+    !panelQuery.trim()
+      ? true
+      : p.label.toLowerCase().includes(panelQuery.trim().toLowerCase())
+  );
 
   function selectSection(id: string) {
     setSelectedId(id);
-    setPanel("sections");
-    setLeftMode("tree");
+    const next = openInspectorForSection({
+      leftOpen,
+      rightOpen,
+      activePanel: panel,
+      leftMode,
+    });
+    setPanel(next.activePanel);
+    setLeftMode(next.leftMode);
+    setRightOpen(true);
+    if (!focusMode) setLeftOpen(true);
   }
+
+  function activateNav(next: Panel) {
+    if (next === "issues") {
+      setHintsOpen(true);
+      setPanel("issues");
+      setRightOpen(true);
+      return;
+    }
+    const toggled = toggleBuilderNav(
+      { leftOpen, rightOpen, activePanel: panel, leftMode },
+      next
+    );
+    setLeftOpen(toggled.leftOpen);
+    setRightOpen(toggled.rightOpen);
+    setPanel(toggled.activePanel);
+    setLeftMode(toggled.leftMode);
+    if (next === "sections") setHintsOpen(false);
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (pickerOpen) {
+          setPickerOpen(false);
+          return;
+        }
+        if (moreOpen) {
+          setMoreOpen(false);
+          return;
+        }
+        if (rightOpen) {
+          setRightOpen(false);
+          return;
+        }
+        if (leftOpen) {
+          setLeftOpen(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [pickerOpen, moreOpen, rightOpen, leftOpen]);
 
   return (
     <div
-      className={
-        fullscreen
-          ? "fixed inset-0 z-[70] flex flex-col bg-[#F3F4F6]"
-          : "overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6] shadow-sm"
-      }
+      className="flex h-dvh flex-col overflow-hidden bg-[#EEF0F3]"
+      data-jimvio-builder="3"
     >
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="hidden items-center gap-1 sm:flex">
-            <button
-              type="button"
-              title="Sections"
-              onClick={() => {
-                setLeftMode("tree");
-                setPanel("sections");
-              }}
-              className={
-                leftMode === "tree" && panel === "sections"
-                  ? "rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
-                  : "rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-              }
-            >
-              Sections
-            </button>
-            <button
-              type="button"
-              title="Theme settings"
-              onClick={() => {
-                setLeftMode("panels");
-                setPanel("theme");
-              }}
-              className={
-                panel === "theme"
-                  ? "rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
-                  : "rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-              }
-            >
-              Theme
-            </button>
-            <button
-              type="button"
-              title="More panels"
-              onClick={() => setLeftMode("panels")}
-              className={
-                leftMode === "panels" && panel !== "theme"
-                  ? "rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
-                  : "rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-              }
-            >
-              More
-            </button>
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#111827]">
-              {storeName}{" "}
-              <span
+      <header className="z-40 flex shrink-0 flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-2 py-1.5 sm:px-3">
+        <Link
+          href="/commerce"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#E5E7EB] text-[11px] font-bold text-[#FF5A1F] hover:bg-[#FFF7ED]"
+          aria-label="Back to Commerce"
+          title="Back to Commerce"
+        >
+          J
+        </Link>
+        <div className="hidden h-5 w-px bg-[#E5E7EB] sm:block" />
+        <nav className="flex items-center gap-0.5 overflow-x-auto" aria-label="Builder panels">
+          {PANELS.filter((p) => p.id !== "issues").map((p) => {
+            const active =
+              leftOpen &&
+              ((p.id === "sections" && leftMode === "tree" && panel === "sections") ||
+                (p.id !== "sections" && leftMode === "panels" && panel === p.id));
+            return (
+              <button
+                key={p.id}
+                type="button"
+                title={p.label}
+                aria-pressed={active}
+                onClick={() => activateNav(p.id)}
                 className={
-                  storeStatus === "published"
-                    ? "ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"
-                    : "ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                  active
+                    ? "shrink-0 rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
+                    : "shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
                 }
               >
-                {storeStatus === "published" ? "Active" : "Draft"}
-              </span>
-            </p>
-            <p className="truncate text-[11px] text-[#6B7280]">
-              <span className="font-medium">Home page</span>
-              {" · "}
-              <a href={liveUrl} target="_blank" rel="noreferrer" className="text-[#FF5A1F] hover:underline">
-                {liveHost}
-              </a>
-              {dirty ? " · Unsaved changes" : ""}
-            </p>
-          </div>
+                {p.label}
+              </button>
+            );
+          })}
+        </nav>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-[#111827]">
+            {storeName}
+            <span
+              className={
+                storeStatus === "published"
+                  ? "ml-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"
+                  : "ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+              }
+            >
+              {storeStatus === "published" ? "Active" : "Draft"}
+            </span>
+            {dirty ? (
+              <span className="ml-1 text-[10px] font-semibold text-amber-700">Unsaved</span>
+            ) : null}
+          </p>
+          <p className="truncate text-[10px] text-[#6B7280]">
+            Home
+            {selectedLabel ? ` · ${selectedLabel}` : ""}
+            {" · "}
+            <a href={liveUrl} target="_blank" rel="noreferrer" className="text-[#FF5A1F] hover:underline">
+              {liveHost}
+            </a>
+          </p>
         </div>
+        {stores.length > 1 ? (
+          <label className="hidden items-center gap-1 text-[10px] font-semibold text-[#6B7280] md:flex">
+            Store
+            <select
+              aria-label="Switch store"
+              className="h-8 max-w-[140px] rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold text-[#111827]"
+              value={storeId}
+              onChange={(e) => {
+                router.push(`/commerce/builder?storeId=${e.target.value}`);
+              }}
+            >
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <div className="flex flex-wrap items-center gap-1">
-          <button type="button" disabled={!canUndo || busy} onClick={undo} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Undo</button>
-          <button type="button" disabled={!canRedo || busy} onClick={redo} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Redo</button>
+          <button type="button" disabled={!canUndo || busy} onClick={undo} aria-label="Undo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Undo</button>
+          <button type="button" disabled={!canRedo || busy} onClick={redo} aria-label="Redo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Redo</button>
           {(["desktop", "tablet", "mobile"] as Device[]).map((d) => (
             <button
               key={d}
               type="button"
+              aria-pressed={device === d}
               onClick={() => setDevice(d)}
               className={
                 device === d
-                  ? "rounded-md bg-[#111827] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-white"
-                  : "rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-[#374151]"
+                  ? "rounded-md bg-[#111827] px-2 py-1.5 text-[11px] font-semibold capitalize text-white"
+                  : "rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold capitalize text-[#374151]"
               }
             >
               {d}
             </button>
           ))}
+          {device === "mobile" ? (
+            <select
+              aria-label="Mobile width"
+              value={mobileWidth}
+              onChange={(e) => setMobileWidth(Number(e.target.value) as MobilePreviewWidth)}
+              className="h-8 rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold"
+            >
+              {MOBILE_PREVIEW_WIDTHS.map((w) => (
+                <option key={w} value={w}>{w}px</option>
+              ))}
+            </select>
+          ) : null}
           <select
             aria-label="Canvas zoom"
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="h-8 rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold"
           >
-            {[75, 90, 100, 110, 125].map((z) => (
+            {[50, 75, 90, 100, 110, 125].map((z) => (
               <option key={z} value={z}>{z}%</option>
             ))}
           </select>
-          <button type="button" onClick={() => setFullscreen((v) => !v)} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold">
-            {fullscreen ? "Exit" : "Focus"}
+          <button
+            type="button"
+            onClick={() => {
+              setFocusMode((v) => !v);
+              if (!focusMode) {
+                setLeftOpen(false);
+                setRightOpen(false);
+              } else {
+                setLeftOpen(true);
+                setRightOpen(true);
+              }
+            }}
+            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+          >
+            {focusMode ? "Exit focus" : "Focus"}
           </button>
-          <button type="button" onClick={() => setHintsOpen((v) => !v)} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold">
+          <button
+            type="button"
+            onClick={() => {
+              setHintsOpen(true);
+              setPanel("issues");
+              setRightOpen(true);
+            }}
+            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+          >
             Issues{hints.length ? ` (${hints.length})` : ""}
           </button>
-          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">Save</button>
+          <div className="relative">
+            <button
+              type="button"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((v) => !v)}
+              className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            >
+              More
+            </button>
+            {moreOpen ? (
+              <div className="absolute right-0 z-50 mt-1 w-44 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg">
+                <a href={liveUrl} target="_blank" rel="noreferrer" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">View live store</a>
+                <Link href="/commerce" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">Back to Commerce</Link>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(true); setRightOpen(true); setFocusMode(false); setMoreOpen(false); }}>Show panels</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(false); setRightOpen(false); setMoreOpen(false); }}>Hide panels</button>
+              </div>
+            ) : null}
+          </div>
+          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">Save draft</button>
           <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50">Publish</button>
-          <a href={liveUrl} target="_blank" rel="noreferrer" className="rounded-md border border-[#E5E7EB] px-3 py-1.5 text-[11px] font-semibold text-[#374151]">View live ↗</a>
         </div>
-      </div>
+      </header>
 
       {confirmPublish ? (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -654,29 +792,6 @@ export function BuilderClient({
         </div>
       ) : null}
 
-      {hintsOpen && hints.length ? (
-        <div className="border-b border-[#E5E7EB] bg-white px-4 py-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#111827]">Responsive issues · {hints.length} ({device})</p>
-            <button type="button" className="text-[11px] font-semibold text-[#6B7280] underline" onClick={() => setHintsOpen(false)}>Hide</button>
-          </div>
-          <ul className="mt-2 space-y-2">
-            {hints.slice(0, 6).map((h) => (
-              <li key={h.id} className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[11px]">
-                <p className={h.severity === "warn" ? "font-semibold text-amber-800" : "font-semibold text-[#374151]"}>[{h.breakpoint}] {h.message}</p>
-                <p className="mt-0.5 text-[#6B7280]">{h.suggestion}</p>
-                {h.fix?.propsPatch && h.fix.sectionId ? (
-                  <button type="button" className="mt-1 font-semibold text-[#FF5A1F] underline" onClick={() => {
-                    updateSectionProps(h.fix!.sectionId, h.fix!.propsPatch || {});
-                    if (h.fix?.sectionId) selectSection(h.fix.sectionId);
-                  }}>Apply suggested fix</button>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {(error || message) && (
         <div className="border-b border-[#E5E7EB] bg-white px-4 py-2 text-xs">
           {error ? <p className="font-semibold text-red-600">{error}</p> : null}
@@ -684,31 +799,62 @@ export function BuilderClient({
         </div>
       )}
 
-      <div className="grid min-h-[70vh] flex-1 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
-        <aside className="flex flex-col border-b border-[#E5E7EB] bg-white lg:border-b-0 lg:border-r">
-          {leftMode === "panels" ? (
-            <nav className="flex gap-1 overflow-x-auto border-b border-[#E5E7EB] p-2 lg:flex-col">
-              {PANELS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => {
-                    setPanel(p.id);
-                    if (p.id === "sections") setLeftMode("tree");
-                  }}
-                  className={
-                    panel === p.id
-                      ? "rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
-                      : "rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
-                  }
-                >
-                  {p.label}
-                </button>
-              ))}
-            </nav>
-          ) : null}
-          <div className="max-h-[62vh] flex-1 overflow-y-auto p-3">
-            {leftMode === "tree" ? (
+      <div
+        className="grid min-h-0 flex-1 overflow-hidden transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none"
+        style={{ gridTemplateColumns: workspaceGrid }}
+      >
+        <aside
+          className={
+            leftOpen && !focusMode
+              ? "min-h-0 overflow-hidden border-r border-[#E5E7EB] bg-white opacity-100"
+              : "pointer-events-none min-h-0 overflow-hidden border-r border-transparent opacity-0"
+          }
+          aria-hidden={!leftOpen || focusMode}
+        >
+          <div className={leftOpen && !focusMode ? "flex h-full min-w-[220px] flex-col" : "invisible flex h-full w-0 flex-col"}>
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+                {leftMode === "tree" ? "Sections" : PANELS.find((p) => p.id === panel)?.label || "Panel"}
+              </p>
+              <button
+                type="button"
+                aria-label="Close left panel"
+                onClick={() => setLeftOpen(false)}
+                className="rounded-md px-2 py-1 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+              >
+                Close
+              </button>
+            </div>
+            {leftMode === "panels" ? (
+              <div className="border-b border-[#E5E7EB] p-2">
+                <label className="sr-only" htmlFor="builder-panel-search">Search panels</label>
+                <input
+                  id="builder-panel-search"
+                  value={panelQuery}
+                  onChange={(e) => setPanelQuery(e.target.value)}
+                  placeholder="Search…"
+                  className="h-8 w-full rounded-md border border-[#E5E7EB] px-2 text-xs"
+                />
+                <nav className="mt-2 flex flex-col gap-0.5">
+                  {filteredPanels.filter((p) => p.id !== "issues").map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => activateNav(p.id)}
+                      className={
+                        panel === p.id
+                          ? "rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
+                          : "rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
+                      }
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          {leftMode === "tree" ? (
               <SectionTree
                 sections={sections}
                 selectedId={selectedId}
@@ -764,24 +910,35 @@ export function BuilderClient({
             {leftMode === "panels" && panel === "settings" && (
               <p className="text-xs text-[#6B7280]">Brand assets live in the right panel.</p>
             )}
+            </div>
           </div>
         </aside>
 
-        <div className="bg-[#E5E7EB]/60 p-3 sm:p-5">
-          {selectedLabel ? (
-            <p className="mb-2 text-center text-[11px] text-[#6B7280]">
-              Home page → <span className="font-semibold capitalize text-[#111827]">{selectedLabel}</span>
-              <button type="button" className="ml-2 underline" onClick={() => setSelectedId(null)}>Clear</button>
-            </p>
-          ) : (
-            <p className="mb-2 text-center text-[11px] text-[#9CA3AF]">Click any section in the preview to edit it</p>
-          )}
+        <div className="min-h-0 min-w-0 overflow-auto bg-[#D1D5DB]/50 p-3 sm:p-4">
+          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-[#6B7280]">
+            <span>Store · Home page{selectedLabel ? ` · ${selectedLabel}` : ""}</span>
+            {selectedId ? (
+              <button type="button" className="underline" onClick={() => setSelectedId(null)}>Clear selection</button>
+            ) : (
+              <span>Select a section to edit</span>
+            )}
+            <button type="button" className="rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 font-semibold" onClick={() => setLeftOpen((v) => !v)}>
+              {leftOpen ? "Hide left" : "Show left"}
+            </button>
+            <button type="button" className="rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 font-semibold" onClick={() => setRightOpen((v) => !v)}>
+              {rightOpen ? "Hide inspector" : "Show inspector"}
+            </button>
+          </div>
+
+          <div className="mx-auto flex justify-center overflow-x-auto pb-8">
           <div
-            className="mx-auto overflow-hidden rounded-xl border border-[#D1D5DB] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] transition-all"
+            className="overflow-hidden rounded-xl border border-[#9CA3AF]/60 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
+            data-preview-device={device}
+            data-preview-width={typeof canvasWidth === "number" ? canvasWidth : "fluid"}
             style={{
               width: canvasWidth,
               maxWidth: "100%",
-              transform: `scale(${zoom / 100})`,
+              transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
               transformOrigin: "top center",
               ...cssVars,
               backgroundColor: settings.backgroundColor,
@@ -805,9 +962,56 @@ export function BuilderClient({
               onRequestAddSection={() => setPickerOpen(true)}
             />
           </div>
+          </div>
         </div>
 
-        <aside className="border-t border-[#E5E7EB] bg-white p-4 lg:border-l lg:border-t-0">
+        <aside
+          className={
+            rightOpen && !focusMode
+              ? "min-h-0 overflow-hidden border-l border-[#E5E7EB] bg-white opacity-100"
+              : "pointer-events-none min-h-0 overflow-hidden border-l border-transparent opacity-0"
+          }
+          aria-hidden={!rightOpen || focusMode}
+        >
+          <div className={rightOpen && !focusMode ? "flex h-full min-w-[280px] flex-col" : "invisible flex h-full w-0 flex-col"}>
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-3 py-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Inspector</p>
+              <button type="button" aria-label="Close inspector" onClick={() => setRightOpen(false)} className="rounded-md px-2 py-1 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]">Close</button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              {(panel === "issues" || hintsOpen) ? (
+                <div className="mb-4 space-y-2">
+                  <p className="text-xs font-semibold text-[#111827]">Issues · {hints.length}</p>
+                  <p className="text-[11px] text-[#6B7280]">Heuristic checks only — not live DOM measurement.</p>
+                  {!hints.length ? (
+                    <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">No heuristic issues detected for current draft.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {hints.map((h) => (
+                        <li key={h.id} className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[11px]">
+                          <p className={h.severity === "warn" ? "font-semibold text-amber-800" : "font-semibold text-[#374151]"}>[{h.breakpoint}] {h.message}</p>
+                          <p className="mt-0.5 text-[#6B7280]">{h.suggestion}</p>
+                          {h.sectionId ? (
+                            <button type="button" className="mt-1 mr-2 font-semibold text-[#2563EB] underline" onClick={() => selectSection(h.sectionId!)}>Go to section</button>
+                          ) : null}
+                          {h.fix?.propsPatch && h.fix.sectionId ? (
+                            <button
+                              type="button"
+                              className="mt-1 font-semibold text-[#FF5A1F] underline"
+                              onClick={() => {
+                                updateSectionProps(h.fix!.sectionId, h.fix!.propsPatch || {});
+                                if (h.fix?.sectionId) selectSection(h.fix.sectionId);
+                              }}
+                            >
+                              Apply suggested fix
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
           {panel === "design" || panel === "settings" || panel === "media" ? (
             <BrandPanel settings={settings} logo={logo} storeName={storeName} onPatch={patchSettings} onError={setError} />
           ) : null}
@@ -985,6 +1189,9 @@ export function BuilderClient({
           {panel === "policies" ? (
             <p className="text-xs text-[#6B7280]">Open a policy from the left list to edit content and apply templates.</p>
           ) : null}
+
+            </div>
+          </div>
         </aside>
       </div>
     <SectionPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} onPick={(type) => addSection(type)} />
@@ -1735,6 +1942,7 @@ function PreviewCanvas({
               settings.headerAlign === "centered" ||
               settings.headerStyle === "centered"
             }
+            previewDevice={device}
           />
         </CanvasSectionFrame>
       ) : null}

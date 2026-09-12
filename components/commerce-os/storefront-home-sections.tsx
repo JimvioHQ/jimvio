@@ -195,6 +195,7 @@ export function StorefrontHomeSections({
               }
               subtitle="Add published collections to show category tiles here."
               products={sliceProductsForSection(products, section)}
+              previewDevice={preview ? device : undefined}
             />
           );
       } else if (
@@ -217,6 +218,7 @@ export function StorefrontHomeSections({
                     : "Featured products"
             }
             products={list}
+            previewDevice={preview ? device : undefined}
           />
         );
       } else if (section.type === "testimonials") {
