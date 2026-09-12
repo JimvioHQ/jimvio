@@ -80,7 +80,7 @@ export default async function CommerceStoresPage() {
                   Dashboard
                 </Link>
                 <Link
-                  href={`/s/${s.handle}`}
+                  href={`https://${s.handle}.jimvio.com`}
                   className="rounded-md bg-[#FF5A1F] px-2.5 py-1.5 text-xs font-semibold text-white"
                   target="_blank"
                 >

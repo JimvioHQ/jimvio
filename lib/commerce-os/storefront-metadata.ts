@@ -114,6 +114,13 @@ export function buildStorefrontMetadata(
       shortcut: store.favicon_url,
       apple: [{ url: store.favicon_url }],
     };
+  } else if (store.logo_url) {
+    // Prefer merchant logo over platform favicon when no dedicated favicon.
+    metadata.icons = {
+      icon: [{ url: store.logo_url }],
+      shortcut: store.logo_url,
+      apple: [{ url: store.logo_url }],
+    };
   }
 
   return metadata;

@@ -72,6 +72,34 @@ export function shouldAttemptStoreHostRewrite(
 }
 
 /**
+ * Friendly merchant-host paths → storefront engine paths.
+ * Example: /terms → /pages/terms so legal URLs stay clean on the subdomain.
+ */
+export const STORE_HOST_PATH_ALIASES: Record<string, string> = {
+  "/terms": "/pages/terms",
+  "/privacy": "/pages/privacy",
+  "/refund-policy": "/pages/refund-policy",
+  "/refunds": "/pages/refund-policy",
+  "/shipping-policy": "/pages/shipping-policy",
+  "/shipping": "/pages/shipping-policy",
+  "/contact": "/pages/contact",
+  "/about": "/pages/about",
+  "/products": "/collections/all",
+  "/shop": "/collections/all",
+};
+
+export function resolveStoreHostPath(pathname: string): string {
+  if (!pathname || pathname === "/") return pathname || "/";
+  const exact = STORE_HOST_PATH_ALIASES[pathname];
+  if (exact) return exact;
+  // /products/{slug} → /product/{slug}
+  if (pathname.startsWith("/products/")) {
+    return `/product/${pathname.slice("/products/".length)}`;
+  }
+  return pathname;
+}
+
+/**
  * Extract store handle from *.jimvio.com subdomain (not www).
  * brand.jimvio.com → brand
  *

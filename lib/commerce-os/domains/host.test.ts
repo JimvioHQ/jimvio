@@ -5,6 +5,7 @@ import {
   isMerchantStorefrontPath,
   isMerchantStorefrontRequest,
   isPlatformHostname,
+  resolveStoreHostPath,
   shouldAttemptStoreHostRewrite,
 } from "./host.ts";
 
@@ -35,6 +36,17 @@ describe("commerce host routing", () => {
       shouldAttemptStoreHostRewrite("brand.jimvio.com", "/product/sku"),
       true
     );
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/terms"), true);
+  });
+
+  it("maps friendly legal paths on merchant hosts", () => {
+    assert.equal(resolveStoreHostPath("/terms"), "/pages/terms");
+    assert.equal(resolveStoreHostPath("/privacy"), "/pages/privacy");
+    assert.equal(resolveStoreHostPath("/refund-policy"), "/pages/refund-policy");
+    assert.equal(resolveStoreHostPath("/shipping-policy"), "/pages/shipping-policy");
+    assert.equal(resolveStoreHostPath("/products"), "/collections/all");
+    assert.equal(resolveStoreHostPath("/products/hat"), "/product/hat");
+    assert.equal(resolveStoreHostPath("/cart"), "/cart");
   });
 
   it("does not rewrite platform paths on custom hosts", () => {

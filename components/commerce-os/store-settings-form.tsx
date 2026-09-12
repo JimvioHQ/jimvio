@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
+import { storefrontDisplayHost, storefrontDisplayUrl } from "@/lib/commerce-os/storefront-url";
 
 type Store = {
   id: string;
@@ -25,6 +27,8 @@ export function StoreSettingsForm({ store }: { store: Store }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const liveUrl = storefrontDisplayUrl(store.handle);
+  const liveHost = storefrontDisplayHost(store.handle);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -115,14 +119,72 @@ export function StoreSettingsForm({ store }: { store: Store }) {
 
   return (
     <form onSubmit={save} className="space-y-3 rounded-lg border border-[#E5E7EB] bg-white p-4">
-      <p className="text-xs text-[#6B7280]">
-        Handle <span className="font-medium text-[#111827]">/s/{store.handle}</span> ·
-        status {store.status}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-[#6B7280]">
+          Canonical storefront{" "}
+          <a
+            href={liveUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-[#FF5A1F] hover:underline"
+          >
+            {liveHost} ↗
+          </a>{" "}
+          · status {store.status}
+        </p>
+        <a
+          href={liveUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-xs font-semibold text-[#374151]"
+        >
+          View Store
+        </a>
+      </div>
+
+      <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+          Store logo
+        </p>
+        <div className="flex items-center gap-3">
+          {form.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={form.logo_url}
+              alt=""
+              className="h-14 w-14 rounded-xl object-cover"
+            />
+          ) : (
+            <span className="grid h-14 w-14 place-items-center rounded-xl bg-[#FF5A1F] text-lg font-bold text-white">
+              {form.name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="space-y-2">
+            <CloudinaryUploadButton
+              folder="jimvio/vendor-logos"
+              resourceType="image"
+              buttonText={form.logo_url ? "Replace logo" : "Upload logo"}
+              onUploadSuccess={(url) =>
+                setForm((f) => ({ ...f, logo_url: url }))
+              }
+              onUploadError={(err) => setError(err)}
+            />
+            {form.logo_url ? (
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, logo_url: null }))}
+                className="block text-xs font-semibold text-[#6B7280] underline"
+              >
+                Remove logo
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
       {field("name", "Name")}
       {field("description", "Description", { textarea: true })}
       {field("announcement_bar", "Announcement bar")}
-      {field("logo_url", "Logo URL")}
       {field("favicon_url", "Favicon URL")}
       {field("contact_email", "Contact email")}
       {field("contact_phone", "Contact phone")}

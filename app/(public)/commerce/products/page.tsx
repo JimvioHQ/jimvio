@@ -118,7 +118,7 @@ export default async function CommerceProductsPage({ searchParams }: Props) {
                     <div className="min-w-0">
                       {p ? (
                         <Link
-                          href={`/s/${active.handle}/product/${p.slug}`}
+                          href={`https://${active.handle}.jimvio.com/product/${p.slug}`}
                           className="font-semibold text-[#111827]"
                         >
                           {p.name}
@@ -170,7 +170,7 @@ export default async function CommerceProductsPage({ searchParams }: Props) {
                       <td className="px-4 py-3">
                         {p ? (
                           <Link
-                            href={`/s/${active.handle}/product/${p.slug}`}
+                            href={`https://${active.handle}.jimvio.com/product/${p.slug}`}
                             className="font-medium text-[#111827] hover:text-[#FF5A1F]"
                           >
                             {p.name}

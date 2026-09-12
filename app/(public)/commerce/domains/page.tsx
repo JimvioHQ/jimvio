@@ -50,7 +50,7 @@ export default async function CommerceDomainsPage({ searchParams }: Props) {
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Domains</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Path storefront is always available at /s/{active.handle}. Custom domains stay
+          Canonical storefront: {active.handle}.jimvio.com. Custom domains stay
           pending until DNS verification completes — SSL is never marked active prematurely.
         </p>
       </div>

@@ -62,6 +62,8 @@ export async function PATCH(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as {
     storeId?: string;
     theme_draft?: Record<string, unknown>;
+    logo_url?: string | null;
+    favicon_url?: string | null;
   } | null;
 
   if (!body?.storeId || !body.theme_draft || typeof body.theme_draft !== "object") {
@@ -77,14 +79,34 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Store not found." }, { status: 404 });
   }
 
+  const draft = body.theme_draft as {
+    settings?: { logoUrl?: string | null; faviconUrl?: string | null };
+  };
+  const logoFromDraft =
+    typeof draft.settings?.logoUrl === "string" ? draft.settings.logoUrl : null;
+  const faviconFromDraft =
+    typeof draft.settings?.faviconUrl === "string"
+      ? draft.settings.faviconUrl
+      : null;
+
+  const patch: Record<string, unknown> = {
+    theme_draft: body.theme_draft,
+    updated_at: new Date().toISOString(),
+  };
+  if (body.logo_url !== undefined || logoFromDraft !== null) {
+    patch.logo_url =
+      body.logo_url !== undefined ? body.logo_url : logoFromDraft;
+  }
+  if (body.favicon_url !== undefined || faviconFromDraft !== null) {
+    patch.favicon_url =
+      body.favicon_url !== undefined ? body.favicon_url : faviconFromDraft;
+  }
+
   const { data, error } = await cosTable(db, "jimvio_stores")
-    .update({
-      theme_draft: body.theme_draft,
-      updated_at: new Date().toISOString(),
-    })
+    .update(patch)
     .eq("id", body.storeId)
     .eq("vendor_id", auth.vendorId)
-    .select("id, theme_draft, updated_at")
+    .select("id, theme_draft, logo_url, favicon_url, updated_at")
     .single();
 
   if (error || !data) {

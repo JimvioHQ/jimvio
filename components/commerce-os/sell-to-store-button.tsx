@@ -133,7 +133,7 @@ export function SellToStoreButton({ productId, productName, className }: Props) 
         const store = jimvioStores.find((s) => s.id === storeId);
         setSuccess(
           store
-            ? `Published to Jimvio store “${store.name}” (/s/${store.handle}).`
+            ? `Published to Jimvio store “${store.name}” (${store.handle}.jimvio.com).`
             : "Published to Jimvio store."
         );
       } else {
@@ -258,7 +258,7 @@ export function SellToStoreButton({ productId, productName, className }: Props) 
                     {targetType === "jimvio"
                       ? jimvioStores.map((s) => (
                           <option key={s.id} value={s.id}>
-                            {s.name} (/s/{s.handle}) · {s.status}
+                            {s.name} ({s.handle}.jimvio.com) · {s.status}
                           </option>
                         ))
                       : shopifyStores.map((s) => (

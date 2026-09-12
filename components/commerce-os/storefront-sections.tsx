@@ -127,16 +127,22 @@ export function StorefrontHero({
   headline,
   subhead,
   cta,
+  ctaHref,
   handle,
   onStoreHost = false,
 }: {
   headline?: string;
   subhead?: string;
   cta?: string;
+  ctaHref?: string;
   handle: string;
   onStoreHost?: boolean;
 }) {
   const linkOpts = { onStoreHost };
+  const shopPath =
+    typeof ctaHref === "string" && ctaHref.startsWith("/")
+      ? ctaHref
+      : "/collections/all";
   return (
     <section className="relative overflow-hidden border-b border-black/[0.04]">
       <div
@@ -162,8 +168,13 @@ export function StorefrontHero({
           ) : null}
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href={storefrontHref(handle, "/collections/all", linkOpts)}
-              className="inline-flex rounded-full bg-[var(--store-primary,#FF5A1F)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95"
+              href={storefrontHref(handle, shopPath, linkOpts)}
+              className="inline-flex px-5 py-2.5 text-sm font-semibold shadow-sm transition hover:opacity-95"
+              style={{
+                background: "var(--store-btn, var(--store-primary,#FF5A1F))",
+                color: "var(--store-btn-text,#FFFFFF)",
+                borderRadius: "var(--store-btn-radius,9999px)",
+              }}
             >
               {cta || "Shop now"}
             </Link>
@@ -234,7 +245,7 @@ export function StorefrontFeaturedProducts({
           No products published yet.
         </p>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]">
           {products.map((p) => {
             const img = firstImage(p.images);
             return (
@@ -326,8 +337,12 @@ export function StorefrontFooter({
           href: normalizeStorefrontHref(handle, item.href, linkOpts),
         }))
       : [
-          { label: "About", href: storefrontHref(handle, "/pages/about", linkOpts) },
-          { label: "Contact", href: storefrontHref(handle, "/pages/contact", linkOpts) },
+          { label: "About", href: storefrontHref(handle, onStoreHost ? "/about" : "/pages/about", linkOpts) },
+          { label: "Contact", href: storefrontHref(handle, onStoreHost ? "/contact" : "/pages/contact", linkOpts) },
+          { label: "Terms", href: storefrontHref(handle, onStoreHost ? "/terms" : "/pages/terms", linkOpts) },
+          { label: "Privacy", href: storefrontHref(handle, onStoreHost ? "/privacy" : "/pages/privacy", linkOpts) },
+          { label: "Refunds", href: storefrontHref(handle, onStoreHost ? "/refund-policy" : "/pages/refund-policy", linkOpts) },
+          { label: "Shipping", href: storefrontHref(handle, onStoreHost ? "/shipping-policy" : "/pages/shipping-policy", linkOpts) },
           { label: "Account", href: storefrontHref(handle, "/account", linkOpts) },
         ];
 

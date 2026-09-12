@@ -224,11 +224,22 @@ export async function publishJimvioStore(
     sections: (draft.sections as Record<string, unknown>) || {},
   };
 
+  const logoUrl =
+    typeof settings.logoUrl === "string" && settings.logoUrl.trim()
+      ? settings.logoUrl.trim()
+      : undefined;
+  const faviconUrl =
+    typeof settings.faviconUrl === "string" && settings.faviconUrl.trim()
+      ? settings.faviconUrl.trim()
+      : undefined;
+
   const { error } = await cosTable(db, "jimvio_stores")
     .update({
       status: "published",
       theme_settings: settings,
       published_theme: publishedTheme,
+      ...(logoUrl !== undefined ? { logo_url: logoUrl } : {}),
+      ...(faviconUrl !== undefined ? { favicon_url: faviconUrl } : {}),
       published_at: new Date().toISOString(),
       published_theme_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

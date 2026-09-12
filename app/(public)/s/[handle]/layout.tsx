@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
+import { themeSettingsToCssVars } from "@/lib/commerce-os/themes/registry";
 import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
@@ -70,12 +71,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
   const showFooter = homeSections.some((s) => s.type === "footer" && s.enabled);
   const announcementSection = homeSections.find((s) => s.type === "announcement");
 
-  const cssVars = {
-    ["--store-primary" as string]: settings.primaryColor,
-    ["--store-bg" as string]: settings.backgroundColor,
-    ["--store-text" as string]: settings.textColor,
-    ["--store-radius" as string]: settings.radius,
-  };
+  const cssVars = themeSettingsToCssVars(settings);
 
   return (
     <div

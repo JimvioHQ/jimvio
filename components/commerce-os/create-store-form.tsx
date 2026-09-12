@@ -51,7 +51,7 @@ export function CreateStoreForm() {
       <div>
         <p className="text-sm font-medium text-[#111827]">Create a Jimvio store</p>
         <p className="mt-1 text-xs text-[#6B7280]">
-          Native storefront at /s/your-handle — separate from Shopify connectors.
+          Native storefront at your-handle.jimvio.com — separate from Shopify connectors.
         </p>
       </div>
       <label className="block text-sm">

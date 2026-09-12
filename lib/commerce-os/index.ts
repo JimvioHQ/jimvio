@@ -40,6 +40,7 @@ export {
   isMerchantStorefrontPath,
   isMerchantStorefrontRequest,
   normalizeHostname,
+  resolveStoreHostPath,
 } from "./domains/host";
 export {
   storefrontBrowsePath,

@@ -70,12 +70,12 @@ export default async function CommerceCollectionsPage({ searchParams }: Props) {
               <div>
                 <p className="font-medium text-[#111827]">{c.title}</p>
                 <p className="text-xs text-[#6B7280]">
-                  /s/{active.handle}/collections/{c.handle} ·{" "}
+                  {active.handle}.jimvio.com/collections/{c.handle} ·{" "}
                   {c.published ? "published" : "draft"}
                 </p>
               </div>
               <Link
-                href={`/s/${active.handle}/collections/${c.handle}`}
+                href={`https://${active.handle}.jimvio.com/collections/${c.handle}`}
                 className="text-xs font-semibold text-[#FF5A1F]"
                 target="_blank"
               >

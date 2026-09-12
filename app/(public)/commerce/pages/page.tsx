@@ -65,12 +65,17 @@ export default async function CommercePagesPage({ searchParams }: Props) {
               <div>
                 <p className="font-medium text-[#111827]">{p.title}</p>
                 <p className="text-xs text-[#6B7280]">
-                  /s/{active.handle}/pages/{p.handle} ·{" "}
-                  {p.published ? "published" : "draft"}
+                  {active.handle}.jimvio.com/
+                  {["terms", "privacy", "contact", "about", "refund-policy", "shipping-policy"].includes(
+                    p.handle
+                  )
+                    ? p.handle
+                    : `pages/${p.handle}`}{" "}
+                  · {p.published ? "published" : "draft"}
                 </p>
               </div>
               <Link
-                href={`/s/${active.handle}/pages/${p.handle}`}
+                href={`https://${active.handle}.jimvio.com/${["terms","privacy","contact","about","refund-policy","shipping-policy"].includes(p.handle) ? p.handle : `pages/${p.handle}`}`}
                 className="text-xs font-semibold text-[#FF5A1F]"
                 target="_blank"
               >

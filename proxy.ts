@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import {
   handleFromJimvioSubdomain,
+  resolveStoreHostPath,
   shouldAttemptStoreHostRewrite,
 } from "@/lib/commerce-os/domains/host";
 
@@ -24,7 +25,8 @@ export async function proxy(request: NextRequest) {
 
   if (needsStoreRewrite && subdomainHandle) {
     const url = request.nextUrl.clone();
-    const suffix = pathname === "/" ? "" : pathname;
+    const mapped = resolveStoreHostPath(pathname);
+    const suffix = mapped === "/" ? "" : mapped;
     url.pathname = `/s/${subdomainHandle}${suffix}`;
 
     const requestHeaders = new Headers(request.headers);

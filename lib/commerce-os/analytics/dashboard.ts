@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cosTable } from "../db";
 import { getStoreAnalytics } from "./overview";
+import { storefrontDisplayUrl } from "../storefront-url";
 
 export type SetupChecklistItem = {
   id: string;
@@ -173,7 +174,7 @@ export async function getCommerceOverviewDashboard(
     topProducts,
     checklist,
     storeLive,
-    storefrontPath: `/s/${storeHandle}`,
-    storefrontUrl: `https://${storeHandle}.jimvio.com`,
+    storefrontPath: storefrontDisplayUrl(storeHandle),
+    storefrontUrl: storefrontDisplayUrl(storeHandle),
   };
 }
