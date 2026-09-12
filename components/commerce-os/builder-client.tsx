@@ -17,6 +17,7 @@ import {
   createCatalogSection,
   duplicateSection,
   mergeThemeSettings,
+  defaultHomeSections,
   reorderSections,
   suggestHeadline,
   suggestSeoDescription,
@@ -62,8 +63,19 @@ type PreviewProduct = {
   name: string;
   slug: string;
   price: number | string | null;
+  compare_at_price?: number | string | null;
   currency?: string | null;
   images?: unknown;
+  short_description?: string | null;
+  inventory_quantity?: number | null;
+  track_inventory?: boolean | null;
+};
+
+type PreviewCollection = {
+  id: string;
+  title: string;
+  handle: string;
+  image_url?: string | null;
 };
 
 type Props = {
@@ -79,6 +91,7 @@ type Props = {
   initialSocial: Record<string, unknown>;
   initialDescription?: string | null;
   previewProducts: PreviewProduct[];
+  previewCollections?: PreviewCollection[];
 };
 
 type Panel =
@@ -102,43 +115,7 @@ type Snapshot = {
 function ensureHomeSections(draft: ThemeDraft | null, storeName: string): ThemeSection[] {
   const home = draft?.sections?.home;
   if (Array.isArray(home) && home.length) return home as ThemeSection[];
-  return [
-    {
-      id: "announcement",
-      type: "announcement",
-      enabled: true,
-      props: { text: "Free shipping on select orders" },
-    },
-    { id: "header", type: "header", enabled: true },
-    {
-      id: "hero",
-      type: "hero",
-      enabled: true,
-      props: {
-        headline: storeName,
-        subhead: "Shop the latest",
-        cta: "Shop now",
-        ctaHref: "/collections/all",
-        layout: "left",
-      },
-    },
-    {
-      id: "featured_products",
-      type: "featured_products",
-      enabled: true,
-      props: { title: "Featured" },
-    },
-    {
-      id: "trust",
-      type: "banner",
-      enabled: true,
-      props: {
-        headline: "Why shop with us",
-        subhead: "Secure checkout · Verified sourcing · Order tracking",
-      },
-    },
-    { id: "footer", type: "footer", enabled: true },
-  ];
+  return defaultHomeSections(storeName);
 }
 
 const PANELS: Array<{ id: Panel; label: string }> = [
@@ -166,6 +143,7 @@ export function BuilderClient({
   initialSocial,
   initialDescription,
   previewProducts,
+  previewCollections = [],
 }: Props) {
   const [sections, setSections] = useState<ThemeSection[]>(() =>
     ensureHomeSections(initialDraft, storeName)
@@ -820,6 +798,7 @@ export function BuilderClient({
               headerNav={headerNav}
               footerNav={footerNav}
               products={previewProducts}
+              collections={previewCollections}
               device={device}
               onSelect={selectSection}
               selectedId={selectedId}
@@ -1688,6 +1667,7 @@ function PreviewCanvas({
   headerNav,
   footerNav,
   products,
+  collections,
   device,
   onSelect,
   selectedId,
@@ -1701,6 +1681,7 @@ function PreviewCanvas({
   headerNav: NavItem[];
   footerNav: NavItem[];
   products: PreviewProduct[];
+  collections: PreviewCollection[];
   device: Device;
   onSelect: (id: string) => void;
   selectedId: string | null;
@@ -1770,6 +1751,7 @@ function PreviewCanvas({
       <StorefrontHomeSections
         sections={contentSections}
         products={products}
+        collections={collections}
         handle={handle}
         storeName={storeName}
         themeSettings={settings}

@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { loadPublishedStoreByHandle, loadStoreProducts } from "@/lib/commerce-os";
+import {
+  loadPublishedStoreByHandle,
+  loadStoreProducts,
+  loadStoreCollections,
+} from "@/lib/commerce-os";
 import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
@@ -28,15 +32,17 @@ export default async function StorefrontHomePage({ params }: Props) {
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) notFound();
 
-  const products = await loadStoreProducts(supabase, store.id, {
-    limit: 24,
-    sort: "manual",
-  });
-  const sections = store.published_sections.home;
+  const [products, collections] = await Promise.all([
+    loadStoreProducts(supabase, store.id, {
+      limit: 24,
+      sort: "manual",
+    }),
+    loadStoreCollections(supabase, store.id, { limit: 12 }),
+  ]);
 
   return (
     <StorefrontHomeSections
-      sections={sections}
+      sections={store.published_sections.home}
       products={
         products as Array<{
           id: string;
@@ -47,8 +53,11 @@ export default async function StorefrontHomePage({ params }: Props) {
           currency?: string | null;
           images?: unknown;
           short_description?: string | null;
+          inventory_quantity?: number | null;
+          track_inventory?: boolean | null;
         }>
       }
+      collections={collections}
       handle={store.handle}
       storeName={store.name}
       storeDescription={store.description}

@@ -6,6 +6,7 @@ import {
   listVendorJimvioStores,
   pickActiveStore,
   loadStoreProducts,
+  loadStoreCollections,
 } from "@/lib/commerce-os";
 import type { ThemeDraft } from "@/lib/commerce-os/themes/registry";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
@@ -61,17 +62,19 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
     .eq("vendor_id", auth.vendorId)
     .maybeSingle();
 
-  const [{ data: navRows }, { data: pageRows }, products] = await Promise.all([
-    cosTable(db, "jimvio_store_navigation")
-      .select("location, items")
-      .eq("store_id", active.id),
-    cosTable(db, "jimvio_store_pages")
-      .select("id, title, handle, body_html, seo, published")
-      .eq("store_id", active.id)
-      .eq("vendor_id", auth.vendorId)
-      .order("title", { ascending: true }),
-    loadStoreProducts(db, active.id, { limit: 24 }),
-  ]);
+  const [{ data: navRows }, { data: pageRows }, products, collections] =
+    await Promise.all([
+      cosTable(db, "jimvio_store_navigation")
+        .select("location, items")
+        .eq("store_id", active.id),
+      cosTable(db, "jimvio_store_pages")
+        .select("id, title, handle, body_html, seo, published")
+        .eq("store_id", active.id)
+        .eq("vendor_id", auth.vendorId)
+        .order("title", { ascending: true }),
+      loadStoreProducts(db, active.id, { limit: 24 }),
+      loadStoreCollections(db, active.id, { limit: 12 }),
+    ]);
 
   const headerNav = asNavItems(
     navRows?.find((n: { location: string }) => n.location === "header")?.items
@@ -128,10 +131,15 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
             name: string;
             slug: string;
             price: number | string | null;
+            compare_at_price?: number | string | null;
             currency?: string | null;
             images?: unknown;
+            short_description?: string | null;
+            inventory_quantity?: number | null;
+            track_inventory?: boolean | null;
           }>
         }
+        previewCollections={collections}
       />
     </div>
   );

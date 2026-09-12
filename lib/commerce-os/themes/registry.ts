@@ -379,9 +379,9 @@ export const BUILDER_SECTION_CATALOG: Array<{
   {
     type: "collections",
     label: "Collections",
-    description: "Featured collections teaser",
+    description: "Category tiles from published store collections",
     group: "commerce",
-    defaultProps: { title: "Shop collections" },
+    defaultProps: { title: "Shop by category" },
   },
   {
     type: "discount_banner",
@@ -567,7 +567,9 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       id: "announcement",
       type: "announcement",
       enabled: true,
-      props: { text: "Free shipping on select orders · Secure checkout" },
+      props: {
+        text: "Free shipping on select orders · Secure payments · Easy returns",
+      },
     },
     { id: "header", type: "header", enabled: true },
     {
@@ -575,19 +577,30 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       type: "hero",
       enabled: true,
       props: {
+        eyebrow: "Official store",
         headline: storeName,
-        subhead: "Curated products. Fast checkout. Global fulfillment.",
-        cta: "Shop the collection",
+        subhead:
+          "Discover hand-picked products — quality goods, secure checkout, and global fulfillment.",
+        cta: "Shop now",
         ctaHref: "/collections/all",
+        ctaSecondary: "Browse all products",
+        ctaSecondaryHref: "/collections/all",
         layout: "left",
         height: "lg",
+        trustItems: "Fast Delivery · Secure Payments · 24/7 Support",
       },
+    },
+    {
+      id: "collections",
+      type: "collections",
+      enabled: true,
+      props: { title: "Shop by category" },
     },
     {
       id: "featured_products",
       type: "featured_products",
       enabled: true,
-      props: { title: "Featured", layout: "grid" },
+      props: { title: "Featured products", layout: "grid", limit: 8 },
     },
     {
       id: "trust",
@@ -595,7 +608,8 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       enabled: true,
       props: {
         headline: "Why shop with us",
-        subhead: "Secure checkout · Verified sourcing · Order tracking",
+        subhead:
+          "100% Original Products · Easy Returns · Global Shipping · Customer Support",
       },
     },
     { id: "footer", type: "footer", enabled: true },
@@ -684,6 +698,15 @@ export function themeSettingsToCssVars(
     "--store-max-width": s.maxWidth || "72rem",
     "--store-section-space": s.sectionSpacing || "3.5rem",
     "--store-shadow": SHADOW_MAP[s.shadow || "subtle"],
+    "--store-heading-font": s.headingFont
+      ? `${s.headingFont}, ${s.fontFamily}, system-ui, sans-serif`
+      : `${s.fontFamily}, system-ui, sans-serif`,
+    "--store-image-ratio":
+      s.productImageRatio === "1/1"
+        ? "1 / 1"
+        : s.productImageRatio === "3/4"
+          ? "3 / 4"
+          : "4 / 3",
   };
 }
 

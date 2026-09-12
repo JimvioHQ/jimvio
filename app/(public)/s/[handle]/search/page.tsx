@@ -57,8 +57,12 @@ export default async function StorefrontSearchPage({ params, searchParams }: Pro
             name: string;
             slug: string;
             price: number | string | null;
+            compare_at_price?: number | string | null;
             currency?: string | null;
             images?: unknown;
+            short_description?: string | null;
+            inventory_quantity?: number | null;
+            track_inventory?: boolean | null;
           }>}
         />
       ) : null}

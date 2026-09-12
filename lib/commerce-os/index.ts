@@ -11,6 +11,7 @@ export {
   loadPublishedStoreByHostname,
   loadStoreProducts,
   loadStoreProductBySlug,
+  loadStoreCollections,
 } from "./storefront/load";
 export { applyStoreDiscount, estimateTax } from "./discounts/engine";
 export { getStoreShippingQuotes } from "./shipping/zones";

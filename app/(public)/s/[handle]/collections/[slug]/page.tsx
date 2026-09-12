@@ -14,6 +14,19 @@ export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ handle: string; slug: string }> };
 
+type CollectionProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number | string | null;
+  compare_at_price?: number | string | null;
+  currency?: string | null;
+  images?: unknown;
+  short_description?: string | null;
+  inventory_quantity?: number | null;
+  track_inventory?: boolean | null;
+};
+
 export default async function StorefrontCollectionPage({ params }: Props) {
   const { handle, slug } = await params;
   const onStoreHost = await isRequestOnStoreHost();
@@ -25,21 +38,22 @@ export default async function StorefrontCollectionPage({ params }: Props) {
     const products = await loadStoreProducts(supabase, store.id, { limit: 48 });
     return (
       <div className="py-8">
-        <div className="mx-auto max-w-5xl px-4">
-          <h1 className="text-2xl font-semibold">All products</h1>
+        <div className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 sm:px-6">
+          <h1
+            className="text-2xl font-semibold tracking-tight"
+            style={{ fontFamily: "var(--store-heading-font, inherit)" }}
+          >
+            All products
+          </h1>
+          <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
+            Discover everything available in this store.
+          </p>
         </div>
         <StorefrontFeaturedProducts
           handle={store.handle}
           onStoreHost={onStoreHost}
           title=""
-          products={products as Array<{
-            id: string;
-            name: string;
-            slug: string;
-            price: number | string | null;
-            currency?: string | null;
-            images?: unknown;
-          }>}
+          products={products as CollectionProduct[]}
         />
       </div>
     );
@@ -60,36 +74,40 @@ export default async function StorefrontCollectionPage({ params }: Props) {
     .order("position", { ascending: true });
 
   const ids = (links ?? []).map((l) => l.product_id);
-  let products: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    price: number | string | null;
-    currency?: string | null;
-    images?: unknown;
-  }> = [];
+  let products: CollectionProduct[] = [];
 
   if (ids.length) {
     const { data } = await supabase
       .from("products")
-      .select("id, name, slug, price, currency, images, status")
+      .select(
+        "id, name, slug, price, compare_at_price, currency, images, short_description, inventory_quantity, track_inventory, status"
+      )
       .in("id", ids)
       .eq("status", "active");
     const byId = new Map((data ?? []).map((p) => [p.id, p]));
-    products = ids.map((id) => byId.get(id)).filter(Boolean) as typeof products;
+    products = ids
+      .map((id) => byId.get(id))
+      .filter(Boolean) as CollectionProduct[];
   }
 
   return (
     <div className="py-8">
-      <div className="mx-auto max-w-5xl px-4">
-        <p className="text-xs uppercase tracking-wide opacity-60">
+      <div className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 sm:px-6">
+        <p className="text-xs uppercase tracking-wide text-[var(--store-muted,#6B7280)]">
           <Link href={storefrontHref(handle, "/collections/all", { onStoreHost })}>
             Collections
           </Link>
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">{collection.title}</h1>
+        <h1
+          className="mt-1 text-2xl font-semibold tracking-tight"
+          style={{ fontFamily: "var(--store-heading-font, inherit)" }}
+        >
+          {collection.title}
+        </h1>
         {collection.description ? (
-          <p className="mt-2 text-sm opacity-70">{collection.description}</p>
+          <p className="mt-2 text-sm text-[var(--store-muted,#6B7280)]">
+            {collection.description}
+          </p>
         ) : null}
       </div>
       <StorefrontFeaturedProducts

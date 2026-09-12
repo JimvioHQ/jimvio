@@ -3,9 +3,11 @@ import type { ThemeSection, ThemeSettings } from "@/lib/commerce-os/themes/regis
 import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
 import { sliceProductsForSection } from "@/lib/commerce-os/storefront/product-slice";
 import {
+  StorefrontCategoryNav,
   StorefrontFeaturedProducts,
   StorefrontHero,
   StorefrontTrustBar,
+  type StorefrontCollectionTile,
 } from "@/components/commerce-os/storefront-sections";
 import { StorefrontNewsletterForm } from "@/components/commerce-os/storefront-newsletter-form";
 
@@ -18,6 +20,8 @@ type Product = {
   currency?: string | null;
   images?: unknown;
   short_description?: string | null;
+  inventory_quantity?: number | null;
+  track_inventory?: boolean | null;
 };
 
 function visibleForDevice(
@@ -39,6 +43,7 @@ export { sliceProductsForSection };
 export function StorefrontHomeSections({
   sections,
   products,
+  collections = [],
   handle,
   storeName,
   storeDescription,
@@ -51,6 +56,7 @@ export function StorefrontHomeSections({
 }: {
   sections: ThemeSection[];
   products: Product[];
+  collections?: StorefrontCollectionTile[];
   handle: string;
   storeName: string;
   storeDescription?: string | null;
@@ -106,6 +112,11 @@ export function StorefrontHomeSections({
             imageUrl={typeof props.imageUrl === "string" ? props.imageUrl : undefined}
             layout={typeof props.layout === "string" ? props.layout : "left"}
             buttonStyle={themeSettings.buttonStyle || "filled"}
+            height={typeof props.height === "string" ? props.height : "lg"}
+            overlay={typeof props.overlay === "string" ? props.overlay : "0"}
+            trustItems={
+              typeof props.trustItems === "string" ? props.trustItems : undefined
+            }
           />
         );
       } else if (section.type === "banner" || section.type === "trust_shipping") {
@@ -160,9 +171,34 @@ export function StorefrontHomeSections({
             ))}
           </section>
         );
+      } else if (section.type === "collections") {
+        node =
+          collections.length > 0 ? (
+            <StorefrontCategoryNav
+              handle={handle}
+              onStoreHost={onStoreHost}
+              collections={collections}
+              title={
+                typeof props.title === "string"
+                  ? props.title
+                  : "Shop by category"
+              }
+            />
+          ) : (
+            <StorefrontFeaturedProducts
+              handle={handle}
+              onStoreHost={onStoreHost}
+              title={
+                typeof props.title === "string"
+                  ? props.title
+                  : "Shop collections"
+              }
+              subtitle="Add published collections to show category tiles here."
+              products={sliceProductsForSection(products, section)}
+            />
+          );
       } else if (
         section.type === "featured_products" ||
-        section.type === "collections" ||
         section.type === "best_sellers" ||
         section.type === "new_arrivals"
       ) {
@@ -174,13 +210,11 @@ export function StorefrontHomeSections({
             title={
               typeof props.title === "string"
                 ? props.title
-                : section.type === "collections"
-                  ? "Collections"
-                  : section.type === "best_sellers"
-                    ? "Best sellers"
-                    : section.type === "new_arrivals"
-                      ? "New arrivals"
-                      : "Featured"
+                : section.type === "best_sellers"
+                  ? "Best sellers"
+                  : section.type === "new_arrivals"
+                    ? "New arrivals"
+                    : "Featured products"
             }
             products={list}
           />

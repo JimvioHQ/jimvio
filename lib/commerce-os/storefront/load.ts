@@ -272,3 +272,24 @@ export async function loadStoreProductBySlug(
 
   return { product, variants: variants ?? [] };
 }
+
+export async function loadStoreCollections(
+  db: SupabaseClient,
+  storeId: string,
+  opts?: { limit?: number }
+) {
+  const limit = Math.min(Math.max(opts?.limit ?? 12, 1), 48);
+  const { data } = await cosTable(db, "jimvio_store_collections")
+    .select("id, title, handle, image_url, sort_order")
+    .eq("store_id", storeId)
+    .eq("published", true)
+    .order("sort_order", { ascending: true })
+    .limit(limit);
+  return (data ?? []) as Array<{
+    id: string;
+    title: string;
+    handle: string;
+    image_url: string | null;
+    sort_order?: number | null;
+  }>;
+}
