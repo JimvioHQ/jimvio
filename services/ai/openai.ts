@@ -120,6 +120,19 @@ export interface MarketingCopyParams {
   tone?: "exciting" | "professional" | "urgent" | "storytelling";
 }
 
+export interface StoreSectionCopyParams {
+  sectionType: string;
+  storeName: string;
+  current?: {
+    headline?: unknown;
+    subhead?: unknown;
+    title?: unknown;
+    cta?: unknown;
+    body?: unknown;
+  };
+  tone?: "professional" | "luxury" | "creator" | "ecommerce" | "casual";
+}
+
 export interface AffiliateSuggestionsParams {
   affiliateNiche: string[];
   topPerformingCategories: string[];
@@ -155,6 +168,52 @@ Return ONLY the product description, no additional text.`;
     });
 
     return response.choices[0].message.content || "";
+  }
+
+  async generateStoreSectionCopy(params: StoreSectionCopyParams): Promise<{
+    headline: string;
+    subhead: string;
+    body: string;
+    cta: string;
+  }> {
+    const tone = params.tone || "ecommerce";
+    const current = params.current || {};
+    const prompt = `You are Jimvio storefront copywriter for African ecommerce brands.
+
+Store: ${params.storeName}
+Section type: ${params.sectionType}
+Tone: ${tone}
+Current headline: ${String(current.headline || current.title || "")}
+Current subhead: ${String(current.subhead || "")}
+Current body: ${String(current.body || "").slice(0, 400)}
+Current CTA: ${String(current.cta || "")}
+
+Return ONLY JSON with keys:
+{
+  "headline": "short punchy headline",
+  "subhead": "one supporting sentence",
+  "body": "optional short paragraph if useful, else empty string",
+  "cta": "short button label"
+}
+
+Do not invent fake discounts, shipping claims, or unverifiable stats.`;
+
+    const response = await getOpenAI().chat.completions.create({
+      model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 350,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    return {
+      headline: String(parsed.headline || "").trim(),
+      subhead: String(parsed.subhead || "").trim(),
+      body: String(parsed.body || "").trim(),
+      cta: String(parsed.cta || "").trim(),
+    };
   }
 
   async generateMarketingCopy(params: MarketingCopyParams): Promise<{

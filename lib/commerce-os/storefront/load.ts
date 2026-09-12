@@ -191,14 +191,22 @@ export async function loadPublishedStoreByHostname(
 export async function loadStoreProducts(
   db: SupabaseClient,
   storeId: string,
-  opts?: { limit?: number; search?: string }
+  opts?: {
+    limit?: number;
+    search?: string;
+    sort?: "manual" | "newest" | "price_asc" | "price_desc";
+  }
 ) {
+  const sort = opts?.sort || "manual";
   const { data: links } = await cosTable(db, "jimvio_store_products")
-    .select("product_id, sort_order")
+    .select("product_id, sort_order, published_at, created_at")
     .eq("store_id", storeId)
     .eq("status", "published")
-    .order("sort_order", { ascending: true })
-    .limit(opts?.limit ?? 48);
+    .order(
+      sort === "newest" ? "published_at" : "sort_order",
+      { ascending: sort === "newest" ? false : true }
+    )
+    .limit(Math.min(Math.max(opts?.limit ?? 48, 1), 48));
 
   const ids = (links ?? []).map((l: { product_id: string }) => l.product_id);
   if (!ids.length) return [];
@@ -217,7 +225,17 @@ export async function loadStoreProducts(
 
   const { data: products } = await q;
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
-  return ids.map((id: string) => byId.get(id)).filter(Boolean);
+  let ordered = ids.map((id: string) => byId.get(id)).filter(Boolean);
+
+  if (sort === "price_asc" || sort === "price_desc") {
+    ordered = [...ordered].sort((a, b) => {
+      const pa = Number((a as { price?: number }).price ?? 0);
+      const pb = Number((b as { price?: number }).price ?? 0);
+      return sort === "price_asc" ? pa - pb : pb - pa;
+    });
+  }
+
+  return ordered;
 }
 
 export async function loadStoreProductBySlug(

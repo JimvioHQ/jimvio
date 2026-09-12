@@ -6,8 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type ReactNode,
 } from "react";
 import {
   BUILDER_SECTION_CATALOG,
@@ -37,6 +35,14 @@ import {
 import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { isSafeNavHref, type NavItem } from "@/lib/commerce-os/builder/nav-safe";
 import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
+import { detectBuilderHints } from "@/lib/commerce-os/builder/responsive-hints";
+import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
+import { StorefrontHomeSections } from "@/components/commerce-os/storefront-home-sections";
+import {
+  StorefrontAnnouncement,
+  StorefrontFooter,
+  StorefrontHeader,
+} from "@/components/commerce-os/storefront-sections";
 
 type StorePage = {
   id: string;
@@ -79,7 +85,8 @@ type Panel =
   | "pages"
   | "seo"
   | "policies"
-  | "settings";
+  | "settings"
+  | "media";
 
 type Device = "desktop" | "tablet" | "mobile";
 
@@ -130,39 +137,12 @@ function ensureHomeSections(draft: ThemeDraft | null, storeName: string): ThemeS
   ];
 }
 
-function firstImage(images: unknown): string | null {
-  if (!images) return null;
-  if (typeof images === "string") return images;
-  if (Array.isArray(images) && images[0]) {
-    const x = images[0];
-    if (typeof x === "string") return x;
-    if (x && typeof x === "object" && "url" in x) {
-      const u = (x as { url?: unknown }).url;
-      return typeof u === "string" ? u : null;
-    }
-  }
-  return null;
-}
-
-function formatMoney(price: number | string | null | undefined, currency?: string | null) {
-  const n = Number(price);
-  if (!Number.isFinite(n)) return "—";
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: (currency || "USD").toUpperCase(),
-      maximumFractionDigits: 0,
-    }).format(n);
-  } catch {
-    return `${currency || "USD"} ${n.toFixed(0)}`;
-  }
-}
-
 const PANELS: Array<{ id: Panel; label: string }> = [
   { id: "design", label: "Design" },
   { id: "sections", label: "Sections" },
   { id: "navigation", label: "Navigation" },
   { id: "theme", label: "Theme" },
+  { id: "media", label: "Media" },
   { id: "pages", label: "Pages" },
   { id: "seo", label: "SEO" },
   { id: "policies", label: "Policies" },
@@ -510,6 +490,10 @@ export function BuilderClient({
   }
 
   const contrast = contrastWarning(settings.backgroundColor, settings.textColor);
+  const hints = useMemo(
+    () => detectBuilderHints({ settings, sections }),
+    [settings, sections]
+  );
   const canvasWidth =
     device === "mobile" ? 390 : device === "tablet" ? 768 : "100%";
 
@@ -587,6 +571,37 @@ export function BuilderClient({
               </span>
             ))}
           </div>
+        </div>
+      ) : null}
+
+      {hints.length ? (
+        <div className="border-b border-[#E5E7EB] bg-white px-4 py-3">
+          <p className="text-xs font-semibold text-[#111827]">
+            Responsive issues · {hints.length} detected ({device})
+          </p>
+          <ul className="mt-2 space-y-2">
+            {hints.slice(0, 5).map((h) => (
+              <li key={h.id} className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-2 text-[11px]">
+                <p className={h.severity === "warn" ? "font-semibold text-amber-800" : "font-semibold text-[#374151]"}>
+                  [{h.breakpoint}] {h.message}
+                </p>
+                <p className="mt-0.5 text-[#6B7280]">{h.suggestion}</p>
+                {h.fix?.propsPatch && h.fix.sectionId ? (
+                  <button
+                    type="button"
+                    className="mt-1 font-semibold text-[#FF5A1F] underline"
+                    onClick={() => {
+                      updateSectionProps(h.fix!.sectionId, h.fix!.propsPatch || {});
+                      if (h.fix?.sectionId) setSelectedId(h.fix.sectionId);
+                      setPanel("sections");
+                    }}
+                  >
+                    Apply suggested fix
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -685,6 +700,11 @@ export function BuilderClient({
             {panel === "theme" && (
               <ThemeControls settings={settings} contrast={contrast} onPatch={patchSettings} />
             )}
+            {panel === "media" && (
+              <p className="text-xs text-[#6B7280]">
+                Logo, favicon, and hero/section images upload to Cloudinary. Edit assets in the right panel or section inspector.
+              </p>
+            )}
             {panel === "pages" && (
               <div className="space-y-2">
                 {pages.map((p) => (
@@ -749,6 +769,7 @@ export function BuilderClient({
           >
             <PreviewCanvas
               storeName={storeName}
+              handle={handle}
               logo={logo}
               settings={settings}
               sections={enabledSections}
@@ -764,7 +785,7 @@ export function BuilderClient({
 
         {/* Right contextual */}
         <aside className="border-t border-[#E5E7EB] bg-white p-4 lg:border-l lg:border-t-0">
-          {panel === "design" || panel === "settings" ? (
+          {panel === "design" || panel === "settings" || panel === "media" ? (
             <BrandPanel
               settings={settings}
               logo={logo}
@@ -1269,14 +1290,112 @@ function SectionInspector({
   onToggle: () => void;
 }) {
   const props = section.props || {};
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiPreview, setAiPreview] = useState<{
+    headline?: string;
+    subhead?: string;
+    cta?: string;
+    body?: string;
+  } | null>(null);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+
+  const isProductSection = [
+    "featured_products",
+    "best_sellers",
+    "new_arrivals",
+    "collections",
+  ].includes(section.type);
+
+  const videoCheck =
+    section.type === "video"
+      ? resolveVideoEmbedUrl(typeof props.url === "string" ? props.url : "")
+      : null;
+
+  async function improveCopy() {
+    setAiBusy(true);
+    setAiNote(null);
+    setAiPreview(null);
+    const seed =
+      String(props.headline || props.title || props.text || section.type).slice(0, 120) ||
+      "storefront";
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "store_section_copy",
+          sectionType: section.type,
+          storeName: seed,
+          current: {
+            headline: props.headline,
+            subhead: props.subhead,
+            title: props.title,
+            cta: props.cta,
+            body: props.body || props.text,
+          },
+          tone: "ecommerce",
+        }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
+        data?: { headline?: string; subhead?: string; cta?: string; body?: string };
+        code?: string;
+        error?: string;
+      };
+      if (res.ok && json.success && json.data) {
+        setAiPreview(json.data);
+        setAiNote("Preview AI suggestions — apply only if you like them.");
+      } else {
+        setAiPreview({
+          headline: suggestHeadline(String(props.headline || seed), seed),
+        });
+        setAiNote(
+          json.code === "provider_unconfigured"
+            ? "AI provider not configured — showing local suggestion."
+            : "AI unavailable — showing local suggestion."
+        );
+      }
+    } catch {
+      setAiPreview({
+        headline: suggestHeadline(String(props.headline || seed), seed),
+      });
+      setAiNote("AI unavailable — showing local suggestion.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold capitalize text-[#111827]">{section.type.replace(/_/g, " ")}</p>
+        <p className="text-sm font-semibold capitalize text-[#111827]">
+          {section.type.replace(/_/g, " ")}
+        </p>
         <button type="button" onClick={onToggle} className="text-xs font-semibold text-[#6B7280] underline">
           {section.enabled ? "Disable" : "Enable"}
         </button>
       </div>
+
+      <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-2.5">
+        <p className="mb-2 text-[11px] font-semibold text-[#374151]">Visibility</p>
+        {(
+          [
+            ["hideOnMobile", "Hide on mobile"],
+            ["hideOnTablet", "Hide on tablet"],
+            ["hideOnDesktop", "Hide on desktop"],
+          ] as const
+        ).map(([key, label]) => (
+          <label key={key} className="mb-1 flex items-center gap-2 text-[11px] text-[#4B5563]">
+            <input
+              type="checkbox"
+              checked={props[key] === true}
+              onChange={(e) => onProps({ [key]: e.target.checked })}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+
       {section.type === "hero" ? (
         <>
           <label className="block text-xs">
@@ -1298,17 +1417,6 @@ function SectionInspector({
           {(["eyebrow", "headline", "subhead", "cta", "ctaSecondary"] as const).map((k) => (
             <Field key={k} label={k} value={String(props[k] || "")} onChange={(v) => onProps({ [k]: v })} />
           ))}
-          <button
-            type="button"
-            className="text-xs font-semibold text-[#FF5A1F] underline"
-            onClick={() =>
-              onProps({
-                headline: suggestHeadline(String(props.headline || ""), String(props.headline || "Store")),
-              })
-            }
-          >
-            Improve headline
-          </button>
           <label className="block text-xs">
             <span className="mb-1 block font-semibold">Primary CTA destination</span>
             <select
@@ -1350,23 +1458,149 @@ function SectionInspector({
           </div>
         </>
       ) : null}
+
       {section.type === "announcement" ? (
         <Field label="Text" value={String(props.text || "")} onChange={(v) => onProps({ text: v })} />
       ) : null}
-      {["featured_products", "best_sellers", "new_arrivals", "collections", "gallery", "newsletter", "faq", "testimonials", "stats", "contact_block", "discount_banner", "trust_shipping", "banner", "image_text", "video", "rich_text"].includes(section.type) ? (
+
+      {isProductSection ? (
+        <div className="space-y-2 rounded-lg border border-[#E5E7EB] p-2.5">
+          <p className="text-[11px] font-semibold text-[#374151]">Merchandising</p>
+          <Field
+            label="title"
+            value={String(props.title || "")}
+            onChange={(v) => onProps({ title: v })}
+          />
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Sort</span>
+            <select
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+              value={String(props.sort || (section.type === "new_arrivals" ? "newest" : "manual"))}
+              onChange={(e) => onProps({ sort: e.target.value })}
+            >
+              <option value="manual">Featured / catalog order</option>
+              <option value="newest">Newest</option>
+              <option value="price_asc">Price: low to high</option>
+              <option value="price_desc">Price: high to low</option>
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Limit</span>
+            <input
+              type="number"
+              min={1}
+              max={24}
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+              value={Number(props.limit) || 8}
+              onChange={(e) => onProps({ limit: Math.min(24, Math.max(1, Number(e.target.value) || 8)) })}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {section.type === "video" ? (
+        <div className="space-y-2">
+          <Field
+            label="Video URL (YouTube / Vimeo / HTTPS embed)"
+            value={String(props.url || "")}
+            onChange={(v) => onProps({ url: v })}
+          />
+          {videoCheck && !videoCheck.ok ? (
+            <p className="text-[11px] font-medium text-amber-700">{videoCheck.error}</p>
+          ) : null}
+          {videoCheck?.ok ? (
+            <p className="text-[11px] text-emerald-700">
+              Detected {videoCheck.provider} — ready for storefront embed.
+            </p>
+          ) : null}
+          <label className="flex items-center gap-2 text-[11px] text-[#4B5563]">
+            <input
+              type="checkbox"
+              checked={props.autoplay === true}
+              onChange={(e) => onProps({ autoplay: e.target.checked, muted: e.target.checked ? true : props.muted })}
+            />
+            Autoplay (muted)
+          </label>
+        </div>
+      ) : null}
+
+      {["gallery", "newsletter", "faq", "testimonials", "stats", "contact_block", "discount_banner", "trust_shipping", "banner", "image_text", "rich_text"].includes(section.type) ? (
         <div className="space-y-2">
           {Object.entries(props)
-            .filter(([, v]) => typeof v === "string" || typeof v === "number")
+            .filter(([k, v]) =>
+              !k.startsWith("hideOn") &&
+              k !== "sort" &&
+              k !== "limit" &&
+              (typeof v === "string" || typeof v === "number")
+            )
             .map(([k, v]) => (
               <Field key={k} label={k} value={String(v)} onChange={(nv) => onProps({ [k]: nv })} />
             ))}
           {section.type === "image_text" ? (
-            <CloudinaryUploadButton
-              folder="jimvio/banners"
-              resourceType="image"
-              buttonText="Upload section image"
-              onUploadSuccess={(url) => onProps({ imageUrl: url })}
-            />
+            <>
+              <CloudinaryUploadButton
+                folder="jimvio/banners"
+                resourceType="image"
+                buttonText="Upload section image"
+                onUploadSuccess={(url) => onProps({ imageUrl: url })}
+              />
+              <Field
+                label="imageAlt"
+                value={String(props.imageAlt || "")}
+                onChange={(v) => onProps({ imageAlt: v })}
+              />
+            </>
+          ) : null}
+          {section.type === "newsletter" ? (
+            <p className="text-[11px] text-[#6B7280]">
+              Subscribers are captured per-store with ownership isolation. Email delivery uses your configured provider when available.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {["hero", "announcement", "banner", "newsletter", "faq", "testimonials", "image_text", "rich_text", "discount_banner"].includes(section.type) ? (
+        <div className="space-y-2 border-t border-[#E5E7EB] pt-3">
+          <button
+            type="button"
+            disabled={aiBusy}
+            className="text-xs font-semibold text-[#FF5A1F] underline disabled:opacity-50"
+            onClick={() => void improveCopy()}
+          >
+            {aiBusy ? "Generating…" : "Suggest copy (AI)"}
+          </button>
+          {aiNote ? <p className="text-[11px] text-[#6B7280]">{aiNote}</p> : null}
+          {aiPreview ? (
+            <div className="rounded-lg border border-[#E5E7EB] bg-[#FFF7ED] p-2.5 text-[11px]">
+              {aiPreview.headline ? <p><span className="font-semibold">Headline:</span> {aiPreview.headline}</p> : null}
+              {aiPreview.subhead ? <p className="mt-1"><span className="font-semibold">Subhead:</span> {aiPreview.subhead}</p> : null}
+              {aiPreview.cta ? <p className="mt-1"><span className="font-semibold">CTA:</span> {aiPreview.cta}</p> : null}
+              {aiPreview.body ? <p className="mt-1"><span className="font-semibold">Body:</span> {aiPreview.body}</p> : null}
+              <button
+                type="button"
+                className="mt-2 font-semibold text-[#FF5A1F] underline"
+                onClick={() => {
+                  const patch: Record<string, unknown> = {};
+                  if (aiPreview.headline) {
+                    if ("headline" in props || section.type === "hero") patch.headline = aiPreview.headline;
+                    else if ("title" in props) patch.title = aiPreview.headline;
+                    else if ("text" in props) patch.text = aiPreview.headline;
+                    else patch.headline = aiPreview.headline;
+                  }
+                  if (aiPreview.subhead) patch.subhead = aiPreview.subhead;
+                  if (aiPreview.cta) patch.cta = aiPreview.cta;
+                  if (aiPreview.body) {
+                    if ("body" in props) patch.body = aiPreview.body;
+                    else if (section.type === "announcement") patch.text = aiPreview.body;
+                  }
+                  onProps(patch);
+                  setAiPreview(null);
+                  setAiNote("Applied — draft only until you Save / Publish.");
+                }}
+              >
+                Apply suggestion
+              </button>
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -1395,8 +1629,10 @@ function Field({
   );
 }
 
+
 function PreviewCanvas({
   storeName,
+  handle,
   logo,
   settings,
   sections,
@@ -1408,6 +1644,7 @@ function PreviewCanvas({
   selectedId,
 }: {
   storeName: string;
+  handle: string;
   logo: string | null;
   settings: ThemeSettings;
   sections: ThemeSection[];
@@ -1418,271 +1655,89 @@ function PreviewCanvas({
   onSelect: (id: string) => void;
   selectedId: string | null;
 }) {
-  const btnStyle = (settings.buttonStyle || "filled") as ButtonStyle;
-  const btnBase: CSSProperties = {
-    borderRadius: "var(--store-btn-radius)",
-    minHeight: "var(--store-btn-height)",
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "0 1.1rem",
-    fontWeight: 600,
-    fontSize: 13,
-  };
-  const btnFilled: CSSProperties = {
-    ...btnBase,
-    background: "var(--store-btn)",
-    color: "var(--store-btn-text)",
-  };
-  const btnOutline: CSSProperties = {
-    ...btnBase,
-    background: "transparent",
-    color: "var(--store-btn)",
-    border: "1px solid var(--store-btn)",
-  };
-  const primaryBtn =
-    btnStyle === "outline" || btnStyle === "ghost" || btnStyle === "link"
-      ? btnOutline
-      : btnStyle === "soft"
-        ? { ...btnBase, background: "color-mix(in srgb, var(--store-btn) 15%, white)", color: "var(--store-btn)" }
-        : btnFilled;
+  const announcement = sections.find((s) => s.type === "announcement" && s.enabled);
+  const showHeader = sections.some((s) => s.type === "header" && s.enabled);
+  const showFooter = sections.some((s) => s.type === "footer" && s.enabled);
+  const contentSections = sections.filter(
+    (s) => !["announcement", "header", "footer"].includes(s.type)
+  );
 
   return (
     <div className="text-[var(--store-text)]">
-      {sections.map((section) => {
-        const props = section.props || {};
-        const active = selectedId === section.id;
-        const wrap = (node: ReactNode) => (
-          <div
-            key={section.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(section.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onSelect(section.id);
-            }}
-            className={active ? "outline outline-2 outline-[#FF5A1F] outline-offset-[-2px]" : undefined}
-          >
-            {node}
+      {announcement ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelect(announcement.id)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") onSelect(announcement.id);
+          }}
+          className={
+            selectedId === announcement.id
+              ? "outline outline-2 outline-[#FF5A1F] outline-offset-[-2px]"
+              : undefined
+          }
+        >
+          <div className="pointer-events-none">
+            <StorefrontAnnouncement
+              storeName={storeName}
+              text={
+                typeof announcement.props?.text === "string"
+                  ? announcement.props.text
+                  : null
+              }
+            />
           </div>
-        );
-
-        if (section.type === "announcement") {
-          return wrap(
-            <div className="bg-[var(--store-primary)] px-3 py-2 text-center text-[10px] font-semibold text-white sm:text-[11px]">
-              {String(props.text || "")}
-            </div>
-          );
-        }
-        if (section.type === "header") {
-          const centered = settings.headerAlign === "centered" || settings.headerStyle === "centered";
-          return wrap(
-            <header className={`flex items-center gap-3 border-b border-black/5 px-3 py-3 ${centered ? "flex-col" : "justify-between"}`}>
-              <div className="flex items-center gap-2">
-                {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="" style={{ height: "var(--store-logo-size)", width: "auto" }} />
-                ) : (
-                  <span className="grid place-items-center rounded-md text-[10px] font-bold text-white" style={{ height: "var(--store-logo-size)", width: "var(--store-logo-size)", background: "var(--store-primary)" }}>
-                    {storeName.slice(0, 1)}
-                  </span>
-                )}
-                <span className="text-sm font-semibold">{storeName}</span>
-              </div>
-              <nav className={`flex flex-wrap gap-2 text-[11px] opacity-70 ${device === "mobile" ? "justify-center" : ""}`}>
-                {(headerNav.length ? headerNav : [{ label: "Home", href: "/" }, { label: "Shop", href: "/collections/all" }]).map((n) => (
-                  <span key={n.label}>{n.label}</span>
-                ))}
-                <span className="rounded-full bg-[var(--store-primary)] px-2 py-0.5 text-[10px] font-semibold text-white">Cart</span>
-              </nav>
-            </header>
-          );
-        }
-        if (section.type === "hero") {
-          const layout = String(props.layout || "left");
-          const imageUrl = typeof props.imageUrl === "string" ? props.imageUrl : "";
-          return wrap(
-            <section className={`relative overflow-hidden px-4 py-10 ${layout === "center" ? "text-center" : ""} ${layout === "split" ? "grid gap-4 sm:grid-cols-2" : ""}`}>
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageUrl} alt="" className={`absolute inset-0 h-full w-full object-cover ${layout === "split" ? "sm:static sm:rounded-xl" : ""}`} />
-              ) : null}
-              <div className="relative">
-                {props.eyebrow ? <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--store-primary)]">{String(props.eyebrow)}</p> : null}
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{String(props.headline || storeName)}</h1>
-                <p className="mt-2 text-sm opacity-70">{String(props.subhead || "")}</p>
-                <div className={`mt-4 flex flex-wrap gap-2 ${layout === "center" ? "justify-center" : ""}`}>
-                  <span style={primaryBtn}>{String(props.cta || "Shop now")}</span>
-                  {props.ctaSecondary ? <span style={btnOutline}>{String(props.ctaSecondary)}</span> : null}
-                </div>
-              </div>
-            </section>
-          );
-        }
-        if (
-          section.type === "featured_products" ||
-          section.type === "best_sellers" ||
-          section.type === "new_arrivals" ||
-          section.type === "collections"
-        ) {
-          return wrap(
-            <section className="px-4 py-8">
-              <h2 className="text-lg font-semibold">{String(props.title || "Featured")}</h2>
-              <div
-                className="mt-4 grid gap-3"
-                style={{
-                  gridTemplateColumns:
-                    device === "mobile"
-                      ? "1fr"
-                      : `repeat(${Math.min(settings.productGridColumns || 3, device === "tablet" ? 2 : 4)}, minmax(0,1fr))`,
-                }}
-              >
-                {(products.length ? products : []).slice(0, 6).map((p) => {
-                  const img = firstImage(p.images);
-                  return (
-                    <div key={p.id} className="overflow-hidden border border-black/5 bg-[var(--store-surface)]" style={{ borderRadius: "var(--store-card-radius)", boxShadow: "var(--store-shadow)" }}>
-                      <div className="aspect-[4/3] bg-[#F3F4F6]">
-                        {img ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={img} alt="" className="h-full w-full object-cover" />
-                        ) : null}
-                      </div>
-                      <div className="p-2.5">
-                        <p className="text-xs font-medium">{p.name}</p>
-                        <p className="mt-1 text-xs font-semibold">{formatMoney(p.price, p.currency)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {!products.length ? (
-                  <p className="col-span-full rounded-lg border border-dashed border-black/10 p-6 text-center text-xs opacity-60">
-                    Add products to see them here.
-                  </p>
-                ) : null}
-              </div>
-            </section>
-          );
-        }
-        if (section.type === "banner" || section.type === "trust_shipping") {
-          return wrap(
-            <section className="border-y border-black/5 bg-white/70 px-4 py-6 text-center">
-              <p className="text-sm font-semibold">{String(props.headline || "")}</p>
-              <p className="mt-2 text-xs opacity-70">{String(props.subhead || props.items || "")}</p>
-            </section>
-          );
-        }
-        if (section.type === "discount_banner") {
-          return wrap(
-            <section className="m-4 rounded-xl px-4 py-6 text-center text-white" style={{ background: "var(--store-primary)", borderRadius: "var(--store-radius)" }}>
-              <p className="text-lg font-semibold">{String(props.headline || "")}</p>
-              <p className="mt-1 text-sm opacity-90">{String(props.subhead || "")}</p>
-              <span className="mt-3 inline-flex rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--store-primary)]">
-                {String(props.cta || "Shop now")}
-              </span>
-            </section>
-          );
-        }
-        if (section.type === "stats") {
-          return wrap(
-            <section className="grid grid-cols-3 gap-2 px-4 py-8 text-center">
-              {[
-                [props.aValue, props.aLabel],
-                [props.bValue, props.bLabel],
-                [props.cValue, props.cLabel],
-              ].map(([v, l], i) => (
-                <div key={i}>
-                  <p className="text-xl font-semibold">{String(v || "")}</p>
-                  <p className="text-[10px] opacity-60">{String(l || "")}</p>
-                </div>
-              ))}
-            </section>
-          );
-        }
-        if (section.type === "testimonials") {
-          return wrap(
-            <section className="px-4 py-8 text-center">
-              <h2 className="text-lg font-semibold">{String(props.title || "Testimonials")}</h2>
-              <p className="mt-3 text-sm italic opacity-70">“{String(props.quote || "")}”</p>
-              <p className="mt-2 text-xs font-semibold opacity-60">{String(props.author || "")}</p>
-            </section>
-          );
-        }
-        if (section.type === "faq") {
-          return wrap(
-            <section className="space-y-2 px-4 py-8">
-              <h2 className="text-lg font-semibold">{String(props.title || "FAQ")}</h2>
-              <div className="rounded-lg border border-black/5 bg-white p-3 text-left text-xs">
-                <p className="font-semibold">{String(props.q1 || "")}</p>
-                <p className="mt-1 opacity-70">{String(props.a1 || "")}</p>
-              </div>
-            </section>
-          );
-        }
-        if (section.type === "image_text") {
-          return wrap(
-            <section className="grid gap-4 px-4 py-8 sm:grid-cols-2">
-              <div className="aspect-[4/3] overflow-hidden bg-[#E5E7EB]" style={{ borderRadius: "var(--store-radius)" }}>
-                {typeof props.imageUrl === "string" && props.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={String(props.imageUrl)} alt="" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">{String(props.headline || "")}</h2>
-                <p className="mt-2 text-sm opacity-70">{String(props.body || "")}</p>
-              </div>
-            </section>
-          );
-        }
-        if (section.type === "newsletter" || section.type === "contact_block") {
-          return wrap(
-            <section className="px-4 py-8 text-center">
-              <h2 className="text-lg font-semibold">{String(props.title || "")}</h2>
-              <p className="mt-2 text-sm opacity-70">{String(props.subhead || props.body || "")}</p>
-            </section>
-          );
-        }
-        if (section.type === "video") {
-          return wrap(
-            <section className="px-4 py-8 text-center">
-              <h2 className="text-lg font-semibold">{String(props.title || "Video")}</h2>
-              <div className="mt-3 aspect-video rounded-xl bg-black/80 text-[11px] text-white/70 grid place-items-center">
-                {typeof props.url === "string" && props.url ? "Video ready" : "Add a video URL"}
-              </div>
-            </section>
-          );
-        }
-        if (section.type === "gallery") {
-          return wrap(
-            <section className="px-4 py-8">
-              <h2 className="text-lg font-semibold">{String(props.title || "Gallery")}</h2>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((i) => (
-                  <div key={i} className="aspect-square rounded-lg bg-[#E5E7EB]" />
-                ))}
-              </div>
-            </section>
-          );
-        }
-        if (section.type === "rich_text") {
-          return wrap(
-            <section className="prose prose-sm max-w-none px-4 py-6" dangerouslySetInnerHTML={{ __html: String(props.html || "") }} />
-          );
-        }
-        if (section.type === "footer") {
-          return wrap(
-            <footer className="border-t border-black/5 bg-white px-4 py-6">
-              <p className="text-sm font-semibold">{storeName}</p>
-              <div className="mt-2 flex flex-wrap gap-3 text-[11px] opacity-65">
-                {(footerNav.length ? footerNav : [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }]).map((n) => (
-                  <span key={n.label}>{n.label}</span>
-                ))}
-              </div>
-              <p className="mt-3 text-[10px] opacity-45">Powered by Jimvio</p>
-            </footer>
-          );
-        }
-        return null;
-      })}
+        </div>
+      ) : null}
+      {showHeader ? (
+        <div className="pointer-events-none">
+          <StorefrontHeader
+            storeName={storeName}
+            handle={handle}
+            logoUrl={logo}
+            navItems={headerNav}
+            onStoreHost
+            sticky={settings.stickyHeader !== false}
+            centered={
+              settings.headerAlign === "centered" ||
+              settings.headerStyle === "centered"
+            }
+          />
+        </div>
+      ) : null}
+      {!products.length &&
+      contentSections.some((s) =>
+        ["featured_products", "best_sellers", "new_arrivals", "collections"].includes(
+          s.type
+        )
+      ) ? (
+        <p className="mx-4 my-6 rounded-xl border border-dashed border-black/10 px-4 py-8 text-center text-xs opacity-60">
+          No products published yet — product sections will fill once you add catalog items.
+        </p>
+      ) : null}
+      <StorefrontHomeSections
+        sections={contentSections}
+        products={products}
+        handle={handle}
+        storeName={storeName}
+        themeSettings={settings}
+        onStoreHost
+        device={device}
+        preview
+        onSelectSection={onSelect}
+        selectedId={selectedId}
+      />
+      {showFooter ? (
+        <div className="pointer-events-none">
+          <StorefrontFooter
+            storeName={storeName}
+            handle={handle}
+            navItems={footerNav}
+            onStoreHost
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

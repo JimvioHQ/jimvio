@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { cosAdminDb } from "@/lib/commerce-os";
+import { cosAdminDb, storefrontDisplayUrl } from "@/lib/commerce-os";
 import { authenticateApiKey, apiError } from "@/lib/dropshipping/api/auth";
 import { cosTable } from "@/lib/commerce-os/db";
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     data: (data ?? []).map((s) => ({
       ...s,
       type: "jimvio_store" as const,
-      url: `/s/${s.handle}`,
+      url: storefrontDisplayUrl(s.handle),
     })),
   });
 }

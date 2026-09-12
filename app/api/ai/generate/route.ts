@@ -25,6 +25,23 @@ const generateSchema = z.discriminatedUnion("type", [
     tone: z.enum(["exciting", "professional", "urgent", "storytelling"]).optional(),
   }),
   z.object({
+    type: z.literal("store_section_copy"),
+    sectionType: z.string().min(1).max(64),
+    storeName: z.string().min(1).max(120),
+    current: z
+      .object({
+        headline: z.unknown().optional(),
+        subhead: z.unknown().optional(),
+        title: z.unknown().optional(),
+        cta: z.unknown().optional(),
+        body: z.unknown().optional(),
+      })
+      .optional(),
+    tone: z
+      .enum(["professional", "luxury", "creator", "ecommerce", "casual"])
+      .optional(),
+  }),
+  z.object({
     type: z.literal("affiliate_suggestions"),
     affiliateNiche: z.array(z.string()),
     topPerformingCategories: z.array(z.string()),
@@ -80,6 +97,9 @@ export async function POST(req: NextRequest) {
         break;
       case "marketing_copy":
         result = await aiService.generateMarketingCopy(params);
+        break;
+      case "store_section_copy":
+        result = await aiService.generateStoreSectionCopy(params);
         break;
       case "affiliate_suggestions":
         result = await aiService.generateAffiliateSuggestions(params);

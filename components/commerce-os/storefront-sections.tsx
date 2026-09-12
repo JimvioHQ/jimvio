@@ -11,6 +11,7 @@ type ProductCard = {
   name: string;
   slug: string;
   price: number | string | null;
+  compare_at_price?: number | string | null;
   currency?: string | null;
   images?: unknown;
   short_description?: string | null;
@@ -367,6 +368,12 @@ export function StorefrontFeaturedProducts({
                   ) : null}
                   <p className="mt-3 text-sm font-semibold text-[var(--store-text,#111827)]">
                     {formatMoney(p.price, p.currency)}
+                    {p.compare_at_price != null &&
+                    Number(p.compare_at_price) > Number(p.price ?? 0) ? (
+                      <span className="ml-2 text-xs font-normal line-through opacity-50">
+                        {formatMoney(p.compare_at_price, p.currency)}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
               </Link>

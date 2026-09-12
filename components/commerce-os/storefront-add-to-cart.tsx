@@ -70,13 +70,12 @@ export function StorefrontAddToCartButton({
         incrementCartCount(1);
         setTimeout(() => setAdded(false), 2000);
       } else if (result.error === "Authentication required") {
-        const onStoreHost =
-          typeof window !== "undefined" &&
-          /\.jimvio\.com$/i.test(window.location.hostname) &&
-          !/^(www|api|admin)\./i.test(window.location.hostname);
-        const next = onStoreHost
-          ? `/product`
-          : `/s/${storeHandle}/product`;
+        // Preserve current product URL; on merchant hosts pathname is already
+        // host-relative (canonical subdomain), not /s/{handle}.
+        const next =
+          typeof window !== "undefined"
+            ? `${window.location.pathname}${window.location.search}` || "/"
+            : "/";
         window.location.href = `/login?next=${encodeURIComponent(next)}`;
       } else {
         setError(result.error || "Could not add this product to your cart.");
