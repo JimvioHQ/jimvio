@@ -70,7 +70,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
       .eq("store_id", active.id)
       .eq("vendor_id", auth.vendorId)
       .order("title", { ascending: true }),
-    loadStoreProducts(db, active.id, { limit: 8 }),
+    loadStoreProducts(db, active.id, { limit: 24 }),
   ]);
 
   const headerNav = asNavItems(

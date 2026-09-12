@@ -486,7 +486,7 @@ export const BUILDER_SECTION_CATALOG: Array<{
   {
     type: "newsletter",
     label: "Email capture",
-    description: "Simple signup CTA",
+    description: "Subscriber capture (not campaign sending)",
     group: "content",
     defaultProps: {
       title: "Stay in the loop",

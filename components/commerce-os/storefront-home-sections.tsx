@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ThemeSection, ThemeSettings } from "@/lib/commerce-os/themes/registry";
 import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
+import { sliceProductsForSection } from "@/lib/commerce-os/storefront/product-slice";
 import {
   StorefrontFeaturedProducts,
   StorefrontHero,
@@ -30,43 +31,7 @@ function visibleForDevice(
   return true;
 }
 
-function sortForSection(
-  type: string,
-  props: Record<string, unknown>
-): "manual" | "newest" | "price_asc" | "price_desc" {
-  const explicit = props.sort;
-  if (
-    explicit === "manual" ||
-    explicit === "newest" ||
-    explicit === "price_asc" ||
-    explicit === "price_desc"
-  ) {
-    return explicit;
-  }
-  if (type === "new_arrivals") return "newest";
-  if (type === "best_sellers") return "manual";
-  return "manual";
-}
-
-export function sliceProductsForSection(
-  all: Product[],
-  section: ThemeSection
-): Product[] {
-  const props = section.props || {};
-  const limit = Math.min(
-    Math.max(Number(props.limit) || (section.type === "collections" ? 6 : 8), 1),
-    24
-  );
-  const sort = sortForSection(section.type, props);
-  const list = [...all];
-  if (sort === "price_asc") {
-    list.sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0));
-  } else if (sort === "price_desc") {
-    list.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
-  }
-  // newest / manual: keep caller order
-  return list.slice(0, limit);
-}
+export { sliceProductsForSection };
 
 /**
  * Shared homepage section renderer for production storefront + builder canvas.
@@ -392,21 +357,28 @@ export function StorefrontHomeSections({
       if (preview && onSelectSection) {
         const active = selectedId === section.id;
         return (
-          <div
-            key={section.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectSection(section.id)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onSelectSection(section.id);
-            }}
-            className={
-              active
-                ? "outline outline-2 outline-[#FF5A1F] outline-offset-[-2px]"
-                : undefined
-            }
-          >
-            <div className="pointer-events-none">{node}</div>
+          <div key={section.id} className="relative">
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label={`Edit ${section.type.replace(/_/g, " ")}`}
+              onClick={() => onSelectSection(section.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") onSelectSection(section.id);
+              }}
+              className={
+                active
+                  ? "relative outline outline-2 outline-[#2563EB] outline-offset-[-2px]"
+                  : "relative hover:outline hover:outline-1 hover:outline-[#93C5FD] hover:outline-offset-[-1px]"
+              }
+            >
+              {active ? (
+                <span className="absolute left-0 top-0 z-10 rounded-br-md bg-[#2563EB] px-2 py-0.5 text-[10px] font-semibold capitalize text-white">
+                  {section.type.replace(/_/g, " ")}
+                </span>
+              ) : null}
+              <div className="pointer-events-none">{node}</div>
+            </div>
           </div>
         );
       }
