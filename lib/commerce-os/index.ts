@@ -52,6 +52,10 @@ export {
 } from "./storefront-url";
 export { isRequestOnStoreHost } from "./storefront-request";
 export {
+  buildStorefrontMetadata,
+  buildMissingStorefrontMetadata,
+} from "./storefront-metadata";
+export {
   reserveInventoryForOrder,
   commitInventoryHolds,
 } from "./inventory/holds";

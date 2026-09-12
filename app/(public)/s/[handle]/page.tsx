@@ -7,7 +7,10 @@ import {
   StorefrontFeaturedProducts,
   StorefrontTrustBar,
 } from "@/components/commerce-os/storefront-sections";
-import { storefrontDisplayUrl } from "@/lib/commerce-os/storefront-url";
+import {
+  buildMissingStorefrontMetadata,
+  buildStorefrontMetadata,
+} from "@/lib/commerce-os/storefront-metadata";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 
 export const dynamic = "force-dynamic";
@@ -18,18 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
-  if (!store) return { title: "Store" };
-  const canonical = storefrontDisplayUrl(handle);
-  return {
-    title: store.name,
-    description: store.description || `Shop ${store.name} on Jimvio`,
-    alternates: { canonical },
-    openGraph: {
-      title: store.name,
-      description: store.description || undefined,
-      url: canonical,
-    },
-  };
+  if (!store) return buildMissingStorefrontMetadata();
+  return buildStorefrontMetadata(store);
 }
 
 export default async function StorefrontHomePage({ params }: Props) {

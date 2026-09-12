@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
+import {
+  buildMissingStorefrontMetadata,
+  buildStorefrontMetadata,
+} from "@/lib/commerce-os/storefront-metadata";
 import {
   StorefrontAnnouncement,
   StorefrontHeader,
@@ -17,6 +22,14 @@ type Props = {
   children: ReactNode;
   params: Promise<{ handle: string }>;
 };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle } = await params;
+  const supabase = await createClient();
+  const store = await loadPublishedStoreByHandle(supabase, handle);
+  if (!store) return buildMissingStorefrontMetadata();
+  return buildStorefrontMetadata(store);
+}
 
 export default async function StorefrontLayout({ children, params }: Props) {
   const { handle } = await params;

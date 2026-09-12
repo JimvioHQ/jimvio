@@ -1,10 +1,15 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import {
   loadPublishedStoreByHandle,
   loadStoreProductBySlug,
 } from "@/lib/commerce-os";
 import { StorefrontAddToCartButton } from "@/components/commerce-os/storefront-add-to-cart";
+import {
+  buildMissingStorefrontMetadata,
+  buildStorefrontMetadata,
+} from "@/lib/commerce-os/storefront-metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +24,27 @@ function firstImage(images: unknown): string | null {
     return typeof url === "string" ? url : null;
   }
   return null;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle, slug } = await params;
+  const supabase = await createClient();
+  const store = await loadPublishedStoreByHandle(supabase, handle);
+  if (!store) return buildMissingStorefrontMetadata();
+  const loaded = await loadStoreProductBySlug(supabase, store.id, slug);
+  if (!loaded) {
+    return buildStorefrontMetadata(store, { path: `/product/${slug}` });
+  }
+  const img = firstImage(loaded.product.images);
+  return buildStorefrontMetadata(store, {
+    path: `/product/${slug}`,
+    title: `${loaded.product.name} | ${store.name}`,
+    description:
+      loaded.product.short_description ||
+      store.description ||
+      `Shop ${loaded.product.name} at ${store.name}`,
+    image: img,
+  });
 }
 
 export default async function StorefrontProductPage({ params }: Props) {
