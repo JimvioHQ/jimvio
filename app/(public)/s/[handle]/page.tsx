@@ -45,11 +45,17 @@ export default async function StorefrontHomePage({ params }: Props) {
         s.type === "best_sellers" ||
         s.type === "new_arrivals" ||
         s.type === "banner" ||
+        s.type === "trust_shipping" ||
+        s.type === "discount_banner" ||
+        s.type === "stats" ||
         s.type === "rich_text" ||
         s.type === "testimonials" ||
         s.type === "faq" ||
         s.type === "image_text" ||
-        s.type === "newsletter"
+        s.type === "newsletter" ||
+        s.type === "contact_block" ||
+        s.type === "gallery" ||
+        s.type === "video"
     )
     .map((section) => {
       const props = section.props || {};
@@ -69,16 +75,73 @@ export default async function StorefrontHomePage({ params }: Props) {
             }
             cta={typeof props.cta === "string" ? props.cta : undefined}
             ctaHref={typeof props.ctaHref === "string" ? props.ctaHref : undefined}
+            ctaSecondary={
+              typeof props.ctaSecondary === "string" ? props.ctaSecondary : undefined
+            }
+            ctaSecondaryHref={
+              typeof props.ctaSecondaryHref === "string"
+                ? props.ctaSecondaryHref
+                : undefined
+            }
+            eyebrow={typeof props.eyebrow === "string" ? props.eyebrow : undefined}
+            imageUrl={typeof props.imageUrl === "string" ? props.imageUrl : undefined}
+            layout={typeof props.layout === "string" ? props.layout : "left"}
+            buttonStyle={store.theme_settings.buttonStyle || "filled"}
           />
         );
       }
-      if (section.type === "banner") {
+      if (section.type === "banner" || section.type === "trust_shipping") {
         return (
           <StorefrontTrustBar
             key={section.id}
             headline={typeof props.headline === "string" ? props.headline : undefined}
-            subhead={typeof props.subhead === "string" ? props.subhead : undefined}
+            subhead={
+              typeof props.subhead === "string"
+                ? props.subhead
+                : typeof props.items === "string"
+                  ? props.items
+                  : undefined
+            }
           />
+        );
+      }
+      if (section.type === "discount_banner") {
+        return (
+          <section
+            key={section.id}
+            className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 py-8 sm:px-6"
+          >
+            <div
+              className="rounded-[var(--store-radius,12px)] px-6 py-10 text-center text-white"
+              style={{ background: "var(--store-primary,#FF5A1F)" }}
+            >
+              <h2 className="text-2xl font-semibold">
+                {typeof props.headline === "string" ? props.headline : "Limited offer"}
+              </h2>
+              <p className="mt-2 text-sm opacity-90">
+                {typeof props.subhead === "string" ? props.subhead : ""}
+              </p>
+            </div>
+          </section>
+        );
+      }
+      if (section.type === "stats") {
+        return (
+          <section
+            key={section.id}
+            className="mx-auto grid max-w-4xl grid-cols-3 gap-4 px-4 py-12 text-center sm:px-6"
+          >
+            {[
+              [props.aValue, props.aLabel],
+              [props.bValue, props.bLabel],
+              [props.cValue, props.cLabel],
+            ].map(([v, l], i) => (
+              <div key={i}>
+                <p className="text-2xl font-semibold">{typeof v === "string" ? v : ""}</p>
+                <p className="mt-1 text-xs opacity-60">{typeof l === "string" ? l : ""}</p>
+              </div>
+            ))}
+          </section>
         );
       }
       if (section.type === "featured_products" || section.type === "collections" || section.type === "best_sellers" || section.type === "new_arrivals") {
@@ -151,7 +214,12 @@ export default async function StorefrontHomePage({ params }: Props) {
       if (section.type === "image_text") {
         return (
           <section key={section.id} className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2">
-            <div className="aspect-[4/3] rounded-[var(--store-radius,12px)] bg-[#E5E7EB]" />
+            <div className="aspect-[4/3] overflow-hidden rounded-[var(--store-radius,12px)] bg-[#E5E7EB]">
+              {typeof props.imageUrl === "string" && props.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={props.imageUrl} alt="" className="h-full w-full object-cover" />
+              ) : null}
+            </div>
             <div>
               <h2 className="text-2xl font-semibold">
                 {typeof props.headline === "string" ? props.headline : "Our story"}
@@ -163,18 +231,63 @@ export default async function StorefrontHomePage({ params }: Props) {
           </section>
         );
       }
-      if (section.type === "newsletter") {
+      if (section.type === "newsletter" || section.type === "contact_block") {
         return (
           <section key={section.id} className="border-y border-black/5 bg-white/70 px-4 py-12 text-center sm:px-6">
             <h2 className="text-2xl font-semibold">
               {typeof props.title === "string" ? props.title : "Stay in the loop"}
             </h2>
             <p className="mt-2 text-sm opacity-70">
-              {typeof props.subhead === "string" ? props.subhead : ""}
+              {typeof props.subhead === "string"
+                ? props.subhead
+                : typeof props.body === "string"
+                  ? props.body
+                  : ""}
             </p>
-            <p className="mt-4 text-xs opacity-50">
-              Connect email capture from Integrations when ready.
-            </p>
+            {section.type === "newsletter" ? (
+              <p className="mt-4 text-xs opacity-50">
+                Connect email capture from Integrations when ready.
+              </p>
+            ) : null}
+          </section>
+        );
+      }
+      if (section.type === "gallery") {
+        return (
+          <section key={section.id} className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+            <h2 className="text-2xl font-semibold">
+              {typeof props.title === "string" ? props.title : "Gallery"}
+            </h2>
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-[var(--store-radius,12px)] bg-[#E5E7EB]"
+                />
+              ))}
+            </div>
+          </section>
+        );
+      }
+      if (section.type === "video") {
+        return (
+          <section key={section.id} className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6">
+            <h2 className="text-2xl font-semibold">
+              {typeof props.title === "string" ? props.title : "Video"}
+            </h2>
+            {typeof props.url === "string" && props.url.startsWith("https://") ? (
+              <div className="mt-6 aspect-video overflow-hidden rounded-[var(--store-radius,12px)] bg-black">
+                <iframe
+                  title={typeof props.title === "string" ? props.title : "Store video"}
+                  src={props.url}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <p className="mt-4 text-sm opacity-60">Add a secure https video URL in the builder.</p>
+            )}
           </section>
         );
       }

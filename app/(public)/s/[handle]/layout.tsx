@@ -104,6 +104,11 @@ export default async function StorefrontLayout({ children, params }: Props) {
           logoUrl={store.logo_url || settings.logoUrl}
           navItems={headerNav}
           onStoreHost={onStoreHost}
+          sticky={settings.stickyHeader !== false}
+          centered={
+            settings.headerAlign === "centered" ||
+            settings.headerStyle === "centered"
+          }
         />
       ) : null}
       <main className="flex-1">{children}</main>

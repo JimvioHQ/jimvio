@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import type { ThemeSection } from "@/lib/commerce-os/themes/registry";
 import {
   normalizeStorefrontHref,
@@ -60,12 +61,16 @@ export function StorefrontHeader({
   logoUrl,
   navItems,
   onStoreHost = false,
+  sticky = true,
+  centered = false,
 }: {
   storeName: string;
   handle: string;
   logoUrl?: string | null;
   navItems?: Array<{ label: string; href: string }>;
   onStoreHost?: boolean;
+  sticky?: boolean;
+  centered?: boolean;
 }) {
   const linkOpts = { onStoreHost };
   const home = storefrontHref(handle, "", linkOpts);
@@ -82,16 +87,31 @@ export function StorefrontHeader({
         ];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-[var(--store-bg,#F8FAFC)]/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
+    <header
+      className={`${sticky ? "sticky top-0" : "relative"} z-30 border-b border-black/[0.06] bg-[var(--store-bg,#F8FAFC)]/90 backdrop-blur-md`}
+    >
+      <div
+        className={`mx-auto flex max-w-[var(--store-max-width,72rem)] items-center gap-4 px-4 py-3.5 sm:px-6 ${
+          centered ? "flex-col text-center" : "justify-between"
+        }`}
+      >
         <Link href={home} className="flex min-w-0 items-center gap-2.5">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="" className="h-9 w-9 rounded-lg object-cover" />
+            <img
+              src={logoUrl}
+              alt=""
+              className="rounded-lg object-cover"
+              style={{ height: "var(--store-logo-size,36px)", width: "auto" }}
+            />
           ) : (
             <span
-              className="grid h-9 w-9 place-items-center rounded-lg text-xs font-bold text-white"
-              style={{ background: "var(--store-primary,#FF5A1F)" }}
+              className="grid place-items-center rounded-lg text-xs font-bold text-white"
+              style={{
+                background: "var(--store-primary,#FF5A1F)",
+                height: "var(--store-logo-size,36px)",
+                width: "var(--store-logo-size,36px)",
+              }}
               aria-hidden
             >
               {storeName.slice(0, 1).toUpperCase()}
@@ -128,36 +148,94 @@ export function StorefrontHero({
   subhead,
   cta,
   ctaHref,
+  ctaSecondary,
+  ctaSecondaryHref,
+  eyebrow,
+  imageUrl,
+  layout = "left",
   handle,
   onStoreHost = false,
+  buttonStyle = "filled",
 }: {
   headline?: string;
   subhead?: string;
   cta?: string;
   ctaHref?: string;
+  ctaSecondary?: string;
+  ctaSecondaryHref?: string;
+  eyebrow?: string;
+  imageUrl?: string;
+  layout?: string;
   handle: string;
   onStoreHost?: boolean;
+  buttonStyle?: string;
 }) {
   const linkOpts = { onStoreHost };
   const shopPath =
     typeof ctaHref === "string" && ctaHref.startsWith("/")
       ? ctaHref
       : "/collections/all";
+  const secondaryPath =
+    typeof ctaSecondaryHref === "string" && ctaSecondaryHref.startsWith("/")
+      ? ctaSecondaryHref
+      : "/pages/about";
+  const centered = layout === "center";
+  const split = layout === "split";
+  const primaryStyle: CSSProperties =
+    buttonStyle === "outline" || buttonStyle === "ghost" || buttonStyle === "link"
+      ? {
+          background: "transparent",
+          color: "var(--store-btn, var(--store-primary,#FF5A1F))",
+          border: "1px solid var(--store-btn, var(--store-primary,#FF5A1F))",
+          borderRadius: "var(--store-btn-radius,9999px)",
+        }
+      : buttonStyle === "soft"
+        ? {
+            background:
+              "color-mix(in srgb, var(--store-btn, var(--store-primary,#FF5A1F)) 15%, white)",
+            color: "var(--store-btn, var(--store-primary,#FF5A1F))",
+            borderRadius: "var(--store-btn-radius,9999px)",
+          }
+        : {
+            background: "var(--store-btn, var(--store-primary,#FF5A1F))",
+            color: "var(--store-btn-text,#FFFFFF)",
+            borderRadius: "var(--store-btn-radius,9999px)",
+          };
+
   return (
     <section className="relative overflow-hidden border-b border-black/[0.04]">
+      {imageUrl && !split ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imageUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-40"
+        />
+      ) : (
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.55]"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--store-primary,#FF5A1F) 18%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 20%, color-mix(in srgb, var(--store-primary,#FF5A1F) 10%, transparent), transparent 50%)",
+          }}
+          aria-hidden
+        />
+      )}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.55]"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 10% 0%, color-mix(in srgb, var(--store-primary,#FF5A1F) 18%, transparent), transparent 55%), radial-gradient(ellipse 50% 40% at 90% 20%, color-mix(in srgb, var(--store-primary,#FF5A1F) 10%, transparent), transparent 50%)",
-        }}
-        aria-hidden
-      />
-      <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--store-primary,#FF5A1F)]">
-            Official store
-          </p>
+        className={`relative mx-auto grid max-w-[var(--store-max-width,72rem)] gap-8 px-4 py-14 sm:px-6 sm:py-20 ${
+          split ? "lg:grid-cols-2 lg:items-center" : centered ? "" : "lg:grid-cols-[1.1fr_0.9fr] lg:items-end"
+        } ${centered ? "text-center" : ""}`}
+      >
+        <div className={centered ? "mx-auto max-w-2xl" : ""}>
+          {eyebrow ? (
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--store-primary,#FF5A1F)]">
+              {eyebrow}
+            </p>
+          ) : (
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--store-primary,#FF5A1F)]">
+              Official store
+            </p>
+          )}
           <h1 className="mt-3 max-w-xl text-4xl font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-5xl">
             {headline || "Shop the collection"}
           </h1>
@@ -166,45 +244,61 @@ export function StorefrontHero({
               {subhead}
             </p>
           ) : null}
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div
+            className={`mt-8 flex flex-wrap gap-3 ${centered ? "justify-center" : ""}`}
+          >
             <Link
               href={storefrontHref(handle, shopPath, linkOpts)}
               className="inline-flex px-5 py-2.5 text-sm font-semibold shadow-sm transition hover:opacity-95"
-              style={{
-                background: "var(--store-btn, var(--store-primary,#FF5A1F))",
-                color: "var(--store-btn-text,#FFFFFF)",
-                borderRadius: "var(--store-btn-radius,9999px)",
-              }}
+              style={primaryStyle}
             >
               {cta || "Shop now"}
             </Link>
-            <Link
-              href={storefrontHref(handle, "/search", linkOpts)}
-              className="inline-flex rounded-full border border-black/10 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
-            >
-              Search
-            </Link>
+            {ctaSecondary ? (
+              <Link
+                href={storefrontHref(handle, secondaryPath, linkOpts)}
+                className="inline-flex rounded-full border border-black/10 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
+              >
+                {ctaSecondary}
+              </Link>
+            ) : (
+              <Link
+                href={storefrontHref(handle, "/search", linkOpts)}
+                className="inline-flex rounded-full border border-black/10 bg-white/70 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
+              >
+                Search
+              </Link>
+            )}
           </div>
         </div>
-        <div className="hidden rounded-3xl border border-black/[0.06] bg-white/60 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] backdrop-blur lg:block">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--store-text,#111827)]/45">
-            Shopping with confidence
-          </p>
-          <ul className="mt-4 space-y-3 text-sm text-[var(--store-text,#111827)]/80">
-            <li className="flex gap-2">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
-              Secure checkout powered by Jimvio
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
-              Verified sourcing & fulfillment
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
-              Order tracking after purchase
-            </li>
-          </ul>
-        </div>
+        {split && imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt=""
+            className="hidden h-full min-h-[280px] w-full rounded-3xl object-cover lg:block"
+          />
+        ) : !split && !imageUrl ? (
+          <div className="hidden rounded-3xl border border-black/[0.06] bg-white/60 p-6 shadow-[var(--store-shadow,0_20px_50px_rgba(15,23,42,0.06))] backdrop-blur lg:block">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--store-text,#111827)]/45">
+              Shopping with confidence
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-[var(--store-text,#111827)]/80">
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+                Secure checkout powered by Jimvio
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+                Verified sourcing & fulfillment
+              </li>
+              <li className="flex gap-2">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--store-primary,#FF5A1F)]" />
+                Order tracking after purchase
+              </li>
+            </ul>
+          </div>
+        ) : null}
       </div>
     </section>
   );

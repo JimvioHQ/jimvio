@@ -7,53 +7,24 @@ import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
 } from "@/lib/commerce-os/storefront-metadata";
+import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
 
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ handle: string; pageSlug: string }> };
 
-const POLICY_FALLBACKS: Record<
-  string,
-  { title: string; body: (storeName: string) => string }
-> = {
-  terms: {
-    title: "Terms of service",
-    body: (n) =>
-      `<p>These terms govern your use of the ${n} storefront. By placing an order you agree to the store policies published here.</p><p>For questions, use the Contact page.</p>`,
-  },
-  privacy: {
-    title: "Privacy policy",
-    body: (n) =>
-      `<p>${n} respects your privacy. We use order and contact details only to fulfill purchases and provide customer support.</p><p>Contact the store for privacy requests.</p>`,
-  },
-  "refund-policy": {
-    title: "Refund policy",
-    body: (n) =>
-      `<p>${n} wants you to be satisfied. Reach out through Contact if an item arrives damaged or not as described. Approved refunds follow the store's review process.</p>`,
-  },
-  "shipping-policy": {
-    title: "Shipping policy",
-    body: (n) =>
-      `<p>${n} ships orders as quickly as possible. Delivery times vary by destination and carrier. Tracking is provided when available.</p>`,
-  },
-  contact: {
-    title: "Contact",
-    body: (n) =>
-      `<p>Questions about ${n}? Use the store contact details in the footer or reply to your order confirmation email.</p>`,
-  },
-  about: {
-    title: "About",
-    body: (n) =>
-      `<p>Welcome to ${n}. We curate products and fulfill orders with care.</p>`,
-  },
-};
+function policyFallback(pageSlug: string, storeName: string) {
+  const tpl = POLICY_TEMPLATES[pageSlug];
+  if (!tpl) return null;
+  return { title: tpl.title, body: tpl.bodyHtml(storeName) };
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle, pageSlug } = await params;
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) return buildMissingStorefrontMetadata();
-  const fallback = POLICY_FALLBACKS[pageSlug];
+  const fallback = policyFallback(pageSlug, store.name);
   return buildStorefrontMetadata(store, {
     path: `/pages/${pageSlug}`,
     title: `${fallback?.title || pageSlug} | ${store.name}`,
@@ -74,13 +45,13 @@ export default async function StorefrontContentPage({ params }: Props) {
     .eq("published", true)
     .maybeSingle();
 
-  const fallback = POLICY_FALLBACKS[pageSlug];
+  const fallback = policyFallback(pageSlug, store.name);
   if (!page && !fallback) notFound();
 
   const title = page?.title || fallback?.title || pageSlug;
   const bodyHtml =
     (page?.body_html && page.body_html.trim()) ||
-    fallback?.body(store.name) ||
+    fallback?.body ||
     `<p>Content coming soon.</p>`;
 
   return (

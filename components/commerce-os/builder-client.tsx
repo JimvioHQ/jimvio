@@ -1,14 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   BUILDER_SECTION_CATALOG,
   DEFAULT_THEME_SETTINGS,
+  DESIGN_PRESETS,
+  HERO_PRESETS,
+  applyDesignPreset,
+  applyHeroPreset,
+  contrastWarning,
   createCatalogSection,
+  duplicateSection,
   mergeThemeSettings,
   reorderSections,
+  suggestHeadline,
+  suggestSeoDescription,
   themeSettingsToCssVars,
   type ButtonStyle,
+  type DesignPresetId,
   type ThemeDraft,
   type ThemeSection,
   type ThemeSettings,
@@ -18,6 +35,26 @@ import {
   storefrontDisplayUrl,
 } from "@/lib/commerce-os/storefront-url";
 import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
+import { isSafeNavHref, type NavItem } from "@/lib/commerce-os/builder/nav-safe";
+import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
+
+type StorePage = {
+  id: string;
+  title: string;
+  handle: string;
+  body_html: string | null;
+  seo: Record<string, unknown> | null;
+  published: boolean;
+};
+
+type PreviewProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number | string | null;
+  currency?: string | null;
+  images?: unknown;
+};
 
 type Props = {
   storeId: string;
@@ -26,6 +63,29 @@ type Props = {
   logoUrl?: string | null;
   status?: string;
   initialDraft: ThemeDraft | null;
+  initialNav: { header: NavItem[]; footer: NavItem[] };
+  initialPages: StorePage[];
+  initialSeo: Record<string, unknown>;
+  initialSocial: Record<string, unknown>;
+  initialDescription?: string | null;
+  previewProducts: PreviewProduct[];
+};
+
+type Panel =
+  | "design"
+  | "sections"
+  | "navigation"
+  | "theme"
+  | "pages"
+  | "seo"
+  | "policies"
+  | "settings";
+
+type Device = "desktop" | "tablet" | "mobile";
+
+type Snapshot = {
+  sections: ThemeSection[];
+  settings: ThemeSettings;
 };
 
 function ensureHomeSections(draft: ThemeDraft | null, storeName: string): ThemeSection[] {
@@ -48,6 +108,7 @@ function ensureHomeSections(draft: ThemeDraft | null, storeName: string): ThemeS
         subhead: "Shop the latest",
         cta: "Shop now",
         ctaHref: "/collections/all",
+        layout: "left",
       },
     },
     {
@@ -69,7 +130,44 @@ function ensureHomeSections(draft: ThemeDraft | null, storeName: string): ThemeS
   ];
 }
 
-type Panel = "brand" | "theme" | "sections";
+function firstImage(images: unknown): string | null {
+  if (!images) return null;
+  if (typeof images === "string") return images;
+  if (Array.isArray(images) && images[0]) {
+    const x = images[0];
+    if (typeof x === "string") return x;
+    if (x && typeof x === "object" && "url" in x) {
+      const u = (x as { url?: unknown }).url;
+      return typeof u === "string" ? u : null;
+    }
+  }
+  return null;
+}
+
+function formatMoney(price: number | string | null | undefined, currency?: string | null) {
+  const n = Number(price);
+  if (!Number.isFinite(n)) return "—";
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: (currency || "USD").toUpperCase(),
+      maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `${currency || "USD"} ${n.toFixed(0)}`;
+  }
+}
+
+const PANELS: Array<{ id: Panel; label: string }> = [
+  { id: "design", label: "Design" },
+  { id: "sections", label: "Sections" },
+  { id: "navigation", label: "Navigation" },
+  { id: "theme", label: "Theme" },
+  { id: "pages", label: "Pages" },
+  { id: "seo", label: "SEO" },
+  { id: "policies", label: "Policies" },
+  { id: "settings", label: "Settings" },
+];
 
 export function BuilderClient({
   storeId,
@@ -78,6 +176,12 @@ export function BuilderClient({
   logoUrl,
   status,
   initialDraft,
+  initialNav,
+  initialPages,
+  initialSeo,
+  initialSocial,
+  initialDescription,
+  previewProducts,
 }: Props) {
   const [sections, setSections] = useState<ThemeSection[]>(() =>
     ensureHomeSections(initialDraft, storeName)
@@ -89,14 +193,30 @@ export function BuilderClient({
     })
   );
   const [selectedId, setSelectedId] = useState<string | null>(
-    () => ensureHomeSections(initialDraft, storeName).find((s) => s.type === "hero")?.id || null
+    () =>
+      ensureHomeSections(initialDraft, storeName).find((s) => s.type === "hero")?.id ||
+      null
   );
   const [panel, setPanel] = useState<Panel>("sections");
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<Device>("desktop");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [headerNav, setHeaderNav] = useState<NavItem[]>(initialNav.header);
+  const [footerNav, setFooterNav] = useState<NavItem[]>(initialNav.footer);
+  const [navDirty, setNavDirty] = useState(false);
+  const [pages, setPages] = useState<StorePage[]>(initialPages);
+  const [pageId, setPageId] = useState<string | null>(initialPages[0]?.id || null);
+  const [seo, setSeo] = useState<Record<string, unknown>>(initialSeo || {});
+  const [social, setSocial] = useState<Record<string, unknown>>(initialSocial || {});
+  const [seoDirty, setSeoDirty] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState(false);
+  const [confirmPublish, setConfirmPublish] = useState(false);
+
+  const past = useRef<Snapshot[]>([]);
+  const future = useRef<Snapshot[]>([]);
+  const skippingHistory = useRef(false);
 
   const liveUrl = storefrontDisplayUrl(handle);
   const liveHost = storefrontDisplayHost(handle);
@@ -106,41 +226,120 @@ export function BuilderClient({
   );
   const cssVars = themeSettingsToCssVars(settings);
   const logo = settings.logoUrl || logoUrl || null;
+  const page = pages.find((p) => p.id === pageId) || null;
+
+  const setupSteps = useMemo(() => {
+    const hasLogo = Boolean(logo);
+    const hasProducts = previewProducts.length > 0;
+    const hasHero = sections.some((s) => s.type === "hero" && s.enabled);
+    const hasNav = headerNav.length > 0;
+    const hasPolicy = pages.some((p) =>
+      ["terms", "privacy"].includes(p.handle)
+    );
+    return [
+      { id: "logo", label: "Add logo", done: hasLogo },
+      { id: "colors", label: "Choose colors", done: Boolean(settings.primaryColor) },
+      { id: "products", label: "Add products", done: hasProducts },
+      { id: "homepage", label: "Customize homepage", done: hasHero },
+      { id: "nav", label: "Configure navigation", done: hasNav },
+      { id: "policies", label: "Add policies", done: hasPolicy },
+    ];
+  }, [logo, previewProducts.length, sections, headerNav.length, pages, settings.primaryColor]);
+
+  const setupDone = setupSteps.filter((s) => s.done).length;
+
+  const pushHistory = useCallback((next: Snapshot) => {
+    if (skippingHistory.current) return;
+    past.current = [...past.current.slice(-39), next];
+    future.current = [];
+  }, []);
 
   function markDirty() {
     setDirty(true);
     setMessage(null);
   }
 
+  function commitSnapshot(nextSections: ThemeSection[], nextSettings: ThemeSettings) {
+    pushHistory({ sections: nextSections, settings: nextSettings });
+  }
+
   function patchSettings(patch: Partial<ThemeSettings>) {
-    setSettings((prev) => mergeThemeSettings(prev, patch));
+    setSettings((prev) => {
+      const next = mergeThemeSettings(prev, patch);
+      commitSnapshot(sections, next);
+      return next;
+    });
     markDirty();
   }
 
-  function move(index: number, dir: -1 | 1) {
-    setSections((prev) => reorderSections(prev, index, index + dir));
+  function setSectionsWithHistory(updater: (prev: ThemeSection[]) => ThemeSection[]) {
+    setSections((prev) => {
+      const next = updater(prev);
+      commitSnapshot(next, settings);
+      return next;
+    });
     markDirty();
+  }
+
+  function undo() {
+    const prev = past.current.pop();
+    if (!prev) return;
+    future.current.push({ sections, settings });
+    skippingHistory.current = true;
+    setSections(prev.sections);
+    setSettings(prev.settings);
+    skippingHistory.current = false;
+    markDirty();
+  }
+
+  function redo() {
+    const next = future.current.pop();
+    if (!next) return;
+    past.current.push({ sections, settings });
+    skippingHistory.current = true;
+    setSections(next.sections);
+    setSettings(next.settings);
+    skippingHistory.current = false;
+    markDirty();
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (meta && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, settings]);
+
+  function move(index: number, dir: -1 | 1) {
+    setSectionsWithHistory((prev) => reorderSections(prev, index, index + dir));
   }
 
   function toggle(id: string) {
-    setSections((prev) =>
+    setSectionsWithHistory((prev) =>
       prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s))
     );
-    markDirty();
   }
 
   function updateSectionProps(id: string, patch: Record<string, unknown>) {
-    setSections((prev) =>
+    setSectionsWithHistory((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, props: { ...(s.props || {}), ...patch } } : s
       )
     );
-    markDirty();
   }
 
   function addSection(type: ThemeSection["type"]) {
     const section = createCatalogSection(type, storeName);
-    setSections((prev) => {
+    setSectionsWithHistory((prev) => {
       const footerIdx = prev.findIndex((s) => s.type === "footer");
       if (footerIdx >= 0) {
         const next = [...prev];
@@ -151,13 +350,24 @@ export function BuilderClient({
     });
     setSelectedId(section.id);
     setPanel("sections");
-    markDirty();
   }
 
   function removeSection(id: string) {
-    setSections((prev) => prev.filter((s) => s.id !== id));
+    setSectionsWithHistory((prev) => prev.filter((s) => s.id !== id));
     if (selectedId === id) setSelectedId(null);
-    markDirty();
+  }
+
+  function dupSection(id: string) {
+    const src = sections.find((s) => s.id === id);
+    if (!src || src.type === "header" || src.type === "footer") return;
+    const copy = duplicateSection(src);
+    setSectionsWithHistory((prev) => {
+      const idx = prev.findIndex((s) => s.id === id);
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+    setSelectedId(copy.id);
   }
 
   function buildDraft(): ThemeDraft {
@@ -194,6 +404,8 @@ export function BuilderClient({
         setError(typeof json.error === "string" ? json.error : "Save failed.");
         return;
       }
+      if (navDirty) await saveNav();
+      if (seoDirty) await saveSeo();
       setDirty(false);
       setMessage("Draft saved.");
     } catch {
@@ -203,27 +415,39 @@ export function BuilderClient({
     }
   }
 
+  async function saveNav() {
+    await Promise.all([
+      fetch("/api/commerce/navigation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, location: "header", items: headerNav }),
+      }),
+      fetch("/api/commerce/navigation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storeId, location: "footer", items: footerNav }),
+      }),
+    ]);
+    setNavDirty(false);
+  }
+
+  async function saveSeo() {
+    const res = await fetch(`/api/commerce/stores/${storeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seo, social }),
+    });
+    if (!res.ok) throw new Error("seo");
+    setSeoDirty(false);
+  }
+
   async function publishTheme() {
     setBusy(true);
     setError(null);
     setMessage(null);
+    setConfirmPublish(false);
     try {
-      const draft = buildDraft();
-      const saveRes = await fetch("/api/commerce/builder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storeId,
-          theme_draft: draft,
-          logo_url: draft.settings.logoUrl || null,
-          favicon_url: draft.settings.faviconUrl || null,
-        }),
-      });
-      if (!saveRes.ok) {
-        const json = await saveRes.json().catch(() => ({}));
-        setError(typeof json.error === "string" ? json.error : "Save before publish failed.");
-        return;
-      }
+      await saveDraft();
       const res = await fetch("/api/commerce/builder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -235,668 +459,1230 @@ export function BuilderClient({
         return;
       }
       setDirty(false);
-      setMessage("Published — live on " + liveHost);
+      setMessage("Published to " + liveHost);
     } catch {
-      setError("Could not publish theme.");
+      setError("Publish failed.");
     } finally {
       setBusy(false);
     }
   }
 
-  const buttonClass =
-    settings.buttonStyle === "outline"
-      ? "border-2 bg-transparent"
-      : settings.buttonStyle === "ghost"
-        ? "bg-transparent"
-        : "border-0";
+  async function savePagePatch(patch: Partial<StorePage>) {
+    if (!page) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/commerce/pages", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          storeId,
+          pageId: page.id,
+          title: patch.title,
+          body_html: patch.body_html,
+          published: patch.published,
+          seo: patch.seo,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof json.error === "string" ? json.error : "Page save failed.");
+        return;
+      }
+      setPages((prev) =>
+        prev.map((p) => (p.id === page.id ? { ...p, ...json.page } : p))
+      );
+      setMessage("Page saved.");
+    } catch {
+      setError("Page save failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function applyTemplate(handleKey: string) {
+    const tpl = POLICY_TEMPLATES[handleKey];
+    if (!tpl || !page) return;
+    void savePagePatch({
+      title: tpl.title,
+      body_html: tpl.bodyHtml(storeName),
+    });
+  }
+
+  const contrast = contrastWarning(settings.backgroundColor, settings.textColor);
+  const canvasWidth =
+    device === "mobile" ? 390 : device === "tablet" ? 768 : "100%";
+
+  const enabledSections = sections.filter((s) => s.enabled);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3">
-        <div className="min-w-0">
+    <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6] shadow-sm">
+      {/* Top bar */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2.5">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-[#111827]">{storeName}</p>
-          <a
-            href={liveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-[#FF5A1F] hover:underline"
-          >
-            {liveHost} ↗
-          </a>
-          <p className="mt-1 text-[11px] text-[#6B7280]">
-            {status === "published" ? "Published storefront" : "Draft store"}
-            {dirty ? " · Unsaved changes" : ""}
+          <p className="truncate text-[11px] text-[#6B7280]">
+            <a href={liveUrl} target="_blank" rel="noreferrer" className="font-medium text-[#FF5A1F] hover:underline">
+              {liveHost} ↗
+            </a>
+            {" · "}
+            <span className={status === "published" ? "text-emerald-700" : "text-amber-700"}>
+              {status === "published" ? "PUBLISHED" : "DRAFT"}
+            </span>
+            {dirty ? " · Unsaved" : ""}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={liveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
-          >
-            View Store
-          </a>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void saveDraft()}
-            className="rounded-lg border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151] disabled:opacity-50"
-          >
-            Save draft
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button type="button" disabled={!past.current.length || busy} onClick={undo} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Undo</button>
+          <button type="button" disabled={!future.current.length || busy} onClick={redo} className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Redo</button>
+          {(["desktop", "tablet", "mobile"] as Device[]).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDevice(d)}
+              className={
+                device === d
+                  ? "rounded-md bg-[#111827] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-white"
+                  : "rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-[#374151]"
+              }
+            >
+              {d}
+            </button>
+          ))}
+          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">
+            Save Draft
           </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void publishTheme()}
-            className="rounded-lg bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-          >
+          <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50">
             Publish
           </button>
+          <a href={liveUrl} target="_blank" rel="noreferrer" className="rounded-md border border-[#E5E7EB] px-3 py-1.5 text-[11px] font-semibold text-[#374151]">
+            View Store ↗
+          </a>
         </div>
       </div>
 
-      {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-      {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
+      {confirmPublish ? (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Publish storefront?</p>
+          <p className="mt-1 text-xs opacity-80">
+            Theme, homepage sections, and brand assets go live at {liveHost}. Navigation and SEO changes save with draft first.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button type="button" disabled={busy} onClick={() => void publishTheme()} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-xs font-semibold text-white">Confirm publish</button>
+            <button type="button" onClick={() => setConfirmPublish(false)} className="rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold">Cancel</button>
+          </div>
+        </div>
+      ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_280px]">
-        <aside className="space-y-3 rounded-2xl border border-[#E5E7EB] bg-white p-3">
-          <div className="flex gap-1 rounded-lg bg-[#F3F4F6] p-1">
-            {([
-              ["brand", "Brand"],
-              ["theme", "Theme"],
-              ["sections", "Sections"],
-            ] as const).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setPanel(id)}
-                className={
-                  panel === id
-                    ? "flex-1 rounded-md bg-white px-2 py-1.5 text-xs font-semibold text-[#111827] shadow-sm"
-                    : "flex-1 rounded-md px-2 py-1.5 text-xs font-medium text-[#6B7280]"
-                }
-              >
-                {label}
-              </button>
+      {!setupDismissed && setupDone < setupSteps.length ? (
+        <div className="border-b border-[#E5E7EB] bg-white px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-[#111827]">Build your storefront · {setupDone}/{setupSteps.length}</p>
+            <button type="button" onClick={() => setSetupDismissed(true)} className="text-xs font-semibold text-[#6B7280] underline">Skip</button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {setupSteps.map((s) => (
+              <span key={s.id} className={s.done ? "rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700" : "rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-semibold text-[#6B7280]"}>
+                {s.done ? "✓ " : ""}{s.label}
+              </span>
             ))}
           </div>
+        </div>
+      ) : null}
 
-          {panel === "brand" ? (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                Store identity
-              </p>
-              <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3">
-                {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="" className="h-14 w-14 rounded-xl object-cover" />
-                ) : (
-                  <span
-                    className="grid h-14 w-14 place-items-center rounded-xl text-lg font-bold text-white"
-                    style={{ background: settings.primaryColor }}
+      {(error || message) && (
+        <div className="border-b border-[#E5E7EB] bg-white px-4 py-2 text-xs">
+          {error ? <p className="font-semibold text-red-600">{error}</p> : null}
+          {message ? <p className="font-semibold text-emerald-700">{message}</p> : null}
+        </div>
+      )}
+
+      <div className="grid min-h-[70vh] lg:grid-cols-[200px_minmax(0,1fr)_300px]">
+        {/* Left nav */}
+        <aside className="border-b border-[#E5E7EB] bg-white lg:border-b-0 lg:border-r">
+          <nav className="flex gap-1 overflow-x-auto p-2 lg:flex-col">
+            {PANELS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPanel(p.id)}
+                className={
+                  panel === p.id
+                    ? "rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
+                    : "rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
+                }
+              >
+                {p.label}
+              </button>
+            ))}
+          </nav>
+          <div className="hidden max-h-[60vh] overflow-y-auto border-t border-[#E5E7EB] p-3 lg:block">
+            {panel === "design" && (
+              <div className="space-y-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Starter themes</p>
+                {(Object.keys(DESIGN_PRESETS) as DesignPresetId[]).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      patchSettings(applyDesignPreset(settings, id));
+                      setPanel("theme");
+                    }}
+                    className="block w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-left hover:border-[#FF5A1F]/50"
                   >
-                    {storeName.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{storeName}</p>
-                  <p className="truncate text-xs text-[#6B7280]">{liveHost}</p>
+                    <span className="text-xs font-semibold text-[#111827]">{DESIGN_PRESETS[id].label}</span>
+                    <span className="mt-0.5 block text-[11px] text-[#6B7280]">{DESIGN_PRESETS[id].description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {panel === "sections" && (
+              <div className="space-y-2">
+                {sections.map((s, i) => (
+                  <div
+                    key={s.id}
+                    className={
+                      selectedId === s.id
+                        ? "rounded-lg border border-[#FF5A1F]/40 bg-[#FFF7ED] p-2"
+                        : "rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-2"
+                    }
+                  >
+                    <button type="button" className="w-full text-left text-xs font-semibold text-[#111827]" onClick={() => setSelectedId(s.id)}>
+                      {s.enabled ? "" : "(off) "}{s.type.replace(/_/g, " ")}
+                    </button>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <button type="button" className="text-[10px] font-semibold text-[#6B7280]" onClick={() => move(i, -1)}>↑</button>
+                      <button type="button" className="text-[10px] font-semibold text-[#6B7280]" onClick={() => move(i, 1)}>↓</button>
+                      <button type="button" className="text-[10px] font-semibold text-[#6B7280]" onClick={() => toggle(s.id)}>{s.enabled ? "Hide" : "Show"}</button>
+                      <button type="button" className="text-[10px] font-semibold text-[#6B7280]" onClick={() => dupSection(s.id)}>Dup</button>
+                      {s.type !== "header" && s.type !== "footer" ? (
+                        <button type="button" className="text-[10px] font-semibold text-red-600" onClick={() => removeSection(s.id)}>Del</button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+                <p className="pt-2 text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Add section</p>
+                <div className="space-y-1">
+                  {BUILDER_SECTION_CATALOG.filter((c) => c.type !== "header" && c.type !== "footer").map((c) => (
+                    <button key={c.type} type="button" onClick={() => addSection(c.type)} className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium text-[#374151] hover:bg-[#F3F4F6]">
+                      + {c.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <CloudinaryUploadButton
-                folder="jimvio/vendor-logos"
-                resourceType="image"
-                buttonText={logo ? "Replace logo" : "Upload logo"}
-                onUploadSuccess={(url) => patchSettings({ logoUrl: url })}
-                onUploadError={(err) => setError(err)}
+            )}
+            {panel === "navigation" && (
+              <NavEditor
+                title="Header"
+                items={headerNav}
+                onChange={(items) => {
+                  setHeaderNav(items);
+                  setNavDirty(true);
+                  markDirty();
+                }}
               />
-              {logo ? (
-                <button
-                  type="button"
-                  onClick={() => patchSettings({ logoUrl: null })}
-                  className="text-xs font-semibold text-[#6B7280] underline"
-                >
-                  Remove logo
-                </button>
-              ) : null}
-              <label className="block text-xs">
-                <span className="mb-1 block font-medium text-[#374151]">Favicon URL</span>
-                <input
-                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                  value={settings.faviconUrl || ""}
-                  onChange={(e) => patchSettings({ faviconUrl: e.target.value || null })}
-                  placeholder="Optional"
-                />
-              </label>
-            </div>
-          ) : null}
-
-          {panel === "theme" ? (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                Colors & buttons
-              </p>
-              {(
-                [
-                  ["primaryColor", "Primary"],
-                  ["backgroundColor", "Background"],
-                  ["surfaceColor", "Surface"],
-                  ["textColor", "Text"],
-                  ["mutedTextColor", "Muted text"],
-                  ["buttonColor", "Button"],
-                  ["buttonTextColor", "Button text"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key} className="flex items-center justify-between gap-2 text-xs">
-                  <span className="font-medium text-[#374151]">{label}</span>
-                  <input
-                    type="color"
-                    value={String(settings[key] || DEFAULT_THEME_SETTINGS[key] || "#000000")}
-                    onChange={(e) => patchSettings({ [key]: e.target.value })}
-                    className="h-8 w-12 cursor-pointer rounded border border-[#E5E7EB] bg-white"
-                  />
-                </label>
-              ))}
-              <label className="block text-xs">
-                <span className="mb-1 block font-medium text-[#374151]">Button style</span>
-                <select
-                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                  value={settings.buttonStyle || "filled"}
-                  onChange={(e) =>
-                    patchSettings({ buttonStyle: e.target.value as ButtonStyle })
-                  }
-                >
-                  <option value="filled">Filled</option>
-                  <option value="outline">Outline</option>
-                  <option value="ghost">Ghost</option>
-                </select>
-              </label>
-              <label className="block text-xs">
-                <span className="mb-1 block font-medium text-[#374151]">Corner radius</span>
-                <select
-                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                  value={settings.radius}
-                  onChange={(e) => patchSettings({ radius: e.target.value })}
-                >
-                  <option value="8px">Soft 8px</option>
-                  <option value="12px">Default 12px</option>
-                  <option value="16px">Rounded 16px</option>
-                  <option value="24px">Pill-ish 24px</option>
-                </select>
-              </label>
-              <label className="block text-xs">
-                <span className="mb-1 block font-medium text-[#374151]">Product grid</span>
-                <select
-                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                  value={String(settings.productGridColumns || 3)}
-                  onChange={(e) =>
-                    patchSettings({
-                      productGridColumns: Number(e.target.value) as 2 | 3 | 4,
-                    })
-                  }
-                >
-                  <option value="2">2 columns</option>
-                  <option value="3">3 columns</option>
-                  <option value="4">4 columns</option>
-                </select>
-              </label>
-            </div>
-          ) : null}
-
-          {panel === "sections" ? (
-            <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-                Homepage sections
-              </p>
-              <ul className="max-h-[420px] space-y-1.5 overflow-y-auto">
-                {sections.map((section, index) => (
-                  <li key={section.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(section.id)}
-                      className={
-                        selectedId === section.id
-                          ? "flex w-full items-center justify-between rounded-lg border border-[#FF5A1F]/40 bg-[#FF5A1F]/5 px-2.5 py-2 text-left text-xs"
-                          : "flex w-full items-center justify-between rounded-lg border border-[#E5E7EB] px-2.5 py-2 text-left text-xs hover:bg-[#F9FAFB]"
-                      }
-                    >
-                      <span className="font-semibold capitalize text-[#111827]">
-                        {section.type.replace(/_/g, " ")}
-                        {!section.enabled ? " (off)" : ""}
-                      </span>
-                      <span className="flex gap-1">
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            move(index, -1);
-                          }}
-                          className="rounded border border-[#E5E7EB] px-1"
-                        >
-                          ↑
-                        </span>
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            move(index, 1);
-                          }}
-                          className="rounded border border-[#E5E7EB] px-1"
-                        >
-                          ↓
-                        </span>
-                      </span>
-                    </button>
-                  </li>
+            )}
+            {panel === "theme" && (
+              <ThemeControls settings={settings} contrast={contrast} onPatch={patchSettings} />
+            )}
+            {panel === "pages" && (
+              <div className="space-y-2">
+                {pages.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPageId(p.id)}
+                    className={
+                      pageId === p.id
+                        ? "block w-full rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
+                        : "block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#374151] hover:bg-[#F3F4F6]"
+                    }
+                  >
+                    {p.title}
+                    <span className="mt-0.5 block text-[10px] font-normal opacity-70">/{p.handle}</span>
+                  </button>
                 ))}
-              </ul>
-              <label className="block text-xs">
-                <span className="mb-1 block font-medium text-[#374151]">Add section</span>
-                <select
-                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                  defaultValue=""
-                  onChange={(e) => {
-                    const type = e.target.value as ThemeSection["type"];
-                    if (type) addSection(type);
-                    e.target.value = "";
-                  }}
-                >
-                  <option value="" disabled>
-                    Choose section…
-                  </option>
-                  {BUILDER_SECTION_CATALOG.map((c) => (
-                    <option key={c.type} value={c.type}>
-                      {c.label}
-                    </option>
+              </div>
+            )}
+            {panel === "seo" && (
+              <p className="text-xs text-[#6B7280]">Edit SEO fields in the right panel.</p>
+            )}
+            {panel === "policies" && (
+              <div className="space-y-2">
+                {pages
+                  .filter((p) =>
+                    ["terms", "privacy", "refund-policy", "shipping-policy", "contact", "about"].includes(p.handle)
+                  )
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setPageId(p.id);
+                        setPanel("pages");
+                      }}
+                      className="block w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-left text-xs font-semibold"
+                    >
+                      {p.title}
+                    </button>
                   ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
+              </div>
+            )}
+            {panel === "settings" && (
+              <p className="text-xs text-[#6B7280]">Brand assets and store identity live in the right panel.</p>
+            )}
+          </div>
         </aside>
 
-        <section className="rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6] p-3 sm:p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-              Live preview
-            </p>
-            <div className="flex gap-1 rounded-lg bg-white p-1">
-              {(["desktop", "mobile"] as const).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setDevice(d)}
-                  className={
-                    device === d
-                      ? "rounded-md bg-[#FF5A1F]/10 px-3 py-1.5 text-xs font-semibold text-[#FF5A1F]"
-                      : "rounded-md px-3 py-1.5 text-xs font-medium text-[#6B7280]"
-                  }
-                >
-                  {d === "desktop" ? "Desktop" : "Mobile"}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Canvas */}
+        <div className="bg-[#E5E7EB]/60 p-3 sm:p-5">
           <div
-            className={
-              device === "mobile"
-                ? "mx-auto max-w-[390px] overflow-hidden rounded-2xl border border-[#E5E7EB] shadow-sm"
-                : "overflow-hidden rounded-2xl border border-[#E5E7EB] shadow-sm"
-            }
+            className="mx-auto overflow-hidden rounded-xl border border-[#D1D5DB] bg-white shadow-[0_20px_50px_rgba(15,23,42,0.08)] transition-all"
             style={{
+              width: canvasWidth,
+              maxWidth: "100%",
               ...cssVars,
-              background: "var(--store-bg)",
-              color: "var(--store-text)",
+              backgroundColor: settings.backgroundColor,
+              color: settings.textColor,
               fontFamily: `${settings.fontFamily}, system-ui, sans-serif`,
             }}
           >
-            {sections
-              .filter((s) => s.enabled)
-              .map((section) => {
-                if (section.type === "announcement") {
-                  return (
-                    <div
-                      key={section.id}
-                      className="px-3 py-2 text-center text-[11px] font-semibold text-white"
-                      style={{ background: "var(--store-primary)" }}
-                    >
-                      {String(section.props?.text || "Announcement")}
-                    </div>
-                  );
-                }
-                if (section.type === "header") {
-                  return (
-                    <div
-                      key={section.id}
-                      className="flex items-center justify-between gap-3 border-b px-4 py-3"
-                      style={{ borderColor: "var(--store-border)", background: "var(--store-surface)" }}
-                    >
-                      <div className="flex items-center gap-2">
-                        {logo ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={logo} alt="" className="h-8 w-8 rounded-lg object-cover" />
-                        ) : (
-                          <span
-                            className="grid h-8 w-8 place-items-center rounded-lg text-xs font-bold text-white"
-                            style={{ background: "var(--store-primary)" }}
-                          >
-                            {storeName.slice(0, 1).toUpperCase()}
-                          </span>
-                        )}
-                        <span className="text-sm font-semibold">{storeName}</span>
-                      </div>
-                      <div className="hidden gap-3 text-xs opacity-70 sm:flex">
-                        <span>Home</span>
-                        <span>Shop</span>
-                        <span>Cart</span>
-                      </div>
-                    </div>
-                  );
-                }
-                if (section.type === "hero") {
-                  return (
-                    <div key={section.id} className="px-5 py-10 sm:px-8 sm:py-14">
-                      <p
-                        className="text-[11px] font-bold uppercase tracking-[0.16em]"
-                        style={{ color: "var(--store-primary)" }}
-                      >
-                        Official store
-                      </p>
-                      <h2 className="mt-2 max-w-xl text-3xl font-semibold tracking-tight sm:text-4xl">
-                        {String(section.props?.headline || storeName)}
-                      </h2>
-                      <p className="mt-3 max-w-md text-sm opacity-70">
-                        {String(section.props?.subhead || "")}
-                      </p>
-                      <span
-                        className={`mt-5 inline-flex px-4 py-2 text-xs font-semibold ${buttonClass}`}
-                        style={{
-                          background:
-                            settings.buttonStyle === "filled"
-                              ? "var(--store-btn)"
-                              : "transparent",
-                          color:
-                            settings.buttonStyle === "filled"
-                              ? "var(--store-btn-text)"
-                              : "var(--store-btn)",
-                          borderColor: "var(--store-btn)",
-                          borderRadius: "var(--store-btn-radius)",
-                        }}
-                      >
-                        {String(section.props?.cta || "Shop now")}
-                      </span>
-                    </div>
-                  );
-                }
-                if (
-                  section.type === "featured_products" ||
-                  section.type === "best_sellers" ||
-                  section.type === "new_arrivals" ||
-                  section.type === "collections"
-                ) {
-                  const cols = settings.productGridColumns || 3;
-                  return (
-                    <div key={section.id} className="px-4 py-8 sm:px-6">
-                      <p className="text-lg font-semibold">
-                        {String(section.props?.title || section.type.replace(/_/g, " "))}
-                      </p>
-                      <div
-                        className="mt-4 grid gap-3"
-                        style={{
-                          gridTemplateColumns: `repeat(${device === "mobile" ? 2 : cols}, minmax(0, 1fr))`,
-                        }}
-                      >
-                        {[1, 2, 3, 4, 5, 6].slice(0, cols * (device === "mobile" ? 1 : 1)).map((n) => (
-                          <div
-                            key={n}
-                            className="overflow-hidden border"
-                            style={{
-                              borderColor: "var(--store-border)",
-                              borderRadius: "calc(var(--store-radius) + 4px)",
-                              background: "var(--store-surface)",
-                            }}
-                          >
-                            <div className="aspect-[4/3] bg-[#E5E7EB]" />
-                            <div className="p-3">
-                              <p className="text-xs font-medium">Product {n}</p>
-                              <p className="mt-1 text-xs opacity-60">Live catalog on publish</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                if (section.type === "banner") {
-                  return (
-                    <div
-                      key={section.id}
-                      className="border-y px-4 py-8 text-center"
-                      style={{
-                        borderColor: "var(--store-border)",
-                        background: "var(--store-surface)",
-                      }}
-                    >
-                      <p className="text-sm font-semibold">
-                        {String(section.props?.headline || "Why shop with us")}
-                      </p>
-                      <p className="mt-2 text-xs opacity-65">
-                        {String(section.props?.subhead || "")}
-                      </p>
-                    </div>
-                  );
-                }
-                if (section.type === "image_text") {
-                  return (
-                    <div key={section.id} className="grid gap-4 px-4 py-8 sm:grid-cols-2 sm:px-6">
-                      <div
-                        className="aspect-[4/3] bg-[#E5E7EB]"
-                        style={{ borderRadius: "var(--store-radius)" }}
-                      />
-                      <div>
-                        <p className="text-lg font-semibold">
-                          {String(section.props?.headline || "Our story")}
-                        </p>
-                        <p className="mt-2 text-sm opacity-70">
-                          {String(section.props?.body || "")}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                }
-                if (section.type === "testimonials") {
-                  return (
-                    <div key={section.id} className="px-4 py-8 text-center sm:px-6">
-                      <p className="text-lg font-semibold">
-                        {String(section.props?.title || "Testimonials")}
-                      </p>
-                      <p className="mx-auto mt-3 max-w-md text-sm italic opacity-75">
-                        “{String(section.props?.quote || "")}”
-                      </p>
-                      <p className="mt-2 text-xs font-semibold opacity-60">
-                        {String(section.props?.author || "")}
-                      </p>
-                    </div>
-                  );
-                }
-                if (section.type === "faq") {
-                  return (
-                    <div key={section.id} className="space-y-3 px-4 py-8 sm:px-6">
-                      <p className="text-lg font-semibold">
-                        {String(section.props?.title || "FAQ")}
-                      </p>
-                      <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--store-border)" }}>
-                        <p className="font-medium">{String(section.props?.q1 || "")}</p>
-                        <p className="mt-1 opacity-70">{String(section.props?.a1 || "")}</p>
-                      </div>
-                    </div>
-                  );
-                }
-                if (section.type === "newsletter") {
-                  return (
-                    <div
-                      key={section.id}
-                      className="px-4 py-8 text-center sm:px-6"
-                      style={{ background: "var(--store-surface)" }}
-                    >
-                      <p className="text-lg font-semibold">
-                        {String(section.props?.title || "Stay in the loop")}
-                      </p>
-                      <p className="mt-1 text-sm opacity-70">
-                        {String(section.props?.subhead || "")}
-                      </p>
-                      <span
-                        className="mt-4 inline-flex px-4 py-2 text-xs font-semibold text-white"
-                        style={{
-                          background: "var(--store-btn)",
-                          borderRadius: "var(--store-btn-radius)",
-                        }}
-                      >
-                        {String(section.props?.cta || "Notify me")}
-                      </span>
-                    </div>
-                  );
-                }
-                if (section.type === "footer") {
-                  return (
-                    <div
-                      key={section.id}
-                      className="border-t px-4 py-8"
-                      style={{
-                        borderColor: "var(--store-border)",
-                        background: "var(--store-surface)",
-                      }}
-                    >
-                      <p className="text-sm font-semibold">{storeName}</p>
-                      <p className="mt-1 text-xs opacity-50">Powered by Jimvio</p>
-                      <div className="mt-3 flex flex-wrap gap-3 text-xs opacity-70">
-                        <span>About</span>
-                        <span>Contact</span>
-                        <span>Terms</span>
-                        <span>Privacy</span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })}
+            <PreviewCanvas
+              storeName={storeName}
+              logo={logo}
+              settings={settings}
+              sections={enabledSections}
+              headerNav={headerNav}
+              footerNav={footerNav}
+              products={previewProducts}
+              device={device}
+              onSelect={setSelectedId}
+              selectedId={selectedId}
+            />
           </div>
-        </section>
+        </div>
 
-        <aside className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
-            Section settings
-          </p>
-          {!selected ? (
-            <p className="mt-3 text-sm text-[#6B7280]">Select a section to edit.</p>
-          ) : (
-            <div className="mt-3 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold capitalize text-[#111827]">
-                  {selected.type.replace(/_/g, " ")}
-                </p>
+        {/* Right contextual */}
+        <aside className="border-t border-[#E5E7EB] bg-white p-4 lg:border-l lg:border-t-0">
+          {panel === "design" || panel === "settings" ? (
+            <BrandPanel
+              settings={settings}
+              logo={logo}
+              storeName={storeName}
+              onPatch={patchSettings}
+              onError={setError}
+            />
+          ) : null}
+          {panel === "theme" ? (
+            <ThemeControls settings={settings} contrast={contrast} onPatch={patchSettings} />
+          ) : null}
+          {panel === "sections" && selected ? (
+            <SectionInspector
+              section={selected}
+              onProps={(patch) => updateSectionProps(selected.id, patch)}
+              onToggle={() => toggle(selected.id)}
+            />
+          ) : null}
+          {panel === "sections" && !selected ? (
+            <p className="text-xs text-[#6B7280]">Select a section on the left to edit.</p>
+          ) : null}
+          {panel === "navigation" ? (
+            <div className="space-y-4">
+              <NavEditor
+                title="Header menu"
+                items={headerNav}
+                onChange={(items) => {
+                  setHeaderNav(items);
+                  setNavDirty(true);
+                  markDirty();
+                }}
+              />
+              <NavEditor
+                title="Footer menu"
+                items={footerNav}
+                onChange={(items) => {
+                  setFooterNav(items);
+                  setNavDirty(true);
+                  markDirty();
+                }}
+              />
+              <button type="button" disabled={busy || !navDirty} onClick={() => void saveNav().then(() => setMessage("Navigation saved."))} className="rounded-md bg-[#111827] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+                Save navigation
+              </button>
+            </div>
+          ) : null}
+          {panel === "pages" && page ? (
+            <div className="space-y-3">
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold text-[#374151]">Title</span>
+                <input
+                  value={page.title}
+                  onChange={(e) =>
+                    setPages((prev) =>
+                      prev.map((p) => (p.id === page.id ? { ...p, title: e.target.value } : p))
+                    )
+                  }
+                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+                />
+              </label>
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold text-[#374151]">Body HTML</span>
+                <textarea
+                  value={page.body_html || ""}
+                  onChange={(e) =>
+                    setPages((prev) =>
+                      prev.map((p) =>
+                        p.id === page.id ? { ...p, body_html: e.target.value } : p
+                      )
+                    )
+                  }
+                  rows={10}
+                  className="w-full rounded-md border border-[#E5E7EB] px-2 py-2 font-mono text-[11px]"
+                />
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  checked={page.published}
+                  onChange={(e) =>
+                    setPages((prev) =>
+                      prev.map((p) =>
+                        p.id === page.id ? { ...p, published: e.target.checked } : p
+                      )
+                    )
+                  }
+                />
+                Published
+              </label>
+              {POLICY_TEMPLATES[page.handle] ? (
                 <button
                   type="button"
-                  onClick={() => toggle(selected.id)}
-                  className="rounded-md border border-[#E5E7EB] px-2 py-1 text-xs font-semibold"
+                  onClick={() => applyTemplate(page.handle)}
+                  className="rounded-md border border-[#E5E7EB] px-3 py-2 text-xs font-semibold"
                 >
-                  {selected.enabled ? "Enabled" : "Disabled"}
+                  Apply professional template
                 </button>
+              ) : null}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void savePagePatch({
+                    title: page.title,
+                    body_html: page.body_html || "",
+                    published: page.published,
+                  })
+                }
+                className="rounded-md bg-[#111827] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                Save page
+              </button>
+              <a
+                href={`${liveUrl.replace(/\/$/, "")}/${["terms","privacy","contact","about","refund-policy","shipping-policy"].includes(page.handle) ? page.handle : `pages/${page.handle}`}`}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-xs font-semibold text-[#FF5A1F] hover:underline"
+              >
+                View live ↗
+              </a>
+            </div>
+          ) : null}
+          {panel === "seo" ? (
+            <div className="space-y-3">
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold">SEO title ({String(seo.title || storeName).length}/60)</span>
+                <input
+                  value={String(seo.title || "")}
+                  onChange={(e) => {
+                    setSeo((s) => ({ ...s, title: e.target.value }));
+                    setSeoDirty(true);
+                    markDirty();
+                  }}
+                  placeholder={storeName}
+                  className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+                />
+              </label>
+              <label className="block text-xs">
+                <span className="mb-1 block font-semibold">Meta description ({String(seo.description || "").length}/155)</span>
+                <textarea
+                  value={String(seo.description || "")}
+                  onChange={(e) => {
+                    setSeo((s) => ({ ...s, description: e.target.value }));
+                    setSeoDirty(true);
+                    markDirty();
+                  }}
+                  rows={3}
+                  className="w-full rounded-md border border-[#E5E7EB] px-2 py-2 text-sm"
+                />
+              </label>
+              <button
+                type="button"
+                className="text-xs font-semibold text-[#FF5A1F] underline"
+                onClick={() => {
+                  setSeo((s) => ({
+                    ...s,
+                    description: suggestSeoDescription(storeName, initialDescription),
+                  }));
+                  setSeoDirty(true);
+                  markDirty();
+                }}
+              >
+                Suggest description
+              </button>
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                <p className="text-[11px] font-semibold text-[#6B7280]">Google preview</p>
+                <p className="mt-2 text-sm text-[#1a0dab]">{String(seo.title || storeName)}</p>
+                <p className="text-[11px] text-emerald-800">{liveUrl}</p>
+                <p className="mt-1 text-xs text-[#4B5563]">
+                  {String(seo.description || initialDescription || `Shop ${storeName}`).slice(0, 155)}
+                </p>
               </div>
-
-              {selected.type === "announcement" ? (
-                <label className="block text-xs">
-                  <span className="mb-1 block font-medium">Announcement text</span>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Social links</p>
+              {["instagram", "tiktok", "facebook", "youtube", "x", "linkedin"].map((key) => (
+                <label key={key} className="block text-xs capitalize">
+                  <span className="mb-1 block font-semibold">{key}</span>
                   <input
+                    value={String(social[key] || "")}
+                    onChange={(e) => {
+                      setSocial((s) => ({ ...s, [key]: e.target.value }));
+                      setSeoDirty(true);
+                      markDirty();
+                    }}
+                    placeholder="https://"
                     className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                    value={String(selected.props?.text || "")}
-                    onChange={(e) =>
-                      updateSectionProps(selected.id, { text: e.target.value })
-                    }
                   />
                 </label>
-              ) : null}
-
-              {selected.type === "hero" ? (
-                <>
-                  {(["headline", "subhead", "cta"] as const).map((field) => (
-                    <label key={field} className="block text-xs">
-                      <span className="mb-1 block font-medium capitalize">{field}</span>
-                      <input
-                        className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                        value={String(selected.props?.[field] || "")}
-                        onChange={(e) =>
-                          updateSectionProps(selected.id, { [field]: e.target.value })
-                        }
-                      />
-                    </label>
-                  ))}
-                  <label className="block text-xs">
-                    <span className="mb-1 block font-medium">CTA destination</span>
-                    <select
-                      className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                      value={String(selected.props?.ctaHref || "/collections/all")}
-                      onChange={(e) =>
-                        updateSectionProps(selected.id, { ctaHref: e.target.value })
-                      }
-                    >
-                      <option value="/collections/all">All products</option>
-                      <option value="/search">Search</option>
-                      <option value="/pages/about">About</option>
-                      <option value="/pages/contact">Contact</option>
-                      <option value="/cart">Cart</option>
-                    </select>
-                  </label>
-                </>
-              ) : null}
-
-              {(
-                selected.type === "featured_products" ||
-                selected.type === "best_sellers" ||
-                selected.type === "new_arrivals" ||
-                selected.type === "collections" ||
-                selected.type === "banner" ||
-                selected.type === "testimonials" ||
-                selected.type === "faq" ||
-                selected.type === "newsletter" ||
-                selected.type === "image_text"
-              ) ? (
-                <>
-                  {Object.entries(selected.props || {})
-                    .filter(([k]) => typeof selected.props?.[k] === "string")
-                    .map(([key, value]) => (
-                      <label key={key} className="block text-xs">
-                        <span className="mb-1 block font-medium capitalize">
-                          {key.replace(/_/g, " ")}
-                        </span>
-                        <input
-                          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
-                          value={String(value || "")}
-                          onChange={(e) =>
-                            updateSectionProps(selected.id, { [key]: e.target.value })
-                          }
-                        />
-                      </label>
-                    ))}
-                </>
-              ) : null}
-
-              {!["header", "footer"].includes(selected.type) ? (
-                <button
-                  type="button"
-                  onClick={() => removeSection(selected.id)}
-                  className="text-xs font-semibold text-red-600 underline"
-                >
-                  Remove section
-                </button>
-              ) : null}
+              ))}
+              <button
+                type="button"
+                disabled={busy || !seoDirty}
+                onClick={() => void saveSeo().then(() => setMessage("SEO saved.")).catch(() => setError("SEO save failed."))}
+                className="rounded-md bg-[#111827] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+              >
+                Save SEO
+              </button>
             </div>
-          )}
+          ) : null}
+          {panel === "policies" ? (
+            <p className="text-xs text-[#6B7280]">Open a policy from the left list to edit content and apply templates.</p>
+          ) : null}
         </aside>
       </div>
+    </div>
+  );
+}
+
+function BrandPanel({
+  settings,
+  logo,
+  storeName,
+  onPatch,
+  onError,
+}: {
+  settings: ThemeSettings;
+  logo: string | null;
+  storeName: string;
+  onPatch: (p: Partial<ThemeSettings>) => void;
+  onError: (e: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[#9CA3AF]">Brand</p>
+        <div className="mt-2 flex items-center gap-3">
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logo} alt="" className="h-14 w-14 rounded-xl object-cover" style={{ boxShadow: "var(--store-shadow)" }} />
+          ) : (
+            <span className="grid h-14 w-14 place-items-center rounded-xl text-lg font-bold text-white" style={{ background: settings.primaryColor }}>
+              {storeName.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="space-y-2">
+            <CloudinaryUploadButton
+              folder="jimvio/vendor-logos"
+              resourceType="image"
+              buttonText={logo ? "Replace logo" : "Upload logo"}
+              onUploadSuccess={(url) => onPatch({ logoUrl: url })}
+              onUploadError={onError}
+            />
+            {logo ? (
+              <button type="button" onClick={() => onPatch({ logoUrl: null })} className="block text-xs font-semibold text-[#6B7280] underline">
+                Remove logo
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold">Logo size</p>
+        <div className="flex gap-1">
+          {(["small", "medium", "large"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onPatch({ logoSize: s })}
+              className={
+                settings.logoSize === s
+                  ? "rounded-md bg-[#111827] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-white"
+                  : "rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-[11px] font-semibold capitalize"
+              }
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold">Header alignment</p>
+        <div className="flex gap-1">
+          {(["left", "centered"] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => onPatch({ headerAlign: a, headerStyle: a === "centered" ? "centered" : "simple" })}
+              className={
+                (settings.headerAlign || "left") === a
+                  ? "rounded-md bg-[#111827] px-2.5 py-1.5 text-[11px] font-semibold capitalize text-white"
+                  : "rounded-md border border-[#E5E7EB] px-2.5 py-1.5 text-[11px] font-semibold capitalize"
+              }
+            >
+              {a}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-semibold">Favicon</p>
+        <CloudinaryUploadButton
+          folder="jimvio/vendor-logos"
+          resourceType="image"
+          buttonText={settings.faviconUrl ? "Replace favicon" : "Upload favicon"}
+          onUploadSuccess={(url) => onPatch({ faviconUrl: url })}
+          onUploadError={onError}
+        />
+        {settings.faviconUrl ? (
+          <button type="button" onClick={() => onPatch({ faviconUrl: null })} className="mt-2 block text-xs font-semibold text-[#6B7280] underline">
+            Remove favicon
+          </button>
+        ) : null}
+      </div>
+      <label className="flex items-center gap-2 text-xs font-semibold">
+        <input
+          type="checkbox"
+          checked={settings.stickyHeader !== false}
+          onChange={(e) => onPatch({ stickyHeader: e.target.checked })}
+        />
+        Sticky header
+      </label>
+    </div>
+  );
+}
+
+function ThemeControls({
+  settings,
+  contrast,
+  onPatch,
+}: {
+  settings: ThemeSettings;
+  contrast: string | null;
+  onPatch: (p: Partial<ThemeSettings>) => void;
+}) {
+  const colors: Array<[keyof ThemeSettings, string]> = [
+    ["primaryColor", "Primary"],
+    ["secondaryColor", "Secondary"],
+    ["accentColor", "Accent"],
+    ["backgroundColor", "Background"],
+    ["surfaceColor", "Surface"],
+    ["textColor", "Text"],
+    ["mutedTextColor", "Muted"],
+    ["borderColor", "Border"],
+    ["buttonColor", "Button"],
+    ["buttonTextColor", "Button text"],
+  ];
+  return (
+    <div className="space-y-3">
+      {contrast ? <p className="rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-800">{contrast}</p> : null}
+      <div className="grid grid-cols-2 gap-2">
+        {colors.map(([key, label]) => (
+          <label key={key} className="block text-[11px]">
+            <span className="mb-1 block font-semibold text-[#6B7280]">{label}</span>
+            <input
+              type="color"
+              value={String(settings[key] || "#000000").startsWith("#") ? String(settings[key]) : "#000000"}
+              onChange={(e) => onPatch({ [key]: e.target.value } as Partial<ThemeSettings>)}
+              className="h-9 w-full cursor-pointer rounded border border-[#E5E7EB]"
+            />
+          </label>
+        ))}
+      </div>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Button style</span>
+        <select
+          value={settings.buttonStyle || "filled"}
+          onChange={(e) => onPatch({ buttonStyle: e.target.value as ButtonStyle })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {["filled", "outline", "ghost", "soft", "link"].map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Corner radius</span>
+        <select
+          value={settings.radius}
+          onChange={(e) => onPatch({ radius: e.target.value, cardRadius: e.target.value })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {["4px", "8px", "12px", "16px", "24px"].map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Button radius</span>
+        <select
+          value={settings.buttonRadius || "9999px"}
+          onChange={(e) => onPatch({ buttonRadius: e.target.value })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {["4px", "8px", "12px", "9999px"].map((r) => (
+            <option key={r} value={r}>{r === "9999px" ? "Pill" : r}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Product columns</span>
+        <select
+          value={String(settings.productGridColumns || 3)}
+          onChange={(e) => onPatch({ productGridColumns: Number(e.target.value) as 2 | 3 | 4 })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {[2, 3, 4].map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Shadow</span>
+        <select
+          value={settings.shadow || "subtle"}
+          onChange={(e) => onPatch({ shadow: e.target.value as ThemeSettings["shadow"] })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {["none", "subtle", "medium", "strong"].map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Font family</span>
+        <select
+          value={settings.fontFamily}
+          onChange={(e) => onPatch({ fontFamily: e.target.value, headingFont: e.target.value })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          {["DM Sans", "Inter", "Georgia", "system-ui"].map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+}
+
+function NavEditor({
+  title,
+  items,
+  onChange,
+}: {
+  title: string;
+  items: NavItem[];
+  onChange: (items: NavItem[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[#9CA3AF]">{title}</p>
+      {items.map((item, i) => (
+        <div key={`${item.label}-${i}`} className="space-y-1 rounded-lg border border-[#E5E7EB] p-2">
+          <input
+            value={item.label}
+            onChange={(e) => {
+              const next = [...items];
+              next[i] = { ...item, label: e.target.value };
+              onChange(next);
+            }}
+            className="h-8 w-full rounded border border-[#E5E7EB] px-2 text-xs"
+            placeholder="Label"
+          />
+          <input
+            value={item.href}
+            onChange={(e) => {
+              const next = [...items];
+              next[i] = { ...item, href: e.target.value };
+              onChange(next);
+            }}
+            className="h-8 w-full rounded border border-[#E5E7EB] px-2 text-xs"
+            placeholder="/collections/all"
+          />
+          {!isSafeNavHref(item.href) ? (
+            <p className="text-[10px] font-semibold text-red-600">Unsafe URL</p>
+          ) : null}
+          <div className="flex gap-1">
+            <button type="button" className="text-[10px] font-semibold" onClick={() => {
+              if (i === 0) return;
+              const next = [...items];
+              const [x] = next.splice(i, 1);
+              next.splice(i - 1, 0, x!);
+              onChange(next);
+            }}>↑</button>
+            <button type="button" className="text-[10px] font-semibold" onClick={() => {
+              if (i >= items.length - 1) return;
+              const next = [...items];
+              const [x] = next.splice(i, 1);
+              next.splice(i + 1, 0, x!);
+              onChange(next);
+            }}>↓</button>
+            <button type="button" className="text-[10px] font-semibold text-red-600" onClick={() => onChange(items.filter((_, j) => j !== i))}>Remove</button>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...items, { label: "New link", href: "/" }])}
+        className="rounded-md border border-dashed border-[#D1D5DB] px-2 py-1.5 text-[11px] font-semibold text-[#374151]"
+      >
+        + Add item
+      </button>
+    </div>
+  );
+}
+
+function SectionInspector({
+  section,
+  onProps,
+  onToggle,
+}: {
+  section: ThemeSection;
+  onProps: (patch: Record<string, unknown>) => void;
+  onToggle: () => void;
+}) {
+  const props = section.props || {};
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold capitalize text-[#111827]">{section.type.replace(/_/g, " ")}</p>
+        <button type="button" onClick={onToggle} className="text-xs font-semibold text-[#6B7280] underline">
+          {section.enabled ? "Disable" : "Enable"}
+        </button>
+      </div>
+      {section.type === "hero" ? (
+        <>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Preset</span>
+            <select
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+              defaultValue=""
+              onChange={(e) => {
+                if (!e.target.value) return;
+                onProps(applyHeroPreset(props, e.target.value));
+              }}
+            >
+              <option value="">Keep current</option>
+              {Object.entries(HERO_PRESETS).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          </label>
+          {(["eyebrow", "headline", "subhead", "cta", "ctaSecondary"] as const).map((k) => (
+            <Field key={k} label={k} value={String(props[k] || "")} onChange={(v) => onProps({ [k]: v })} />
+          ))}
+          <button
+            type="button"
+            className="text-xs font-semibold text-[#FF5A1F] underline"
+            onClick={() =>
+              onProps({
+                headline: suggestHeadline(String(props.headline || ""), String(props.headline || "Store")),
+              })
+            }
+          >
+            Improve headline
+          </button>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Primary CTA destination</span>
+            <select
+              value={String(props.ctaHref || "/collections/all")}
+              onChange={(e) => onProps({ ctaHref: e.target.value })}
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+            >
+              <option value="/collections/all">All products</option>
+              <option value="/search">Search</option>
+              <option value="/pages/about">About</option>
+              <option value="/pages/contact">Contact</option>
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Layout</span>
+            <select
+              value={String(props.layout || "left")}
+              onChange={(e) => onProps({ layout: e.target.value })}
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+            >
+              {["left", "center", "right", "split"].map((l) => (
+                <option key={l} value={l}>{l}</option>
+              ))}
+            </select>
+          </label>
+          <div>
+            <p className="mb-1 text-xs font-semibold">Hero image</p>
+            <CloudinaryUploadButton
+              folder="jimvio/banners"
+              resourceType="image"
+              buttonText={props.imageUrl ? "Replace image" : "Upload image"}
+              onUploadSuccess={(url) => onProps({ imageUrl: url })}
+            />
+            {typeof props.imageUrl === "string" && props.imageUrl ? (
+              <button type="button" className="mt-1 text-xs underline" onClick={() => onProps({ imageUrl: "" })}>
+                Remove image
+              </button>
+            ) : null}
+          </div>
+        </>
+      ) : null}
+      {section.type === "announcement" ? (
+        <Field label="Text" value={String(props.text || "")} onChange={(v) => onProps({ text: v })} />
+      ) : null}
+      {["featured_products", "best_sellers", "new_arrivals", "collections", "gallery", "newsletter", "faq", "testimonials", "stats", "contact_block", "discount_banner", "trust_shipping", "banner", "image_text", "video", "rich_text"].includes(section.type) ? (
+        <div className="space-y-2">
+          {Object.entries(props)
+            .filter(([, v]) => typeof v === "string" || typeof v === "number")
+            .map(([k, v]) => (
+              <Field key={k} label={k} value={String(v)} onChange={(nv) => onProps({ [k]: nv })} />
+            ))}
+          {section.type === "image_text" ? (
+            <CloudinaryUploadButton
+              folder="jimvio/banners"
+              resourceType="image"
+              buttonText="Upload section image"
+              onUploadSuccess={(url) => onProps({ imageUrl: url })}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-xs">
+      <span className="mb-1 block font-semibold capitalize text-[#6B7280]">{label.replace(/_/g, " ")}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+      />
+    </label>
+  );
+}
+
+function PreviewCanvas({
+  storeName,
+  logo,
+  settings,
+  sections,
+  headerNav,
+  footerNav,
+  products,
+  device,
+  onSelect,
+  selectedId,
+}: {
+  storeName: string;
+  logo: string | null;
+  settings: ThemeSettings;
+  sections: ThemeSection[];
+  headerNav: NavItem[];
+  footerNav: NavItem[];
+  products: PreviewProduct[];
+  device: Device;
+  onSelect: (id: string) => void;
+  selectedId: string | null;
+}) {
+  const btnStyle = (settings.buttonStyle || "filled") as ButtonStyle;
+  const btnBase: CSSProperties = {
+    borderRadius: "var(--store-btn-radius)",
+    minHeight: "var(--store-btn-height)",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "0 1.1rem",
+    fontWeight: 600,
+    fontSize: 13,
+  };
+  const btnFilled: CSSProperties = {
+    ...btnBase,
+    background: "var(--store-btn)",
+    color: "var(--store-btn-text)",
+  };
+  const btnOutline: CSSProperties = {
+    ...btnBase,
+    background: "transparent",
+    color: "var(--store-btn)",
+    border: "1px solid var(--store-btn)",
+  };
+  const primaryBtn =
+    btnStyle === "outline" || btnStyle === "ghost" || btnStyle === "link"
+      ? btnOutline
+      : btnStyle === "soft"
+        ? { ...btnBase, background: "color-mix(in srgb, var(--store-btn) 15%, white)", color: "var(--store-btn)" }
+        : btnFilled;
+
+  return (
+    <div className="text-[var(--store-text)]">
+      {sections.map((section) => {
+        const props = section.props || {};
+        const active = selectedId === section.id;
+        const wrap = (node: ReactNode) => (
+          <div
+            key={section.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelect(section.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") onSelect(section.id);
+            }}
+            className={active ? "outline outline-2 outline-[#FF5A1F] outline-offset-[-2px]" : undefined}
+          >
+            {node}
+          </div>
+        );
+
+        if (section.type === "announcement") {
+          return wrap(
+            <div className="bg-[var(--store-primary)] px-3 py-2 text-center text-[10px] font-semibold text-white sm:text-[11px]">
+              {String(props.text || "")}
+            </div>
+          );
+        }
+        if (section.type === "header") {
+          const centered = settings.headerAlign === "centered" || settings.headerStyle === "centered";
+          return wrap(
+            <header className={`flex items-center gap-3 border-b border-black/5 px-3 py-3 ${centered ? "flex-col" : "justify-between"}`}>
+              <div className="flex items-center gap-2">
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logo} alt="" style={{ height: "var(--store-logo-size)", width: "auto" }} />
+                ) : (
+                  <span className="grid place-items-center rounded-md text-[10px] font-bold text-white" style={{ height: "var(--store-logo-size)", width: "var(--store-logo-size)", background: "var(--store-primary)" }}>
+                    {storeName.slice(0, 1)}
+                  </span>
+                )}
+                <span className="text-sm font-semibold">{storeName}</span>
+              </div>
+              <nav className={`flex flex-wrap gap-2 text-[11px] opacity-70 ${device === "mobile" ? "justify-center" : ""}`}>
+                {(headerNav.length ? headerNav : [{ label: "Home", href: "/" }, { label: "Shop", href: "/collections/all" }]).map((n) => (
+                  <span key={n.label}>{n.label}</span>
+                ))}
+                <span className="rounded-full bg-[var(--store-primary)] px-2 py-0.5 text-[10px] font-semibold text-white">Cart</span>
+              </nav>
+            </header>
+          );
+        }
+        if (section.type === "hero") {
+          const layout = String(props.layout || "left");
+          const imageUrl = typeof props.imageUrl === "string" ? props.imageUrl : "";
+          return wrap(
+            <section className={`relative overflow-hidden px-4 py-10 ${layout === "center" ? "text-center" : ""} ${layout === "split" ? "grid gap-4 sm:grid-cols-2" : ""}`}>
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imageUrl} alt="" className={`absolute inset-0 h-full w-full object-cover ${layout === "split" ? "sm:static sm:rounded-xl" : ""}`} />
+              ) : null}
+              <div className="relative">
+                {props.eyebrow ? <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--store-primary)]">{String(props.eyebrow)}</p> : null}
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{String(props.headline || storeName)}</h1>
+                <p className="mt-2 text-sm opacity-70">{String(props.subhead || "")}</p>
+                <div className={`mt-4 flex flex-wrap gap-2 ${layout === "center" ? "justify-center" : ""}`}>
+                  <span style={primaryBtn}>{String(props.cta || "Shop now")}</span>
+                  {props.ctaSecondary ? <span style={btnOutline}>{String(props.ctaSecondary)}</span> : null}
+                </div>
+              </div>
+            </section>
+          );
+        }
+        if (
+          section.type === "featured_products" ||
+          section.type === "best_sellers" ||
+          section.type === "new_arrivals" ||
+          section.type === "collections"
+        ) {
+          return wrap(
+            <section className="px-4 py-8">
+              <h2 className="text-lg font-semibold">{String(props.title || "Featured")}</h2>
+              <div
+                className="mt-4 grid gap-3"
+                style={{
+                  gridTemplateColumns:
+                    device === "mobile"
+                      ? "1fr"
+                      : `repeat(${Math.min(settings.productGridColumns || 3, device === "tablet" ? 2 : 4)}, minmax(0,1fr))`,
+                }}
+              >
+                {(products.length ? products : []).slice(0, 6).map((p) => {
+                  const img = firstImage(p.images);
+                  return (
+                    <div key={p.id} className="overflow-hidden border border-black/5 bg-[var(--store-surface)]" style={{ borderRadius: "var(--store-card-radius)", boxShadow: "var(--store-shadow)" }}>
+                      <div className="aspect-[4/3] bg-[#F3F4F6]">
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={img} alt="" className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      <div className="p-2.5">
+                        <p className="text-xs font-medium">{p.name}</p>
+                        <p className="mt-1 text-xs font-semibold">{formatMoney(p.price, p.currency)}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!products.length ? (
+                  <p className="col-span-full rounded-lg border border-dashed border-black/10 p-6 text-center text-xs opacity-60">
+                    Add products to see them here.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          );
+        }
+        if (section.type === "banner" || section.type === "trust_shipping") {
+          return wrap(
+            <section className="border-y border-black/5 bg-white/70 px-4 py-6 text-center">
+              <p className="text-sm font-semibold">{String(props.headline || "")}</p>
+              <p className="mt-2 text-xs opacity-70">{String(props.subhead || props.items || "")}</p>
+            </section>
+          );
+        }
+        if (section.type === "discount_banner") {
+          return wrap(
+            <section className="m-4 rounded-xl px-4 py-6 text-center text-white" style={{ background: "var(--store-primary)", borderRadius: "var(--store-radius)" }}>
+              <p className="text-lg font-semibold">{String(props.headline || "")}</p>
+              <p className="mt-1 text-sm opacity-90">{String(props.subhead || "")}</p>
+              <span className="mt-3 inline-flex rounded-full bg-white px-4 py-2 text-xs font-semibold text-[var(--store-primary)]">
+                {String(props.cta || "Shop now")}
+              </span>
+            </section>
+          );
+        }
+        if (section.type === "stats") {
+          return wrap(
+            <section className="grid grid-cols-3 gap-2 px-4 py-8 text-center">
+              {[
+                [props.aValue, props.aLabel],
+                [props.bValue, props.bLabel],
+                [props.cValue, props.cLabel],
+              ].map(([v, l], i) => (
+                <div key={i}>
+                  <p className="text-xl font-semibold">{String(v || "")}</p>
+                  <p className="text-[10px] opacity-60">{String(l || "")}</p>
+                </div>
+              ))}
+            </section>
+          );
+        }
+        if (section.type === "testimonials") {
+          return wrap(
+            <section className="px-4 py-8 text-center">
+              <h2 className="text-lg font-semibold">{String(props.title || "Testimonials")}</h2>
+              <p className="mt-3 text-sm italic opacity-70">“{String(props.quote || "")}”</p>
+              <p className="mt-2 text-xs font-semibold opacity-60">{String(props.author || "")}</p>
+            </section>
+          );
+        }
+        if (section.type === "faq") {
+          return wrap(
+            <section className="space-y-2 px-4 py-8">
+              <h2 className="text-lg font-semibold">{String(props.title || "FAQ")}</h2>
+              <div className="rounded-lg border border-black/5 bg-white p-3 text-left text-xs">
+                <p className="font-semibold">{String(props.q1 || "")}</p>
+                <p className="mt-1 opacity-70">{String(props.a1 || "")}</p>
+              </div>
+            </section>
+          );
+        }
+        if (section.type === "image_text") {
+          return wrap(
+            <section className="grid gap-4 px-4 py-8 sm:grid-cols-2">
+              <div className="aspect-[4/3] overflow-hidden bg-[#E5E7EB]" style={{ borderRadius: "var(--store-radius)" }}>
+                {typeof props.imageUrl === "string" && props.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={String(props.imageUrl)} alt="" className="h-full w-full object-cover" />
+                ) : null}
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">{String(props.headline || "")}</h2>
+                <p className="mt-2 text-sm opacity-70">{String(props.body || "")}</p>
+              </div>
+            </section>
+          );
+        }
+        if (section.type === "newsletter" || section.type === "contact_block") {
+          return wrap(
+            <section className="px-4 py-8 text-center">
+              <h2 className="text-lg font-semibold">{String(props.title || "")}</h2>
+              <p className="mt-2 text-sm opacity-70">{String(props.subhead || props.body || "")}</p>
+            </section>
+          );
+        }
+        if (section.type === "video") {
+          return wrap(
+            <section className="px-4 py-8 text-center">
+              <h2 className="text-lg font-semibold">{String(props.title || "Video")}</h2>
+              <div className="mt-3 aspect-video rounded-xl bg-black/80 text-[11px] text-white/70 grid place-items-center">
+                {typeof props.url === "string" && props.url ? "Video ready" : "Add a video URL"}
+              </div>
+            </section>
+          );
+        }
+        if (section.type === "gallery") {
+          return wrap(
+            <section className="px-4 py-8">
+              <h2 className="text-lg font-semibold">{String(props.title || "Gallery")}</h2>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="aspect-square rounded-lg bg-[#E5E7EB]" />
+                ))}
+              </div>
+            </section>
+          );
+        }
+        if (section.type === "rich_text") {
+          return wrap(
+            <section className="prose prose-sm max-w-none px-4 py-6" dangerouslySetInnerHTML={{ __html: String(props.html || "") }} />
+          );
+        }
+        if (section.type === "footer") {
+          return wrap(
+            <footer className="border-t border-black/5 bg-white px-4 py-6">
+              <p className="text-sm font-semibold">{storeName}</p>
+              <div className="mt-2 flex flex-wrap gap-3 text-[11px] opacity-65">
+                {(footerNav.length ? footerNav : [{ label: "About", href: "/about" }, { label: "Contact", href: "/contact" }]).map((n) => (
+                  <span key={n.label}>{n.label}</span>
+                ))}
+              </div>
+              <p className="mt-3 text-[10px] opacity-45">Powered by Jimvio</p>
+            </footer>
+          );
+        }
+        return null;
+      })}
     </div>
   );
 }
