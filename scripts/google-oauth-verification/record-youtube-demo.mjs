@@ -145,6 +145,38 @@ async function dwell(ms) {
   await new Promise((r) => setTimeout(r, ms));
 }
 
+/** Navigate without failing the whole demo on mid-login ERR_ABORTED races. */
+async function safeGoto(page, url, options = {}) {
+  const timeout = options.timeout ?? 60_000;
+  const waitUntil = options.waitUntil ?? "domcontentloaded";
+  let lastErr = null;
+  for (let i = 0; i < 4; i++) {
+    assertAlive(page);
+    try {
+      await page.goto(url, { waitUntil, timeout });
+      return;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (isClosedError(err)) throw err;
+      if (/ERR_ABORTED|Navigation interrupted|frame was detached/i.test(msg)) {
+        console.log(`Navigation interrupted (retry ${i + 1}/4): ${url}`);
+        await dwell(1200);
+        // If the human already navigated (login/OAuth/Live), don't fight them.
+        const cur = page.url();
+        if (cur.startsWith(url.split("?")[0]) || cur.includes("/communities/live")) {
+          return;
+        }
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error(`safeGoto failed: ${url}`);
+}
+
 async function setBanner(page, text) {
   if (/accounts\.google\.com|google\.com\/(?:o\/)?oauth|myaccount\.google/i.test(page.url())) {
     await page
@@ -318,7 +350,7 @@ async function isJimvioAuthenticated(page) {
   const body = await page.locator("body").innerText().catch(() => "");
   // Unauthenticated bounce / marketing chrome must never count as a session.
   if (
-    /Welcome back|Sign in to continue|Continue with Google|Create account|CAPTCHA failed|Please complete the security check/i.test(
+    /Welcome back|Sign in to continue|Continue with Google|Create account|CAPTCHA failed|Please complete the security check|Invalid email or password/i.test(
       body
     )
   ) {
@@ -326,22 +358,39 @@ async function isJimvioAuthenticated(page) {
   }
   if (
     /Sign in|Log in/i.test(body) &&
-    !/Go Live|Live Settings|Live Destinations/i.test(body)
+    !/Go Live|Live Settings|Live Destinations|READY TO GO LIVE|Start your Live/i.test(
+      body
+    )
   ) {
     return false;
   }
-  // Require Live Studio chrome — "YouTube" alone is too weak (appears in many places).
-  return /Live Settings|Live Destinations|Go Live/i.test(body);
+
+  // Connected destinations use channel displayName (often no "YouTube" text).
+  const disconnect = page.getByRole("button", {
+    name: /disconnect destination/i,
+  });
+  if (await disconnect.first().isVisible().catch(() => false)) return true;
+
+  const connectYt = page
+    .locator("li")
+    .filter({ hasText: /YouTube/i })
+    .getByRole("button", { name: /^Connect$/i });
+  if (await connectYt.first().isVisible().catch(() => false)) return true;
+
+  const goLive = page.getByRole("button", { name: /^Go Live$/i });
+  if (await goLive.first().isVisible().catch(() => false)) return true;
+
+  return /READY TO GO LIVE|Start your Live|Live Destinations|1 destination connected/i.test(
+    body
+  );
 }
 
 /** Confirmed session: Live Studio loads twice without bouncing to login. */
 async function hasStableJimvioSession(page) {
   for (let i = 0; i < 2; i++) {
-    await page.goto(`${BASE}/communities/live?open=settings`, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
-    });
-    await dwell(1500);
+    await safeGoto(page, `${BASE}/communities/live?open=settings`);
+    await dwell(2000);
+    if (/\/login(?:\/|\?|$)/i.test(page.url())) return false;
     if (!(await isJimvioAuthenticated(page))) return false;
   }
   return true;
@@ -351,9 +400,9 @@ async function ensureJimvioSession(page) {
   if (await hasStableJimvioSession(page)) return;
 
   // Land on the real login page (Turnstile may be temporarily disabled for demos).
-  await page.goto(
-    `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`,
-    { waitUntil: "domcontentloaded", timeout: 60_000 }
+  await safeGoto(
+    page,
+    `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`
   );
   await setBanner(page, "Step 2 — Jimvio login (session only)");
   await shot(page, "02-login");
@@ -372,25 +421,35 @@ async function ensureJimvioSession(page) {
     writeChecklist();
   }
 
-  // Keep waiting until Live Studio is stable. Do not exit after a single transient hit.
-  const maxAttempts = Math.max(
-    1,
-    Number(process.env.DEMO_LOGIN_STABLE_ATTEMPTS || "8")
-  );
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  printBanner("JIMVIO LOGIN REQUIRED", [
+    "Complete login in the visible Chrome window.",
+    "DO NOT CLOSE CHROME.",
+    "The recorder will continue automatically.",
+  ]);
+
+  // Wait indefinitely for a stable Live Studio session.
+  // Only fail if the operator closes Chrome (assertAlive / waitUntil).
+  let attempt = 0;
+  for (;;) {
+    attempt += 1;
+    assertAlive(page);
+
     await waitUntil(
       page,
       async () => {
-        // Success = left login and Live Studio chrome is present (may still need stability).
-        if (/\/login(?:\/|\?|$)/i.test(page.url())) return false;
-        if (await isJimvioAuthenticated(page)) return true;
-        // After password/Google login, next= may land on Live Studio asynchronously.
-        return false;
+        const url = page.url();
+        if (/\/login(?:\/|\?|$)/i.test(url)) return false;
+        if (/accounts\.google\.com/i.test(url)) return false;
+        if (!/jimvio\.com/i.test(url)) return false;
+        return isJimvioAuthenticated(page);
       },
       attempt === 1
-        ? "JIMVIO LOGIN REQUIRED (session only — NOT YouTube OAuth)"
-        : `JIMVIO LOGIN REQUIRED (stable session attempt ${attempt}/${maxAttempts})`
+        ? "JIMVIO LOGIN REQUIRED"
+        : `JIMVIO LOGIN REQUIRED (waiting for stable Live Studio · ${attempt})`
     );
+
+    // Give cookies / Live Settings UI a moment to settle before stability probes.
+    await dwell(3000);
 
     if (await hasStableJimvioSession(page)) {
       console.log("✓ Jimvio Live Studio session is stable\n");
@@ -398,35 +457,123 @@ async function ensureJimvioSession(page) {
     }
 
     console.log(
-      `Session not stable yet (attempt ${attempt}/${maxAttempts}) — keeping Chrome open for login…`
+      `Session not stable yet — Chrome stays open. Complete Jimvio login if needed (attempt ${attempt})…`
     );
-    if (/\/login(?:\/|\?|$)/i.test(page.url()) === false) {
-      await page.goto(
-        `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`,
-        { waitUntil: "domcontentloaded", timeout: 60_000 }
+
+    const cur = page.url();
+    // Never interrupt Google account UI.
+    if (/accounts\.google\.com/i.test(cur)) {
+      continue;
+    }
+    // If already on Live Studio, wait for destination controls instead of bouncing to /login.
+    if (/jimvio\.com\/communities\/live/i.test(cur)) {
+      await dwell(5000);
+      if (await isJimvioAuthenticated(page)) {
+        if (await hasStableJimvioSession(page)) {
+          console.log("✓ Jimvio Live Studio session is stable\n");
+          return;
+        }
+      }
+      continue;
+    }
+    // Only return to login when clearly bounced away from Live Studio.
+    if (/\/login(?:\/|\?|$)/i.test(cur) === false) {
+      await safeGoto(
+        page,
+        `${BASE}/login?next=${encodeURIComponent("/communities/live?open=settings")}`
       );
       await setBanner(page, "Step 2 — Jimvio login (retry)");
     }
   }
-
-  throw new Error(
-    "Jimvio session not established after login — complete login in Chrome and keep the window open"
-  );
 }
 
 async function youtubeRow(page) {
+  // Connected destinations render the channel displayName (not the word "YouTube").
+  const connected = page
+    .locator("li")
+    .filter({
+      has: page.getByRole("button", { name: /disconnect destination/i }),
+    })
+    .filter({ hasText: /Connected|Enable|Enabled/i });
+  if ((await connected.count().catch(() => 0)) > 0) {
+    return connected.first();
+  }
+  // Disconnected catalog row still labeled YouTube.
   return page.locator("li").filter({ hasText: /YouTube/i }).first();
 }
 
-async function openLiveDestinations(page) {
-  await page.goto(`${BASE}/communities/live?open=settings`, {
-    waitUntil: "domcontentloaded",
-    timeout: 60_000,
+async function isYouTubeConnectedInUi(page) {
+  // Prefer explicit Disconnect control (present only on connected destinations).
+  const disconnect = page.getByRole("button", {
+    name: /disconnect destination/i,
   });
-  // If auth bounced (e.g. Google Sign-in rejected), wait again — do not fail the pause.
-  if (!(await isJimvioAuthenticated(page))) {
-    await ensureJimvioSession(page);
+  if ((await disconnect.count().catch(() => 0)) > 0) {
+    if (await disconnect.first().isVisible().catch(() => false)) return true;
   }
+  const body = await page.locator("body").innerText().catch(() => "");
+  if (/dest_connected=youtube/i.test(page.url())) return true;
+  // Channel row: avatar + Connected (word YouTube may be absent).
+  if (
+    /Connected/i.test(body) &&
+    /1 destination connected|destination connected/i.test(body)
+  ) {
+    return true;
+  }
+  const yt = page.locator("li").filter({ hasText: /YouTube/i }).first();
+  const rowText = await yt.innerText().catch(() => "");
+  return /connected|enabled/i.test(rowText);
+}
+
+async function openLiveDestinations(page, { afterOauth = false } = {}) {
+  // After YouTube OAuth Allow, land on Jimvio first — do not bounce to /login
+  // just because Live Studio chrome is still hydrating.
+  if (afterOauth) {
+    const deadline = Date.now() + 120_000;
+    while (Date.now() < deadline) {
+      assertAlive(page);
+      const url = page.url();
+      if (/jimvio\.com/i.test(url) && !/accounts\.google\.com/i.test(url)) break;
+      await dwell(1000);
+    }
+  }
+
+  await safeGoto(page, `${BASE}/communities/live?open=settings`);
+  await dwell(afterOauth ? 2500 : 1000);
+
+  if (!(await isJimvioAuthenticated(page))) {
+    if (afterOauth) {
+      // Soft wait: OAuth callback cookies may settle without forcing a login page.
+      console.log(
+        "Post-OAuth: waiting for Live Studio session (will only open /login if still bounced)…"
+      );
+      const deadline = Date.now() + 180_000;
+      while (Date.now() < deadline) {
+        assertAlive(page);
+        if (/\/login(?:\/|\?|$)/i.test(page.url())) {
+          printBanner("JIMVIO LOGIN REQUIRED (after YouTube OAuth)", [
+            "Complete Jimvio login in Chrome if you were bounced to /login.",
+            "Do not close the browser — recording continues after Live Studio loads.",
+          ]);
+          await ensureJimvioSession(page);
+          break;
+        }
+        await safeGoto(page, `${BASE}/communities/live?open=settings`);
+        await dwell(2000);
+        if (await isJimvioAuthenticated(page)) break;
+      }
+    } else {
+      await ensureJimvioSession(page);
+    }
+  }
+
+  if (!(await isJimvioAuthenticated(page))) {
+    throw new Error(
+      afterOauth
+        ? "After YouTube OAuth, Jimvio Live Studio session was not available — complete login if shown and keep Chrome open"
+        : "Jimvio session not established — complete login in Chrome and keep the window open"
+    );
+  }
+
   await page
     .getByText(/Live Settings|Live Destinations|Streaming|YouTube/i)
     .first()
@@ -457,8 +604,7 @@ function looksLikeConsentControls(text) {
 }
 
 async function disconnectYouTubeIfPresent(page) {
-  const yt = await youtubeRow(page);
-  const btn = yt.getByRole("button", { name: /disconnect destination/i });
+  const btn = page.getByRole("button", { name: /disconnect destination/i }).first();
   if (!(await btn.isVisible().catch(() => false))) return false;
   await btn.click();
   await dwell(2500);
@@ -810,19 +956,25 @@ async function main() {
 
     // 6 Callback / Connected
     stamp("callback_start");
-    await openLiveDestinations(page);
+    await openLiveDestinations(page, { afterOauth: true });
     await setBanner(page, "Step 5 — OAuth callback · YouTube connected");
-    await dwell(3000);
+    // Poll until Connected UI appears (channel name rows omit the word "YouTube").
+    {
+      const deadline = Date.now() + 90_000;
+      while (Date.now() < deadline) {
+        if (await isYouTubeConnectedInUi(page)) break;
+        await dwell(2000);
+        await safeGoto(page, `${BASE}/communities/live?open=settings`);
+        await dwell(1500);
+      }
+    }
+    await dwell(2000);
     const yt = await youtubeRow(page);
     await yt.scrollIntoViewIfNeeded().catch(() => undefined);
-    const hasDisconnect = await yt
-      .getByRole("button", { name: /disconnect destination/i })
-      .isVisible()
-      .catch(() => false);
-    const rowText = await yt.innerText().catch(() => "");
-    if (hasDisconnect || /connected|enabled/i.test(rowText)) {
+    if (await isYouTubeConnectedInUi(page)) {
       checklist.callback = true;
       checklist.youtubeConnected = true;
+      console.log("✓ YouTube Connected confirmed in Live Destinations");
     } else {
       checklist.blockers.push("YouTube Connected state not confirmed after callback");
     }
@@ -838,10 +990,7 @@ async function main() {
     // 7 Live Studio
     if (!SKIP_GO_LIVE && checklist.youtubeConnected) {
       stamp("studio_start");
-      await page.goto(`${BASE}/communities/live`, {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      });
+      await safeGoto(page, `${BASE}/communities/live`);
       await setBanner(page, "Step 7 — YouTube Live functionality");
       await dwell(3000);
       checklist.liveStudio = true;
@@ -865,26 +1014,27 @@ async function main() {
     await openLiveDestinations(page);
     await setBanner(page, "Step 8 — Disconnect YouTube");
     await dwell(1500);
-    const unplug = (await youtubeRow(page)).getByRole("button", {
+    const unplug = page.getByRole("button", {
       name: /disconnect destination/i,
-    });
+    }).first();
     if (await unplug.isVisible().catch(() => false)) {
       await unplug.click();
       await dwell(2500);
       await openLiveDestinations(page);
-      const still = await (await youtubeRow(page))
+      const still = await page
         .getByRole("button", { name: /disconnect destination/i })
+        .first()
         .isVisible()
         .catch(() => false);
-      const connectBack = await (await youtubeRow(page))
+      const connectBack = await page
+        .locator("li")
+        .filter({ hasText: /YouTube/i })
         .getByRole("button", { name: /^Connect$/i })
         .isVisible()
         .catch(() => false);
-      if (!still && connectBack) {
+      if (!still || connectBack) {
         checklist.disconnect = true;
-      } else if (!still) {
-        checklist.disconnect = true;
-        checklist.notes.push("Disconnect clicked; Connect not yet visible");
+        console.log("✓ YouTube Disconnect confirmed");
       } else {
         checklist.blockers.push("Disconnect clicked but Disconnect control still present");
       }
