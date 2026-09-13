@@ -133,6 +133,58 @@ export function defaultRightPanelOpen(): boolean {
   return false;
 }
 
+/** Left-rail groups for Store Builder — progressive disclosure over a flat panel list. */
+export const BUILDER_NAV_GROUPS: Array<{
+  id: string;
+  label: string;
+  items: Array<{ id: BuilderPanelId; label: string; hint?: string }>;
+}> = [
+  {
+    id: "store",
+    label: "Store",
+    items: [
+      { id: "settings", label: "Overview", hint: "Store identity basics" },
+      { id: "media", label: "Brand", hint: "Logo & favicon" },
+      { id: "theme", label: "Identity", hint: "Presets & tokens" },
+    ],
+  },
+  {
+    id: "design",
+    label: "Design",
+    items: [{ id: "design", label: "Colors & layout", hint: "Typography, cards, spacing" }],
+  },
+  {
+    id: "sections",
+    label: "Sections",
+    items: [{ id: "sections", label: "Homepage", hint: "Add, reorder, hide" }],
+  },
+  {
+    id: "navigation",
+    label: "Navigation",
+    items: [{ id: "navigation", label: "Menus", hint: "Header & footer links" }],
+  },
+  {
+    id: "pages",
+    label: "Pages",
+    items: [
+      { id: "pages", label: "Content pages", hint: "About, contact, custom" },
+      { id: "policies", label: "Policies", hint: "Legal templates" },
+    ],
+  },
+  {
+    id: "commerce",
+    label: "Commerce",
+    items: [
+      { id: "design", label: "Product grid", hint: "Columns & card ratio" },
+    ],
+  },
+  {
+    id: "seo",
+    label: "SEO",
+    items: [{ id: "seo", label: "Search & social", hint: "Title, description, index" }],
+  },
+];
+
 export type BuilderEscapeTarget =
   | "picker"
   | "more"

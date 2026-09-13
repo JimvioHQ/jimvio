@@ -9,6 +9,7 @@ import {
   editorUsesOverlayPanels,
 } from "./editor-chrome";
 import {
+  BUILDER_NAV_GROUPS,
   collapsePanelsForCanvas,
   builderWorkspaceGrid,
   closeLeftPanel,
@@ -314,6 +315,15 @@ describe("builder escape order", () => {
         selectedId: null,
       }),
       null
+    );
+  });
+
+  it("exposes grouped builder nav for progressive disclosure", () => {
+    assert.ok(BUILDER_NAV_GROUPS.length >= 5);
+    assert.ok(BUILDER_NAV_GROUPS.some((g) => g.id === "store"));
+    assert.ok(BUILDER_NAV_GROUPS.some((g) => g.id === "sections"));
+    assert.ok(
+      BUILDER_NAV_GROUPS.flatMap((g) => g.items).some((i) => i.id === "media")
     );
   });
 });

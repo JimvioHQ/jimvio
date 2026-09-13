@@ -37,6 +37,7 @@ import { isSafeNavHref, type NavItem } from "@/lib/commerce-os/builder/nav-safe"
 import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
 import { detectBuilderHints } from "@/lib/commerce-os/builder/responsive-hints";
 import {
+  BUILDER_NAV_GROUPS,
   builderWorkspaceGrid,
   collapsePanelsForCanvas,
   defaultRightPanelOpen,
@@ -153,6 +154,9 @@ const PANELS: Array<{ id: Panel; label: string }> = [
   { id: "settings", label: "Settings" },
   { id: "issues", label: "Issues" },
 ];
+
+/** Compact top-bar shortcuts — full groups live in the left rail. */
+const TOP_NAV_SHORTCUTS: Panel[] = ["sections", "design", "media"];
 
 export function BuilderClient({
   storeId,
@@ -595,11 +599,6 @@ export function BuilderClient({
   const selectedLabel = selected
     ? selected.type.replace(/_/g, " ")
     : null;
-  const filteredPanels = PANELS.filter((p) =>
-    !panelQuery.trim()
-      ? true
-      : p.label.toLowerCase().includes(panelQuery.trim().toLowerCase())
-  );
 
   function expandCanvas() {
     const next = collapsePanelsForCanvas({
@@ -694,11 +693,8 @@ export function BuilderClient({
           {showMinimalToolbar ? "Back" : "Commerce"}
         </Link>
         {!showMinimalToolbar ? (
-          <nav className="flex items-center gap-0.5" aria-label="Builder panels">
-            {(showFullToolbar
-              ? PANELS.filter((p) => p.id !== "issues")
-              : PANELS.filter((p) => p.id === "sections" || p.id === "theme")
-            ).map((p) => {
+          <nav className="flex items-center gap-0.5" aria-label="Builder shortcuts">
+            {PANELS.filter((p) => TOP_NAV_SHORTCUTS.includes(p.id)).map((p) => {
               const active =
                 leftOpen &&
                 ((p.id === "sections" && leftMode === "tree" && panel === "sections") ||
@@ -720,15 +716,18 @@ export function BuilderClient({
                 </button>
               );
             })}
-            {showCompactToolbar ? (
-              <button
-                type="button"
-                className="shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-                onClick={() => setMoreOpen((v) => !v)}
-              >
-                More
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+              onClick={() => {
+                setLeftOpen(true);
+                setLeftMode("panels");
+                setPanel("settings");
+                setFocusMode(false);
+              }}
+            >
+              All tools
+            </button>
           </nav>
         ) : (
           <div className="flex items-center gap-1">
@@ -763,7 +762,7 @@ export function BuilderClient({
                   : "ml-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
               }
             >
-              {storeStatus === "published" ? "Active" : "Draft"}
+              {storeStatus === "published" ? "Online" : "Offline"}
             </span>
             {dirty ? (
               <span className="ml-1 text-[10px] font-semibold text-amber-700">Unsaved</span>
@@ -862,7 +861,7 @@ export function BuilderClient({
           <button
             type="button"
             onClick={expandCanvas}
-            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            className="hidden rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold xl:inline-flex"
           >
             Expand
           </button>
@@ -875,24 +874,10 @@ export function BuilderClient({
                 setRightOpen(false);
               }
             }}
-            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            className="hidden rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold lg:inline-flex"
           >
             {focusMode ? "Exit focus" : "Focus"}
           </button>
-          {showFullToolbar ? (
-            <button
-              type="button"
-              onClick={() => {
-                setHintsOpen(true);
-                setPanel("issues");
-                setRightOpen(true);
-                if (overlayPanels) setLeftOpen(false);
-              }}
-              className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
-            >
-              Issues{issueCount ? ` (${issueCount})` : ""}
-            </button>
-          ) : null}
           <div className="relative">
             <button
               type="button"
@@ -904,17 +889,18 @@ export function BuilderClient({
               More
             </button>
             {moreOpen ? (
-              <div className="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg">
+              <div className="absolute right-0 z-50 mt-1 w-52 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg">
                 <a href={liveUrl} target="_blank" rel="noreferrer" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">View live store</a>
                 <Link href="/commerce" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">Back to Commerce</Link>
                 <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(true); setRightOpen(false); setFocusMode(false); setMoreOpen(false); }}>Open sections</button>
-                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setRightOpen(true); if (overlayPanels) setLeftOpen(false); setFocusMode(false); setMoreOpen(false); }}>Open settings</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setRightOpen(true); if (overlayPanels) setLeftOpen(false); setFocusMode(false); setMoreOpen(false); }}>Open inspector</button>
                 <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { expandCanvas(); setMoreOpen(false); }}>Expand preview</button>
-                {showMinimalToolbar ? (
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setFocusMode(true); setLeftOpen(false); setRightOpen(false); setMoreOpen(false); }}>Focus mode</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setHintsOpen(true); setPanel("issues"); setRightOpen(true); setMoreOpen(false); }}>Issues{issueCount ? ` (${issueCount})` : ""}</button>
+                {!showFullToolbar ? (
                   <>
                     <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" disabled={!canUndo} onClick={() => { undo(); setMoreOpen(false); }}>Undo</button>
                     <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" disabled={!canRedo} onClick={() => { redo(); setMoreOpen(false); }}>Redo</button>
-                    <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setHintsOpen(true); setPanel("issues"); setRightOpen(true); setMoreOpen(false); }}>Issues</button>
                   </>
                 ) : null}
               </div>
@@ -1002,24 +988,53 @@ export function BuilderClient({
                   id="builder-panel-search"
                   value={panelQuery}
                   onChange={(e) => setPanelQuery(e.target.value)}
-                  placeholder="Search…"
+                  placeholder="Search tools…"
                   className="h-8 w-full rounded-md border border-[#E5E7EB] px-2 text-xs"
                 />
-                <nav className="mt-2 flex flex-col gap-0.5">
-                  {filteredPanels.filter((p) => p.id !== "issues").map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => activateNav(p.id)}
-                      className={
-                        panel === p.id
-                          ? "rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
-                          : "rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
-                      }
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                <nav className="mt-2 flex flex-col gap-3" aria-label="Builder tool groups">
+                  {BUILDER_NAV_GROUPS.map((group) => {
+                    const items = group.items.filter((item) => {
+                      const q = panelQuery.trim().toLowerCase();
+                      if (!q) return true;
+                      return (
+                        group.label.toLowerCase().includes(q) ||
+                        item.label.toLowerCase().includes(q) ||
+                        (item.hint || "").toLowerCase().includes(q)
+                      );
+                    });
+                    if (!items.length) return null;
+                    return (
+                      <div key={group.id}>
+                        <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+                          {group.label}
+                        </p>
+                        <div className="flex flex-col gap-0.5">
+                          {items.map((item) => {
+                            const active = panel === item.id;
+                            return (
+                              <button
+                                key={`${group.id}-${item.id}-${item.label}`}
+                                type="button"
+                                onClick={() => activateNav(item.id)}
+                                className={
+                                  active
+                                    ? "rounded-lg bg-[#111827] px-3 py-2 text-left text-xs font-semibold text-white"
+                                    : "rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
+                                }
+                              >
+                                {item.label}
+                                {item.hint ? (
+                                  <span className="mt-0.5 block text-[10px] font-normal opacity-70">
+                                    {item.hint}
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </nav>
               </div>
             ) : null}
@@ -1054,7 +1069,13 @@ export function BuilderClient({
               <ThemeControls settings={settings} contrast={contrast} onPatch={patchSettings} />
             )}
             {leftMode === "panels" && panel === "media" && (
-              <p className="text-xs text-[#6B7280]">Logo, favicon, and section images use Cloudinary. Edit in the inspector.</p>
+              <BrandPanel
+                settings={settings}
+                logo={logo}
+                storeName={storeName}
+                onPatch={patchSettings}
+                onError={setError}
+              />
             )}
             {leftMode === "panels" && panel === "pages" && (
               <div className="space-y-2">
@@ -1490,10 +1511,18 @@ function BrandPanel({
           onUploadError={onError}
         />
         {settings.faviconUrl ? (
-          <button type="button" onClick={() => onPatch({ faviconUrl: null })} className="mt-2 block text-xs font-semibold text-[#6B7280] underline">
-            Remove favicon
-          </button>
-        ) : null}
+          <div className="mt-2 flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={settings.faviconUrl} alt="" className="h-8 w-8 rounded-md border border-[#E5E7EB] object-contain" />
+            <button type="button" onClick={() => onPatch({ faviconUrl: null })} className="text-xs font-semibold text-[#6B7280] underline">
+              Remove favicon
+            </button>
+          </div>
+        ) : (
+          <p className="mt-2 text-[11px] text-[#6B7280]">
+            No favicon yet — the browser tab uses a neutral icon (never the Jimvio mark).
+          </p>
+        )}
       </div>
       <label className="flex items-center gap-2 text-xs font-semibold">
         <input

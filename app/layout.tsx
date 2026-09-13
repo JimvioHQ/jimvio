@@ -53,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     headerStore.get("x-forwarded-host") || headerStore.get("host") || "";
   const onMerchantStoreHost = Boolean(
     headerStore.get("x-jimvio-store-handle") ||
+      headerStore.get("x-jimvio-storefront-path") ||
       handleFromJimvioSubdomain(hostname)
   );
   return (

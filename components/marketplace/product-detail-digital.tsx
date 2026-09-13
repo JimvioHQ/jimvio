@@ -494,6 +494,7 @@ import {
 } from "lucide-react";
 import { cn, asStringArray, getEffectiveCompareAtPrice, getProductDiscountPercent } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
+import { SellToStoreButton } from "@/components/commerce-os/sell-to-store-button";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
@@ -1422,6 +1423,11 @@ export function DigitalProductDetail({
                       vendor={vendorProps}
                       currentPath={`/marketplace/${product.slug}`}
                       className="w-full"
+                    />
+                    <SellToStoreButton
+                      productId={product.id}
+                      productName={product.name}
+                      className="w-full border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
                     />
                     <button
                       onClick={() => setPreviewOpen(true)}

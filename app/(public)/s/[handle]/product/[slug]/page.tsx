@@ -31,7 +31,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!store) return buildMissingStorefrontMetadata();
   const loaded = await loadStoreProductBySlug(supabase, store.id, slug);
   if (!loaded) {
-    return buildStorefrontMetadata(store, { path: `/product/${slug}` });
+    return buildStorefrontMetadata(store, {
+      path: `/product/${slug}`,
+      themeLogoUrl: store.theme_settings?.logoUrl ?? null,
+    });
   }
   const img = productImageUrls(loaded.product.images)[0] || null;
   return buildStorefrontMetadata(store, {
@@ -42,6 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       store.description ||
       `Shop ${loaded.product.name} at ${store.name}`,
     image: img,
+    themeLogoUrl: store.theme_settings?.logoUrl ?? null,
   });
 }
 

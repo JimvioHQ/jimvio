@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { truncateDescription } from "@/lib/seo";
+import { STOREFRONT_NEUTRAL_FAVICON_PATH } from "./storefront-icons";
 import { storefrontDisplayHost, storefrontDisplayUrl } from "./storefront-url";
 import type { StorefrontStore } from "./storefront/load";
 
@@ -31,6 +32,27 @@ function seoKeywords(seo: Record<string, unknown>, storeName: string): string[] 
   return [storeName, `${storeName} store`, "online store", "shop"];
 }
 
+/** Always set icons so Next.js never inherits the platform Jimvio favicon. */
+export function resolveStorefrontIcons(store: {
+  favicon_url?: string | null;
+  logo_url?: string | null;
+}): NonNullable<Metadata["icons"]> {
+  const dedicated =
+    typeof store.favicon_url === "string" && store.favicon_url.trim()
+      ? store.favicon_url.trim()
+      : null;
+  const logo =
+    typeof store.logo_url === "string" && store.logo_url.trim()
+      ? store.logo_url.trim()
+      : null;
+  const url = dedicated || logo || STOREFRONT_NEUTRAL_FAVICON_PATH;
+  return {
+    icon: [{ url, ...(url.endsWith(".svg") ? { type: "image/svg+xml" } : {}) }],
+    shortcut: url,
+    apple: [{ url }],
+  };
+}
+
 /**
  * Complete merchant-storefront Metadata that overrides root platform defaults
  * (Twitter, keywords, applicationName, authors, appleWebApp, etc.).
@@ -43,11 +65,20 @@ export function buildStorefrontMetadata(
     title?: string;
     description?: string;
     image?: string | null;
+    /** Theme draft/published logo when `logo_url` column is empty. */
+    themeLogoUrl?: string | null;
   }
 ): Metadata {
   const path = options?.path || "";
   const canonical = storefrontDisplayUrl(store.handle, path);
   const host = storefrontDisplayHost(store.handle);
+  const logoForBrand =
+    (typeof store.logo_url === "string" && store.logo_url.trim()
+      ? store.logo_url.trim()
+      : null) ||
+    (typeof options?.themeLogoUrl === "string" && options.themeLogoUrl.trim()
+      ? options.themeLogoUrl.trim()
+      : null);
   const title =
     options?.title ||
     seoString(store.seo, "title") ||
@@ -60,12 +91,16 @@ export function buildStorefrontMetadata(
   const description = truncateDescription(rawDescription);
   const image =
     options?.image ||
-    store.logo_url ||
+    logoForBrand ||
     seoString(store.seo, "image") ||
     null;
   const keywords = seoKeywords(store.seo, store.name);
+  const iconSource = {
+    favicon_url: store.favicon_url,
+    logo_url: logoForBrand,
+  };
 
-  const metadata: Metadata = {
+  return {
     // Absolute title prevents root template `%s | Jimvio`.
     title: { absolute: title },
     description,
@@ -77,6 +112,9 @@ export function buildStorefrontMetadata(
     category: "shopping",
     metadataBase: new URL(`https://${host}`),
     alternates: { canonical },
+    // Explicit null clears the root Jimvio PWA manifest (undefined would inherit).
+    manifest: null,
+    icons: resolveStorefrontIcons(iconSource),
     openGraph: {
       title,
       description,
@@ -107,23 +145,6 @@ export function buildStorefrontMetadata(
       "twitter:url": canonical,
     },
   };
-
-  if (store.favicon_url) {
-    metadata.icons = {
-      icon: [{ url: store.favicon_url }],
-      shortcut: store.favicon_url,
-      apple: [{ url: store.favicon_url }],
-    };
-  } else if (store.logo_url) {
-    // Prefer merchant logo over platform favicon when no dedicated favicon.
-    metadata.icons = {
-      icon: [{ url: store.logo_url }],
-      shortcut: store.logo_url,
-      apple: [{ url: store.logo_url }],
-    };
-  }
-
-  return metadata;
 }
 
 /** Minimal fallback when the store handle does not resolve. */
@@ -134,6 +155,8 @@ export function buildMissingStorefrontMetadata(): Metadata {
     robots: { index: false, follow: false },
     keywords: [],
     applicationName: "Store",
+    manifest: null,
+    icons: resolveStorefrontIcons({ favicon_url: null, logo_url: null }),
     openGraph: {
       title: "Store not found",
       description: "This storefront is unavailable.",

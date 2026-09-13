@@ -198,7 +198,7 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                   : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700"
               }
             >
-              {dash.storeLive ? "Active" : "Draft"}
+              {dash.storeLive ? "Online" : "Offline"}
             </span>
             <Link
               href={dash.storefrontPath}

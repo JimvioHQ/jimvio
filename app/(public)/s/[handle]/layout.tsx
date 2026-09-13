@@ -38,7 +38,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
   if (!store) return buildMissingStorefrontMetadata();
-  return buildStorefrontMetadata(store);
+  return buildStorefrontMetadata(store, {
+    themeLogoUrl: store.theme_settings?.logoUrl ?? null,
+  });
 }
 
 export default async function StorefrontLayout({ children, params }: Props) {

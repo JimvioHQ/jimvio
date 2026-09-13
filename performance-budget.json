@@ -1,6 +1,6 @@
 {
-  "maxBuildMs": 900000,
+  "maxBuildMs": 1500000,
   "maxStaticKb": 20000,
   "maxChunksKb": 45000,
-  "notes": "Guardrails from production build artifacts. Tighten after CI baseline."
+  "notes": "Guardrails from production build artifacts. Raised maxBuildMs for Next.js 16 Turbopack production builds on constrained CI hosts (~18–22 min observed)."
 }

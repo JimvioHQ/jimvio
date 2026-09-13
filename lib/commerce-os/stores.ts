@@ -28,6 +28,45 @@ export type CreateStoreResult =
   | { ok: true; storeId: string; handle: string; url: string; publicUrl: string }
   | { ok: false; error: string; code: string };
 
+/** Pure seed used on create — draft and published start identical. */
+export function buildInitialStoreThemeDraft(
+  name: string,
+  themeSettings: Record<string, unknown> = {}
+) {
+  return {
+    sections: {
+      home: [
+        { id: "announcement", type: "announcement", enabled: true },
+        { id: "header", type: "header", enabled: true },
+        {
+          id: "hero",
+          type: "hero",
+          enabled: true,
+          props: {
+            headline: name,
+            subhead: `Shop ${name}`,
+            cta: "Shop the collection",
+          },
+        },
+        {
+          id: "featured_products",
+          type: "featured_products",
+          enabled: true,
+          props: { title: "Featured products" },
+        },
+        {
+          id: "trust",
+          type: "banner",
+          enabled: false,
+          props: { headline: "", subhead: "" },
+        },
+        { id: "footer", type: "footer", enabled: true },
+      ],
+    },
+    settings: themeSettings,
+  };
+}
+
 export async function createJimvioStore(
   db: SupabaseClient,
   input: CreateStoreInput
@@ -76,6 +115,11 @@ export async function createJimvioStore(
     themeSettings = (theme.default_settings as Record<string, unknown>) || {};
   }
 
+  // Seed draft + published snapshot so the store is publicly reachable immediately.
+  // Merchants keep editing theme_draft; Publish still promotes later revisions.
+  const nowIso = new Date().toISOString();
+  const themeDraft = buildInitialStoreThemeDraft(name, themeSettings);
+
   const { data: store, error } = await cosTable(db, "jimvio_stores")
     .insert({
       vendor_id: input.vendorId,
@@ -91,20 +135,16 @@ export async function createJimvioStore(
       contact_phone: input.contactPhone ?? null,
       theme_id: themeId,
       theme_settings: themeSettings,
-      theme_draft: {
-        sections: {
-          home: [
-            { id: "announcement", type: "announcement", enabled: true },
-            { id: "header", type: "header", enabled: true },
-            { id: "hero", type: "hero", enabled: true, props: { headline: name, subhead: `Shop ${name}`, cta: "Shop the collection" } },
-            { id: "featured_products", type: "featured_products", enabled: true, props: { title: "Featured" } },
-            { id: "trust", type: "banner", enabled: false, props: { headline: "", subhead: "" } },
-            { id: "footer", type: "footer", enabled: true },
-          ],
-        },
-        settings: themeSettings,
+      theme_draft: themeDraft,
+      published_theme: themeDraft,
+      status: "published",
+      published_at: nowIso,
+      published_theme_at: nowIso,
+      seo: {
+        title: name,
+        description:
+          (input.description && input.description.trim()) || `Shop ${name}`,
       },
-      status: "draft",
       settings: {
         checkout: { guestCheckout: true },
         inventory: { trackInventory: true, continueSellingWhenOutOfStock: false },

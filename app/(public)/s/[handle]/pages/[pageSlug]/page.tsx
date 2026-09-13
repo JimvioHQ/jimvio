@@ -29,6 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     path: `/pages/${pageSlug}`,
     title: `${fallback?.title || pageSlug} | ${store.name}`,
     description: store.description || `${fallback?.title || "Page"} — ${store.name}`,
+    themeLogoUrl: store.theme_settings?.logoUrl ?? null,
   });
 }
 

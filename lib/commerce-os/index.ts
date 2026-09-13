@@ -4,7 +4,17 @@ export {
   slugifyHandle,
   assertStoreOwnedByVendor,
 } from "./tenant";
-export { createJimvioStore, publishJimvioStore } from "./stores";
+export { createJimvioStore, publishJimvioStore, buildInitialStoreThemeDraft } from "./stores";
+export {
+  isJimvioStorePubliclyLive,
+  jimvioStoreLiveLabel,
+} from "./store-live";
+export { STOREFRONT_NEUTRAL_FAVICON_PATH } from "./storefront-icons";
+export {
+  buildStorefrontMetadata,
+  buildMissingStorefrontMetadata,
+  resolveStorefrontIcons,
+} from "./storefront-metadata";
 export { publishProductToJimvioStore } from "./products";
 export {
   loadPublishedStoreByHandle,
@@ -53,10 +63,6 @@ export {
   storefrontSubdomainsEnabled,
 } from "./storefront-url";
 export { isRequestOnStoreHost } from "./storefront-request";
-export {
-  buildStorefrontMetadata,
-  buildMissingStorefrontMetadata,
-} from "./storefront-metadata";
 export {
   reserveInventoryForOrder,
   commitInventoryHolds,

@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildStorefrontMetadata } from "./storefront-metadata.ts";
+import {
+  buildMissingStorefrontMetadata,
+  buildStorefrontMetadata,
+  resolveStorefrontIcons,
+} from "./storefront-metadata.ts";
+import { STOREFRONT_NEUTRAL_FAVICON_PATH } from "./storefront-icons.ts";
+import { constructMetadata } from "../seo.ts";
 
 const store = {
   name: "P7 PROVIDER STORE",
@@ -71,5 +77,51 @@ describe("storefront metadata", () => {
       (withFavicon.icons as { shortcut?: string })?.shortcut,
       "https://cdn.example.com/favicon.png"
     );
+  });
+
+  it("uses a neutral favicon — never Jimvio — when merchant has no icon or logo", () => {
+    const bare = buildStorefrontMetadata({
+      ...store,
+      logo_url: null,
+      favicon_url: null,
+    });
+    const shortcut = (bare.icons as { shortcut?: string })?.shortcut;
+    assert.equal(shortcut, STOREFRONT_NEUTRAL_FAVICON_PATH);
+    assert.ok(shortcut && !/favicon\.ico|\/icons\/icon-/i.test(shortcut));
+    assert.ok(!String(shortcut).includes("jimvio"));
+
+    const platform = constructMetadata();
+    const platformShortcut = (platform.icons as { shortcut?: string })?.shortcut;
+    assert.equal(platformShortcut, "/favicon.ico");
+    assert.notEqual(platformShortcut, shortcut);
+  });
+
+  it("removes merchant favicon when cleared (falls back to logo, then neutral)", () => {
+    const cleared = resolveStorefrontIcons({
+      favicon_url: null,
+      logo_url: "https://cdn.example.com/logo.png",
+    });
+    assert.equal((cleared as { shortcut?: string }).shortcut, "https://cdn.example.com/logo.png");
+    const neither = resolveStorefrontIcons({ favicon_url: null, logo_url: null });
+    assert.equal(
+      (neither as { shortcut?: string }).shortcut,
+      STOREFRONT_NEUTRAL_FAVICON_PATH
+    );
+  });
+
+  it("uses theme logo when logo_url column is empty", () => {
+    const meta = buildStorefrontMetadata(
+      { ...store, logo_url: null, favicon_url: null },
+      { themeLogoUrl: "https://cdn.example.com/theme-logo.png" }
+    );
+    assert.equal(
+      (meta.icons as { shortcut?: string })?.shortcut,
+      "https://cdn.example.com/theme-logo.png"
+    );
+  });
+
+  it("clears the platform PWA manifest on merchant storefronts", () => {
+    const meta = buildStorefrontMetadata(store);
+    assert.equal(meta.manifest, null);
   });
 });

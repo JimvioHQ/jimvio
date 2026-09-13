@@ -29,10 +29,6 @@ import {
   X,
 } from "lucide-react";
 import { AppTopNav } from "@/components/shell/AppTopNav";
-import {
-  MobilePrimaryBottomNav,
-  MOBILE_PRIMARY_BOTTOM_NAV_PAD,
-} from "@/components/layout/mobile-primary-bottom-nav";
 import { builderShouldHideCommerceNav } from "@/lib/commerce-os/builder/editor-chrome";
 import { cn } from "@/lib/utils";
 
@@ -103,8 +99,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
-
-const FLAT_NAV = NAV_GROUPS.flatMap((g) => g.items);
 
 function isNavActive(pathname: string, item: NavItem) {
   if (item.exact) return pathname === item.href;
@@ -320,13 +314,8 @@ export function CommerceShell({
         </div>
 
         <div className="flex min-w-0 flex-1 overflow-hidden">
-          <main
-            className={cn(
-              "min-w-0 flex-1 overflow-x-hidden overflow-y-auto",
-              MOBILE_PRIMARY_BOTTOM_NAV_PAD
-            )}
-          >
-            {/* Mobile page header — Affiliates pattern: [☰] title */}
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-6">
+            {/* Mobile page header */}
             <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#E5E7EB] bg-white/95 px-4 py-2 backdrop-blur lg:hidden">
               <button
                 type="button"
@@ -340,38 +329,10 @@ export function CommerceShell({
               <span className="text-sm font-semibold text-[#111827]">Commerce OS</span>
             </div>
 
-            {/* Tablet horizontal chips when permanent sidebar is hidden */}
-            <div className="hidden border-b border-[#E5E7EB] bg-white md:block lg:hidden">
-              <nav
-                aria-label="Commerce sections"
-                className="flex gap-1 overflow-x-auto px-4 py-2"
-              >
-                {FLAT_NAV.map((item) => {
-                  const active = isNavActive(pathname, item);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold",
-                        active
-                          ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
-                          : "text-[#6B7280] hover:bg-[#F3F4F6]"
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
-
             <div className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">{children}</div>
           </main>
         </div>
       </div>
-
-      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </div>
   );
 }
