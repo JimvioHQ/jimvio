@@ -17,7 +17,7 @@ import {
 } from "@/lib/commerce-os/storefront/header-nav";
 import { storefrontLetterMark } from "@/lib/commerce-os/storefront/related-products";
 import { storefrontDesktopNavClass } from "@/lib/commerce-os/storefront/chrome";
-import { previewProductGridClass } from "@/lib/commerce-os/builder/preview-viewport";
+import { previewProductGridClass, previewProductGridStyle } from "@/lib/commerce-os/builder/preview-viewport";
 import { sanitizeSocialLinks } from "@/lib/commerce-os/builder/nav-safe";
 
 /** Builder canvas only. Production omits this and uses real viewport breakpoints. */
@@ -703,11 +703,16 @@ export function StorefrontFeaturedProducts({
           No products published yet.
         </p>
       ) : (
-        <div className={gridClass}>
+        <div
+          className={gridClass}
+          data-storefront-chrome={rail ? undefined : "product-grid"}
+          data-preview-device={previewDevice || undefined}
+          style={rail ? undefined : previewProductGridStyle(previewDevice)}
+        >
           {products.map((p) => (
             <div
               key={p.id}
-              className={rail ? "w-[min(180px,70vw)] shrink-0" : undefined}
+              className={rail ? "w-[min(168px,68vw)] shrink-0" : undefined}
             >
               <StorefrontProductCard
                 product={p}

@@ -1658,11 +1658,15 @@ function ThemeControls({
           <label className="block text-xs">
             <span className="mb-1 block font-semibold">Product columns</span>
             <select
-              value={String(settings.productGridColumns || 3)}
-              onChange={(e) => onPatch({ productGridColumns: Number(e.target.value) as 2 | 3 | 4 })}
+              value={String(settings.productGridColumns || 4)}
+              onChange={(e) =>
+                onPatch({
+                  productGridColumns: Number(e.target.value) as 2 | 3 | 4 | 5 | 6,
+                })
+              }
               className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
             >
-              {[2, 3, 4].map((n) => (
+              {[2, 3, 4, 5, 6].map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>

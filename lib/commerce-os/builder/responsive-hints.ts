@@ -175,13 +175,13 @@ export function detectBuilderHints(input: {
     });
   }
 
-  if ((settings.productGridColumns || 3) > 3) {
+  if ((settings.productGridColumns || 4) > 4) {
     hints.push({
       id: "grid-cols-mobile",
       severity: "info",
       breakpoint: "mobile",
-      message: "Product grid uses 4 columns on desktop.",
-      suggestion: "Mobile automatically collapses to 1–2 columns.",
+      message: "Product grid uses 5+ columns on desktop.",
+      suggestion: "Mobile automatically collapses to 2 columns.",
     });
   }
 

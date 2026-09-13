@@ -58,13 +58,35 @@ export function previewShowMobileNav(device?: PreviewDevice | null): boolean {
   return device === "mobile" || device === "tablet";
 }
 
+/**
+ * Compact product grids: 2 on mobile, 3 on tablet, merchant columns on desktop
+ * (default 4). Desktop columns are applied via CSS/inline style — Tailwind
+ * arbitrary `repeat(var(--x),…)` classes drop the comma and never compile.
+ */
 export function previewProductGridClass(device?: PreviewDevice | null): string {
-  if (device === "mobile") return "mt-6 grid grid-cols-2 gap-2.5";
-  if (device === "tablet") return "mt-7 grid grid-cols-2 gap-4";
+  if (device === "mobile") return "mt-5 grid grid-cols-2 gap-2.5";
+  if (device === "tablet") return "mt-5 grid grid-cols-3 gap-3";
   if (device === "desktop" || device === "laptop" || device === "custom") {
-    return "mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]";
+    return "mt-6 grid gap-3";
   }
-  return "mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]";
+  return "mt-5 grid grid-cols-2 gap-2.5 md:gap-3";
+}
+
+export function previewProductGridStyle(
+  device?: PreviewDevice | null
+): { gridTemplateColumns: string } | undefined {
+  if (device === "desktop" || device === "laptop" || device === "custom") {
+    return {
+      gridTemplateColumns: "repeat(var(--store-grid-cols, 4), minmax(0, 1fr))",
+    };
+  }
+  if (device === "tablet") {
+    return { gridTemplateColumns: "repeat(3, minmax(0, 1fr))" };
+  }
+  if (device === "mobile") {
+    return { gridTemplateColumns: "repeat(2, minmax(0, 1fr))" };
+  }
+  return undefined;
 }
 
 export type ZoomMode = "fit" | 50 | 75 | 100 | 125;

@@ -12,6 +12,7 @@ import type { ThemeDraft } from "@/lib/commerce-os/themes/registry";
 import { BuilderClient } from "@/components/commerce-os/builder-client";
 import { cosTable } from "@/lib/commerce-os/db";
 import type { NavItem } from "@/lib/commerce-os/builder/nav-safe";
+import "@/styles/storefront-product-grid.css";
 
 export const dynamic = "force-dynamic";
 

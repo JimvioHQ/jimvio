@@ -36,7 +36,7 @@ export type ThemeSettings = {
   radius: string;
   cardRadius?: string;
   inputRadius?: string;
-  productGridColumns?: 2 | 3 | 4;
+  productGridColumns?: 2 | 3 | 4 | 5 | 6;
   headerStyle?: "simple" | "centered";
   headerAlign?: HeaderAlign;
   logoUrl?: string | null;
@@ -120,7 +120,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   radius: "12px",
   cardRadius: "16px",
   inputRadius: "9999px",
-  productGridColumns: 3,
+  productGridColumns: 4,
   headerStyle: "simple",
   headerAlign: "left",
   logoSize: "medium",
@@ -727,7 +727,8 @@ export function themeSettingsToCssVars(
     "--store-btn-height": s.buttonHeight || "44px",
     "--store-radius": s.radius,
     "--store-card-radius": s.cardRadius || s.radius,
-    "--store-grid-cols": String(s.productGridColumns || 3),
+    "--store-grid-cols": String(s.productGridColumns || 4),
+    "--store-card-gap": "0.75rem",
     "--store-logo-size": logoPx,
     "--store-max-width": s.maxWidth || "80rem",
     "--store-section-space": s.sectionSpacing || "3.5rem",

@@ -15,6 +15,7 @@ import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
 } from "@/lib/commerce-os/storefront-metadata";
+import "@/styles/storefront-product-grid.css";
 import {
   StorefrontAnnouncement,
   StorefrontHeader,

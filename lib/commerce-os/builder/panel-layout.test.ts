@@ -24,6 +24,7 @@ import {
   fitPreviewZoom,
   previewFrameWidth,
   previewProductGridClass,
+  previewProductGridStyle,
   previewShowDesktopNav,
   previewShowMobileNav,
   resolvePreviewZoom,
@@ -225,6 +226,22 @@ describe("preview viewport", () => {
   it("uses compact product grids on mobile preview", () => {
     assert.match(previewProductGridClass("mobile"), /grid-cols-2/);
     assert.doesNotMatch(previewProductGridClass("mobile"), /lg:/);
+    assert.match(previewProductGridClass("tablet"), /grid-cols-3/);
+    assert.match(previewProductGridClass(), /grid-cols-2/);
+    assert.equal(previewProductGridStyle(), undefined);
+    assert.ok(
+      previewProductGridStyle("desktop")?.gridTemplateColumns.includes(
+        "--store-grid-cols"
+      )
+    );
+    assert.equal(
+      previewProductGridStyle("tablet")?.gridTemplateColumns,
+      "repeat(3, minmax(0, 1fr))"
+    );
+    assert.equal(
+      previewProductGridStyle("mobile")?.gridTemplateColumns,
+      "repeat(2, minmax(0, 1fr))"
+    );
   });
 
   it("fits zoom without scaling text below 40%", () => {

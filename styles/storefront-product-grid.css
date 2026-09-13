@@ -1,0 +1,28 @@
+/* Merchant storefront product grids.
+   Tailwind arbitrary `repeat(var(--x), …)` classes drop commas and never apply,
+   so column counts live here against --store-grid-cols. */
+
+[data-storefront-chrome="product-grid"] {
+  --store-card-gap: 0.625rem;
+  gap: var(--store-card-gap);
+}
+
+[data-storefront-chrome="product-grid"] > * {
+  max-width: 16rem;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  [data-storefront-chrome="product-grid"]:not([data-preview-device]) {
+    --store-card-gap: 0.75rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  [data-storefront-chrome="product-grid"]:not([data-preview-device]) {
+    --store-card-gap: 0.75rem;
+    grid-template-columns: repeat(var(--store-grid-cols, 4), minmax(0, 1fr)) !important;
+  }
+}
