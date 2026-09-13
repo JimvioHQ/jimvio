@@ -146,7 +146,7 @@ export const HERO_PRESETS: Record<
       height: "md",
       eyebrow: "",
       headline: "Discover something better",
-      subhead: "Curated products. Secure checkout.",
+      subhead: "Browse the latest from this store.",
       cta: "Shop now",
       ctaHref: "/collections/all",
     },
@@ -172,7 +172,7 @@ export const HERO_PRESETS: Record<
       height: "lg",
       eyebrow: "Featured",
       headline: "Shop the edit",
-      subhead: "Hand-picked pieces, ready to ship.",
+      subhead: "Hand-picked pieces from this collection.",
       cta: "Shop now",
       ctaHref: "/collections/all",
       ctaSecondary: "Learn more",
@@ -348,7 +348,7 @@ export const BUILDER_SECTION_CATALOG: Array<{
     label: "Announcement bar",
     description: "Top promo strip",
     group: "core",
-    defaultProps: { text: "Free shipping on select orders" },
+    defaultProps: { text: "" },
   },
   {
     type: "header",
@@ -364,7 +364,7 @@ export const BUILDER_SECTION_CATALOG: Array<{
     defaultProps: {
       eyebrow: "",
       headline: "Discover something better",
-      subhead: "Curated products. Secure checkout.",
+      subhead: "Browse the latest from this store.",
       cta: "Shop now",
       ctaHref: "/collections/all",
       layout: "left",
@@ -425,8 +425,8 @@ export const BUILDER_SECTION_CATALOG: Array<{
     description: "Credibility strip",
     group: "trust",
     defaultProps: {
-      headline: "Why shop with us",
-      subhead: "Secure checkout · Verified sourcing · Order tracking",
+      headline: "",
+      subhead: "",
     },
   },
   {
@@ -435,8 +435,8 @@ export const BUILDER_SECTION_CATALOG: Array<{
     description: "Trust row for fulfillment",
     group: "trust",
     defaultProps: {
-      headline: "Shopping with confidence",
-      items: "Fast shipping · Easy returns · Secure checkout",
+      headline: "",
+      items: "",
     },
   },
   {
@@ -445,12 +445,12 @@ export const BUILDER_SECTION_CATALOG: Array<{
     description: "Social-proof numbers",
     group: "trust",
     defaultProps: {
-      aLabel: "Orders fulfilled",
-      aValue: "10k+",
-      bLabel: "Countries",
-      bValue: "40+",
-      cLabel: "Avg. rating",
-      cValue: "4.8",
+      aLabel: "",
+      aValue: "",
+      bLabel: "",
+      bValue: "",
+      cLabel: "",
+      cValue: "",
     },
   },
   {
@@ -592,7 +592,7 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       type: "announcement",
       enabled: true,
       props: {
-        text: "Free shipping on select orders · Secure payments · Easy returns",
+        text: "",
       },
     },
     { id: "header", type: "header", enabled: true },
@@ -601,17 +601,15 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       type: "hero",
       enabled: true,
       props: {
-        eyebrow: "Official store",
+        eyebrow: "",
         headline: storeName,
-        subhead:
-          "Discover hand-picked products — quality goods, secure checkout, and global fulfillment.",
+        subhead: `Shop ${storeName}`,
         cta: "Shop now",
         ctaHref: "/collections/all",
         ctaSecondary: "Browse all products",
         ctaSecondaryHref: "/collections/all",
         layout: "left",
         height: "lg",
-        trustItems: "Fast Delivery · Secure Payments · 24/7 Support",
       },
     },
     {
@@ -635,11 +633,10 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
     {
       id: "trust",
       type: "banner",
-      enabled: true,
+      enabled: false,
       props: {
-        headline: "Why shop with us",
-        subhead:
-          "100% Original Products · Easy Returns · Global Shipping · Customer Support",
+        headline: "",
+        subhead: "",
       },
     },
     { id: "footer", type: "footer", enabled: true },

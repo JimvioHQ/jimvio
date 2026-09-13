@@ -56,4 +56,20 @@ describe("storefront metadata", () => {
     );
     assert.equal(meta.twitter?.title, "Winter Hat | P7 PROVIDER STORE");
   });
+
+  it("falls back to the merchant logo for favicon when no dedicated icon exists", () => {
+    const withLogo = buildStorefrontMetadata(store);
+    assert.equal(
+      (withLogo.icons as { shortcut?: string })?.shortcut,
+      store.logo_url
+    );
+    const withFavicon = buildStorefrontMetadata({
+      ...store,
+      favicon_url: "https://cdn.example.com/favicon.png",
+    });
+    assert.equal(
+      (withFavicon.icons as { shortcut?: string })?.shortcut,
+      "https://cdn.example.com/favicon.png"
+    );
+  });
 });

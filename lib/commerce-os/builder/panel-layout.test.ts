@@ -14,6 +14,7 @@ import {
   closeLeftPanel,
   closeRightPanel,
   defaultRightPanelOpen,
+  nextBuilderEscapeAction,
   openInspectorForSection,
   toggleBuilderNav,
   type BuilderPanelState,
@@ -248,5 +249,54 @@ describe("canvas overflow detector", () => {
     assert.equal(hasHorizontalOverflow(800, 800), false);
     assert.equal(hasHorizontalOverflow(802, 800), false);
     assert.equal(hasHorizontalOverflow(810, 800), true);
+  });
+});
+
+describe("builder escape order", () => {
+  it("closes overlays, then inspector, then tree, then selection", () => {
+    assert.equal(
+      nextBuilderEscapeAction({
+        pickerOpen: true,
+        moreOpen: true,
+        focusMode: true,
+        rightOpen: true,
+        leftOpen: true,
+        selectedId: "hero",
+      }),
+      "picker"
+    );
+    assert.equal(
+      nextBuilderEscapeAction({
+        pickerOpen: false,
+        moreOpen: false,
+        focusMode: false,
+        rightOpen: true,
+        leftOpen: true,
+        selectedId: "hero",
+      }),
+      "right"
+    );
+    assert.equal(
+      nextBuilderEscapeAction({
+        pickerOpen: false,
+        moreOpen: false,
+        focusMode: false,
+        rightOpen: false,
+        leftOpen: false,
+        selectedId: "hero",
+      }),
+      "selection"
+    );
+    assert.equal(
+      nextBuilderEscapeAction({
+        pickerOpen: false,
+        moreOpen: false,
+        focusMode: false,
+        rightOpen: false,
+        leftOpen: false,
+        selectedId: null,
+      }),
+      null
+    );
   });
 });

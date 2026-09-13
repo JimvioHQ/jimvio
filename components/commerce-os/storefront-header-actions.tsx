@@ -6,6 +6,12 @@ import { getCart } from "@/lib/actions/marketplace";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { storefrontCartItemCount } from "@/lib/commerce-os/storefront/cart-count";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import {
+  storefrontDesktopSearchClass,
+  storefrontHeaderMenuButtonClass,
+  storefrontMobileSearchIconClass,
+  storefrontShowHeaderMenu,
+} from "@/lib/commerce-os/storefront/chrome";
 import { useCartStore } from "@/lib/store/use-cart-store";
 
 type PreviewDevice = "desktop" | "laptop" | "tablet" | "mobile" | "custom";
@@ -46,6 +52,7 @@ export function StorefrontHeaderActions({
   onStoreHost = false,
   previewDevice,
   navItems = [],
+  mobileNavStyle = "bottom",
 }: {
   handle: string;
   storeId?: string;
@@ -53,6 +60,7 @@ export function StorefrontHeaderActions({
   onStoreHost?: boolean;
   previewDevice?: PreviewDevice;
   navItems?: Array<{ label: string; href: string }>;
+  mobileNavStyle?: "bottom" | "drawer" | "hidden";
 }) {
   const linkOpts = { onStoreHost };
   const { cartCount } = useCartStore();
@@ -85,18 +93,8 @@ export function StorefrontHeaderActions({
     };
   }, [storeId, handle, cartCount]);
 
-  const searchFormClass =
-    desktopSearch === null
-      ? "hidden min-w-0 max-w-md flex-1 lg:flex"
-      : desktopSearch
-        ? "flex min-w-0 max-w-md flex-1"
-        : "hidden";
-  const searchIconClass =
-    desktopSearch === null
-      ? "grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--store-border,rgba(0,0,0,0.08))] text-sm text-[var(--store-text,#111827)] lg:hidden"
-      : desktopSearch
-        ? "hidden"
-        : "grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--store-border,rgba(0,0,0,0.08))] text-sm text-[var(--store-text,#111827)]";
+  const searchFormClass = storefrontDesktopSearchClass(previewDevice);
+  const searchIconClass = storefrontMobileSearchIconClass(previewDevice);
   const accountClass =
     desktopSearch === false
       ? "hidden"
@@ -109,7 +107,7 @@ export function StorefrontHeaderActions({
       : desktopSearch === true
         ? "relative inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold text-[var(--store-btn-text,#fff)] shadow-sm"
         : "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-[var(--store-btn-text,#fff)] shadow-sm lg:w-auto lg:gap-1.5 lg:px-3.5";
-  const showMenu = desktopSearch === false;
+  const showMenu = storefrontShowHeaderMenu(previewDevice, mobileNavStyle);
 
   const badge = storeCount > 0 ? (storeCount > 99 ? "99+" : String(storeCount)) : null;
 
@@ -158,7 +156,7 @@ export function StorefrontHeaderActions({
           <span className="hidden lg:inline">Cart {formatStoreMoney(storeTotal, currency)}</span>
         ) : null}
         {badge ? (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#DC2626] px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--store-error)] px-1 text-[10px] font-bold text-white">
             {badge}
           </span>
         ) : null}
@@ -166,7 +164,7 @@ export function StorefrontHeaderActions({
       {showMenu ? (
         <button
           type="button"
-          className="grid h-10 w-10 place-items-center rounded-full border border-[var(--store-border,rgba(0,0,0,0.08))] text-[var(--store-text,#111827)]"
+          className={storefrontHeaderMenuButtonClass(previewDevice)}
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(true)}
@@ -178,7 +176,7 @@ export function StorefrontHeaderActions({
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Store menu">
           <button
             type="button"
-            className="absolute inset-0 bg-[#111827]/40"
+            className="absolute inset-0 bg-[var(--store-text)]/40"
             aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           />

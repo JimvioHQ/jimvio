@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
+import {
+  loadPublishedStoreByHandle,
+  loadStoreCollections,
+  loadStoreProducts,
+} from "@/lib/commerce-os";
 import { cosTable } from "@/lib/commerce-os/db";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 import { themeSettingsToCssVars } from "@/lib/commerce-os/themes/registry";
@@ -17,6 +21,9 @@ import {
   StorefrontFooter,
 } from "@/components/commerce-os/storefront-sections";
 import { StorefrontMobileNav } from "@/components/commerce-os/storefront-mobile-nav";
+import { mergeStorefrontHeaderNav } from "@/lib/commerce-os/storefront/header-nav";
+import { productsOnSale } from "@/lib/commerce-os/storefront/sale-products";
+import { mobileNavOffsetVar } from "@/lib/commerce-os/storefront/related-products";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +56,24 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   const settings = store.theme_settings;
   const homeSections = store.published_sections.home;
+  const mobileNavStyle = settings.mobileNavStyle || "bottom";
 
-  const { data: navRows } = await cosTable(supabase, "jimvio_store_navigation")
-    .select("location, items")
-    .eq("store_id", store.id);
+  const [{ data: navRows }, collections, products, { data: aboutPage }] =
+    await Promise.all([
+      cosTable(supabase, "jimvio_store_navigation")
+        .select("location, items")
+        .eq("store_id", store.id),
+      loadStoreCollections(supabase, store.id, { limit: 8 }),
+      loadStoreProducts(supabase, store.id, { limit: 24, sort: "manual" }),
+      cosTable(supabase, "jimvio_store_pages")
+        .select("id")
+        .eq("store_id", store.id)
+        .eq("handle", "about")
+        .eq("published", true)
+        .maybeSingle(),
+    ]);
 
-  const headerNav =
+  const savedHeader =
     (
       navRows?.find((n: { location: string }) => n.location === "header")
         ?.items as Array<{ label: string; href: string }>
@@ -64,6 +83,13 @@ export default async function StorefrontLayout({ children, params }: Props) {
       navRows?.find((n: { location: string }) => n.location === "footer")
         ?.items as Array<{ label: string; href: string }>
     ) || undefined;
+
+  const headerNav = mergeStorefrontHeaderNav({
+    saved: savedHeader,
+    collections,
+    hasSaleProducts: productsOnSale(products).length > 0,
+    hasAbout: Boolean(aboutPage),
+  });
 
   const showAnnouncement = homeSections.some(
     (s) => s.type === "announcement" && s.enabled
@@ -77,10 +103,11 @@ export default async function StorefrontLayout({ children, params }: Props) {
   return (
     <div
       className={`flex min-h-dvh flex-col ${
-        (settings.mobileNavStyle || "bottom") === "bottom" ? "pb-16 md:pb-0" : ""
+        mobileNavStyle === "bottom" ? "pb-16 lg:pb-0" : ""
       }`}
       style={{
         ...cssVars,
+        ["--store-mobile-nav-h" as string]: mobileNavOffsetVar(mobileNavStyle),
         backgroundColor: settings.backgroundColor,
         color: settings.textColor,
         fontSize: `calc(100% * var(--store-font-scale, 1))`,
@@ -116,6 +143,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           showPoweredBy={settings.showPoweredBy !== false}
           storeId={store.id}
           currency={store.default_currency}
+          mobileNavStyle={mobileNavStyle}
         />
       ) : null}
       <main className="flex-1">{children}</main>
@@ -127,9 +155,10 @@ export default async function StorefrontLayout({ children, params }: Props) {
           onStoreHost={onStoreHost}
           logoUrl={store.logo_url || settings.logoUrl}
           showPoweredBy={settings.showPoweredBy !== false}
+          social={store.social}
         />
       ) : null}
-      {(settings.mobileNavStyle || "bottom") === "bottom" ? (
+      {mobileNavStyle === "bottom" ? (
         <StorefrontMobileNav
           handle={store.handle}
           storeId={store.id}

@@ -78,4 +78,10 @@ describe("commerce host routing", () => {
       true
     );
   });
+
+  it("treats unknown jimvio subdomains as merchant hosts so missing stores 404", () => {
+    assert.equal(handleFromJimvioSubdomain("no-such-store.jimvio.com"), "no-such-store");
+    assert.equal(isPlatformHostname("no-such-store.jimvio.com"), false);
+    assert.equal(isMerchantStorefrontRequest("no-such-store.jimvio.com", "/"), true);
+  });
 });

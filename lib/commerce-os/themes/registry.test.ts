@@ -13,6 +13,7 @@ import {
   reorderSections,
   suggestSeoDescription,
   themeSettingsToCssVars,
+  defaultHomeSections,
 } from "./registry.ts";
 import { isSafeNavHref, sanitizeNavItems } from "../builder/nav-safe.ts";
 import { DraftHistory } from "../builder/history.ts";
@@ -97,6 +98,22 @@ describe("theme registry builder helpers", () => {
     const d = suggestSeoDescription("Acme", "Short");
     assert.ok(d.includes("Acme"));
     assert.ok(d.length <= 155);
+  });
+
+  it("does not seed unverifiable trust claims on new stores", () => {
+    const home = defaultHomeSections("Acme");
+    const trust = home.find((s) => s.id === "trust");
+    const hero = home.find((s) => s.type === "hero");
+    assert.equal(trust?.enabled, false);
+    assert.equal(String(trust?.props?.subhead || ""), "");
+    assert.equal(hero?.props?.trustItems, undefined);
+    assert.ok(!JSON.stringify(home).includes("24/7"));
+    assert.ok(!JSON.stringify(home).includes("10k+"));
+    const catalog = JSON.stringify(BUILDER_SECTION_CATALOG);
+    const presets = JSON.stringify(HERO_PRESETS);
+    assert.ok(!catalog.includes("Secure checkout"));
+    assert.ok(!presets.includes("Secure checkout"));
+    assert.ok(!presets.includes("ready to ship"));
   });
 });
 

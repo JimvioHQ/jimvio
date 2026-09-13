@@ -90,7 +90,7 @@ export function StorefrontProductCard({
             </span>
           ) : null}
           {soldOut ? (
-            <span className="absolute right-2.5 top-2.5 rounded-full bg-[#111827]/85 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <span className="absolute right-2.5 top-2.5 rounded-full bg-[var(--store-text)]/85 px-2 py-0.5 text-[10px] font-semibold text-[var(--store-surface)]">
               Sold out
             </span>
           ) : null}

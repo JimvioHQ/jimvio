@@ -40,6 +40,7 @@ import {
   builderWorkspaceGrid,
   collapsePanelsForCanvas,
   defaultRightPanelOpen,
+  nextBuilderEscapeAction,
   openInspectorForSection,
   toggleBuilderNav,
   type BuilderPanelId,
@@ -329,27 +330,20 @@ export function BuilderClient({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        if (pickerOpen) {
-          setPickerOpen(false);
-          return;
-        }
-        if (moreOpen) {
-          setMoreOpen(false);
-          return;
-        }
-        if (focusMode) {
-          setFocusMode(false);
-          return;
-        }
-        if (rightOpen) {
-          setRightOpen(false);
-          return;
-        }
-        if (leftOpen) {
-          setLeftOpen(false);
-          return;
-        }
-        setSelectedId(null);
+        const action = nextBuilderEscapeAction({
+          pickerOpen,
+          moreOpen,
+          focusMode,
+          rightOpen,
+          leftOpen,
+          selectedId,
+        });
+        if (action === "picker") setPickerOpen(false);
+        else if (action === "more") setMoreOpen(false);
+        else if (action === "focus") setFocusMode(false);
+        else if (action === "right") setRightOpen(false);
+        else if (action === "left") setLeftOpen(false);
+        else if (action === "selection") setSelectedId(null);
         return;
       }
       const meta = e.metaKey || e.ctrlKey;
@@ -1119,6 +1113,7 @@ export function BuilderClient({
                 sections={enabledSections}
                 headerNav={headerNav}
                 footerNav={footerNav}
+                social={social}
                 products={previewProducts}
                 collections={previewCollections}
                 storeId={storeId}
@@ -2157,6 +2152,7 @@ function PreviewCanvas({
   sections,
   headerNav,
   footerNav,
+  social,
   products,
   collections,
   storeId,
@@ -2172,6 +2168,7 @@ function PreviewCanvas({
   sections: ThemeSection[];
   headerNav: NavItem[];
   footerNav: NavItem[];
+  social?: Record<string, unknown>;
   products: PreviewProduct[];
   collections: PreviewCollection[];
   storeId: string;
@@ -2232,6 +2229,7 @@ function PreviewCanvas({
             showPoweredBy={settings.showPoweredBy !== false}
             storeId={storeId}
             previewDevice={device}
+            mobileNavStyle={settings.mobileNavStyle || "bottom"}
           />
         </CanvasSectionFrame>
       ) : null}
@@ -2274,6 +2272,7 @@ function PreviewCanvas({
             previewDevice={device}
             logoUrl={logo}
             showPoweredBy={settings.showPoweredBy !== false}
+            social={social}
           />
         </CanvasSectionFrame>
       ) : null}

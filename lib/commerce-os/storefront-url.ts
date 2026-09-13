@@ -42,7 +42,8 @@ export function storefrontHref(
 
 /**
  * Normalize a stored nav href for the current host mode.
- * Strips `/s/{handle}` when already on the merchant subdomain.
+ * Path-mode prefixes store-relative links (`/pages/about`) with `/s/{handle}`.
+ * Host-mode strips `/s/{handle}` so the browser stays on the merchant subdomain.
  */
 export function normalizeStorefrontHref(
   handle: string,
@@ -53,11 +54,25 @@ export function normalizeStorefrontHref(
   if (href.startsWith("http://") || href.startsWith("https://") || href.startsWith("#")) {
     return href;
   }
-  if (!options?.onStoreHost) return href;
   const prefix = `/s/${handle.trim().toLowerCase()}`;
-  if (href === prefix || href === `${prefix}/`) return "/";
-  if (href.startsWith(`${prefix}/`)) return href.slice(prefix.length) || "/";
-  return href.startsWith("/") ? href : `/${href}`;
+  let path = href.trim();
+  if (!path.startsWith("/")) path = `/${path}`;
+
+  if (options?.onStoreHost) {
+    if (path === prefix || path === `${prefix}/`) return "/";
+    if (path.startsWith(`${prefix}/`)) return path.slice(prefix.length) || "/";
+    return path;
+  }
+
+  if (
+    path === prefix ||
+    path === `${prefix}/` ||
+    path.startsWith(`${prefix}/`) ||
+    path.startsWith(`${prefix}?`)
+  ) {
+    return path;
+  }
+  return storefrontHref(handle, path, options);
 }
 
 /**

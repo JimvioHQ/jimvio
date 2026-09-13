@@ -18,6 +18,7 @@ import { productImageUrls } from "@/lib/commerce-os/storefront/product-media";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import Link from "next/link";
+import { relatedStoreProducts } from "@/lib/commerce-os/storefront/related-products";
 
 export const dynamic = "force-dynamic";
 
@@ -62,12 +63,14 @@ export default async function StorefrontProductPage({ params }: Props) {
     product.track_inventory !== true ||
     (typeof product.inventory_quantity === "number" &&
       product.inventory_quantity > 0);
-  const related = (await loadStoreProducts(supabase, store.id, { limit: 12 }))
-    .filter((p) => p.id !== product.id)
-    .slice(0, 8);
+  const related = relatedStoreProducts(
+    await loadStoreProducts(supabase, store.id, { limit: 12 }),
+    product.id,
+    8
+  );
 
   return (
-    <div className="pb-24 md:pb-10">
+    <div className="pb-24 lg:pb-10">
       <div className="mx-auto grid max-w-[var(--store-max-width,80rem)] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-10">
         <StorefrontProductGallery images={gallery} alt={product.name} />
 
@@ -150,10 +153,10 @@ export default async function StorefrontProductPage({ params }: Props) {
               <p className="font-semibold text-[var(--store-text,#111827)]">Returns</p>
               <p className="mt-0.5">Merchant policy applies</p>
             </Link>
-            <div className="rounded-[var(--store-card-radius,16px)] bg-[var(--store-bg,#F8FAFC)] px-3 py-4">
-              <p className="font-semibold text-[var(--store-text,#111827)]">Secure checkout</p>
-              <p className="mt-0.5">Protected payments</p>
-            </div>
+            <Link href={storefrontHref(handle, onStoreHost ? "/contact" : "/pages/contact", { onStoreHost })} className="rounded-[var(--store-card-radius,16px)] bg-[var(--store-bg)] px-3 py-4">
+              <p className="font-semibold text-[var(--store-text)]">Contact</p>
+              <p className="mt-0.5">Ask the merchant</p>
+            </Link>
           </div>
         </div>
       </div>

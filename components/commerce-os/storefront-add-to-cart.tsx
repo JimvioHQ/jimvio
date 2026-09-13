@@ -199,7 +199,13 @@ export function StorefrontAddToCartButton({
     <div className="space-y-3">
       {actions}
       {sticky ? (
-        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 border-t border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)]/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] md:hidden">
+        <div
+          className="fixed inset-x-0 z-30 border-t border-[var(--store-border)] bg-[var(--store-surface)]/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:hidden"
+          style={{
+            bottom: "calc(var(--store-mobile-nav-h, 3.5rem) + env(safe-area-inset-bottom, 0px))",
+          }}
+          data-storefront-chrome="sticky-atc"
+        >
           <Button
             size="lg"
             onClick={() => void handleAdd(false)}

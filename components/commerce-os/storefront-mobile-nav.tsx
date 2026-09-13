@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { getCart } from "@/lib/actions/marketplace";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { storefrontCartItemCount } from "@/lib/commerce-os/storefront/cart-count";
+import { storefrontMobileNavClass } from "@/lib/commerce-os/storefront/chrome";
+import { storefrontNavIsActive } from "@/lib/commerce-os/storefront/header-nav";
 import { useCartStore } from "@/lib/store/use-cart-store";
 type StorefrontPreviewDevice =
   | "desktop"
@@ -12,12 +15,6 @@ type StorefrontPreviewDevice =
   | "tablet"
   | "mobile"
   | "custom";
-
-function navClass(device?: StorefrontPreviewDevice) {
-  if (!device) return "fixed inset-x-0 bottom-0 z-40 md:hidden";
-  if (device === "mobile" || device === "tablet") return "sticky bottom-0 z-40";
-  return "hidden";
-}
 
 export function StorefrontMobileNav({
   handle,
@@ -35,6 +32,7 @@ export function StorefrontMobileNav({
   const linkOpts = { onStoreHost };
   const { cartCount } = useCartStore();
   const [count, setCount] = useState(0);
+  const pathname = usePathname() || "/";
 
   useEffect(() => {
     if (!storeId) return;
@@ -79,22 +77,32 @@ export function StorefrontMobileNav({
 
   return (
     <nav
-      className={`${navClass(previewDevice)} border-t border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md`}
+      className={`${storefrontMobileNavClass(previewDevice)} border-t border-[var(--store-border)] bg-[var(--store-surface)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md`}
       aria-label="Store mobile"
       data-storefront-chrome="mobile-nav"
     >
       <ul className="mx-auto grid max-w-[var(--store-max-width,80rem)] grid-cols-4">
-        {items.map((item) => (
+        {items.map((item) => {
+          const active = storefrontNavIsActive({
+            pathname,
+            href: item.href,
+            handle,
+          });
+          return (
           <li key={item.label}>
             <Link
               href={item.href}
-              className="flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-[var(--store-muted,#6B7280)]"
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold ${
+                active ? "text-[var(--store-primary)]" : "text-[var(--store-muted)]"
+              }`}
             >
               <NavIcon name={item.icon} />
               {item.label}
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
       <span className="sr-only">Cart items: {count}</span>
     </nav>

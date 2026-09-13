@@ -96,9 +96,9 @@ export async function createJimvioStore(
           home: [
             { id: "announcement", type: "announcement", enabled: true },
             { id: "header", type: "header", enabled: true },
-            { id: "hero", type: "hero", enabled: true, props: { headline: name, subhead: "Curated products. Fast checkout. Global fulfillment.", cta: "Shop the collection" } },
+            { id: "hero", type: "hero", enabled: true, props: { headline: name, subhead: `Shop ${name}`, cta: "Shop the collection" } },
             { id: "featured_products", type: "featured_products", enabled: true, props: { title: "Featured" } },
-            { id: "trust", type: "banner", enabled: true, props: { headline: "Why shop with us", subhead: "Secure checkout · Verified sourcing · Order tracking" } },
+            { id: "trust", type: "banner", enabled: false, props: { headline: "", subhead: "" } },
             { id: "footer", type: "footer", enabled: true },
           ],
         },

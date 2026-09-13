@@ -32,6 +32,18 @@ describe("storefront urls", () => {
       normalizeStorefrontHref("brand", "/s/brand/cart", { onStoreHost: false }),
       "/s/brand/cart"
     );
+    assert.equal(
+      normalizeStorefrontHref("brand", "/pages/about"),
+      "/s/brand/pages/about"
+    );
+    assert.equal(
+      normalizeStorefrontHref("brand", "/collections/all?sort=sale"),
+      "/s/brand/collections/all?sort=sale"
+    );
+    assert.equal(
+      normalizeStorefrontHref("brand", "/pages/about", { onStoreHost: true }),
+      "/pages/about"
+    );
   });
 
   it("uses subdomain canonical display urls", () => {

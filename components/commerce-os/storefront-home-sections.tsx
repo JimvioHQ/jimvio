@@ -140,39 +140,45 @@ export function StorefrontHomeSections({
           />
         );
       } else if (section.type === "banner" || section.type === "trust_shipping") {
-        node = (
-          <StorefrontTrustBar
-            headline={
-              typeof props.headline === "string" ? props.headline : undefined
-            }
-            subhead={
-              typeof props.subhead === "string"
-                ? props.subhead
-                : typeof props.items === "string"
-                  ? props.items
-                  : undefined
-            }
-            previewDevice={previewDevice}
-          />
-        );
+        const subhead =
+          typeof props.subhead === "string"
+            ? props.subhead
+            : typeof props.items === "string"
+              ? props.items
+              : undefined;
+        const headline =
+          typeof props.headline === "string" ? props.headline : undefined;
+        node =
+          (headline && headline.trim()) || (subhead && subhead.trim()) ? (
+            <StorefrontTrustBar
+              headline={headline}
+              subhead={subhead}
+              previewDevice={previewDevice}
+            />
+          ) : preview ? (
+            <p className="px-4 py-8 text-center text-sm opacity-50">
+              Add trust items in the inspector. Only merchant-written copy is shown.
+            </p>
+          ) : null;
       } else if (section.type === "discount_banner") {
-        node = (
+        const headline = typeof props.headline === "string" ? props.headline.trim() : "";
+        const subhead = typeof props.subhead === "string" ? props.subhead : "";
+        node =
+          headline || subhead ? (
           <section className={`mx-auto max-w-[var(--store-max-width,72rem)] py-8 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
             <div
-              className="rounded-[var(--store-radius,12px)] px-6 py-10 text-center text-white"
-              style={{ background: "var(--store-primary,#FF5A1F)" }}
+              className="rounded-[var(--store-radius,12px)] px-6 py-10 text-center text-[var(--store-btn-text)]"
+              style={{ background: "var(--store-primary)" }}
             >
-              <h2 className="text-2xl font-semibold">
-                {typeof props.headline === "string"
-                  ? props.headline
-                  : "Limited offer"}
-              </h2>
-              <p className="mt-2 text-sm opacity-90">
-                {typeof props.subhead === "string" ? props.subhead : ""}
-              </p>
+              {headline ? <h2 className="text-2xl font-semibold">{headline}</h2> : null}
+              {subhead ? (
+              <p className="mt-2 text-sm opacity-90">{subhead}</p>
+              ) : null}
             </div>
           </section>
-        );
+          ) : preview ? (
+            <p className="px-4 py-8 text-center text-sm opacity-50">Add promo copy in the inspector.</p>
+          ) : null;
       } else if (section.type === "stats") {
         const stats = [
           [props.aValue, props.aLabel],

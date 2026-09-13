@@ -132,3 +132,30 @@ export function builderWorkspaceGrid(state: {
 export function defaultRightPanelOpen(): boolean {
   return false;
 }
+
+export type BuilderEscapeTarget =
+  | "picker"
+  | "more"
+  | "focus"
+  | "right"
+  | "left"
+  | "selection"
+  | null;
+
+/** Predictable Escape order: overlays → inspector → tree → selection. */
+export function nextBuilderEscapeAction(state: {
+  pickerOpen: boolean;
+  moreOpen: boolean;
+  focusMode: boolean;
+  rightOpen: boolean;
+  leftOpen: boolean;
+  selectedId: string | null;
+}): BuilderEscapeTarget {
+  if (state.pickerOpen) return "picker";
+  if (state.moreOpen) return "more";
+  if (state.focusMode) return "focus";
+  if (state.rightOpen) return "right";
+  if (state.leftOpen) return "left";
+  if (state.selectedId) return "selection";
+  return null;
+}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { Suspense, type CSSProperties } from "react";
 import type { ThemeSection } from "@/lib/commerce-os/themes/registry";
 import {
   normalizeStorefrontHref,
@@ -8,8 +8,17 @@ import {
 import { StorefrontProductCard } from "@/components/commerce-os/storefront-product-card";
 import { StorefrontHeaderActions } from "@/components/commerce-os/storefront-header-actions";
 import { StorefrontCollectionTile } from "@/components/commerce-os/storefront-collection-tile";
+import { StorefrontNavLinks } from "@/components/commerce-os/storefront-nav-links";
 import { splitHeadlineAccent } from "@/lib/commerce-os/storefront/headline";
 import { categoryNavTiles } from "@/lib/commerce-os/storefront/collection-slice";
+import {
+  announcementMessages,
+  trustStripItems,
+} from "@/lib/commerce-os/storefront/header-nav";
+import { storefrontLetterMark } from "@/lib/commerce-os/storefront/related-products";
+import { storefrontDesktopNavClass } from "@/lib/commerce-os/storefront/chrome";
+import { previewProductGridClass } from "@/lib/commerce-os/builder/preview-viewport";
+import { sanitizeSocialLinks } from "@/lib/commerce-os/builder/nav-safe";
 
 /** Builder canvas only. Production omits this and uses real viewport breakpoints. */
 export type StorefrontPreviewDevice =
@@ -71,33 +80,24 @@ export function StorefrontAnnouncement({
   storeName: string;
   previewDevice?: StorefrontPreviewDevice;
 }) {
-  const raw = text?.trim() || `Welcome to ${storeName}`;
-  const parts = raw
-    .split("·")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const messages = parts.length > 1 ? parts : [raw];
+  const messages = announcementMessages(text, storeName);
   const compact = previewCompact(previewDevice);
-  const showAside = previewDesktopChrome(previewDevice);
+  if (!messages.length) return null;
 
   return (
     <div
       className={viewportClass(
         previewDevice,
-        "px-3 py-2 text-center text-[11px] font-medium leading-snug tracking-wide sm:px-4 sm:text-left sm:text-xs",
+        "px-3 py-2 text-center text-[11px] font-medium leading-snug tracking-wide sm:px-4 sm:text-xs",
         "px-3 py-2 text-center text-[11px] font-medium leading-snug tracking-wide",
-        "px-4 py-2 text-[11px] font-medium tracking-wide sm:text-xs"
+        "px-4 py-2 text-center text-[11px] font-medium tracking-wide sm:text-xs"
       )}
       style={{
-        background: "var(--store-announce-bg,#0F172A)",
-        color: "var(--store-announce-text,#F8FAFC)",
+        background: "var(--store-announce-bg)",
+        color: "var(--store-announce-text)",
       }}
     >
-      <div
-        className={`mx-auto flex min-w-0 max-w-[var(--store-max-width,80rem)] flex-wrap items-center gap-x-4 gap-y-1 ${
-          compact ? "justify-center" : "justify-center sm:justify-between"
-        }`}
-      >
+      <div className="mx-auto flex min-w-0 max-w-[var(--store-max-width,80rem)] flex-wrap items-center justify-center gap-x-4 gap-y-1">
         <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1">
           {messages.slice(0, compact ? 2 : 3).map((m) => (
             <span key={m} className="max-w-full break-words opacity-90">
@@ -105,11 +105,6 @@ export function StorefrontAnnouncement({
             </span>
           ))}
         </div>
-        {showAside === null ? (
-          <span className="hidden opacity-55 sm:inline">Shop with confidence</span>
-        ) : showAside ? (
-          <span className="opacity-55">Shop with confidence</span>
-        ) : null}
       </div>
     </div>
   );
@@ -127,6 +122,7 @@ export function StorefrontHeader({
   storeId,
   currency,
   previewDevice,
+  mobileNavStyle = "bottom",
 }: {
   storeName: string;
   handle: string;
@@ -140,6 +136,7 @@ export function StorefrontHeader({
   currency?: string | null;
   /** Builder canvas only — forces mobile/desktop chrome without viewport breakpoints */
   previewDevice?: StorefrontPreviewDevice;
+  mobileNavStyle?: "bottom" | "drawer" | "hidden";
 }) {
   const linkOpts = { onStoreHost };
   const home = storefrontHref(handle, "", linkOpts);
@@ -155,19 +152,16 @@ export function StorefrontHeader({
             label: "All products",
             href: storefrontHref(handle, "/collections/all", linkOpts),
           },
-          {
-            label: "Search",
-            href: storefrontHref(handle, "/search", linkOpts),
-          },
         ];
 
   const compact = previewCompact(previewDevice);
   const showDesktopNav = previewDesktopChrome(previewDevice);
+  const letter = storefrontLetterMark(storeName);
 
   return (
     <header
-      className={`${sticky ? "sticky top-0" : "relative"} z-30 min-w-0 overflow-x-clip border-b border-[var(--store-border,rgba(0,0,0,0.06))] backdrop-blur-md`}
-      style={{ background: "color-mix(in srgb, var(--store-header-bg, var(--store-surface,#FFFFFF)) 95%, transparent)" }}
+      className={`${sticky ? "sticky top-0" : "relative"} z-30 min-w-0 overflow-x-clip border-b border-[var(--store-border)] backdrop-blur-md`}
+      style={{ background: "color-mix(in srgb, var(--store-header-bg) 95%, transparent)" }}
     >
       <div
         className={`mx-auto flex max-w-[var(--store-max-width,80rem)] min-w-0 items-center ${
@@ -185,20 +179,20 @@ export function StorefrontHeader({
             />
           ) : (
             <span
-              className="grid shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+              className="grid shrink-0 place-items-center rounded-full text-xs font-bold text-[var(--store-btn-text)]"
               style={{
-                background: "var(--store-primary,#FF5A1F)",
+                background: "var(--store-primary)",
                 height: "var(--store-logo-size,36px)",
                 width: "var(--store-logo-size,36px)",
               }}
               aria-hidden
             >
-              {storeName.slice(0, 1).toUpperCase()}
+              {letter}
             </span>
           )}
           <span className="min-w-0">
             <span
-              className={`block font-semibold leading-snug tracking-tight text-[var(--store-text,#111827)] ${
+              className={`block font-semibold leading-snug tracking-tight text-[var(--store-text)] ${
                 compact ? "line-clamp-2 text-sm" : "line-clamp-2 text-sm sm:line-clamp-none sm:text-base"
               }`}
             >
@@ -206,11 +200,11 @@ export function StorefrontHeader({
             </span>
             {showPoweredBy ? (
               showDesktopNav === null ? (
-                <span className="hidden text-[10px] text-[var(--store-muted,#6B7280)] sm:block">
+                <span className="hidden text-[10px] text-[var(--store-muted)] sm:block">
                   Powered by Jimvio
                 </span>
               ) : showDesktopNav ? (
-                <span className="block text-[10px] text-[var(--store-muted,#6B7280)]">
+                <span className="block text-[10px] text-[var(--store-muted)]">
                   Powered by Jimvio
                 </span>
               ) : null
@@ -221,25 +215,23 @@ export function StorefrontHeader({
         <nav
           className={`min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm ${
             centered ? "justify-center" : "justify-center"
-          } ${
-            showDesktopNav === null
-              ? "hidden lg:flex"
-              : showDesktopNav
-                ? "flex"
-                : "hidden"
-          }`}
+          } ${storefrontDesktopNavClass(previewDevice)}`}
           aria-label="Store"
           data-storefront-chrome="desktop-nav"
         >
-          {items.map((item) => (
-            <Link
-              key={`${item.href}-${item.label}`}
-              href={item.href}
-              className="shrink-0 rounded-lg px-2.5 py-1.5 text-[var(--store-text,#111827)]/75 transition hover:bg-black/[0.04] hover:text-[var(--store-text,#111827)]"
-            >
-              {item.label}
-            </Link>
-          ))}
+          <Suspense
+            fallback={items.map((item) => (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                className="shrink-0 rounded-lg px-2.5 py-1.5 text-[var(--store-text)]/75"
+              >
+                {item.label}
+              </Link>
+            ))}
+          >
+            <StorefrontNavLinks items={items} handle={handle} />
+          </Suspense>
         </nav>
 
         <div className={`ml-auto flex min-w-0 shrink-0 items-center gap-2 ${centered ? "w-full justify-center" : ""}`}>
@@ -250,6 +242,7 @@ export function StorefrontHeader({
             onStoreHost={onStoreHost}
             previewDevice={previewDevice}
             navItems={items}
+            mobileNavStyle={mobileNavStyle}
           />
         </div>
       </div>
@@ -673,11 +666,7 @@ export function StorefrontFeaturedProducts({
   const rail = layout === "rail";
   const gridClass = rail
     ? "mt-6 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    : previewDevice === "mobile"
-      ? "mt-6 grid grid-cols-2 gap-2.5"
-      : previewDevice === "tablet"
-        ? "mt-7 grid grid-cols-2 gap-4"
-        : "mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]";
+    : previewProductGridClass(previewDevice);
   const padClass = compact ? "px-3" : "px-4 sm:px-6";
   return (
     <section
@@ -743,10 +732,8 @@ export function StorefrontTrustBar({
   subhead?: string;
   previewDevice?: StorefrontPreviewDevice;
 }) {
-  const items = (subhead || "Secure checkout · Verified sourcing · Order tracking")
-    .split("·")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const items = trustStripItems(subhead);
+  if (!items.length && !headline) return null;
   const compact = previewCompact(previewDevice);
   const cols =
     compact
@@ -787,6 +774,7 @@ export function StorefrontFooter({
   previewDevice,
   logoUrl,
   showPoweredBy = true,
+  social,
 }: {
   storeName: string;
   handle: string;
@@ -795,6 +783,7 @@ export function StorefrontFooter({
   previewDevice?: StorefrontPreviewDevice;
   logoUrl?: string | null;
   showPoweredBy?: boolean;
+  social?: Record<string, unknown> | null;
 }) {
   const linkOpts = { onStoreHost };
   const items =
@@ -812,9 +801,12 @@ export function StorefrontFooter({
           { label: "Shipping", href: storefrontHref(handle, onStoreHost ? "/shipping-policy" : "/pages/shipping-policy", linkOpts) },
           { label: "Account", href: storefrontHref(handle, "/account", linkOpts) },
         ];
+  const socialLinks = Object.entries(sanitizeSocialLinks(social));
+  const year = new Date().getFullYear();
+  const letter = storefrontLetterMark(storeName);
 
   return (
-    <footer className="mt-auto border-t border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)]">
+    <footer className="mt-auto border-t border-[var(--store-border)] bg-[var(--store-surface)]">
       <div
         className={`mx-auto flex max-w-[var(--store-max-width,80rem)] flex-col gap-8 py-12 ${
           previewCompact(previewDevice)
@@ -832,29 +824,47 @@ export function StorefrontFooter({
             />
           ) : (
             <span
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
-              style={{ background: "var(--store-primary,#FF5A1F)" }}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-bold text-[var(--store-btn-text)]"
+              style={{ background: "var(--store-primary)" }}
               aria-hidden
             >
-              {storeName.slice(0, 1).toUpperCase()}
+              {letter}
             </span>
           )}
           <div>
-            <p className="text-sm font-semibold text-[var(--store-text,#111827)]">{storeName}</p>
+            <p className="text-sm font-semibold text-[var(--store-text)]">{storeName}</p>
+            <p className="mt-1 text-xs text-[var(--store-muted)]">
+              © {year} {storeName}
+            </p>
             {showPoweredBy ? (
-              <p className="mt-1 text-xs text-[var(--store-muted,#6B7280)]">
+              <p className="mt-1 text-xs text-[var(--store-muted)]">
                 Powered by Jimvio
               </p>
             ) : null}
           </div>
         </div>
-        <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--store-muted,#6B7280)]">
-          {items.map((item) => (
-            <Link key={`${item.href}-${item.label}`} href={item.href} className="hover:text-[var(--store-text,#111827)]">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex min-w-0 flex-col gap-4">
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--store-muted)]">
+            <Suspense
+              fallback={items.map((item) => (
+                <Link key={`${item.href}-${item.label}`} href={item.href} className="hover:text-[var(--store-text)]">
+                  {item.label}
+                </Link>
+              ))}
+            >
+              <StorefrontNavLinks items={items} handle={handle} variant="footer" />
+            </Suspense>
+          </nav>
+          {socialLinks.length ? (
+            <nav className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold capitalize text-[var(--store-text)]" aria-label="Social">
+              {socialLinks.map(([key, href]) => (
+                <a key={key} href={href} target="_blank" rel="noreferrer" className="hover:opacity-70">
+                  {key === "x" ? "X" : key}
+                </a>
+              ))}
+            </nav>
+          ) : null}
+        </div>
       </div>
     </footer>
   );
