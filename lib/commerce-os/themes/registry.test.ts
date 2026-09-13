@@ -77,8 +77,9 @@ describe("theme registry builder helpers", () => {
     assert.equal(vars["--store-font-scale"], "1");
     assert.ok(vars["--store-shadow"]);
     const defaults = themeSettingsToCssVars(mergeThemeSettings(null, null));
-    assert.equal(defaults["--store-grid-cols"], "4");
+    assert.equal(defaults["--store-grid-cols"], "5");
     assert.equal(defaults["--store-card-gap"], "0.75rem");
+    assert.equal(defaults["--store-image-ratio"], "1 / 1");
   });
 
   it("applies design and hero presets without wiping media", () => {

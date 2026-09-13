@@ -60,7 +60,7 @@ export function previewShowMobileNav(device?: PreviewDevice | null): boolean {
 
 /**
  * Compact product grids: 2 on mobile, 3 on tablet, merchant columns on desktop
- * (default 4). Desktop columns are applied via CSS/inline style — Tailwind
+ * (default 5). Desktop columns are applied via CSS/inline style — Tailwind
  * arbitrary `repeat(var(--x),…)` classes drop the comma and never compile.
  */
 export function previewProductGridClass(device?: PreviewDevice | null): string {
@@ -77,7 +77,7 @@ export function previewProductGridStyle(
 ): { gridTemplateColumns: string } | undefined {
   if (device === "desktop" || device === "laptop" || device === "custom") {
     return {
-      gridTemplateColumns: "repeat(var(--store-grid-cols, 4), minmax(0, 1fr))",
+      gridTemplateColumns: "repeat(var(--store-grid-cols, 5), minmax(0, 1fr))",
     };
   }
   if (device === "tablet") {

@@ -712,7 +712,7 @@ export function StorefrontFeaturedProducts({
           {products.map((p) => (
             <div
               key={p.id}
-              className={rail ? "w-[min(168px,68vw)] shrink-0" : undefined}
+              className={rail ? "w-[min(176px,70vw)] shrink-0" : undefined}
             >
               <StorefrontProductCard
                 product={p}

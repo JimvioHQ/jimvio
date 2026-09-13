@@ -24,12 +24,12 @@ describe("storefront product grid columns", () => {
     assert.equal(storefrontGridColumnCount(1023), 3);
   });
 
-  it("uses merchant columns from 1024 up, defaulting to 4", () => {
-    assert.equal(storefrontGridColumnCount(1024), 4);
-    assert.equal(storefrontGridColumnCount(1280), 4);
-    assert.equal(storefrontGridColumnCount(1440), 4);
-    assert.equal(storefrontGridColumnCount(1920), 4);
-    assert.equal(storefrontGridColumnCount(1440, 5), 5);
+  it("uses merchant columns from 1024 up, defaulting to 5", () => {
+    assert.equal(storefrontGridColumnCount(1024), 5);
+    assert.equal(storefrontGridColumnCount(1280), 5);
+    assert.equal(storefrontGridColumnCount(1440), 5);
+    assert.equal(storefrontGridColumnCount(1920), 5);
+    assert.equal(storefrontGridColumnCount(1440, 6), 6);
     assert.equal(storefrontGridColumnCount(1440, 2), 2);
     assert.equal(storefrontProductGridTemplate(390), "repeat(2, minmax(0, 1fr))");
     assert.equal(storefrontProductGridTemplate(1024, 4), "repeat(4, minmax(0, 1fr))");
@@ -39,8 +39,8 @@ describe("storefront product grid columns", () => {
     assert.match(GRID_CSS, /@media \(min-width: 768px\)/);
     assert.match(GRID_CSS, /repeat\(3, minmax\(0, 1fr\)\)/);
     assert.match(GRID_CSS, /@media \(min-width: 1024px\)/);
-    assert.match(GRID_CSS, /repeat\(var\(--store-grid-cols, 4\), minmax\(0, 1fr\)\)/);
-    assert.match(GRID_CSS, /max-width: 16rem/);
+    assert.match(GRID_CSS, /repeat\(var\(--store-grid-cols, 5\), minmax\(0, 1fr\)\)/);
+    assert.match(GRID_CSS, /max-width: 14\.5rem/);
     assert.doesNotMatch(GRID_CSS, /lg:\[grid-template-columns/);
   });
 });

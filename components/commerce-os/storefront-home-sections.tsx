@@ -256,7 +256,11 @@ export function StorefrontHomeSections({
                 typeof props.subtitle === "string" ? props.subtitle : undefined
               }
               products={list}
-              layout={section.type === "sale_rail" ? "rail" : "grid"}
+              layout={
+                section.type === "sale_rail" || section.type === "featured_products"
+                  ? "rail"
+                  : "grid"
+              }
               previewDevice={preview ? device : undefined}
             />
           ) : null;

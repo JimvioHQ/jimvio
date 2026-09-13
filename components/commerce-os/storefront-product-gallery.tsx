@@ -16,7 +16,7 @@ export function StorefrontProductGallery({
     <div className="space-y-3">
       <div
         className="overflow-hidden rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)]"
-        style={{ aspectRatio: "var(--store-image-ratio, 4 / 3)" }}
+        style={{ aspectRatio: "var(--store-image-ratio, 1 / 1)" }}
       >
         {current ? (
           // eslint-disable-next-line @next/next/no-img-element

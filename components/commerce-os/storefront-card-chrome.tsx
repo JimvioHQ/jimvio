@@ -1,5 +1,5 @@
 export const storefrontCardActionClass =
-  "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-[var(--store-btn-text,#fff)] shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--store-primary,#FF5A1F)] disabled:opacity-50";
+  "grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-[var(--store-btn-text,#fff)] shadow-sm transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--store-primary,#FF5A1F)] disabled:opacity-50 sm:h-10 sm:w-10 sm:rounded-[12px]";
 
 export function StorefrontCartGlyph({ className = "h-4 w-4" }: { className?: string }) {
   return (

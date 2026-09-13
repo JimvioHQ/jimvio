@@ -120,7 +120,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   radius: "12px",
   cardRadius: "16px",
   inputRadius: "9999px",
-  productGridColumns: 4,
+  productGridColumns: 5,
   headerStyle: "simple",
   headerAlign: "left",
   logoSize: "medium",
@@ -130,7 +130,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   maxWidth: "80rem",
   sectionSpacing: "3.5rem",
   shadow: "subtle",
-  productImageRatio: "4/3",
+  productImageRatio: "1/1",
 };
 
 /** Hero layout/content presets — preserve compatible fields when applied. */
@@ -727,7 +727,7 @@ export function themeSettingsToCssVars(
     "--store-btn-height": s.buttonHeight || "44px",
     "--store-radius": s.radius,
     "--store-card-radius": s.cardRadius || s.radius,
-    "--store-grid-cols": String(s.productGridColumns || 4),
+    "--store-grid-cols": String(s.productGridColumns || 5),
     "--store-card-gap": "0.75rem",
     "--store-logo-size": logoPx,
     "--store-max-width": s.maxWidth || "80rem",
@@ -737,11 +737,11 @@ export function themeSettingsToCssVars(
       ? `${s.headingFont}, ${s.fontFamily}, system-ui, sans-serif`
       : `${s.fontFamily}, system-ui, sans-serif`,
     "--store-image-ratio":
-      s.productImageRatio === "1/1"
-        ? "1 / 1"
+      s.productImageRatio === "4/3"
+        ? "4 / 3"
         : s.productImageRatio === "3/4"
           ? "3 / 4"
-          : "4 / 3",
+          : "1 / 1",
   };
 }
 

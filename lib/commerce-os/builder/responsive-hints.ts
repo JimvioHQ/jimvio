@@ -175,7 +175,7 @@ export function detectBuilderHints(input: {
     });
   }
 
-  if ((settings.productGridColumns || 4) > 4) {
+  if ((settings.productGridColumns || 5) > 4) {
     hints.push({
       id: "grid-cols-mobile",
       severity: "info",

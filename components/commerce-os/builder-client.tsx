@@ -1658,7 +1658,7 @@ function ThemeControls({
           <label className="block text-xs">
             <span className="mb-1 block font-semibold">Product columns</span>
             <select
-              value={String(settings.productGridColumns || 4)}
+              value={String(settings.productGridColumns || 5)}
               onChange={(e) =>
                 onPatch({
                   productGridColumns: Number(e.target.value) as 2 | 3 | 4 | 5 | 6,
