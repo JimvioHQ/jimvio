@@ -214,7 +214,7 @@ export async function loadStoreProducts(
   let q = db
     .from("products")
     .select(
-      "id, name, slug, price, compare_at_price, currency, images, short_description, inventory_quantity, track_inventory, status"
+      "id, name, slug, price, compare_at_price, currency, images, short_description, inventory_quantity, track_inventory, vendor_id, status"
     )
     .in("id", ids)
     .eq("status", "active");
@@ -225,7 +225,9 @@ export async function loadStoreProducts(
 
   const { data: products } = await q;
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
-  let ordered = ids.map((id: string) => byId.get(id)).filter(Boolean);
+  let ordered = ids
+    .map((id: string) => byId.get(id))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   if (sort === "price_asc" || sort === "price_desc") {
     ordered = [...ordered].sort((a, b) => {

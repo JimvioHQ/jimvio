@@ -16,6 +16,7 @@ import {
   StorefrontHeader,
   StorefrontFooter,
 } from "@/components/commerce-os/storefront-sections";
+import { StorefrontMobileNav } from "@/components/commerce-os/storefront-mobile-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -75,11 +76,14 @@ export default async function StorefrontLayout({ children, params }: Props) {
 
   return (
     <div
-      className="flex min-h-dvh flex-col"
+      className={`flex min-h-dvh flex-col ${
+        (settings.mobileNavStyle || "bottom") === "bottom" ? "pb-16 md:pb-0" : ""
+      }`}
       style={{
         ...cssVars,
         backgroundColor: settings.backgroundColor,
         color: settings.textColor,
+        fontSize: `calc(100% * var(--store-font-scale, 1))`,
         fontFamily: settings.fontFamily
           ? `${settings.fontFamily}, system-ui, sans-serif`
           : undefined,
@@ -109,6 +113,9 @@ export default async function StorefrontLayout({ children, params }: Props) {
             settings.headerAlign === "centered" ||
             settings.headerStyle === "centered"
           }
+          showPoweredBy={settings.showPoweredBy !== false}
+          storeId={store.id}
+          currency={store.default_currency}
         />
       ) : null}
       <main className="flex-1">{children}</main>
@@ -117,6 +124,15 @@ export default async function StorefrontLayout({ children, params }: Props) {
           storeName={store.name}
           handle={store.handle}
           navItems={footerNav}
+          onStoreHost={onStoreHost}
+          logoUrl={store.logo_url || settings.logoUrl}
+          showPoweredBy={settings.showPoweredBy !== false}
+        />
+      ) : null}
+      {(settings.mobileNavStyle || "bottom") === "bottom" ? (
+        <StorefrontMobileNav
+          handle={store.handle}
+          storeId={store.id}
           onStoreHost={onStoreHost}
         />
       ) : null}

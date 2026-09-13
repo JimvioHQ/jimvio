@@ -33,6 +33,7 @@ import {
   MobilePrimaryBottomNav,
   MOBILE_PRIMARY_BOTTOM_NAV_PAD,
 } from "@/components/layout/mobile-primary-bottom-nav";
+import { builderShouldHideCommerceNav } from "@/lib/commerce-os/builder/editor-chrome";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -227,8 +228,7 @@ export function CommerceShell({
 }) {
   const pathname = usePathname() ?? "/commerce";
   const [mobileNav, setMobileNav] = useState(false);
-  const isBuilder =
-    pathname === "/commerce/builder" || pathname.startsWith("/commerce/builder/");
+  const isBuilder = builderShouldHideCommerceNav(pathname);
 
   useEffect(() => {
     // Close mobile drawer when navigating between Commerce routes.

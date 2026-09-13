@@ -26,6 +26,8 @@ export function CanvasSectionFrame({
       <div
         role="button"
         tabIndex={0}
+        data-section-id={sectionId}
+        data-section-type={sectionType}
         aria-label={`Edit ${humanSectionLabel(sectionType)}`}
         onClick={(e) => {
           e.stopPropagation();

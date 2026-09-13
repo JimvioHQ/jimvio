@@ -7,6 +7,37 @@ import {
 } from "@/lib/commerce-os/storefront-url";
 import { StorefrontProductCard } from "@/components/commerce-os/storefront-product-card";
 import { StorefrontHeaderActions } from "@/components/commerce-os/storefront-header-actions";
+import { StorefrontCollectionTile } from "@/components/commerce-os/storefront-collection-tile";
+import { splitHeadlineAccent } from "@/lib/commerce-os/storefront/headline";
+import { categoryNavTiles } from "@/lib/commerce-os/storefront/collection-slice";
+
+/** Builder canvas only. Production omits this and uses real viewport breakpoints. */
+export type StorefrontPreviewDevice =
+  | "desktop"
+  | "laptop"
+  | "tablet"
+  | "mobile"
+  | "custom";
+
+function previewCompact(device?: StorefrontPreviewDevice) {
+  return device === "mobile" || device === "tablet";
+}
+
+function previewDesktopChrome(device?: StorefrontPreviewDevice): boolean | null {
+  if (!device) return null;
+  return device === "desktop" || device === "laptop" || device === "custom";
+}
+
+/** Production uses CSS breakpoints; builder canvas forces compact/desktop classes. */
+function viewportClass(
+  device: StorefrontPreviewDevice | undefined,
+  production: string,
+  compact: string,
+  desktop: string
+) {
+  if (!device) return production;
+  return previewCompact(device) ? compact : desktop;
+}
 
 type ProductCard = {
   id: string;
@@ -19,6 +50,7 @@ type ProductCard = {
   short_description?: string | null;
   inventory_quantity?: number | null;
   track_inventory?: boolean | null;
+  vendor_id?: string | null;
 };
 
 export type StorefrontCollectionTile = {
@@ -26,14 +58,18 @@ export type StorefrontCollectionTile = {
   title: string;
   handle: string;
   image_url?: string | null;
+  description?: string | null;
+  product_count?: number | null;
 };
 
 export function StorefrontAnnouncement({
   text,
   storeName,
+  previewDevice,
 }: {
   text?: string | null;
   storeName: string;
+  previewDevice?: StorefrontPreviewDevice;
 }) {
   const raw = text?.trim() || `Welcome to ${storeName}`;
   const parts = raw
@@ -41,18 +77,39 @@ export function StorefrontAnnouncement({
     .map((s) => s.trim())
     .filter(Boolean);
   const messages = parts.length > 1 ? parts : [raw];
+  const compact = previewCompact(previewDevice);
+  const showAside = previewDesktopChrome(previewDevice);
 
   return (
-    <div className="bg-[#0F172A] px-4 py-2 text-[11px] font-medium tracking-wide text-white/90 sm:text-xs">
-      <div className="mx-auto flex max-w-[var(--store-max-width,72rem)] flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:justify-between">
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-          {messages.slice(0, 3).map((m) => (
-            <span key={m} className="opacity-90">
+    <div
+      className={viewportClass(
+        previewDevice,
+        "px-3 py-2 text-center text-[11px] font-medium leading-snug tracking-wide sm:px-4 sm:text-left sm:text-xs",
+        "px-3 py-2 text-center text-[11px] font-medium leading-snug tracking-wide",
+        "px-4 py-2 text-[11px] font-medium tracking-wide sm:text-xs"
+      )}
+      style={{
+        background: "var(--store-announce-bg,#0F172A)",
+        color: "var(--store-announce-text,#F8FAFC)",
+      }}
+    >
+      <div
+        className={`mx-auto flex min-w-0 max-w-[var(--store-max-width,80rem)] flex-wrap items-center gap-x-4 gap-y-1 ${
+          compact ? "justify-center" : "justify-center sm:justify-between"
+        }`}
+      >
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          {messages.slice(0, compact ? 2 : 3).map((m) => (
+            <span key={m} className="max-w-full break-words opacity-90">
               {m}
             </span>
           ))}
         </div>
-        <span className="hidden text-white/55 sm:inline">Shop with confidence</span>
+        {showAside === null ? (
+          <span className="hidden opacity-55 sm:inline">Shop with confidence</span>
+        ) : showAside ? (
+          <span className="opacity-55">Shop with confidence</span>
+        ) : null}
       </div>
     </div>
   );
@@ -67,6 +124,8 @@ export function StorefrontHeader({
   sticky = true,
   centered = false,
   showPoweredBy = true,
+  storeId,
+  currency,
   previewDevice,
 }: {
   storeName: string;
@@ -77,8 +136,10 @@ export function StorefrontHeader({
   sticky?: boolean;
   centered?: boolean;
   showPoweredBy?: boolean;
+  storeId?: string;
+  currency?: string | null;
   /** Builder canvas only — forces mobile/desktop chrome without viewport breakpoints */
-  previewDevice?: "desktop" | "tablet" | "mobile";
+  previewDevice?: StorefrontPreviewDevice;
 }) {
   const linkOpts = { onStoreHost };
   const home = storefrontHref(handle, "", linkOpts);
@@ -94,37 +155,37 @@ export function StorefrontHeader({
             label: "All products",
             href: storefrontHref(handle, "/collections/all", linkOpts),
           },
-          { label: "Search", href: storefrontHref(handle, "/search", linkOpts) },
+          {
+            label: "Search",
+            href: storefrontHref(handle, "/search", linkOpts),
+          },
         ];
 
-  const showDesktopNav = previewDevice
-    ? previewDevice === "desktop"
-    : null;
-  const showMobileNav = previewDevice
-    ? previewDevice !== "desktop"
-    : null;
+  const compact = previewCompact(previewDevice);
+  const showDesktopNav = previewDesktopChrome(previewDevice);
 
   return (
     <header
-      className={`${sticky ? "sticky top-0" : "relative"} z-30 border-b border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#FFFFFF)]/95 backdrop-blur-md`}
+      className={`${sticky ? "sticky top-0" : "relative"} z-30 min-w-0 overflow-x-clip border-b border-[var(--store-border,rgba(0,0,0,0.06))] backdrop-blur-md`}
+      style={{ background: "color-mix(in srgb, var(--store-header-bg, var(--store-surface,#FFFFFF)) 95%, transparent)" }}
     >
       <div
-        className={`mx-auto flex max-w-[var(--store-max-width,72rem)] items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 ${
-          centered ? "flex-col text-center" : ""
-        }`}
+        className={`mx-auto flex max-w-[var(--store-max-width,80rem)] min-w-0 items-center ${
+          compact ? "gap-2 px-3 py-2.5" : "gap-3 px-4 py-3 sm:gap-4 sm:px-6"
+        } ${centered ? "flex-col text-center" : ""}`}
       >
-        <Link href={home} className="flex min-w-0 shrink-0 items-center gap-2.5">
+        <Link href={home} className="flex min-w-0 max-w-[58%] items-center gap-2.5 sm:max-w-none sm:shrink-0">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
-              alt=""
-              className="rounded-full object-cover"
+              alt={storeName}
+              className="shrink-0 rounded-full object-contain"
               style={{ height: "var(--store-logo-size,36px)", width: "var(--store-logo-size,36px)" }}
             />
           ) : (
             <span
-              className="grid place-items-center rounded-full text-xs font-bold text-white"
+              className="grid shrink-0 place-items-center rounded-full text-xs font-bold text-white"
               style={{
                 background: "var(--store-primary,#FF5A1F)",
                 height: "var(--store-logo-size,36px)",
@@ -136,19 +197,29 @@ export function StorefrontHeader({
             </span>
           )}
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-base">
+            <span
+              className={`block font-semibold leading-snug tracking-tight text-[var(--store-text,#111827)] ${
+                compact ? "line-clamp-2 text-sm" : "line-clamp-2 text-sm sm:line-clamp-none sm:text-base"
+              }`}
+            >
               {storeName}
             </span>
             {showPoweredBy ? (
-              <span className="hidden text-[10px] text-[var(--store-muted,#6B7280)] sm:block">
-                Powered by Jimvio
-              </span>
+              showDesktopNav === null ? (
+                <span className="hidden text-[10px] text-[var(--store-muted,#6B7280)] sm:block">
+                  Powered by Jimvio
+                </span>
+              ) : showDesktopNav ? (
+                <span className="block text-[10px] text-[var(--store-muted,#6B7280)]">
+                  Powered by Jimvio
+                </span>
+              ) : null
             ) : null}
           </span>
         </Link>
 
         <nav
-          className={`min-w-0 flex-1 items-center gap-1 text-sm ${
+          className={`min-w-0 flex-1 items-center gap-1 overflow-x-auto text-sm ${
             centered ? "justify-center" : "justify-center"
           } ${
             showDesktopNav === null
@@ -158,48 +229,37 @@ export function StorefrontHeader({
                 : "hidden"
           }`}
           aria-label="Store"
+          data-storefront-chrome="desktop-nav"
         >
           {items.map((item) => (
             <Link
               key={`${item.href}-${item.label}`}
               href={item.href}
-              className="rounded-lg px-2.5 py-1.5 text-[var(--store-text,#111827)]/75 transition hover:bg-black/[0.04] hover:text-[var(--store-text,#111827)]"
+              className="shrink-0 rounded-lg px-2.5 py-1.5 text-[var(--store-text,#111827)]/75 transition hover:bg-black/[0.04] hover:text-[var(--store-text,#111827)]"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <div className={`ml-auto flex min-w-0 items-center gap-2 ${centered ? "w-full justify-center" : ""}`}>
-          <StorefrontHeaderActions handle={handle} onStoreHost={onStoreHost} />
+        <div className={`ml-auto flex min-w-0 shrink-0 items-center gap-2 ${centered ? "w-full justify-center" : ""}`}>
+          <StorefrontHeaderActions
+            handle={handle}
+            storeId={storeId}
+            currency={currency}
+            onStoreHost={onStoreHost}
+            previewDevice={previewDevice}
+            navItems={items}
+          />
         </div>
       </div>
-      <nav
-        className={`gap-1 overflow-x-auto border-t border-[var(--store-border,rgba(0,0,0,0.05))] px-4 py-2 text-xs ${
-          showMobileNav === null
-            ? "flex lg:hidden"
-            : showMobileNav
-              ? "flex"
-              : "hidden"
-        }`}
-        aria-label="Store mobile"
-      >
-        {items.map((item) => (
-          <Link
-            key={`m-${item.href}-${item.label}`}
-            href={item.href}
-            className="shrink-0 rounded-full bg-[var(--store-bg,#F8FAFC)] px-3 py-1.5 font-medium text-[var(--store-text,#111827)]/80"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
     </header>
   );
 }
 
 export function StorefrontHero({
   headline,
+  headlineAccent,
   subhead,
   cta,
   ctaHref,
@@ -214,8 +274,10 @@ export function StorefrontHero({
   height = "lg",
   overlay = "0",
   trustItems,
+  previewDevice,
 }: {
   headline?: string;
+  headlineAccent?: string;
   subhead?: string;
   cta?: string;
   ctaHref?: string;
@@ -230,6 +292,7 @@ export function StorefrontHero({
   height?: string;
   overlay?: string;
   trustItems?: string;
+  previewDevice?: StorefrontPreviewDevice;
 }) {
   const linkOpts = { onStoreHost };
   const shopPath =
@@ -241,17 +304,23 @@ export function StorefrontHero({
       ? ctaSecondaryHref
       : "/collections/all";
   const centered = layout === "center";
-  const split = layout === "split" || layout === "right";
-  const py =
+  const compact = previewCompact(previewDevice);
+  const desktopChrome = previewDesktopChrome(previewDevice);
+  const py = viewportClass(
+    previewDevice,
+    height === "xl"
+      ? "py-10 sm:py-20 lg:py-28"
+      : height === "md"
+        ? "py-8 sm:py-12 lg:py-16"
+        : "py-10 sm:py-14 lg:py-20",
+    height === "xl" ? "py-10" : "py-8",
     height === "xl"
       ? "py-20 sm:py-28"
       : height === "md"
         ? "py-12 sm:py-16"
-        : "py-14 sm:py-20";
-  const overlayOpacity = Math.min(
-    Math.max(Number(overlay) || 0, 0),
-    0.7
+        : "py-14 sm:py-20"
   );
+  const overlayOpacity = Math.min(Math.max(Number(overlay) || 0, 0), 0.7);
   const primaryStyle: CSSProperties =
     buttonStyle === "outline" || buttonStyle === "ghost" || buttonStyle === "link"
       ? {
@@ -276,26 +345,29 @@ export function StorefrontHero({
             minHeight: "var(--store-btn-height,44px)",
           };
 
-  const trusts = (
-    trustItems ||
-    "Fast Delivery · Secure Payments · 24/7 Support"
-  )
+  const trusts = (trustItems || "")
     .split("·")
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, 4);
+  const { lead, accent } = splitHeadlineAccent(headline || "Shop the collection", headlineAccent);
+  const showMediaColumn = !centered;
+  const twoCol =
+    !compact &&
+    showMediaColumn &&
+    desktopChrome !== false;
 
   return (
-    <section className="relative overflow-hidden border-b border-[var(--store-border,rgba(0,0,0,0.04))]">
+    <section className="relative overflow-x-clip border-b border-[var(--store-border,rgba(0,0,0,0.04))]">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--store-primary,#FF5A1F) 12%, white) 0%, var(--store-bg,#F8FAFC) 45%, white 100%)",
+            "linear-gradient(135deg, color-mix(in srgb, var(--store-primary,#FF5A1F) 14%, white) 0%, var(--store-bg,#F8FAFC) 48%, white 100%)",
         }}
         aria-hidden
       />
-      {imageUrl && !split ? (
+      {imageUrl && centered ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -311,42 +383,79 @@ export function StorefrontHero({
         </>
       ) : null}
       <div
-        className={`relative mx-auto grid max-w-[var(--store-max-width,72rem)] gap-8 px-4 sm:px-6 ${py} ${
-          split
-            ? "lg:grid-cols-2 lg:items-center"
-            : centered
-              ? ""
-              : "lg:grid-cols-[1.15fr_0.85fr] lg:items-center"
+        className={`relative mx-auto grid max-w-[var(--store-max-width,80rem)] min-w-0 ${viewportClass(
+          previewDevice,
+          "gap-6 px-4 sm:gap-8 sm:px-6",
+          "gap-6 px-3",
+          "gap-8 px-4 sm:px-6"
+        )} ${py} ${
+          twoCol ? "lg:grid-cols-[1.1fr_0.9fr] lg:items-center" : ""
         } ${centered ? "text-center" : ""}`}
       >
-        <div className={centered ? "mx-auto max-w-2xl" : ""}>
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--store-primary,#FF5A1F)_12%,white)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--store-primary,#FF5A1F)]">
-            {eyebrow || "Official store"}
-          </p>
+        <div className={centered ? "mx-auto max-w-2xl" : "min-w-0"}>
+          {eyebrow ? (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--store-primary,#FF5A1F)_12%,white)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--store-primary,#FF5A1F)]">
+              {eyebrow}
+            </p>
+          ) : null}
           <h1
-            className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-5xl"
+            className={`max-w-full break-words font-semibold tracking-tight text-[var(--store-text,#111827)] sm:max-w-xl ${
+              eyebrow ? "mt-4" : ""
+            } ${viewportClass(
+              previewDevice,
+              "text-[1.75rem] leading-[1.15] sm:text-4xl lg:text-5xl lg:leading-[1.1]",
+              "text-[1.75rem] leading-[1.15]",
+              "text-4xl leading-[1.1] sm:text-5xl"
+            )}`}
             style={{ fontFamily: "var(--store-heading-font, inherit)" }}
           >
-            {headline || "Shop the collection"}
+            <span className="block">{lead}</span>
+            {accent ? (
+              <span className="mt-1 block text-[var(--store-accent,var(--store-primary,#FF5A1F))]">
+                {accent}
+              </span>
+            ) : null}
           </h1>
           {subhead ? (
-            <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--store-muted,#6B7280)] sm:text-lg">
+            <p
+              className={`mt-4 max-w-lg leading-relaxed text-[var(--store-muted,#6B7280)] ${viewportClass(
+                previewDevice,
+                "text-sm sm:text-base lg:text-lg",
+                "text-sm",
+                "text-base sm:text-lg"
+              )}`}
+            >
               {subhead}
             </p>
           ) : null}
           <div
-            className={`mt-8 flex flex-wrap gap-3 ${centered ? "justify-center" : ""}`}
+            className={`mt-8 flex gap-3 ${viewportClass(
+              previewDevice,
+              "flex-col sm:flex-row sm:flex-wrap",
+              "flex-col",
+              "flex-wrap"
+            )} ${centered ? "justify-center" : ""}`}
           >
             <Link
               href={storefrontHref(handle, shopPath, linkOpts)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold shadow-sm transition hover:opacity-95"
+              className={`inline-flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-semibold shadow-sm transition hover:opacity-95 ${viewportClass(
+                previewDevice,
+                "w-full sm:w-auto",
+                "w-full",
+                ""
+              )}`}
               style={primaryStyle}
             >
               {cta || "Shop now"} →
             </Link>
             <Link
               href={storefrontHref(handle, secondaryPath, linkOpts)}
-              className="inline-flex items-center rounded-full border border-[var(--store-border,rgba(0,0,0,0.1))] bg-[var(--store-surface,#fff)]/80 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white"
+              className={`inline-flex items-center justify-center border border-[var(--store-border,rgba(0,0,0,0.1))] bg-[var(--store-surface,#fff)]/80 px-5 py-2.5 text-sm font-semibold text-[var(--store-text,#111827)] backdrop-blur transition hover:bg-white ${viewportClass(
+                previewDevice,
+                "w-full sm:w-auto",
+                "w-full",
+                ""
+              )}`}
               style={{
                 borderRadius: "var(--store-btn-radius,9999px)",
                 minHeight: "var(--store-btn-height,44px)",
@@ -373,34 +482,61 @@ export function StorefrontHero({
             </ul>
           ) : null}
         </div>
-        {split && imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt=""
-            className="h-full min-h-[240px] w-full rounded-[var(--store-card-radius,16px)] object-cover shadow-[var(--store-shadow)] sm:min-h-[320px]"
-          />
-        ) : !split ? (
-          <div className="hidden space-y-3 lg:block">
-            {["Premium Quality", "Fast & Reliable", "Safe Checkout"].map(
-              (label, i) => (
-                <div
-                  key={label}
-                  className="rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)]/90 px-4 py-4 shadow-sm backdrop-blur"
-                >
-                  <p className="text-sm font-semibold text-[var(--store-text,#111827)]">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--store-muted,#6B7280)]">
-                    {i === 2
-                      ? "Powered by Jimvio secure checkout"
-                      : i === 1
-                        ? "Tracked fulfillment for every order"
-                        : "Curated products from verified suppliers"}
-                  </p>
+        {showMediaColumn ? (
+          <div
+            className={`relative min-w-0 ${
+              imageUrl
+                ? ""
+                : desktopChrome === null
+                  ? "hidden lg:block"
+                  : compact || desktopChrome === false
+                    ? "hidden"
+                    : ""
+            }`}
+          >
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl}
+                alt=""
+                className={`h-full w-full rounded-[var(--store-card-radius,16px)] object-cover shadow-[var(--store-shadow)] ${
+                  compact ? "min-h-[200px] max-h-[260px]" : "min-h-[280px] sm:min-h-[380px]"
+                }`}
+              />
+            ) : (
+              <div
+                className={`relative overflow-hidden rounded-[var(--store-card-radius,16px)] ${
+                  compact ? "min-h-[180px]" : "min-h-[280px] sm:min-h-[380px]"
+                }`}
+                style={{
+                  background:
+                    "linear-gradient(160deg, color-mix(in srgb, var(--store-primary,#FF5A1F) 88%, #7c2d12) 0%, color-mix(in srgb, var(--store-primary,#FF5A1F) 35%, white) 100%)",
+                }}
+                aria-hidden
+              >
+                <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 70% 30%, white, transparent 55%)" }} />
+                <div className="relative flex h-full min-h-[inherit] flex-col items-center justify-center px-6 py-10 text-center text-white">
+                  <span className="grid h-16 w-16 place-items-center rounded-full bg-white/20 text-2xl font-bold backdrop-blur">
+                    {(headline || "S").slice(0, 1).toUpperCase()}
+                  </span>
+                  <p className="mt-4 text-lg font-semibold tracking-tight">{headline || "Official store"}</p>
                 </div>
-              )
+              </div>
             )}
+            {trusts.length && desktopChrome !== false && !compact ? (
+              <div className="pointer-events-none absolute right-3 top-3 hidden w-[min(220px,46%)] space-y-2 lg:block">
+                {trusts.slice(0, 3).map((label) => (
+                  <div
+                    key={label}
+                    className="rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)]/95 px-3.5 py-3 shadow-sm backdrop-blur"
+                  >
+                    <p className="text-sm font-semibold text-[var(--store-text,#111827)]">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -413,46 +549,86 @@ export function StorefrontCategoryNav({
   collections,
   onStoreHost = false,
   title = "Shop by category",
+  layout = "icons",
+  previewDevice,
 }: {
   handle: string;
   collections: StorefrontCollectionTile[];
   onStoreHost?: boolean;
   title?: string;
+  layout?: string;
+  previewDevice?: StorefrontPreviewDevice;
 }) {
   const linkOpts = { onStoreHost };
-  const tiles = [
-    {
-      id: "all",
-      title: "All",
-      handle: "all",
-      image_url: null as string | null,
-    },
-    ...collections.slice(0, 10),
-  ];
+  const tiles = categoryNavTiles(collections);
+  const compact = previewCompact(previewDevice);
+  const useTiles = layout === "tiles";
+
+  if (useTiles) {
+    return (
+      <section className="min-w-0 overflow-x-clip border-b border-[var(--store-border,rgba(0,0,0,0.05))] bg-[var(--store-surface,#fff)]">
+        <div className={`mx-auto max-w-[var(--store-max-width,80rem)] py-8 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <h2 className="text-lg font-semibold text-[var(--store-text,#111827)]">{title}</h2>
+            <Link
+              href={storefrontHref(handle, "/collections/all", linkOpts)}
+              className="shrink-0 text-sm font-semibold text-[var(--store-primary,#FF5A1F)]"
+            >
+              View all →
+            </Link>
+          </div>
+          <div
+            className={
+              compact
+                ? "grid grid-cols-2 gap-2.5"
+                : "grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+            }
+          >
+            {collections.map((c) => (
+              <StorefrontCollectionTile
+                key={c.id}
+                collection={c}
+                handle={handle}
+                onStoreHost={onStoreHost}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="border-b border-[var(--store-border,rgba(0,0,0,0.05))] bg-[var(--store-surface,#fff)]">
-      <div className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 py-8 sm:px-6">
+    <section className="min-w-0 overflow-x-clip border-b border-[var(--store-border,rgba(0,0,0,0.05))] bg-[var(--store-surface,#fff)]">
+      <div className={`mx-auto max-w-[var(--store-max-width,80rem)] py-8 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
         <div className="mb-4 flex items-end justify-between gap-3">
           <h2 className="text-lg font-semibold text-[var(--store-text,#111827)]">
             {title}
           </h2>
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}
-            className="text-sm font-semibold text-[var(--store-primary,#FF5A1F)]"
+            className="shrink-0 text-sm font-semibold text-[var(--store-primary,#FF5A1F)]"
           >
-            View all →
+            View all categories →
           </Link>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-6">
+        <div
+          className={
+            compact
+              ? "flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              : "flex gap-3 overflow-x-auto rounded-[1.5rem] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-bg,#F8FAFC)]/60 px-2 py-3 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-6 xl:grid-cols-8"
+          }
+        >
           {tiles.map((c) => (
             <Link
               key={c.id}
               href={storefrontHref(handle, `/collections/${c.handle}`, linkOpts)}
-              className="flex w-[88px] shrink-0 flex-col items-center gap-2 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-bg,#F8FAFC)] px-2 py-3 text-center transition hover:border-[var(--store-primary,#FF5A1F)]/40 sm:w-auto"
+              className={`flex shrink-0 flex-col items-center gap-2 rounded-[var(--store-card-radius,16px)] px-2 py-2 text-center transition hover:bg-white ${
+                compact ? "w-[84px]" : "w-[84px] sm:w-auto"
+              }`}
             >
               <span
-                className="grid h-12 w-12 place-items-center overflow-hidden rounded-full text-sm font-bold text-white"
+                className="grid h-12 w-12 place-items-center overflow-hidden rounded-2xl text-sm font-bold text-white shadow-sm"
                 style={{ background: "var(--store-primary,#FF5A1F)" }}
               >
                 {c.image_url ? (
@@ -480,29 +656,35 @@ export function StorefrontFeaturedProducts({
   onStoreHost = false,
   subtitle,
   previewDevice,
+  storeId,
+  layout = "grid",
 }: {
   title?: string;
   handle: string;
   products: ProductCard[];
   onStoreHost?: boolean;
   subtitle?: string;
-  previewDevice?: "desktop" | "tablet" | "mobile";
+  previewDevice?: StorefrontPreviewDevice;
+  storeId?: string;
+  layout?: "grid" | "rail";
 }) {
   const linkOpts = { onStoreHost };
-  const gridClass =
-    previewDevice === "mobile"
+  const compact = previewCompact(previewDevice);
+  const rail = layout === "rail";
+  const gridClass = rail
+    ? "mt-6 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    : previewDevice === "mobile"
       ? "mt-6 grid grid-cols-2 gap-2.5"
       : previewDevice === "tablet"
         ? "mt-7 grid grid-cols-2 gap-4"
         : "mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:[grid-template-columns:repeat(var(--store-grid-cols,3),minmax(0,1fr))]";
-  const padClass =
-    previewDevice === "mobile" ? "px-3" : "px-4 sm:px-6";
+  const padClass = compact ? "px-3" : "px-4 sm:px-6";
   return (
     <section
-      className={`mx-auto max-w-[var(--store-max-width,72rem)] min-w-0 ${padClass}`}
+      className={`mx-auto max-w-[var(--store-max-width,80rem)] min-w-0 ${padClass}`}
       style={{ paddingTop: "var(--store-section-space,3.5rem)", paddingBottom: "var(--store-section-space,3.5rem)" }}
     >
-      {(title || title === "") && title !== "" ? (
+      {title ? (
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
             <h2
@@ -511,19 +693,17 @@ export function StorefrontFeaturedProducts({
               }`}
               style={{ fontFamily: "var(--store-heading-font, inherit)" }}
             >
-              {title || "Featured"}
+              {title}
             </h2>
-            <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
-              {subtitle || "Hand-picked products from this store"}
-            </p>
+            {subtitle ? (
+              <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
+                {subtitle}
+              </p>
+            ) : null}
           </div>
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}
-            className={
-              previewDevice === "mobile"
-                ? "hidden"
-                : "hidden text-sm font-semibold text-[var(--store-primary,#FF5A1F)] sm:inline"
-            }
+            className="shrink-0 text-sm font-semibold text-[var(--store-primary,#FF5A1F)]"
           >
             View all →
           </Link>
@@ -536,12 +716,17 @@ export function StorefrontFeaturedProducts({
       ) : (
         <div className={gridClass}>
           {products.map((p) => (
-            <StorefrontProductCard
+            <div
               key={p.id}
-              product={p}
-              handle={handle}
-              onStoreHost={onStoreHost}
-            />
+              className={rail ? "w-[min(180px,70vw)] shrink-0" : undefined}
+            >
+              <StorefrontProductCard
+                product={p}
+                handle={handle}
+                onStoreHost={onStoreHost}
+                storeId={storeId}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -552,27 +737,34 @@ export function StorefrontFeaturedProducts({
 export function StorefrontTrustBar({
   headline,
   subhead,
+  previewDevice,
 }: {
   headline?: string;
   subhead?: string;
+  previewDevice?: StorefrontPreviewDevice;
 }) {
   const items = (subhead || "Secure checkout · Verified sourcing · Order tracking")
     .split("·")
     .map((s) => s.trim())
     .filter(Boolean);
+  const compact = previewCompact(previewDevice);
+  const cols =
+    compact
+      ? items.length >= 4
+        ? "grid-cols-2"
+        : "grid-cols-1"
+      : items.length >= 4
+        ? "sm:grid-cols-2 lg:grid-cols-4"
+        : "sm:grid-cols-3";
   return (
     <section className="border-y border-[var(--store-border,rgba(0,0,0,0.05))] bg-[var(--store-surface,#fff)]">
-      <div className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 py-10 sm:px-6">
+      <div className={`mx-auto max-w-[var(--store-max-width,80rem)] py-10 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
         {headline ? (
           <p className="text-center text-sm font-semibold text-[var(--store-text,#111827)]">
             {headline}
           </p>
         ) : null}
-        <div
-          className={`grid gap-4 ${
-            items.length >= 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
-          } ${headline ? "mt-5" : ""}`}
-        >
+        <div className={`grid gap-4 ${cols} ${headline ? "mt-5" : ""}`}>
           {items.map((item) => (
             <div
               key={item}
@@ -592,11 +784,17 @@ export function StorefrontFooter({
   handle,
   navItems,
   onStoreHost = false,
+  previewDevice,
+  logoUrl,
+  showPoweredBy = true,
 }: {
   storeName: string;
   handle: string;
   navItems?: Array<{ label: string; href: string }>;
   onStoreHost?: boolean;
+  previewDevice?: StorefrontPreviewDevice;
+  logoUrl?: string | null;
+  showPoweredBy?: boolean;
 }) {
   const linkOpts = { onStoreHost };
   const items =
@@ -617,12 +815,38 @@ export function StorefrontFooter({
 
   return (
     <footer className="mt-auto border-t border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)]">
-      <div className="mx-auto flex max-w-[var(--store-max-width,72rem)] flex-col gap-8 px-4 py-12 sm:flex-row sm:items-start sm:justify-between sm:px-6">
-        <div>
-          <p className="text-sm font-semibold text-[var(--store-text,#111827)]">{storeName}</p>
-          <p className="mt-1 text-xs text-[var(--store-muted,#6B7280)]">
-            Powered by Jimvio
-          </p>
+      <div
+        className={`mx-auto flex max-w-[var(--store-max-width,80rem)] flex-col gap-8 py-12 ${
+          previewCompact(previewDevice)
+            ? "px-3"
+            : "px-4 sm:flex-row sm:items-start sm:justify-between sm:px-6"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={storeName}
+              className="h-10 w-10 rounded-full object-contain"
+            />
+          ) : (
+            <span
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+              style={{ background: "var(--store-primary,#FF5A1F)" }}
+              aria-hidden
+            >
+              {storeName.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div>
+            <p className="text-sm font-semibold text-[var(--store-text,#111827)]">{storeName}</p>
+            {showPoweredBy ? (
+              <p className="mt-1 text-xs text-[var(--store-muted,#6B7280)]">
+                Powered by Jimvio
+              </p>
+            ) : null}
+          </div>
         </div>
         <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--store-muted,#6B7280)]">
           {items.map((item) => (

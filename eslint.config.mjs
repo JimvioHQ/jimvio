@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "types/database.types.ts",
     "tmp_rewrite.js",
+    "tmp/**",
+    "scripts/tmp/**",
     "e2e/**",
     "forensics/**",
     ".vercel/**",

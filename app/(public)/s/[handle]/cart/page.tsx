@@ -5,6 +5,8 @@ import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { getCart } from "@/lib/actions/marketplace";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
+import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import { productImageAt } from "@/lib/commerce-os/storefront/product-media";
 
 export const dynamic = "force-dynamic";
 
@@ -30,20 +32,26 @@ export default async function StorefrontCartPage({ params }: Props) {
     jimvioStoreId: store.id,
     jimvioStoreHandle: handle,
   });
+  const currency = store.default_currency || "USD";
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-semibold">{store.name} cart</h1>
-      <p className="mt-1 text-sm opacity-60">
-        This cart is isolated from the Marketplace cart.
+      <h1
+        className="text-2xl font-semibold tracking-tight"
+        style={{ fontFamily: "var(--store-heading-font, inherit)" }}
+      >
+        Cart
+      </h1>
+      <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
+        Items in this cart belong to {store.name} only.
       </p>
 
       {!items.length ? (
-        <div className="mt-8 rounded-lg border border-black/10 bg-white p-6 text-sm opacity-70">
-          Your store cart is empty.{" "}
+        <div className="mt-8 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] p-6 text-sm text-[var(--store-muted,#6B7280)]">
+          Your cart is empty.{" "}
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}
-            className="font-semibold underline"
+            className="font-semibold text-[var(--store-primary,#FF5A1F)] underline"
           >
             Continue shopping
           </Link>
@@ -54,41 +62,62 @@ export default async function StorefrontCartPage({ params }: Props) {
             id: string;
             quantity: number;
             unit_price_at_add: number;
-            products?: { name?: string; slug?: string } | null;
-          }) => (
-            <li
-              key={item.id}
-              className="flex items-center justify-between rounded-lg border border-black/10 bg-white px-4 py-3 text-sm"
-            >
-              <div>
-                <p className="font-medium">
-                  {item.products?.name || "Product"}
+            products?: { name?: string; slug?: string; images?: unknown } | null;
+          }) => {
+            const img = productImageAt(item.products?.images, 0);
+            return (
+              <li
+                key={item.id}
+                className="flex items-center gap-3 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] px-3 py-3 text-sm"
+              >
+                {img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={img} alt="" className="h-16 w-16 rounded-lg object-cover" />
+                ) : (
+                  <div className="grid h-16 w-16 place-items-center rounded-lg bg-[var(--store-bg,#F8FAFC)] text-[10px] text-[var(--store-muted,#6B7280)]">
+                    No image
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {item.products?.slug ? (
+                    <Link
+                      href={storefrontHref(handle, `/product/${item.products.slug}`, linkOpts)}
+                      className="font-medium text-[var(--store-text,#111827)]"
+                    >
+                      {item.products?.name || "Product"}
+                    </Link>
+                  ) : (
+                    <p className="font-medium">{item.products?.name || "Product"}</p>
+                  )}
+                  <p className="text-xs text-[var(--store-muted,#6B7280)]">Qty {item.quantity}</p>
+                </div>
+                <p className="tabular-nums font-semibold">
+                  {formatStoreMoney(
+                    Number(item.unit_price_at_add) * Number(item.quantity),
+                    currency
+                  )}
                 </p>
-                <p className="text-xs opacity-60">Qty {item.quantity}</p>
-              </div>
-              <p className="tabular-nums">
-                {(Number(item.unit_price_at_add) * Number(item.quantity)).toFixed(2)}
-              </p>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-black/10 pt-4">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--store-border,rgba(0,0,0,0.08))] pt-4">
         <p className="text-sm font-semibold tabular-nums">
-          Subtotal: {Number(total).toFixed(2)}
+          Subtotal: {formatStoreMoney(total, currency)}
         </p>
         <div className="flex gap-2">
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}
-            className="rounded-md border border-black/10 px-3 py-2 text-xs font-semibold"
+            className="rounded-[var(--store-btn-radius,9999px)] border border-[var(--store-border,rgba(0,0,0,0.1))] px-4 py-2.5 text-xs font-semibold"
           >
             Continue shopping
           </Link>
           {items.length ? (
             <Link
               href="/checkout"
-              className="rounded-md bg-[var(--store-primary,#FF5A1F)] px-3 py-2 text-xs font-semibold text-white"
+              className="rounded-[var(--store-btn-radius,9999px)] bg-[var(--store-primary,#FF5A1F)] px-4 py-2.5 text-xs font-semibold text-white"
             >
               Checkout
             </Link>

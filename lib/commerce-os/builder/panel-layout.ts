@@ -1,7 +1,13 @@
 /**
- * Store Builder 3.0 — panel open/close + layout width helpers.
+ * Store Builder panel open/close + layout width helpers.
  * Pure functions for unit tests (no React).
  */
+
+import {
+  constrainOverlayDrawers,
+  editorUsesOverlayPanels,
+  type EditorBreakpoint,
+} from "./editor-chrome";
 
 export type BuilderPanelId =
   | "design"
@@ -25,32 +31,49 @@ export type BuilderPanelState = {
 /** Toggle a nav item: open if closed/different; close left if same tree panel already open. */
 export function toggleBuilderNav(
   state: BuilderPanelState,
-  next: BuilderPanelId
+  next: BuilderPanelId,
+  editorBp: EditorBreakpoint = "desktop"
 ): BuilderPanelState {
   if (next === "issues") {
-    return { ...state, rightOpen: true, activePanel: "issues" };
+    const drawers = constrainOverlayDrawers({
+      leftOpen: state.leftOpen,
+      rightOpen: true,
+      editorBp,
+      prefer: "right",
+    });
+    return { ...state, ...drawers, activePanel: "issues" };
   }
   if (next === "sections") {
     if (state.leftOpen && state.leftMode === "tree" && state.activePanel === "sections") {
       return { ...state, leftOpen: false };
     }
+    const drawers = constrainOverlayDrawers({
+      leftOpen: true,
+      rightOpen: state.rightOpen,
+      editorBp,
+      prefer: "left",
+    });
     return {
       ...state,
-      leftOpen: true,
+      ...drawers,
       leftMode: "tree",
       activePanel: "sections",
-      rightOpen: state.rightOpen || Boolean(state.activePanel),
     };
   }
   if (state.leftOpen && state.leftMode === "panels" && state.activePanel === next) {
     return { ...state, leftOpen: false };
   }
+  const drawers = constrainOverlayDrawers({
+    leftOpen: true,
+    rightOpen: true,
+    editorBp,
+    prefer: "right",
+  });
   return {
     ...state,
-    leftOpen: true,
+    ...drawers,
     leftMode: "panels",
     activePanel: next,
-    rightOpen: true,
   };
 }
 
@@ -63,24 +86,49 @@ export function closeRightPanel(state: BuilderPanelState): BuilderPanelState {
 }
 
 export function openInspectorForSection(
-  state: BuilderPanelState
+  state: BuilderPanelState,
+  editorBp: EditorBreakpoint = "desktop"
 ): BuilderPanelState {
+  const drawers = constrainOverlayDrawers({
+    leftOpen: false,
+    rightOpen: true,
+    editorBp,
+    prefer: "right",
+  });
   return {
     ...state,
-    rightOpen: true,
+    ...drawers,
     activePanel: "sections",
-    leftMode: state.leftOpen ? state.leftMode : "tree",
+    leftMode: "tree",
   };
 }
 
-/** Grid template that releases width when panels close. */
+/** Close both sidebars so the preview canvas uses the full workspace width. */
+export function collapsePanelsForCanvas(
+  state: BuilderPanelState
+): BuilderPanelState {
+  return { ...state, leftOpen: false, rightOpen: false };
+}
+
+/**
+ * Grid template that releases width when panels close.
+ * Overlay breakpoints always give the canvas a single column.
+ */
 export function builderWorkspaceGrid(state: {
   leftOpen: boolean;
   rightOpen: boolean;
   focusMode: boolean;
+  editorBp?: EditorBreakpoint;
 }): string {
   if (state.focusMode) return "minmax(0,1fr)";
-  const left = state.leftOpen ? "minmax(220px,280px)" : "0px";
-  const right = state.rightOpen ? "minmax(280px,340px)" : "0px";
+  if (state.editorBp && editorUsesOverlayPanels(state.editorBp)) {
+    return "minmax(0,1fr)";
+  }
+  const left = state.leftOpen ? "minmax(220px,260px)" : "0fr";
+  const right = state.rightOpen ? "minmax(300px,340px)" : "0fr";
   return `${left} minmax(0,1fr) ${right}`;
+}
+
+export function defaultRightPanelOpen(): boolean {
+  return false;
 }

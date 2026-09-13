@@ -36,7 +36,7 @@ describe("theme registry builder helpers", () => {
     assert.ok(types.includes("image_text"));
     assert.ok(types.includes("best_sellers"));
     assert.ok(types.includes("faq"));
-    assert.ok(types.includes("stats"));
+    assert.ok(types.includes("sale_rail"));
     assert.ok(types.includes("discount_banner"));
     assert.ok(types.includes("video"));
     assert.ok(BUILDER_SECTION_CATALOG.every((c) => c.group));
@@ -71,6 +71,9 @@ describe("theme registry builder helpers", () => {
     assert.equal(vars["--store-btn-text"], "#111");
     assert.equal(vars["--store-radius"], "8px");
     assert.equal(vars["--store-logo-size"], "48px");
+    assert.equal(vars["--store-header-bg"], "#FFFFFF");
+    assert.equal(vars["--store-announce-bg"], "#0F172A");
+    assert.equal(vars["--store-font-scale"], "1");
     assert.ok(vars["--store-shadow"]);
   });
 

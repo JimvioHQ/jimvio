@@ -63,6 +63,7 @@ export default async function StorefrontHomePage({ params }: Props) {
       storeDescription={store.description}
       themeSettings={store.theme_settings}
       onStoreHost={onStoreHost}
+      storeId={store.id}
     />
   );
 }

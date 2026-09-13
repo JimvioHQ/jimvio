@@ -5,6 +5,7 @@
 
 import { contrastWarning, type ThemeSection, type ThemeSettings } from "../themes/registry";
 import { resolveVideoEmbedUrl } from "../storefront/video-embed";
+import { isSafeNavHref } from "./nav-safe";
 
 export type ResponsiveHint = {
   id: string;
@@ -26,12 +27,15 @@ export function detectBuilderHints(input: {
   sections: ThemeSection[];
   logo?: string | null;
   headerNavCount?: number;
+  headerNav?: Array<{ label: string; href: string }>;
   pages?: Array<{ handle: string; published?: boolean }>;
   seo?: Record<string, unknown>;
   products?: Array<{ images?: unknown }>;
 }): ResponsiveHint[] {
   const hints: ResponsiveHint[] = [];
   const { settings, sections } = input;
+  const navItems = input.headerNav || [];
+  const navCount = input.headerNavCount ?? navItems.length;
 
   if (!input.logo && !settings.logoUrl) {
     hints.push({
@@ -53,7 +57,7 @@ export function detectBuilderHints(input: {
     });
   }
 
-  if ((input.headerNavCount ?? 0) === 0) {
+  if (navCount === 0) {
     hints.push({
       id: "missing-nav",
       severity: "warn",
@@ -61,6 +65,28 @@ export function detectBuilderHints(input: {
       message: "Header navigation is empty.",
       suggestion: "Add menu links under Navigation.",
     });
+  }
+
+  if (navCount >= 8) {
+    hints.push({
+      id: "nav-overflow",
+      severity: "warn",
+      breakpoint: "mobile",
+      message: "Header has many links and will wrap on small screens.",
+      suggestion: "Keep 4–6 primary links. Extra destinations belong in the footer.",
+    });
+  }
+
+  for (const item of navItems) {
+    if (!isSafeNavHref(item.href)) {
+      hints.push({
+        id: `invalid-nav-${item.label}`,
+        severity: "warn",
+        breakpoint: "all",
+        message: `Navigation link “${item.label}” has an invalid URL.`,
+        suggestion: "Use a relative path like /collections/all or an https URL.",
+      });
+    }
   }
 
   const hasFooter = sections.some((s) => s.type === "footer" && s.enabled);
@@ -184,6 +210,28 @@ export function detectBuilderHints(input: {
 
     if (section.type === "hero") {
       const headline = typeof props.headline === "string" ? props.headline : "";
+      if (!headline.trim()) {
+        hints.push({
+          id: `hero-empty-${section.id}`,
+          severity: "warn",
+          breakpoint: "all",
+          sectionId: section.id,
+          sectionType: section.type,
+          message: "Hero headline is empty.",
+          suggestion: "Add a short headline so the homepage has a clear first impression.",
+        });
+      }
+      if (props.height === "xl") {
+        hints.push({
+          id: `hero-height-${section.id}`,
+          severity: "info",
+          breakpoint: "mobile",
+          sectionId: section.id,
+          sectionType: section.type,
+          message: "Extra-tall hero can push products below the fold on phones.",
+          suggestion: "Use medium height on mobile-heavy stores.",
+        });
+      }
       if (headline.length > 72) {
         hints.push({
           id: `hero-headline-${section.id}`,

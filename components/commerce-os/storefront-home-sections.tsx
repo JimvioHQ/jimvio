@@ -2,12 +2,15 @@ import type { ReactNode } from "react";
 import type { ThemeSection, ThemeSettings } from "@/lib/commerce-os/themes/registry";
 import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
 import { sliceProductsForSection } from "@/lib/commerce-os/storefront/product-slice";
+import { productsOnSale } from "@/lib/commerce-os/storefront/sale-products";
+import { sliceCollectionsForSection } from "@/lib/commerce-os/storefront/collection-slice";
 import {
   StorefrontCategoryNav,
   StorefrontFeaturedProducts,
   StorefrontHero,
   StorefrontTrustBar,
   type StorefrontCollectionTile,
+  type StorefrontPreviewDevice,
 } from "@/components/commerce-os/storefront-sections";
 import { StorefrontNewsletterForm } from "@/components/commerce-os/storefront-newsletter-form";
 
@@ -22,16 +25,23 @@ type Product = {
   short_description?: string | null;
   inventory_quantity?: number | null;
   track_inventory?: boolean | null;
+  vendor_id?: string | null;
 };
 
 function visibleForDevice(
   props: Record<string, unknown> | undefined,
-  device: "desktop" | "tablet" | "mobile"
+  device: StorefrontPreviewDevice
 ): boolean {
   if (!props) return true;
-  if (device === "mobile" && props.hideOnMobile === true) return false;
+  const compact = device === "mobile" || device === "tablet";
+  if (compact && props.hideOnMobile === true && device === "mobile") return false;
   if (device === "tablet" && props.hideOnTablet === true) return false;
-  if (device === "desktop" && props.hideOnDesktop === true) return false;
+  if (
+    (device === "desktop" || device === "laptop" || device === "custom") &&
+    props.hideOnDesktop === true
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -53,6 +63,7 @@ export function StorefrontHomeSections({
   preview = false,
   onSelectSection,
   selectedId,
+  storeId,
 }: {
   sections: ThemeSection[];
   products: Product[];
@@ -62,11 +73,14 @@ export function StorefrontHomeSections({
   storeDescription?: string | null;
   themeSettings: ThemeSettings;
   onStoreHost?: boolean;
-  device?: "desktop" | "tablet" | "mobile";
+  device?: StorefrontPreviewDevice;
   preview?: boolean;
   onSelectSection?: (id: string) => void;
   selectedId?: string | null;
+  storeId?: string;
 }) {
+  const compact = device === "mobile" || device === "tablet";
+  const previewDevice = preview ? device : undefined;
   const content = sections
     .filter((s) => s.enabled)
     .filter((s) => visibleForDevice(s.props, device))
@@ -93,6 +107,11 @@ export function StorefrontHomeSections({
             headline={
               typeof props.headline === "string" ? props.headline : storeName
             }
+            headlineAccent={
+              typeof props.headlineAccent === "string"
+                ? props.headlineAccent
+                : undefined
+            }
             subhead={
               typeof props.subhead === "string"
                 ? props.subhead
@@ -117,6 +136,7 @@ export function StorefrontHomeSections({
             trustItems={
               typeof props.trustItems === "string" ? props.trustItems : undefined
             }
+            previewDevice={previewDevice}
           />
         );
       } else if (section.type === "banner" || section.type === "trust_shipping") {
@@ -132,11 +152,12 @@ export function StorefrontHomeSections({
                   ? props.items
                   : undefined
             }
+            previewDevice={previewDevice}
           />
         );
       } else if (section.type === "discount_banner") {
         node = (
-          <section className="mx-auto max-w-[var(--store-max-width,72rem)] px-4 py-8 sm:px-6">
+          <section className={`mx-auto max-w-[var(--store-max-width,72rem)] py-8 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
             <div
               className="rounded-[var(--store-radius,12px)] px-6 py-10 text-center text-white"
               style={{ background: "var(--store-primary,#FF5A1F)" }}
@@ -153,13 +174,19 @@ export function StorefrontHomeSections({
           </section>
         );
       } else if (section.type === "stats") {
+        const stats = [
+          [props.aValue, props.aLabel],
+          [props.bValue, props.bLabel],
+          [props.cValue, props.cLabel],
+        ].filter(([v, l]) => typeof v === "string" && v && typeof l === "string" && l);
+        if (!stats.length) {
+          node = preview ? (
+            <p className="px-4 py-8 text-center text-sm opacity-50">Add stats values in the inspector.</p>
+          ) : null;
+        } else {
         node = (
-          <section className="mx-auto grid max-w-4xl grid-cols-3 gap-4 px-4 py-12 text-center sm:px-6">
-            {[
-              [props.aValue, props.aLabel],
-              [props.bValue, props.bLabel],
-              [props.cValue, props.cLabel],
-            ].map(([v, l], i) => (
+          <section className={`mx-auto grid max-w-4xl gap-4 py-12 text-center ${compact ? "grid-cols-1 px-3" : "grid-cols-3 px-4 sm:px-6"}`}>
+            {stats.map(([v, l], i) => (
               <div key={i}>
                 <p className="text-2xl font-semibold">
                   {typeof v === "string" ? v : ""}
@@ -171,58 +198,65 @@ export function StorefrontHomeSections({
             ))}
           </section>
         );
+        }
       } else if (section.type === "collections") {
+        const list = sliceCollectionsForSection(collections, props);
         node =
-          collections.length > 0 ? (
+          list.length > 0 ? (
             <StorefrontCategoryNav
               handle={handle}
               onStoreHost={onStoreHost}
-              collections={collections}
+              collections={list}
               title={
                 typeof props.title === "string"
                   ? props.title
                   : "Shop by category"
               }
+              layout={typeof props.layout === "string" ? props.layout : "icons"}
+              previewDevice={previewDevice}
             />
-          ) : (
-            <StorefrontFeaturedProducts
-              handle={handle}
-              onStoreHost={onStoreHost}
-              title={
-                typeof props.title === "string"
-                  ? props.title
-                  : "Shop collections"
-              }
-              subtitle="Add published collections to show category tiles here."
-              products={sliceProductsForSection(products, section)}
-              previewDevice={preview ? device : undefined}
-            />
-          );
+          ) : preview ? (
+            <p className="px-4 py-8 text-center text-sm opacity-50">
+              Publish collections to show category tiles here.
+            </p>
+          ) : null;
       } else if (
         section.type === "featured_products" ||
         section.type === "best_sellers" ||
-        section.type === "new_arrivals"
+        section.type === "new_arrivals" ||
+        section.type === "sale_rail"
       ) {
-        const list = sliceProductsForSection(products, section);
-        node = (
-          <StorefrontFeaturedProducts
-            handle={handle}
-            onStoreHost={onStoreHost}
-            title={
-              typeof props.title === "string"
-                ? props.title
-                : section.type === "best_sellers"
-                  ? "Best sellers"
-                  : section.type === "new_arrivals"
-                    ? "New arrivals"
-                    : "Featured products"
-            }
-            products={list}
-            previewDevice={preview ? device : undefined}
-          />
-        );
+        const source =
+          section.type === "sale_rail" ? productsOnSale(products) : products;
+        const list = sliceProductsForSection(source, section);
+        node =
+          list.length > 0 || preview ? (
+            <StorefrontFeaturedProducts
+              handle={handle}
+              onStoreHost={onStoreHost}
+              storeId={storeId}
+              title={
+                typeof props.title === "string"
+                  ? props.title
+                  : section.type === "best_sellers"
+                    ? "Best sellers"
+                    : section.type === "new_arrivals"
+                      ? "New arrivals"
+                      : section.type === "sale_rail"
+                        ? "On sale"
+                        : "Featured products"
+              }
+              subtitle={
+                typeof props.subtitle === "string" ? props.subtitle : undefined
+              }
+              products={list}
+              layout={section.type === "sale_rail" ? "rail" : "grid"}
+              previewDevice={preview ? device : undefined}
+            />
+          ) : null;
       } else if (section.type === "testimonials") {
-        node = (
+        const quote = typeof props.quote === "string" ? props.quote.trim() : "";
+        node = quote ? (
           <section className="mx-auto max-w-3xl px-4 py-12 text-center sm:px-6">
             <h2 className="text-2xl font-semibold">
               {typeof props.title === "string"
@@ -230,13 +264,17 @@ export function StorefrontHomeSections({
                 : "What customers say"}
             </h2>
             <p className="mt-4 text-base italic opacity-75">
-              “{typeof props.quote === "string" ? props.quote : ""}”
+              “{quote}”
             </p>
-            <p className="mt-2 text-sm font-semibold opacity-60">
-              {typeof props.author === "string" ? props.author : ""}
-            </p>
+            {typeof props.author === "string" && props.author ? (
+              <p className="mt-2 text-sm font-semibold opacity-60">
+                {props.author}
+              </p>
+            ) : null}
           </section>
-        );
+        ) : preview ? (
+          <p className="px-4 py-8 text-center text-sm opacity-50">Add a customer quote to show this section.</p>
+        ) : null;
       } else if (section.type === "faq") {
         node = (
           <section className="mx-auto max-w-3xl space-y-3 px-4 py-12 sm:px-6">
@@ -263,7 +301,7 @@ export function StorefrontHomeSections({
         );
       } else if (section.type === "image_text") {
         node = (
-          <section className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2">
+          <section className={`mx-auto grid max-w-6xl gap-8 py-12 ${compact ? "px-3" : "px-4 sm:px-6 lg:grid-cols-2"}`}>
             <div className="aspect-[4/3] overflow-hidden rounded-[var(--store-radius,12px)] bg-[#E5E7EB]">
               {typeof props.imageUrl === "string" && props.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -327,11 +365,11 @@ export function StorefrontHomeSections({
         );
       } else if (section.type === "gallery") {
         node = (
-          <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+          <section className={`mx-auto max-w-6xl py-12 ${compact ? "px-3" : "px-4 sm:px-6"}`}>
             <h2 className="text-2xl font-semibold">
               {typeof props.title === "string" ? props.title : "Gallery"}
             </h2>
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className={`mt-6 grid gap-3 ${compact ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
               {[0, 1, 2].map((i) => {
                 const key = `image${i + 1}` as const;
                 const url = props[key];
@@ -393,7 +431,12 @@ export function StorefrontHomeSections({
       if (preview && onSelectSection) {
         const active = selectedId === section.id;
         return (
-          <div key={section.id} className="relative">
+          <div
+            key={section.id}
+            className="relative min-w-0"
+            data-section-id={section.id}
+            data-section-type={section.type}
+          >
             <div
               role="button"
               tabIndex={0}
@@ -419,7 +462,15 @@ export function StorefrontHomeSections({
         );
       }
 
-      return <div key={section.id}>{node}</div>;
+      return (
+        <div
+          key={section.id}
+          data-section-id={section.id}
+          data-section-type={section.type}
+        >
+          {node}
+        </div>
+      );
     });
 
   return <div>{content}</div>;

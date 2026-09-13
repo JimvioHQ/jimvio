@@ -41,4 +41,13 @@ describe("detectBuilderHints", () => {
     });
     assert.ok(hints.some((h) => h.id === "video-vid-1"));
   });
+
+  it("flags invalid navigation hrefs", () => {
+    const hints = detectBuilderHints({
+      settings: DEFAULT_THEME_SETTINGS,
+      sections: [],
+      headerNav: [{ label: "Bad", href: "javascript:alert(1)" }],
+    });
+    assert.ok(hints.some((h) => h.id === "invalid-nav-Bad"));
+  });
 });

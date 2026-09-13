@@ -38,18 +38,33 @@ import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
 import { detectBuilderHints } from "@/lib/commerce-os/builder/responsive-hints";
 import {
   builderWorkspaceGrid,
+  collapsePanelsForCanvas,
+  defaultRightPanelOpen,
   openInspectorForSection,
   toggleBuilderNav,
   type BuilderPanelId,
 } from "@/lib/commerce-os/builder/panel-layout";
 import {
+  editorBreakpointFromWidth,
+  editorToolbarDensity,
+  editorUsesOverlayPanels,
+  type EditorBreakpoint,
+} from "@/lib/commerce-os/builder/editor-chrome";
+import {
   MOBILE_PREVIEW_WIDTHS,
+  PREVIEW_DEVICE_LABELS,
+  availableZoomModes,
   previewFrameWidth,
+  resolvePreviewZoom,
   type MobilePreviewWidth,
+  type PreviewDevice,
+  type ZoomMode,
 } from "@/lib/commerce-os/builder/preview-viewport";
+import { detectCanvasOverflow, type CanvasIssue } from "@/lib/commerce-os/builder/canvas-overflow";
 import { insertIndexForNewTemplateSection } from "@/lib/commerce-os/builder/section-zones";
 import { resolveVideoEmbedUrl } from "@/lib/commerce-os/storefront/video-embed";
 import { StorefrontHomeSections } from "@/components/commerce-os/storefront-home-sections";
+import { StorefrontMobileNav } from "@/components/commerce-os/storefront-mobile-nav";
 import {
   StorefrontAnnouncement,
   StorefrontFooter,
@@ -58,7 +73,9 @@ import {
 import { SectionPickerModal } from "@/components/commerce-os/builder/section-picker-modal";
 import { SectionTree } from "@/components/commerce-os/builder/section-tree";
 import { ProductPicker } from "@/components/commerce-os/builder/product-picker";
+import { CollectionPicker } from "@/components/commerce-os/builder/collection-picker";
 import { CanvasSectionFrame } from "@/components/commerce-os/builder/canvas-section-frame";
+import { PreviewStage } from "@/components/commerce-os/builder/preview-stage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -110,7 +127,7 @@ type Props = {
 
 type Panel = BuilderPanelId;
 
-type Device = "desktop" | "tablet" | "mobile";
+type Device = PreviewDevice;
 
 type Snapshot = {
   sections: ThemeSection[];
@@ -185,17 +202,22 @@ export function BuilderClient({
   const [setupDismissed, setSetupDismissed] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [zoom, setZoom] = useState(100);
+  const [zoomMode, setZoomMode] = useState<ZoomMode>("fit");
+  const [customWidth, setCustomWidth] = useState(1100);
   const [focusMode, setFocusMode] = useState(false);
   const [storeStatus, setStoreStatus] = useState(status || "draft");
   const [hintsOpen, setHintsOpen] = useState(false);
   const [leftMode, setLeftMode] = useState<"tree" | "panels">("tree");
   const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(defaultRightPanelOpen);
   const [moreOpen, setMoreOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [panelQuery, setPanelQuery] = useState("");
+  const [editorBp, setEditorBp] = useState<EditorBreakpoint>("desktop");
+  const [stageWidth, setStageWidth] = useState(1200);
+  const [canvasIssues, setCanvasIssues] = useState<CanvasIssue[]>([]);
+  const previewRootRef = useRef<HTMLDivElement>(null);
 
   const past = useRef<Snapshot[]>([]);
   const future = useRef<Snapshot[]>([]);
@@ -296,17 +318,48 @@ export function BuilderClient({
   }, [sections, settings]);
 
   useEffect(() => {
+    function onResize() {
+      setEditorBp(editorBreakpointFromWidth(window.innerWidth));
+    }
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        if (pickerOpen) {
+          setPickerOpen(false);
+          return;
+        }
+        if (moreOpen) {
+          setMoreOpen(false);
+          return;
+        }
+        if (focusMode) {
+          setFocusMode(false);
+          return;
+        }
+        if (rightOpen) {
+          setRightOpen(false);
+          return;
+        }
+        if (leftOpen) {
+          setLeftOpen(false);
+          return;
+        }
         setSelectedId(null);
-        setPickerOpen(false);
         return;
       }
       const meta = e.metaKey || e.ctrlKey;
       if (meta && e.key.toLowerCase() === "z" && !e.shiftKey) {
         e.preventDefault();
         undo();
-      } else if (meta && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+      } else if (
+        meta &&
+        (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))
+      ) {
         e.preventDefault();
         redo();
       }
@@ -314,7 +367,7 @@ export function BuilderClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections, settings]);
+  }, [sections, settings, pickerOpen, moreOpen, focusMode, rightOpen, leftOpen]);
 
   function move(index: number, dir: -1 | 1) {
     setSectionsWithHistory((prev) => reorderSections(prev, index, index + dir));
@@ -513,17 +566,35 @@ export function BuilderClient({
         sections,
         logo,
         headerNavCount: headerNav.length,
+        headerNav,
         pages,
         seo,
         products: previewProducts,
       }),
-    [settings, sections, logo, headerNav.length, pages, seo, previewProducts]
+    [settings, sections, logo, headerNav, pages, seo, previewProducts]
   );
-  const canvasWidth = previewFrameWidth(device, mobileWidth);
+  const overlayPanels = editorUsesOverlayPanels(editorBp);
+  const toolbarDensity = editorToolbarDensity(editorBp, focusMode);
+  const canvasWidth = previewFrameWidth(device, {
+    mobileWidth,
+    customWidth,
+  });
+  const zoomPercent = resolvePreviewZoom(
+    zoomMode,
+    Math.max(320, stageWidth - 48),
+    canvasWidth
+  );
+  const zoomChoices = availableZoomModes(
+    Math.max(320, stageWidth - 48),
+    canvasWidth
+  );
+  const dockLeft = leftOpen && !focusMode && !overlayPanels;
+  const dockRight = rightOpen && !focusMode && !overlayPanels;
   const workspaceGrid = builderWorkspaceGrid({
-    leftOpen: focusMode ? false : leftOpen,
-    rightOpen: focusMode ? false : rightOpen,
+    leftOpen: dockLeft,
+    rightOpen: dockRight,
     focusMode,
+    editorBp,
   });
 
   const enabledSections = sections.filter((s) => s.enabled);
@@ -536,30 +607,52 @@ export function BuilderClient({
       : p.label.toLowerCase().includes(panelQuery.trim().toLowerCase())
   );
 
-  function selectSection(id: string) {
-    setSelectedId(id);
-    const next = openInspectorForSection({
+  function expandCanvas() {
+    const next = collapsePanelsForCanvas({
       leftOpen,
       rightOpen,
       activePanel: panel,
       leftMode,
     });
+    setLeftOpen(next.leftOpen);
+    setRightOpen(next.rightOpen);
+    setFocusMode(false);
+  }
+
+  function selectSection(id: string) {
+    setSelectedId(id);
+    const next = openInspectorForSection(
+      {
+        leftOpen,
+        rightOpen,
+        activePanel: panel,
+        leftMode,
+      },
+      editorBp
+    );
     setPanel(next.activePanel);
     setLeftMode(next.leftMode);
-    setRightOpen(true);
-    if (!focusMode) setLeftOpen(true);
+    setRightOpen(next.rightOpen);
+    setLeftOpen(next.leftOpen);
   }
 
   function activateNav(next: Panel) {
     if (next === "issues") {
       setHintsOpen(true);
       setPanel("issues");
+      const drawers = toggleBuilderNav(
+        { leftOpen, rightOpen, activePanel: panel, leftMode },
+        "issues",
+        editorBp
+      );
+      setLeftOpen(drawers.leftOpen);
       setRightOpen(true);
       return;
     }
     const toggled = toggleBuilderNav(
       { leftOpen, rightOpen, activePanel: panel, leftMode },
-      next
+      next,
+      editorBp
     );
     setLeftOpen(toggled.leftOpen);
     setRightOpen(toggled.rightOpen);
@@ -568,69 +661,104 @@ export function BuilderClient({
     if (next === "sections") setHintsOpen(false);
   }
 
+  const onStageWidth = useCallback((w: number) => {
+    setStageWidth(w);
+  }, []);
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (pickerOpen) {
-          setPickerOpen(false);
-          return;
-        }
-        if (moreOpen) {
-          setMoreOpen(false);
-          return;
-        }
-        if (rightOpen) {
-          setRightOpen(false);
-          return;
-        }
-        if (leftOpen) {
-          setLeftOpen(false);
-        }
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [pickerOpen, moreOpen, rightOpen, leftOpen]);
+    const root = previewRootRef.current;
+    if (!root) return;
+    const t = window.setTimeout(() => {
+      setCanvasIssues(detectCanvasOverflow(root, device));
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [device, mobileWidth, customWidth, sections, settings, headerNav, zoomPercent]);
+
+  const issueCount = hints.length + canvasIssues.length;
+  const showFullToolbar = toolbarDensity === "full";
+  const showCompactToolbar = toolbarDensity === "compact";
+  const showMinimalToolbar = toolbarDensity === "minimal";
+  const deviceOptions: Device[] = ["desktop", "laptop", "tablet", "mobile", "custom"];
 
   return (
     <div
-      className="flex h-dvh flex-col overflow-hidden bg-[#EEF0F3]"
-      data-jimvio-builder="3"
+      className="flex h-dvh flex-col overflow-hidden bg-[#E8EAED]"
+      data-jimvio-builder="4"
+      data-builder-bp={editorBp}
+      data-left-open={leftOpen ? "1" : "0"}
+      data-right-open={rightOpen ? "1" : "0"}
+      data-focus-mode={focusMode ? "1" : "0"}
+      data-preview-device={device}
     >
-      <header className="z-40 flex shrink-0 flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-2 py-1.5 sm:px-3">
+      <header className="z-40 flex shrink-0 items-center gap-2 overflow-x-auto border-b border-[#E5E7EB] bg-white px-2 py-1.5 sm:px-3">
         <Link
           href="/commerce"
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[#E5E7EB] text-[11px] font-bold text-[#FF5A1F] hover:bg-[#FFF7ED]"
+          className="grid h-8 shrink-0 place-items-center rounded-lg border border-[#E5E7EB] px-2 text-[11px] font-bold text-[#FF5A1F] hover:bg-[#FFF7ED]"
           aria-label="Back to Commerce"
           title="Back to Commerce"
         >
-          J
+          {showMinimalToolbar ? "Back" : "Commerce"}
         </Link>
-        <div className="hidden h-5 w-px bg-[#E5E7EB] sm:block" />
-        <nav className="flex items-center gap-0.5 overflow-x-auto" aria-label="Builder panels">
-          {PANELS.filter((p) => p.id !== "issues").map((p) => {
-            const active =
-              leftOpen &&
-              ((p.id === "sections" && leftMode === "tree" && panel === "sections") ||
-                (p.id !== "sections" && leftMode === "panels" && panel === p.id));
-            return (
+        {!showMinimalToolbar ? (
+          <nav className="flex items-center gap-0.5" aria-label="Builder panels">
+            {(showFullToolbar
+              ? PANELS.filter((p) => p.id !== "issues")
+              : PANELS.filter((p) => p.id === "sections" || p.id === "theme")
+            ).map((p) => {
+              const active =
+                leftOpen &&
+                ((p.id === "sections" && leftMode === "tree" && panel === "sections") ||
+                  (p.id !== "sections" && leftMode === "panels" && panel === p.id));
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  title={p.label}
+                  aria-pressed={active}
+                  onClick={() => activateNav(p.id)}
+                  className={
+                    active
+                      ? "shrink-0 rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
+                      : "shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+                  }
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+            {showCompactToolbar ? (
               <button
-                key={p.id}
                 type="button"
-                title={p.label}
-                aria-pressed={active}
-                onClick={() => activateNav(p.id)}
-                className={
-                  active
-                    ? "shrink-0 rounded-md bg-[#EFF6FF] px-2 py-1.5 text-[11px] font-semibold text-[#2563EB]"
-                    : "shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
-                }
+                className="shrink-0 rounded-md px-2 py-1.5 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+                onClick={() => setMoreOpen((v) => !v)}
               >
-                {p.label}
+                More
               </button>
-            );
-          })}
-        </nav>
+            ) : null}
+          </nav>
+        ) : (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Open sections"
+              onClick={() => activateNav("sections")}
+              className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            >
+              Sections
+            </button>
+            <button
+              type="button"
+              aria-label="Open settings"
+              onClick={() => {
+                setRightOpen(true);
+                setLeftOpen(false);
+              }}
+              className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            >
+              Settings
+            </button>
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-[#111827]">
             {storeName}
@@ -647,16 +775,18 @@ export function BuilderClient({
               <span className="ml-1 text-[10px] font-semibold text-amber-700">Unsaved</span>
             ) : null}
           </p>
-          <p className="truncate text-[10px] text-[#6B7280]">
-            Home
-            {selectedLabel ? ` · ${selectedLabel}` : ""}
-            {" · "}
-            <a href={liveUrl} target="_blank" rel="noreferrer" className="text-[#FF5A1F] hover:underline">
-              {liveHost}
-            </a>
-          </p>
+          {showFullToolbar ? (
+            <p className="truncate text-[10px] text-[#6B7280]">
+              Home
+              {selectedLabel ? ` · ${selectedLabel}` : ""}
+              {" · "}
+              <a href={liveUrl} target="_blank" rel="noreferrer" className="text-[#FF5A1F] hover:underline">
+                {liveHost}
+              </a>
+            </p>
+          ) : null}
         </div>
-        {stores.length > 1 ? (
+        {showFullToolbar && stores.length > 1 ? (
           <label className="hidden items-center gap-1 text-[10px] font-semibold text-[#6B7280] md:flex">
             Store
             <select
@@ -675,24 +805,23 @@ export function BuilderClient({
             </select>
           </label>
         ) : null}
-        <div className="flex flex-wrap items-center gap-1">
-          <button type="button" disabled={!canUndo || busy} onClick={undo} aria-label="Undo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Undo</button>
-          <button type="button" disabled={!canRedo || busy} onClick={redo} aria-label="Redo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Redo</button>
-          {(["desktop", "tablet", "mobile"] as Device[]).map((d) => (
-            <button
-              key={d}
-              type="button"
-              aria-pressed={device === d}
-              onClick={() => setDevice(d)}
-              className={
-                device === d
-                  ? "rounded-md bg-[#111827] px-2 py-1.5 text-[11px] font-semibold capitalize text-white"
-                  : "rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold capitalize text-[#374151]"
-              }
-            >
-              {d}
-            </button>
-          ))}
+        <div className="flex shrink-0 items-center gap-1">
+          {!showMinimalToolbar ? (
+            <>
+              <button type="button" disabled={!canUndo || busy} onClick={undo} aria-label="Undo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Undo</button>
+              <button type="button" disabled={!canRedo || busy} onClick={redo} aria-label="Redo" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold disabled:opacity-40">Redo</button>
+            </>
+          ) : null}
+          <select
+            aria-label="Device"
+            value={device}
+            onChange={(e) => setDevice(e.target.value as Device)}
+            className="h-8 rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold"
+          >
+            {deviceOptions.map((d) => (
+              <option key={d} value={d}>{PREVIEW_DEVICE_LABELS[d]}</option>
+            ))}
+          </select>
           {device === "mobile" ? (
             <select
               aria-label="Mobile width"
@@ -705,16 +834,44 @@ export function BuilderClient({
               ))}
             </select>
           ) : null}
-          <select
-            aria-label="Canvas zoom"
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="h-8 rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold"
+          {device === "custom" ? (
+            <label className="flex items-center gap-1 text-[10px] font-semibold text-[#6B7280]">
+              <span className="sr-only">Custom width</span>
+              <input
+                type="number"
+                min={320}
+                max={1920}
+                value={customWidth}
+                onChange={(e) => setCustomWidth(Number(e.target.value) || 1100)}
+                className="h-8 w-16 rounded-md border border-[#E5E7EB] px-1 text-[11px]"
+              />
+              px
+            </label>
+          ) : null}
+          {showFullToolbar || showCompactToolbar ? (
+            <select
+              aria-label="Canvas zoom"
+              value={String(zoomMode)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setZoomMode(v === "fit" ? "fit" : (Number(v) as ZoomMode));
+              }}
+              className="h-8 rounded-md border border-[#E5E7EB] px-1 text-[11px] font-semibold"
+            >
+              {zoomChoices.map((z) => (
+                <option key={String(z)} value={String(z)}>
+                  {z === "fit" ? "Fit" : `${z}%`}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <button
+            type="button"
+            onClick={expandCanvas}
+            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
           >
-            {[50, 75, 90, 100, 110, 125].map((z) => (
-              <option key={z} value={z}>{z}%</option>
-            ))}
-          </select>
+            Expand
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -722,46 +879,58 @@ export function BuilderClient({
               if (!focusMode) {
                 setLeftOpen(false);
                 setRightOpen(false);
-              } else {
-                setLeftOpen(true);
-                setRightOpen(true);
               }
             }}
             className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
           >
             {focusMode ? "Exit focus" : "Focus"}
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setHintsOpen(true);
-              setPanel("issues");
-              setRightOpen(true);
-            }}
-            className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
-          >
-            Issues{hints.length ? ` (${hints.length})` : ""}
-          </button>
+          {showFullToolbar ? (
+            <button
+              type="button"
+              onClick={() => {
+                setHintsOpen(true);
+                setPanel("issues");
+                setRightOpen(true);
+                if (overlayPanels) setLeftOpen(false);
+              }}
+              className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
+            >
+              Issues{issueCount ? ` (${issueCount})` : ""}
+            </button>
+          ) : null}
           <div className="relative">
             <button
               type="button"
               aria-expanded={moreOpen}
+              aria-label="More actions"
               onClick={() => setMoreOpen((v) => !v)}
               className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold"
             >
               More
             </button>
             {moreOpen ? (
-              <div className="absolute right-0 z-50 mt-1 w-44 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg">
+              <div className="absolute right-0 z-50 mt-1 w-48 rounded-lg border border-[#E5E7EB] bg-white p-1 shadow-lg">
                 <a href={liveUrl} target="_blank" rel="noreferrer" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">View live store</a>
                 <Link href="/commerce" className="block rounded-md px-2 py-1.5 text-[11px] font-semibold hover:bg-[#F3F4F6]">Back to Commerce</Link>
-                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(true); setRightOpen(true); setFocusMode(false); setMoreOpen(false); }}>Show panels</button>
-                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(false); setRightOpen(false); setMoreOpen(false); }}>Hide panels</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setLeftOpen(true); setRightOpen(false); setFocusMode(false); setMoreOpen(false); }}>Open sections</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setRightOpen(true); if (overlayPanels) setLeftOpen(false); setFocusMode(false); setMoreOpen(false); }}>Open settings</button>
+                <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { expandCanvas(); setMoreOpen(false); }}>Expand preview</button>
+                {showMinimalToolbar ? (
+                  <>
+                    <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" disabled={!canUndo} onClick={() => { undo(); setMoreOpen(false); }}>Undo</button>
+                    <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" disabled={!canRedo} onClick={() => { redo(); setMoreOpen(false); }}>Redo</button>
+                    <button type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-semibold hover:bg-[#F3F4F6]" onClick={() => { setHintsOpen(true); setPanel("issues"); setRightOpen(true); setMoreOpen(false); }}>Issues</button>
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
-          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">Save draft</button>
+          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">Save</button>
           <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50">Publish</button>
+          {showFullToolbar ? (
+            <a href={liveUrl} target="_blank" rel="noreferrer" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold">View live</a>
+          ) : null}
         </div>
       </header>
 
@@ -776,7 +945,7 @@ export function BuilderClient({
         </div>
       ) : null}
 
-      {!setupDismissed && setupDone < setupSteps.length ? (
+      {!focusMode && !setupDismissed && setupDone < setupSteps.length ? (
         <div className="border-b border-[#E5E7EB] bg-white px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-[#111827]">Build your storefront · {setupDone}/{setupSteps.length}</p>
@@ -800,18 +969,25 @@ export function BuilderClient({
       )}
 
       <div
-        className="grid min-h-0 flex-1 overflow-hidden transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none"
+        className="relative grid min-h-0 min-w-0 flex-1 overflow-hidden transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none"
         style={{ gridTemplateColumns: workspaceGrid }}
+        data-builder-workspace="1"
       >
         <aside
           className={
-            leftOpen && !focusMode
-              ? "min-h-0 overflow-hidden border-r border-[#E5E7EB] bg-white opacity-100"
-              : "pointer-events-none min-h-0 overflow-hidden border-r border-transparent opacity-0"
+            dockLeft
+              ? "min-h-0 min-w-0 overflow-hidden border-r border-[#E5E7EB] bg-white"
+              : leftOpen && overlayPanels && !focusMode
+                ? editorBp === "mobile"
+                  ? "absolute inset-x-0 bottom-0 z-40 flex max-h-[min(85dvh,720px)] flex-col rounded-t-2xl border-t border-[#E5E7EB] bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl"
+                  : "absolute inset-y-0 left-0 z-40 flex w-[min(280px,88vw)] flex-col border-r border-[#E5E7EB] bg-white shadow-2xl"
+                : focusMode || overlayPanels
+                  ? "hidden"
+                  : "min-h-0 min-w-0 overflow-hidden"
           }
-          aria-hidden={!leftOpen || focusMode}
+          aria-hidden={!dockLeft && !(leftOpen && overlayPanels && !focusMode)}
         >
-          <div className={leftOpen && !focusMode ? "flex h-full min-w-[220px] flex-col" : "invisible flex h-full w-0 flex-col"}>
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
                 {leftMode === "tree" ? "Sections" : PANELS.find((p) => p.id === panel)?.label || "Panel"}
@@ -914,66 +1090,74 @@ export function BuilderClient({
           </div>
         </aside>
 
-        <div className="min-h-0 min-w-0 overflow-auto bg-[#D1D5DB]/50 p-3 sm:p-4">
-          <div className="mb-2 flex flex-wrap items-center justify-center gap-2 text-[11px] text-[#6B7280]">
-            <span>Store · Home page{selectedLabel ? ` · ${selectedLabel}` : ""}</span>
-            {selectedId ? (
-              <button type="button" className="underline" onClick={() => setSelectedId(null)}>Clear selection</button>
-            ) : (
-              <span>Select a section to edit</span>
-            )}
-            <button type="button" className="rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 font-semibold" onClick={() => setLeftOpen((v) => !v)}>
-              {leftOpen ? "Hide left" : "Show left"}
-            </button>
-            <button type="button" className="rounded-md border border-[#E5E7EB] bg-white px-2 py-0.5 font-semibold" onClick={() => setRightOpen((v) => !v)}>
-              {rightOpen ? "Hide inspector" : "Show inspector"}
-            </button>
-          </div>
-
-          <div className="mx-auto flex justify-center overflow-x-auto pb-8">
-          <div
-            className="overflow-hidden rounded-xl border border-[#9CA3AF]/60 bg-white shadow-[0_20px_50px_rgba(15,23,42,0.12)]"
-            data-preview-device={device}
-            data-preview-width={typeof canvasWidth === "number" ? canvasWidth : "fluid"}
-            style={{
-              width: canvasWidth,
-              maxWidth: "100%",
-              transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
-              transformOrigin: "top center",
-              ...cssVars,
-              backgroundColor: settings.backgroundColor,
-              color: settings.textColor,
-              fontFamily: `${settings.fontFamily}, system-ui, sans-serif`,
-            }}
+        <div className="relative min-h-0 min-w-0 overflow-hidden">
+          <PreviewStage
+            frameWidth={canvasWidth}
+            zoomPercent={zoomPercent}
+            selectedId={selectedId}
+            onStageWidth={onStageWidth}
+            onBackgroundClick={expandCanvas}
           >
-            <PreviewCanvas
-              storeName={storeName}
-              handle={handle}
-              logo={logo}
-              settings={settings}
-              sections={enabledSections}
-              headerNav={headerNav}
-              footerNav={footerNav}
-              products={previewProducts}
-              collections={previewCollections}
-              device={device}
-              onSelect={selectSection}
-              selectedId={selectedId}
-              onRequestAddSection={() => setPickerOpen(true)}
-            />
-          </div>
-          </div>
+            <div
+              ref={previewRootRef}
+              className="min-w-0 overflow-x-clip"
+              data-preview-device={device}
+              data-preview-width={canvasWidth}
+              style={{
+                ...cssVars,
+                backgroundColor: settings.backgroundColor,
+                color: settings.textColor,
+                fontSize: `calc(100% * var(--store-font-scale, 1))`,
+                fontFamily: `${settings.fontFamily}, system-ui, sans-serif`,
+              }}
+            >
+              <PreviewCanvas
+                storeName={storeName}
+                handle={handle}
+                logo={logo}
+                settings={settings}
+                sections={enabledSections}
+                headerNav={headerNav}
+                footerNav={footerNav}
+                products={previewProducts}
+                collections={previewCollections}
+                storeId={storeId}
+                device={device}
+                onSelect={selectSection}
+                selectedId={selectedId}
+                onRequestAddSection={() => setPickerOpen(true)}
+              />
+            </div>
+          </PreviewStage>
         </div>
+
+        {(overlayPanels && !focusMode && (leftOpen || rightOpen)) ? (
+          <button
+            type="button"
+            aria-label="Close panel"
+            className="absolute inset-0 z-30 bg-[#111827]/25"
+            onClick={() => {
+              setLeftOpen(false);
+              setRightOpen(false);
+            }}
+          />
+        ) : null}
 
         <aside
           className={
-            rightOpen && !focusMode
-              ? "min-h-0 overflow-hidden border-l border-[#E5E7EB] bg-white opacity-100"
-              : "pointer-events-none min-h-0 overflow-hidden border-l border-transparent opacity-0"
+            dockRight
+              ? "min-h-0 min-w-0 overflow-hidden border-l border-[#E5E7EB] bg-white"
+              : rightOpen && overlayPanels && !focusMode
+                ? editorBp === "mobile"
+                  ? "absolute inset-x-0 bottom-0 z-40 flex max-h-[min(85dvh,720px)] flex-col rounded-t-2xl border-t border-[#E5E7EB] bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl"
+                  : "absolute inset-y-0 right-0 z-40 flex w-[min(340px,90vw)] flex-col border-l border-[#E5E7EB] bg-white shadow-2xl"
+                : focusMode || overlayPanels
+                  ? "hidden"
+                  : "min-h-0 min-w-0 overflow-hidden"
           }
-          aria-hidden={!rightOpen || focusMode}
+          aria-hidden={!dockRight && !(rightOpen && overlayPanels && !focusMode)}
         >
-          <div className={rightOpen && !focusMode ? "flex h-full min-w-[280px] flex-col" : "invisible flex h-full w-0 flex-col"}>
+          <div className="flex h-full min-h-0 min-w-0 flex-col">
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Inspector</p>
               <button type="button" aria-label="Close inspector" onClick={() => setRightOpen(false)} className="rounded-md px-2 py-1 text-[11px] font-semibold text-[#6B7280] hover:bg-[#F3F4F6]">Close</button>
@@ -981,10 +1165,29 @@ export function BuilderClient({
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               {(panel === "issues" || hintsOpen) ? (
                 <div className="mb-4 space-y-2">
-                  <p className="text-xs font-semibold text-[#111827]">Issues · {hints.length}</p>
-                  <p className="text-[11px] text-[#6B7280]">Heuristic checks only — not live DOM measurement.</p>
-                  {!hints.length ? (
-                    <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">No heuristic issues detected for current draft.</p>
+                  <p className="text-xs font-semibold text-[#111827]">
+                    Issues · {hints.length + canvasIssues.length}
+                  </p>
+                  {canvasIssues.length ? (
+                    <ul className="space-y-2">
+                      {canvasIssues.map((issue) => (
+                        <li key={issue.id} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px]">
+                          <p className="font-semibold text-amber-900">
+                            [{issue.breakpoint}] {issue.sectionName} · {issue.severity}
+                          </p>
+                          <p className="mt-0.5 text-[#6B7280]">{issue.explanation}</p>
+                          <p className="mt-0.5 text-[#374151]">{issue.fixHint}</p>
+                          {issue.sectionId ? (
+                            <button type="button" className="mt-1 font-semibold text-[#2563EB] underline" onClick={() => selectSection(issue.sectionId!)}>
+                              Open setting
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {!hints.length && !canvasIssues.length ? (
+                    <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800">No layout or content issues detected for this viewport.</p>
                   ) : (
                     <ul className="space-y-2">
                       {hints.map((h) => (
@@ -1023,7 +1226,10 @@ export function BuilderClient({
           ) : null}
           {(panel === "sections" || leftMode === "tree") && !selected ? (
             <div className="space-y-3">
-              <p className="text-xs text-[#6B7280]">Select a section on the left or click the preview to edit.</p>
+              <p className="text-sm font-semibold text-[#111827]">Select a section to edit</p>
+              <p className="text-xs text-[#6B7280]">
+                Click a section in the preview or the left tree. Settings stay closed until something is selected.
+              </p>
               <button type="button" onClick={() => setPickerOpen(true)} className="w-full rounded-lg bg-[#2563EB] px-3 py-2 text-xs font-semibold text-white">+ Add section</button>
             </div>
           ) : null}
@@ -1302,6 +1508,26 @@ function BrandPanel({
         />
         Sticky header
       </label>
+      <label className="flex items-center gap-2 text-xs font-semibold">
+        <input
+          type="checkbox"
+          checked={settings.showPoweredBy !== false}
+          onChange={(e) => onPatch({ showPoweredBy: e.target.checked })}
+        />
+        Show “Powered by Jimvio”
+      </label>
+      <label className="block text-xs">
+        <span className="mb-1 block font-semibold">Mobile navigation</span>
+        <select
+          value={settings.mobileNavStyle || "bottom"}
+          onChange={(e) => onPatch({ mobileNavStyle: e.target.value as ThemeSettings["mobileNavStyle"] })}
+          className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+        >
+          <option value="bottom">Bottom bar</option>
+          <option value="drawer">Menu drawer only</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </label>
     </div>
   );
 }
@@ -1324,6 +1550,9 @@ function ThemeControls({
     ["textColor", "Text"],
     ["mutedTextColor", "Muted"],
     ["borderColor", "Border"],
+    ["headerBackground", "Header"],
+    ["announcementBackground", "Announcement"],
+    ["announcementTextColor", "Announcement text"],
     ["buttonColor", "Button"],
     ["buttonTextColor", "Button text"],
   ];
@@ -1361,6 +1590,18 @@ function ThemeControls({
               ))}
             </select>
           </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Font scale</span>
+            <select
+              value={settings.fontScale || "md"}
+              onChange={(e) => onPatch({ fontScale: e.target.value as ThemeSettings["fontScale"] })}
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+            >
+              <option value="sm">Small</option>
+              <option value="md">Medium</option>
+              <option value="lg">Large</option>
+            </select>
+          </label>
         </div>
       </details>
       <details className="rounded-lg border border-[#E5E7EB] p-2">
@@ -1383,6 +1624,18 @@ function ThemeControls({
             <select
               value={settings.buttonRadius || "9999px"}
               onChange={(e) => onPatch({ buttonRadius: e.target.value })}
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+            >
+              {["4px", "8px", "12px", "9999px"].map((r) => (
+                <option key={r} value={r}>{r === "9999px" ? "Pill" : r}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Input radius</span>
+            <select
+              value={settings.inputRadius || "9999px"}
+              onChange={(e) => onPatch({ inputRadius: e.target.value })}
               className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
             >
               {["4px", "8px", "12px", "9999px"].map((r) => (
@@ -1529,8 +1782,9 @@ function SectionInspector({
     "featured_products",
     "best_sellers",
     "new_arrivals",
-    "collections",
+    "sale_rail",
   ].includes(section.type);
+  const isCollectionSection = section.type === "collections";
 
   const videoCheck =
     section.type === "video"
@@ -1640,7 +1894,7 @@ function SectionInspector({
               ))}
             </select>
           </label>
-          {(["eyebrow", "headline", "subhead", "cta", "ctaSecondary"] as const).map((k) => (
+          {(["eyebrow", "headline", "headlineAccent", "subhead", "cta", "ctaSecondary", "trustItems"] as const).map((k) => (
             <Field key={k} label={k} value={String(props[k] || "")} onChange={(v) => onProps({ [k]: v })} />
           ))}
           <label className="block text-xs">
@@ -1729,6 +1983,36 @@ function SectionInspector({
                 : []
             }
             onChange={(ids) => onProps({ productIds: ids })}
+          />
+        </div>
+      ) : null}
+
+      {isCollectionSection ? (
+        <div className="space-y-2 rounded-lg border border-[#E5E7EB] p-2.5">
+          <Field
+            label="title"
+            value={String(props.title || "")}
+            onChange={(v) => onProps({ title: v })}
+          />
+          <label className="block text-xs">
+            <span className="mb-1 block font-semibold">Layout</span>
+            <select
+              className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+              value={String(props.layout || "icons")}
+              onChange={(e) => onProps({ layout: e.target.value })}
+            >
+              <option value="icons">Icon row</option>
+              <option value="tiles">Collection tiles</option>
+            </select>
+          </label>
+          <CollectionPicker
+            storeId={storeId}
+            selectedIds={
+              Array.isArray(props.collectionIds)
+                ? props.collectionIds.filter((id): id is string => typeof id === "string")
+                : []
+            }
+            onChange={(ids) => onProps({ collectionIds: ids })}
           />
         </div>
       ) : null}
@@ -1875,6 +2159,7 @@ function PreviewCanvas({
   footerNav,
   products,
   collections,
+  storeId,
   device,
   onSelect,
   selectedId,
@@ -1889,6 +2174,7 @@ function PreviewCanvas({
   footerNav: NavItem[];
   products: PreviewProduct[];
   collections: PreviewCollection[];
+  storeId: string;
   device: Device;
   onSelect: (id: string) => void;
   selectedId: string | null;
@@ -1914,6 +2200,7 @@ function PreviewCanvas({
         >
           <StorefrontAnnouncement
             storeName={storeName}
+            previewDevice={device}
             text={
               typeof announcement.props?.text === "string"
                 ? announcement.props.text
@@ -1942,13 +2229,15 @@ function PreviewCanvas({
               settings.headerAlign === "centered" ||
               settings.headerStyle === "centered"
             }
+            showPoweredBy={settings.showPoweredBy !== false}
+            storeId={storeId}
             previewDevice={device}
           />
         </CanvasSectionFrame>
       ) : null}
       {!products.length &&
       contentSections.some((s) =>
-        ["featured_products", "best_sellers", "new_arrivals", "collections"].includes(
+        ["featured_products", "best_sellers", "new_arrivals", "collections", "sale_rail"].includes(
           s.type
         )
       ) ? (
@@ -1968,6 +2257,7 @@ function PreviewCanvas({
         preview
         onSelectSection={onSelect}
         selectedId={selectedId}
+        storeId={storeId}
       />
       {footer ? (
         <CanvasSectionFrame
@@ -1981,8 +2271,20 @@ function PreviewCanvas({
             handle={handle}
             navItems={footerNav}
             onStoreHost
+            previewDevice={device}
+            logoUrl={logo}
+            showPoweredBy={settings.showPoweredBy !== false}
           />
         </CanvasSectionFrame>
+      ) : null}
+      {(settings.mobileNavStyle || "bottom") === "bottom" &&
+      (device === "mobile" || device === "tablet") ? (
+        <StorefrontMobileNav
+          handle={handle}
+          storeId={storeId}
+          onStoreHost
+          previewDevice={device}
+        />
       ) : null}
     </div>
   );

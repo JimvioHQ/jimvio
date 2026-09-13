@@ -7,6 +7,8 @@ export type ButtonStyle = "filled" | "outline" | "ghost" | "soft" | "link";
 export type LogoSize = "small" | "medium" | "large";
 export type ShadowLevel = "none" | "subtle" | "medium" | "strong";
 export type HeaderAlign = "left" | "centered";
+export type FontScale = "sm" | "md" | "lg";
+export type MobileNavStyle = "bottom" | "drawer" | "hidden";
 
 export type ThemeSettings = {
   primaryColor: string;
@@ -17,6 +19,9 @@ export type ThemeSettings = {
   textColor: string;
   mutedTextColor?: string;
   borderColor?: string;
+  headerBackground?: string;
+  announcementBackground?: string;
+  announcementTextColor?: string;
   successColor?: string;
   warningColor?: string;
   errorColor?: string;
@@ -27,8 +32,10 @@ export type ThemeSettings = {
   buttonHeight?: string;
   fontFamily: string;
   headingFont?: string;
+  fontScale?: FontScale;
   radius: string;
   cardRadius?: string;
+  inputRadius?: string;
   productGridColumns?: 2 | 3 | 4;
   headerStyle?: "simple" | "centered";
   headerAlign?: HeaderAlign;
@@ -36,6 +43,8 @@ export type ThemeSettings = {
   faviconUrl?: string | null;
   logoSize?: LogoSize;
   stickyHeader?: boolean;
+  showPoweredBy?: boolean;
+  mobileNavStyle?: MobileNavStyle;
   maxWidth?: string;
   sectionSpacing?: string;
   shadow?: ShadowLevel;
@@ -60,6 +69,7 @@ export type SectionType =
   | "image_text"
   | "best_sellers"
   | "new_arrivals"
+  | "sale_rail"
   | "stats"
   | "gallery"
   | "video"
@@ -93,6 +103,9 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   textColor: "#111827",
   mutedTextColor: "#6B7280",
   borderColor: "rgba(0,0,0,0.08)",
+  headerBackground: "#FFFFFF",
+  announcementBackground: "#0F172A",
+  announcementTextColor: "#F8FAFC",
   successColor: "#059669",
   warningColor: "#D97706",
   errorColor: "#DC2626",
@@ -103,14 +116,18 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   buttonHeight: "44px",
   fontFamily: "DM Sans",
   headingFont: "DM Sans",
+  fontScale: "md",
   radius: "12px",
   cardRadius: "16px",
+  inputRadius: "9999px",
   productGridColumns: 3,
   headerStyle: "simple",
   headerAlign: "left",
   logoSize: "medium",
   stickyHeader: true,
-  maxWidth: "72rem",
+  showPoweredBy: true,
+  mobileNavStyle: "bottom",
+  maxWidth: "80rem",
   sectionSpacing: "3.5rem",
   shadow: "subtle",
   productImageRatio: "4/3",
@@ -377,6 +394,13 @@ export const BUILDER_SECTION_CATALOG: Array<{
     defaultProps: { title: "New arrivals", layout: "grid" },
   },
   {
+    type: "sale_rail",
+    label: "On sale",
+    description: "Products with a real compare-at price",
+    group: "commerce",
+    defaultProps: { title: "On sale", limit: 8 },
+  },
+  {
     type: "collections",
     label: "Collections",
     description: "Category tiles from published store collections",
@@ -594,7 +618,13 @@ export function defaultHomeSections(storeName: string): ThemeSection[] {
       id: "collections",
       type: "collections",
       enabled: true,
-      props: { title: "Shop by category" },
+      props: { title: "Shop by category", layout: "icons" },
+    },
+    {
+      id: "sale_rail",
+      type: "sale_rail",
+      enabled: true,
+      props: { title: "On sale", limit: 8 },
     },
     {
       id: "featured_products",
@@ -675,6 +705,8 @@ export function themeSettingsToCssVars(
   const s = mergeThemeSettings(settings, null);
   const logoPx =
     s.logoSize === "small" ? "28px" : s.logoSize === "large" ? "48px" : "36px";
+  const fontScale =
+    s.fontScale === "sm" ? "0.95" : s.fontScale === "lg" ? "1.06" : "1";
   return {
     "--store-primary": s.primaryColor,
     "--store-secondary": s.secondaryColor || s.primaryColor,
@@ -684,6 +716,11 @@ export function themeSettingsToCssVars(
     "--store-text": s.textColor,
     "--store-muted": s.mutedTextColor || "#6B7280",
     "--store-border": s.borderColor || "rgba(0,0,0,0.08)",
+    "--store-header-bg": s.headerBackground || s.surfaceColor || "#FFFFFF",
+    "--store-announce-bg": s.announcementBackground || "#0F172A",
+    "--store-announce-text": s.announcementTextColor || "#F8FAFC",
+    "--store-input-radius": s.inputRadius || "9999px",
+    "--store-font-scale": fontScale,
     "--store-success": s.successColor || "#059669",
     "--store-warning": s.warningColor || "#D97706",
     "--store-error": s.errorColor || "#DC2626",
@@ -695,7 +732,7 @@ export function themeSettingsToCssVars(
     "--store-card-radius": s.cardRadius || s.radius,
     "--store-grid-cols": String(s.productGridColumns || 3),
     "--store-logo-size": logoPx,
-    "--store-max-width": s.maxWidth || "72rem",
+    "--store-max-width": s.maxWidth || "80rem",
     "--store-section-space": s.sectionSpacing || "3.5rem",
     "--store-shadow": SHADOW_MAP[s.shadow || "subtle"],
     "--store-heading-font": s.headingFont
