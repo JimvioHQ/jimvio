@@ -52,8 +52,14 @@ function DockAction({
   );
 }
 
+/**
+ * Mobile Live control bar. Mic/Cam remain available during screen share.
+ * `canPublish` covers host, co-host, and speakers; viewers get chat-first actions.
+ */
 export function LiveMobileDock({
   isHost,
+  canPublish,
+  hasSession,
   micOn,
   camOn,
   sharing,
@@ -70,6 +76,8 @@ export function LiveMobileDock({
   onLeave,
 }: {
   isHost: boolean;
+  canPublish?: boolean;
+  hasSession?: boolean;
   micOn?: boolean;
   camOn?: boolean;
   sharing?: boolean;
@@ -90,6 +98,11 @@ export function LiveMobileDock({
     else onShare?.();
   };
 
+  const publish = Boolean(canPublish ?? isHost);
+  const inSession = hasSession !== false;
+
+  if (!inSession) return null;
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
@@ -97,12 +110,17 @@ export function LiveMobileDock({
       aria-label="Live controls"
     >
       <div className="pointer-events-auto inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[20px] border border-white/10 bg-black/55 px-2 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl scrollbar-hide">
-        {isHost ? (
+        {publish ? (
           <>
-            <DockAction label="Mic" onClick={onMic} active={micOn} danger={!micOn}>
+            <DockAction label={micOn ? "Mute" : "Unmute"} onClick={onMic} active={micOn} danger={!micOn}>
               {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
             </DockAction>
-            <DockAction label="Camera" onClick={onCam} active={camOn} danger={!camOn}>
+            <DockAction
+              label={camOn ? "Camera" : "Cam off"}
+              onClick={onCam}
+              active={camOn}
+              danger={!camOn}
+            >
               {camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
             </DockAction>
             {onFlipCamera ? (
@@ -113,15 +131,21 @@ export function LiveMobileDock({
             <DockAction label={sharing ? "Stop" : "Share"} onClick={handleShare} active={sharing}>
               {sharing ? <Square className="h-5 w-5" /> : <ScreenShare className="h-5 w-5" />}
             </DockAction>
-            <DockAction label="Link" onClick={onShareLink}>
-              <Share2 className="h-5 w-5" />
+            <DockAction label="Chat" onClick={onChat}>
+              <MessageSquare className="h-5 w-5" />
             </DockAction>
             <DockAction label="More" onClick={onMore}>
               <MoreHorizontal className="h-5 w-5" />
             </DockAction>
-            <DockAction label="End" onClick={onEndLive} danger>
-              <PhoneOff className="h-5 w-5" />
-            </DockAction>
+            {isHost ? (
+              <DockAction label="End" onClick={onEndLive} danger>
+                <PhoneOff className="h-5 w-5" />
+              </DockAction>
+            ) : (
+              <DockAction label="Leave" onClick={onLeave} danger>
+                <PhoneOff className="h-5 w-5" />
+              </DockAction>
+            )}
           </>
         ) : (
           <>

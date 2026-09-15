@@ -16,6 +16,14 @@ import {
   removeOutbox,
   type HubOutboxItem,
 } from "@/lib/community/chat/message-outbox";
+import {
+  markSeenMessageId,
+  reconcileChatHistory,
+  reconcileOutboxFlush,
+  shouldSkipRealtimeInsert,
+  upsertChatMessage,
+  type ChatMessageLike,
+} from "@/lib/live/chat-message-state";
 
 type ApiMessage = {
   id: string;
@@ -73,6 +81,10 @@ function toChatMessage(m: ApiMessage): ChatMessage {
   };
 }
 
+function asChatLike(m: ChatMessage & { client_id?: string | null; pending?: boolean; failed?: boolean }): ChatMessageLike {
+  return m;
+}
+
 function outboxThreadId(mode: "room" | "session", key: string) {
   return `live:${mode}:${key}`;
 }
@@ -91,6 +103,7 @@ export function useLiveChat(
   const displayName = opts?.displayName ?? "Member";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<LiveChatConnectionStatus>("idle");
@@ -130,7 +143,10 @@ export function useLiveChat(
       const res = await fetch(`/api/messages/${roomKey}?limit=100`);
       const json = (await res.json()) as { messages?: ApiMessage[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed to load chat");
-      setMessages((json.messages ?? []).map(toChatMessage));
+      const server = (json.messages ?? []).map(toChatMessage);
+      setMessages((prev) =>
+        reconcileChatHistory(prev.map(asChatLike), server.map(asChatLike)) as ChatMessage[]
+      );
       hadConnectionRef.current = true;
       setConnectionStatus("connected");
       setError(null);
@@ -140,7 +156,10 @@ export function useLiveChat(
       const res = await fetch(`/api/c/live/sessions/${sessionKey}/chat`);
       const json = (await res.json()) as { messages?: ApiMessage[]; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Failed to load chat");
-      setMessages((json.messages ?? []).map(toChatMessage));
+      const server = (json.messages ?? []).map(toChatMessage);
+      setMessages((prev) =>
+        reconcileChatHistory(prev.map(asChatLike), server.map(asChatLike)) as ChatMessage[]
+      );
       hadConnectionRef.current = true;
       setConnectionStatus("connected");
       setError(null);
@@ -218,16 +237,12 @@ export function useLiveChat(
             const eventType = payload?.eventType;
             const row = payload?.new as ApiMessage | null;
             if (eventType === "INSERT" && row?.id) {
-              if (seenInserts.current.has(row.id)) return;
-              seenInserts.current.add(row.id);
-              if (seenInserts.current.size > 300) {
-                seenInserts.current = new Set(Array.from(seenInserts.current).slice(-100));
-              }
+              if (shouldSkipRealtimeInsert(seenInserts.current, row.id)) return;
+              markSeenMessageId(seenInserts.current, row.id);
               if (row.body && row.created_at) {
-                setMessages((prev) => {
-                  if (prev.some((m) => m.id === row.id)) return prev;
-                  return [...prev, toChatMessage(row)];
-                });
+                setMessages((prev) =>
+                  upsertChatMessage(prev.map(asChatLike), asChatLike(toChatMessage(row))) as ChatMessage[]
+                );
               }
               scheduleReload();
               return;
@@ -248,10 +263,16 @@ export function useLiveChat(
           },
           (payload) => {
             const eventType = payload?.eventType;
-            const row = payload?.new as { id?: string } | null;
+            const row = payload?.new as ApiMessage | null;
             if (eventType === "INSERT" && row?.id) {
-              if (seenInserts.current.has(row.id)) return;
-              seenInserts.current.add(row.id);
+              if (shouldSkipRealtimeInsert(seenInserts.current, row.id)) return;
+              markSeenMessageId(seenInserts.current, row.id);
+              if (row.body && row.created_at) {
+                setMessages((prev) =>
+                  upsertChatMessage(prev.map(asChatLike), asChatLike(toChatMessage(row))) as ChatMessage[]
+                );
+              }
+              // Reload enriches sender profiles for session chat rows
               scheduleReload();
               return;
             }
@@ -356,7 +377,12 @@ export function useLiveChat(
     async (
       body: string,
       reply?: { reply_to_id: string; reply_to_body?: string; reply_to_sender?: string },
-      extra?: { message_type?: string; attachments?: unknown[]; metadata?: Record<string, unknown> }
+      extra?: {
+        message_type?: string;
+        attachments?: unknown[];
+        metadata?: Record<string, unknown>;
+        clientId?: string;
+      }
     ) => {
       if (!chatKey || !body.trim() || mode === "none") return;
       const url =
@@ -383,12 +409,19 @@ export function useLiveChat(
       const json = (await res.json()) as { message?: ApiMessage; error?: string };
       if (!res.ok) throw new Error(json.error ?? "Send failed");
       if (json.message) {
-        seenInserts.current.add(json.message.id);
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === json.message!.id)) return prev;
-          return [...prev, toChatMessage(json.message!)];
+        markSeenMessageId(seenInserts.current, json.message.id);
+        const confirmed = asChatLike({
+          ...toChatMessage(json.message),
+          client_id: extra?.clientId ?? null,
         });
+        setMessages((prev) =>
+          upsertChatMessage(prev.map(asChatLike), confirmed, {
+            replaceClientId: extra?.clientId ?? null,
+          }) as ChatMessage[]
+        );
+        return json.message;
       }
+      return undefined;
     },
     [chatKey, mode, roomKey, sessionKey]
   );
@@ -399,7 +432,7 @@ export function useLiveChat(
     const pending = loadOutbox().filter((i) => i.threadId === thread);
     for (const item of pending) {
       try {
-        await postBody(
+        const serverMsg = await postBody(
           item.body,
           item.replyToId
             ? {
@@ -408,8 +441,21 @@ export function useLiveChat(
                 reply_to_sender: item.replyToSender ?? undefined,
               }
             : undefined,
-          { message_type: item.messageType ?? "text", attachments: item.attachments }
+          {
+            message_type: item.messageType ?? "text",
+            attachments: item.attachments,
+            clientId: item.clientId,
+          }
         );
+        if (serverMsg) {
+          setMessages((prev) =>
+            reconcileOutboxFlush(
+              prev.map(asChatLike),
+              item.clientId,
+              asChatLike(toChatMessage(serverMsg))
+            ) as ChatMessage[]
+          );
+        }
         removeOutbox(item.clientId);
       } catch {
         break;
@@ -451,62 +497,78 @@ export function useLiveChat(
       reply?: { reply_to_id: string; reply_to_body?: string; reply_to_sender?: string }
     ) => {
       if (!chatKey || !body.trim() || mode === "none") return;
+      if (sendingRef.current) return;
+      sendingRef.current = true;
       setSending(true);
       setError(null);
       sendTypingBroadcast(false);
+      const clientId = `tmp:${newOutboxClientId()}`;
+      const trimmed = body.trim();
+      const optimistic: ChatMessage & { client_id?: string; pending?: boolean } = {
+        id: clientId,
+        body: trimmed,
+        created_at: new Date().toISOString(),
+        sender_name: displayName,
+        sender_avatar: null,
+        reaction_count: 0,
+        reply_to_id: reply?.reply_to_id ?? null,
+        reply_to_body: reply?.reply_to_body ?? null,
+        reply_to_sender: reply?.reply_to_sender ?? null,
+        client_id: clientId,
+        pending: true,
+      };
       try {
         if (!navigator.onLine) {
           const item: HubOutboxItem = {
-            clientId: newOutboxClientId(),
+            clientId,
             threadId: outboxThreadId(mode, chatKey),
             kind: "group",
             communitySlug: null,
             roomId: mode === "room" ? roomKey : null,
-            body: body.trim(),
+            body: trimmed,
             attachments: [],
             messageType: "text",
             replyToId: reply?.reply_to_id ?? null,
             replyToBody: reply?.reply_to_body ?? null,
             replyToSender: reply?.reply_to_sender ?? null,
-            createdAt: new Date().toISOString(),
+            createdAt: optimistic.created_at,
             attempts: 0,
           };
           enqueueOutbox(item);
           refreshQueued();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: item.clientId,
-              body: item.body,
-              created_at: item.createdAt,
-              sender_name: displayName,
-              sender_avatar: null,
-              reaction_count: 0,
-              reply_to_id: item.replyToId,
-              reply_to_body: item.replyToBody,
-              reply_to_sender: item.replyToSender,
-            },
-          ]);
+          setMessages((prev) =>
+            upsertChatMessage(prev.map(asChatLike), asChatLike(optimistic)) as ChatMessage[]
+          );
           return;
         }
-        await postBody(body, reply);
+        setMessages((prev) =>
+          upsertChatMessage(prev.map(asChatLike), asChatLike(optimistic)) as ChatMessage[]
+        );
+        await postBody(trimmed, reply, { clientId });
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Send failed";
         setError(msg);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === clientId
+              ? ({ ...m, pending: false, failed: true } as ChatMessage)
+              : m
+          )
+        );
         if (chatKey) {
           enqueueOutbox({
-            clientId: newOutboxClientId(),
+            clientId,
             threadId: outboxThreadId(mode, chatKey),
             kind: "group",
             communitySlug: null,
             roomId: mode === "room" ? roomKey : null,
-            body: body.trim(),
+            body: trimmed,
             attachments: [],
             messageType: "text",
             replyToId: reply?.reply_to_id ?? null,
             replyToBody: reply?.reply_to_body ?? null,
             replyToSender: reply?.reply_to_sender ?? null,
-            createdAt: new Date().toISOString(),
+            createdAt: optimistic.created_at,
             attempts: 1,
             lastError: msg,
           });
@@ -514,6 +576,7 @@ export function useLiveChat(
         }
         throw e;
       } finally {
+        sendingRef.current = false;
         setSending(false);
       }
     },

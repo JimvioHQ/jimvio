@@ -69,6 +69,9 @@ export type LiveParticipantRow = {
   joined_at: string;
   left_at?: string | null;
   updated_at: string;
+  /** Enriched from profiles — present on list/refresh payloads. */
+  display_name?: string | null;
+  avatar_url?: string | null;
 };
 
 function db() {
@@ -205,7 +208,36 @@ export async function listParticipants(sessionId: string): Promise<LiveParticipa
     .in("status", ["joined", "requested", "invited"])
     .order("joined_at", { ascending: true })
     .limit(250);
-  return (data as LiveParticipantRow[]) ?? [];
+  const rows = (data as LiveParticipantRow[]) ?? [];
+  if (!rows.length) return rows;
+
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+  const profileMap = new Map<
+    string,
+    { full_name: string | null; avatar_url: string | null; username: string | null }
+  >();
+  if (userIds.length) {
+    const { data: profiles } = await db()
+      .from("profiles")
+      .select("id, full_name, avatar_url, username")
+      .in("id", userIds);
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id, {
+        full_name: p.full_name,
+        avatar_url: p.avatar_url,
+        username: p.username,
+      });
+    }
+  }
+
+  return rows.map((r) => {
+    const profile = profileMap.get(r.user_id);
+    return {
+      ...r,
+      display_name: profile?.full_name || profile?.username || null,
+      avatar_url: profile?.avatar_url ?? null,
+    };
+  });
 }
 
 async function resolveSpaceAndRoom(input: {

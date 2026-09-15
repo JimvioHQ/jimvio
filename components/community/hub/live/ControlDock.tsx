@@ -191,6 +191,32 @@ function ControlDockImpl({
 
         {activity === "share" && (
           <>
+            <DockBtn
+              pressed={micOn}
+              off={!micOn}
+              onClick={onMic}
+              label={micOn ? "Mute" : "Unmute"}
+              hint="M"
+            >
+              {micOn ? (
+                <Mic className={icon} strokeWidth={sw} aria-hidden />
+              ) : (
+                <MicOff className={icon} strokeWidth={sw} aria-hidden />
+              )}
+            </DockBtn>
+            <DockBtn
+              pressed={camOn}
+              off={!camOn}
+              onClick={onCam}
+              label={camOn ? "Stop Video" : "Start Video"}
+              hint="V"
+            >
+              {camOn ? (
+                <Video className={icon} strokeWidth={sw} aria-hidden />
+              ) : (
+                <VideoOff className={icon} strokeWidth={sw} aria-hidden />
+              )}
+            </DockBtn>
             <DockBtn accent onClick={onStopShare} label="Stop Share">
               <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
@@ -221,6 +247,9 @@ function ControlDockImpl({
                 <Share2 className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             )}
+            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden md:flex">
+              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
           </>
         )}
 

@@ -7,6 +7,10 @@ import {
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
 import type { LiveStageRole } from "@/lib/live/roles";
+import {
+  applyParticipantEvent,
+  reconcileParticipants,
+} from "@/lib/live/participant-state";
 import type { LiveParticipantRow, LiveSessionRow } from "@/services/live/session-service";
 
 async function sessionAction(sessionId: string, body: Record<string, unknown>) {
@@ -66,7 +70,8 @@ export function useLiveSession(initialSessionId?: string | null) {
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load session");
     setSession(json.session ?? null);
-    setParticipants(json.participants ?? []);
+    const server = json.participants ?? [];
+    setParticipants((prev) => reconcileParticipants(prev, server));
   }, []);
 
   const scheduleRefresh = useCallback(
@@ -151,25 +156,9 @@ export function useLiveSession(initialSessionId?: string | null) {
           const row = payload?.new as LiveParticipantRow | null;
           const old = payload?.old as LiveParticipantRow | null;
 
-          if (eventType === "DELETE" && old?.user_id) {
-            setParticipants((prev) => prev.filter((p) => p.user_id !== old.user_id));
-          } else if (row?.user_id) {
-            setParticipants((prev) => {
-              const idx = prev.findIndex((p) => p.user_id === row.user_id);
-              if (row.status === "left" || row.status === "removed") {
-                return prev.filter((p) => p.user_id !== row.user_id);
-              }
-              if (idx >= 0) {
-                const next = prev.slice();
-                next[idx] = { ...next[idx], ...row };
-                return next;
-              }
-              if (["joined", "requested", "invited"].includes(row.status)) {
-                return [...prev, row];
-              }
-              return prev;
-            });
-          }
+          setParticipants((prev) =>
+            applyParticipantEvent(prev, { eventType, row, old })
+          );
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
         () => cancelledSub
@@ -459,6 +448,25 @@ export function useLiveSession(initialSessionId?: string | null) {
     window.addEventListener("pagehide", onPageHide);
     return () => window.removeEventListener("pagehide", onPageHide);
   }, [session?.id, session?.host_id, userId]);
+
+  /* Tab visibility / reconnect — reconcile authoritative participant list */
+  useEffect(() => {
+    if (!session?.id || session.status !== "live") return;
+    const sid = session.id;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      void refresh(sid).catch(() => undefined);
+    };
+    const onOnline = () => {
+      void refresh(sid).catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [session?.id, session?.status, refresh]);
 
   return {
     session,

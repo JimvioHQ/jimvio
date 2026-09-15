@@ -430,7 +430,20 @@ export function PeoplePanel({
         </div>
       )}
       <div className="space-y-0.5">
-        {filtered.map((s, i) => (
+        {filtered.map((s) => {
+          const roleKey = String(s.role || "").toLowerCase();
+          const roleLabel =
+            roleKey === "host"
+              ? "Host"
+              : roleKey === "cohost" || roleKey === "co-host"
+                ? "Co-host"
+                : roleKey === "speaker"
+                  ? "Speaker"
+                  : roleKey === "moderator"
+                    ? "Moderator"
+                    : s.role || "On stage";
+          const isHost = roleKey === "host";
+          return (
           <div
             key={s.id}
             className={cn(
@@ -446,13 +459,20 @@ export function PeoplePanel({
               <HubAvatar name={s.name} src={s.avatar_url} size={32} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">
-                  {i === 0 ? `${s.name} (Host)` : s.name}
+                  {isHost ? `${s.name}` : s.name}
                 </p>
-                <p className="text-[11px] text-neutral-400">{s.role || "Speaker"}</p>
+                <p className="text-[11px] text-neutral-400">{roleLabel}</p>
               </div>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 shrink-0 rounded-full",
+                  isHost ? "bg-accent" : "bg-emerald-500"
+                )}
+                title="Online"
+                aria-label="Online"
+              />
             </button>
-            {canManage && i > 0 && (
+            {canManage && !isHost && (
               <div className="flex shrink-0 gap-1">
                 {onMute && (
                   <button
@@ -484,7 +504,8 @@ export function PeoplePanel({
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
         {filtered.length === 0 && (
           <p className="px-2 py-8 text-center text-[12px] leading-relaxed text-neutral-400" role="status">
             {speakers.length === 0

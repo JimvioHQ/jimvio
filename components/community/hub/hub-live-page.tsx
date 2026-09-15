@@ -846,13 +846,15 @@ export function HubLivePage({
       return live.speakers.map((p) => {
         const dash = data?.speakers.find((s) => s.id === p.user_id);
         const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+        const name =
+          p.display_name ||
+          dash?.name ||
+          remote?.name ||
+          (p.user_id === live.userId ? "You" : null);
         return {
           id: p.user_id,
-          name:
-            dash?.name ??
-            remote?.name ??
-            (p.user_id === live.userId ? "You" : "Speaker"),
-          avatar_url: dash?.avatar_url ?? null,
+          name: name || "Speaker",
+          avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: p.role,
         };
       });
@@ -911,8 +913,12 @@ export function HubLivePage({
         const remote = livekit.remotes.find((r) => r.identity === p.user_id);
         return {
           id: p.user_id,
-          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Viewer"),
-          avatar_url: dash?.avatar_url ?? null,
+          name:
+            p.display_name ||
+            dash?.name ||
+            remote?.name ||
+            (p.user_id === live.userId ? "You" : "Viewer"),
+          avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: "requested",
         };
       });
@@ -926,8 +932,12 @@ export function HubLivePage({
         const remote = livekit.remotes.find((r) => r.identity === p.user_id);
         return {
           id: p.user_id,
-          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Viewer"),
-          avatar_url: dash?.avatar_url ?? null,
+          name:
+            p.display_name ||
+            dash?.name ||
+            remote?.name ||
+            (p.user_id === live.userId ? "You" : "Viewer"),
+          avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: "waiting",
         };
       });
@@ -2182,6 +2192,8 @@ export function HubLivePage({
 
       <LiveMobileDock
         isHost={isLiveHost && hasSession}
+        canPublish={hasSession && canPublishAv(live.myRole)}
+        hasSession={hasSession}
         micOn={micOn}
         camOn={camOn}
         sharing={media.sharing}
@@ -2190,7 +2202,9 @@ export function HubLivePage({
         onShare={() => void startShare()}
         onStopShare={stopShare}
         onFlipCamera={
-          isLiveHost && hasSession ? () => void media.flipCamera() : undefined
+          hasSession && canPublishAv(live.myRole)
+            ? () => void media.flipCamera()
+            : undefined
         }
         onChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
         onReact={() => {
