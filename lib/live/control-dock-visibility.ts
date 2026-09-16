@@ -45,7 +45,7 @@ export function desktopDockControls(
   }
 
   if (activity === "present") {
-    return ["polls", "record", endOrLeave];
+    return ["mic", "cam", "polls", "record", "more", endOrLeave];
   }
 
   return [

@@ -57,8 +57,8 @@ function SpeakerStripImpl({
       {visible.map((s, i) => {
         const state = ui[s.id];
         const speaking = state?.speaking || activeId === s.id;
-        const micOn = state?.micOn ?? true;
-        const camOn = state?.camOn ?? true;
+        const micOn = state?.micOn ?? false;
+        const camOn = state?.camOn ?? false;
         const role = state?.role ?? (i === 0 ? "host" : "cohost");
         const roleLabel =
           role === "host" ? "Host" : role === "cohost" ? "Co-host" : "Speaker";

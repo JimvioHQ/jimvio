@@ -54,6 +54,7 @@ function ControlDockImpl({
   recording,
   sharing,
   focusMode,
+  canPublish = true,
   onMic,
   onCam,
   onShare,
@@ -83,6 +84,7 @@ function ControlDockImpl({
   recording: boolean;
   sharing?: boolean;
   focusMode?: boolean;
+  canPublish?: boolean;
   onMic: () => void;
   onCam: () => void;
   onShare: () => void;
@@ -108,6 +110,7 @@ function ControlDockImpl({
 }) {
   const icon = "h-[17px] w-[17px]";
   const sw = 1.65;
+  const showAv = canPublish;
 
   return (
     <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-2.5")}>
@@ -120,7 +123,7 @@ function ControlDockImpl({
           "scrollbar-hide"
         )}
       >
-        {activity === "live" && (
+        {(activity === "live" || activity === "share" || activity === "present") && showAv && (
           <>
             <DockBtn
               pressed={micOn}
@@ -148,15 +151,22 @@ function ControlDockImpl({
                 <VideoOff className={icon} strokeWidth={sw} aria-hidden />
               )}
             </DockBtn>
-            <DockBtn
-              pressed={sharing}
-              success={sharing}
-              onClick={onShare}
-              label="Share Screen"
-              hint="S"
-            >
-              <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+          </>
+        )}
+
+        {activity === "live" && (
+          <>
+            {showAv ? (
+              <DockBtn
+                pressed={sharing}
+                success={sharing}
+                onClick={onShare}
+                label="Share Screen"
+                hint="S"
+              >
+                <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
             {onCopyLink && (
               <DockBtn onClick={onCopyLink} label="Share">
                 <Share2 className={icon} strokeWidth={sw} aria-hidden />
@@ -191,32 +201,6 @@ function ControlDockImpl({
 
         {activity === "share" && (
           <>
-            <DockBtn
-              pressed={micOn}
-              off={!micOn}
-              onClick={onMic}
-              label={micOn ? "Mute" : "Unmute"}
-              hint="M"
-            >
-              {micOn ? (
-                <Mic className={icon} strokeWidth={sw} aria-hidden />
-              ) : (
-                <MicOff className={icon} strokeWidth={sw} aria-hidden />
-              )}
-            </DockBtn>
-            <DockBtn
-              pressed={camOn}
-              off={!camOn}
-              onClick={onCam}
-              label={camOn ? "Stop Video" : "Start Video"}
-              hint="V"
-            >
-              {camOn ? (
-                <Video className={icon} strokeWidth={sw} aria-hidden />
-              ) : (
-                <VideoOff className={icon} strokeWidth={sw} aria-hidden />
-              )}
-            </DockBtn>
             <DockBtn accent onClick={onStopShare} label="Stop Share">
               <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
@@ -287,6 +271,9 @@ function ControlDockImpl({
               className="hidden md:flex"
             >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
+            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden md:flex">
+              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
           </>
         )}

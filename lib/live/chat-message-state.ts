@@ -28,7 +28,9 @@ export function sortMessagesChronologically<T extends ChatMessageLike>(
   return messages.slice().sort(byCreatedAtAsc);
 }
 
-/** Upsert by id; optionally replace a temporary client_id row. */
+/** Upsert by id; optionally replace a temporary client_id row.
+ * Guarantees at most one row per server message id (and drops the temp row).
+ */
 export function upsertChatMessage<T extends ChatMessageLike>(
   prev: T[],
   incoming: T,
@@ -37,31 +39,27 @@ export function upsertChatMessage<T extends ChatMessageLike>(
   if (!incoming?.id) return prev;
 
   const replaceId = opts?.replaceClientId ?? incoming.client_id ?? null;
-  let replaced = false;
   const next: T[] = [];
+  let merged: T | null = null;
 
   for (const m of prev) {
-    if (m.id === incoming.id) {
-      next.push({ ...m, ...incoming, pending: false, failed: false });
-      replaced = true;
-      continue;
-    }
-    if (replaceId && m.id === replaceId) {
-      next.push({
+    const isServerMatch = m.id === incoming.id;
+    const isTempMatch = Boolean(replaceId && m.id === replaceId);
+    if (isServerMatch || isTempMatch) {
+      merged = {
         ...m,
         ...incoming,
         id: incoming.id,
         pending: false,
         failed: false,
-        client_id: replaceId,
-      });
-      replaced = true;
+        client_id: replaceId ?? m.client_id ?? incoming.client_id ?? null,
+      };
       continue;
     }
     next.push(m);
   }
 
-  if (!replaced) next.push({ ...incoming, pending: false });
+  next.push(merged ?? { ...incoming, pending: false });
   return sortMessagesChronologically(next);
 }
 
@@ -93,6 +91,19 @@ export function reconcileChatHistory<T extends ChatMessageLike>(
     if (serverIds.has(p.id)) return false;
     // Drop pending if a server message matches body+created window via client_id
     if (p.client_id && server.some((s) => s.id === p.client_id || s.client_id === p.client_id)) {
+      return false;
+    }
+    // Drop optimistic rows already confirmed under a different server id
+    // (same body within a short window) to avoid refresh races.
+    const pendingAt = Date.parse(p.created_at);
+    if (
+      Number.isFinite(pendingAt) &&
+      server.some((s) => {
+        if (s.body !== p.body) return false;
+        const serverAt = Date.parse(s.created_at);
+        return Number.isFinite(serverAt) && Math.abs(serverAt - pendingAt) < 120_000;
+      })
+    ) {
       return false;
     }
     return true;

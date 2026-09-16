@@ -23,6 +23,29 @@ type Enriched = ChatMessage & {
   replyTo?: string | null;
 };
 
+function useKeyboardInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const update = () => {
+      const keyboardOverlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setInset(keyboardOverlap > 48 ? keyboardOverlap : 0);
+    };
+
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return inset;
+}
+
 function chatStatusLabel(status: LiveChatConnectionStatus): string {
   switch (status) {
     case "connecting":
@@ -108,6 +131,17 @@ function ChatWorkspaceImpl({
   const [mentionQuery, setMentionQuery] = useState("");
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLen = useRef(messages.length);
+  const keyboardInset = useKeyboardInset();
+
+  useEffect(() => {
+    if (keyboardInset <= 0) return;
+    const el = inputRef.current;
+    if (!el || document.activeElement !== el) return;
+    // Keep the composer visible above the mobile soft keyboard.
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [keyboardInset]);
 
   const truncated = messages.length > CHAT_RENDER_CAP;
   const windowed = useMemo(
@@ -223,7 +257,16 @@ function ChatWorkspaceImpl({
         : `${typingUsers.length} people typing…`;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white" role="region" aria-label="Live chat">
+    <div
+      className="flex min-h-0 flex-1 flex-col bg-white"
+      role="region"
+      aria-label="Live chat"
+      style={
+        keyboardInset > 0
+          ? { paddingBottom: keyboardInset, transition: "padding-bottom 120ms ease-out" }
+          : undefined
+      }
+    >
       <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
         <div className="min-w-0">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-neutral-900">
@@ -482,7 +525,12 @@ function ChatWorkspaceImpl({
         )}
       </div>
 
-      <div className="border-t border-neutral-100 px-3 pb-3 pt-2">
+      <div
+        className="border-t border-neutral-100 px-3 pt-2"
+        style={{
+          paddingBottom: `max(0.75rem, env(safe-area-inset-bottom))`,
+        }}
+      >
         {typingLabel && (
           <p className="mb-1 px-1 text-[10px] text-neutral-400" aria-live="polite">
             {typingLabel}

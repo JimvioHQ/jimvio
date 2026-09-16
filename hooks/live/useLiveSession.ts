@@ -163,6 +163,48 @@ export function useLiveSession(initialSessionId?: string | null) {
           setParticipants((prev) =>
             applyParticipantEvent(prev, { eventType, row, old })
           );
+
+          // Realtime rows omit profiles — hydrate name/avatar immediately.
+          const needsProfile =
+            row?.user_id &&
+            !row.display_name &&
+            !row.avatar_url &&
+            eventType !== "DELETE" &&
+            row.status !== "left" &&
+            row.status !== "removed";
+          if (needsProfile && row?.user_id) {
+            const uid = row.user_id;
+            void supabase
+              .from("profiles")
+              .select("id, full_name, avatar_url, username")
+              .eq("id", uid)
+              .maybeSingle()
+              .then(({ data: profile }: { data: {
+                id: string;
+                full_name: string | null;
+                avatar_url: string | null;
+                username: string | null;
+              } | null }) => {
+                if (!profile || cancelledSub) return;
+                setParticipants((prev) =>
+                  prev.map((p) =>
+                    p.user_id === uid
+                      ? {
+                          ...p,
+                          display_name:
+                            p.display_name ||
+                            profile.full_name ||
+                            profile.username ||
+                            null,
+                          avatar_url: p.avatar_url ?? profile.avatar_url ?? null,
+                        }
+                      : p
+                  )
+                );
+              })
+              .catch(() => undefined);
+          }
+
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
         () => cancelledSub
@@ -384,10 +426,22 @@ export function useLiveSession(initialSessionId?: string | null) {
 
   const syncMedia = useCallback(
     async (patch: { micOn?: boolean; camOn?: boolean; sharing?: boolean }) => {
-      if (!session) return;
+      if (!session || !userId) return;
+      setParticipants((prev) =>
+        prev.map((p) =>
+          p.user_id === userId
+            ? {
+                ...p,
+                ...(typeof patch.micOn === "boolean" ? { mic_on: patch.micOn } : {}),
+                ...(typeof patch.camOn === "boolean" ? { cam_on: patch.camOn } : {}),
+                ...(typeof patch.sharing === "boolean" ? { sharing: patch.sharing } : {}),
+              }
+            : p
+        )
+      );
       await sessionAction(session.id, { action: "media", ...patch });
     },
-    [session]
+    [session, userId]
   );
 
   const requestSpeak = useCallback(async () => {

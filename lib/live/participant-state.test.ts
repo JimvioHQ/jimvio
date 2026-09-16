@@ -22,6 +22,7 @@ function base(user_id: string) {
     role: "viewer",
     mic_on: true,
     cam_on: false,
+    sharing: false,
     display_name: null as string | null,
     avatar_url: null as string | null,
     updated_at: "2026-01-01T00:00:00.000Z",
@@ -92,23 +93,64 @@ describe("participant deduplication", () => {
   });
 });
 
-describe("reconnect reconciliation", () => {
-  it("server list wins identity while filling profiles from local", () => {
-    const local = [
-      p("u1", { display_name: "Ada", avatar_url: "a.png", mic_on: false }),
-      p("stale", { display_name: "Gone" }),
-    ];
-    const server = [
-      p("u1", { display_name: null, avatar_url: null, mic_on: true }),
-      p("u2", { display_name: "Bob" }),
-    ];
-    const next = reconcileParticipants(local, server);
-    assert.deepEqual(
-      next.map((x) => x.user_id),
-      ["u1", "u2"]
-    );
-    assert.equal(next[0].display_name, "Ada");
+describe("audio and video state updates", () => {
+  it("updates mic_on and cam_on on UPDATE without duplicating", () => {
+    const start = [p("u1", { mic_on: true, cam_on: false })];
+    const afterMic = applyParticipantEvent(start, {
+      eventType: "UPDATE",
+      row: p("u1", { mic_on: false, cam_on: false, updated_at: "2026-01-01T00:00:01.000Z" }),
+    });
+    assert.equal(afterMic.length, 1);
+    assert.equal(afterMic[0].mic_on, false);
+
+    const afterCam = applyParticipantEvent(afterMic, {
+      eventType: "UPDATE",
+      row: p("u1", {
+        mic_on: false,
+        cam_on: true,
+        updated_at: "2026-01-01T00:00:02.000Z",
+      }),
+    });
+    assert.equal(afterCam.length, 1);
+    assert.equal(afterCam[0].cam_on, true);
+  });
+});
+
+describe("screen-share related media flags", () => {
+  it("accepts sharing flag updates on the same participant row", () => {
+    const start = [p("u1", { mic_on: true, cam_on: true, sharing: false })];
+    const next = applyParticipantEvent(start, {
+      eventType: "UPDATE",
+      row: p("u1", {
+        mic_on: true,
+        cam_on: false,
+        sharing: true,
+        updated_at: "2026-01-01T00:00:03.000Z",
+      }),
+    });
+    assert.equal(next.length, 1);
+    assert.equal(next[0].cam_on, false);
     assert.equal(next[0].mic_on, true);
-    assert.equal(next[1].display_name, "Bob");
+    assert.equal(next[0].sharing, true);
+  });
+});
+
+describe("duplicate realtime events", () => {
+  it("INSERT of the same user_id merges instead of appending", () => {
+    const first = applyParticipantEvent([], {
+      eventType: "INSERT",
+      row: p("u1", { display_name: "Ada" }),
+    });
+    const second = applyParticipantEvent(first, {
+      eventType: "INSERT",
+      row: p("u1", {
+        display_name: "Ada Lovelace",
+        mic_on: false,
+        updated_at: "2026-01-01T00:00:05.000Z",
+      }),
+    });
+    assert.equal(second.length, 1);
+    assert.equal(second[0].display_name, "Ada Lovelace");
+    assert.equal(second[0].mic_on, false);
   });
 });

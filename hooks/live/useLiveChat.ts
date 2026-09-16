@@ -148,8 +148,11 @@ export function useLiveChat(
         reconcileChatHistory(prev.map(asChatLike), server.map(asChatLike)) as ChatMessage[]
       );
       hadConnectionRef.current = true;
-      setConnectionStatus("connected");
       setError(null);
+      // Transport status comes from realtime channel; history alone is not "connected".
+      setConnectionStatus((prev) =>
+        prev === "connected" || prev === "reconnecting" ? prev : "connecting"
+      );
       return;
     }
     if (mode === "session") {
@@ -161,10 +164,30 @@ export function useLiveChat(
         reconcileChatHistory(prev.map(asChatLike), server.map(asChatLike)) as ChatMessage[]
       );
       hadConnectionRef.current = true;
-      setConnectionStatus("connected");
       setError(null);
+      setConnectionStatus((prev) =>
+        prev === "connected" || prev === "reconnecting" ? prev : "connecting"
+      );
     }
   }, [mode, roomKey, sessionKey]);
+
+  const applyRealtimeStatus = useCallback((status: string) => {
+    const s = String(status || "").toUpperCase();
+    if (s === "SUBSCRIBED") {
+      hadConnectionRef.current = true;
+      setConnectionStatus("connected");
+      return;
+    }
+    if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") {
+      setConnectionStatus(navigator.onLine ? "reconnecting" : "disconnected");
+      return;
+    }
+    if (s === "CLOSED") {
+      setConnectionStatus((prev) =>
+        prev === "idle" || prev === "unavailable" ? prev : "disconnected"
+      );
+    }
+  }, []);
 
   const scheduleReload = useCallback(() => {
     if (reloadTimer.current) clearTimeout(reloadTimer.current);
@@ -183,7 +206,7 @@ export function useLiveChat(
     }
     let cancelled = false;
     setConnectionStatus((prev) =>
-      prev === "connected" || hadConnectionRef.current ? "reconnecting" : "connecting"
+      prev === "connected" || hadConnectionRef.current ? "connecting" : "connecting"
     );
     const run = async () => {
       try {
@@ -221,6 +244,9 @@ export function useLiveChat(
     if (mode === "none" || !chatKey) return;
     let cancelled = false;
     let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    setConnectionStatus((prev) =>
+      prev === "connected" ? "reconnecting" : prev === "idle" ? "connecting" : prev
+    );
 
     void (async () => {
       if (mode === "room") {
@@ -249,7 +275,8 @@ export function useLiveChat(
             }
             scheduleReload();
           },
-          () => cancelled
+          () => cancelled,
+          { onStatus: applyRealtimeStatus }
         );
       } else {
         channel = await subscribePostgresChanges(
@@ -278,7 +305,8 @@ export function useLiveChat(
             }
             scheduleReload();
           },
-          () => cancelled
+          () => cancelled,
+          { onStatus: applyRealtimeStatus }
         );
       }
     })();
@@ -292,7 +320,7 @@ export function useLiveChat(
         mode === "room" ? `live_chat:${chatKey}` : `live_session_chat:${chatKey}`
       );
     };
-  }, [mode, chatKey, supabase, scheduleReload]);
+  }, [mode, chatKey, supabase, scheduleReload, applyRealtimeStatus]);
 
   /* Typing broadcast (room or session topic) */
   useEffect(() => {

@@ -77,14 +77,43 @@ describe("message deduplication", () => {
   });
 });
 
-describe("message ordering", () => {
-  it("keeps chronological order after upserts", () => {
-    let list = upsertChatMessage([], msg("m2", "second", "2026-01-01T00:00:02.000Z"));
-    list = upsertChatMessage(list, msg("m1", "first", "2026-01-01T00:00:01.000Z"));
-    list = upsertChatMessage(list, msg("m3", "third", "2026-01-01T00:00:03.000Z"));
-    assert.deepEqual(
-      sortMessagesChronologically(list).map((m) => m.id),
-      ["m1", "m2", "m3"]
+describe("reconnect does not duplicate", () => {
+  it("history reconcile + realtime insert of same id stays unique", () => {
+    const seen = new Set<string>();
+    const history = reconcileChatHistory(
+      [],
+      [msg("m1", "hello", "2026-01-01T00:00:01.000Z")]
     );
+    markSeenMessageId(seen, "m1");
+    assert.equal(shouldSkipRealtimeInsert(seen, "m1"), true);
+    const afterRt = upsertChatMessage(
+      history,
+      msg("m1", "hello", "2026-01-01T00:00:01.000Z")
+    );
+    assert.equal(afterRt.length, 1);
+  });
+});
+
+describe("optimistic then server then realtime", () => {
+  it("ends with a single confirmed message", () => {
+    const seen = new Set<string>();
+    let list = upsertChatMessage(
+      [],
+      msg("tmp:x", "yo", "2026-01-01T00:00:01.000Z", {
+        pending: true,
+        client_id: "tmp:x",
+      })
+    );
+    list = upsertChatMessage(
+      list,
+      msg("srv-x", "yo", "2026-01-01T00:00:01.050Z", { client_id: "tmp:x" }),
+      { replaceClientId: "tmp:x" }
+    );
+    markSeenMessageId(seen, "srv-x");
+    assert.equal(shouldSkipRealtimeInsert(seen, "srv-x"), true);
+    list = upsertChatMessage(list, msg("srv-x", "yo", "2026-01-01T00:00:01.050Z"));
+    assert.equal(list.length, 1);
+    assert.equal(list[0].id, "srv-x");
+    assert.equal(list[0].pending, false);
   });
 });

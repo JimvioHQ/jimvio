@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Activity, Calendar, Check } from "lucide-react";
+import { Activity, Calendar, Check, Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
-import type { LeftPanel, RightTab, StudioMode } from "./studio-types";
+import type { LeftPanel, RightTab, SpeakerUi, StudioMode } from "./studio-types";
 import { LAYOUTS } from "./studio-types";
 import { formatCount, formatMoney, formatTime } from "./studio-utils";
 import { FOCUS_RING, MOTION_COLORS } from "./studio-ui";
@@ -239,6 +239,7 @@ export function PeoplePanel({
   onMute,
   onPromote,
   onRemove,
+  ui,
 }: {
   speakers: Speaker[];
   viewers: number;
@@ -262,6 +263,7 @@ export function PeoplePanel({
   onMute?: (id: string) => void;
   onPromote?: (id: string) => void;
   onRemove?: (id: string) => void;
+  ui?: Record<string, SpeakerUi>;
 }) {
   const q = query.trim().toLowerCase();
   const filtered = speakers.filter((s) => s.name.toLowerCase().includes(q));
@@ -431,7 +433,8 @@ export function PeoplePanel({
       )}
       <div className="space-y-0.5">
         {filtered.map((s) => {
-          const roleKey = String(s.role || "").toLowerCase();
+          const state = ui?.[s.id];
+          const roleKey = String(state?.role || s.role || "").toLowerCase();
           const roleLabel =
             roleKey === "host"
               ? "Host"
@@ -443,6 +446,19 @@ export function PeoplePanel({
                     ? "Moderator"
                     : s.role || "On stage";
           const isHost = roleKey === "host";
+          const micOn = state?.micOn ?? false;
+          const camOn = state?.camOn ?? false;
+          const connection = state?.connection ?? "good";
+          const online =
+            connection === "good" || connection === "warn" || Boolean(state);
+          const presenceLabel =
+            connection === "poor"
+              ? "Weak connection"
+              : connection === "warn"
+                ? "Reconnecting"
+                : online
+                  ? "Connected"
+                  : "Offline";
           return (
           <div
             key={s.id}
@@ -455,22 +471,58 @@ export function PeoplePanel({
               type="button"
               onClick={() => onSelect(s.id)}
               className="flex min-w-0 flex-1 items-center gap-3 text-left"
+              aria-label={`${s.name}, ${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
             >
               <HubAvatar name={s.name} src={s.avatar_url} size={32} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">
-                  {isHost ? `${s.name}` : s.name}
+                <p className="truncate text-[13px] font-medium">{s.name}</p>
+                <p className="text-[11px] text-neutral-400">
+                  {roleLabel}
+                  <span className="text-neutral-300"> · </span>
+                  {presenceLabel}
                 </p>
-                <p className="text-[11px] text-neutral-400">{roleLabel}</p>
               </div>
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 shrink-0 rounded-full",
-                  isHost ? "bg-accent" : "bg-emerald-500"
-                )}
-                title="Online"
-                aria-label="Online"
-              />
+              <span className="flex shrink-0 items-center gap-1" aria-hidden>
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
+                    micOn ? "bg-emerald-500/15 text-emerald-600" : "bg-red-500/10 text-red-500"
+                  )}
+                  title={micOn ? "Mic on" : "Muted"}
+                >
+                  {micOn ? (
+                    <Mic className="h-2.5 w-2.5" strokeWidth={2.2} />
+                  ) : (
+                    <MicOff className="h-2.5 w-2.5" strokeWidth={2.2} />
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
+                    camOn ? "bg-emerald-500/15 text-emerald-600" : "bg-neutral-100 text-neutral-400"
+                  )}
+                  title={camOn ? "Camera on" : "Camera off"}
+                >
+                  {camOn ? (
+                    <Video className="h-2.5 w-2.5" strokeWidth={2.2} />
+                  ) : (
+                    <VideoOff className="h-2.5 w-2.5" strokeWidth={2.2} />
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "ml-0.5 h-1.5 w-1.5 rounded-full",
+                    connection === "poor"
+                      ? "bg-red-400"
+                      : connection === "warn"
+                        ? "bg-amber-400"
+                        : isHost
+                          ? "bg-accent"
+                          : "bg-emerald-500"
+                  )}
+                  title={presenceLabel}
+                />
+              </span>
             </button>
             {canManage && !isHost && (
               <div className="flex shrink-0 gap-1">

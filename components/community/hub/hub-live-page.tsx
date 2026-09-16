@@ -500,9 +500,16 @@ export function HubLivePage({
         setConnection("poor");
         return;
       }
-      setConnection(
-        String(livekit.connectionState) === "reconnecting" ? "good" : "excellent"
-      );
+      const lk = String(livekit.connectionState);
+      if (lk === "reconnecting" || lk === "connecting") {
+        setConnection("good");
+        return;
+      }
+      if (lk === "disconnected" && sessionLiveRef.current) {
+        setConnection("good");
+        return;
+      }
+      setConnection("excellent");
     };
 
     const onOnline = () => {
@@ -960,7 +967,10 @@ export function HubLivePage({
   const speakers = useMemo(() => {
     let list: Speaker[];
     if (speakersFromLive) list = speakersFromLive;
-    else if (hasSession || data?.session?.liveSessionId) {
+    else if (hasSession) {
+      // While a live session is active, never fall back to stale dashboard speakers.
+      list = EMPTY_SPEAKERS;
+    } else if (data?.session?.liveSessionId) {
       list = data?.speakers ?? EMPTY_SPEAKERS;
     } else {
       return EMPTY_SPEAKERS;
@@ -1293,8 +1303,10 @@ export function HubLivePage({
 
   const connectionLabel = useMemo(() => {
     if (!online) return "Disconnected";
-    if (String(livekit.connectionState) === "reconnecting") return "Reconnecting";
-    if (String(livekit.connectionState) === "disconnected" && hasSession) return "Disconnected";
+    const lk = String(livekit.connectionState);
+    if (lk === "reconnecting") return "Reconnecting";
+    if (lk === "connecting") return "Connecting";
+    if (lk === "disconnected" && hasSession) return "Connecting";
     if (connection === "excellent") return "Excellent";
     if (connection === "good") return "Good";
     return "Poor";
@@ -1668,7 +1680,9 @@ export function HubLivePage({
                 onClose={() => updateDrawer({ leftPanel: "none" })}
               />
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
-                {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
+                {drawer.leftPanel === "people" && (
+                  <PeoplePanel {...peoplePanelProps} ui={speakerUi} />
+                )}
                 {drawer.leftPanel === "rooms" && (
                   <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
                 )}
@@ -1692,7 +1706,9 @@ export function HubLivePage({
                   onClose={() => updateDrawer({ leftPanel: "none" })}
                 />
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
-                  {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
+                  {drawer.leftPanel === "people" && (
+                  <PeoplePanel {...peoplePanelProps} ui={speakerUi} />
+                )}
                   {drawer.leftPanel === "rooms" && (
                     <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
                   )}
@@ -1710,20 +1726,22 @@ export function HubLivePage({
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f7f8]">
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col overflow-y-auto",
-              immersive ? "p-0" : "px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
+              "flex min-h-0 flex-1 flex-col",
+              immersive
+                ? "overflow-hidden p-0"
+                : "overflow-y-auto px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
             )}
           >
             <div
               role="presentation"
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
-                "relative w-full shrink-0 cursor-default overflow-hidden bg-neutral-950 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
+                "relative w-full cursor-default overflow-hidden bg-neutral-950 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
                 immersive
                   ? "min-h-0 flex-1 rounded-none"
                   : hasSession
-                    ? "aspect-video rounded-none sm:rounded-2xl"
-                    : "min-h-[min(72vh,640px)] rounded-none sm:rounded-2xl",
+                    ? "aspect-video shrink-0 rounded-none sm:rounded-2xl lg:aspect-auto lg:min-h-0 lg:flex-1"
+                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none sm:rounded-2xl",
                 activity === "share" && "motion-safe:sm:scale-[1.002]",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
@@ -1931,6 +1949,7 @@ export function HubLivePage({
               recording={recordingActive}
               sharing={media.sharing}
               focusMode={focusMode}
+              canPublish={canPublishAv(live.myRole)}
               onMic={() => void toggleMic()}
               onCam={() => void toggleCam()}
               onShare={() => void startShare()}
