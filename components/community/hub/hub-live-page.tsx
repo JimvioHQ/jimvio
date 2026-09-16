@@ -105,6 +105,8 @@ import {
   writeDrawerState,
   writeMode,
 } from "./live/studio-utils";
+import { LiveGuestJoinCard } from "./live/LiveGuestJoinCard";
+import type { LiveGuestPreview } from "@/lib/live/guest-join";
 import {
   FOCUS_RING,
   FOCUS_RING_DARK,
@@ -147,6 +149,9 @@ export function HubLivePage({
   const [chatIdle, setChatIdle] = useState(false);
   const [hasPolls, setHasPolls] = useState(false);
   const [egressRecording, setEgressRecording] = useState(false);
+  const [guestPreview, setGuestPreview] = useState<LiveGuestPreview | null>(null);
+  const [guestPreviewLoading, setGuestPreviewLoading] = useState(false);
+  const [guestError, setGuestError] = useState<string | null>(null);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
@@ -266,6 +271,10 @@ export function HubLivePage({
   /* Resume active live session, or join viewer sessionId from route */
   const autoJoinedRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!live.authReady) return;
+    // Guests must authenticate via Join Live before joining.
+    if (sessionIdProp && !live.userId) return;
+
     let cancelled = false;
     (async () => {
       try {
@@ -288,6 +297,7 @@ export function HubLivePage({
           return;
         }
         if (communitySlugProp) return;
+        if (!live.userId) return;
         const res = await fetch("/api/c/live/sessions");
         if (!res.ok || cancelled) return;
         const json = (await res.json()) as { sessions?: Array<{ id: string }> };
@@ -310,7 +320,73 @@ export function HubLivePage({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionIdProp, data?.session.liveSessionId, communitySlugProp]);
+  }, [sessionIdProp, data?.session.liveSessionId, communitySlugProp, live.authReady, live.userId]);
+
+  /* Guest Join Live — public session preview for unauthenticated visitors */
+  useEffect(() => {
+    if (!sessionIdProp || !live.authReady || live.userId) {
+      setGuestPreview(null);
+      setGuestPreviewLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setGuestPreviewLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(`/api/c/live/sessions/${sessionIdProp}/preview`);
+        const json = (await res.json().catch(() => ({}))) as {
+          preview?: LiveGuestPreview;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok || !json.preview) {
+          setGuestPreview({
+            sessionId: sessionIdProp,
+            title: null,
+            status: "unknown",
+            privacy: "unknown",
+            canGuestJoin: false,
+            hostName: null,
+            message:
+              res.status === 404
+                ? "This Live could not be found."
+                : "This Live is not available right now.",
+          });
+          return;
+        }
+        setGuestPreview(json.preview);
+      } catch {
+        if (!cancelled) {
+          setGuestPreview({
+            sessionId: sessionIdProp,
+            title: null,
+            status: "unknown",
+            privacy: "unknown",
+            canGuestJoin: false,
+            hostName: null,
+            message: "Could not load this Live. Check your connection and try again.",
+          });
+        }
+      } finally {
+        if (!cancelled) setGuestPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionIdProp, live.authReady, live.userId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("guest_error");
+    if (err) {
+      setGuestError(err);
+      params.delete("guest_error");
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+      window.history.replaceState({}, "", next);
+    }
+  }, [sessionIdProp]);
 
   useEffect(() => {
     if (!media.lastError) return;
@@ -1342,6 +1418,34 @@ export function HubLivePage({
       ) : null}
     </div>
   );
+
+  const showGuestJoin =
+    Boolean(sessionIdProp) && live.authReady && !live.userId;
+
+  if (showGuestJoin && sessionIdProp) {
+    return (
+      <LiveGuestJoinCard
+        sessionId={sessionIdProp}
+        preview={guestPreview}
+        initialError={guestError}
+        loadingPreview={guestPreviewLoading}
+      />
+    );
+  }
+
+  if (!live.authReady && sessionIdProp) {
+    return (
+      <div
+        className={cn("flex min-h-[100dvh] items-center justify-center bg-[#0B0B0C]")}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <Loader2 className="h-5 w-5 animate-spin text-white/40" aria-hidden />
+        <span className="sr-only">Checking session</span>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

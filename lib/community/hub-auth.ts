@@ -3,7 +3,13 @@
  *
  * Public: feed landing, community browse, leaderboard, subscribe pricing.
  * Auth required: personal tools (messages, wallet, …) and member-only community areas.
+ *
+ * Exception: `/communities/live/{sessionId}` may load for guests so a public
+ * Live can present the Join Live (Google / email) gate. `/communities/live`
+ * itself (create / go-live hub) remains auth-required.
  */
+
+import { isLiveSessionGuestPath } from "@/lib/live/guest-join";
 
 export const HUB_RESERVED_SEGMENTS = new Set([
   "messages",
@@ -118,6 +124,9 @@ export function getCommunitySlugFromPath(pathname: string): string | null {
 
 export function isHubAuthRequired(pathname: string): boolean {
   const path = pathname.split("?")[0];
+
+  // Public Live session URLs: allow guest Join Live gate (not the hub listing).
+  if (isLiveSessionGuestPath(path)) return false;
 
   for (const prefix of HUB_AUTH_REQUIRED_PREFIXES) {
     if (path === prefix || path.startsWith(`${prefix}/`)) return true;

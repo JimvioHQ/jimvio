@@ -9,9 +9,16 @@ import { Loader2 } from "lucide-react";
 export function GoogleAuthButton({
   next,
   disabled,
+  errorReturn,
+  className,
+  label = "Continue with Google",
 }: {
   next?: string;
   disabled?: boolean;
+  /** When Google OAuth fails, return here instead of /login (e.g. Live guest gate). */
+  errorReturn?: string;
+  className?: string;
+  label?: string;
 }) {
   const [pending, startTransition] = useTransition();
   const busy = disabled || pending;
@@ -22,7 +29,9 @@ export function GoogleAuthButton({
       onClick={() =>
         startTransition(async () => {
           try {
-            await signInWithGoogle(next || undefined);
+            await signInWithGoogle(next || undefined, {
+              errorReturn: errorReturn || next || undefined,
+            });
           } catch (err: unknown) {
             if (isNextRedirectError(err)) throw err;
           }
@@ -30,7 +39,10 @@ export function GoogleAuthButton({
       }
       disabled={busy}
       aria-busy={pending}
-      className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white text-zinc-800 shadow-none transition-colors hover:bg-zinc-50 disabled:opacity-60 dark:border-border dark:bg-surface dark:text-zinc-200 dark:hover:bg-surface-secondary"
+      className={
+        className ||
+        "flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-zinc-200 bg-white text-zinc-800 shadow-none transition-colors hover:bg-zinc-50 disabled:opacity-60 dark:border-border dark:bg-surface dark:text-zinc-200 dark:hover:bg-surface-secondary"
+      }
     >
       {pending ? (
         <Loader2 className="h-5 w-5 animate-spin text-zinc-400" aria-hidden />
@@ -55,7 +67,7 @@ export function GoogleAuthButton({
         </svg>
       )}
       <span className="text-[14px] font-bold">
-        {pending ? "Continuing…" : "Continue with Google"}
+        {pending ? "Continuing…" : label}
       </span>
     </Button>
   );

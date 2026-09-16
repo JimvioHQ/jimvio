@@ -44,6 +44,7 @@ export function useLiveSession(initialSessionId?: string | null) {
   const [session, setSession] = useState<LiveSessionRow | null>(null);
   const [participants, setParticipants] = useState<LiveParticipantRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cancelled = useRef(false);
@@ -54,7 +55,10 @@ export function useLiveSession(initialSessionId?: string | null) {
     cancelled.current = false;
     void supabase.auth.getUser().then((res: { data: { user: { id: string } | null } }) => {
       const id = res.data.user?.id ?? null;
-      if (!cancelled.current) setUserId(id);
+      if (!cancelled.current) {
+        setUserId(id);
+        setAuthReady(true);
+      }
     });
     return () => {
       cancelled.current = true;
@@ -475,6 +479,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     viewerCount,
     myRole,
     userId,
+    authReady,
     error,
     busy,
     createLive,

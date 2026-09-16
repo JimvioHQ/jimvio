@@ -574,14 +574,19 @@ export async function verify2FAAndLogin(formData: FormData) {
 // Google OAuth
 // ─────────────────────────────────────────────
 
-export async function signInWithGoogle(next?: string): Promise<void> {
+export async function signInWithGoogle(
+  next?: string,
+  opts?: { errorReturn?: string },
+): Promise<void> {
   let redirectUrl: string
+  const safeNext = sanitizeAuthenticatedNext(next)
+  const errorReturn = sanitizeAuthenticatedNext(opts?.errorReturn) ?? safeNext
 
   try {
     const supabase = await createClient()
     const callbackUrl = buildAuthCallbackUrl(
       await getPublicAppUrl(),
-      sanitizeAuthenticatedNext(next),
+      safeNext,
     )
 
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -595,16 +600,96 @@ export async function signInWithGoogle(next?: string): Promise<void> {
 
     if (error || !data?.url) {
       console.error("[auth] signInWithGoogle:", error?.message ?? "missing oauth url")
-      redirectUrl = "/login?error=google_signin_failed"
+      redirectUrl = errorReturn
+        ? `${errorReturn}${errorReturn.includes("?") ? "&" : "?"}guest_error=google`
+        : "/login?error=google_signin_failed"
     } else {
       redirectUrl = data.url
     }
   } catch (err) {
     console.error("[auth] signInWithGoogle error:", err)
-    redirectUrl = "/login?error=google_signin_failed"
+    redirectUrl = errorReturn
+      ? `${errorReturn}${errorReturn.includes("?") ? "&" : "?"}guest_error=google`
+      : "/login?error=google_signin_failed"
   }
 
   redirect(redirectUrl)
+}
+
+/**
+ * Passwordless magic-link for Guest Join Live (and similar gated surfaces).
+ * Reuses existing Supabase accounts when the email already exists.
+ * Always returns a generic success message to avoid email enumeration.
+ */
+export async function signInWithMagicLink(formData: FormData): Promise<{
+  success?: string
+  error?: string
+  cooldownSeconds?: number
+}> {
+  try {
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
+    if (!email) return { error: "Email is required." }
+    if (!isValidAuthEmail(email)) return { error: "Enter a valid email address." }
+
+    const nextRaw = (formData.get("next") as string) || ""
+    const safeNext = sanitizeAuthenticatedNext(nextRaw)
+
+    const hdrs = await headers()
+    const ip =
+      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      hdrs.get("x-real-ip") ||
+      "unknown"
+
+    const { rateLimit } = await import("@/lib/ops/rate-limit")
+    const byIp = rateLimit(`magiclink:ip:${ip}`, 8, 15 * 60_000)
+    const byEmail = rateLimit(`magiclink:email:${email}`, 4, 15 * 60_000)
+    if (!byIp.allowed || !byEmail.allowed) {
+      const resetAt = Math.max(byIp.resetAt, byEmail.resetAt)
+      const cooldownSeconds = Math.max(1, Math.ceil((resetAt - Date.now()) / 1000))
+      return {
+        error: "Too many attempts. Please wait a moment and try again.",
+        cooldownSeconds,
+      }
+    }
+
+    const supabase = await createClient()
+    const redirectTo = buildAuthCallbackUrl(await getPublicAppUrl(), safeNext)
+    const captchaToken = captchaTokenFromForm(formData)
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+        ...(captchaToken ? { captchaToken } : {}),
+      },
+    })
+
+    if (error && isRateLimitAuthError(error)) {
+      return {
+        error: "Too many attempts. Please wait a moment and try again.",
+        cooldownSeconds: 60,
+      }
+    }
+    if (error) {
+      console.error("[auth] signInWithMagicLink:", error.message)
+      // Still return generic success to avoid enumeration — except hard config failures
+      if (error.message.toLowerCase().includes("signups not allowed")) {
+        return { error: "Email sign-in is temporarily unavailable. Try Google instead." }
+      }
+    }
+
+    return {
+      success: "Check your email for a secure link to join this Live.",
+      cooldownSeconds: 45,
+    }
+  } catch (err) {
+    console.error("[auth] signInWithMagicLink error:", err)
+    return {
+      success: "Check your email for a secure link to join this Live.",
+      cooldownSeconds: 45,
+    }
+  }
 }
 
 // ─────────────────────────────────────────────

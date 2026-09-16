@@ -91,7 +91,15 @@ export async function GET(request: Request) {
       if (otpType === "recovery") {
         return NextResponse.redirect(`${origin}/reset-password?error=link_expired`);
       }
+      if (otpType === "magiclink" && safeNext && safeNext.startsWith("/communities/live/")) {
+        const sep = safeNext.includes("?") ? "&" : "?";
+        return NextResponse.redirect(`${origin}${safeNext}${sep}guest_error=expired`);
+      }
       return NextResponse.redirect(`${origin}/verify?status=expired`);
+    }
+    if (safeNext && safeNext.startsWith("/communities/live/")) {
+      const sep = safeNext.includes("?") ? "&" : "?";
+      return NextResponse.redirect(`${origin}${safeNext}${sep}guest_error=auth`);
     }
     return NextResponse.redirect(`${origin}/login?error=auth_error`);
   }
@@ -144,6 +152,10 @@ export async function GET(request: Request) {
       if (otpType === "recovery") {
         return NextResponse.redirect(`${origin}/reset-password?error=link_expired`);
       }
+      if (otpType === "magiclink" && safeNext && safeNext.startsWith("/communities/live/")) {
+        const sep = safeNext.includes("?") ? "&" : "?";
+        return NextResponse.redirect(`${origin}${safeNext}${sep}guest_error=expired`);
+      }
       if (otpType === "signup" || otpType === "email_change" || otpType === "email") {
         return NextResponse.redirect(`${origin}/verify?status=expired`);
       }
@@ -153,6 +165,10 @@ export async function GET(request: Request) {
       lower.includes("expired") ||
       exchangeError.status === 400
     ) {
+      if (safeNext && safeNext.startsWith("/communities/live/")) {
+        const sep = safeNext.includes("?") ? "&" : "?";
+        return NextResponse.redirect(`${origin}${safeNext}${sep}guest_error=expired`);
+      }
       return NextResponse.redirect(
         `${origin}/login?error=session_expired&hint=please_login_again`
       );
