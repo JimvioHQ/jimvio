@@ -107,6 +107,6 @@ export type SpeakerUi = {
   camOn: boolean;
   handRaised: boolean;
   connection: "good" | "warn" | "poor";
-  role: "host" | "cohost" | "speaker";
+  role: "host" | "cohost" | "speaker" | "moderator" | "viewer";
   speaking: boolean;
 };

@@ -84,11 +84,12 @@ describe("participant deduplication", () => {
 
   it("merge preserves profile when realtime row omits it", () => {
     const merged = mergeParticipantProfile(
-      p("u1", { display_name: "Ada", avatar_url: "a.png" }),
-      p("u1", { display_name: null, avatar_url: null, mic_on: false })
+      p("u1", { display_name: "Ada", avatar_url: "a.png", username: "ada" }),
+      p("u1", { display_name: null, avatar_url: null, username: null, mic_on: false })
     );
     assert.equal(merged.display_name, "Ada");
     assert.equal(merged.avatar_url, "a.png");
+    assert.equal(merged.username, "ada");
     assert.equal(merged.mic_on, false);
   });
 });

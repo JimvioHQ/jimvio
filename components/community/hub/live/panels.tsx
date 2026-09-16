@@ -221,6 +221,7 @@ export function PeoplePanel({
   viewers,
   activeSpeakerId,
   onSelect,
+  onOpenProfile,
   query,
   onQuery,
   pendingRequests,
@@ -245,6 +246,7 @@ export function PeoplePanel({
   viewers: number;
   activeSpeakerId: string | null;
   onSelect: (id: string) => void;
+  onOpenProfile?: (id: string) => void;
   query: string;
   onQuery: (q: string) => void;
   pendingRequests?: Speaker[];
@@ -328,7 +330,7 @@ export function PeoplePanel({
         </div>
       )}
       <p className="px-1 text-[12px] text-neutral-400">
-        {speakers.length} on stage · {formatCount(viewers)} watching
+        {speakers.length} in live · {formatCount(viewers)} watching
       </p>
       {filteredWaiting.length > 0 && (
         <div className="space-y-0.5">
@@ -444,7 +446,9 @@ export function PeoplePanel({
                   ? "Speaker"
                   : roleKey === "moderator"
                     ? "Moderator"
-                    : s.role || "On stage";
+                    : roleKey === "viewer"
+                      ? "Viewer"
+                      : s.role || "Member";
           const isHost = roleKey === "host";
           const micOn = state?.micOn ?? false;
           const camOn = state?.camOn ?? false;
@@ -459,6 +463,10 @@ export function PeoplePanel({
                 : online
                   ? "Connected"
                   : "Offline";
+          const openProfile = () => {
+            onSelect(s.id);
+            onOpenProfile?.(s.id);
+          };
           return (
           <div
             key={s.id}
@@ -469,13 +477,24 @@ export function PeoplePanel({
           >
             <button
               type="button"
-              onClick={() => onSelect(s.id)}
-              className="flex min-w-0 flex-1 items-center gap-3 text-left"
-              aria-label={`${s.name}, ${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
+              onClick={openProfile}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openProfile();
+                }
+              }}
+              className={cn(
+                "flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left",
+                FOCUS_RING
+              )}
+              aria-label={`Open profile for ${s.name}, ${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
             >
               <HubAvatar name={s.name} src={s.avatar_url} size={32} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{s.name}</p>
+                <p className="truncate text-[13px] font-medium underline-offset-2 group-hover:underline">
+                  {s.name}
+                </p>
                 <p className="text-[11px] text-neutral-400">
                   {roleLabel}
                   <span className="text-neutral-300"> · </span>
@@ -561,7 +580,7 @@ export function PeoplePanel({
         {filtered.length === 0 && (
           <p className="px-2 py-8 text-center text-[12px] leading-relaxed text-neutral-400" role="status">
             {speakers.length === 0
-              ? "No one on stage yet — invite a speaker when you’re ready."
+              ? "No one in the live yet — invite people when you’re ready."
               : "No matching participants."}
           </p>
         )}

@@ -11,6 +11,7 @@ const tests = [
   "lib/live/participant-state.test.ts",
   "lib/live/chat-message-state.test.ts",
   "lib/live/control-dock-visibility.test.ts",
+  "lib/live/presence-events.test.ts",
 ];
 
 let failed = 0;

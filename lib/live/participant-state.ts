@@ -14,8 +14,10 @@ export type ParticipantLike = {
   sharing?: boolean;
   display_name?: string | null;
   avatar_url?: string | null;
+  username?: string | null;
   updated_at?: string;
   joined_at?: string;
+  left_at?: string | null;
   [key: string]: unknown;
 };
 
@@ -42,7 +44,14 @@ export function mergeParticipantProfile<T extends ParticipantLike>(
     display_name:
       incoming.display_name ?? existing.display_name ?? null,
     avatar_url: incoming.avatar_url ?? existing.avatar_url ?? null,
+    username: incoming.username ?? existing.username ?? null,
   };
+}
+
+/** True when a realtime row still needs profile hydration. */
+export function participantNeedsProfile(row: ParticipantLike | null | undefined): boolean {
+  if (!row?.user_id) return false;
+  return !row.display_name || !row.avatar_url || !row.username;
 }
 
 /**

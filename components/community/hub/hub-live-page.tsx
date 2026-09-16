@@ -37,6 +37,8 @@ import {
   canRejectSpeaker,
   canShareScreen,
 } from "@/lib/live/roles";
+import { presenceToChatMessages } from "@/lib/live/presence-events";
+import { sortMessagesChronologically } from "@/lib/live/chat-message-state";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
 import { canonicalLiveUrl } from "@/lib/live/live-url";
@@ -936,9 +938,10 @@ export function HubLivePage({
           (p.user_id === live.userId ? "You" : null);
         return {
           id: p.user_id,
-          name: name || "Speaker",
+          name: name || "Member",
           avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: p.role,
+          username: p.username ?? null,
         };
       });
     }
@@ -947,13 +950,36 @@ export function HubLivePage({
         .filter((r) => r.role !== "viewer")
         .map((r) => ({
           id: r.identity,
-          name: r.name,
+          name: r.name || "Member",
           avatar_url: null as string | null,
           role: r.role === "unknown" ? "speaker" : r.role,
+          username: null as string | null,
         }));
     }
     return null;
   }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
+
+  /** Full People list — every joined participant (host → viewers), hydrated. */
+  const peopleFromLive = useMemo(() => {
+    const joined = live.participants.filter((p) => p.status === "joined");
+    if (!joined.length) return null;
+    return joined.map((p) => {
+      const dash = data?.speakers.find((s) => s.id === p.user_id);
+      const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+      const name =
+        p.display_name ||
+        dash?.name ||
+        remote?.name ||
+        (p.user_id === live.userId ? "You" : null);
+      return {
+        id: p.user_id,
+        name: name || "Member",
+        avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
+        role: p.role || "viewer",
+        username: p.username ?? null,
+      };
+    });
+  }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
 
   const analytics = data?.analytics;
   const session = data?.session ?? {
@@ -985,6 +1011,27 @@ export function HubLivePage({
     });
   }, [speakersFromLive, data?.speakers, data?.session?.liveSessionId, hasSession, hostUserId]);
 
+  const peopleList = useMemo(() => {
+    let list: Speaker[];
+    if (peopleFromLive?.length) list = peopleFromLive;
+    else if (speakers.length) list = speakers;
+    else list = EMPTY_SPEAKERS;
+    if (!hostUserId) return list;
+    return [...list].sort((a, b) => {
+      if (a.id === hostUserId) return -1;
+      if (b.id === hostUserId) return 1;
+      const rank = (role: string) => {
+        const r = role.toLowerCase();
+        if (r === "host") return 4;
+        if (r === "cohost" || r === "co-host") return 3;
+        if (r === "speaker") return 2;
+        if (r === "moderator") return 1;
+        return 0;
+      };
+      return rank(b.role) - rank(a.role);
+    });
+  }, [peopleFromLive, speakers, hostUserId]);
+
   useEffect(() => {
     if (hasSession && hostUserId) {
       setActiveSpeakerId((prev) => (prev === null ? hostUserId : prev));
@@ -1003,7 +1050,7 @@ export function HubLivePage({
             p.display_name ||
             dash?.name ||
             remote?.name ||
-            (p.user_id === live.userId ? "You" : "Viewer"),
+            (p.user_id === live.userId ? "You" : "Member"),
           avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: "requested",
         };
@@ -1022,7 +1069,7 @@ export function HubLivePage({
             p.display_name ||
             dash?.name ||
             remote?.name ||
-            (p.user_id === live.userId ? "You" : "Viewer"),
+            (p.user_id === live.userId ? "You" : "Member"),
           avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
           role: "waiting",
         };
@@ -1034,11 +1081,26 @@ export function HubLivePage({
       canAcceptSpeaker(live.myRole) || canRejectSpeaker(live.myRole);
     const canManagePeople = canInviteSpeaker(live.myRole);
     return {
-      speakers,
+      speakers: peopleList,
       viewers: live.viewerCount || analytics?.liveViewers || 0,
       activeSpeakerId,
       onSelect: (id: string) => {
         setActiveSpeakerId(id);
+      },
+      onOpenProfile: (id: string) => {
+        setActiveSpeakerId(id);
+        const person =
+          peopleList.find((s) => s.id === id) ||
+          live.participants.find((p) => p.user_id === id);
+        const username =
+          (person && "username" in person ? person.username : null) ||
+          live.participants.find((p) => p.user_id === id)?.username ||
+          null;
+        if (username) {
+          router.push(`/u/${encodeURIComponent(username)}`);
+          return;
+        }
+        showToast("Profile unavailable");
       },
       query: peopleQuery,
       onQuery: setPeopleQuery,
@@ -1153,9 +1215,10 @@ export function HubLivePage({
         : undefined,
     };
   }, [
-    speakers,
+    peopleList,
     live.viewerCount,
     live.myRole,
+    live.participants,
     live.accept,
     live.admit,
     live.admitAll,
@@ -1172,6 +1235,7 @@ export function HubLivePage({
     inviteUserId,
     inviteRole,
     showToast,
+    router,
   ]);
   const discussionHref =
     data?.session.discussionHref ??
@@ -1181,7 +1245,7 @@ export function HubLivePage({
 
   const speakerUi = useMemo(() => {
     const map: Record<string, SpeakerUi> = {};
-    speakers.forEach((s) => {
+    peopleList.forEach((s) => {
       const liveP = live.participants.find((p) => p.user_id === s.id);
       const remote = livekit.remotes.find((r) => r.identity === s.id);
       const isSelf = s.id === live.userId;
@@ -1190,7 +1254,11 @@ export function HubLivePage({
           ? ("host" as const)
           : s.role === "Co-host" || s.role === "cohost"
             ? ("cohost" as const)
-            : ("speaker" as const);
+            : s.role === "moderator" || s.role === "Moderator"
+              ? ("moderator" as const)
+              : s.role === "viewer" || s.role === "Viewer"
+                ? ("viewer" as const)
+                : ("speaker" as const);
       map[s.id] = {
         micOn: isSelf ? micOn : remote ? remote.micOn : liveP ? liveP.mic_on : false,
         camOn: isSelf ? camOn : remote ? remote.camOn : liveP ? liveP.cam_on : false,
@@ -1198,7 +1266,11 @@ export function HubLivePage({
         connection: String(livekit.connectionState) === "reconnecting" ? "warn" : "good",
         role:
           (liveP?.role as SpeakerUi["role"]) ??
-          (remote?.role === "host" || remote?.role === "cohost" || remote?.role === "speaker"
+          (remote?.role === "host" ||
+          remote?.role === "cohost" ||
+          remote?.role === "speaker" ||
+          remote?.role === "moderator" ||
+          remote?.role === "viewer"
             ? remote.role
             : roleFromLabel),
         speaking:
@@ -1208,7 +1280,7 @@ export function HubLivePage({
     });
     return map;
   }, [
-    speakers,
+    peopleList,
     micOn,
     camOn,
     activeSpeakerId,
@@ -1219,11 +1291,20 @@ export function HubLivePage({
     livekit.activeSpeakerId,
   ]);
 
-  const chatMessages = liveChat.messages.length
-    ? liveChat.messages
-    : data?.chatMessages?.length
-      ? data.chatMessages
-      : EMPTY_CHAT_MESSAGES;
+  const chatMessages = useMemo(() => {
+    const base = liveChat.messages.length
+      ? liveChat.messages
+      : data?.chatMessages?.length
+        ? data.chatMessages
+        : EMPTY_CHAT_MESSAGES;
+    const system = presenceToChatMessages(live.presenceEvents ?? []);
+    if (!system.length) return base;
+    const merged = sortMessagesChronologically([
+      ...base.map((m) => ({ ...m, kind: m.kind ?? ("text" as const) })),
+      ...system,
+    ]) as ChatMessage[];
+    return merged;
+  }, [liveChat.messages, data?.chatMessages, live.presenceEvents]);
 
   const visibleRightTabs = useMemo(() => {
     return RIGHT_TABS.filter((t) => {
@@ -1996,8 +2077,9 @@ export function HubLivePage({
           <aside
             className={cn(
               "flex w-full shrink-0 flex-col bg-white",
-              "fixed inset-x-0 bottom-0 z-40 max-h-[min(78vh,640px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
-              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:shadow-none",
+              "fixed inset-x-0 bottom-0 z-40 max-h-[min(72vh,620px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
+              "pb-[env(safe-area-inset-bottom)]",
+              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none",
               "transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
               drawer.rightOpen ? "translate-y-0" : "translate-y-full lg:translate-y-0"
             )}
@@ -2320,15 +2402,13 @@ export function HubLivePage({
         micOn={micOn}
         camOn={camOn}
         sharing={media.sharing}
+        audioAccess={media.audioAccess}
+        videoAccess={media.videoAccess}
+        permissionDenied={media.permissionDenied}
         onMic={() => void toggleMic()}
         onCam={() => void toggleCam()}
         onShare={() => void startShare()}
         onStopShare={stopShare}
-        onFlipCamera={
-          hasSession && canPublishAv(live.myRole)
-            ? () => void media.flipCamera()
-            : undefined
-        }
         onChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
         onReact={() => {
           if (live.session?.id) void live.react("❤️");

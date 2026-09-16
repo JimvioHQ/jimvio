@@ -6,6 +6,7 @@ export type LiveDockActivity = "live" | "share" | "present";
 export type LiveDockControlId =
   | "mic"
   | "cam"
+  | "chat"
   | "share"
   | "stopShare"
   | "invite"
@@ -63,26 +64,34 @@ export function desktopDockControls(
   ];
 }
 
-/** Mobile dock always keeps mic/cam for publishers, including while sharing. */
+/**
+ * Mobile dock control order (product contract):
+ * Audio → Video → Chat → React → Share → More → Leave/End
+ *
+ * Mic/Cam stay first and visible for everyone on mobile (disabled when the
+ * role cannot publish). Screen-share never hides A/V.
+ */
 export function mobileDockControls(opts: {
   canPublish: boolean;
   isHost: boolean;
   sharing?: boolean;
 }): LiveDockControlId[] {
-  if (!opts.canPublish) {
-    return ["react", "copyLink", "more", "leave"];
-  }
-  const share: LiveDockControlId = opts.sharing ? "stopShare" : "share";
-  return [
-    "mic",
-    "cam",
-    share,
-    "more",
-    opts.isHost ? "end" : "leave",
-  ];
+  const share: LiveDockControlId = opts.canPublish
+    ? opts.sharing
+      ? "stopShare"
+      : "share"
+    : "copyLink";
+  const endOrLeave: LiveDockControlId = opts.isHost ? "end" : "leave";
+
+  return ["mic", "cam", "chat", "react", share, "more", endOrLeave];
 }
 
 export function dockKeepsAvDuringShare(activity: LiveDockActivity): boolean {
   const controls = desktopDockControls(activity);
   return controls.includes("mic") && controls.includes("cam");
+}
+
+/** Assert mobile order starts with Audio then Video. */
+export function mobileDockAvFirst(controls: LiveDockControlId[]): boolean {
+  return controls[0] === "mic" && controls[1] === "cam";
 }

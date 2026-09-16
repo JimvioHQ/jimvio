@@ -19,6 +19,8 @@ export type ChatMessage = {
   reply_to_id?: string | null;
   reply_to_body?: string | null;
   reply_to_sender?: string | null;
+  /** System presence notices (join/leave) — visually distinct from user messages. */
+  kind?: "text" | "system";
 };
 
 export type Speaker = {
@@ -26,6 +28,7 @@ export type Speaker = {
   name: string;
   avatar_url: string | null;
   role: string;
+  username?: string | null;
 };
 
 export type UpcomingSession = {

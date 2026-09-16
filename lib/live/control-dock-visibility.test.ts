@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   desktopDockControls,
   dockKeepsAvDuringShare,
+  mobileDockAvFirst,
   mobileDockControls,
 } from "./control-dock-visibility.ts";
 
@@ -32,6 +33,7 @@ describe("screen share preserving audio/video controls", () => {
     assert.ok(controls.includes("mic"));
     assert.ok(controls.includes("cam"));
     assert.ok(controls.includes("stopShare"));
+    assert.ok(mobileDockAvFirst(controls));
   });
 });
 
@@ -51,13 +53,35 @@ describe("desktop control visibility", () => {
 });
 
 describe("mobile control visibility", () => {
-  it("shows chat-first actions for viewers", () => {
+  it("uses Audio → Video → Chat → React → Share → More → Leave order", () => {
+    const controls = mobileDockControls({
+      canPublish: true,
+      isHost: false,
+      sharing: false,
+    });
+    assert.deepEqual(controls, [
+      "mic",
+      "cam",
+      "chat",
+      "react",
+      "share",
+      "more",
+      "leave",
+    ]);
+  });
+
+  it("keeps Audio and Video first for viewers (not hidden)", () => {
     const controls = mobileDockControls({
       canPublish: false,
       isHost: false,
     });
+    assert.ok(mobileDockAvFirst(controls));
+    assert.ok(controls.includes("chat"));
+    assert.ok(controls.includes("react"));
+    assert.ok(controls.includes("copyLink"));
+    assert.ok(controls.includes("more"));
     assert.ok(controls.includes("leave"));
-    assert.ok(!controls.includes("mic"));
+    assert.ok(!controls.includes("share") || controls.includes("copyLink"));
   });
 
   it("exposes end for hosts and leave for speakers", () => {
@@ -67,5 +91,16 @@ describe("mobile control visibility", () => {
     assert.ok(
       mobileDockControls({ canPublish: true, isHost: false }).includes("leave")
     );
+  });
+
+  it("keeps Audio/Video visible in share and present-equivalent mobile share", () => {
+    for (const sharing of [false, true]) {
+      const c = mobileDockControls({
+        canPublish: true,
+        isHost: true,
+        sharing,
+      });
+      assert.ok(mobileDockAvFirst(c), `sharing=${sharing}`);
+    }
   });
 });

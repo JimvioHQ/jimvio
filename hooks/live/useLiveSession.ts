@@ -9,9 +9,22 @@ import {
 import type { LiveStageRole } from "@/lib/live/roles";
 import {
   applyParticipantEvent,
+  participantNeedsProfile,
   reconcileParticipants,
 } from "@/lib/live/participant-state";
+import {
+  diffPresenceEvents,
+  formatPresenceBody,
+  markSeenPresenceId,
+  type PresenceSystemEvent,
+} from "@/lib/live/presence-events";
 import type { LiveParticipantRow, LiveSessionRow } from "@/services/live/session-service";
+
+type ProfileCacheEntry = {
+  display_name: string | null;
+  avatar_url: string | null;
+  username: string | null;
+};
 
 async function sessionAction(sessionId: string, body: Record<string, unknown>) {
   const res = await fetch(`/api/c/live/sessions/${sessionId}`, {
@@ -39,10 +52,25 @@ function eventKey(payload: {
   ].join(":");
 }
 
+function applyProfileCache(
+  row: LiveParticipantRow,
+  cache: Map<string, ProfileCacheEntry>
+): LiveParticipantRow {
+  const hit = cache.get(row.user_id);
+  if (!hit) return row;
+  return {
+    ...row,
+    display_name: row.display_name || hit.display_name,
+    avatar_url: row.avatar_url ?? hit.avatar_url,
+    username: row.username ?? hit.username,
+  };
+}
+
 export function useLiveSession(initialSessionId?: string | null) {
   const supabase = useMemo(() => createClient(), []);
   const [session, setSession] = useState<LiveSessionRow | null>(null);
   const [participants, setParticipants] = useState<LiveParticipantRow[]>([]);
+  const [presenceEvents, setPresenceEvents] = useState<PresenceSystemEvent[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +78,15 @@ export function useLiveSession(initialSessionId?: string | null) {
   const cancelled = useRef(false);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenEvents = useRef<Set<string>>(new Set());
+  const seenPresence = useRef<Set<string>>(new Set());
+  const profileCache = useRef<Map<string, ProfileCacheEntry>>(new Map());
+  const profileInflight = useRef<Set<string>>(new Set());
+  const userIdRef = useRef<string | null>(null);
+  const presenceBootstrapped = useRef<string | null>(null);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   useEffect(() => {
     cancelled.current = false;
@@ -65,6 +102,132 @@ export function useLiveSession(initialSessionId?: string | null) {
     };
   }, [supabase]);
 
+  const seedPresenceSeen = useCallback((sessionId: string, rows: LiveParticipantRow[]) => {
+    for (const row of rows) {
+      if (row.status !== "joined" || !row.user_id) continue;
+      const marker = row.joined_at || row.updated_at || "join";
+      markSeenPresenceId(
+        seenPresence.current,
+        `sys:join:${sessionId}:${row.user_id}:${marker}`
+      );
+    }
+    presenceBootstrapped.current = sessionId;
+  }, []);
+
+  const emitPresenceDiff = useCallback(
+    (prev: LiveParticipantRow[], next: LiveParticipantRow[], sessionId: string) => {
+      // First authoritative snapshot: seed seen set so existing members don't
+      // all appear as fresh "joined" notices for late openers.
+      if (presenceBootstrapped.current !== sessionId) {
+        seedPresenceSeen(sessionId, next);
+        return;
+      }
+      const events = diffPresenceEvents({
+        sessionId,
+        prev,
+        next,
+        selfUserId: userIdRef.current,
+        seenIds: seenPresence.current,
+      });
+      if (!events.length) return;
+      for (const e of events) markSeenPresenceId(seenPresence.current, e.id);
+      setPresenceEvents((cur) => {
+        const ids = new Set(cur.map((x) => x.id));
+        const add = events.filter((e) => !ids.has(e.id));
+        if (!add.length) return cur;
+        return [...cur, ...add].slice(-80);
+      });
+    },
+    [seedPresenceSeen]
+  );
+
+  const hydrateProfile = useCallback(
+    (uid: string, cancelledSub: () => boolean) => {
+      if (!uid || profileInflight.current.has(uid)) return;
+      const cached = profileCache.current.get(uid);
+      if (cached?.display_name && cached.avatar_url && cached.username) {
+        setParticipants((prev) =>
+          prev.map((p) =>
+            p.user_id === uid
+              ? {
+                  ...p,
+                  display_name: p.display_name || cached.display_name,
+                  avatar_url: p.avatar_url ?? cached.avatar_url,
+                  username: p.username ?? cached.username,
+                }
+              : p
+          )
+        );
+        if (cached.display_name) {
+          setPresenceEvents((prev) =>
+            prev.map((e) =>
+              e.user_id === uid &&
+              (e.display_name === "Someone" || !e.display_name)
+                ? {
+                    ...e,
+                    display_name: cached.display_name!,
+                    body: formatPresenceBody(e.kind, cached.display_name!),
+                  }
+                : e
+            )
+          );
+        }
+        return;
+      }
+      profileInflight.current.add(uid);
+      void supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, username")
+        .eq("id", uid)
+        .maybeSingle()
+        .then(({ data: profile }: { data: {
+          id: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          username: string | null;
+        } | null }) => {
+          profileInflight.current.delete(uid);
+          if (!profile || cancelledSub()) return;
+          const entry: ProfileCacheEntry = {
+            display_name: profile.full_name || profile.username || null,
+            avatar_url: profile.avatar_url ?? null,
+            username: profile.username ?? null,
+          };
+          profileCache.current.set(uid, entry);
+          setParticipants((prev) =>
+            prev.map((p) =>
+              p.user_id === uid
+                ? {
+                    ...p,
+                    display_name: p.display_name || entry.display_name,
+                    avatar_url: p.avatar_url ?? entry.avatar_url,
+                    username: p.username ?? entry.username,
+                  }
+                : p
+            )
+          );
+          if (entry.display_name) {
+            setPresenceEvents((prev) =>
+              prev.map((e) =>
+                e.user_id === uid &&
+                (e.display_name === "Someone" || !e.display_name)
+                  ? {
+                      ...e,
+                      display_name: entry.display_name!,
+                      body: formatPresenceBody(e.kind, entry.display_name!),
+                    }
+                  : e
+              )
+            );
+          }
+        })
+        .catch(() => {
+          profileInflight.current.delete(uid);
+        });
+    },
+    [supabase]
+  );
+
   const refresh = useCallback(async (sessionId: string) => {
     const res = await fetch(`/api/c/live/sessions/${sessionId}`);
     const json = (await res.json()) as {
@@ -74,9 +237,22 @@ export function useLiveSession(initialSessionId?: string | null) {
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load session");
     setSession(json.session ?? null);
-    const server = json.participants ?? [];
-    setParticipants((prev) => reconcileParticipants(prev, server));
-  }, []);
+    const server = (json.participants ?? []).map((row) => {
+      if (row.display_name || row.avatar_url || row.username) {
+        profileCache.current.set(row.user_id, {
+          display_name: row.display_name ?? null,
+          avatar_url: row.avatar_url ?? null,
+          username: row.username ?? null,
+        });
+      }
+      return applyProfileCache(row, profileCache.current);
+    });
+    setParticipants((prev) => {
+      const next = reconcileParticipants(prev, server);
+      emitPresenceDiff(prev, next, sessionId);
+      return next;
+    });
+  }, [emitPresenceDiff]);
 
   const scheduleRefresh = useCallback(
     (sessionId: string, payload?: Parameters<typeof eventKey>[0]) => {
@@ -119,13 +295,14 @@ export function useLiveSession(initialSessionId?: string | null) {
     return "viewer";
   }, [participants, userId, session?.host_id]);
 
-  /* Realtime sync — debounced + deduped full refresh */
+  /* Realtime sync — optimistic local apply + debounced authoritative refresh */
   useEffect(() => {
     if (!session?.id) return;
     let cancelledSub = false;
     let chSession: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     let chPart: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     const sid = session.id;
+    const isCancelled = () => cancelledSub;
 
     void (async () => {
       chSession = await subscribePostgresChanges(
@@ -144,7 +321,7 @@ export function useLiveSession(initialSessionId?: string | null) {
           }
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
-        () => cancelledSub
+        isCancelled
       );
       chPart = await subscribePostgresChanges(
         supabase,
@@ -157,57 +334,29 @@ export function useLiveSession(initialSessionId?: string | null) {
         },
         (payload) => {
           const eventType = payload?.eventType;
-          const row = payload?.new as LiveParticipantRow | null;
+          const raw = payload?.new as LiveParticipantRow | null;
           const old = payload?.old as LiveParticipantRow | null;
+          const row = raw ? applyProfileCache(raw, profileCache.current) : raw;
 
-          setParticipants((prev) =>
-            applyParticipantEvent(prev, { eventType, row, old })
-          );
+          setParticipants((prev) => {
+            const next = applyParticipantEvent(prev, { eventType, row, old });
+            emitPresenceDiff(prev, next, sid);
+            return next;
+          });
 
-          // Realtime rows omit profiles — hydrate name/avatar immediately.
-          const needsProfile =
+          if (
             row?.user_id &&
-            !row.display_name &&
-            !row.avatar_url &&
             eventType !== "DELETE" &&
             row.status !== "left" &&
-            row.status !== "removed";
-          if (needsProfile && row?.user_id) {
-            const uid = row.user_id;
-            void supabase
-              .from("profiles")
-              .select("id, full_name, avatar_url, username")
-              .eq("id", uid)
-              .maybeSingle()
-              .then(({ data: profile }: { data: {
-                id: string;
-                full_name: string | null;
-                avatar_url: string | null;
-                username: string | null;
-              } | null }) => {
-                if (!profile || cancelledSub) return;
-                setParticipants((prev) =>
-                  prev.map((p) =>
-                    p.user_id === uid
-                      ? {
-                          ...p,
-                          display_name:
-                            p.display_name ||
-                            profile.full_name ||
-                            profile.username ||
-                            null,
-                          avatar_url: p.avatar_url ?? profile.avatar_url ?? null,
-                        }
-                      : p
-                  )
-                );
-              })
-              .catch(() => undefined);
+            row.status !== "removed" &&
+            participantNeedsProfile(row)
+          ) {
+            hydrateProfile(row.user_id, isCancelled);
           }
 
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
-        () => cancelledSub
+        isCancelled
       );
     })();
 
@@ -217,7 +366,7 @@ export function useLiveSession(initialSessionId?: string | null) {
       unsubscribeRealtime(supabase, chSession, `live_session:${sid}`);
       unsubscribeRealtime(supabase, chPart, `live_session_participants:${sid}`);
     };
-  }, [session?.id, supabase, scheduleRefresh]);
+  }, [session?.id, supabase, scheduleRefresh, hydrateProfile, emitPresenceDiff]);
 
   const createLive = useCallback(
     async (input: {
@@ -276,6 +425,9 @@ export function useLiveSession(initialSessionId?: string | null) {
     await sessionAction(session.id, { action: "leave" });
     setSession(null);
     setParticipants([]);
+    setPresenceEvents([]);
+    presenceBootstrapped.current = null;
+    seenPresence.current.clear();
   }, [session]);
 
   const endLive = useCallback(async () => {
@@ -531,6 +683,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     participants,
     speakers,
     viewerCount,
+    presenceEvents,
     myRole,
     userId,
     authReady,

@@ -72,6 +72,7 @@ export type LiveParticipantRow = {
   /** Enriched from profiles — present on list/refresh payloads. */
   display_name?: string | null;
   avatar_url?: string | null;
+  username?: string | null;
 };
 
 function db() {
@@ -236,6 +237,7 @@ export async function listParticipants(sessionId: string): Promise<LiveParticipa
       ...r,
       display_name: profile?.full_name || profile?.username || null,
       avatar_url: profile?.avatar_url ?? null,
+      username: profile?.username ?? null,
     };
   });
 }

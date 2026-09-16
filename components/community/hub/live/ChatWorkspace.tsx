@@ -21,6 +21,7 @@ import type { LiveTypingUser, LiveChatConnectionStatus } from "@/hooks/live/useL
 type Enriched = ChatMessage & {
   pinned?: boolean;
   replyTo?: string | null;
+  kind?: "text" | "system";
 };
 
 function useKeyboardInset(): number {
@@ -155,6 +156,7 @@ function ChatWorkspaceImpl({
         ...m,
         pinned: Boolean(m.is_pinned),
         replyTo: m.reply_to_sender ?? null,
+        kind: m.kind ?? (String(m.id).startsWith("sys:") ? "system" : "text"),
       })),
     [windowed]
   );
@@ -371,6 +373,20 @@ function ChatWorkspaceImpl({
             </p>
           ) : (
             enriched.map((m) => {
+              const isSystem = m.kind === "system" || String(m.id).startsWith("sys:");
+              if (isSystem) {
+                return (
+                  <div
+                    key={m.id}
+                    className="flex justify-center px-2 py-1.5"
+                    role="status"
+                  >
+                    <p className="max-w-[92%] rounded-full bg-neutral-50 px-3 py-1 text-center text-[11px] font-medium tracking-[-0.01em] text-neutral-500 ring-1 ring-black/[0.03]">
+                      {m.body}
+                    </p>
+                  </div>
+                );
+              }
               const role = roleFor(m.sender_name);
               return (
                 <div
