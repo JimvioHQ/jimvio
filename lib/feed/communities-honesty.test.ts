@@ -54,6 +54,12 @@ describe("Communities real-data honesty", () => {
     assert.equal(/picsum\.photos/.test(src), false);
   });
 
+  it("hub FeedPostCard does not render fake creator levels", () => {
+    const src = readFileSync(join(root, "components/feed/FeedPostCard.tsx"), "utf8");
+    assert.equal(/Lv\.\s*\{?post\.author\.level/.test(src), false);
+    assert.equal(/level:\s*1/.test(src), false);
+  });
+
   it("keeps TikTok LIVE publishing hard-gated", () => {
     assert.equal(isTikTokOfficialLivePublishingAvailable(), false);
   });

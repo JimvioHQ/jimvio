@@ -249,7 +249,7 @@ export function CommunityVideoPlayer({
         loop
         preload={preload}
         controlsList="nodownload"
-        className="aspect-video max-h-96 w-full bg-black object-contain"
+        className="max-h-[70vh] w-full bg-black object-contain"
         onError={onError}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}

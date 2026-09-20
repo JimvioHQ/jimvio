@@ -15,6 +15,11 @@ import { Loader2, MessageCircle, Send, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn, getInitials } from "@/lib/utils";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { createClient } from "@/lib/supabase/client";
+import {
+  subscribePostgresChanges,
+  unsubscribeRealtime,
+} from "@/lib/supabase/realtime-subscribe";
 
 type CommentProfile = {
   full_name?: string | null;
@@ -120,6 +125,41 @@ export function FeedCommentSheet({
     const t = window.setTimeout(() => inputRef.current?.focus(), 120);
     return () => window.clearTimeout(t);
   }, [open, loadComments]);
+
+  // Realtime comments for the open post — dedupe by id.
+  useEffect(() => {
+    if (!open || !postId) return;
+    const supabase = createClient();
+    let cancelled = false;
+    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+
+    void (async () => {
+      channel = await subscribePostgresChanges(
+        supabase,
+        `hub-feed-comments-${postId}`,
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "community_post_comments",
+          filter: `post_id=eq.${postId}`,
+        },
+        (payload) => {
+          const row = payload?.new as FeedComment | undefined;
+          if (!row?.id) return;
+          setComments((prev) => {
+            if (prev.some((c) => c.id === row.id)) return prev;
+            return [row, ...prev];
+          });
+        },
+        () => cancelled,
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+      void unsubscribeRealtime(supabase, channel);
+    };
+  }, [open, postId]);
 
   useEffect(() => {
     if (!open) return;
@@ -284,7 +324,7 @@ export function FeedCommentSheet({
           {loading ? (
             <div className="flex h-40 flex-col items-center justify-center gap-2 text-[var(--color-text-muted)]">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <p className="text-[13px]">Loading comments…</p>
+              <p className="text-[13px]">Loading comments...</p>
             </div>
           ) : topLevel.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
@@ -292,7 +332,7 @@ export function FeedCommentSheet({
                 <MessageCircle className="h-5 w-5" />
               </span>
               <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
-                No comments yet
+                No comments yet.
               </p>
               <p className="text-[12px] text-[var(--color-text-muted)]">
                 Be the first to share your thoughts.

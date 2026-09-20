@@ -132,6 +132,15 @@ export async function GET(req: NextRequest) {
   if (!communityId && !draftsOnly && filter !== "following" && filter !== "friends") {
     try {
       const useRanking = filter !== "newest";
+      let verifiedCommunityIds: Set<string> | undefined;
+      if (filter === "verified") {
+        const { data: featuredCommunities } = await supabase
+          .from("communities")
+          .select("id")
+          .or("is_featured.eq.true,member_count.gte.100");
+        verifiedCommunityIds = new Set((featuredCommunities ?? []).map((c) => c.id));
+      }
+
       const global = await loadGlobalCommunityFeed(supabase, {
         limit,
         cursor,
@@ -139,26 +148,11 @@ export async function GET(req: NextRequest) {
         followedAuthorIds,
         memberCommunityIds: membershipIds,
         useRanking,
+        filter,
+        verifiedCommunityIds,
       });
 
-      let pageRows = global.posts;
-      if (filter === "verified") {
-        const { data: featuredCommunities } = await supabase
-          .from("communities")
-          .select("id")
-          .or("is_featured.eq.true,member_count.gte.100");
-        const featuredIds = new Set((featuredCommunities ?? []).map((c) => c.id));
-        pageRows = pageRows.filter((p) => featuredIds.has(p.community_id));
-      } else if (filter === "spaces") {
-        pageRows = pageRows.filter(
-          (p) => p.space_id && p.space_id !== "00000000-0000-0000-0000-000000000000",
-        );
-      } else if (filter === "missions") {
-        pageRows = pageRows.filter((p) =>
-          ["mission", "task", "challenge"].includes(String(p.post_type ?? "")),
-        );
-      }
-
+      const pageRows = global.posts;
       const postIds = pageRows.map((post) => post.id);
       const [{ data: likedRows }, { data: reactionRows }, { data: savedRows }] =
         postIds.length > 0

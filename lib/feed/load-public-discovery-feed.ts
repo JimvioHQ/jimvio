@@ -136,49 +136,25 @@ export async function loadPublicDiscoveryFeed(
   if (!communityId) {
     const useRanking = publicFilter !== "newest";
     try {
-      const global = await loadGlobalCommunityFeed(db, {
-        limit,
-        cursor,
-        useRanking,
-      });
-      let posts = global.posts;
-
+      let verifiedCommunityIds: Set<string> | undefined;
       if (publicFilter === "verified") {
         const { data: featuredCommunities } = await db
           .from("communities")
           .select("id")
           .in("id", publicCommunityIds)
           .or("is_featured.eq.true,member_count.gte.100");
-        const featuredIds = new Set((featuredCommunities ?? []).map((c) => c.id));
-        posts = posts.filter((p) => featuredIds.has(p.community_id));
-      } else if (publicFilter === "spaces") {
-        posts = posts.filter(
-          (p) => p.space_id && p.space_id !== "00000000-0000-0000-0000-000000000000",
-        );
-      } else if (publicFilter === "missions") {
-        posts = posts.filter((p) =>
-          ["mission", "task", "challenge"].includes(String(p.post_type ?? "")),
-        );
-      } else if (publicFilter === "trending" || publicFilter === "hot" || publicFilter === "rising") {
-        const maxAgeMs =
-          publicFilter === "hot"
-            ? 48 * 3_600_000
-            : publicFilter === "rising"
-              ? 7 * 24 * 3_600_000
-              : 14 * 24 * 3_600_000;
-        const cutoff = Date.now() - maxAgeMs;
-        posts = posts.filter((p) => {
-          const created = p.created_at ? new Date(p.created_at).getTime() : 0;
-          if (created < cutoff) return false;
-          if (publicFilter === "rising") return true;
-          return (
-            Number(p.like_count ?? 0) >= 1 ||
-            Number(p.comment_count ?? 0) >= 1
-          );
-        });
+        verifiedCommunityIds = new Set((featuredCommunities ?? []).map((c) => c.id));
       }
 
-      const enriched = posts.map((post) => ({
+      const global = await loadGlobalCommunityFeed(db, {
+        limit,
+        cursor,
+        useRanking,
+        filter: publicFilter,
+        verifiedCommunityIds,
+      });
+
+      const enriched = global.posts.map((post) => ({
         ...post,
         user_has_liked: false,
         user_reaction: null,

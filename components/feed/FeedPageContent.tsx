@@ -45,7 +45,7 @@ export function FeedPageContent({
       <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-hidden bg-[var(--color-bg)] p-3 sm:p-4 lg:p-5">
         <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start lg:gap-5">
           {/* Main feed — full-width continuous posts on mobile */}
-          <div className="min-w-0 flex-1 space-y-4 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] sm:space-y-5 lg:pb-20">
+          <div className="min-w-0 flex-1 space-y-4 lg:pb-20 sm:space-y-5">
             <StoriesRail />
             <PostComposer />
             <FeedDiscoverRail initialCommunities={initialCommunities} />

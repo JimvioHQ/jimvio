@@ -11,6 +11,11 @@ import {
   parseGlobalFeedCursor,
 } from "@/lib/feed/global-feed-exclusions";
 import { rankGlobalFeedItems } from "@/lib/feed/global-feed-ranking";
+import {
+  applyFeedTabFilter,
+  diversifyAuthors,
+  sortRisingByVelocity,
+} from "@/lib/feed/apply-feed-tab-filter";
 import { loadPublicCommunityIds } from "@/lib/feed/load-public-discovery-feed";
 
 const POOL_PAGE = 1000;
@@ -21,6 +26,7 @@ type Db = Awaited<ReturnType<typeof createClient>>;
 export type GlobalCommunityFeedPost = Record<string, unknown> & {
   id: string;
   community_id: string;
+  author_id?: string | null;
   created_at: string;
   body?: string | null;
   attachments?: unknown;
@@ -30,6 +36,7 @@ export type GlobalCommunityFeedPost = Record<string, unknown> & {
   post_type?: string | null;
   like_count?: number | null;
   comment_count?: number | null;
+  view_count?: number | null;
   profiles?: { username?: string | null; email?: string | null; full_name?: string | null; avatar_url?: string | null } | null;
   communities?: { slug?: string | null; name?: string | null; is_private?: boolean | null } | null;
 };
@@ -93,6 +100,10 @@ export type LoadGlobalCommunityFeedParams = {
   followedAuthorIds?: Set<string>;
   memberCommunityIds?: string[];
   useRanking?: boolean;
+  /** Tab filter applied before pagination (hot/trending/rising/etc). */
+  filter?: string | null;
+  /** Featured community IDs for the verified tab (optional). */
+  verifiedCommunityIds?: Set<string>;
 };
 
 export type LoadGlobalCommunityFeedResult = {
@@ -144,16 +155,29 @@ export async function loadGlobalCommunityFeed(
     return true;
   });
 
-  let ordered = dedupedPool;
-  if (params.useRanking !== false) {
-    ordered = rankGlobalFeedItems(dedupedPool, {
+  const filter = (params.filter ?? "for-you").trim() || "for-you";
+
+  // Tab filters must run before offset pagination so Hot/Trending/Rising
+  // pages are full and next_cursor reflects the filtered pool.
+  let eligible = applyFeedTabFilter(dedupedPool, filter, now);
+  if (filter === "verified" && params.verifiedCommunityIds) {
+    eligible = eligible.filter((p) => params.verifiedCommunityIds!.has(p.community_id));
+  }
+
+  let ordered = eligible;
+  if (params.useRanking !== false && filter !== "newest") {
+    ordered = rankGlobalFeedItems(eligible, {
       viewerId: params.viewerId ?? "",
       followedAuthorIds: params.followedAuthorIds ?? new Set(),
       now,
       bucket,
     });
+    if (filter === "rising") {
+      ordered = sortRisingByVelocity(ordered, now);
+    }
+    ordered = diversifyAuthors(ordered);
   } else {
-    ordered = [...dedupedPool].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    ordered = [...eligible].sort((a, b) => b.created_at.localeCompare(a.created_at));
   }
 
   const page = ordered.slice(offset, offset + limit);

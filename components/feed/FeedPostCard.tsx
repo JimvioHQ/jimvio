@@ -28,6 +28,11 @@ import {
   prependUniqueById,
 } from "@/lib/feed/session-boost-post";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
+import { createClient } from "@/lib/supabase/client";
+import {
+  subscribePostgresChangesMany,
+  unsubscribeRealtime,
+} from "@/lib/supabase/realtime-subscribe";
 
 export type ApiPost = {
   id: string;
@@ -58,7 +63,6 @@ type DisplayPost = {
     handle: string;
     username: string | null;
     profileHref: string | null;
-    level: number;
     verified: boolean;
     avatar: string | null;
   };
@@ -79,11 +83,6 @@ type DisplayPost = {
     likes: number | string;
     comments: number;
     shares: number;
-    socialProof?: {
-      names: string[];
-      avatars: string[];
-      others: number;
-    };
   };
   liked?: boolean;
   href?: string;
@@ -117,7 +116,6 @@ function mapApiPost(post: ApiPost): DisplayPost {
       handle: username ? `@${username}` : "@member",
       username: username ?? null,
       profileHref: communityProfileHref(username),
-      level: 1,
       verified: false,
       avatar: post.profiles?.avatar_url ?? null,
     },
@@ -206,33 +204,53 @@ export function FeedPostCard({
   const [posts, setPosts] = useState<DisplayPost[]>(() => initialPosts.map(mapApiPost));
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
   const [cursor, setCursor] = useState<string | null>(initialNextCursor);
   const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
-  const [usingMock, setUsingMock] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [pendingNewCount, setPendingNewCount] = useState(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
+  const refreshingRef = useRef(false);
   const cursorRef = useRef<string | null>(initialNextCursor);
+  const abortRef = useRef<AbortController | null>(null);
+  const knownIdsRef = useRef<Set<string>>(new Set(initialPosts.map((p) => p.id)));
+  const pullStartY = useRef<number | null>(null);
+  const pullDistanceRef = useRef(0);
+  const likeInFlightRef = useRef<Set<string>>(new Set());
 
   const filter = FEED_TAB_FILTERS[tab];
-  const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean }) => {
+  const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean; refresh?: boolean }) => {
     const isMore = Boolean(nextCursor);
+    const isRefresh = Boolean(opts?.refresh);
     if (isMore) {
       if (loadingMoreRef.current) return;
       loadingMoreRef.current = true;
       setLoadingMore(true);
+    } else if (isRefresh) {
+      if (refreshingRef.current) return;
+      refreshingRef.current = true;
+      setRefreshing(true);
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
     } else if (!opts?.soft) {
       setLoading(true);
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
     }
     try {
       const params = new URLSearchParams({ limit: "20", filter });
       if (nextCursor) params.set("cursor", nextCursor);
-      const res = await fetch(`/api/posts/feed?${params}`, { cache: "no-store" });
+      const res = await fetch(`/api/posts/feed?${params}`, {
+        cache: "no-store",
+        signal: abortRef.current?.signal,
+      });
       if (res.status === 401) {
         if (!isMore && !opts?.soft) {
           setPosts([]);
-          setUsingMock(false);
           setHasMore(false);
           cursorRef.current = null;
           setCursor(null);
@@ -244,38 +262,44 @@ export function FeedPostCard({
       if (!res.ok) {
         if (!isMore && !opts?.soft) {
           setPosts([]);
-          setUsingMock(false);
           setLoadError(true);
         }
         if (!opts?.soft) toast.error(data.error || "Failed to load feed");
         return;
       }
       const mapped = ((data.posts ?? []) as ApiPost[]).map(mapApiPost);
-      setUsingMock(false);
       setLoadError(false);
       setPosts((prev) => {
         if (!isMore) {
           const boostRaw = consumeSessionBoostPost<ApiPost>();
           const boost = boostRaw ? mapApiPost(boostRaw) : null;
-          return prependUniqueById(mapped, boost);
+          const next = prependUniqueById(mapped, boost);
+          knownIdsRef.current = new Set(next.map((p) => p.id));
+          return next;
         }
         const seen = new Set(prev.map((p) => p.id));
-        return [...prev, ...mapped.filter((p) => !seen.has(p.id))];
+        const appended = mapped.filter((p) => !seen.has(p.id));
+        for (const p of appended) knownIdsRef.current.add(p.id);
+        return [...prev, ...appended];
       });
+      if (!isMore) setPendingNewCount(0);
       const next = (data.next_cursor as string | null | undefined) ?? null;
       cursorRef.current = next;
       setHasMore(Boolean(next));
       setCursor(next);
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       if (!isMore && !opts?.soft) {
         setPosts([]);
-        setUsingMock(false);
         setLoadError(true);
       }
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      setRefreshing(false);
       loadingMoreRef.current = false;
+      refreshingRef.current = false;
+      setPullDistance(0);
     }
   }, [filter]);
 
@@ -288,9 +312,136 @@ export function FeedPostCard({
     void load();
   }, [load, initialPosts.length, filter]);
 
+  // Soft re-entry / bfcache restore should mint a fresh rotation seed.
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted) void load(undefined, { refresh: true });
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [load]);
+
+  // Realtime: update engagement on visible posts; banner for brand-new inserts.
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+    let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
+
+    void (async () => {
+      channel = await subscribePostgresChangesMany(
+        supabase,
+        "hub-community-feed",
+        [
+          {
+            config: { event: "INSERT", schema: "public", table: "community_posts" },
+            onChange: (payload) => {
+              const id = String(payload?.new?.id ?? "");
+              if (!id || knownIdsRef.current.has(id)) return;
+              if (payload?.new?.is_published === false) return;
+              setPendingNewCount((n) => n + 1);
+            },
+          },
+          {
+            config: { event: "UPDATE", schema: "public", table: "community_posts" },
+            onChange: (payload) => {
+              const id = String(payload?.new?.id ?? "");
+              if (!id) return;
+              const likeCount = Number(payload?.new?.like_count);
+              const commentCount = Number(payload?.new?.comment_count);
+              const shareCount = Number(payload?.new?.share_count);
+              const archived = payload?.new?.archived_at != null;
+              const unpublished = payload?.new?.is_published === false;
+              if (archived || unpublished) {
+                knownIdsRef.current.delete(id);
+                setPosts((prev) => prev.filter((p) => p.id !== id));
+                return;
+              }
+              setPosts((prev) =>
+                prev.map((p) => {
+                  if (p.id !== id) return p;
+                  // Don't overwrite an in-flight optimistic like with stale counts.
+                  if (likeInFlightRef.current.has(id)) return p;
+                  return {
+                    ...p,
+                    engagement: {
+                      likes: Number.isFinite(likeCount) ? likeCount : p.engagement.likes,
+                      comments: Number.isFinite(commentCount)
+                        ? commentCount
+                        : p.engagement.comments,
+                      shares: Number.isFinite(shareCount) ? shareCount : p.engagement.shares,
+                    },
+                  };
+                }),
+              );
+            },
+          },
+          {
+            config: { event: "DELETE", schema: "public", table: "community_posts" },
+            onChange: (payload) => {
+              const id = String(payload?.old?.id ?? "");
+              if (!id) return;
+              knownIdsRef.current.delete(id);
+              setPosts((prev) => prev.filter((p) => p.id !== id));
+            },
+          },
+        ],
+        () => cancelled,
+      );
+    })();
+
+    return () => {
+      cancelled = true;
+      void unsubscribeRealtime(supabase, channel);
+    };
+  }, []);
+
+  // Mobile pull-to-refresh
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+
+    const THRESHOLD = 64;
+    const onTouchStart = (e: TouchEvent) => {
+      if (window.scrollY > 4 || refreshingRef.current) {
+        pullStartY.current = null;
+        return;
+      }
+      pullStartY.current = e.touches[0]?.clientY ?? null;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (pullStartY.current == null) return;
+      const y = e.touches[0]?.clientY ?? 0;
+      const delta = Math.max(0, Math.min(96, y - pullStartY.current));
+      if (delta > 8 && window.scrollY <= 0) {
+        pullDistanceRef.current = delta;
+        setPullDistance(delta);
+      }
+    };
+    const onTouchEnd = () => {
+      if (pullStartY.current == null) return;
+      const shouldRefresh = pullDistanceRef.current >= THRESHOLD;
+      pullStartY.current = null;
+      pullDistanceRef.current = 0;
+      if (shouldRefresh) {
+        void load(undefined, { refresh: true });
+      } else {
+        setPullDistance(0);
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [load]);
+
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !hasMore || usingMock) return;
+    if (!el || !hasMore) return;
     const obs = new IntersectionObserver(
       (entries) => {
         if (!entries[0]?.isIntersecting) return;
@@ -298,22 +449,25 @@ export function FeedPostCard({
         if (!next || loadingMoreRef.current) return;
         void load(next);
       },
-      // Prefetch earlier so mobile never hits a hard empty bottom mid-scroll.
-      { rootMargin: "480px 0px" }
+      { rootMargin: "320px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [hasMore, usingMock, load]);
+  }, [hasMore, load]);
 
   async function toggleLike(postId: string) {
     const next =
       typeof window !== "undefined"
         ? `${window.location.pathname}${window.location.search}`
         : "/communities";
-    if (usingMock || !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
+    if (likeInFlightRef.current.has(postId)) return;
+    likeInFlightRef.current.add(postId);
+
+    const snapshot = posts.find((p) => p.id === postId);
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id !== postId) return p;
@@ -335,13 +489,42 @@ export function FeedPostCard({
         router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        liked?: boolean;
+      };
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error || "Could not update like");
+      }
+      // Reconcile optimistic UI with authoritative server liked flag.
+      if (typeof data.liked === "boolean") {
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id !== postId) return p;
+            const wasLiked = Boolean(snapshot?.liked);
+            const likes =
+              typeof p.engagement.likes === "number"
+                ? Math.max(
+                    0,
+                    Number(snapshot?.engagement.likes ?? p.engagement.likes) +
+                      (data.liked === wasLiked ? 0 : data.liked ? 1 : -1),
+                  )
+                : p.engagement.likes;
+            return {
+              ...p,
+              liked: data.liked,
+              engagement: { ...p.engagement, likes },
+            };
+          }),
+        );
       }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Could not update like");
-      void load();
+      if (snapshot) {
+        setPosts((prev) => prev.map((p) => (p.id === postId ? snapshot : p)));
+      }
+    } finally {
+      likeInFlightRef.current.delete(postId);
     }
   }
 
@@ -356,7 +539,7 @@ export function FeedPostCard({
         await navigator.clipboard.writeText(url);
         toast.success("Link copied");
       }
-      if (!usingMock && isAuthenticated) {
+      if (isAuthenticated) {
         const res = await fetch(`/api/posts/${post.id}/share`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -433,13 +616,35 @@ export function FeedPostCard({
 
   return (
     <>
-    <div className="divide-y divide-gray-100">
+    <div ref={listRef} className="relative divide-y divide-gray-100">
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          className="flex items-center justify-center overflow-hidden text-gray-400 transition-[height] duration-150"
+          style={{ height: refreshing ? 40 : Math.max(0, pullDistance * 0.55) }}
+          aria-live="polite"
+        >
+          <Loader2
+            className={cn("h-4 w-4", refreshing || pullDistance > 48 ? "animate-spin" : "")}
+          />
+        </div>
+      )}
+      {pendingNewCount > 0 && (
+        <div className="sticky top-0 z-20 flex justify-center py-2">
+          <button
+            type="button"
+            onClick={() => void load(undefined, { refresh: true })}
+            className="rounded-full bg-[#FF5A1F] px-3.5 py-1.5 text-[12px] font-semibold text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+          >
+            {pendingNewCount === 1 ? "1 new post" : `${pendingNewCount} new posts`}
+          </button>
+        </div>
+      )}
       {posts.map((post, index) => (
         <article
           key={post.id}
-          className="bg-transparent px-0.5 py-5 transition-colors first:pt-4 hover:bg-[var(--color-surface)]/40"
+          className="bg-transparent px-0.5 py-3.5 transition-colors first:pt-3 hover:bg-[var(--color-surface)]/40"
         >
-          <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="mb-2.5 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               {post.author.profileHref ? (
                 <Link
@@ -488,7 +693,7 @@ export function FeedPostCard({
                   <span className="text-[12px] text-gray-300">·</span>
                   <span className="text-[12px] text-gray-400">{post.timestamp}</span>
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   {post.communitySlug && post.communityName ? (
                     <Link
                       href={`/communities/${post.communitySlug}`}
@@ -504,10 +709,6 @@ export function FeedPostCard({
                       Pinned
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500">
-                    <Flame className="h-3 w-3 text-orange-500" />
-                    Lv. {post.author.level} Creator
-                  </span>
                 </div>
               </div>
             </div>
@@ -527,16 +728,18 @@ export function FeedPostCard({
               </span>
             )}
             {post.title && (
-              <h3 className="mb-1.5 min-w-0 break-words text-[15px] font-semibold leading-snug text-gray-900 dark:text-[var(--color-text-primary)]">
+              <h3 className="mb-1 min-w-0 break-words text-[15px] font-semibold leading-snug text-gray-900 dark:text-[var(--color-text-primary)]">
                 {post.title}
               </h3>
             )}
-            <p className="mb-3 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
-              {post.body}
-            </p>
+            {post.body ? (
+              <p className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
+                {post.body}
+              </p>
+            ) : null}
 
             {post.media?.type === "video" && (
-              <div className="mb-3">
+              <div className="mb-2.5 overflow-hidden rounded-2xl">
                 <FeedVideoPlayer
                   src={post.media.src}
                   poster={post.media.thumbnail || undefined}
@@ -544,15 +747,17 @@ export function FeedPostCard({
               </div>
             )}
             {post.media?.type === "image" && (
-              <div className="mb-3 overflow-hidden rounded-2xl">
+              <div className="mb-2.5 overflow-hidden rounded-2xl bg-gray-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={post.media.thumbnail}
                   alt={post.body.slice(0, 80) || post.author.name}
-                  width={800}
-                  height={450}
                   loading={index < 2 ? "eager" : "lazy"}
                   decoding="async"
-                  className="aspect-video w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                  className="max-h-[70vh] w-full object-contain"
                 />
               </div>
             )}
@@ -595,13 +800,6 @@ export function FeedPostCard({
                   <Share2 className="h-4 w-4" />
                   {post.engagement.shares}
                 </button>
-                <button
-                  type="button"
-                  aria-label="More actions"
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -613,7 +811,7 @@ export function FeedPostCard({
           <Loader2 className="h-5 w-5 animate-spin" aria-label="Loading more posts" />
         </div>
       )}
-      {!loading && !loadingMore && !hasMore && posts.length > 0 && (
+      {!loading && !loadingMore && !refreshing && !hasMore && posts.length > 0 && (
         <p className="py-6 text-center text-[12px] text-gray-400">You’re all caught up</p>
       )}
     </div>
