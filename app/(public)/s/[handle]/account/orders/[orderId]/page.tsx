@@ -93,7 +93,13 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     { key: "delivered" as const, label: "Delivered" },
   ];
 
-  const items = Array.isArray(order.order_items) ? order.order_items : [];
+  const items = (Array.isArray(order.order_items) ? order.order_items : []) as Array<{
+    id: string;
+    product_name?: string;
+    product_image?: string | null;
+    quantity?: number;
+    total_price?: number;
+  }>;
   const currency = order.currency || store.default_currency || "USD";
 
   return (
@@ -156,14 +162,7 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
       ) : null}
 
       <ul className="mt-8 space-y-3">
-        {items.map((item) => {
-          const row = item as {
-            id: string;
-            product_name?: string;
-            product_image?: string | null;
-            quantity?: number;
-            total_price?: number;
-          };
+        {items.map((row) => {
           return (
             <li
               key={row.id}
