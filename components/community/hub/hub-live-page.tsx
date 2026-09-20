@@ -45,7 +45,6 @@ import { canonicalLiveUrl } from "@/lib/live/live-url";
 import { copyTextToClipboard } from "@/lib/live/native-share";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
-import { LiveDestinationsStudioLink } from "./live/LiveDestinationsStudioLink";
 import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
 import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
@@ -577,13 +576,20 @@ export function HubLivePage({
   }, [updateDrawer]);
 
   const openRight = useCallback(
-    (tab: RightTab) => {
-      updateDrawer({ rightOpen: true, rightTab: tab });
+    (_tab?: RightTab) => {
+      // Live Studio right rail is Chat-only — ignore secondary tab requests.
+      updateDrawer({ rightOpen: true, rightTab: "chat" });
       setChatIdle(false);
       setFocusMode(false);
     },
     [updateDrawer]
   );
+
+  useEffect(() => {
+    if (drawer.rightTab !== "chat") {
+      updateDrawer({ rightTab: "chat" });
+    }
+  }, [drawer.rightTab, updateDrawer]);
 
   const gate = useCallback(
     (allowed: boolean, message: string) => {
@@ -901,7 +907,7 @@ export function HubLivePage({
       if (k === "p") {
         if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
         setHasPolls(true);
-        openRight("polls");
+        openRight("chat");
         void live
           .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
           .catch(() => undefined);
@@ -1307,18 +1313,9 @@ export function HubLivePage({
   }, [liveChat.messages, data?.chatMessages, live.presenceEvents]);
 
   const visibleRightTabs = useMemo(() => {
-    return RIGHT_TABS.filter((t) => {
-      if (t.id === "clips") return false;
-      if (
-        t.id === "events" &&
-        (data?.upcomingSessions?.length ?? 0) === 0 &&
-        (data?.relatedRooms?.length ?? 0) === 0 &&
-        drawer.rightTab !== "events"
-      )
-        return false;
-      return true;
-    });
-  }, [data, drawer.rightTab]);
+    // Live Studio right rail is Chat-only.
+    return RIGHT_TABS.filter((t) => t.id === "chat");
+  }, []);
 
   const copyLiveLink = useCallback(async () => {
     if (!live.session?.id) {
@@ -1435,15 +1432,10 @@ export function HubLivePage({
     <div className="space-y-5">
       <div>
         <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-          Live Settings
-        </p>
-        <p className="mb-3 px-1 text-[12px] text-neutral-500">
-          Devices, destinations, and studio preferences.
+          Settings
         </p>
       </div>
       <SettingsPanel
-      mode={mode}
-      onMode={persistMode}
       title={displayTitle}
       canEditTitle={canEditLiveTitle}
       onSaveTitle={
@@ -1994,16 +1986,15 @@ export function HubLivePage({
                     onEnableMedia={
                       live.userId ? () => void enableStudioMedia() : undefined
                     }
+                    onStreamDestinations={
+                      live.userId
+                        ? () => {
+                            toggleLeft("settings");
+                          }
+                        : undefined
+                    }
                     onToggleMic={() => void toggleMic()}
                     onToggleCam={() => void toggleCam()}
-                    destinationsHint={
-                      live.userId ? (
-                        <LiveDestinationsStudioLink
-                          dest={destinations}
-                          onOpenSettings={() => toggleLeft("settings")}
-                        />
-                      ) : null
-                    }
                   />
                 </div>
               )}
@@ -2040,20 +2031,21 @@ export function HubLivePage({
               onPoll={() => {
                 if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
                 setHasPolls(true);
-                openRight("polls");
+                openRight("chat");
                 void live
                   .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
                   .catch(() => undefined);
+                showToast("Poll launched — chat stays open");
               }}
               onInvite={() => {
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
               }}
               onReact={() => openRight("chat")}
-              onQa={() => openRight("qa")}
+              onQa={() => openRight("chat")}
               onCopyLink={openShareSheet}
               onFullscreen={() => setFocusMode(true)}
-              onMore={() => openRight("tools")}
+              onMore={() => openRight("chat")}
               onEnd={() => setConfirmDialog("end")}
               onLeave={() => void leaveLive()}
               canEnd={canEndLive(live.myRole)}

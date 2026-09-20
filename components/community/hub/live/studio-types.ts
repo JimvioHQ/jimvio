@@ -67,7 +67,13 @@ export const LEFT_TOOLS: { id: Exclude<LeftPanel, "none">; label: string; icon: 
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+/** Primary Live Studio right rail — Chat only. Other tools stay available via dock/More. */
 export const RIGHT_TABS: { id: RightTab; label: string }[] = [
+  { id: "chat", label: "Chat" },
+];
+
+/** Full tab registry retained for drawer state validation / secondary entry points. */
+export const ALL_RIGHT_TABS: { id: RightTab; label: string }[] = [
   { id: "chat", label: "Chat" },
   { id: "qa", label: "Q&A" },
   { id: "polls", label: "Polls" },

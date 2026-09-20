@@ -646,8 +646,6 @@ export function LayoutPanel({
 }
 
 export function SettingsPanel({
-  mode,
-  onMode,
   title,
   onSaveTitle,
   canEditTitle,
@@ -668,8 +666,10 @@ export function SettingsPanel({
   onChatEnabled,
   canManageChat = false,
 }: {
-  mode: StudioMode;
-  onMode: (m: StudioMode) => void;
+  /** @deprecated unused */
+  mode?: StudioMode;
+  /** @deprecated unused */
+  onMode?: (m: StudioMode) => void;
   title?: string;
   onSaveTitle?: (next: string) => Promise<void> | void;
   canEditTitle?: boolean;
@@ -879,37 +879,6 @@ export function SettingsPanel({
           </button>
         </div>
       ) : null}
-
-      <div>
-        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-          Workspace mode
-        </p>
-        <div className="space-y-1">
-          {(
-            [
-              ["minimal", "Minimal"],
-              ["creator", "Creator"],
-              ["studio", "Studio"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onMode(id)}
-              className={cn(
-                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] transition-colors duration-150",
-                mode === id ? "bg-neutral-900 text-white" : "hover:bg-neutral-50"
-              )}
-            >
-              {label}
-              {mode === id && <Check className="h-3.5 w-3.5" />}
-            </button>
-          ))}
-        </div>
-      </div>
-      <p className="text-[12px] leading-relaxed text-neutral-400">
-        Shortcuts: ⌘K command · M mic · V camera · S share · R record · P poll · Esc close · Double-click stage for Focus
-      </p>
     </div>
   );
 }

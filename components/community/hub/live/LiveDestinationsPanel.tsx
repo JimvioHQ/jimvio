@@ -324,11 +324,10 @@ export function LiveDestinationsPanel({
           );
 
           if (connected.length === 0) {
-            const requiresApproval = entry.status === "requires_approval";
+            // Account connect parity: TikTok Login Kit uses Connect like YouTube/Twitch.
+            // Do not surface LIVE App Review as the primary card status when Connect is available.
             const canConnectAccount = Boolean(entry.connectPath);
-            const rowStatus = requiresApproval
-              ? "requires_approval"
-              : "not_connected";
+            const rowStatus = "not_connected";
 
             return (
               <li key={entry.platform} className={t.row}>
@@ -338,9 +337,6 @@ export function LiveDestinationsPanel({
                     <span className={t.name}>{entry.label}</span>
                     <span className={t.meta}>{statusLabel(rowStatus)}</span>
                   </div>
-                  {requiresApproval && entry.platform === "tiktok" && !canConnectAccount ? (
-                    <p className={t.message}>Live API access pending App Review</p>
-                  ) : null}
                 </div>
                 {canConnectAccount ? (
                   <button
@@ -350,10 +346,6 @@ export function LiveDestinationsPanel({
                   >
                     Connect
                   </button>
-                ) : requiresApproval ? (
-                  <span className={t.badge} aria-label="Approval required">
-                    Pending
-                  </span>
                 ) : null}
               </li>
             );
@@ -361,23 +353,22 @@ export function LiveDestinationsPanel({
 
           return connected.map((d) => {
             const sess = sessionByDest.get(d.id);
+            // Account OAuth connected → show Connected (TikTok Login Kit included).
+            // Session status (preparing/live/failed) overrides when actively streaming.
             const accountConnected =
-              d.accountConnected && d.status === "connected";
+              d.accountConnected || d.status === "connected";
             const rowStatus =
               sess?.status ??
               (d.status === "reconnect_required"
                 ? "reconnect_required"
                 : accountConnected
                   ? "connected"
-                  : d.requiresApproval
-                    ? "requires_approval"
-                    : d.status === "connected"
-                      ? "connected"
-                      : "reconnect_required");
+                  : "not_connected");
             const selected = dest.selectedIds.includes(d.id);
             const canEnableLive =
               d.liveStreamingAllowed !== false &&
-              d.status !== "reconnect_required";
+              d.status !== "reconnect_required" &&
+              accountConnected;
 
             return (
               <DestinationRow
@@ -392,11 +383,7 @@ export function LiveDestinationsPanel({
                 subtitle={
                   d.status === "reconnect_required"
                     ? "Authorization expired"
-                    : d.platform === "tiktok" &&
-                        d.accountConnected &&
-                        d.requiresApproval
-                      ? "Account linked · Live needs App Review"
-                      : undefined
+                    : undefined
                 }
                 lastError={sess?.lastError ?? d.lastError}
                 canEnable={canEnableLive}

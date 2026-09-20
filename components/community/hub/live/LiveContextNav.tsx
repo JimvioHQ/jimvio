@@ -2,10 +2,7 @@
 
 import { memo, useMemo } from "react";
 import {
-  BarChart3,
-  ClipboardList,
   Flag,
-  HelpCircle,
   LayoutGrid,
   MessageSquare,
   Share2,
@@ -30,7 +27,6 @@ function LiveContextNavImpl({
   leftPanel,
   rightTab,
   viewerCount,
-  qaCount,
   onOverview,
   onOpenLeft,
   onOpenRight,
@@ -75,30 +71,8 @@ function LiveContextNavImpl({
         active: rightTab === "chat",
         onClick: () => onOpenRight("chat"),
       },
-      {
-        id: "qa",
-        label: "Q&A",
-        icon: HelpCircle,
-        badge: qaCount && qaCount > 0 ? qaCount : undefined,
-        active: rightTab === "qa",
-        onClick: () => onOpenRight("qa"),
-      },
-      {
-        id: "polls",
-        label: "Polls",
-        icon: ClipboardList,
-        active: rightTab === "polls",
-        onClick: () => onOpenRight("polls"),
-      },
-      {
-        id: "analytics",
-        label: "Analytics",
-        icon: BarChart3,
-        active: rightTab === "analytics",
-        onClick: () => onOpenRight("analytics"),
-      },
     ],
-    [leftPanel, rightTab, viewerCount, qaCount, onOverview, onOpenLeft, onOpenRight]
+    [leftPanel, rightTab, viewerCount, onOverview, onOpenLeft, onOpenRight]
   );
 
   const quick: NavItem[] = useMemo(
