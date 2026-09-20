@@ -132,6 +132,9 @@ export interface PesapalOrderParams {
   currency: string
   description: string
   ipnId: string
+  /** Customer browser return after payment (merchant host when store order). */
+  callbackUrl?: string
+  cancellationUrl?: string
   buyer: {
     email: string
     firstName: string
@@ -236,13 +239,14 @@ export async function createPesapalOrder(params: PesapalOrderParams) {
     description,
     /** Per API 3.0 docs — full top-level redirect (avoids iframe/parent-window quirks with their card UI). */
     redirect_mode: "TOP_WINDOW",
-    callback_url: `${appUrl}/checkout/success`,
+    callback_url: params.callbackUrl || `${appUrl}/checkout/success`,
     notification_id: params.ipnId,
     billing_address,
   }
 
-  if (appUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(appUrl)) {
-    payload.cancellation_url = `${appUrl}/checkout/cancel`
+  const cancelUrl = params.cancellationUrl || `${appUrl}/checkout/cancel`
+  if (cancelUrl && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(cancelUrl)) {
+    payload.cancellation_url = cancelUrl
   }
 
   console.log('[PesaPal] Submitting order:', {

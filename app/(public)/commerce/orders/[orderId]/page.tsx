@@ -6,6 +6,7 @@ import {
   listVendorJimvioStores,
 } from "@/lib/commerce-os";
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
+import { CommerceOrderFulfillmentPanel } from "@/components/commerce-os/commerce-order-fulfillment-panel";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export default async function CommerceOrderDetailPage({
       `
       id, order_number, total_amount, subtotal, shipping_amount, discount_amount,
       currency, payment_status, status, created_at, shipping_address, metadata,
-      jimvio_store_id, buyer_id,
+      jimvio_store_id, buyer_id, tracking_number, cj_order_id,
       order_items (
         id, product_name, product_image, quantity, unit_price, total_price, sku
       )
@@ -166,6 +167,23 @@ export default async function CommerceOrderDetailPage({
               </>
             ) : null}
           </p>
+        </CommerceCard>
+      ) : null}
+
+      {order.jimvio_store_id ? (
+        <CommerceCard className="p-5">
+          <h2 className="text-sm font-semibold text-[#111827]">Fulfillment</h2>
+          <div className="mt-3">
+            <CommerceOrderFulfillmentPanel
+              orderId={order.id}
+              status={order.status}
+              paymentStatus={order.payment_status}
+              trackingNumber={
+                (order as { tracking_number?: string | null }).tracking_number
+              }
+              isCj={Boolean((order as { cj_order_id?: string | null }).cj_order_id)}
+            />
+          </div>
         </CommerceCard>
       ) : null}
     </div>

@@ -1437,7 +1437,10 @@ function BrandPanel({
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#9CA3AF]">Brand</p>
+        <p className="mb-1 text-xs font-semibold">Store logo</p>
+        <p className="mb-2 text-[11px] text-[#6B7280]">
+          Used in your storefront header.
+        </p>
         <div className="mt-2 flex items-center gap-3">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -1502,7 +1505,10 @@ function BrandPanel({
         </div>
       </div>
       <div>
-        <p className="mb-2 text-xs font-semibold">Favicon</p>
+        <p className="mb-1 text-xs font-semibold">Favicon</p>
+        <p className="mb-2 text-[11px] text-[#6B7280]">
+          Used in browser tabs and bookmarks. Never auto-copied from your logo.
+        </p>
         <CloudinaryUploadButton
           folder="jimvio/vendor-logos"
           resourceType="image"

@@ -27,24 +27,81 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token"); // PayPal order ID
   const orderId = searchParams.get("orderId"); // Our Jimvio order ID
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+
+  async function successRedirect(id: string) {
+    const { data: row } = await supabase
+      .from("orders")
+      .select("jimvio_store_id")
+      .eq("id", id)
+      .maybeSingle();
+    const storeId = (row as { jimvio_store_id?: string | null } | null)?.jimvio_store_id;
+    let handle: string | null = null;
+    if (storeId) {
+      const { data: store } = await supabase
+        .from("jimvio_stores")
+        .select("handle")
+        .eq("id", storeId)
+        .maybeSingle();
+      handle = store?.handle ?? null;
+    }
+    const { buildCustomerPaymentReturnUrls } = await import(
+      "@/lib/payments/customer-return-origin"
+    );
+    return NextResponse.redirect(
+      buildCustomerPaymentReturnUrls({ orderId: id, storeHandle: handle }).successUrl,
+    );
+  }
+
+  async function cancelRedirect(reason: string, id?: string | null) {
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.jimvio.com").replace(
+      /\/$/,
+      "",
+    );
+    if (!id) {
+      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=${reason}`);
+    }
+    const { data: row } = await supabase
+      .from("orders")
+      .select("jimvio_store_id")
+      .eq("id", id)
+      .maybeSingle();
+    const storeId = (row as { jimvio_store_id?: string | null } | null)?.jimvio_store_id;
+    let handle: string | null = null;
+    if (storeId) {
+      const { data: store } = await supabase
+        .from("jimvio_stores")
+        .select("handle")
+        .eq("id", storeId)
+        .maybeSingle();
+      handle = store?.handle ?? null;
+    }
+    const { buildCustomerPaymentReturnUrls } = await import(
+      "@/lib/payments/customer-return-origin"
+    );
+    const urls = buildCustomerPaymentReturnUrls({
+      orderId: id,
+      storeHandle: handle,
+      queryExtra: { reason },
+    });
+    return NextResponse.redirect(urls.cancelUrl);
+  }
 
   if (!token || !orderId || !isUuid(orderId)) {
-    return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=missing_params`);
+    return cancelRedirect("missing_params");
   }
 
   try {
     const capture = await capturePayPalOrder(token);
 
     if (capture.status !== "COMPLETED") {
-      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=capture_failed`);
+      return cancelRedirect("capture_failed", orderId);
     }
 
     const captureUnit = capture.purchase_units?.[0]?.payments?.captures?.[0];
     const captureId = captureUnit?.id ?? null;
     const customId = capture.purchase_units?.[0]?.custom_id;
     if (!customId || customId !== orderId) {
-      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=order_mismatch`);
+      return cancelRedirect("order_mismatch", orderId);
     }
 
     // Check order status
@@ -55,12 +112,12 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     if (!order) {
-      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=order_not_found`);
+      return cancelRedirect("order_not_found", orderId);
     }
 
     // Already completed (webhook arrived first) — go straight to success
     if (isOrderPaymentComplete(order.payment_status)) {
-      return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
+      return successRedirect(orderId);
     }
 
     const receivedAmount = captureUnit?.amount?.value != null
@@ -84,7 +141,7 @@ export async function GET(req: NextRequest) {
         expectedAmount,
         expectedCurrency,
       });
-      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=amount_mismatch`);
+      return cancelRedirect("amount_mismatch", orderId);
     }
 
     // Bind pending create-order row (PayPal order id) to capture id for finalize lock.
@@ -144,9 +201,9 @@ export async function GET(req: NextRequest) {
       })
       .eq("id", orderId);
 
-    return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
+    return successRedirect(orderId);
   } catch (err) {
     console.error("[PayPal capture]", err);
-    return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=server_error`);
+    return cancelRedirect("server_error", orderId);
   }
 }

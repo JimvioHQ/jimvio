@@ -55,8 +55,10 @@ export async function logWebhookEvent(
       .single();
 
     if (existing) {
+      // Any prior receipt of this key is a duplicate — including in-flight
+      // "received" rows — so concurrent webhook retries cannot double-finalize.
       return {
-        isDuplicate: existing.status === "processed",
+        isDuplicate: true,
         eventId: existing.id,
       };
     }

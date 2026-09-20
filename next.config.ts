@@ -51,14 +51,68 @@ const nextConfig: NextConfig = {
         destination: "https://www.jimvio.com/:path*",
         permanent: true,
       },
-      { source: "/products", destination: "/marketplace", permanent: true },
-      { source: "/products/:path*", destination: "/marketplace/:path*", permanent: true },
-      { source: "/affiliate", destination: "/affiliates", permanent: true },
-      { source: "/affiliate/:path*", destination: "/affiliates/:path*", permanent: true },
-      { source: "/earn", destination: "/affiliates", permanent: true },
-      { source: "/campaigns", destination: "/ugc", permanent: true },
-      { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
-      { source: "/creators/:path*", destination: "/influencers/:path*", permanent: true },
+      // Platform-only marketplace aliases. Merchant hosts (*.jimvio.com) must
+      // NOT hit these — proxy maps /products → /s/{handle}/collections/all.
+      {
+        source: "/products",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/marketplace",
+        permanent: true,
+      },
+      {
+        source: "/products/:path*",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/marketplace/:path*",
+        permanent: true,
+      },
+      {
+        source: "/products",
+        has: [{ type: "host", value: "localhost" }],
+        destination: "/marketplace",
+        permanent: false,
+      },
+      {
+        source: "/products/:path*",
+        has: [{ type: "host", value: "localhost" }],
+        destination: "/marketplace/:path*",
+        permanent: false,
+      },
+      {
+        source: "/affiliate",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/affiliates",
+        permanent: true,
+      },
+      {
+        source: "/affiliate/:path*",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/affiliates/:path*",
+        permanent: true,
+      },
+      {
+        source: "/earn",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/affiliates",
+        permanent: true,
+      },
+      {
+        source: "/campaigns",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/ugc",
+        permanent: true,
+      },
+      {
+        source: "/listings/:path*",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/marketplace/:path*",
+        permanent: true,
+      },
+      {
+        source: "/creators/:path*",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/influencers/:path*",
+        permanent: true,
+      },
       { source: "/vendors/jimvio-dropshipping", destination: "/vendors/jimvio-store", permanent: true },
       // Canonical Physical Marketplace (avoid duplicate ?type=physical indexation)
       {

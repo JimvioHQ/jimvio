@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const { data: order, error } = await supabase
       .from("orders")
-      .select("id, order_number, total_amount, currency, payment_status, buyer_id, paypal_order_id")
+      .select("id, order_number, total_amount, currency, payment_status, buyer_id, paypal_order_id, jimvio_store_id")
       .eq("id", orderId)
       .eq("buyer_id", session.user.id)
       .single();
@@ -44,10 +44,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order already paid" }, { status: 400 });
     }
 
-    const origin =
-      req.headers.get("origin") ||
+    let storeHandle: string | null = null;
+    const storeId = (order as { jimvio_store_id?: string | null }).jimvio_store_id;
+    if (storeId) {
+      const { data: storeRow } = await supabase
+        .from("jimvio_stores")
+        .select("handle")
+        .eq("id", storeId)
+        .maybeSingle();
+      storeHandle = storeRow?.handle ?? null;
+    }
+    const { buildCustomerPaymentReturnUrls, resolveTrustedRequestOrigin } = await import(
+      "@/lib/payments/customer-return-origin"
+    );
+    const returns = buildCustomerPaymentReturnUrls({
+      orderId,
+      storeHandle,
+      request: req,
+      queryExtra: { provider: "paypal" },
+    });
+    const apiOrigin =
+      resolveTrustedRequestOrigin(req) ||
+      returns.origin ||
       process.env.NEXT_PUBLIC_APP_URL ||
-      "https://jimvio.com";
+      "https://www.jimvio.com";
 
     // Idempotent reuse only when PayPal order still matches Jimvio total.
     if (order.paypal_order_id) {
@@ -84,8 +104,8 @@ export async function POST(req: NextRequest) {
       amount: paypalTotals.amount,
       currency: paypalTotals.currency,
       description: `Jimvio Order ${order.order_number || orderId.slice(0, 8)}`,
-      returnUrl: `${origin}/api/payments/paypal/capture?orderId=${orderId}`,
-      cancelUrl: `${origin}/checkout/cancel?order=${orderId}&provider=paypal`,
+      returnUrl: `${apiOrigin.replace(/\/$/, "")}/api/payments/paypal/capture?orderId=${orderId}`,
+      cancelUrl: returns.cancelUrl,
     });
 
     // Save PayPal order ID to our DB immediately

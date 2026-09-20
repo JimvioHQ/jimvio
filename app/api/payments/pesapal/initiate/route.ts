@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
         currency,
         shipping_address,
         buyer_id,
+        jimvio_store_id,
         profiles!orders_buyer_id_fkey (
           full_name,
           email,
@@ -111,10 +112,13 @@ export async function POST(req: NextRequest) {
       let amountUSD = rawTotal
       if (orderCurrency !== 'USD') {
         // Convert non-USD order to USD first, then to RWF
-        amountUSD = await convertToUSD(rawTotal, orderCurrency as any)
+        amountUSD = await convertToUSD(
+          rawTotal,
+          orderCurrency as import('@/lib/currency/config').CurrencyCode,
+        )
       }
 
-      const rwfRaw = await convertFromUSD(amountUSD, 'RWF' as any)
+      const rwfRaw = await convertFromUSD(amountUSD, "RWF")
       amount = Math.max(1, Math.round(rwfRaw))
       currency = 'RWF'
     }
@@ -138,12 +142,34 @@ export async function POST(req: NextRequest) {
     // PesaPal max length for merchant reference is 50 chars. UUID (36) + timestamp (13/14) = ~50
     const merchantRef = `${primaryOrderId}:${Date.now()}`
 
+    let storeHandle: string | null = null
+    const storeId = (order as { jimvio_store_id?: string | null }).jimvio_store_id
+    if (storeId) {
+      const { data: storeRow } = await supabase
+        .from('jimvio_stores')
+        .select('handle')
+        .eq('id', storeId)
+        .maybeSingle()
+      storeHandle = storeRow?.handle ?? null
+    }
+    const { buildCustomerPaymentReturnUrls } = await import(
+      '@/lib/payments/customer-return-origin'
+    )
+    const returns = buildCustomerPaymentReturnUrls({
+      orderId: primaryOrderId,
+      storeHandle,
+      request: req,
+      queryExtra: { provider: 'pesapal' },
+    })
+
     const result = await createPesapalOrder({
       jimvioOrderId: merchantRef, // Use unique Ref to avoid PesaPal rejection on repeat attempts
       amount,
       currency,
       description,
       ipnId,
+      callbackUrl: returns.successUrl,
+      cancellationUrl: returns.cancelUrl,
       buyer: {
         email,
         firstName,

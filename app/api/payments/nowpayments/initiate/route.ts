@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
         order_number,
         total_amount,
         currency,
+        jimvio_store_id,
         profiles!orders_buyer_id_fkey (
           email
         ),
@@ -65,10 +66,31 @@ export async function POST(req: NextRequest) {
       order.currency
     )
 
-    const lineItems = orders.flatMap(o => (o.order_items as any[] || []))
+    const lineItems = orders.flatMap(o => ((o.order_items as unknown[]) || []))
     const description = orders.length === 1 
       ? buildNowPaymentsOrderDescription(order.order_number, lineItems)
       : `Jimvio Bundle (${orders.length} vendors)`
+
+    let storeHandle: string | null = null
+    const storeId = (order as { jimvio_store_id?: string | null }).jimvio_store_id
+    if (storeId) {
+      const { data: storeRow } = await supabase
+        .from('jimvio_stores')
+        .select('handle')
+        .eq('id', storeId)
+        .maybeSingle()
+      storeHandle = storeRow?.handle ?? null
+    }
+
+    const { buildCustomerPaymentReturnUrls } = await import(
+      '@/lib/payments/customer-return-origin'
+    )
+    const returns = buildCustomerPaymentReturnUrls({
+      orderId: primaryOrderId,
+      storeHandle,
+      request: req,
+      queryExtra: { provider: 'nowpayments' },
+    })
 
     const result = await createNowPaymentsInvoice({
       jimvioOrderId: primaryOrderId,
@@ -77,6 +99,8 @@ export async function POST(req: NextRequest) {
       payCurrency,
       description,
       buyerEmail:    buyerProfile?.email || '',
+      successUrl:    returns.successUrl,
+      cancelUrl:     returns.cancelUrl,
     })
 
     const invoiceId = String(result.invoiceId || `nowp-inv-${primaryOrderId}-${Date.now()}`)

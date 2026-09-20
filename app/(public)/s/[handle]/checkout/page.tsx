@@ -159,21 +159,12 @@ export default async function StorefrontCheckoutPage({
     redirect(`${cartHref}?error=order_not_found`);
   }
 
-  // Tenant guard: order must belong to this store (or be attributable).
+  // Tenant guard: order must already belong to this store. Never attach
+  // unscoped marketplace orders onto a merchant checkout (attribution hijack).
   const orderStoreId = (rawOrder as { jimvio_store_id?: string | null })
     .jimvio_store_id;
-  if (orderStoreId && orderStoreId !== store.id) {
+  if (!orderStoreId || orderStoreId !== store.id) {
     redirect(`${cartHref}?error=order_not_found`);
-  }
-  if (!orderStoreId) {
-    // Attach store attribution if missing (legacy / cookie race) — admin only.
-    await cosTable(createAdminClient(), "orders")
-      .update({
-        jimvio_store_id: store.id,
-        order_channel: "jimvio_store",
-      } as never)
-      .eq("id", orderId)
-      .eq("buyer_id", user.id);
   }
 
   const order = {

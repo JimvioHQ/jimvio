@@ -8,6 +8,7 @@ import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 import { requireSessionUser } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
+import { resolveTrustedRequestOrigin } from "@/lib/payments/customer-return-origin";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
@@ -37,12 +38,6 @@ const RequestSchema = z.object({
 
 const TERMINAL_STATUSES = new Set(["paid", "completed", "refunded"]);
 const PENDING_TX_REUSE_WINDOW_MS = 60 * 60 * 1000;
-
-const ALLOWED_RETURN_HOSTS = new Set([
-  "jimvio.com",
-  "www.jimvio.com",
-  "localhost",
-]);
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
 
@@ -94,28 +89,24 @@ function safeReturnUrl(
 async function buildAndReturnPaymentLink({
   supabase,
   req,
-  returnUrl,
   orderId,
   txRef,
   amount,
   currency,
   profile,
   order,
-  channel,
 }: {
   supabase: ReturnType<typeof getSupabase>;
   req: NextRequest;
-  returnUrl: string | undefined;
   orderId: string;
   txRef: string;
   amount: number;
   currency: "USD";
   profile: ProfileRow;
   order: { order_number: string | null };
-  channel: string;
 }) {
   const origin =
-    req.headers.get("origin") ??
+    resolveTrustedRequestOrigin(req) ??
     "https://www.jimvio.com";
 
   const redirectUrl = safeReturnUrl(origin, orderId, txRef);
@@ -166,7 +157,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const { orderId, channel, returnUrl } = body;
+  const { orderId, channel } = body;
 
   try {
     const session = await requireSessionUser();
@@ -303,7 +294,7 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await buildAndReturnPaymentLink({
-          supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
+          supabase, req, orderId, txRef, amount, currency, profile, order,
         });
         if (result.error) return result.error;
         return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });
@@ -349,7 +340,7 @@ export async function POST(req: NextRequest) {
 
     // ── 5. Build and return payment link ──────────────────────────────────
     const result = await buildAndReturnPaymentLink({
-      supabase, req, returnUrl, orderId, txRef, amount, currency, profile, order, channel,
+      supabase, req, orderId, txRef, amount, currency, profile, order,
     });
     if (result.error) return result.error;
     return NextResponse.json({ redirectUrl: result.redirectUrl, txRef });

@@ -25,21 +25,48 @@ export async function GET(req: NextRequest) {
     const transactionId = searchParams.get("transaction_id");
     const orderId = searchParams.get("order");
 
-    const appUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+    async function customerOriginForOrder(id: string | null): Promise<string> {
+        const fallback = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+        if (!id) return fallback;
+        try {
+            const { data: row } = await supabase
+                .from("orders")
+                .select("jimvio_store_id")
+                .eq("id", id)
+                .maybeSingle();
+            const storeId = (row as { jimvio_store_id?: string | null } | null)?.jimvio_store_id;
+            if (!storeId) return fallback;
+            const { data: store } = await supabase
+                .from("jimvio_stores")
+                .select("handle")
+                .eq("id", storeId)
+                .maybeSingle();
+            const { storefrontCustomerOrigin } = await import(
+                "@/lib/payments/customer-return-origin"
+            );
+            return storefrontCustomerOrigin(store?.handle) ?? fallback;
+        } catch {
+            return fallback;
+        }
+    }
 
-    const redirect = (path: string) =>
-        NextResponse.redirect(new URL(path, appUrl));
+    const redirect = async (path: string, forOrderId?: string | null) => {
+        const origin = await customerOriginForOrder(forOrderId ?? orderId);
+        return NextResponse.redirect(new URL(path, origin));
+    };
 
     // ── Cancelled / failed redirect: never mutate orders from query params ──
     if (status === "failed" || status === "cancelled") {
-        return redirect(
-            `/checkout/cancel?reason=payment_${status}&order=${orderId || ""}`
+        return await redirect(
+            `/checkout/cancel?reason=payment_${status}&order=${orderId || ""}`,
+            orderId
         );
     }
 
     if (!txRef || !transactionId) {
-        return redirect(
-            `/checkout/cancel?reason=invalid&order=${orderId || ""}`
+        return await redirect(
+            `/checkout/cancel?reason=invalid&order=${orderId || ""}`,
+            orderId
         );
     }
 
@@ -54,7 +81,7 @@ export async function GET(req: NextRequest) {
                 .eq("provider", "flutterwave")
                 .eq("status", "pending");
 
-            return redirect(
+            return await redirect(
                 `/checkout/cancel?reason=verification_failed&order=${orderId || ""}`
             );
         }
@@ -82,7 +109,7 @@ export async function GET(req: NextRequest) {
                     verifiedCurrency: txData.currency ?? "USD",
                 });
                 if (dep.credited || dep.amount > 0) {
-                    return redirect(`/wallet/deposits?status=success&deposit=${depositParam}`);
+                    return await redirect(`/wallet/deposits?status=success&deposit=${depositParam}`);
                 }
             }
             const byRef = await completeWalletDepositByReference(supabase, {
@@ -92,7 +119,7 @@ export async function GET(req: NextRequest) {
                 verifiedCurrency: txData.currency ?? "USD",
             });
             if (byRef.handled) {
-                return redirect(`/wallet/deposits?status=success`);
+                return await redirect(`/wallet/deposits?status=success`);
             }
 
             const ugc = await confirmUgcEscrowPayment(supabase, {
@@ -104,14 +131,14 @@ export async function GET(req: NextRequest) {
                 provider: "flutterwave",
             });
             if (ugc.handled) {
-                return redirect(
+                return await redirect(
                     `/ugc/campaign-center/${ugc.campaignId}/fund?funded=${ugc.activated ? "1" : "pending"}`,
                 );
             }
-            return redirect(`/checkout/cancel?reason=order_not_found`);
+            return await redirect(`/checkout/cancel?reason=order_not_found`);
         }
         if (orderId && orderId !== resolvedOrderId) {
-            return redirect(`/checkout/cancel?reason=order_mismatch`);
+            return await redirect(`/checkout/cancel?reason=order_mismatch`);
         }
 
         // ── Fetch order to check current status ───────────────────────────────
@@ -122,7 +149,7 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
         if (isOrderPaymentComplete(order?.payment_status)) {
-            return redirect(`/checkout/success?order=${resolvedOrderId}`);
+            return await redirect(`/checkout/success?order=${resolvedOrderId}`);
         }
 
         const { data: txRow } = await supabase
@@ -150,7 +177,7 @@ export async function GET(req: NextRequest) {
                 receivedCurrency,
                 orderId: resolvedOrderId,
             });
-            return redirect(
+            return await redirect(
                 `/checkout/cancel?reason=amount_mismatch&order=${resolvedOrderId}`
             );
         }
@@ -165,11 +192,11 @@ export async function GET(req: NextRequest) {
             webhookReference: `flw-${transactionId}`,
         });
 
-        return redirect(`/checkout/success?order=${resolvedOrderId}`);
+        return await redirect(`/checkout/success?order=${resolvedOrderId}`);
 
     } catch (err) {
         console.error("[Flutterwave callback]", err);
-        return redirect(
+        return await redirect(
             `/checkout/cancel?reason=server_error&order=${orderId || ""}`
         );
     }

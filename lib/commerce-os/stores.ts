@@ -146,7 +146,9 @@ export async function createJimvioStore(
           (input.description && input.description.trim()) || `Shop ${name}`,
       },
       settings: {
-        checkout: { guestCheckout: true },
+        // Guest checkout is intentionally disabled until guest cart/order
+        // ownership is implemented end-to-end. Auth gate remains required.
+        checkout: { guestCheckout: false },
         inventory: { trackInventory: true, continueSellingWhenOutOfStock: false },
         notifications: { orderConfirmation: true },
       },

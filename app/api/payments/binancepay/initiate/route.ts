@@ -188,7 +188,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .select(
-      "id, order_number, total_amount, currency, status, payment_status, metadata"
+      "id, order_number, total_amount, currency, status, payment_status, metadata, jimvio_store_id"
     )
     .eq("id", orderId)
     .eq("buyer_id", user.id)
@@ -238,11 +238,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // ── 5. Validate env ────────────────────────────────────────────────────────
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
     console.error("[binance/create] NEXT_PUBLIC_APP_URL is not set");
     return errorResponse("Server configuration error", 500, req);
   }
+
+  let storeHandle: string | null = null;
+  const storeId = (order as { jimvio_store_id?: string | null }).jimvio_store_id;
+  if (storeId) {
+    const { data: storeRow } = await supabase
+      .from("jimvio_stores")
+      .select("handle")
+      .eq("id", storeId)
+      .maybeSingle();
+    storeHandle = storeRow?.handle ?? null;
+  }
+  const { buildCustomerPaymentReturnUrls } = await import(
+    "@/lib/payments/customer-return-origin"
+  );
+  const returns = buildCustomerPaymentReturnUrls({
+    orderId,
+    storeHandle,
+    request: req,
+    queryExtra: { provider: "binance" },
+  });
 
   // ── 6. Check for a reusable pending transaction ────────────────────────────
   const cutoff = new Date(
@@ -373,8 +392,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       orderAmount: payAmount,
       currency: payCurrency,
       description: `Order ${sanitizedOrderNumber}`,
-      returnUrl: `${appUrl}/checkout/success?orderId=${orderId}`,
-      cancelUrl: `${appUrl}/checkout/cancel?orderId=${orderId}`,
+      returnUrl: returns.successUrl,
+      cancelUrl: returns.cancelUrl,
     });
     console.info("[binance/create] Binance Pay order created", {
       orderId,
