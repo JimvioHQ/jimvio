@@ -172,12 +172,12 @@ export function FeedDiscoverRail({
       .then(([discover, topicPayload, pinPayload]) => {
         if (cancelled) return;
         if (discover) {
-          const nextCommunities =
-            Array.isArray(discover.communities) && discover.communities.length > 0
-              ? discover.communities
-              : initialCommunities;
+          // Prefer discover payload even when empty — never fall back to
+          // SSR editorial seed cards after honesty filters clear the rail.
           setData({
-            communities: nextCommunities,
+            communities: Array.isArray(discover.communities)
+              ? discover.communities
+              : [],
           });
         }
         setTopics(topicPayload?.topics ?? []);

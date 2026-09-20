@@ -160,25 +160,35 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
-    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, is_featured, visibility, visibility_mode, archived_at")
+    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, is_featured, visibility, visibility_mode, archived_at, settings")
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
     .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
-    .limit(limit);
+    .limit(Math.max(limit * 4, 32));
 
   if (error) {
     console.error("Error fetching homepage communities:", error);
     throw error;
   }
-  return (data ?? []).filter(communityIsPubliclyDiscoverable);
+  const { readCommunityEditorialOrigin } = await import(
+    "@/lib/community/editorial-origin"
+  );
+  return (data ?? [])
+    .filter(communityIsPubliclyDiscoverable)
+    .filter(
+      (row) =>
+        readCommunityEditorialOrigin((row as { settings?: unknown }).settings) !==
+        "editorial"
+    )
+    .slice(0, limit);
 }
 
 /** Lighter query for homepage cards — skips owner profile join. */
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v6-${limit}`],
+    [`homepage-communities-v7-${limit}`],
     { revalidate: 120 },
   )();
 }

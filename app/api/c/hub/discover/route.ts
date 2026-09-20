@@ -148,15 +148,12 @@ export async function GET() {
 
   let liveRows: Awaited<ReturnType<typeof loadFeedSidebarLiveNow>> = [];
   let popularUsers: Awaited<ReturnType<typeof loadFeedSidebarPopularUsers>> = [];
-  try {
-    [liveRows, popularUsers] = await Promise.all([
-      loadFeedSidebarLiveNow(8),
-      loadFeedSidebarPopularUsers(user?.id ?? null),
-    ]);
-  } catch {
-    liveRows = [];
-    popularUsers = [];
-  }
+  const [liveResult, popularResult] = await Promise.allSettled([
+    loadFeedSidebarLiveNow(8),
+    loadFeedSidebarPopularUsers(user?.id ?? null),
+  ]);
+  if (liveResult.status === "fulfilled") liveRows = liveResult.value;
+  if (popularResult.status === "fulfilled") popularUsers = popularResult.value;
 
   let trendingRows: TrendingCommunityRow[] = [];
   const rpc = await (supabase as any).rpc("get_trending_communities", {

@@ -73,7 +73,6 @@ export async function loadFeedSidebarPopularUsers(
     is_verified: boolean | null;
     is_active: boolean | null;
     email?: string | null;
-    settings?: unknown;
   };
 
   const candidates: FeedSidebarPopularUser[] = [];
@@ -82,18 +81,7 @@ export async function loadFeedSidebarPopularUsers(
   function isEditorialPersona(profile: ProfileRow | undefined): boolean {
     if (!profile) return false;
     const email = (profile.email ?? "").trim().toLowerCase();
-    if (email.startsWith("editorial+") && email.endsWith("@jimvio.com")) return true;
-    const settings = profile.settings;
-    if (settings && typeof settings === "object" && !Array.isArray(settings)) {
-      const s = settings as Record<string, unknown>;
-      if (s.jimvio_editorial === true) return true;
-      const jimvio = s.jimvio;
-      if (jimvio && typeof jimvio === "object" && !Array.isArray(jimvio)) {
-        if ((jimvio as { origin?: string }).origin === "editorial") return true;
-        if ((jimvio as { persona?: boolean }).persona === true) return true;
-      }
-    }
-    return false;
+    return email.startsWith("editorial+") && email.endsWith("@jimvio.com");
   }
 
   const { data: influencers } = (await admin
@@ -112,7 +100,7 @@ export async function loadFeedSidebarPopularUsers(
   if (influencerIds.length) {
     const { data: profiles } = (await admin
       .from("profiles")
-      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email, settings")
+      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
       .in("id", influencerIds)) as { data: ProfileRow[] | null };
     for (const p of profiles ?? []) {
       if (p.is_active !== false) profileById.set(p.id, p);
@@ -155,7 +143,7 @@ export async function loadFeedSidebarPopularUsers(
     const { data: profileRows } = (await admin
       .from("profiles")
       .select(
-        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email, settings"
+        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
       )
       .eq("is_active", true)
       .order("follower_count", { ascending: false })
