@@ -145,6 +145,13 @@ export async function prepareLiveDestinations(input: {
             reason: "validate_failed",
           });
         }
+        if (destination.platform === "tiktok") {
+          liveStudioLog("warn", "tiktok_destination_error", {
+            live_session_id: input.liveSessionId,
+            destination_id: destinationId,
+            reason: "validate_failed",
+          });
+        }
         continue;
       }
 
@@ -165,11 +172,22 @@ export async function prepareLiveDestinations(input: {
               destination_id: destinationId,
             });
           }
+          if (destination.platform === "tiktok") {
+            liveStudioLog("info", "tiktok_token_refresh", {
+              destination_id: destinationId,
+            });
+          }
         }
       }
 
       if (destination.platform === "twitch") {
         liveStudioLog("info", "twitch_destination_prepare", {
+          live_session_id: input.liveSessionId,
+          destination_id: destinationId,
+        });
+      }
+      if (destination.platform === "tiktok") {
+        liveStudioLog("info", "tiktok_destination_prepare", {
           live_session_id: input.liveSessionId,
           destination_id: destinationId,
         });
@@ -181,6 +199,13 @@ export async function prepareLiveDestinations(input: {
         failures.push({ destinationId, error: prep.error });
         if (destination.platform === "twitch") {
           liveStudioLog("warn", "twitch_destination_failed", {
+            live_session_id: input.liveSessionId,
+            destination_id: destinationId,
+            reason: "prepare_failed",
+          });
+        }
+        if (destination.platform === "tiktok") {
+          liveStudioLog("warn", "tiktok_destination_error", {
             live_session_id: input.liveSessionId,
             destination_id: destinationId,
             reason: "prepare_failed",

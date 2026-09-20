@@ -24,6 +24,7 @@ type CatalogEntry = {
   canAddCustom: boolean;
   loginKitAvailable?: boolean;
   liveStreamingAllowed?: boolean;
+  liveCapabilityAvailable?: boolean;
 };
 
 export function useLiveDestinations(liveSessionId?: string | null) {
@@ -59,9 +60,26 @@ export function useLiveDestinations(liveSessionId?: string | null) {
       error?: string;
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load destinations");
-    setDestinations(json.destinations ?? []);
+    const nextDests = json.destinations ?? [];
+    setDestinations(nextDests);
     setCatalog(json.catalog ?? []);
     setEncryptionConfigured(json.encryptionConfigured !== false);
+    // Drop stale selections for destinations that cannot publish LIVE (e.g. TikTok).
+    setSelectedIds((prev) => {
+      const allowed = new Set(
+        nextDests
+          .filter((d) => d.liveStreamingAllowed !== false)
+          .map((d) => d.id)
+      );
+      const pruned = prev.filter((id) => allowed.has(id));
+      if (pruned.length === prev.length) return prev;
+      try {
+        sessionStorage.setItem(SELECTED_KEY, JSON.stringify(pruned));
+      } catch {
+        /* ignore */
+      }
+      return pruned;
+    });
   }, []);
 
   const refreshSessionStatuses = useCallback(async (sessionId: string) => {
@@ -165,7 +183,11 @@ export function useLiveDestinations(liveSessionId?: string | null) {
 
   const startForSession = useCallback(
     async (sessionId: string, ids?: string[]) => {
-      const destinationIds = ids ?? selectedIds;
+      const rawIds = ids ?? selectedIds;
+      const destinationIds = rawIds.filter((id) => {
+        const row = destinations.find((d) => d.id === id);
+        return !row || row.liveStreamingAllowed !== false;
+      });
       if (destinationIds.length === 0) return { destinations: [] };
       const res = await fetch(`/api/live/sessions/${sessionId}/destinations`, {
         method: "POST",
@@ -182,7 +204,7 @@ export function useLiveDestinations(liveSessionId?: string | null) {
       setSessionStatuses(json.destinations ?? []);
       return json;
     },
-    [selectedIds]
+    [destinations, selectedIds]
   );
 
   const retryDestination = useCallback(

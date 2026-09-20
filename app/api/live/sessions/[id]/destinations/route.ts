@@ -98,6 +98,13 @@ export async function POST(
       }
       const readiness = platformReadiness(row.platform);
       if (readiness.status === "requires_approval") {
+        if (row.platform === "tiktok") {
+          liveStudioLog("info", "tiktok_live_capability_blocked", {
+            live_session_id: sessionId,
+            destination_id: destinationId,
+            user_id: user.id,
+          });
+        }
         blocked.push({
           destinationId,
           error:

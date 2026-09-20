@@ -117,6 +117,12 @@ export type PublicDestination = {
   accountConnected: boolean;
   /** When false, destination cannot be enabled for LIVE fan-out. */
   liveStreamingAllowed: boolean;
+  /**
+   * Official platform LIVE publishing capability available to Jimvio.
+   * Distinct from accountConnected — TikTok Login Kit can be connected while
+   * liveCapabilityAvailable remains false.
+   */
+  liveCapabilityAvailable: boolean;
 };
 
 export type PublicDestinationSession = {

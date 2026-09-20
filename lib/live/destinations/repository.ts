@@ -132,6 +132,7 @@ function toPublic(row: DestinationRow): PublicDestination {
     approvalMessage: readiness.message,
     accountConnected,
     liveStreamingAllowed: !requiresApproval && !needsReconnect,
+    liveCapabilityAvailable: readiness.status === "supported",
   };
 }
 

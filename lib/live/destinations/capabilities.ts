@@ -1,4 +1,5 @@
 import type { DestinationCapabilities, DestinationPlatform } from "./types";
+import { isTikTokOfficialLivePublishingAvailable } from "./tiktok-live-gate";
 
 /**
  * User-facing Live Destinations presentation order.
@@ -92,14 +93,11 @@ export function platformCapabilities(
         health: true,
       };
     case "tiktok":
+      // Login Kit OAuth only until TikTok grants an official LIVE Open API.
+      // Do not advertise create/start/stop broadcast capabilities prematurely.
       return {
         ...EMPTY,
         oauth: true,
-        createBroadcast: true,
-        startBroadcast: true,
-        stopBroadcast: true,
-        metadata: true,
-        health: true,
       };
     case "custom_rtmp":
       return {
@@ -200,22 +198,20 @@ export function platformReadiness(platform: DestinationPlatform): {
       };
     }
     case "tiktok": {
-      // LIVE streaming requires explicit product enablement — Login Kit alone is insufficient.
-      const approved =
-        process.env.TIKTOK_LIVE_ENABLED === "true" &&
-        Boolean(
-          process.env.TIKTOK_CLIENT_KEY?.trim() &&
-            process.env.TIKTOK_CLIENT_SECRET?.trim()
-        );
+      // Login Kit OAuth ≠ LIVE publishing. Official developers.tiktok.com has no
+      // public Open API for third-party LIVE RTMP/stream-key creation. Env flags
+      // (including TIKTOK_LIVE_ENABLED) must never mark LIVE as supported alone.
+      const oauthConfigured = Boolean(
+        process.env.TIKTOK_CLIENT_KEY?.trim() &&
+          process.env.TIKTOK_CLIENT_SECRET?.trim()
+      );
+      const liveApiAvailable = isTikTokOfficialLivePublishingAvailable();
       return {
-        status: approved ? "supported" : "requires_approval",
-        message: approved
+        status: liveApiAvailable && oauthConfigured ? "supported" : "requires_approval",
+        message: liveApiAvailable
           ? null
-          : "TikTok Live streaming requires official TikTok Live API access and App Review. Connecting a TikTok account (Login Kit) does not enable Live multistream.",
-        oauthConfigured: Boolean(
-          process.env.TIKTOK_CLIENT_KEY?.trim() &&
-            process.env.TIKTOK_CLIENT_SECRET?.trim()
-        ),
+          : "TikTok Live multistream requires an official TikTok programmatic LIVE API (not granted). Login Kit account connection does not enable Live publishing.",
+        oauthConfigured,
       };
     }
     case "custom_rtmp":

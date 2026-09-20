@@ -65,6 +65,7 @@ export async function GET() {
       /** Login Kit account OAuth available (TikTok only). Not LIVE streaming. */
       loginKitAvailable: platform === "tiktok" ? isTikTokLoginKitConfigured() : false,
       liveStreamingAllowed: readiness.status === "supported",
+      liveCapabilityAvailable: readiness.status === "supported",
       userVisible: isUserVisibleLiveDestination(platform),
     };
   });

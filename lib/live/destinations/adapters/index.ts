@@ -59,5 +59,7 @@ export {
   refreshTikTokCredentials,
   revokeTikTokAccess,
   isTikTokLoginKitConfigured,
+  isTikTokOfficialLivePublishingAvailable,
   TIKTOK_LOGIN_KIT_SCOPE,
+  TIKTOK_LIVE_BLOCKED_MESSAGE,
 } from "./tiktok";

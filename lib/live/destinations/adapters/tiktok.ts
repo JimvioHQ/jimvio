@@ -1,4 +1,8 @@
 import { platformCapabilities, platformReadiness } from "../capabilities";
+import {
+  isTikTokOfficialLivePublishingAvailable,
+  TIKTOK_LIVE_BLOCKED_MESSAGE,
+} from "../tiktok-live-gate";
 import { ApprovalRequiredAdapter, type AdapterResult, type DestinationAdapter } from "./base";
 import type { EncryptedCredentialPayload } from "../types";
 
@@ -6,10 +10,16 @@ import type { EncryptedCredentialPayload } from "../types";
  * TikTok Login Kit (OAuth 2.0) + LIVE destination gate.
  *
  * Login Kit account connection is implemented below.
- * LIVE multistream remains ApprovalRequiredAdapter until official LIVE APIs
- * are approved and intentionally implemented (TIKTOK_LIVE_ENABLED).
+ * LIVE multistream remains ApprovalRequiredAdapter until TikTok publishes and
+ * grants Jimvio an official programmatic LIVE product (documented Open API).
+ *
+ * Audit (developers.tiktok.com): Content Posting API is VOD only; Login Kit
+ * identity scopes do not grant LIVE ingest/stream-key APIs. Manual LIVE Center
+ * RTMP keys are creator-session UI and are not an Open API.
  *
  * Do NOT confuse with UGC research view-sync tokens (separate env / product path).
+ * Do NOT set TIKTOK_LIVE_ENABLED to invent LIVE support — the adapter gate below
+ * ignores that flag until isTikTokOfficialLivePublishingAvailable() is true.
  */
 
 const AUTH_URL = "https://www.tiktok.com/v2/auth/authorize/";
@@ -17,8 +27,13 @@ const TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
 const REVOKE_URL = "https://open.tiktokapis.com/v2/oauth/revoke/";
 const USER_INFO_URL = "https://open.tiktokapis.com/v2/user/info/";
 
-/** Baseline Login Kit scope only — never request publish/upload scopes here. */
+/** Baseline Login Kit scope only — never request publish/upload/LIVE scopes here. */
 export const TIKTOK_LOGIN_KIT_SCOPE = "user.info.basic";
+
+export {
+  isTikTokOfficialLivePublishingAvailable,
+  TIKTOK_LIVE_BLOCKED_MESSAGE,
+} from "../tiktok-live-gate";
 
 export function tikTokClientCreds(): { key: string; secret: string } | null {
   const key = process.env.TIKTOK_CLIENT_KEY?.trim();
@@ -33,16 +48,24 @@ export function isTikTokLoginKitConfigured(): boolean {
 }
 
 /**
- * LIVE destination adapter — always approval-gated until official LIVE support.
+ * LIVE destination adapter — ApprovalRequired until official LIVE Open API exists
+ * and isTikTokOfficialLivePublishingAvailable() is flipped with a real adapter.
  * Login Kit OAuth helpers below do not activate LIVE streaming.
  */
 export function createTikTokAdapter(): DestinationAdapter {
+  if (!isTikTokOfficialLivePublishingAvailable()) {
+    return new ApprovalRequiredAdapter(
+      "tiktok",
+      platformCapabilities("tiktok"),
+      TIKTOK_LIVE_BLOCKED_MESSAGE
+    );
+  }
+  // Future: return new TikTokLiveDestinationAdapter() once official API is implemented.
   const readiness = platformReadiness("tiktok");
   return new ApprovalRequiredAdapter(
     "tiktok",
     platformCapabilities("tiktok"),
-    readiness.message ??
-      "TikTok Live is not currently enabled for this Jimvio integration."
+    readiness.message ?? TIKTOK_LIVE_BLOCKED_MESSAGE
   );
 }
 

@@ -176,8 +176,13 @@ must(
 
 must(
   "lib/live/destinations/adapters/tiktok.ts",
-  ["not currently enabled", "ApprovalRequiredAdapter"],
+  ["isTikTokOfficialLivePublishingAvailable", "ApprovalRequiredAdapter", "TIKTOK_LIVE_BLOCKED_MESSAGE"],
   "TikTok honestly requires approval"
+);
+must(
+  "lib/live/destinations/tiktok-live-gate.ts",
+  ["isTikTokOfficialLivePublishingAvailable", "return false"],
+  "TikTok LIVE gate remains hard-false until official API"
 );
 
 must(
