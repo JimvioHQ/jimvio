@@ -18,10 +18,18 @@ import { AuthAlert } from "@/components/auth/auth-alert";
 export function LoginForm({
   maintenanceMode = false,
   turnstileEnabled = true,
+  /** Merchant storefront branding — hides platform “Jimvio” copy. */
+  storefront,
 }: {
   maintenanceMode?: boolean;
   /** When false, login skips Turnstile UI/gate (temporary demo flag). */
   turnstileEnabled?: boolean;
+  storefront?: {
+    storeName: string;
+    /** Relative register path on the merchant host, e.g. `/register`. */
+    registerHref?: string;
+    hideHeader?: boolean;
+  };
 }) {
   const searchParams = useSearchParams();
 
@@ -85,20 +93,27 @@ export function LoginForm({
     });
   }
 
+  const registerBase = storefront?.registerHref || "/register";
   const registerHref = next
-    ? `/register?next=${encodeURIComponent(next)}`
-    : "/register";
+    ? `${registerBase}${registerBase.includes("?") ? "&" : "?"}next=${encodeURIComponent(next)}`
+    : registerBase;
+
+  const subtitle = storefront
+    ? `Sign in to continue shopping and manage your orders at ${storefront.storeName}.`
+    : "Sign in to continue to Jimvio";
 
   return (
     <div className="w-full">
-      <header className="mb-8 space-y-2">
-        <h1 className="text-[1.75rem] font-black tracking-tight text-zinc-900 dark:text-white sm:text-[2rem]">
-          Welcome back
-        </h1>
-        <p className="text-[14px] leading-relaxed text-zinc-500">
-          Sign in to continue to Jimvio
-        </p>
-      </header>
+      {storefront?.hideHeader ? null : (
+        <header className="mb-8 space-y-2">
+          <h1 className="text-[1.75rem] font-black tracking-tight text-zinc-900 dark:text-white sm:text-[2rem]">
+            Welcome back
+          </h1>
+          <p className="text-[14px] leading-relaxed text-zinc-500">
+            {subtitle}
+          </p>
+        </header>
+      )}
 
       {maintenanceMode && (
         <div className="mb-6 flex gap-3 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-left dark:border-amber-500/20 dark:bg-amber-500/10">

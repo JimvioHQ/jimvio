@@ -30,6 +30,7 @@ describe("commerce host routing", () => {
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/cart"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/checkout"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/login"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/register"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/account"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/orders"), true);
     assert.equal(
@@ -52,6 +53,8 @@ describe("commerce host routing", () => {
     assert.equal(resolveStoreHostPath("/products/hat"), "/product/hat");
     assert.equal(resolveStoreHostPath("/cart"), "/cart");
     assert.equal(resolveStoreHostPath("/orders"), "/account/orders");
+    assert.equal(resolveStoreHostPath("/signup"), "/register");
+    assert.equal(resolveStoreHostPath("/sign-up"), "/register");
   });
 
   it("does not rewrite platform paths on custom hosts", () => {

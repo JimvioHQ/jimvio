@@ -54,7 +54,7 @@ const PURCHASABLE_OPTION_KEY_HINTS = [
   "type",
 ];
 
-function isPurchasableOptionKey(key: string): boolean {
+export function isPurchasableOptionKey(key: string): boolean {
   const lower = key.toLowerCase().trim();
   if (!lower || IGNORED_VARIANT_OPTION_KEYS.has(lower)) return false;
   return PURCHASABLE_OPTION_KEY_HINTS.some(
@@ -62,7 +62,8 @@ function isPurchasableOptionKey(key: string): boolean {
   );
 }
 
-function normalizeVariantOptions(
+/** Purchasable option axes for a variant (Color, Model, Size, …). */
+export function normalizeVariantOptions(
   options: VariantWithOptions["options"],
 ): Record<string, string> {
   if (!options || typeof options !== "object" || Array.isArray(options)) return {};
@@ -73,6 +74,87 @@ function normalizeVariantOptions(
     if (trimmed) normalized[key] = trimmed;
   }
   return normalized;
+}
+
+export type StorefrontOptionAxis = {
+  key: string;
+  label: string;
+  values: string[];
+};
+
+function humanizeOptionKey(key: string): string {
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Option axes the buyer must choose among (only axes with 2+ distinct values).
+ */
+export function getPurchasableOptionAxes(
+  variants: VariantWithOptions[] | null | undefined,
+): StorefrontOptionAxis[] {
+  const active = (variants ?? []).filter((v) => v.is_active !== false);
+  const valuesByKey = new Map<string, Set<string>>();
+  for (const variant of active) {
+    for (const [key, value] of Object.entries(normalizeVariantOptions(variant.options))) {
+      if (!valuesByKey.has(key)) valuesByKey.set(key, new Set());
+      valuesByKey.get(key)!.add(value);
+    }
+  }
+  const axes: StorefrontOptionAxis[] = [];
+  for (const [key, values] of valuesByKey) {
+    if (values.size <= 1) continue;
+    axes.push({
+      key,
+      label: humanizeOptionKey(key),
+      values: [...values].sort((a, b) => a.localeCompare(b)),
+    });
+  }
+  axes.sort((a, b) => a.label.localeCompare(b.label));
+  return axes;
+}
+
+/**
+ * Find the unique active variant matching every selected option axis.
+ * Returns null when the combination is incomplete or unavailable.
+ */
+export function findVariantForSelectedOptions<T extends VariantWithOptions & { id: string }>(
+  variants: T[] | null | undefined,
+  selected: Record<string, string>,
+): T | null {
+  const active = (variants ?? []).filter((v) => v.is_active !== false);
+  const keys = Object.keys(selected).filter((k) => selected[k]);
+  if (!keys.length) return null;
+  const matches = active.filter((variant) => {
+    const opts = normalizeVariantOptions(variant.options);
+    return keys.every((key) => opts[key] === selected[key]);
+  });
+  return matches.length === 1 ? matches[0]! : null;
+}
+
+/** Whether a value remains available given the other selected axes. */
+export function isOptionValueAvailable<T extends VariantWithOptions>(
+  variants: T[] | null | undefined,
+  axisKey: string,
+  value: string,
+  selected: Record<string, string>,
+  trackInventory = false,
+): boolean {
+  const active = filterStorefrontVariants(
+    (variants ?? []).filter((v) => v.is_active !== false),
+    trackInventory,
+  );
+  return active.some((variant) => {
+    const opts = normalizeVariantOptions(variant.options);
+    if (opts[axisKey] !== value) return false;
+    return Object.entries(selected).every(([key, sel]) => {
+      if (!sel || key === axisKey) return true;
+      return opts[key] === sel;
+    });
+  });
 }
 
 /**

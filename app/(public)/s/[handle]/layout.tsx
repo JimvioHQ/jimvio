@@ -61,8 +61,10 @@ export default async function StorefrontLayout({ children, params }: Props) {
     requestPath.startsWith("/checkout?") ||
     requestPath === "/login" ||
     requestPath.startsWith("/login?") ||
+    requestPath === "/register" ||
+    requestPath.startsWith("/register?") ||
     requestPath.includes("/checkout") ||
-    /\/s\/[^/]+\/(checkout|login)(\/|$|\?)/.test(requestPath);
+    /\/s\/[^/]+\/(checkout|login|register)(\/|$|\?)/.test(requestPath);
 
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);

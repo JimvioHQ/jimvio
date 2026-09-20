@@ -139,6 +139,7 @@ export default async function StorefrontProductPage({ params }: Props) {
                 options: (v as { options?: unknown }).options,
                 inventory_quantity: v.inventory_quantity,
                 image_url: (v as { image_url?: string | null }).image_url,
+                is_active: (v as { is_active?: boolean | null }).is_active,
               }))}
               storeHandle={store.handle}
               storeId={store.id}
@@ -146,6 +147,8 @@ export default async function StorefrontProductPage({ params }: Props) {
               price={product.price}
               soldOut={!inStock}
               sticky
+              onStoreHost={onStoreHost}
+              trackInventory={product.track_inventory === true}
             />
           </div>
           <div className="mt-8 grid grid-cols-1 gap-3 border-t border-[var(--store-border,rgba(0,0,0,0.06))] pt-6 text-center text-[11px] text-[var(--store-muted,#6B7280)] sm:grid-cols-3">

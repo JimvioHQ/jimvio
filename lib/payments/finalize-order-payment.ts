@@ -1263,13 +1263,29 @@ export async function finalizeOrderPayment(
         ctx.amountForMessage != null
           ? `${orderCurrency} ${Number(ctx.amountForMessage).toLocaleString()}`
           : null;
+      const storeId =
+        typeof (order as { jimvio_store_id?: string | null }).jimvio_store_id ===
+        "string"
+          ? (order as { jimvio_store_id: string }).jimvio_store_id
+          : null;
+      let buyerOrderUrl = `/orders/${orderId}`;
+      if (storeId) {
+        const { cosTable } = await import("@/lib/commerce-os/db");
+        const { data: storeRow } = await cosTable(db, "jimvio_stores")
+          .select("handle")
+          .eq("id", storeId)
+          .maybeSingle();
+        if (storeRow?.handle) {
+          buyerOrderUrl = `https://${storeRow.handle}.jimvio.com/account/orders/${orderId}`;
+        }
+      }
       await notifyUser(db, {
         userId: ctx.notifyUserId,
         type: "order",
         title: "Payment Confirmed!",
         message: `Your payment${paidLabel ? ` of ${paidLabel}` : ""} has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
-        actionUrl: `/orders/${orderId}`,
+        actionUrl: buyerOrderUrl,
         email: {
           kind: "payment_success",
           orderId,

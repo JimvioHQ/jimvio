@@ -19,7 +19,16 @@ import {
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 
-export function RegisterForm() {
+export function RegisterForm({
+  storefront,
+}: {
+  /** Merchant storefront branding — hides platform “Jimvio” marketing copy. */
+  storefront?: {
+    storeName: string;
+    loginHref?: string;
+    hideHeader?: boolean;
+  };
+} = {}) {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
 
@@ -74,6 +83,11 @@ export function RegisterForm() {
       }
     });
   }
+
+  const loginBase = storefront?.loginHref || "/login";
+  const loginHref = next
+    ? `${loginBase}${loginBase.includes("?") ? "&" : "?"}next=${encodeURIComponent(next)}`
+    : loginBase;
 
   if (success) {
     return (
@@ -138,10 +152,7 @@ export function RegisterForm() {
           </Button>
         </div>
 
-        <Link
-          href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
-          className="mt-6 block"
-        >
+        <Link href={loginHref} className="mt-6 block">
           <Button className="h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none hover:bg-zinc-800">
             Back to sign in
           </Button>
@@ -150,18 +161,22 @@ export function RegisterForm() {
     );
   }
 
-  const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
+  const subtitle = storefront
+    ? `Create an account to checkout faster and manage your orders at ${storefront.storeName}.`
+    : "Join Jimvio — free to start";
 
   return (
     <div className="w-full">
-      <header className="mb-8 space-y-2">
-        <h1 className="text-[1.75rem] font-black tracking-tight text-zinc-900 dark:text-white sm:text-[2rem]">
-          Create an account
-        </h1>
-        <p className="text-[14px] leading-relaxed text-zinc-500">
-          Join Jimvio — free to start
-        </p>
-      </header>
+      {storefront?.hideHeader ? null : (
+        <header className="mb-8 space-y-2">
+          <h1 className="text-[1.75rem] font-black tracking-tight text-zinc-900 dark:text-white sm:text-[2rem]">
+            Create an account
+          </h1>
+          <p className="text-[14px] leading-relaxed text-zinc-500">
+            {subtitle}
+          </p>
+        </header>
+      )}
 
       <div className="space-y-5">
         <GoogleAuthButton next={next || undefined} disabled={pending} />
@@ -245,7 +260,7 @@ export function RegisterForm() {
           </Button>
 
           <p className="pt-1 text-center text-[12px] leading-relaxed text-zinc-500">
-            By joining, you agree to our{" "}
+            By creating an account, you agree to our{" "}
             <Link
               href="/terms"
               className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-orange-600 dark:text-zinc-300"

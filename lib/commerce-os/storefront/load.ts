@@ -264,13 +264,23 @@ export async function loadStoreProductBySlug(
 
   if (!link) return null;
 
-  const { data: variants } = await db
+  // NOTE: product_variants has no `attributes` column — selecting it makes
+  // PostgREST reject the entire query, which emptied variants on the PDP and
+  // caused Add to Cart / Buy Now to fail with "Please select your options first".
+  const { data: variants, error: variantsError } = await db
     .from("product_variants")
     .select(
-      "id, name, sku, price, compare_at_price, inventory_quantity, attributes, options, image_url, cj_vid, is_active"
+      "id, name, sku, price, compare_at_price, inventory_quantity, options, image_url, cj_vid, is_active"
     )
     .eq("product_id", product.id)
     .eq("is_active", true);
+
+  if (variantsError) {
+    console.error("[storefront] product_variants load failed", {
+      productId: product.id,
+      error: variantsError.message,
+    });
+  }
 
   return { product, variants: variants ?? [] };
 }

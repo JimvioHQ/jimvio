@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ShoppingCart, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/actions/marketplace";
 import { proceedToCheckout } from "@/lib/actions/checkout";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import {
+  findVariantForSelectedOptions,
+  getPurchasableOptionAxes,
+  isOptionValueAvailable,
+  requiresPurchasableVariantSelection,
+} from "@/lib/products/storefront-variants";
+import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 
 type VariantOption = {
   id: string;
@@ -15,6 +23,7 @@ type VariantOption = {
   options?: unknown;
   inventory_quantity?: number | null;
   image_url?: string | null;
+  is_active?: boolean | null;
 };
 
 type Props = {
@@ -28,17 +37,11 @@ type Props = {
   price?: number | string | null;
   soldOut?: boolean;
   sticky?: boolean;
+  onStoreHost?: boolean;
+  trackInventory?: boolean;
 };
 
-function variantLabel(v: VariantOption): string {
-  if (v.name) return v.name;
-  if (v.options && typeof v.options === "object") {
-    return Object.values(v.options as Record<string, unknown>)
-      .filter((x) => typeof x === "string")
-      .join(" / ");
-  }
-  return v.id.slice(0, 8);
-}
+type CtaMode = "idle" | "adding" | "added" | "checkout" | "select";
 
 export function StorefrontAddToCartButton({
   productId,
@@ -51,15 +54,48 @@ export function StorefrontAddToCartButton({
   price,
   soldOut = false,
   sticky = false,
+  onStoreHost = true,
+  trackInventory = false,
 }: Props) {
-  const [loading, setLoading] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [variantId, setVariantId] = useState<string | null>(
-    variants[0]?.id ?? null
+  const needsSelection = requiresPurchasableVariantSelection(variants);
+  const axes = useMemo(() => getPurchasableOptionAxes(variants), [variants]);
+  const checkoutResumeRef = useRef(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
+    {}
+  );
+  const [manualVariantId, setManualVariantId] = useState<string | null>(
+    needsSelection ? null : variants[0]?.id ?? null
   );
   const [qty, setQty] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [actionMode, setActionMode] = useState<"idle" | "adding" | "added" | "checkout">(
+    "idle"
+  );
+  const [error, setError] = useState<string | null>(null);
   const { incrementCartCount } = useCartStore();
+  const cartHref = storefrontHref(storeHandle, "/cart", { onStoreHost });
+
+  const optionMatch = useMemo(() => {
+    if (!needsSelection || axes.length === 0) return null;
+    const complete = axes.every((axis) => selectedOptions[axis.key]);
+    if (!complete) return null;
+    return findVariantForSelectedOptions(variants, selectedOptions);
+  }, [axes, needsSelection, selectedOptions, variants]);
+
+  const optionIncomplete =
+    needsSelection &&
+    axes.length > 0 &&
+    !axes.every((axis) => selectedOptions[axis.key]);
+
+  const optionUnavailable =
+    needsSelection &&
+    axes.length > 0 &&
+    axes.every((axis) => selectedOptions[axis.key]) &&
+    !optionMatch;
+
+  const variantId = needsSelection
+    ? optionMatch?.id ?? null
+    : manualVariantId ?? variants[0]?.id ?? null;
 
   const selected = useMemo(
     () => variants.find((v) => v.id === variantId) ?? null,
@@ -70,11 +106,47 @@ export function StorefrontAddToCartButton({
     soldOut ||
     (typeof selected?.inventory_quantity === "number" &&
       selected.inventory_quantity <= 0);
+  const selectionBlocked = needsSelection && !variantId;
+  const canPurchase = !selectedSoldOut && !selectionBlocked && !loading;
+
+  const mode: CtaMode =
+    actionMode !== "idle"
+      ? actionMode
+      : selectionBlocked || optionIncomplete || optionUnavailable
+        ? "select"
+        : "idle";
+
+  function pickOption(axisKey: string, value: string) {
+    setSelectedOptions((prev) => {
+      const next = { ...prev, [axisKey]: value };
+      for (const axis of axes) {
+        if (axis.key === axisKey) continue;
+        const cur = next[axis.key];
+        if (
+          cur &&
+          !isOptionValueAvailable(variants, axis.key, cur, next, trackInventory)
+        ) {
+          delete next[axis.key];
+        }
+      }
+      return next;
+    });
+    setError(null);
+  }
 
   async function handleAdd(goCheckout = false) {
-    if (selectedSoldOut) return;
+    if (selectedSoldOut || loading) return;
+    if (selectionBlocked) {
+      setError(
+        optionUnavailable
+          ? "That combination isn’t available. Try another selection."
+          : "Please select your options first"
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
+    setActionMode(goCheckout ? "checkout" : "adding");
     try {
       document.cookie = `jimvio_store_handle=${encodeURIComponent(storeHandle)}; path=/; max-age=86400; samesite=lax`;
       const result = await addToCart(productId, vendorId, qty, variantId, {
@@ -82,7 +154,6 @@ export function StorefrontAddToCartButton({
         jimvioStoreHandle: storeHandle,
       });
       if (result.success) {
-        setAdded(true);
         incrementCartCount(qty);
         if (goCheckout) {
           const checkout = await proceedToCheckout();
@@ -91,53 +162,160 @@ export function StorefrontAddToCartButton({
             return;
           }
           setError(checkout.error || "Could not start checkout.");
+          setActionMode("idle");
           return;
         }
-        setTimeout(() => setAdded(false), 2000);
+        setActionMode("added");
+        setTimeout(() => setActionMode("idle"), 3500);
       } else if (result.error === "Authentication required") {
-        const next =
+        const path =
           typeof window !== "undefined"
             ? `${window.location.pathname}${window.location.search}` || "/"
             : "/";
+        const next = goCheckout
+          ? `${path}${path.includes("?") ? "&" : "?"}checkout=1`
+          : path;
         window.location.href = `/login?next=${encodeURIComponent(next)}`;
       } else {
         setError(result.error || "Could not add this product to your cart.");
+        setActionMode("idle");
       }
     } catch {
       setError("Cart is temporarily unavailable. Please try again.");
+      setActionMode("idle");
     } finally {
       setLoading(false);
     }
   }
 
+  // Resume Buy Now after login (?checkout=1) once a purchasable variant is ready.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (checkoutResumeRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") !== "1") return;
+    if (needsSelection && !variantId) return;
+    if (soldOut || selectedSoldOut) return;
+    checkoutResumeRef.current = true;
+    params.delete("checkout");
+    const clean = `${window.location.pathname}${
+      params.toString() ? `?${params}` : ""
+    }`;
+    window.history.replaceState({}, "", clean || window.location.pathname);
+    // Defer so we don't setState synchronously inside the effect body.
+    queueMicrotask(() => {
+      void handleAdd(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auth-return resume only
+  }, [variantId, needsSelection, soldOut, selectedSoldOut]);
+
+  const addLabel = selectedSoldOut
+    ? "Out of stock"
+    : mode === "select" || selectionBlocked
+      ? "Select options"
+      : mode === "adding"
+        ? "Adding…"
+        : mode === "added"
+          ? "Added to cart"
+          : "Add to Cart";
+
+  const buyLabel = selectedSoldOut
+    ? "Out of stock"
+    : mode === "checkout"
+      ? "Preparing checkout…"
+      : selectionBlocked
+        ? "Select options"
+        : "Buy now";
+
+  const optionPickers =
+    axes.length > 0 ? (
+      <div className="space-y-4">
+        {axes.map((axis) => (
+          <div key={axis.key}>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide opacity-60">
+              {axis.label}
+              {selectedOptions[axis.key] ? (
+                <span className="ml-1.5 font-medium normal-case tracking-normal opacity-100">
+                  · {selectedOptions[axis.key]}
+                </span>
+              ) : null}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {axis.values.map((value) => {
+                const on = selectedOptions[axis.key] === value;
+                const available = isOptionValueAvailable(
+                  variants,
+                  axis.key,
+                  value,
+                  selectedOptions,
+                  trackInventory
+                );
+                return (
+                  <button
+                    key={`${axis.key}:${value}`}
+                    type="button"
+                    disabled={!available && !on}
+                    onClick={() => pickOption(axis.key, value)}
+                    className={`min-h-10 rounded-full border px-3.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      on
+                        ? "border-[var(--store-primary,#FF5A1F)] bg-[var(--store-primary,#FF5A1F)] text-white"
+                        : "border-[var(--store-border,rgba(0,0,0,0.1))] bg-[var(--store-surface,#fff)] text-[var(--store-text,#111827)]"
+                    }`}
+                  >
+                    {value}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : variants.length > 1 ? (
+      <div>
+        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide opacity-60">
+          Variant
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {variants.map((v) => {
+            const on = v.id === variantId;
+            const label =
+              v.name ||
+              (v.options && typeof v.options === "object"
+                ? Object.values(v.options as Record<string, unknown>)
+                    .filter((x) => typeof x === "string")
+                    .join(" / ")
+                : v.id.slice(0, 8));
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => {
+                  setManualVariantId(v.id);
+                  setError(null);
+                }}
+                className={`min-h-10 rounded-full border px-3.5 text-sm font-semibold ${
+                  on
+                    ? "border-[var(--store-primary,#FF5A1F)] bg-[var(--store-primary,#FF5A1F)] text-white"
+                    : "border-[var(--store-border,rgba(0,0,0,0.1))] bg-[var(--store-surface,#fff)] text-[var(--store-text,#111827)]"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ) : null;
+
+  const displayError =
+    error ||
+    (optionUnavailable
+      ? "That combination isn’t available. Try another selection."
+      : null);
+
   const actions = (
     <>
-      {variants.length > 1 ? (
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide opacity-60">
-            Variant
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {variants.map((v) => {
-              const on = v.id === variantId;
-              return (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => setVariantId(v.id)}
-                  className={`min-h-10 rounded-full border px-3.5 text-sm font-semibold ${
-                    on
-                      ? "border-[var(--store-primary,#FF5A1F)] bg-[var(--store-primary,#FF5A1F)] text-white"
-                      : "border-[var(--store-border,rgba(0,0,0,0.1))] bg-[var(--store-surface,#fff)] text-[var(--store-text,#111827)]"
-                  }`}
-                >
-                  {variantLabel(v)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
+      {optionPickers}
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="inline-flex items-center rounded-full border border-[var(--store-border,rgba(0,0,0,0.1))]"
@@ -172,32 +350,53 @@ export function StorefrontAddToCartButton({
         <Button
           size="lg"
           onClick={() => void handleAdd(false)}
-          disabled={loading || added || selectedSoldOut || (variants.length > 0 && !variantId)}
+          disabled={!canPurchase || mode === "added"}
           className={
             className ||
             "h-12 flex-1 rounded-[var(--store-btn-radius,9999px)] bg-[var(--store-primary,#FF5A1F)] text-white hover:opacity-90"
           }
         >
-          {loading ? (
+          {mode === "adding" ? (
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : added ? (
+          ) : mode === "added" ? (
             <CheckCircle2 className="mr-2 h-5 w-5" />
           ) : (
             <ShoppingCart className="mr-2 h-5 w-5" />
           )}
-          {selectedSoldOut ? "Sold out" : added ? "Added to Cart" : "Add to Cart"}
+          {addLabel}
         </Button>
         <Button
           size="lg"
           variant="outline"
           onClick={() => void handleAdd(true)}
-          disabled={loading || selectedSoldOut || (variants.length > 0 && !variantId)}
+          disabled={!canPurchase || mode === "checkout"}
           className="h-12 flex-1 rounded-[var(--store-btn-radius,9999px)]"
         >
-          Buy now
+          {mode === "checkout" ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : null}
+          {buyLabel}
         </Button>
       </div>
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {mode === "added" ? (
+        <p className="flex flex-wrap items-center gap-3 text-sm text-[var(--store-text,#111827)]">
+          <span className="font-medium text-emerald-700">Added to cart</span>
+          <Link
+            href={cartHref}
+            className="font-semibold text-[var(--store-primary,#FF5A1F)] underline"
+          >
+            View cart
+          </Link>
+          <span className="text-[var(--store-muted,#6B7280)]">
+            Continue shopping
+          </span>
+        </p>
+      ) : null}
+      {displayError ? (
+        <p className="text-xs text-red-600" role="alert">
+          {displayError}
+        </p>
+      ) : null}
     </>
   );
 
@@ -208,18 +407,21 @@ export function StorefrontAddToCartButton({
         <div
           className="fixed inset-x-0 z-30 border-t border-[var(--store-border)] bg-[var(--store-surface)]/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:hidden"
           style={{
-            bottom: "calc(var(--store-mobile-nav-h, 3.5rem) + env(safe-area-inset-bottom, 0px))",
+            bottom:
+              "calc(var(--store-mobile-nav-h, 3.5rem) + env(safe-area-inset-bottom, 0px))",
           }}
           data-storefront-chrome="sticky-atc"
         >
           <Button
             size="lg"
             onClick={() => void handleAdd(false)}
-            disabled={loading || added || selectedSoldOut || (variants.length > 0 && !variantId)}
+            disabled={!canPurchase || mode === "added"}
             className="h-12 w-full rounded-[var(--store-btn-radius,9999px)] bg-[var(--store-primary,#FF5A1F)] text-white"
           >
-            {selectedSoldOut ? "Sold out" : added ? "Added" : "Add to Cart"}
-            {displayPrice != null ? ` · ${formatStoreMoney(displayPrice, currency)}` : ""}
+            {addLabel}
+            {displayPrice != null && !selectionBlocked && !selectedSoldOut
+              ? ` · ${formatStoreMoney(displayPrice, currency)}`
+              : ""}
           </Button>
         </div>
       ) : null}

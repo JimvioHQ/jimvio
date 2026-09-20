@@ -25,8 +25,7 @@ const PLATFORM_PATH_PREFIXES = [
   "/communities",
   "/affiliates",
   "/ugc",
-  "/register",
-  "/signup",
+  // /register and /signup rewrite to merchant storefront auth on store hosts
   "/wallet",
   "/settings",
   "/messages",
@@ -86,6 +85,8 @@ export const STORE_HOST_PATH_ALIASES: Record<string, string> = {
   "/orders": "/account/orders",
   "/sign-in": "/login",
   "/signin": "/login",
+  "/signup": "/register",
+  "/sign-up": "/register",
 };
 
 export function resolveStoreHostPath(pathname: string): string {

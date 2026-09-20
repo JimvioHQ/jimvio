@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
@@ -74,7 +74,7 @@ export default async function StorefrontLoginPage({
           Sign in to {store.name}
         </h1>
         <p className="mt-2 text-sm text-[var(--store-muted,#6B7280)]">
-          Use your email to continue shopping and view orders at this store.
+          Sign in to continue shopping and manage your orders.
         </p>
       </div>
       <Suspense
@@ -88,6 +88,11 @@ export default async function StorefrontLoginPage({
         <LoginForm
           maintenanceMode={maintenanceMode}
           turnstileEnabled={turnstileEnabled}
+          storefront={{
+            storeName: store.name,
+            registerHref: storefrontHref(handle, "/register", linkOpts),
+            hideHeader: true,
+          }}
         />
       </Suspense>
       <p className="mt-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">

@@ -8,6 +8,7 @@ import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
 import { productImageAt } from "@/lib/commerce-os/storefront/product-media";
 import { StorefrontCheckoutButton } from "@/components/commerce-os/storefront-checkout-button";
+import { StorefrontCartLineControls } from "@/components/commerce-os/storefront-cart-line-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,10 @@ export default async function StorefrontCartPage({ params }: Props) {
               id: string;
               quantity: number;
               unit_price_at_add: number;
+              product_variants?: {
+                name?: string | null;
+                options?: Record<string, unknown> | null;
+              } | null;
               products?: {
                 name?: string;
                 slug?: string;
@@ -71,20 +76,35 @@ export default async function StorefrontCartPage({ params }: Props) {
               } | null;
             }) => {
               const img = productImageAt(item.products?.images, 0);
+              const variantLabel =
+                item.product_variants?.name ||
+                (item.product_variants?.options &&
+                typeof item.product_variants.options === "object"
+                  ? Object.entries(item.product_variants.options)
+                      .filter(
+                        ([k, v]) =>
+                          typeof v === "string" &&
+                          !["variant_key", "sku", "vid", "pid"].includes(
+                            k.toLowerCase()
+                          )
+                      )
+                      .map(([, v]) => v)
+                      .join(" / ")
+                  : null);
               return (
                 <li
                   key={item.id}
-                  className="flex items-center gap-3 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] px-3 py-3 text-sm"
+                  className="flex items-start gap-3 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] px-3 py-3 text-sm"
                 >
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={img}
                       alt=""
-                      className="h-16 w-16 rounded-lg object-cover"
+                      className="h-16 w-16 shrink-0 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="grid h-16 w-16 place-items-center rounded-lg bg-[var(--store-bg,#F8FAFC)] text-[10px] text-[var(--store-muted,#6B7280)]">
+                    <div className="grid h-16 w-16 shrink-0 place-items-center rounded-lg bg-[var(--store-bg,#F8FAFC)] text-[10px] text-[var(--store-muted,#6B7280)]">
                       No image
                     </div>
                   )}
@@ -105,11 +125,20 @@ export default async function StorefrontCartPage({ params }: Props) {
                         {item.products?.name || "Product"}
                       </p>
                     )}
-                    <p className="text-xs text-[var(--store-muted,#6B7280)]">
-                      Qty {item.quantity}
+                    {variantLabel ? (
+                      <p className="mt-0.5 text-xs text-[var(--store-muted,#6B7280)]">
+                        {variantLabel}
+                      </p>
+                    ) : null}
+                    <p className="mt-0.5 text-xs text-[var(--store-muted,#6B7280)]">
+                      {formatStoreMoney(item.unit_price_at_add, currency)} each
                     </p>
+                    <StorefrontCartLineControls
+                      itemId={item.id}
+                      quantity={item.quantity}
+                    />
                   </div>
-                  <p className="tabular-nums font-semibold">
+                  <p className="shrink-0 tabular-nums font-semibold">
                     {formatStoreMoney(
                       Number(item.unit_price_at_add) * Number(item.quantity),
                       currency

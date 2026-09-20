@@ -144,6 +144,7 @@ export function StorefrontProductCard({
               storeId={storeId!}
               storeHandle={handle}
               productName={product.name}
+              productHref={href}
               disabled={soldOut}
             />
           ) : (
