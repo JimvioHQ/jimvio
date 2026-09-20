@@ -30,15 +30,14 @@ describe("retired payment providers", () => {
       join(process.cwd(), "components/checkout/PaymentMethodSelector.tsx"),
       "utf8",
     );
-    const methodIdLine = selector
-      .split("\n")
-      .map((l) => l.trim())
-      .find((l) => l.startsWith("export type MethodId ="));
-    assert.ok(methodIdLine, "active MethodId export missing");
-    assert.equal(/pesapal/.test(methodIdLine!), false);
-    assert.equal(/paypal/.test(methodIdLine!), false);
-    assert.match(methodIdLine!, /flutterwave/);
-    assert.match(methodIdLine!, /nowpayments/);
+    const match = selector.match(/^export type MethodId =[\s\S]*?;/m);
+    assert.ok(match, "active MethodId export missing");
+    const methodIdBlock = match![0];
+    assert.equal(/pesapal/.test(methodIdBlock), false);
+    assert.equal(/paypal/.test(methodIdBlock), false);
+    assert.match(methodIdBlock, /flutterwave/);
+    assert.match(methodIdBlock, /nowpayments/);
+    assert.match(methodIdBlock, /mobile_money/);
   });
 
   it("platform payment-providers API never advertises retired providers", () => {

@@ -445,19 +445,6 @@ function Verve() {
   return <span style={{ ...pillBase, background: "#007B5E", color: "#fff", minWidth: 42 }}>Verve</span>;
 }
 
-function ApplePay() {
-  return (
-    <img
-      src="https://img.logokit.com/apple.com"
-      alt="Apple Pay"
-      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
-      onError={(e) => {
-        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=apple.com&sz=64";
-      }}
-    />
-  );
-}
-
 function MobileMoney() {
   return (
     <span style={{ ...pillBase, background: "#FFCC00", color: "#000", minWidth: 52, fontSize: 9 }}>
@@ -556,7 +543,12 @@ function PaymentLogoRail({ children, className }: { children: React.ReactNode; c
   );
 }
 
-export type MethodId = "nowpayments" | "flutterwave" | "pawapay" | "binancepay";
+export type MethodId =
+  | "nowpayments"
+  | "flutterwave"
+  | "mobile_money"
+  | "pawapay"
+  | "binancepay";
 
 interface MethodDef {
   id: MethodId;
@@ -572,7 +564,7 @@ const METHODS: MethodDef[] = [
   {
     id: "flutterwave",
     title: "International Payments",
-    description: "Pay with Any Card, Mobile Money or Apple Pay",
+    description: "Pay securely with Visa, Mastercard, and other cards",
     iconNode: (
       <div style={{
         width: 48, height: 48, borderRadius: "50%",
@@ -587,15 +579,37 @@ const METHODS: MethodDef[] = [
       </div>
     ),
     logos: [
-      <MobileMoney key="mm" />,
       <Discover key="disc" />,
       <Visa key="v" />,
       <Amex key="amex" />,
       <Mastercard key="mc" />,
       <Verve key="verve" />,
-      <ApplePay key="ap" />,
     ],
     recommended: true,
+    feeLabel: "Free",
+  },
+  {
+    id: "mobile_money",
+    title: "Mobile Money",
+    description: "Pay directly using your local mobile wallet",
+    iconNode: (
+      <div style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: "linear-gradient(135deg, #FFCC00 0%, #F5A623 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="5" y="2" width="14" height="20" rx="2" fill="#111" fillOpacity="0.85" />
+          <rect x="8" y="18" width="8" height="2" rx="1" fill="#FFCC00" />
+        </svg>
+      </div>
+    ),
+    logos: [
+      <MTN key="mtn" />,
+      <Airtel key="air" />,
+      <MoMo key="mm" />,
+      <MobileMoney key="pill" />,
+    ],
     feeLabel: "Free",
   },
   {
@@ -637,7 +651,6 @@ const METHODS: MethodDef[] = [
     feeLabel: "Free",
   },
 ];
-
 // ─── Trust badge component ────────────────────────────────────────────────────
 
 function TrustBadge({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {

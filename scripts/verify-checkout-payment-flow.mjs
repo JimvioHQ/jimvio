@@ -145,6 +145,54 @@ assert(
     !paymentProviders.includes("withCredentials.length > 0 ? withCredentials : adminEnabled"),
   "payment-providers must not fall back to admin-enabled without credentials"
 );
+assert(
+  paymentProviders.includes('"mobile_money"') &&
+    paymentProviders.includes("flutterwave"),
+  "payment-providers must advertise dedicated Mobile Money when Flutterwave is configured"
+);
+
+const momoCaps = read("lib/payments/flutterwave-mobile-money-capabilities.ts");
+const momoService = read("lib/payments/flutterwave-mobile-money.ts");
+const momoInitiate = read("app/api/payments/mobile-money/initiate/route.ts");
+const momoStatus = read("app/api/payments/mobile-money/status/route.ts");
+const selector = read("components/checkout/PaymentMethodSelector.tsx");
+assert(
+  momoCaps.includes("mobile_money_rwanda") &&
+    momoCaps.includes("mpesa") &&
+    momoCaps.includes("mobile_money_ghana") &&
+    momoCaps.includes("mobile_money_franco") &&
+    momoCaps.includes("getFlutterwaveMobileMoneyCapabilities"),
+  "MoMo capability catalog must cover Flutterwave charge types globally"
+);
+assert(
+  momoService.includes("charges?type=") &&
+    momoService.includes("createMobileMoneyPayment") &&
+    !momoService.includes("payment_options"),
+  "MoMo service must use direct charge, not generic hosted payment options"
+);
+assert(
+  momoInitiate.includes("requireSessionUser") &&
+    momoInitiate.includes("generateTxRef") &&
+    momoInitiate.includes('provider: "flutterwave"') &&
+    momoInitiate.includes('method: "mobile_money"'),
+  "MoMo initiate must authenticate, mint server tx refs, and reuse Flutterwave webhook path"
+);
+assert(
+  momoStatus.includes("finalizeOrderPayment") &&
+    momoStatus.includes("amount_currency_mismatch"),
+  "MoMo status poll must verify amount/currency before finalize"
+);
+assert(
+  selector.includes('id: "mobile_money"') &&
+    !selector.includes("Pay with Any Card, Mobile Money or Apple Pay") &&
+    selector.includes("Pay directly using your local mobile wallet"),
+  "Checkout must show dedicated Mobile Money without duplicating it under International Payments"
+);
+assert(
+  checkout.includes("/api/payments/mobile-money/initiate") &&
+    checkout.includes("Waiting for Mobile Money confirmation"),
+  "Checkout experience must initiate MoMo and poll pending confirmation"
+);
 
 const binancePay = read("lib/binance-pay/index.ts");
 assert(

@@ -10,6 +10,10 @@ import { CheckoutFooter } from "./CheckoutFooter";
 import { OrderSummaryCard } from "./OrderSummaryCard";
 import { PremiumTrustPanel } from "./premium-trust-panel";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
+import {
+  MobileMoneyCheckoutPanel,
+  type MoMoFormState,
+} from "./MobileMoneyCheckoutPanel";
 import ShippingForm, { type ShippingFormValues, validateShippingForm } from "./ShippingForm";
 import { CJShippingSelector } from "./CJShippingSelector";
 import { CheckoutTrustSignals } from "@/components/growth/CheckoutTrustSignals";
@@ -48,6 +52,10 @@ const USER_FACING_ERRORS: Record<string, string> = {
    PAYMENT_LINK_FAILED: "The payment provider is temporarily unavailable. Please try again shortly.",
    BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily unavailable. Please choose another payment method.",
    INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
+   UNSUPPORTED_COUNTRY: "Mobile Money is not available in this country.",
+   UNSUPPORTED_NETWORK: "This network is currently unavailable.",
+   INVALID_PHONE: "Please enter a valid Mobile Money number.",
+   PAYMENT_INIT_FAILED: "We couldn't initiate the Mobile Money payment.",
    INTERNAL_ERROR: "Something went wrong on our end. Please contact support if this persists.",
 } as const;
 
@@ -69,10 +77,16 @@ function extractErrorMessage(data: PaymentApiResponse): string {
       "reason" in data.error ? String((data.error as { reason?: string }).reason ?? "") : undefined,
    );
    if (mapped) return mapped;
+   if ("message" in data.error && typeof (data.error as { message?: string }).message === "string") {
+      const code = data.error.code;
+      if (code && USER_FACING_ERRORS[code]) return USER_FACING_ERRORS[code];
+      return String((data.error as { message: string }).message).slice(0, 180);
+   }
    return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
 }
 const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
    flutterwave: "/api/payments/flutterwave/initiate",
+   mobile_money: "/api/payments/mobile-money/initiate",
    pawapay: "/api/pawapay/checkout",
    nowpayments: "/api/payments/nowpayments/initiate",
    binancepay: "/api/payments/binancepay/initiate",
@@ -135,13 +149,22 @@ export function CheckoutExperience({
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
-      const valid: MethodId[] = ["nowpayments", "flutterwave", "pawapay", "binancepay"];
+      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "pawapay", "binancepay"];
       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
          return preferredMethod as MethodId;
       }
       return defaultPayment(currency);
    });
    const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>();
+   const [momoForm, setMomoForm] = useState<MoMoFormState>({
+      country: "",
+      network: "",
+      phone: "",
+   });
+   const [momoAwaiting, setMomoAwaiting] = useState(false);
+   const [momoError, setMomoError] = useState<string | null>(null);
+   const momoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+   const momoPollCountRef = useRef(0);
 
    useEffect(() => {
       fetch("/api/platform/payment-providers")
@@ -155,6 +178,12 @@ export function CheckoutExperience({
             }
          })
          .catch(() => undefined);
+   }, []);
+
+   useEffect(() => {
+      return () => {
+         if (momoPollRef.current) clearInterval(momoPollRef.current);
+      };
    }, []);
 
    const existingAddr = orders[0]?.shipping_address;
@@ -417,6 +446,98 @@ export function CheckoutExperience({
             orderId: primaryOrderId,
          });
 
+         if (payment === "mobile_money") {
+            setMomoError(null);
+            if (!momoForm.country) {
+               throw new Error("Mobile Money is not available in this country.");
+            }
+            if (!momoForm.phone.trim()) {
+               throw new Error("Please enter a valid Mobile Money number.");
+            }
+
+            const res = await fetch(PAYMENT_ENDPOINTS.mobile_money, {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({
+                  orderId: primaryOrderId,
+                  country: momoForm.country,
+                  network: momoForm.network || undefined,
+                  phone: momoForm.phone,
+               }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+               console.warn("[checkout] payment_initialization_failed", {
+                  provider: payment,
+                  orderId: primaryOrderId,
+                  status: res.status,
+               });
+               const msg = extractErrorMessage(data);
+               setMomoError(msg);
+               throw new Error(msg);
+            }
+
+            const redirectUrl = extractRedirectUrl(data);
+            if (redirectUrl) {
+               if (!redirectUrl.startsWith("https://")) {
+                  throw new Error("Invalid payment redirect");
+               }
+               window.location.href = redirectUrl;
+               return;
+            }
+
+            // Pending push / USSD authorization — poll status (webhook authoritative).
+            const pollUrl =
+               typeof data.pollUrl === "string"
+                  ? data.pollUrl
+                  : `/api/payments/mobile-money/status?orderId=${primaryOrderId}&txRef=${encodeURIComponent(String(data.txRef ?? ""))}`;
+
+            setMomoAwaiting(true);
+            toast.message("Waiting for Mobile Money confirmation…");
+
+            if (momoPollRef.current) clearInterval(momoPollRef.current);
+            momoPollCountRef.current = 0;
+            const MAX_POLLS = 60; // ~5 minutes at 5s
+
+            await new Promise<void>((resolve, reject) => {
+               momoPollRef.current = setInterval(async () => {
+                  momoPollCountRef.current += 1;
+                  if (momoPollCountRef.current > MAX_POLLS) {
+                     if (momoPollRef.current) clearInterval(momoPollRef.current);
+                     setMomoAwaiting(false);
+                     reject(new Error("The payment expired. Please try again."));
+                     return;
+                  }
+                  try {
+                     const st = await fetch(pollUrl);
+                     const json = await st.json();
+                     if (json.status === "successful") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        window.location.href = `/checkout/success?order=${primaryOrderId}`;
+                        resolve();
+                        return;
+                     }
+                     if (json.status === "failed" || json.status === "cancelled") {
+                        if (momoPollRef.current) clearInterval(momoPollRef.current);
+                        setMomoAwaiting(false);
+                        reject(
+                           new Error(
+                              json.message ||
+                                 (json.status === "cancelled"
+                                    ? "The payment was cancelled."
+                                    : "The payment failed."),
+                           ),
+                        );
+                     }
+                  } catch {
+                     // Transient — keep polling; webhook may still finalize.
+                  }
+               }, 5000);
+            });
+            return;
+         }
+
          // Initiate payment — never re-quotes shipping.
          const res = await fetch(PAYMENT_ENDPOINTS[payment], {
             method: "POST",
@@ -645,12 +766,32 @@ export function CheckoutExperience({
                         >
                            <PaymentMethodSelector
                               selected={payment}
-                              onSelect={setPayment}
+                              onSelect={(m) => {
+                                 setPayment(m);
+                                 setMomoError(null);
+                                 if (m !== "mobile_money") setMomoAwaiting(false);
+                              }}
                               orderCurrency={PLATFORM_CURRENCY}
                               orderTotal={total}
                               showSummary={false}
                               enabledMethodIds={enabledPaymentMethods}
                            />
+                           {payment === "mobile_money" && (
+                              <MobileMoneyCheckoutPanel
+                                 amountUsd={total}
+                                 formatMoney={formatMoney}
+                                 preferredCountry={
+                                    normalizeCountryCode(shipping.countryCode) ??
+                                    normalizeCountryCode(shipping.country) ??
+                                    normalizeCountryCode(countryCode)
+                                 }
+                                 preferredPhone={shipping.phone || profile?.phone}
+                                 value={momoForm}
+                                 onChange={setMomoForm}
+                                 awaitingConfirmation={momoAwaiting}
+                                 error={momoError}
+                              />
+                           )}
                         </motion.div>
                      )}
                      </AnimatePresence>

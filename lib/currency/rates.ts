@@ -12,6 +12,9 @@ const FALLBACK_RATES: Record<string, number> = {
   TZS: 2500,
   NGN: 1500,
   GHS: 13,
+  ZMW: 27,
+  XAF: 600,
+  XOF: 600,
 };
 
 function normalizeRates(raw: Record<string, number>): Record<string, number> {

@@ -11,13 +11,14 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { cn, formatDisplayMoney } from "@/lib/utils";
-import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
+import { PaymentMethodSelector, type MethodId } from "@/components/checkout/PaymentMethodSelector";
 import { useCurrency } from "@/context/CurrencyContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 /* ─── Types ─── */
 type PlanKey = "monthly" | "yearly" | "lifetime";
+type CommunityPaymentMethod = Exclude<MethodId, "mobile_money">;
 
 type CommunitySub = {
   id: string;
@@ -93,14 +94,12 @@ export function CommunitySubscribeClient({
     initialPlan === "yearly" || initialPlan === "lifetime" ? initialPlan : "monthly",
   );
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [payment, setPayment] = useState<
-    "nowpayments" | "flutterwave" | "pawapay" | "binancepay" | null
-  >(
+  const [payment, setPayment] = useState<CommunityPaymentMethod | null>(
     initialProvider === "nowpayments" ||
       initialProvider === "flutterwave" ||
       initialProvider === "pawapay" ||
       initialProvider === "binancepay"
-      ? initialProvider
+      ? (initialProvider as CommunityPaymentMethod)
       : "flutterwave",
   );
 
@@ -108,7 +107,6 @@ export function CommunitySubscribeClient({
   const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
   const [afripayPhone, setAfripayPhone] = useState(profilePhone || "");
   const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
-
   const monthly = Number(community.monthly_price ?? 0);
   const yearly = Number(community.yearly_price ?? 0);
   const lifetime = Number(community.lifetime_price ?? 0);
@@ -375,10 +373,21 @@ export function CommunitySubscribeClient({
                   <div className="pb-4">
                     <PaymentMethodSelector
                       selected={payment}
-                      onSelect={(m) => setPayment(m)}
+                      onSelect={(m) => {
+                        if (m === "mobile_money") {
+                          // Dedicated MoMo panel lives on marketplace checkout;
+                          // community subscribe keeps card Flutterwave path.
+                          setPayment("flutterwave");
+                          setFlutterwaveMethod("momo");
+                          return;
+                        }
+                        setPayment(m);
+                        setFlutterwaveMethod("card");
+                      }}
                       orderCurrency={currency}
                       orderTotal={amount}
                       showSummary={false}
+                      enabledMethodIds={["flutterwave", "nowpayments", "binancepay"]}
                     />
                   </div>
                 )}

@@ -78,6 +78,9 @@ export interface PaymentApiResponse {
    approvalUrl?: string;
    invoiceUrl?: string;
    redirectURL?: string;
-   error?: string | { code: string; details?: unknown };
+   error?: string | { code: string; details?: unknown; message?: string; reason?: string };
    message?: string;
+   txRef?: string;
+   pollUrl?: string;
+   status?: string;
 }

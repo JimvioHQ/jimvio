@@ -58,11 +58,11 @@ describe("checkout first-load hardening", () => {
     assert.equal(page.includes("ensurePendingOrderPlatformCurrency"), true);
   });
 
-  it("initiates Flutterwave in USD instead of forcing RWF", () => {
+  it("initiates Flutterwave in USD with card-only options", () => {
     const initiate = readFileSync(join(root, "app/api/payments/flutterwave/initiate/route.ts"), "utf8");
     assert.equal(initiate.includes("normaliseToRwf"), false);
     assert.equal(initiate.includes("normaliseToUsd"), true);
-    assert.equal(initiate.includes('paymentOptions: "card,applepay,googlepay"'), true);
+    assert.equal(initiate.includes('paymentOptions: "card"'), true);
     assert.equal(initiate.includes("mobilemoneyrwanda"), false);
   });
 
@@ -70,5 +70,17 @@ describe("checkout first-load hardening", () => {
     const migrate = readFileSync(join(root, "lib/commerce/ensure-platform-currency.ts"), "utf8");
     assert.equal(migrate.includes('const UNPAID = new Set(["pending", "failed"])'), true);
     assert.equal(migrate.includes('.in("payment_status", ["pending", "failed"])'), true);
+  });
+
+  it("exposes a dedicated Mobile Money checkout method", () => {
+    const selector = readFileSync(join(root, "components/checkout/PaymentMethodSelector.tsx"), "utf8");
+    assert.equal(selector.includes('id: "mobile_money"'), true);
+    assert.equal(selector.includes("Pay with Any Card, Mobile Money or Apple Pay"), false);
+    assert.equal(selector.includes("Pay securely with Visa, Mastercard, and other cards"), true);
+    assert.equal(selector.includes("Pay directly using your local mobile wallet"), true);
+
+    const checkout = readFileSync(join(root, "components/checkout/checkout-experience.tsx"), "utf8");
+    assert.equal(checkout.includes("mobile_money"), true);
+    assert.equal(checkout.includes("/api/payments/mobile-money/initiate"), true);
   });
 });
