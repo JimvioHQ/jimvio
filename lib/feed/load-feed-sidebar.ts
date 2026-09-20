@@ -39,6 +39,17 @@ function isValidAvatar(url: string | null | undefined): url is string {
   return true;
 }
 
+function isPublicUsername(username: string | null | undefined): username is string {
+  if (!username?.trim()) return false;
+  const cleaned = username.trim().replace(/^@+/, "");
+  // Real public handles only — reject spaces / display-name leftovers.
+  return /^[a-zA-Z0-9._]{2,32}$/.test(cleaned);
+}
+
+function normalizeUsername(username: string): string {
+  return username.trim().replace(/^@+/, "");
+}
+
 function displayName(
   fullName: string | null | undefined,
   username: string | null | undefined,
@@ -113,9 +124,11 @@ export async function loadFeedSidebarPopularUsers(
     if (isEditorialPersona(profile)) continue;
     const name = displayName(profile?.full_name, profile?.username, inf.display_name);
     if (!name) continue;
-    const username = profile?.username?.trim() || null;
-    // Popular Users require a real public username — never show nameless rows.
-    if (!username) continue;
+    const usernameRaw = profile?.username?.trim() || null;
+    if (!isPublicUsername(usernameRaw)) continue;
+    const username = normalizeUsername(usernameRaw);
+    // Skip platform system account from Popular Users suggestions.
+    if (username.toLowerCase() === "jimvio") continue;
 
     const avatarRaw =
       (isValidAvatar(profile?.avatar_url) ? profile.avatar_url : null) ??
@@ -154,22 +167,24 @@ export async function loadFeedSidebarPopularUsers(
       if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
       if (isEditorialPersona(profile)) continue;
       const name = displayName(profile.full_name, profile.username);
-      if (!name || !profile.username?.trim()) continue;
+      if (!name || !isPublicUsername(profile.username)) continue;
+      const username = normalizeUsername(profile.username!);
+      if (username.toLowerCase() === "jimvio") continue;
 
       seen.add(profile.id);
       candidates.push({
         userId: profile.id,
         name,
-        username: profile.username.trim(),
+        username,
         avatarUrl: isValidAvatar(profile.avatar_url)
           ? mediaUrlOrNull(profile.avatar_url, 96)
           : null,
         followerCount: resolveProfileFollowerCount({
-          username: profile.username,
+          username,
           follower_count: profile.follower_count,
         }),
         verified: Boolean(profile.is_verified),
-        href: profileHref(profile.username, profile.id),
+        href: profileHref(username, profile.id),
       });
     }
   }
