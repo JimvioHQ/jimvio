@@ -66,7 +66,12 @@ export async function POST(req: NextRequest) {
       order.currency
     )
 
-    const lineItems = orders.flatMap(o => ((o.order_items as unknown[]) || []))
+    const lineItems = orders.flatMap((o) => {
+      const items = o.order_items
+      return Array.isArray(items)
+        ? (items as { product_name: string | null | undefined; quantity: number | null | undefined }[])
+        : []
+    })
     const description = orders.length === 1 
       ? buildNowPaymentsOrderDescription(order.order_number, lineItems)
       : `Jimvio Bundle (${orders.length} vendors)`
