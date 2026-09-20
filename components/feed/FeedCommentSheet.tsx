@@ -95,10 +95,12 @@ export function FeedCommentSheet({
 
   const loadComments = useCallback(async () => {
     setLoading(true);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 20_000);
     try {
       const res = await fetch(`/api/posts/${postId}/comments?sort=newest&limit=50`, {
         cache: "no-store",
-        signal: AbortSignal.timeout(20_000),
+        signal: controller.signal,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -115,6 +117,7 @@ export function FeedCommentSheet({
       }
       setComments([]);
     } finally {
+      window.clearTimeout(timer);
       setLoading(false);
     }
   }, [postId]);
