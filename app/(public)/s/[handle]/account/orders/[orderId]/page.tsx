@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
+import { cosTable } from "@/lib/commerce-os/db";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
@@ -56,8 +57,7 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     );
   }
 
-  const { data: order } = await supabase
-    .from("orders")
+  const { data: order } = await cosTable(supabase, "orders")
     .select(
       `
       id, order_number, total_amount, subtotal, shipping_amount, discount_amount,

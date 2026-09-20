@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadPublishedStoreByHandle } from "@/lib/commerce-os";
+import { cosTable } from "@/lib/commerce-os/db";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
@@ -46,8 +47,7 @@ export default async function StorefrontAccountPage({ params }: Props) {
     .eq("id", user.id)
     .maybeSingle();
 
-  const { data: orders } = await supabase
-    .from("orders")
+  const { data: orders } = await cosTable(supabase, "orders")
     .select(
       "id, order_number, total_amount, currency, payment_status, status, created_at"
     )

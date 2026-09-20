@@ -148,8 +148,7 @@ export default async function StorefrontCheckoutPage({
     }
   }
 
-  const { data: rawOrder, error: orderError } = await supabase
-    .from("orders")
+  const { data: rawOrder, error: orderError } = await cosTable(supabase, "orders")
     .select(ORDER_SELECT)
     .eq("id", orderId)
     .eq("buyer_id", user.id)
