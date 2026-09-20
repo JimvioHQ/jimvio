@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ShoppingCart, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/actions/marketplace";
+import { proceedToCheckout } from "@/lib/actions/checkout";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
 
@@ -84,7 +85,12 @@ export function StorefrontAddToCartButton({
         setAdded(true);
         incrementCartCount(qty);
         if (goCheckout) {
-          window.location.href = "/checkout";
+          const checkout = await proceedToCheckout();
+          if (checkout.ok) {
+            window.location.href = `/checkout?order_id=${encodeURIComponent(checkout.orderId)}`;
+            return;
+          }
+          setError(checkout.error || "Could not start checkout.");
           return;
         }
         setTimeout(() => setAdded(false), 2000);

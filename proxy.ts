@@ -23,6 +23,20 @@ export async function proxy(request: NextRequest) {
 
   const sessionResponse = await updateSession(request);
 
+  // Merchant host requesting /favicon.ico → serve neutral empty favicon
+  // unless the store has uploaded one (handled via HTML metadata icons).
+  if (subdomainHandle && (pathname === "/favicon.ico" || pathname === "/manifest.webmanifest")) {
+    if (pathname === "/manifest.webmanifest") {
+      return new NextResponse("{}", {
+        status: 404,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = "/storefront-empty-favicon.svg";
+    return NextResponse.rewrite(url);
+  }
+
   if (needsStoreRewrite && subdomainHandle) {
     const url = request.nextUrl.clone();
     const mapped = resolveStoreHostPath(pathname);
@@ -64,6 +78,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Include favicon so merchant hosts can rewrite away from platform favicon.ico
+    "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

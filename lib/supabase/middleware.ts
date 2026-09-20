@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/public-env";
 import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import { withJimvioCookieDomain } from "@/lib/auth/cookie-domain";
 import {
   TWO_FA_PENDING_COOKIE,
   TWO_FA_VERIFIED_COOKIE,
@@ -76,7 +77,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   try {
-    const protectedPaths = ["/admin", "/settings", "/wallet", "/identity", "/orders", "/checkout", "/owner", "/library", "/messages", "/activate", "/inbox", "/notifications", "/saved", "/seller", "/dropshipping", "/commerce"];
+    const protectedPaths = ["/admin", "/settings", "/wallet", "/identity", "/orders", "/checkout", "/account", "/owner", "/library", "/messages", "/activate", "/inbox", "/notifications", "/saved", "/seller", "/dropshipping", "/commerce"];
     const isProtected =
       protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
     const hasSession = hasSupabaseSession(request);
@@ -105,6 +106,7 @@ export async function updateSession(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll(cookiesToSet: Array<{ name: string; value: string; options?: Record<string, unknown> }>) {
+            const host = request.headers.get("host");
             cookiesToSet.forEach(({ name, value }) =>
               request.cookies.set(name, value)
             );
@@ -112,7 +114,13 @@ export async function updateSession(request: NextRequest) {
               request: { headers: requestHeaders },
             });
             cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
+              supabaseResponse.cookies.set(
+                name,
+                value,
+                withJimvioCookieDomain(host, options) as Parameters<
+                  typeof supabaseResponse.cookies.set
+                >[2]
+              )
             );
           },
         },

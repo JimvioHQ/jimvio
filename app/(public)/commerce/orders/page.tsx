@@ -154,6 +154,7 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
               const badge = statusBadge(o.payment_status, o.status);
               return (
                 <CommerceCard key={o.id} className="p-4">
+                  <Link href={`/commerce/orders/${o.id}?storeId=${active.id}`} className="block">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-[#111827]">
@@ -172,6 +173,7 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
                   <p className="mt-3 text-sm font-semibold tabular-nums">
                     {o.currency || "USD"} {Number(o.total_amount || 0).toFixed(2)}
                   </p>
+                  </Link>
                 </CommerceCard>
               );
             })}
@@ -194,7 +196,12 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
                   return (
                     <tr key={o.id} className="border-b border-[#F3F4F6] last:border-0">
                       <td className="px-4 py-3 font-medium text-[#111827]">
-                        {o.order_number || o.id.slice(0, 8)}
+                        <Link
+                          href={`/commerce/orders/${o.id}?storeId=${active.id}`}
+                          className="hover:text-[#FF5A1F]"
+                        >
+                          {o.order_number || o.id.slice(0, 8)}
+                        </Link>
                       </td>
                       <td className="px-4 py-3 text-[#6B7280]">
                         {o.payment_status || "—"}

@@ -68,9 +68,11 @@ export function StorefrontHeaderActions({
   const [menuOpen, setMenuOpen] = useState(false);
   const [storeCount, setStoreCount] = useState(0);
   const [storeTotal, setStoreTotal] = useState(0);
+  const [signedIn, setSignedIn] = useState(false);
   const searchBase = storefrontHref(handle, "/search", linkOpts);
   const cartHref = storefrontHref(handle, "/cart", linkOpts);
   const accountHref = storefrontHref(handle, "/account", linkOpts);
+  const loginHref = storefrontHref(handle, "/login", linkOpts);
   const desktopSearch =
     previewDevice == null
       ? null
@@ -92,6 +94,21 @@ export function StorefrontHeaderActions({
       cancelled = true;
     };
   }, [storeId, handle, cartCount]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void import("@/lib/supabase/client")
+      .then(({ createClient }) => createClient().auth.getSession())
+      .then(({ data }) => {
+        if (!cancelled) setSignedIn(Boolean(data.session?.user));
+      })
+      .catch(() => {
+        if (!cancelled) setSignedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const searchFormClass = storefrontDesktopSearchClass(previewDevice);
   const searchIconClass = storefrontMobileSearchIconClass(previewDevice);
@@ -138,9 +155,13 @@ export function StorefrontHeaderActions({
       <Link href={searchBase} className={searchIconClass} aria-label="Search">
         ⌕
       </Link>
-      <Link href={accountHref} className={accountClass} aria-label="Account">
+      <Link
+        href={signedIn ? accountHref : loginHref}
+        className={accountClass}
+        aria-label={signedIn ? "Account" : "Sign in"}
+      >
         <AccountGlyph />
-        <span>Sign in</span>
+        <span>{signedIn ? "Account" : "Sign in"}</span>
       </Link>
       <Link
         href={cartHref}

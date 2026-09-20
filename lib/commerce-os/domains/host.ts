@@ -13,8 +13,8 @@ const PLATFORM_HOSTS = new Set([
 
 /**
  * Paths that must stay on the platform router even when requested on a
- * merchant store host (APIs, workspaces, auth). Storefront-owned surfaces
- * like /cart are intentionally NOT listed — they rewrite to /s/{handle}/….
+ * merchant store host (APIs, workspaces). Storefront-owned surfaces
+ * (/cart, /checkout, /login, /account, /orders) rewrite to /s/{handle}/….
  */
 const PLATFORM_PATH_PREFIXES = [
   "/api",
@@ -25,13 +25,10 @@ const PLATFORM_PATH_PREFIXES = [
   "/communities",
   "/affiliates",
   "/ugc",
-  "/checkout",
-  "/login",
   "/register",
   "/signup",
   "/wallet",
   "/settings",
-  "/orders",
   "/messages",
   "/seller",
   "/dashboard",
@@ -86,6 +83,9 @@ export const STORE_HOST_PATH_ALIASES: Record<string, string> = {
   "/about": "/pages/about",
   "/products": "/collections/all",
   "/shop": "/collections/all",
+  "/orders": "/account/orders",
+  "/sign-in": "/login",
+  "/signin": "/login",
 };
 
 export function resolveStoreHostPath(pathname: string): string {

@@ -7,6 +7,7 @@ import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
 import { productImageAt } from "@/lib/commerce-os/storefront/product-media";
+import { StorefrontCheckoutButton } from "@/components/commerce-os/storefront-checkout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export default async function StorefrontCartPage({ params }: Props) {
   const linkOpts = { onStoreHost };
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
-  if (!store) redirect("/cart");
+  if (!store) redirect("/");
 
   const {
     data: { user },
@@ -58,48 +59,66 @@ export default async function StorefrontCartPage({ params }: Props) {
         </div>
       ) : (
         <ul className="mt-6 space-y-3">
-          {items.map((item: {
-            id: string;
-            quantity: number;
-            unit_price_at_add: number;
-            products?: { name?: string; slug?: string; images?: unknown } | null;
-          }) => {
-            const img = productImageAt(item.products?.images, 0);
-            return (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] px-3 py-3 text-sm"
-              >
-                {img ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={img} alt="" className="h-16 w-16 rounded-lg object-cover" />
-                ) : (
-                  <div className="grid h-16 w-16 place-items-center rounded-lg bg-[var(--store-bg,#F8FAFC)] text-[10px] text-[var(--store-muted,#6B7280)]">
-                    No image
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  {item.products?.slug ? (
-                    <Link
-                      href={storefrontHref(handle, `/product/${item.products.slug}`, linkOpts)}
-                      className="font-medium text-[var(--store-text,#111827)]"
-                    >
-                      {item.products?.name || "Product"}
-                    </Link>
+          {items.map(
+            (item: {
+              id: string;
+              quantity: number;
+              unit_price_at_add: number;
+              products?: {
+                name?: string;
+                slug?: string;
+                images?: unknown;
+              } | null;
+            }) => {
+              const img = productImageAt(item.products?.images, 0);
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] px-3 py-3 text-sm"
+                >
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={img}
+                      alt=""
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
                   ) : (
-                    <p className="font-medium">{item.products?.name || "Product"}</p>
+                    <div className="grid h-16 w-16 place-items-center rounded-lg bg-[var(--store-bg,#F8FAFC)] text-[10px] text-[var(--store-muted,#6B7280)]">
+                      No image
+                    </div>
                   )}
-                  <p className="text-xs text-[var(--store-muted,#6B7280)]">Qty {item.quantity}</p>
-                </div>
-                <p className="tabular-nums font-semibold">
-                  {formatStoreMoney(
-                    Number(item.unit_price_at_add) * Number(item.quantity),
-                    currency
-                  )}
-                </p>
-              </li>
-            );
-          })}
+                  <div className="min-w-0 flex-1">
+                    {item.products?.slug ? (
+                      <Link
+                        href={storefrontHref(
+                          handle,
+                          `/product/${item.products.slug}`,
+                          linkOpts
+                        )}
+                        className="font-medium text-[var(--store-text,#111827)]"
+                      >
+                        {item.products?.name || "Product"}
+                      </Link>
+                    ) : (
+                      <p className="font-medium">
+                        {item.products?.name || "Product"}
+                      </p>
+                    )}
+                    <p className="text-xs text-[var(--store-muted,#6B7280)]">
+                      Qty {item.quantity}
+                    </p>
+                  </div>
+                  <p className="tabular-nums font-semibold">
+                    {formatStoreMoney(
+                      Number(item.unit_price_at_add) * Number(item.quantity),
+                      currency
+                    )}
+                  </p>
+                </li>
+              );
+            }
+          )}
         </ul>
       )}
 
@@ -115,12 +134,10 @@ export default async function StorefrontCartPage({ params }: Props) {
             Continue shopping
           </Link>
           {items.length ? (
-            <Link
-              href="/checkout"
-              className="rounded-[var(--store-btn-radius,9999px)] bg-[var(--store-primary,#FF5A1F)] px-4 py-2.5 text-xs font-semibold text-white"
-            >
-              Checkout
-            </Link>
+            <StorefrontCheckoutButton
+              handle={handle}
+              onStoreHost={onStoreHost}
+            />
           ) : null}
         </div>
       </div>

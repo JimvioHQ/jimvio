@@ -28,6 +28,10 @@ describe("commerce host routing", () => {
   it("rewrites storefront surfaces on merchant hosts", () => {
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/cart"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/checkout"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/login"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/account"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/orders"), true);
     assert.equal(
       shouldAttemptStoreHostRewrite("brand.jimvio.com", "/collections/all"),
       true
@@ -47,14 +51,15 @@ describe("commerce host routing", () => {
     assert.equal(resolveStoreHostPath("/products"), "/collections/all");
     assert.equal(resolveStoreHostPath("/products/hat"), "/product/hat");
     assert.equal(resolveStoreHostPath("/cart"), "/cart");
+    assert.equal(resolveStoreHostPath("/orders"), "/account/orders");
   });
 
   it("does not rewrite platform paths on custom hosts", () => {
     assert.equal(shouldAttemptStoreHostRewrite("brand.com", "/api/health"), false);
     assert.equal(shouldAttemptStoreHostRewrite("brand.com", "/admin"), false);
-    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/checkout"), false);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/marketplace"), false);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/commerce"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/settings"), false);
     assert.equal(shouldAttemptStoreHostRewrite("www.jimvio.com", "/"), false);
   });
 

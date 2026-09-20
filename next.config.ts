@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
       allowedOrigins: [
         "www.jimvio.com",
         "jimvio.com",
+        "*.jimvio.com",
         "localhost:3000",
       ],
     },

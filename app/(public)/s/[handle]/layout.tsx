@@ -52,6 +52,17 @@ export default async function StorefrontLayout({ children, params }: Props) {
     headerStore.get("x-jimvio-store-handle") ||
       handleFromJimvioSubdomain(hostname)
   );
+  const requestPath =
+    headerStore.get("x-jimvio-pathname") ||
+    headerStore.get("x-invoke-path") ||
+    "";
+  const minimalChrome =
+    requestPath === "/checkout" ||
+    requestPath.startsWith("/checkout?") ||
+    requestPath === "/login" ||
+    requestPath.startsWith("/login?") ||
+    requestPath.includes("/checkout") ||
+    /\/s\/[^/]+\/(checkout|login)(\/|$|\?)/.test(requestPath);
 
   const supabase = await createClient();
   const store = await loadPublishedStoreByHandle(supabase, handle);
@@ -94,11 +105,15 @@ export default async function StorefrontLayout({ children, params }: Props) {
     hasAbout: Boolean(aboutPage),
   });
 
-  const showAnnouncement = homeSections.some(
-    (s) => s.type === "announcement" && s.enabled
-  );
-  const showHeader = homeSections.some((s) => s.type === "header" && s.enabled);
-  const showFooter = homeSections.some((s) => s.type === "footer" && s.enabled);
+  const showAnnouncement =
+    !minimalChrome &&
+    homeSections.some((s) => s.type === "announcement" && s.enabled);
+  const showHeader =
+    !minimalChrome &&
+    homeSections.some((s) => s.type === "header" && s.enabled);
+  const showFooter =
+    !minimalChrome &&
+    homeSections.some((s) => s.type === "footer" && s.enabled);
   const announcementSection = homeSections.find((s) => s.type === "announcement");
 
   const cssVars = themeSettingsToCssVars(settings);
@@ -106,11 +121,13 @@ export default async function StorefrontLayout({ children, params }: Props) {
   return (
     <div
       className={`flex min-h-dvh flex-col ${
-        mobileNavStyle === "bottom" ? "pb-16 lg:pb-0" : ""
+        !minimalChrome && mobileNavStyle === "bottom" ? "pb-16 lg:pb-0" : ""
       }`}
       style={{
         ...cssVars,
-        ["--store-mobile-nav-h" as string]: mobileNavOffsetVar(mobileNavStyle),
+        ["--store-mobile-nav-h" as string]: minimalChrome
+          ? "0px"
+          : mobileNavOffsetVar(mobileNavStyle),
         backgroundColor: settings.backgroundColor,
         color: settings.textColor,
         fontSize: `calc(100% * var(--store-font-scale, 1))`,
@@ -161,7 +178,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           social={store.social}
         />
       ) : null}
-      {mobileNavStyle === "bottom" ? (
+      {!minimalChrome && mobileNavStyle === "bottom" ? (
         <StorefrontMobileNav
           handle={store.handle}
           storeId={store.id}

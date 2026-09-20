@@ -32,7 +32,9 @@ function seoKeywords(seo: Record<string, unknown>, storeName: string): string[] 
   return [storeName, `${storeName} store`, "online store", "shop"];
 }
 
-/** Always set icons so Next.js never inherits the platform Jimvio favicon. */
+/** Always set icons so Next.js never inherits the platform Jimvio favicon.
+ * Merchant favicon only when explicitly uploaded — never fall back to logo
+ * or Jimvio branding (neutral empty icon otherwise). */
 export function resolveStorefrontIcons(store: {
   favicon_url?: string | null;
   logo_url?: string | null;
@@ -41,11 +43,7 @@ export function resolveStorefrontIcons(store: {
     typeof store.favicon_url === "string" && store.favicon_url.trim()
       ? store.favicon_url.trim()
       : null;
-  const logo =
-    typeof store.logo_url === "string" && store.logo_url.trim()
-      ? store.logo_url.trim()
-      : null;
-  const url = dedicated || logo || STOREFRONT_NEUTRAL_FAVICON_PATH;
+  const url = dedicated || STOREFRONT_NEUTRAL_FAVICON_PATH;
   return {
     icon: [{ url, ...(url.endsWith(".svg") ? { type: "image/svg+xml" } : {}) }],
     shortcut: url,
