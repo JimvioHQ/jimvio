@@ -100,7 +100,7 @@ function PopularUserRow({ user }: { user: FeedSidebarPopularUser }) {
   );
 }
 
-/** Exactly five curated creators when enough real profiles exist. */
+/** Up to five curated creators from real profiles — show fewer when fewer qualify. */
 export function PopularUsersCard() {
   const { popularUsers, loading, popularReady } = useFeedHubDiscover();
 
@@ -112,11 +112,11 @@ export function PopularUsersCard() {
     );
   }
 
-  if (!popularReady || popularUsers.length !== POPULAR_USER_COUNT) {
+  if (!popularReady || popularUsers.length === 0) {
     return (
       <FeedSidebarCard title="Popular Users" viewAllHref="/communities/explore">
         <p className="py-2 text-center text-[11px] text-[var(--color-text-muted,#6b7280)]">
-          No creator suggestions yet
+          No users to show yet
         </p>
       </FeedSidebarCard>
     );

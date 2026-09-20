@@ -2028,24 +2028,15 @@ export function HubLivePage({
               onStopShare={stopShare}
               onPresent={() => setActivity((a) => (a === "present" ? "live" : "present"))}
               onRecord={() => void toggleRecord()}
-              onPoll={() => {
-                if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
-                setHasPolls(true);
-                openRight("chat");
-                void live
-                  .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
-                  .catch(() => undefined);
-                showToast("Poll launched — chat stays open");
-              }}
               onInvite={() => {
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
               }}
-              onReact={() => openRight("chat")}
-              onQa={() => openRight("chat")}
+              onReact={() => {
+                if (live.session?.id) void live.react("❤️");
+              }}
               onCopyLink={openShareSheet}
               onFullscreen={() => setFocusMode(true)}
-              onMore={() => openRight("chat")}
               onEnd={() => setConfirmDialog("end")}
               onLeave={() => void leaveLive()}
               canEnd={canEndLive(live.myRole)}

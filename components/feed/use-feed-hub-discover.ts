@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { FeedSidebarLiveCreator, FeedSidebarPopularUser } from "@/lib/feed/load-feed-sidebar";
-import { POPULAR_USER_COUNT } from "@/lib/feed/load-feed-sidebar";
 
 type HubDiscoverPayload = {
   live?: Array<
@@ -87,7 +86,7 @@ export function useFeedHubDiscover() {
     };
   }, []);
 
-  const popularReady = popularUsers.length === POPULAR_USER_COUNT;
+  const popularReady = !loading;
 
   return { live, popularUsers, loading, popularReady };
 }

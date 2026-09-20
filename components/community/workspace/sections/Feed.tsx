@@ -1757,10 +1757,23 @@ function PostDetailPanel({
         let cancelled = false;
         (async () => {
             setLoadingComments(true);
-            const res = await fetch(`/api/posts/${postId}/comments?sort=${commentSort}`);
-            const data = await res.json();
-            if (!cancelled && res.ok) setComments(data.comments ?? []);
-            if (!cancelled) setLoadingComments(false);
+            try {
+                const res = await fetch(
+                    `/api/posts/${postId}/comments?sort=${commentSort}`,
+                    { cache: "no-store", signal: AbortSignal.timeout(20_000) }
+                );
+                const data = await res.json().catch(() => ({}));
+                if (cancelled) return;
+                if (res.ok) {
+                    setComments(data.comments ?? []);
+                } else {
+                    setComments([]);
+                }
+            } catch {
+                if (!cancelled) setComments([]);
+            } finally {
+                if (!cancelled) setLoadingComments(false);
+            }
         })();
         return () => { cancelled = true; };
     }, [postId, commentSort]);

@@ -8,29 +8,19 @@ import {
 } from "./member-count";
 
 describe("resolveCommunityMemberCount", () => {
-  it("prefers settings.display_member_count over showcase and db", () => {
+  it("uses authoritative member_count only (no showcase or settings floors)", () => {
     assert.equal(
       resolveCommunityMemberCount({
         slug: "p7provider",
         member_count: 3,
         settings: { display_member_count: 900 },
       }),
-      900
-    );
-  });
-
-  it("uses the showcase map when settings are absent", () => {
-    assert.equal(
-      resolveCommunityMemberCount({ slug: "p7provider", member_count: 3 }),
-      842
+      3
     );
     assert.equal(
       resolveCommunityMemberCount({ slug: "quantforg", member_count: 12 }),
-      1643
+      12
     );
-  });
-
-  it("falls back to the database count for unknown communities", () => {
     assert.equal(
       resolveCommunityMemberCount({ slug: "indie-hub", member_count: 41 }),
       41
@@ -43,16 +33,16 @@ describe("resolveSpaceMemberCount", () => {
     assert.equal(
       resolveSpaceMemberCount(
         { access_type: "free", member_count: 1 },
-        842
+        42
       ),
-      842
+      42
     );
     assert.equal(
       resolveSpaceMemberCount(
         { accessType: "inherit", member_count: 1 },
-        842
+        42
       ),
-      842
+      42
     );
   });
 

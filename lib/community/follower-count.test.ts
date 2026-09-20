@@ -6,38 +6,29 @@ import {
 } from "./follower-count";
 
 describe("resolveProfileFollowerCount", () => {
-  it("uses showcase floor for p7provider without fabricating follows", () => {
+  it("uses real follower_count only (no showcase inflation)", () => {
     assert.equal(
       resolveProfileFollowerCount({
         username: "p7provider",
         follower_count: 2,
       }),
-      1233
+      2
     );
   });
 
-  it("prefers a higher real count over the showcase floor", () => {
-    assert.equal(
-      resolveProfileFollowerCount({
-        username: "p7provider",
-        follower_count: 2000,
-      }),
-      2000
-    );
-  });
-
-  it("uses settings display floor when present", () => {
+  it("ignores settings display floors", () => {
     assert.equal(
       resolveProfileFollowerCount({
         username: "indie",
         follower_count: 4,
         settings: { display_follower_count: 500 },
       }),
-      500
+      4
     );
   });
 
-  it("falls back to the database count for normal users", () => {
+  it("falls back to zero when missing", () => {
+    assert.equal(resolveProfileFollowerCount(null), 0);
     assert.equal(
       resolveProfileFollowerCount({
         username: "alice",

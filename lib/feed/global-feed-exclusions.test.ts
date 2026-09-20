@@ -3,8 +3,9 @@ import { describe, it } from "node:test";
 import {
   encodeGlobalFeedCursor,
   getGlobalFeedRotationBucket,
+  isExcludedFromGlobalFeed,
   parseGlobalFeedCursor,
-} from "./global-feed-exclusions";
+} from "./global-feed-exclusions.ts";
 
 describe("global feed session seed", () => {
   it("mints a fresh seed when there is no cursor", () => {
@@ -33,12 +34,49 @@ describe("global feed session seed", () => {
     const b = getGlobalFeedRotationBucket(42);
     assert.ok(a >= 42 * 1_000_000);
     assert.ok(b >= 42 * 1_000_000);
-    // Entropy should usually diverge even for the same wall clock.
-    // Allow rare collision but prefer inequality.
     if (a === b) {
       assert.ok(Number.isFinite(a));
     } else {
       assert.notEqual(a, b);
     }
+  });
+});
+
+describe("isExcludedFromGlobalFeed", () => {
+  it("excludes editorial and promotion posts", () => {
+    assert.equal(
+      isExcludedFromGlobalFeed({
+        attachments: { jimvio: { origin: "editorial", key: "x" } },
+        body: "Hello",
+      }),
+      true
+    );
+    assert.equal(
+      isExcludedFromGlobalFeed({
+        attachments: { jimvio: { origin: "promotion", key: "y" } },
+        body: "Hello",
+      }),
+      true
+    );
+  });
+
+  it("excludes editorial persona emails and seed body templates", () => {
+    assert.equal(
+      isExcludedFromGlobalFeed({
+        body: "Prompt?\n\nShare what you have tried in TypeScript. Prefer specifics over slogans.",
+        profiles: { email: "editorial+tina@jimvio.com", username: "tina_v" },
+      }),
+      true
+    );
+  });
+
+  it("keeps organic posts", () => {
+    assert.equal(
+      isExcludedFromGlobalFeed({
+        body: "Shipping our first Jimvio live tonight.",
+        profiles: { email: "creator@example.com", username: "creator" },
+      }),
+      false
+    );
   });
 });

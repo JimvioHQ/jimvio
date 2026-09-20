@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Home, Layers, Plus, ShieldCheck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
 import {
   useWorkspaceOptional,
   type WorkspaceSpaceRow,
@@ -320,9 +319,9 @@ function SidebarBody({
 
 export function CommunitySidebar({
   slug,
-  communityName: _communityName = MOCK_COMMUNITY.name,
-  visibility: _visibility = MOCK_COMMUNITY.visibility,
-  membersOnline: _membersOnline = MOCK_COMMUNITY.membersOnline,
+  communityName: _communityName = "",
+  visibility: _visibility = "public",
+  membersOnline: _membersOnline = 0,
   activeNav,
   activeSpaceId,
   spaces: spacesProp,

@@ -2,8 +2,7 @@
  * Profile follower counts — display source of truth for Jimvio user→user follows.
  *
  * Real relationships live in `user_follows` (and `profiles.follower_count` cache).
- * Showcase usernames may raise the *displayed* floor without fabricating follow rows —
- * same pattern as community `SHOWCASE_COMMUNITY_MEMBER_COUNTS`.
+ * Display must never invent floors, showcase inflation, or hardcoded social proof.
  *
  * NEVER confuse with community.member_count.
  */
@@ -12,24 +11,15 @@ export type ProfileFollowerCountSource = {
   username?: string | null;
   follower_count?: number | null;
   followerCount?: number | null;
-  /** Optional persisted social-proof floor (profiles.settings or future column). */
+  /** @deprecated Ignored — public display uses real follower_count only. */
   display_follower_count?: number | null;
   displayFollowerCount?: number | null;
   settings?: unknown;
 };
 
-/**
- * Presentation floors for showcase creator profiles.
- * Do not copy these numbers into UI components — resolve through this helper.
- */
-export const SHOWCASE_PROFILE_FOLLOWER_COUNTS: Readonly<Record<string, number>> = {
-  p7provider: 1233,
-};
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+/** @deprecated Empty — showcase floors removed for honest production social proof. */
+export const SHOWCASE_PROFILE_FOLLOWER_COUNTS: Readonly<Record<string, number>> =
+  Object.freeze({});
 
 export function normalizeFollowerCount(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
@@ -42,42 +32,17 @@ export function normalizeFollowerCount(value: unknown): number {
   return 0;
 }
 
-export function readDisplayFollowerCount(settings: unknown): number | null {
-  const root = asRecord(settings);
-  if (!root) return null;
-  const raw =
-    root.display_follower_count ??
-    root.displayFollowerCount ??
-    asRecord(root.stats)?.display_follower_count ??
-    asRecord(root.stats)?.displayFollowerCount;
-  if (raw == null || raw === "") return null;
-  return normalizeFollowerCount(raw) || null;
-}
-
 /**
- * Customer-facing Jimvio follower count:
- * max(real follows, settings floor, showcase floor).
- * Never invents user_follows rows.
+ * Customer-facing Jimvio follower count from the authoritative profile cache only.
+ * Never invents user_follows rows or presentation floors.
  */
 export function resolveProfileFollowerCount(
   source: ProfileFollowerCountSource | null | undefined
 ): number {
   if (!source) return 0;
-  const real = normalizeFollowerCount(
+  return normalizeFollowerCount(
     source.follower_count ?? source.followerCount
   );
-  const fromSettings =
-    source.display_follower_count != null || source.displayFollowerCount != null
-      ? normalizeFollowerCount(
-          source.display_follower_count ?? source.displayFollowerCount
-        )
-      : readDisplayFollowerCount(source.settings) ?? 0;
-  const slug = source.username?.toLowerCase?.()?.replace(/^@/, "") ?? null;
-  const showcase =
-    slug && SHOWCASE_PROFILE_FOLLOWER_COUNTS[slug] != null
-      ? SHOWCASE_PROFILE_FOLLOWER_COUNTS[slug]
-      : 0;
-  return Math.max(real, fromSettings, showcase);
 }
 
 export function formatFollowerCountLabel(

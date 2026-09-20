@@ -40,9 +40,12 @@ describe("screen share preserving audio/video controls", () => {
 describe("desktop control visibility", () => {
   it("exposes primary live controls for publishers", () => {
     const live = desktopDockControls("live", { canEnd: true });
-    for (const id of ["mic", "cam", "share", "invite", "record", "end"] as const) {
+    for (const id of ["mic", "cam", "share", "invite", "record", "react", "end"] as const) {
       assert.ok(live.includes(id), `expected ${id}`);
     }
+    assert.ok(!live.includes("polls"));
+    assert.ok(!live.includes("qa"));
+    assert.ok(!live.includes("more"));
   });
 
   it("uses leave instead of end when cannot end", () => {

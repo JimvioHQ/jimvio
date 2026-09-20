@@ -93,6 +93,7 @@ export function FeedCommentSheet({
     try {
       const res = await fetch(`/api/posts/${postId}/comments?sort=newest&limit=50`, {
         cache: "no-store",
+        signal: AbortSignal.timeout(20_000),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -101,8 +102,12 @@ export function FeedCommentSheet({
         return;
       }
       setComments((data.comments ?? []) as FeedComment[]);
-    } catch {
-      toast.error("Failed to load comments");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("Comments took too long to load. Try again.");
+      } else {
+        toast.error("Failed to load comments");
+      }
       setComments([]);
     } finally {
       setLoading(false);

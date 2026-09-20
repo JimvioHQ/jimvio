@@ -1,15 +1,12 @@
 /**
  * Community & Space member counts — single source of truth for display.
  *
- * Community display:
- *   settings.display_member_count → showcase slug → communities.member_count
- *
+ * Community display uses communities.member_count (authoritative roster cache).
  * Space display:
  *   Free/inherit/public Spaces share community membership (no separate roster).
  *   Paid/private Spaces use spaces.member_count only.
  *
- * Real roster size remains the membership tables for joins/leaves —
- * never fabricate auth users or hardcode counts in UI components.
+ * Never fabricate members, showcase floors, or hardcoded UI counts.
  */
 
 export type CommunityMemberCountSource = {
@@ -26,14 +23,9 @@ export type SpaceMemberCountSource = {
   memberCount?: number | null;
 };
 
-/**
- * Presentation counts for showcase communities.
- * Single source — do not copy these numbers into UI components.
- */
-export const SHOWCASE_COMMUNITY_MEMBER_COUNTS: Readonly<Record<string, number>> = {
-  p7provider: 842,
-  quantforg: 1643,
-};
+/** @deprecated Empty — showcase floors removed for honest production counts. */
+export const SHOWCASE_COMMUNITY_MEMBER_COUNTS: Readonly<Record<string, number>> =
+  Object.freeze({});
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -51,6 +43,7 @@ export function normalizeMemberCount(value: unknown): number {
   return 0;
 }
 
+/** @deprecated Settings display floors are no longer applied to public counts. */
 export function readDisplayMemberCount(settings: unknown): number | null {
   const root = asRecord(settings);
   if (!root) return null;
@@ -74,12 +67,6 @@ export function resolveCommunityMemberCount(
   source: CommunityMemberCountSource | null | undefined
 ): number {
   if (!source) return 0;
-  const display = readDisplayMemberCount(source.settings);
-  if (display != null) return display;
-  const slug = source.slug?.toLowerCase?.() ?? null;
-  if (slug && SHOWCASE_COMMUNITY_MEMBER_COUNTS[slug] != null) {
-    return SHOWCASE_COMMUNITY_MEMBER_COUNTS[slug];
-  }
   return normalizeMemberCount(source.member_count ?? source.memberCount);
 }
 

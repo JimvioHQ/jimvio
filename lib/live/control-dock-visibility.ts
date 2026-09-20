@@ -35,18 +35,15 @@ export function desktopDockControls(
       "mic",
       "cam",
       "stopShare",
-      "annotate",
-      "laser",
       "fullscreen",
       "record",
       "copyLink",
-      "more",
       endOrLeave,
     ];
   }
 
   if (activity === "present") {
-    return ["mic", "cam", "polls", "record", "more", endOrLeave];
+    return ["mic", "cam", "record", endOrLeave];
   }
 
   return [
@@ -57,9 +54,6 @@ export function desktopDockControls(
     "invite",
     "record",
     "react",
-    "polls",
-    "qa",
-    "more",
     endOrLeave,
   ];
 }

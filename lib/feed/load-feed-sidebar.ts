@@ -1,6 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
-import { PRIORITY_POPULAR_USERNAMES } from "@/lib/community/discovery-priorities";
 import { resolveProfileFollowerCount } from "@/lib/community/follower-count";
 
 export const POPULAR_USER_COUNT = 5;
@@ -73,10 +72,29 @@ export async function loadFeedSidebarPopularUsers(
     follower_count: number | null;
     is_verified: boolean | null;
     is_active: boolean | null;
+    email?: string | null;
+    settings?: unknown;
   };
 
   const candidates: FeedSidebarPopularUser[] = [];
   const seen = new Set<string>();
+
+  function isEditorialPersona(profile: ProfileRow | undefined): boolean {
+    if (!profile) return false;
+    const email = (profile.email ?? "").trim().toLowerCase();
+    if (email.startsWith("editorial+") && email.endsWith("@jimvio.com")) return true;
+    const settings = profile.settings;
+    if (settings && typeof settings === "object" && !Array.isArray(settings)) {
+      const s = settings as Record<string, unknown>;
+      if (s.jimvio_editorial === true) return true;
+      const jimvio = s.jimvio;
+      if (jimvio && typeof jimvio === "object" && !Array.isArray(jimvio)) {
+        if ((jimvio as { origin?: string }).origin === "editorial") return true;
+        if ((jimvio as { persona?: boolean }).persona === true) return true;
+      }
+    }
+    return false;
+  }
 
   const { data: influencers } = (await admin
     .from("influencers")
@@ -94,7 +112,7 @@ export async function loadFeedSidebarPopularUsers(
   if (influencerIds.length) {
     const { data: profiles } = (await admin
       .from("profiles")
-      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active")
+      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email, settings")
       .in("id", influencerIds)) as { data: ProfileRow[] | null };
     for (const p of profiles ?? []) {
       if (p.is_active !== false) profileById.set(p.id, p);
@@ -104,14 +122,17 @@ export async function loadFeedSidebarPopularUsers(
   for (const inf of influencers ?? []) {
     if (!inf.user_id || seen.has(inf.user_id) || inf.user_id === excludeUserId) continue;
     const profile = profileById.get(inf.user_id);
+    if (isEditorialPersona(profile)) continue;
     const name = displayName(profile?.full_name, profile?.username, inf.display_name);
     if (!name) continue;
+    const username = profile?.username?.trim() || null;
+    // Popular Users require a real public username — never show nameless rows.
+    if (!username) continue;
 
     const avatarRaw =
       (isValidAvatar(profile?.avatar_url) ? profile.avatar_url : null) ??
       (isValidAvatar(inf.profile_image) ? inf.profile_image : null);
     const avatarUrl = avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null;
-    const username = profile?.username?.trim() || null;
     const followerCount = resolveProfileFollowerCount({
       username,
       follower_count: profile?.follower_count ?? inf.total_followers ?? 0,
@@ -133,14 +154,17 @@ export async function loadFeedSidebarPopularUsers(
   if (candidates.length < POPULAR_USER_COUNT) {
     const { data: profileRows } = (await admin
       .from("profiles")
-      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active")
+      .select(
+        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email, settings"
+      )
       .eq("is_active", true)
       .order("follower_count", { ascending: false })
-      .limit(40)) as { data: ProfileRow[] | null };
+      .limit(80)) as { data: ProfileRow[] | null };
 
     for (const profile of profileRows ?? []) {
       if (candidates.length >= POPULAR_USER_COUNT) break;
       if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
+      if (isEditorialPersona(profile)) continue;
       const name = displayName(profile.full_name, profile.username);
       if (!name || !profile.username?.trim()) continue;
 
@@ -159,88 +183,6 @@ export async function loadFeedSidebarPopularUsers(
         verified: Boolean(profile.is_verified),
         href: profileHref(profile.username, profile.id),
       });
-    }
-  }
-
-  // Prefer owned community logo when the profile avatar is a weak OAuth thumbnail.
-  if (PRIORITY_POPULAR_USERNAMES.length) {
-    const { data: priorityProfiles } = (await admin
-      .from("profiles")
-      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active")
-      .in("username", [...PRIORITY_POPULAR_USERNAMES])
-      .eq("is_active", true)) as { data: ProfileRow[] | null };
-
-    const priorityUsernames = (priorityProfiles ?? [])
-      .map((p) => p.username?.trim().toLowerCase())
-      .filter(Boolean) as string[];
-
-    const communityAvatarByUsername = new Map<string, string>();
-    if (priorityUsernames.length) {
-      const { data: ownedCommunities } = (await admin
-        .from("communities")
-        .select("slug, avatar_url, owner_id")
-        .in("slug", priorityUsernames)
-        .eq("is_active", true)) as {
-        data: Array<{ slug: string; avatar_url: string | null; owner_id: string }> | null;
-      };
-      for (const c of ownedCommunities ?? []) {
-        if (c.avatar_url && isValidAvatar(c.avatar_url)) {
-          communityAvatarByUsername.set(c.slug.toLowerCase(), c.avatar_url);
-        }
-      }
-    }
-
-    for (const profile of priorityProfiles ?? []) {
-      if (!profile.id || profile.id === excludeUserId) continue;
-      if (seen.has(profile.id)) {
-        // Upgrade existing candidate avatar/count if we already inserted them.
-        const idx = candidates.findIndex((c) => c.userId === profile.id);
-        if (idx >= 0) {
-          const uname = profile.username?.trim().toLowerCase() ?? "";
-          const communityAvatar = communityAvatarByUsername.get(uname);
-          if (communityAvatar && (!candidates[idx].avatarUrl || candidates[idx].avatarUrl?.includes("googleusercontent"))) {
-            candidates[idx] = {
-              ...candidates[idx],
-              avatarUrl: mediaUrlOrNull(communityAvatar, 96),
-              followerCount: resolveProfileFollowerCount({
-                username: profile.username,
-                follower_count: profile.follower_count,
-              }),
-            };
-          }
-        }
-        continue;
-      }
-      const name = displayName(profile.full_name, profile.username);
-      if (!name || !profile.username?.trim()) continue;
-
-      const uname = profile.username.trim().toLowerCase();
-      const communityAvatar = communityAvatarByUsername.get(uname);
-      const avatarRaw =
-        (communityAvatar && isValidAvatar(communityAvatar) ? communityAvatar : null) ??
-        (isValidAvatar(profile.avatar_url) ? profile.avatar_url : null);
-
-      const entry: FeedSidebarPopularUser = {
-        userId: profile.id,
-        name,
-        username: profile.username.trim(),
-        avatarUrl: avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null,
-        followerCount: resolveProfileFollowerCount({
-          username: profile.username,
-          follower_count: profile.follower_count,
-        }),
-        verified: Boolean(profile.is_verified),
-        href: profileHref(profile.username, profile.id),
-      };
-
-      // Prefer a visible slot near the top without inventing engagement.
-      if (candidates.length < POPULAR_USER_COUNT) {
-        candidates.unshift(entry);
-      } else {
-        candidates.splice(Math.min(1, candidates.length), 0, entry);
-        candidates.pop();
-      }
-      seen.add(profile.id);
     }
   }
 

@@ -52,8 +52,9 @@ export function parseGlobalFeedCursor(
 }
 
 /**
- * Global discovery feed excludes Jimvio promotional/system posts.
- * Community-scoped feeds may still show them where appropriate.
+ * Global discovery feed excludes Jimvio promotional/system posts AND seeded
+ * editorial persona posts. Community-scoped feeds may still show editorial
+ * programming where the member opted into that community.
  */
 export function isExcludedFromGlobalFeed(post: {
   attachments?: unknown;
@@ -61,16 +62,20 @@ export function isExcludedFromGlobalFeed(post: {
   profiles?: { username?: string | null; email?: string | null } | null;
 }): boolean {
   const meta = readPostEditorialMeta(post.attachments);
-  if (meta.origin === "promotion") return true;
+  if (meta.origin === "promotion" || meta.origin === "editorial") return true;
 
   const username = (post.profiles?.username ?? "").trim().toLowerCase();
   if (username === "jimvio") return true;
 
   const email = (post.profiles?.email ?? "").trim().toLowerCase();
   if (email === JIMVIO_EDITORIAL_AUTHOR_EMAIL.toLowerCase()) return true;
+  if (email.startsWith("editorial+") && email.endsWith("@jimvio.com")) return true;
 
   const body = (post.body ?? "").trim();
   if (body.startsWith("From Jimvio")) return true;
+  if (/\n\nShare what you have tried in .+\. Prefer specifics over slogans\.\s*$/i.test(body)) {
+    return true;
+  }
 
   return false;
 }

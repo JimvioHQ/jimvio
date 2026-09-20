@@ -91,7 +91,7 @@ function ControlDockImpl({
   onStopShare: () => void;
   onPresent: () => void;
   onRecord: () => void;
-  onPoll: () => void;
+  onPoll?: () => void;
   onInvite: () => void;
   onReact?: () => void;
   onQa?: () => void;
@@ -184,18 +184,26 @@ function ControlDockImpl({
             >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onReact} label="React" className="hidden sm:flex">
-              <Smile className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex">
-              <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex">
-              <HelpCircle className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden lg:flex">
-              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onReact ? (
+              <DockBtn onClick={onReact} label="React" className="hidden sm:flex">
+                <Smile className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
+            {onPoll ? (
+              <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex">
+                <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
+            {onQa ? (
+              <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex">
+                <HelpCircle className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
+            {onMore ? (
+              <DockBtn onClick={onMore} label="More" className="hidden lg:flex">
+                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
           </>
         )}
 
@@ -231,9 +239,11 @@ function ControlDockImpl({
                 <Share2 className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             )}
-            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden md:flex">
-              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onMore ? (
+              <DockBtn onClick={onMore} label="More" className="hidden md:flex">
+                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
           </>
         )}
 
@@ -259,9 +269,11 @@ function ControlDockImpl({
                 <Timer className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             )}
-            <DockBtn onClick={onPoll} label="Polls" hint="P">
-              <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onPoll ? (
+              <DockBtn onClick={onPoll} label="Polls" hint="P">
+                <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
             <DockBtn
               pressed={recording}
               recording={recording}
@@ -272,9 +284,15 @@ function ControlDockImpl({
             >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden md:flex">
-              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onMore ? (
+              <DockBtn onClick={onMore} label="More" className="hidden md:flex">
+                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : onPresent ? (
+              <DockBtn onClick={onPresent} label="More" className="hidden md:flex">
+                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
           </>
         )}
 

@@ -5,12 +5,12 @@ import {
   isCommunityVerified,
 } from "@/lib/community/trending-score";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
-import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
 import {
   loadFeedSidebarLiveNow,
   loadFeedSidebarPopularUsers,
 } from "@/lib/feed/load-feed-sidebar";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
+import { readCommunityEditorialOrigin } from "@/lib/community/editorial-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -160,7 +160,7 @@ export async function GET() {
 
   let trendingRows: TrendingCommunityRow[] = [];
   const rpc = await (supabase as any).rpc("get_trending_communities", {
-    p_limit: 8,
+    p_limit: 24,
   });
 
   if (rpc.error || !Array.isArray(rpc.data)) {
@@ -221,73 +221,20 @@ export async function GET() {
     });
   }
 
-  // Ensure priority featured communities appear when publicly discoverable.
-  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length) {
-    const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter(
-      (slug) => !trendingRows.some((row) => row.slug === slug)
-    );
-    if (missing.length) {
-      const { data: priorityRows } = await supabase
-        .from("communities")
-        .select(
-          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings"
-        )
-        .in("slug", missing)
-        .eq("is_active", true);
-      for (const raw of priorityRows ?? []) {
-        if (!communityIsPubliclyDiscoverable(raw)) continue;
-        const scored: TrendingCommunityRow & { settings?: unknown } = {
-          id: raw.id,
-          name: raw.name,
-          slug: raw.slug,
-          category: raw.category,
-          tagline: raw.tagline,
-          description: raw.description,
-          cover_image: raw.cover_image,
-          avatar_url: raw.avatar_url,
-          member_count: raw.member_count,
-          post_count: raw.post_count,
-          is_featured: raw.is_featured,
-          online_members: 0,
-          trending_score: communityTrendingScore({
-            member_count: raw.member_count,
-            post_count: raw.post_count,
-            is_featured: raw.is_featured,
-            recent_posts: 0,
-            recent_joins: 0,
-            online_members: 0,
-          }),
-          settings: (raw as { settings?: unknown }).settings,
-        };
-        trendingRows = [scored, ...trendingRows];
-      }
-    }
-
-    const pinned: TrendingCommunityRow[] = [];
-    const rest: TrendingCommunityRow[] = [];
-    const seen = new Set<string>();
-    for (const slug of PRIORITY_TRENDING_COMMUNITY_SLUGS) {
-      const row = trendingRows.find((item) => item.slug === slug);
-      if (row && !seen.has(row.id)) {
-        pinned.push(row);
-        seen.add(row.id);
-      }
-    }
-    for (const row of trendingRows) {
-      if (!seen.has(row.id)) rest.push(row);
-    }
-    trendingRows = [...pinned, ...rest].slice(0, 8);
-  }
+  trendingRows = trendingRows.slice(0, 16);
 
   const qualityRows = trendingRows.filter((row) => {
     if (!row.name?.trim() || !row.slug?.trim()) return false;
-    if (PRIORITY_TRENDING_COMMUNITY_SLUGS.includes(row.slug)) return true;
+    // Global Trending rail: real organic communities only — no Jimvio editorial hubs.
+    if (readCommunityEditorialOrigin((row as { settings?: unknown }).settings) === "editorial") {
+      return false;
+    }
     if (row.is_featured) return true;
     const members = Number(row.member_count ?? 0) || 0;
     const posts = Number(row.post_count ?? 0) || 0;
     const score = Number(row.trending_score ?? 0) || 0;
-    return members >= 5 || posts >= 1 || score > 4;
-  });
+    return members >= 1 || posts >= 1 || score > 0;
+  }).slice(0, 8);
 
   return NextResponse.json({
     communities: qualityRows.map((row) =>

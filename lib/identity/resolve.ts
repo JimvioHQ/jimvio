@@ -10,7 +10,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { resolveProfileFollowerCount, SHOWCASE_PROFILE_FOLLOWER_COUNTS } from "@/lib/community/follower-count";
+import { resolveProfileFollowerCount } from "@/lib/community/follower-count";
 import { levelProgress as computeLevelProgress } from "./levels";
 import { canViewFullDetails, canViewIdentity, privacyFieldVisible } from "./privacy";
 import { computeCreatorStats } from "./stats";
@@ -368,25 +368,7 @@ async function buildProfilePayload(
     booking: identity.contact_preferences?.booking !== false,
   };
 
-  let avatarUrl = profile.avatar_url;
-  const handle = profile.username?.toLowerCase?.() ?? "";
-  if (
-    handle &&
-    SHOWCASE_PROFILE_FOLLOWER_COUNTS[handle] != null &&
-    (!avatarUrl || avatarUrl.includes("googleusercontent"))
-  ) {
-    try {
-      const { data: owned } = await db
-        .from("communities")
-        .select("avatar_url")
-        .eq("slug", handle)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (owned?.avatar_url) avatarUrl = owned.avatar_url as string;
-    } catch {
-      /* keep profile avatar */
-    }
-  }
+  const avatarUrl = profile.avatar_url;
 
   const profileCore: IdentityProfileCore = {
     userId: profile.id,
