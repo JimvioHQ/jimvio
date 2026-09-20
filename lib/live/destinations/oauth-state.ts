@@ -24,6 +24,10 @@ export async function createOAuthState(input: {
   return { state };
 }
 
+/**
+ * Single-use OAuth state consume (atomic).
+ * UPDATE … WHERE consumed_at IS NULL prevents double-redeem races.
+ */
 export async function consumeOAuthState(input: {
   state: string;
   platform: string;
@@ -34,32 +38,34 @@ export async function consumeOAuthState(input: {
 
   const { data } = await db
     .from("live_oauth_states")
-    .select("id, user_id, return_path, expires_at, consumed_at, platform")
+    .update({ consumed_at: now })
     .eq("state_hash", stateHash)
     .eq("platform", input.platform)
+    .is("consumed_at", null)
+    .gt("expires_at", now)
+    .select("user_id, return_path")
     .maybeSingle();
 
-  if (!data || data.consumed_at || data.expires_at < now) {
+  if (!data) {
     return null;
   }
 
-  await db
-    .from("live_oauth_states")
-    .update({ consumed_at: now })
-    .eq("id", data.id);
-
   return {
     userId: data.user_id as string,
-    returnPath: sanitizeReturnPath(data.return_path as string),
+    returnPath: sanitizeOAuthReturnPath(data.return_path as string),
   };
 }
 
-function sanitizeReturnPath(path: string | null | undefined): string {
+export function sanitizeOAuthReturnPath(path: string | null | undefined): string {
   const fallback = "/communities/live";
   if (!path || typeof path !== "string") return fallback;
   if (!path.startsWith("/") || path.startsWith("//")) return fallback;
   if (path.includes("://") || path.includes("\\")) return fallback;
   return path.slice(0, 200);
+}
+
+function sanitizeReturnPath(path: string | null | undefined): string {
+  return sanitizeOAuthReturnPath(path);
 }
 
 export function integrationCallbackUrl(platform: string, origin: string): string {

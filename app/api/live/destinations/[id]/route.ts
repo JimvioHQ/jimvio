@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   revokeTikTokAccess,
+  revokeTwitchAccess,
   revokeYouTubeAccess,
 } from "@/lib/live/destinations/adapters";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
@@ -107,6 +108,20 @@ export async function DELETE(
       /* local disconnect still proceeds */
     }
     liveStudioLog("info", "tiktok_oauth_disconnect", { userId: user.id });
+  }
+
+  if (row.platform === "twitch") {
+    try {
+      const creds = await getDestinationCredentials(id, user.id);
+      const token = creds?.accessToken || creds?.refreshToken;
+      if (token) {
+        await revokeTwitchAccess(token);
+      }
+    } catch {
+      /* local disconnect still proceeds */
+    }
+    liveStudioLog("info", "twitch_oauth_disconnect", { userId: user.id });
+    liveStudioLog("info", "twitch_connection_removed", { userId: user.id });
   }
 
   // Revoke ONLY the YouTube Live OAuth client grant (YOUTUBE_CLIENT_ID).

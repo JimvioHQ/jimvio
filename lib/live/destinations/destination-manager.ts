@@ -138,27 +138,58 @@ export async function prepareLiveDestinations(input: {
       if (!validated.ok) {
         await setStatus(ds.id, "failed", { last_error: validated.error });
         failures.push({ destinationId, error: validated.error });
+        if (destination.platform === "twitch") {
+          liveStudioLog("warn", "twitch_destination_failed", {
+            live_session_id: input.liveSessionId,
+            destination_id: destinationId,
+            reason: "validate_failed",
+          });
+        }
         continue;
       }
 
-      // Persist refreshed credentials if adapter mutated them
-      if (adapter.refreshCredentials && ctx.credentials) {
-        const expires = ctx.credentials.expiresAt
-          ? new Date(ctx.credentials.expiresAt).getTime()
-          : 0;
-        if (expires < Date.now() + 120_000) {
-          const refreshed = await adapter.refreshCredentials(ctx);
-          if (refreshed.ok) {
-            ctx.credentials = refreshed.value;
-            await updateStoredCredentials(destinationId, input.userId, refreshed.value);
+      // Persist credentials immediately after any refresh during validate/ensureAccess.
+      // Twitch rotates refresh tokens — losing them causes reconnect_required.
+      if (ctx.credentials) {
+        const beforeExpires = credentials?.expiresAt ?? null;
+        const afterExpires = ctx.credentials.expiresAt ?? null;
+        const refreshed =
+          Boolean(ctx.credentials.accessToken) &&
+          (beforeExpires !== afterExpires ||
+            credentials?.accessToken !== ctx.credentials.accessToken ||
+            credentials?.refreshToken !== ctx.credentials.refreshToken);
+        if (refreshed) {
+          await updateStoredCredentials(destinationId, input.userId, ctx.credentials);
+          if (destination.platform === "twitch") {
+            liveStudioLog("info", "twitch_token_refresh", {
+              destination_id: destinationId,
+            });
           }
         }
+      }
+
+      if (destination.platform === "twitch") {
+        liveStudioLog("info", "twitch_destination_prepare", {
+          live_session_id: input.liveSessionId,
+          destination_id: destinationId,
+        });
       }
 
       const prep = await adapter.prepare(ctx);
       if (!prep.ok) {
         await setStatus(ds.id, "failed", { last_error: prep.error });
         failures.push({ destinationId, error: prep.error });
+        if (destination.platform === "twitch") {
+          liveStudioLog("warn", "twitch_destination_failed", {
+            live_session_id: input.liveSessionId,
+            destination_id: destinationId,
+            reason: "prepare_failed",
+          });
+        }
+        // Still persist credentials if prepare refreshed tokens then failed later
+        if (ctx.credentials) {
+          await updateStoredCredentials(destinationId, input.userId, ctx.credentials);
+        }
         continue;
       }
 
@@ -268,10 +299,23 @@ export async function startDestinationEgress(input: {
       await setStatus(t.destinationSessionId, "reconnecting", {
         last_error: startRes.error,
       });
+      if (t.platform === "twitch") {
+        liveStudioLog("warn", "twitch_destination_failed", {
+          live_session_id: input.liveSessionId,
+          destination_id: t.destination.id,
+          reason: "start_failed",
+        });
+      }
       // Keep egress URL; platform may catch up. Do not kill other destinations.
     } else {
       started += 1;
       await setStatus(t.destinationSessionId, "live");
+      if (t.platform === "twitch") {
+        liveStudioLog("info", "twitch_destination_started", {
+          live_session_id: input.liveSessionId,
+          destination_id: t.destination.id,
+        });
+      }
     }
   }
 
@@ -339,6 +383,12 @@ export async function stopAllDestinations(input: {
     }
 
     await setStatus(row.id, "stopped");
+    if (destination.platform === "twitch") {
+      liveStudioLog("info", "twitch_destination_stopped", {
+        live_session_id: input.liveSessionId,
+        destination_id: destination.id,
+      });
+    }
   }
 
   for (const egressId of egressIds) {

@@ -8,6 +8,7 @@ import {
   resolveAppOrigin,
 } from "@/lib/live/destinations/oauth-state";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
+import { liveStudioLog } from "@/lib/live/observability";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,8 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const returnPath = url.searchParams.get("return") ?? "/communities/live";
+  const returnPath =
+    url.searchParams.get("return") ?? "/communities/live?open=settings";
   const origin = resolveAppOrigin(req);
   const redirectUri = integrationCallbackUrl("twitch", origin);
   const { state } = await createOAuthState({
@@ -46,8 +48,19 @@ export async function GET(req: Request) {
 
   const authUrl = twitchAuthUrl({ state, redirectUri });
   if (!authUrl) {
-    return NextResponse.json({ error: "Twitch OAuth is not configured" }, { status: 503 });
+    return NextResponse.json(
+      {
+        error:
+          "Twitch OAuth is not configured or redirect URI is invalid for production.",
+      },
+      { status: 503 }
+    );
   }
+
+  liveStudioLog("info", "twitch_oauth_started", {
+    userId: user.id,
+    redirectHost: new URL(redirectUri).host,
+  });
 
   return NextResponse.redirect(authUrl);
 }

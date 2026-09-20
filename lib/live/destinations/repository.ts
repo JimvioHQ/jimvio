@@ -1,4 +1,8 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  getDestinationAdapter,
+  TWITCH_TOKEN_VALIDATE_TTL_MS,
+} from "./adapters";
 import { platformCapabilities, platformLabel, platformReadiness } from "./capabilities";
 import {
   decryptCredentials,
@@ -6,6 +10,7 @@ import {
   isEncryptionConfigured,
   maskSecret,
 } from "./encryption";
+import { liveStudioLog } from "@/lib/live/observability";
 import type {
   DestinationPlatform,
   EncryptedCredentialPayload,
@@ -65,10 +70,19 @@ function toPublic(row: DestinationRow): PublicDestination {
   const readiness = platformReadiness(row.platform);
   const requiresApproval = readiness.status === "requires_approval";
   const hasCredentials = Boolean(row.encrypted_credentials);
+  const tokenStatus = String(
+    (row.metadata as { tokenValidationStatus?: string } | null)
+      ?.tokenValidationStatus ?? ""
+  );
+  const needsReconnect =
+    row.status === "reconnect_required" ||
+    row.status === "error" ||
+    tokenStatus === "invalid";
   const accountConnected =
     hasCredentials &&
     row.status === "connected" &&
-    !row.revoked_at;
+    !row.revoked_at &&
+    !needsReconnect;
   let streamKeyMasked: string | null = null;
   let rtmpUrlMasked: string | null = null;
   if (row.platform === "custom_rtmp" && row.encrypted_credentials) {
@@ -85,11 +99,16 @@ function toPublic(row: DestinationRow): PublicDestination {
 
   // Account connection status must not be overwritten by LIVE approval gate.
   // LIVE streaming eligibility remains requiresApproval / liveStreamingAllowed.
-  const status: PublicDestination["status"] = accountConnected
-    ? "connected"
-    : requiresApproval
-      ? "requires_approval"
-      : (row.status as PublicDestination["status"]);
+  let status: PublicDestination["status"];
+  if (needsReconnect && hasCredentials && !row.revoked_at) {
+    status = "reconnect_required";
+  } else if (accountConnected) {
+    status = "connected";
+  } else if (requiresApproval) {
+    status = "requires_approval";
+  } else {
+    status = row.status as PublicDestination["status"];
+  }
 
   return {
     id: row.id,
@@ -112,8 +131,101 @@ function toPublic(row: DestinationRow): PublicDestination {
     requiresApproval,
     approvalMessage: readiness.message,
     accountConnected,
-    liveStreamingAllowed: !requiresApproval,
+    liveStreamingAllowed: !requiresApproval && !needsReconnect,
   };
+}
+
+function twitchValidationIsFresh(row: DestinationRow): boolean {
+  const meta = row.metadata as {
+    tokenValidatedAt?: string;
+    tokenValidationStatus?: string;
+  } | null;
+  if (meta?.tokenValidationStatus === "invalid") return false;
+  const at = meta?.tokenValidatedAt;
+  if (!at) return false;
+  const ts = new Date(at).getTime();
+  if (!Number.isFinite(ts)) return false;
+  return Date.now() - ts < TWITCH_TOKEN_VALIDATE_TTL_MS;
+}
+
+/**
+ * Revalidate Twitch OAuth tokens with hourly TTL.
+ * Marks reconnect_required on permanent auth failure — never throws secrets.
+ */
+async function refreshTwitchTokenValidity(
+  row: DestinationRow
+): Promise<DestinationRow> {
+  if (row.platform !== "twitch" || !row.encrypted_credentials || row.revoked_at) {
+    return row;
+  }
+  if (twitchValidationIsFresh(row) && row.status === "connected") {
+    return row;
+  }
+
+  try {
+    const credentials = decryptCredentials(row.encrypted_credentials);
+    const adapter = getDestinationAdapter("twitch");
+    const ctx = {
+      userId: row.user_id,
+      destinationId: row.id,
+      credentials,
+      metadata: { title: "Jimvio Live" },
+      displayName: row.display_name,
+      providerAccountId: row.provider_account_id,
+      providerChannelId: row.provider_channel_id,
+      providerPageId: row.provider_page_id,
+    };
+    const validated = await adapter.validate(ctx);
+    const now = new Date().toISOString();
+
+    if (!validated.ok) {
+      liveStudioLog("warn", "twitch_token_invalid", {
+        destination_id: row.id,
+        permanent: validated.permanent === true,
+      });
+      const { data } = await db()
+        .from("live_destinations")
+        .update({
+          status: validated.permanent ? "reconnect_required" : row.status,
+          last_error: validated.error,
+          metadata: {
+            ...(row.metadata ?? {}),
+            tokenValidatedAt: now,
+            tokenValidationStatus: "invalid",
+          },
+          updated_at: now,
+        })
+        .eq("id", row.id)
+        .select("*")
+        .maybeSingle();
+      return (data as DestinationRow) ?? row;
+    }
+
+    // Persist any refresh that validate() applied
+    if (ctx.credentials) {
+      await updateStoredCredentials(row.id, row.user_id, ctx.credentials);
+    }
+
+    liveStudioLog("info", "twitch_token_valid", { destination_id: row.id });
+    const { data } = await db()
+      .from("live_destinations")
+      .update({
+        status: "connected",
+        last_error: null,
+        metadata: {
+          ...(row.metadata ?? {}),
+          tokenValidatedAt: now,
+          tokenValidationStatus: "valid",
+        },
+        updated_at: now,
+      })
+      .eq("id", row.id)
+      .select("*")
+      .maybeSingle();
+    return (data as DestinationRow) ?? row;
+  } catch {
+    return row;
+  }
 }
 
 export async function listUserDestinations(
@@ -126,7 +238,17 @@ export async function listUserDestinations(
     .is("revoked_at", null)
     .order("created_at", { ascending: true });
 
-  return ((data ?? []) as DestinationRow[]).map(toPublic);
+  const rows = (data ?? []) as DestinationRow[];
+  const refreshed = await Promise.all(
+    rows.map(async (row) => {
+      if (row.platform === "twitch") {
+        return refreshTwitchTokenValidity(row);
+      }
+      return row;
+    })
+  );
+
+  return refreshed.map(toPublic);
 }
 
 export async function getDestinationForUser(
@@ -161,6 +283,7 @@ export async function upsertOAuthDestination(input: {
   providerPageId?: string | null;
   avatarUrl?: string | null;
   credentials: EncryptedCredentialPayload;
+  metadata?: Record<string, unknown>;
 }): Promise<PublicDestination> {
   if (!isEncryptionConfigured()) {
     throw new Error("Destination encryption key is not configured");
@@ -168,6 +291,13 @@ export async function upsertOAuthDestination(input: {
 
   const encrypted = encryptCredentials(input.credentials);
   const now = new Date().toISOString();
+  const metadata = {
+    ...(input.metadata ?? {}),
+    tokenValidatedAt:
+      (input.metadata?.tokenValidatedAt as string | undefined) ?? now,
+    tokenValidationStatus:
+      (input.metadata?.tokenValidationStatus as string | undefined) ?? "valid",
+  };
 
   const existing = await db()
     .from("live_destinations")
@@ -190,6 +320,7 @@ export async function upsertOAuthDestination(input: {
         status: "connected",
         last_connected_at: now,
         last_error: null,
+        metadata,
         capabilities: platformCapabilities(input.platform),
         updated_at: now,
       })
@@ -222,6 +353,7 @@ export async function upsertOAuthDestination(input: {
       provider_page_id: input.providerPageId ?? null,
       avatar_url: input.avatarUrl ?? null,
       encrypted_credentials: encrypted,
+      metadata,
       capabilities: platformCapabilities(input.platform),
       last_connected_at: now,
     })

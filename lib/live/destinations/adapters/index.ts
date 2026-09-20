@@ -41,7 +41,16 @@ export {
   YOUTUBE_OAUTH_SCOPES,
   YOUTUBE_OAUTH_REDIRECT_PATH,
 } from "./youtube";
-export { twitchAuthUrl, exchangeTwitchCode } from "./twitch";
+export {
+  twitchAuthUrl,
+  exchangeTwitchCode,
+  mapTwitchOAuthError,
+  revokeTwitchAccess,
+  validateTwitchAccessToken,
+  TWITCH_OAUTH_SCOPES,
+  TWITCH_OAUTH_REDIRECT_PATH,
+  TWITCH_TOKEN_VALIDATE_TTL_MS,
+} from "./twitch";
 export { facebookAuthUrl, exchangeFacebookCode } from "./facebook";
 export { instagramAuthUrl } from "./instagram";
 export {

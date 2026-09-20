@@ -45,6 +45,20 @@ export type LiveStudioEvent =
   | "youtube_oauth_denied"
   | "youtube_oauth_state_invalid"
   | "youtube_oauth_token_exchange_failed"
+  | "twitch_oauth_started"
+  | "twitch_oauth_success"
+  | "twitch_oauth_denied"
+  | "twitch_oauth_failed"
+  | "twitch_token_valid"
+  | "twitch_token_invalid"
+  | "twitch_token_refresh"
+  | "twitch_connection_created"
+  | "twitch_connection_removed"
+  | "twitch_destination_prepare"
+  | "twitch_destination_started"
+  | "twitch_destination_failed"
+  | "twitch_destination_stopped"
+  | "twitch_oauth_disconnect"
   | "unhandled";
 
 type Fields = Record<string, string | number | boolean | null | undefined>;

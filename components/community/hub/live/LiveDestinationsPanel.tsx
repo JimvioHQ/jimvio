@@ -26,7 +26,12 @@ function statusDot(status: string) {
     return "bg-emerald-400";
   if (status === "connecting" || status === "reconnecting" || status === "preparing")
     return "bg-amber-400 animate-pulse";
-  if (status === "failed" || status === "error") return "bg-red-400";
+  if (
+    status === "failed" ||
+    status === "error" ||
+    status === "reconnect_required"
+  )
+    return "bg-red-400";
   if (status === "requires_approval") return "bg-neutral-500";
   return "bg-white/30";
 }
@@ -47,6 +52,8 @@ function statusLabel(status: string) {
       return "Requires approval";
     case "connected":
       return "Connected";
+    case "reconnect_required":
+      return "Reconnect required";
     case "stopped":
       return "Stopped";
     default:
@@ -295,16 +302,21 @@ export function LiveDestinationsPanel({
 
             return connected.map((d) => {
               const sess = sessionByDest.get(d.id);
-              const accountConnected = d.accountConnected || d.status === "connected";
+              const accountConnected = d.accountConnected && d.status === "connected";
               const rowStatus =
                 sess?.status ??
-                (accountConnected
-                  ? "connected"
-                  : d.requiresApproval
-                    ? "requires_approval"
-                    : "connected");
+                (d.status === "reconnect_required"
+                  ? "reconnect_required"
+                  : accountConnected
+                    ? "connected"
+                    : d.requiresApproval
+                      ? "requires_approval"
+                      : d.status === "connected"
+                        ? "connected"
+                        : "reconnect_required");
               const selected = dest.selectedIds.includes(d.id);
-              const canEnableLive = d.liveStreamingAllowed !== false;
+              const canEnableLive =
+                d.liveStreamingAllowed !== false && d.status !== "reconnect_required";
               return (
                 <DestinationRow
                   key={d.id}
@@ -316,9 +328,11 @@ export function LiveDestinationsPanel({
                   isLive={isLive}
                   avatarUrl={d.avatarUrl}
                   subtitle={
-                    d.platform === "tiktok" && d.requiresApproval
-                      ? "Account connected · Live streaming requires approval"
-                      : undefined
+                    d.status === "reconnect_required"
+                      ? "Token expired — reconnect required"
+                      : d.platform === "tiktok" && d.requiresApproval
+                        ? "Account connected · Live streaming requires approval"
+                        : undefined
                   }
                   lastError={sess?.lastError ?? d.lastError}
                   canEnable={canEnableLive}
@@ -327,6 +341,11 @@ export function LiveDestinationsPanel({
                     setBusyId(d.id);
                     void dest.disconnect(d.id).finally(() => setBusyId(null));
                   }}
+                  onReconnect={
+                    d.status === "reconnect_required" && entry.connectPath
+                      ? () => dest.connect(d.platform)
+                      : undefined
+                  }
                   onRetry={
                     canEnableLive &&
                     sess &&
@@ -470,6 +489,7 @@ function DestinationRow({
   canEnable = true,
   onToggle,
   onDisconnect,
+  onReconnect,
   onRetry,
   busy,
 }: {
@@ -485,6 +505,7 @@ function DestinationRow({
   canEnable?: boolean;
   onToggle: () => void;
   onDisconnect: () => void;
+  onReconnect?: () => void;
   onRetry?: () => void;
   busy?: boolean;
 }) {
@@ -512,6 +533,16 @@ function DestinationRow({
         ) : null}
       </div>
       <div className="flex shrink-0 items-center gap-1.5">
+        {onReconnect ? (
+          <button
+            type="button"
+            onClick={onReconnect}
+            disabled={busy}
+            className={cn(t.connectBtn, t.focus)}
+          >
+            Reconnect
+          </button>
+        ) : null}
         {canEnable &&
         (!isLive || status === "connected" || status === "ready" || status === "stopped") ? (
           <button

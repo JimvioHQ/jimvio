@@ -17,7 +17,8 @@ export type DestinationCapabilityStatus =
   | "disconnected"
   | "error"
   | "reconnecting"
-  | "connected";
+  | "connected"
+  | "reconnect_required";
 
 export type DestinationSessionStatus =
   | "pending"
