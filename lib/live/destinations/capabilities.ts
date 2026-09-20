@@ -1,5 +1,25 @@
 import type { DestinationCapabilities, DestinationPlatform } from "./types";
 
+/**
+ * User-facing Live Destinations presentation order.
+ * Backend still supports facebook / instagram / custom_rtmp adapters;
+ * those platforms are not listed in the Live Destinations UI.
+ */
+export const USER_VISIBLE_LIVE_DESTINATIONS: readonly DestinationPlatform[] = [
+  "jimvio",
+  "youtube",
+  "twitch",
+  "tiktok",
+] as const;
+
+export function isUserVisibleLiveDestination(
+  platform: DestinationPlatform | string
+): boolean {
+  return (USER_VISIBLE_LIVE_DESTINATIONS as readonly string[]).includes(
+    platform
+  );
+}
+
 const EMPTY: DestinationCapabilities = {
   oauth: false,
   createBroadcast: false,

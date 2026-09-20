@@ -194,9 +194,22 @@ must(
 
 must(
   "components/community/hub/live/LiveDestinationsPanel.tsx",
-  ["Live Destinations", "Requires approval", "Add Custom RTMP"],
+  ["Live Destinations", "Approval required", "Add Custom RTMP", "YouTube", "Twitch", "TikTok"],
   "Live Studio destinations UI"
 );
+
+mustNot(
+  "components/community/hub/live/LiveDestinationsPanel.tsx",
+  ["Facebook Live requires", "Instagram Live requires", "Live requires approval"],
+  "Live Destinations UI hides Meta approval cards"
+);
+
+must(
+  "lib/live/destinations/capabilities.ts",
+  ["USER_VISIBLE_LIVE_DESTINATIONS", '"jimvio"', '"youtube"', '"twitch"', '"tiktok"'],
+  "User-visible destinations registry"
+);
+
 
 mustNot(
   "lib/live/destinations/repository.ts",

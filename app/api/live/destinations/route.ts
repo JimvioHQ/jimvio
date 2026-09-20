@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { platformLabel, platformReadiness } from "@/lib/live/destinations/capabilities";
+import {
+  isUserVisibleLiveDestination,
+  platformLabel,
+  platformReadiness,
+  USER_VISIBLE_LIVE_DESTINATIONS,
+} from "@/lib/live/destinations/capabilities";
 import { isTikTokLoginKitConfigured } from "@/lib/live/destinations/adapters";
 import { isEncryptionConfigured } from "@/lib/live/destinations/encryption";
 import { validateRtmpUrl } from "@/lib/live/destinations/ssrf";
@@ -12,13 +17,9 @@ import type { DestinationPlatform } from "@/lib/live/destinations/types";
 
 export const dynamic = "force-dynamic";
 
+/** Catalog returned to Live Destinations UI — excludes Facebook/Instagram. */
 const CATALOG: DestinationPlatform[] = [
-  "jimvio",
-  "youtube",
-  "twitch",
-  "facebook",
-  "instagram",
-  "tiktok",
+  ...USER_VISIBLE_LIVE_DESTINATIONS,
   "custom_rtmp",
 ];
 
@@ -30,7 +31,7 @@ function connectPathFor(platform: DestinationPlatform, readinessStatus: string):
   }
   if (
     readinessStatus === "supported" &&
-    (platform === "youtube" || platform === "twitch" || platform === "facebook")
+    (platform === "youtube" || platform === "twitch")
   ) {
     return `/api/integrations/${platform}/start`;
   }
@@ -47,7 +48,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const destinations = await listUserDestinations(user.id);
+  const destinations = (await listUserDestinations(user.id)).filter(
+    (d) =>
+      isUserVisibleLiveDestination(d.platform) || d.platform === "custom_rtmp"
+  );
   const catalog = CATALOG.map((platform) => {
     const readiness = platformReadiness(platform);
     return {
@@ -61,6 +65,7 @@ export async function GET() {
       /** Login Kit account OAuth available (TikTok only). Not LIVE streaming. */
       loginKitAvailable: platform === "tiktok" ? isTikTokLoginKitConfigured() : false,
       liveStreamingAllowed: readiness.status === "supported",
+      userVisible: isUserVisibleLiveDestination(platform),
     };
   });
 

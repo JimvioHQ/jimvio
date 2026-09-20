@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -12,6 +12,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
+import { UGCPlatformIcon } from "@/components/ugc/workspace/UGCPlatformMarks";
+import {
+  isUserVisibleLiveDestination,
+  USER_VISIBLE_LIVE_DESTINATIONS,
+} from "@/lib/live/destinations/capabilities";
 import type { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import type {
   DestinationPlatform,
@@ -24,7 +29,12 @@ function statusDot(status: string) {
   if (status === "live") return "bg-red-500 animate-pulse";
   if (status === "ready" || status === "connected" || status === "supported")
     return "bg-emerald-400";
-  if (status === "connecting" || status === "reconnecting" || status === "preparing")
+  if (status === "not_connected") return "bg-neutral-400/50";
+  if (
+    status === "connecting" ||
+    status === "reconnecting" ||
+    status === "preparing"
+  )
     return "bg-amber-400 animate-pulse";
   if (
     status === "failed" ||
@@ -32,7 +42,7 @@ function statusDot(status: string) {
     status === "reconnect_required"
   )
     return "bg-red-400";
-  if (status === "requires_approval") return "bg-neutral-500";
+  if (status === "requires_approval") return "bg-amber-500/80";
   return "bg-white/30";
 }
 
@@ -45,40 +55,25 @@ function statusLabel(status: string) {
     case "connecting":
       return "Connecting";
     case "reconnecting":
-      return "Reconnecting";
+      return "Retrying";
+    case "preparing":
+      return "Preparing";
     case "failed":
       return "Failed";
     case "requires_approval":
-      return "Requires approval";
+      return "Approval required";
     case "connected":
       return "Connected";
     case "reconnect_required":
       return "Reconnect required";
     case "stopped":
       return "Stopped";
+    case "not_connected":
+      return "Not connected";
+    case "supported":
+      return "Ready";
     default:
       return status;
-  }
-}
-
-function platformIconLabel(platform: DestinationPlatform): string {
-  switch (platform) {
-    case "jimvio":
-      return "JV";
-    case "youtube":
-      return "YT";
-    case "twitch":
-      return "TW";
-    case "facebook":
-      return "FB";
-    case "instagram":
-      return "IG";
-    case "tiktok":
-      return "TT";
-    case "custom_rtmp":
-      return "RT";
-    default:
-      return "?";
   }
 }
 
@@ -88,8 +83,9 @@ type Theme = {
   subtitle: string;
   warn: string;
   error: string;
+  list: string;
   row: string;
-  iconMuted: string;
+  iconShell: string;
   iconJimvio: string;
   name: string;
   meta: string;
@@ -104,61 +100,92 @@ type Theme = {
   enableOff: string;
   iconBtn: string;
   focus: string;
+  divider: string;
 };
 
 const STUDIO_THEME: Theme = {
   shell: "border border-white/10 bg-black/45 text-left backdrop-blur-md",
-  title: "text-[12px] font-semibold uppercase tracking-[0.14em] text-white/55",
-  subtitle: "mt-0.5 text-[12px] text-white/40",
-  warn: "mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100",
-  error: "mb-3 text-[12px] text-red-300",
-  row: "flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5",
-  iconMuted: "flex h-8 w-8 items-center justify-center rounded-lg bg-white/8 text-[11px] font-bold text-white/70",
-  iconJimvio: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#FF5A1F]/20 text-[11px] font-bold text-[#FF5A1F]",
-  name: "text-[13px] font-medium text-white",
-  meta: "text-[11px] text-white/45",
-  badge: "rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-white/50",
-  message: "mt-0.5 line-clamp-2 text-[11px] text-white/35",
-  connectBtn: "rounded-lg bg-white/10 px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-white/15",
+  title: "text-[11px] font-semibold uppercase tracking-[0.16em] text-white/50",
+  subtitle: "mt-0.5 text-[11px] leading-snug text-white/35",
+  warn: "mb-2.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-100",
+  error: "mb-2.5 text-[11px] text-red-300",
+  list: "divide-y divide-white/[0.06]",
+  row: "flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0",
+  iconShell:
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] ring-1 ring-white/10",
+  iconJimvio:
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FF5A1F]/15 text-[10px] font-bold tracking-wide text-[#FF5A1F] ring-1 ring-[#FF5A1F]/25",
+  name: "truncate text-[13px] font-medium text-white",
+  meta: "text-[10px] font-medium uppercase tracking-[0.08em] text-white/40",
+  badge:
+    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-white/45 bg-white/[0.06]",
+  message: "mt-0.5 line-clamp-1 text-[10px] text-white/30",
+  connectBtn:
+    "shrink-0 rounded-md bg-white/10 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-white/16",
   dashedBtn:
-    "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2.5 text-[12px] font-medium text-white/60 hover:border-white/25 hover:text-white/80",
-  form: "space-y-2 rounded-xl border border-white/10 bg-black/30 p-3",
+    "inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/12 px-2.5 py-2 text-[11px] font-medium text-white/45 transition-colors hover:border-white/22 hover:text-white/70",
+  form: "mt-2 space-y-2 rounded-lg border border-white/10 bg-black/30 p-2.5",
   input:
-    "w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[13px] text-white placeholder:text-white/30",
-  cancel: "flex-1 rounded-lg px-3 py-2 text-[12px] text-white/50 hover:text-white/80",
+    "w-full rounded-md border border-white/10 bg-white/5 px-2.5 py-1.5 text-[12px] text-white placeholder:text-white/25",
+  cancel: "flex-1 rounded-md px-2.5 py-1.5 text-[11px] text-white/45 hover:text-white/75",
   enableOn: "bg-emerald-500/20 text-emerald-300",
-  enableOff: "bg-white/10 text-white/70 hover:bg-white/15",
-  iconBtn: "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/50 hover:bg-white/15 hover:text-white/80",
+  enableOff: "bg-white/8 text-white/55 hover:bg-white/12",
+  iconBtn:
+    "inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/8 text-white/45 transition-colors hover:bg-white/14 hover:text-white/80",
   focus: FOCUS_RING_DARK,
+  divider: "border-t border-white/[0.06] pt-2.5 mt-2.5",
 };
 
 const SETTINGS_THEME: Theme = {
   shell: "border border-[#E8E4DC] bg-white text-left shadow-sm",
-  title: "text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]",
-  subtitle: "mt-0.5 text-[12px] text-[#8B8579]",
-  warn: "mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900",
-  error: "mb-3 text-[12px] text-red-600",
-  row: "flex items-center gap-3 rounded-xl border border-[#EFEBE3] bg-[#FBF9F6] px-3 py-2.5",
-  iconMuted: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0EBE3] text-[11px] font-bold text-[#6B655C]",
-  iconJimvio: "flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF1EA] text-[11px] font-bold text-[#D6480F]",
-  name: "text-[13px] font-medium text-[#1C1B19]",
-  meta: "text-[11px] text-[#8B8579]",
-  badge: "rounded-md bg-[#F0EBE3] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#8B8579]",
-  message: "mt-0.5 line-clamp-2 text-[11px] text-[#8B8579]",
+  title: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9A9388]",
+  subtitle: "mt-0.5 text-[11px] leading-snug text-[#8B8579]",
+  warn: "mb-2.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900",
+  error: "mb-2.5 text-[11px] text-red-600",
+  list: "divide-y divide-[#EFEBE3]",
+  row: "flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0",
+  iconShell:
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F7F4EF] ring-1 ring-[#E8E4DC]",
+  iconJimvio:
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF1EA] text-[10px] font-bold tracking-wide text-[#D6480F] ring-1 ring-[#FFD8C4]",
+  name: "truncate text-[13px] font-medium text-[#1C1B19]",
+  meta: "text-[10px] font-medium uppercase tracking-[0.08em] text-[#9A9388]",
+  badge:
+    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8B8579] bg-[#F0EBE3]",
+  message: "mt-0.5 line-clamp-1 text-[10px] text-[#9A9388]",
   connectBtn:
-    "rounded-lg bg-[#1C1B19] px-2.5 py-1.5 text-[12px] font-medium text-white hover:bg-[#2c2a26]",
+    "shrink-0 rounded-md bg-[#1C1B19] px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#2c2a26]",
   dashedBtn:
-    "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#D9D3C8] px-3 py-2.5 text-[12px] font-medium text-[#8B8579] hover:border-[#C7C1B4] hover:text-[#1C1B19]",
-  form: "space-y-2 rounded-xl border border-[#E8E4DC] bg-[#FBF9F6] p-3",
+    "inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#D9D3C8] px-2.5 py-2 text-[11px] font-medium text-[#8B8579] transition-colors hover:border-[#C7C1B4] hover:text-[#1C1B19]",
+  form: "mt-2 space-y-2 rounded-lg border border-[#E8E4DC] bg-[#FBF9F6] p-2.5",
   input:
-    "w-full rounded-lg border border-[#E8E4DC] bg-white px-3 py-2 text-[13px] text-[#1C1B19] placeholder:text-[#B0A99C]",
-  cancel: "flex-1 rounded-lg px-3 py-2 text-[12px] text-[#8B8579] hover:text-[#1C1B19]",
+    "w-full rounded-md border border-[#E8E4DC] bg-white px-2.5 py-1.5 text-[12px] text-[#1C1B19] placeholder:text-[#B0A99C]",
+  cancel: "flex-1 rounded-md px-2.5 py-1.5 text-[11px] text-[#8B8579] hover:text-[#1C1B19]",
   enableOn: "bg-emerald-50 text-emerald-700",
   enableOff: "bg-[#F0EBE3] text-[#6B655C] hover:bg-[#E8E4DC]",
   iconBtn:
-    "inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0EBE3] text-[#8B8579] hover:bg-[#E8E4DC] hover:text-[#1C1B19]",
-  focus: "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6480F]/35 focus-visible:ring-offset-2",
+    "inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#F0EBE3] text-[#8B8579] transition-colors hover:bg-[#E8E4DC] hover:text-[#1C1B19]",
+  focus:
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6480F]/35 focus-visible:ring-offset-2",
+  divider: "border-t border-[#EFEBE3] pt-2.5 mt-2.5",
 };
+
+function PlatformGlyph({
+  platform,
+  theme,
+}: {
+  platform: DestinationPlatform;
+  theme: Theme;
+}) {
+  if (platform === "jimvio") {
+    return <span className={theme.iconJimvio}>JV</span>;
+  }
+  return (
+    <span className={theme.iconShell} aria-hidden>
+      <UGCPlatformIcon platform={platform} className="h-4 w-4" />
+    </span>
+  );
+}
 
 export function LiveDestinationsPanel({
   dest,
@@ -179,8 +206,36 @@ export function LiveDestinationsPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const sessionByDest = new Map(
-    dest.sessionStatuses.map((s) => [s.destinationId, s])
+  const sessionByDest = useMemo(
+    () => new Map(dest.sessionStatuses.map((s) => [s.destinationId, s])),
+    [dest.sessionStatuses]
+  );
+
+  /** Ordered user-facing catalog: YouTube → Twitch → TikTok (Jimvio rendered separately). */
+  const visibleCatalog = useMemo(() => {
+    const byPlatform = new Map(dest.catalog.map((c) => [c.platform, c]));
+    return USER_VISIBLE_LIVE_DESTINATIONS.filter((p) => p !== "jimvio")
+      .map((p) => byPlatform.get(p))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c));
+  }, [dest.catalog]);
+
+  const customDestinations = useMemo(
+    () => dest.destinations.filter((d) => d.platform === "custom_rtmp"),
+    [dest.destinations]
+  );
+
+  const visibleSessions = useMemo(
+    () =>
+      dest.sessionStatuses.filter((s) => {
+        const destRow = dest.destinations.find((d) => d.id === s.destinationId);
+        if (!destRow) return false;
+        return (
+          isUserVisibleLiveDestination(destRow.platform) ||
+          destRow.platform === "custom_rtmp" ||
+          destRow.platform === "jimvio"
+        );
+      }),
+    [dest.destinations, dest.sessionStatuses]
   );
 
   async function onAddCustom() {
@@ -206,38 +261,32 @@ export function LiveDestinationsPanel({
   return (
     <section
       className={cn(
-        "w-full rounded-2xl",
+        "w-full rounded-xl",
         t.shell,
-        compact ? "p-3" : "p-4 sm:p-5",
+        compact ? "p-3" : "p-3.5 sm:p-4",
         variant === "studio" && MOTION_COLORS
       )}
       aria-label="Live destinations"
     >
-      {variant === "studio" ? (
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div>
-            <h3 className={t.title}>Live Destinations</h3>
-            {!compact ? (
-              <p className={t.subtitle}>
-                Stream once on Jimvio — fan out to connected platforms.
-              </p>
-            ) : null}
-          </div>
-          {dest.loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-white/40" aria-hidden />
+      <div className="mb-2.5 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className={t.title}>Live Destinations</h3>
+          {!compact ? (
+            <p className={t.subtitle}>
+              Fan out from Jimvio without interrupting the studio.
+            </p>
           ) : null}
         </div>
-      ) : (
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <p className={t.subtitle}>
-            Enable destinations before Go Live. Connect accounts here — Jimvio Live
-            is never interrupted by an external destination failure.
-          </p>
-          {dest.loading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#B0A99C]" aria-hidden />
-          ) : null}
-        </div>
-      )}
+        {dest.loading ? (
+          <Loader2
+            className={cn(
+              "h-3.5 w-3.5 shrink-0 animate-spin",
+              variant === "studio" ? "text-white/35" : "text-[#B0A99C]"
+            )}
+            aria-hidden
+          />
+        ) : null}
+      </div>
 
       {!dest.encryptionConfigured ? (
         <p className={t.warn}>
@@ -247,146 +296,124 @@ export function LiveDestinationsPanel({
 
       {dest.error ? <p className={t.error}>{dest.error}</p> : null}
 
-      <ul className="space-y-2">
+      <ul className={t.list}>
+        {/* Jimvio — native primary destination */}
         <li className={t.row}>
-          <span className={t.iconJimvio}>JV</span>
+          <PlatformGlyph platform="jimvio" theme={t} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span className={t.name}>Jimvio</span>
-              <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(isLive ? "live" : "ready"))} />
-              <span className={t.meta}>{isLive ? "LIVE" : "Always on"}</span>
+              <span
+                className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDot(isLive ? "live" : "ready"))}
+              />
+              <span className={t.meta}>{isLive ? "LIVE" : "Active"}</span>
             </div>
           </div>
-          <Check className="h-4 w-4 text-emerald-500" aria-hidden />
+          <Check
+            className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              variant === "studio" ? "text-emerald-400" : "text-emerald-600"
+            )}
+            aria-hidden
+          />
         </li>
 
-        {dest.catalog
-          .filter((c) => c.platform !== "jimvio" && c.platform !== "custom_rtmp")
-          .map((entry) => {
-            const connected = dest.destinations.filter(
-              (d) => d.platform === entry.platform
-            );
-            if (connected.length === 0) {
-              const requiresApproval = entry.status === "requires_approval";
-              const canConnectAccount = Boolean(entry.connectPath);
-              return (
-                <li key={entry.platform} className={t.row}>
-                  <span className={t.iconMuted}>
-                    {platformIconLabel(entry.platform)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={t.name}>{entry.label}</span>
-                      {requiresApproval ? (
-                        <span className={t.badge}>Live requires approval</span>
-                      ) : (
-                        <span className={t.badge}>Not connected</span>
-                      )}
-                    </div>
-                    {requiresApproval && entry.message ? (
-                      <p className={t.message}>{entry.message}</p>
-                    ) : null}
+        {visibleCatalog.map((entry) => {
+          const connected = dest.destinations.filter(
+            (d) => d.platform === entry.platform
+          );
+
+          if (connected.length === 0) {
+            const requiresApproval = entry.status === "requires_approval";
+            const canConnectAccount = Boolean(entry.connectPath);
+            const rowStatus = requiresApproval
+              ? "requires_approval"
+              : "not_connected";
+
+            return (
+              <li key={entry.platform} className={t.row}>
+                <PlatformGlyph platform={entry.platform} theme={t} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className={t.name}>{entry.label}</span>
+                    <span className={t.meta}>{statusLabel(rowStatus)}</span>
                   </div>
-                  {canConnectAccount ? (
-                    <button
-                      type="button"
-                      onClick={() => dest.connect(entry.platform)}
-                      className={cn(t.connectBtn, t.focus)}
-                    >
-                      Connect
-                    </button>
+                  {requiresApproval && entry.platform === "tiktok" && !canConnectAccount ? (
+                    <p className={t.message}>Live API access pending App Review</p>
                   ) : null}
-                </li>
-              );
-            }
+                </div>
+                {canConnectAccount ? (
+                  <button
+                    type="button"
+                    onClick={() => dest.connect(entry.platform)}
+                    className={cn(t.connectBtn, t.focus)}
+                  >
+                    Connect
+                  </button>
+                ) : requiresApproval ? (
+                  <span className={t.badge} aria-label="Approval required">
+                    Pending
+                  </span>
+                ) : null}
+              </li>
+            );
+          }
 
-            return connected.map((d) => {
-              const sess = sessionByDest.get(d.id);
-              const accountConnected = d.accountConnected && d.status === "connected";
-              const rowStatus =
-                sess?.status ??
-                (d.status === "reconnect_required"
-                  ? "reconnect_required"
-                  : accountConnected
-                    ? "connected"
-                    : d.requiresApproval
-                      ? "requires_approval"
-                      : d.status === "connected"
-                        ? "connected"
-                        : "reconnect_required");
-              const selected = dest.selectedIds.includes(d.id);
-              const canEnableLive =
-                d.liveStreamingAllowed !== false && d.status !== "reconnect_required";
-              return (
-                <DestinationRow
-                  key={d.id}
-                  theme={t}
-                  name={d.displayName}
-                  platform={d.platform}
-                  status={rowStatus}
-                  selected={selected}
-                  isLive={isLive}
-                  avatarUrl={d.avatarUrl}
-                  subtitle={
-                    d.status === "reconnect_required"
-                      ? "Token expired — reconnect required"
-                      : d.platform === "tiktok" && d.requiresApproval
-                        ? "Account connected · Live streaming requires approval"
-                        : undefined
-                  }
-                  lastError={sess?.lastError ?? d.lastError}
-                  canEnable={canEnableLive}
-                  onToggle={() => dest.toggleSelected(d.id)}
-                  onDisconnect={() => {
-                    setBusyId(d.id);
-                    void dest.disconnect(d.id).finally(() => setBusyId(null));
-                  }}
-                  onReconnect={
-                    d.status === "reconnect_required" && entry.connectPath
-                      ? () => dest.connect(d.platform)
-                      : undefined
-                  }
-                  onRetry={
-                    canEnableLive &&
-                    sess &&
-                    (sess.status === "failed" || sess.status === "reconnecting")
-                      ? () => {
-                          setBusyId(d.id);
-                          void dest
-                            .retryDestination(sess.liveSessionId, sess.id)
-                            .finally(() => setBusyId(null));
-                        }
-                      : undefined
-                  }
-                  busy={busyId === d.id}
-                />
-              );
-            });
-          })}
-
-        {dest.destinations
-          .filter((d) => d.platform === "custom_rtmp")
-          .map((d) => {
+          return connected.map((d) => {
             const sess = sessionByDest.get(d.id);
-            const rowStatus = sess?.status ?? "connected";
+            const accountConnected =
+              d.accountConnected && d.status === "connected";
+            const rowStatus =
+              sess?.status ??
+              (d.status === "reconnect_required"
+                ? "reconnect_required"
+                : accountConnected
+                  ? "connected"
+                  : d.requiresApproval
+                    ? "requires_approval"
+                    : d.status === "connected"
+                      ? "connected"
+                      : "reconnect_required");
+            const selected = dest.selectedIds.includes(d.id);
+            const canEnableLive =
+              d.liveStreamingAllowed !== false &&
+              d.status !== "reconnect_required";
+
             return (
               <DestinationRow
                 key={d.id}
                 theme={t}
-                name={d.displayName}
-                platform="custom_rtmp"
+                name={entry.label}
+                platform={d.platform}
                 status={rowStatus}
-                selected={dest.selectedIds.includes(d.id)}
+                selected={selected}
                 isLive={isLive}
-                subtitle={d.rtmpUrlMasked ?? undefined}
+                avatarUrl={d.avatarUrl}
+                subtitle={
+                  d.status === "reconnect_required"
+                    ? "Authorization expired"
+                    : d.platform === "tiktok" &&
+                        d.accountConnected &&
+                        d.requiresApproval
+                      ? "Account linked · Live needs App Review"
+                      : undefined
+                }
                 lastError={sess?.lastError ?? d.lastError}
+                canEnable={canEnableLive}
                 onToggle={() => dest.toggleSelected(d.id)}
                 onDisconnect={() => {
                   setBusyId(d.id);
                   void dest.disconnect(d.id).finally(() => setBusyId(null));
                 }}
+                onReconnect={
+                  d.status === "reconnect_required" && entry.connectPath
+                    ? () => dest.connect(d.platform)
+                    : undefined
+                }
                 onRetry={
-                  sess && sess.status === "failed"
+                  canEnableLive &&
+                  sess &&
+                  (sess.status === "failed" || sess.status === "reconnecting")
                     ? () => {
                         setBusyId(d.id);
                         void dest
@@ -398,17 +425,52 @@ export function LiveDestinationsPanel({
                 busy={busyId === d.id}
               />
             );
-          })}
+          });
+        })}
+
+        {customDestinations.map((d) => {
+          const sess = sessionByDest.get(d.id);
+          const rowStatus = sess?.status ?? "connected";
+          return (
+            <DestinationRow
+              key={d.id}
+              theme={t}
+              name={d.displayName}
+              platform="custom_rtmp"
+              status={rowStatus}
+              selected={dest.selectedIds.includes(d.id)}
+              isLive={isLive}
+              subtitle={d.rtmpUrlMasked ?? undefined}
+              lastError={sess?.lastError ?? d.lastError}
+              onToggle={() => dest.toggleSelected(d.id)}
+              onDisconnect={() => {
+                setBusyId(d.id);
+                void dest.disconnect(d.id).finally(() => setBusyId(null));
+              }}
+              onRetry={
+                sess && sess.status === "failed"
+                  ? () => {
+                      setBusyId(d.id);
+                      void dest
+                        .retryDestination(sess.liveSessionId, sess.id)
+                        .finally(() => setBusyId(null));
+                    }
+                  : undefined
+              }
+              busy={busyId === d.id}
+            />
+          );
+        })}
       </ul>
 
-      <div className="mt-3">
+      <div className={t.divider}>
         {!showCustomForm ? (
           <button
             type="button"
             onClick={() => setShowCustomForm(true)}
             className={cn(t.dashedBtn, t.focus)}
           >
-            <Plus className="h-3.5 w-3.5" aria-hidden />
+            <Plus className="h-3 w-3" aria-hidden />
             Add Custom RTMP
           </button>
         ) : (
@@ -448,7 +510,7 @@ export function LiveDestinationsPanel({
                 disabled={busyId === "custom"}
                 onClick={() => void onAddCustom()}
                 className={cn(
-                  "flex-1 rounded-lg bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                  "flex-1 rounded-md bg-[#FF5A1F] px-2.5 py-1.5 text-[11px] font-semibold text-white disabled:opacity-60",
                   t.focus
                 )}
               >
@@ -460,17 +522,23 @@ export function LiveDestinationsPanel({
       </div>
 
       {variant === "settings" ? (
-        <p className="mt-4 text-[12px] text-[#8B8579]">
-          Destinations enabled here are used when you Go Live from{" "}
-          <Link href="/communities/live" className="font-semibold text-[#D6480F] hover:underline">
+        <p className="mt-3 text-[11px] leading-relaxed text-[#8B8579]">
+          Enabled destinations fan out when you Go Live from{" "}
+          <Link
+            href="/communities/live"
+            className="font-semibold text-[#D6480F] hover:underline"
+          >
             Live Studio
           </Link>
-          . Jimvio Live is never interrupted by an external destination failure.
+          .
         </p>
       ) : null}
 
-      {isLive && dest.sessionStatuses.length > 0 && !compact && variant === "studio" ? (
-        <DesktopHealthTable sessions={dest.sessionStatuses} />
+      {isLive &&
+      visibleSessions.length > 0 &&
+      !compact &&
+      variant === "studio" ? (
+        <DesktopHealthTable sessions={visibleSessions} />
       ) : null}
     </section>
   );
@@ -516,23 +584,23 @@ function DestinationRow({
         <img
           src={avatarUrl}
           alt=""
-          className="h-8 w-8 rounded-lg object-cover"
+          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-black/5"
         />
       ) : (
-        <span className={t.iconMuted}>{platformIconLabel(platform)}</span>
+        <PlatformGlyph platform={platform} theme={t} />
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={cn("truncate", t.name)}>{name}</span>
-          <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(status))} />
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className={t.name}>{name}</span>
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDot(status))} />
           <span className={t.meta}>{statusLabel(status)}</span>
         </div>
-        {subtitle ? <p className={cn("truncate", t.message)}>{subtitle}</p> : null}
+        {subtitle ? <p className={t.message}>{subtitle}</p> : null}
         {lastError ? (
-          <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-700">{lastError}</p>
+          <p className="mt-0.5 line-clamp-1 text-[10px] text-amber-600/90">{lastError}</p>
         ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center gap-1">
         {onReconnect ? (
           <button
             type="button"
@@ -544,18 +612,21 @@ function DestinationRow({
           </button>
         ) : null}
         {canEnable &&
-        (!isLive || status === "connected" || status === "ready" || status === "stopped") ? (
+        (!isLive ||
+          status === "connected" ||
+          status === "ready" ||
+          status === "stopped") ? (
           <button
             type="button"
             aria-pressed={selected}
             onClick={onToggle}
             className={cn(
-              "rounded-lg px-2 py-1.5 text-[11px] font-medium",
+              "rounded-md px-2 py-1 text-[10px] font-semibold",
               t.focus,
               selected ? t.enableOn : t.enableOff
             )}
           >
-            {selected ? "Enabled" : "Enable"}
+            {selected ? "On" : "Off"}
           </button>
         ) : null}
         {onRetry ? (
@@ -566,17 +637,17 @@ function DestinationRow({
             aria-label="Retry destination"
             className={cn(t.iconBtn, t.focus)}
           >
-            <RefreshCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
+            <RefreshCw className={cn("h-3 w-3", busy && "animate-spin")} />
           </button>
         ) : null}
         <button
           type="button"
           onClick={onDisconnect}
           disabled={busy}
-          aria-label="Disconnect destination"
+          aria-label={`Disconnect ${name}`}
           className={cn(t.iconBtn, t.focus)}
         >
-          <Unplug className="h-3.5 w-3.5" />
+          <Unplug className="h-3 w-3" />
         </button>
       </div>
     </li>
@@ -589,8 +660,8 @@ function DesktopHealthTable({
   sessions: PublicDestinationSession[];
 }) {
   return (
-    <div className="mt-4 hidden overflow-hidden rounded-xl border border-white/8 sm:block">
-      <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-2 border-b border-white/8 bg-white/[0.04] px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/40">
+    <div className="mt-3 hidden overflow-hidden rounded-lg border border-white/8 sm:block">
+      <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-2 border-b border-white/8 bg-white/[0.03] px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-white/35">
         <span>Platform</span>
         <span>Status</span>
         <span>Health</span>
@@ -598,17 +669,17 @@ function DesktopHealthTable({
       {sessions.map((s) => (
         <div
           key={s.id}
-          className="grid grid-cols-[1.2fr_1fr_1fr] gap-2 border-b border-white/5 px-3 py-2 text-[12px] text-white/70 last:border-0"
+          className="grid grid-cols-[1.2fr_1fr_1fr] gap-2 border-b border-white/5 px-2.5 py-1.5 text-[11px] text-white/65 last:border-0"
         >
           <span className="flex items-center gap-1.5 truncate">
-            <Radio className="h-3 w-3 text-white/35" aria-hidden />
+            <Radio className="h-2.5 w-2.5 text-white/30" aria-hidden />
             {s.displayName}
           </span>
           <span className="flex items-center gap-1.5">
             <span className={cn("h-1.5 w-1.5 rounded-full", statusDot(s.status))} />
             {statusLabel(s.status)}
           </span>
-          <span className="truncate text-white/45">
+          <span className="truncate text-white/40">
             {s.status === "live" ? "Good" : "—"}
           </span>
         </div>

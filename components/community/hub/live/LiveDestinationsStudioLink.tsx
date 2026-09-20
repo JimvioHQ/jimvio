@@ -2,6 +2,7 @@
 
 import { Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isUserVisibleLiveDestination } from "@/lib/live/destinations/capabilities";
 import type { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 
 type DestHook = ReturnType<typeof useLiveDestinations>;
@@ -9,6 +10,7 @@ type DestHook = ReturnType<typeof useLiveDestinations>;
 /**
  * Compact destination summary for the Live stage.
  * Full management lives in Live Settings → Live Destinations.
+ * Counts only user-visible destinations (Jimvio + YouTube + Twitch + TikTok + custom RTMP).
  */
 export function LiveDestinationsStudioLink({
   dest,
@@ -19,9 +21,17 @@ export function LiveDestinationsStudioLink({
   className?: string;
   onOpenSettings?: () => void;
 }) {
-  const enabled = dest.selectedIds.length;
-  const connected = dest.destinations.filter((d) => d.platform !== "jimvio").length;
-  const liveCount = dest.sessionStatuses.filter((s) => s.status === "live").length;
+  const visibleDestinations = dest.destinations.filter(
+    (d) =>
+      isUserVisibleLiveDestination(d.platform) || d.platform === "custom_rtmp"
+  );
+  const visibleIds = new Set(visibleDestinations.map((d) => d.id));
+  const enabled = dest.selectedIds.filter((id) => visibleIds.has(id)).length;
+  const connected = visibleDestinations.filter((d) => d.platform !== "jimvio")
+    .length;
+  const liveCount = dest.sessionStatuses.filter(
+    (s) => s.status === "live" && visibleIds.has(s.destinationId)
+  ).length;
 
   const summary = dest.loading
     ? "Loading destinations…"
