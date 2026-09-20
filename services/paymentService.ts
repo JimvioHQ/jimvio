@@ -1,9 +1,6 @@
-// services/paymentService.ts
-// Shared payment handler called by both PesaPal and NowPayments
-// after a payment is confirmed successful.
-//
-// Shopify: delegates to createShopifyOrder (which creates Shopify orders, credits the
-// platform wallet, and inserts commission transactions — do not duplicate that here).
+// Shared payment handler called after a payment is confirmed successful.
+// Historical paymentProvider values may include retired providers (pesapal/paypal)
+// for order metadata only — new initiations must not use those providers.
 
 import { createClient } from "@supabase/supabase-js";
 import { createShopifyOrder, attachShopifyOrdersToJimvioOrder } from "./shopifyOrderCreation";
@@ -17,7 +14,8 @@ const supabase = createClient(
 
 export interface PaymentSuccessParams {
   jimvioOrderId: string;
-  paymentProvider: "pesapal" | "nowpayments";
+  /** Active or historical provider id (retired providers are read-only). */
+  paymentProvider: string;
   paymentRef: string;
   paymentId?: string;
 }

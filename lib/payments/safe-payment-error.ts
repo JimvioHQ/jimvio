@@ -9,8 +9,8 @@ const PROVIDER_START_MESSAGES: Record<string, string> = {
   nowpayments: "Cryptocurrency payment could not be started. Please try again.",
   crypto: "Cryptocurrency payment could not be started. Please try again.",
   binancepay: "Binance Pay could not be started. Please try again.",
-  paypal: "PayPal could not be started. Please try again.",
-  pesapal: "PesaPal could not be started. Please try again.",
+  paypal: "PayPal is no longer available. Please choose another payment method.",
+  pesapal: "PesaPal is no longer available. Please choose another payment method.",
   pawapay: "PawaPay could not be started. Please try again.",
 };
 

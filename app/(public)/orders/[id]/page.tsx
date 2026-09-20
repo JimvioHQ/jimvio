@@ -139,8 +139,16 @@ function classifyError(error: any): OrderError {
 function getProviderLabel(provider: string | null | undefined) {
   if (!provider) return "Free";
   const map: Record<string, string> = {
-    nowpayments: "Crypto", pesapal: "PesaPal", pawapay: "PawaPay",
-    flutterwave: "Flutterwave", stripe: "Card", mtn: "MTN Money", airtel: "Airtel Money",
+    nowpayments: "Crypto",
+    pesapal: "PesaPal (retired)",
+    paypal: "PayPal (retired)",
+    pawapay: "PawaPay",
+    flutterwave: "Flutterwave",
+    binancepay: "Binance Pay",
+    afripay: "AfriPay",
+    stripe: "Card",
+    mtn: "MTN Money",
+    airtel: "Airtel Money",
   };
   return map[provider.toLowerCase()] ?? provider;
 }

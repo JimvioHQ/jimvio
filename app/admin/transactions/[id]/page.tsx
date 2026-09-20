@@ -556,53 +556,27 @@ async function verifyTransaction(
             }
 
             case "pesapal": {
-                // PesaPal: query IPN status
-                const trackingId = (metadata?.pesapal_transaction_tracking_id as string)
-                    ?? providerTxId;
-                // Get token first
-                const tokenRes = await fetch(
-                    `${process.env.PESAPAL_BASE_URL}/api/Auth/RequestToken`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json", Accept: "application/json" },
-                        body: JSON.stringify({
-                            consumer_key: process.env.PESAPAL_CONSUMER_KEY,
-                            consumer_secret: process.env.PESAPAL_CONSUMER_SECRET,
-                        }),
-                        signal: AbortSignal.timeout(8_000),
-                    }
-                );
-                const tokenJson = await tokenRes.json() as { token?: string };
-                if (!tokenJson.token) return { data: null, raw: tokenJson };
-
-                const statusRes = await fetch(
-                    `${process.env.PESAPAL_BASE_URL}/api/Transactions/GetTransactionStatus?orderTrackingId=${trackingId}`,
-                    {
-                        headers: { Authorization: `Bearer ${tokenJson.token}`, Accept: "application/json" },
-                        signal: AbortSignal.timeout(8_000),
-                    }
-                );
-                const statusJson = await statusRes.json() as {
-                    payment_status_description?: string;
-                    amount?: number;
-                    currency?: string;
-                    order_tracking_id?: string;
-                    confirmation_code?: string;
-                    payment_method?: string;
-                    created_date?: string;
-                };
-                const rawStatus = statusJson.payment_status_description?.toLowerCase() ?? "unknown";
+                // PesaPal is retired — historical rows remain readable; no live API lookup.
                 return {
-                    data: {
-                        status: rawStatus === "completed" ? "successful" : rawStatus,
-                        amount: statusJson.amount ?? 0,
-                        currency: statusJson.currency ?? "",
-                        tx_ref: statusJson.order_tracking_id,
-                        flw_ref: statusJson.confirmation_code,
-                        payment_type: statusJson.payment_method,
-                        created_at: statusJson.created_date,
+                    data: null,
+                    raw: {
+                        retired: true,
+                        message: "PesaPal is no longer available for live verification",
+                        tracking:
+                            (metadata?.pesapal_transaction_tracking_id as string) ??
+                            providerTxId,
                     },
-                    raw: statusJson,
+                };
+            }
+
+            case "paypal": {
+                return {
+                    data: null,
+                    raw: {
+                        retired: true,
+                        message: "PayPal is no longer available for live verification",
+                        providerTxId,
+                    },
                 };
             }
 

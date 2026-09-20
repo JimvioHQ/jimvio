@@ -556,7 +556,7 @@ function PaymentLogoRail({ children, className }: { children: React.ReactNode; c
   );
 }
 
-export type MethodId = "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | "binancepay";
+export type MethodId = "nowpayments" | "flutterwave" | "pawapay" | "binancepay";
 
 interface MethodDef {
   id: MethodId;
@@ -636,24 +636,6 @@ const METHODS: MethodDef[] = [
     logos: [<PartnerLogo key="bp" domain="binance.com" label="Binance Pay" localSrc="/logos/binance.png" />],
     feeLabel: "Free",
   },
-  {
-    id: "paypal",
-    title: "PayPal",
-    description: "Pay with your PayPal account",
-    iconNode: (
-      <div style={{
-        width: 48, height: 48, borderRadius: "50%",
-        background: "#003087",
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-          <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c-.013.076-.026.175-.041.254-.93 4.778-4.005 7.201-9.138 7.201h-2.19a.563.563 0 0 0-.556.479l-1.187 7.527h-.506l-.24 1.516a.56.56 0 0 0 .554.647h3.882c.46 0 .85-.334.922-.788.06-.26.76-4.852.816-5.09a.932.932 0 0 1 .923-.788h.58c3.76 0 6.705-1.528 7.565-5.946.36-1.847.174-3.388-.777-4.471z" />
-        </svg>
-      </div>
-    ),
-    logos: [<PartnerLogo key="pp" domain="paypal.com" label="PayPal" localSrc="/logos/paypal.png" />],
-    feeLabel: "+2.9%",
-  },
 ];
 
 // ─── Trust badge component ────────────────────────────────────────────────────
@@ -688,7 +670,6 @@ interface PaymentMethodSelectorProps {
 
 function calcFeeAmount(methodId: MethodId, total: number): number {
   if (methodId === "nowpayments") return Math.round(total * 0.01);
-  if (methodId === "paypal") return Math.round(total * 0.029);
   return 0;
 }
 
@@ -710,6 +691,14 @@ export function PaymentMethodSelector({
   const selectedMethod = visibleMethods.find((m) => m.id === selected) ?? METHODS.find((m) => m.id === selected);
   const feeAmount = selected ? calcFeeAmount(selected, orderTotal) : 0;
   const grandTotal = orderTotal + feeAmount;
+
+  if (enabledMethodIds && enabledMethodIds.length === 0) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-5 text-sm text-[var(--color-text-secondary)]">
+        Online payment is currently unavailable for this store.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 max-lg:space-y-3">
@@ -771,7 +760,7 @@ export function PaymentMethodSelector({
                   </p>
 
                   {/* Payment logos row - only for non-crypto methods */}
-                  {m.id !== "nowpayments" && m.id !== "binancepay" && m.id !== "paypal" && (
+                  {m.id !== "nowpayments" && m.id !== "binancepay" && (
                     <PaymentLogoRail>
                       {m.logos}
                       {fee > 0 && (
@@ -782,7 +771,7 @@ export function PaymentMethodSelector({
                     </PaymentLogoRail>
                   )}
 
-                  {(m.id === "nowpayments" || m.id === "binancepay" || m.id === "paypal") && (
+                  {(m.id === "nowpayments" || m.id === "binancepay") && (
                     <PaymentLogoRail className="mt-2 lg:hidden">
                       {m.logos}
                       {fee > 0 && (
@@ -794,8 +783,8 @@ export function PaymentMethodSelector({
                   )}
                 </div>
 
-                {/* Right side - logos for crypto, binance pay, and paypal (desktop) */}
-                {(m.id === "nowpayments" || m.id === "binancepay" || m.id === "paypal") && (
+                {/* Right side - logos for crypto and binance pay (desktop) */}
+                {(m.id === "nowpayments" || m.id === "binancepay") && (
                   <div className="hidden shrink-0 items-center lg:flex">
                     <PaymentLogoRail>{m.logos}</PaymentLogoRail>
                   </div>
@@ -835,7 +824,6 @@ export function PaymentMethodSelector({
           {[
             { label: "NowPayments", domain: "nowpayments.io", localSrc: "/logos/NOWPayments_idKVr3HnXR_1.svg" },
             { label: "Flutterwave", domain: "flutterwave.com", localSrc: "/logos/flutterwave.png" },
-            { label: "PayPal", domain: "paypal.com", localSrc: "/logos/paypal.png" },
             { label: "Payoneer", domain: "payoneer.com", localSrc: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg" },
             { label: "Binance Pay", domain: "binance.com", localSrc: "/logos/binance.png" },
           ].map((partner) => (

@@ -727,9 +727,11 @@ function getPaymentProviderLabel(provider: string | null | undefined): string {
   if (!provider) return "gateway";
   const map: Record<string, string> = {
     nowpayments: "Crypto",
-    pesapal: "PesaPal",
+    pesapal: "PesaPal (retired)",
+    paypal: "PayPal (retired)",
     pawapay: "PawaPay",
     flutterwave: "Flutterwave",
+    binancepay: "Binance Pay",
     stripe: "Card",
     mtn: "MTN Money",
     airtel: "Airtel Money",

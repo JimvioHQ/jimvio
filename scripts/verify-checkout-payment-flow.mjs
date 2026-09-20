@@ -117,15 +117,17 @@ assert(
 );
 const paypalCapture = read("app/api/payments/paypal/capture/route.ts");
 const paypalWh = read("app/api/payments/paypal/webhook/route.ts");
+const paypalCreate = read("app/api/payments/paypal/create-order/route.ts");
+const pesapalInitiate = read("app/api/payments/pesapal/initiate/route.ts");
 assert(
-  paypalCapture.includes("paymentAmountsMatch") &&
-    paypalCapture.includes("amount_mismatch"),
-  "PayPal capture must verify amount before finalize"
+  paypalCapture.includes("retiredPaymentProviderResponse") &&
+    paypalWh.includes("retiredPaymentProviderResponse") &&
+    paypalCreate.includes("retiredPaymentProviderResponse"),
+  "PayPal routes must reject as retired providers"
 );
 assert(
-  paypalWh.includes("paymentAmountsMatch") &&
-    paypalWh.includes("amount mismatch"),
-  "PayPal webhook must verify amount before finalize"
+  pesapalInitiate.includes("retiredPaymentProviderResponse"),
+  "PesaPal initiate must reject as retired provider"
 );
 assert(
   !errors.includes("temporarily unavailable from the carrier"),

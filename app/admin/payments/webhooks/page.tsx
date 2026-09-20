@@ -25,10 +25,11 @@ const STATUS_LABELS: Record<StatusFilter, string> = {
 const PROVIDER_LABELS: Record<string, string> = {
   all: "All",
   flutterwave: "Flutterwave",
-  pesapal: "PesaPal",
-  paypal: "PayPal",
   nowpayments: "NOWPayments",
   pawapay: "PawaPay",
+  binancepay: "Binance Pay",
+  pesapal: "PesaPal (retired)",
+  paypal: "PayPal (retired)",
 };
 
 export default async function WebhookEventsPage({
@@ -84,7 +85,7 @@ export default async function WebhookEventsPage({
   const failed24h = stats.filter((e) => e.status === "failed").length;
   const successRate = total24h > 0 ? (success24h / total24h) * 100 : 0;
 
-  const providers = ["all", "flutterwave", "pesapal", "paypal", "nowpayments", "pawapay"];
+  const providers = ["all", "flutterwave", "nowpayments", "pawapay", "binancepay", "pesapal", "paypal"];
   const statuses: StatusFilter[] = ["all", "received", "processing", "completed", "failed"];
 
   const qs = (over: Record<string, string>) => {

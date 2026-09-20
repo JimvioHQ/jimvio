@@ -12,13 +12,13 @@
  */
 
 import crypto from "crypto";
-import { validatePayPalWebhook } from "@/lib/paypal";
 import {
   validateFlutterwaveWebhookRequest,
   isFlutterwaveSuccessfulStatus,
   flutterwaveWebhookSecretConfigured,
 } from "@/lib/flutterwave";
 import { getNowPaymentsIpnSecret } from "@/lib/nowpayments";
+import { isRetiredPaymentProvider } from "@/lib/payments/retired-providers";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -167,74 +167,16 @@ export const verifyFlutterwave: ProviderVerifier = async (headers, rawBody) => {
 };
 
 // ---------------------------------------------------------------------------
-// PayPal
+// PayPal (retired — reject all new webhook processing)
 // ---------------------------------------------------------------------------
 
-export const verifyPayPal: ProviderVerifier = async (headers, rawBody) => {
-  const hosted = Boolean(process.env.VERCEL_ENV);
-  if (hosted && !process.env.PAYPAL_WEBHOOK_ID) {
-    return { ok: false, reason: "PayPal webhook is not configured", status: 401 };
-  }
-  if (process.env.PAYPAL_WEBHOOK_ID) {
-    const hdrMap: Record<string, string | undefined> = {
-      "paypal-auth-algo": headers.get("paypal-auth-algo") ?? undefined,
-      "paypal-cert-url": headers.get("paypal-cert-url") ?? undefined,
-      "paypal-transmission-id": headers.get("paypal-transmission-id") ?? undefined,
-      "paypal-transmission-sig": headers.get("paypal-transmission-sig") ?? undefined,
-      "paypal-transmission-time": headers.get("paypal-transmission-time") ?? undefined,
-    };
-    const isValid = await validatePayPalWebhook(hdrMap, rawBody);
-    if (!isValid) {
-      return { ok: false, reason: "Invalid PayPal webhook signature", status: 401 };
-    }
-  }
-
-  let event: {
-    event_type?: string;
-    resource?: {
-      id?: string;
-      custom_id?: string;
-      status?: string;
-      purchase_units?: Array<{ custom_id?: string }>;
-    };
-  };
-  try {
-    event = JSON.parse(rawBody);
-  } catch {
-    return { ok: false, reason: "Invalid JSON", status: 400 };
-  }
-
-  const eventType = event.event_type || "";
-  const resourceId = event.resource?.id ?? "unknown";
-  const jimvioOrderId =
-    event.resource?.custom_id ||
-    event.resource?.purchase_units?.[0]?.custom_id ||
-    null;
-
-  let status: PaymentEventStatus = "ignored";
-
-  if (eventType === "PAYMENT.CAPTURE.COMPLETED") {
-    status = "paid";
-  } else if (
-    eventType === "PAYMENT.CAPTURE.DENIED" ||
-    eventType === "CHECKOUT.ORDER.VOIDED"
-  ) {
-    status = "failed";
-  } else if (eventType === "CHECKOUT.ORDER.APPROVED") {
-    // We handle capture separately; treat as pending here
-    status = "pending";
-  }
-
+export const verifyPayPal: ProviderVerifier = async (_headers, _rawBody) => {
+  void _headers;
+  void _rawBody;
   return {
-    ok: true,
-    event: {
-      provider: "paypal",
-      providerTransactionId: resourceId,
-      jimvioOrderId,
-      idempotencyKey: `paypal-${resourceId}-${eventType}`,
-      status,
-      rawBody,
-    },
+    ok: false,
+    reason: "PayPal is no longer available",
+    status: 410,
   };
 };
 
@@ -306,45 +248,16 @@ export const verifyNowPayments: ProviderVerifier = async (headers, rawBody) => {
 };
 
 // ---------------------------------------------------------------------------
-// PesaPal
+// PesaPal (retired — reject all new webhook processing)
 // ---------------------------------------------------------------------------
 
-export const verifyPesaPal: ProviderVerifier = async (headers, rawBody) => {
-  // PesaPal sends GET callbacks, so rawBody will be empty for IPN.
-  // The unified handler should route GET requests here too.
-  // The actual verification is done by calling the PesaPal API.
-  // We trust the request if the params are structurally valid.
-  void headers;
-
-  let parsed: Record<string, string> = {};
-  try {
-    // Could be JSON body (POST) or query params (passed as JSON by the handler)
-    parsed = JSON.parse(rawBody) as Record<string, string>;
-  } catch {
-    return { ok: false, reason: "Invalid payload", status: 400 };
-  }
-
-  const orderTrackingId =
-    parsed.OrderTrackingId || parsed.order_tracking_id || parsed.orderTrackingId;
-  const merchantRef =
-    parsed.OrderMerchantReference || parsed.order_merchant_reference || parsed.merchantRef;
-
-  if (!orderTrackingId || !merchantRef) {
-    return { ok: true, event: { provider: "pesapal", providerTransactionId: "unknown", idempotencyKey: `pp-noop-${Date.now()}`, status: "ignored", rawBody } };
-  }
-
-  const jimvioOrderId = merchantRef.split(":")[0] || null;
-
+export const verifyPesaPal: ProviderVerifier = async (_headers, _rawBody) => {
+  void _headers;
+  void _rawBody;
   return {
-    ok: true,
-    event: {
-      provider: "pesapal",
-      providerTransactionId: orderTrackingId,
-      jimvioOrderId,
-      idempotencyKey: `pesapal-${orderTrackingId}`,
-      status: "pending", // Actual status resolved by calling PesaPal API in the handler
-      rawBody,
-    },
+    ok: false,
+    reason: "PesaPal is no longer available",
+    status: 410,
   };
 };
 
@@ -450,9 +363,7 @@ export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
 
 const PROVIDER_VERIFIERS: Record<string, ProviderVerifier> = {
   flutterwave: verifyFlutterwave,
-  paypal: verifyPayPal,
   nowpayments: verifyNowPayments,
-  pesapal: verifyPesaPal,
   afripay: verifyAfriPay,
   pawapay: verifyPawaPay,
 };
@@ -460,21 +371,23 @@ const PROVIDER_VERIFIERS: Record<string, ProviderVerifier> = {
 /**
  * Auto-detect the payment provider from request headers.
  * Returns the provider key to look up in PROVIDER_VERIFIERS.
+ * Retired providers (PesaPal/PayPal) are detected only so callers can reject them.
  */
 export function detectProvider(headers: Headers): string | null {
   if (headers.get("verif-hash") || headers.get("flutterwave-signature")) {
     return "flutterwave";
   }
 
-  // PayPal: uses paypal-transmission-id
   if (headers.get("paypal-transmission-id")) return "paypal";
 
-  // NowPayments: uses x-nowpayments-sig
   if (headers.get("x-nowpayments-sig")) return "nowpayments";
 
   return null;
 }
 
 export function getProviderVerifier(provider: string): ProviderVerifier | null {
+  if (isRetiredPaymentProvider(provider)) {
+    return provider === "paypal" ? verifyPayPal : verifyPesaPal;
+  }
   return PROVIDER_VERIFIERS[provider] ?? null;
 }

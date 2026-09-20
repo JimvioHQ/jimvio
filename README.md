@@ -81,9 +81,7 @@ The project relies on the following configuration values. A full sample is avail
 - `NEXT_PUBLIC_APP_URL` (optional, used for auth links)
 
 ### Payments
-- `PESAPAL_CONSUMER_KEY`
-- `PESAPAL_CONSUMER_SECRET`
-- `PESAPAL_ENV`
+- `FLW_SECRET_KEY` / `FLW_PUBLIC_KEY` (Flutterwave)
 - `PAWAPAY_API_TOKEN`
 - `PAWAPAY_ENV`
 - `NOWPAYMENTS_API_KEY`
@@ -93,6 +91,8 @@ The project relies on the following configuration values. A full sample is avail
 - `AFRIPAY_APP_SECRET`
 - `BINANCE_PAY_API_KEY`
 - `BINANCE_PAY_API_SECRET`
+
+Retired (do not configure for new checkouts): PesaPal, PayPal.
 
 ### Shopify
 - `SHOPIFY_CLIENT_ID`

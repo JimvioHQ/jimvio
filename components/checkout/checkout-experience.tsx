@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 function defaultPayment(currency: string | null): MethodId {
    const c = (currency || PLATFORM_CURRENCY).toUpperCase();
    if (c === PLATFORM_CURRENCY || c === "RWF") return "flutterwave";
-   return "pesapal";
+   return "nowpayments";
 }
 function hasCJItems(orders: CartOrder[]): boolean {
    return orders.some((o) => o.order_items.some((i) => i.product_source === "cj"));
@@ -72,9 +72,7 @@ function extractErrorMessage(data: PaymentApiResponse): string {
    return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
 }
 const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
-   pesapal: "/api/payments/pesapal/initiate",
    flutterwave: "/api/payments/flutterwave/initiate",
-   paypal: "/api/payments/paypal/create-order",
    pawapay: "/api/pawapay/checkout",
    nowpayments: "/api/payments/nowpayments/initiate",
    binancepay: "/api/payments/binancepay/initiate",
@@ -137,7 +135,7 @@ export function CheckoutExperience({
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
-      const valid: MethodId[] = ["pesapal", "nowpayments", "flutterwave", "paypal", "pawapay", "binancepay"];
+      const valid: MethodId[] = ["nowpayments", "flutterwave", "pawapay", "binancepay"];
       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
          return preferredMethod as MethodId;
       }

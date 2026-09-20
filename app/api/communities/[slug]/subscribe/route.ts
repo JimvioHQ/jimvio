@@ -22,7 +22,7 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { planType, paymentProvider = "pesapal", pawapayProvider, pawapayPhone } = (await req.json()) as {
+  const { planType, paymentProvider = "flutterwave", pawapayProvider, pawapayPhone } = (await req.json()) as {
     planType?: string;
     paymentProvider?: string;
     pawapayProvider?: string;
@@ -31,6 +31,14 @@ export async function POST(
 
   if (!planType || !["monthly", "yearly", "lifetime"].includes(planType)) {
     return NextResponse.json({ error: "Invalid planType" }, { status: 400 });
+  }
+
+  const provider = (paymentProvider || "flutterwave").toLowerCase();
+  if (provider === "pesapal" || provider === "paypal") {
+    return NextResponse.json(
+      { error: "This payment provider is no longer available. Please choose another method." },
+      { status: 410 },
+    );
   }
 
   const { data: community } = await supabase
@@ -110,9 +118,11 @@ export async function POST(
   }
 
   const path =
-    paymentProvider === "nowpayments"
+    provider === "nowpayments"
       ? `${base}/api/payments/nowpayments/initiate`
-      : `${base}/api/payments/pesapal/initiate`;
+      : provider === "binancepay"
+        ? `${base}/api/payments/binancepay/initiate`
+        : `${base}/api/payments/flutterwave/initiate`;
 
   const paymentRes = await fetch(path, {
     method: "POST",

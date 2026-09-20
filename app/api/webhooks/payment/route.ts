@@ -3,8 +3,10 @@
  *
  * UNIFIED PAYMENT WEBHOOK HANDLER
  * ================================
- * Single endpoint that handles webhooks from all payment providers:
- *   Flutterwave · PayPal · NowPayments · PesaPal · AfriPay · PawaPay
+ * Single endpoint that handles webhooks from remaining payment providers:
+ *   Flutterwave · NowPayments · AfriPay · PawaPay · Binance Pay
+ *
+ * PesaPal and PayPal are retired — requests for those providers are rejected.
  *
  * Usage — configure each provider's dashboard to POST/GET to:
  *   https://your-domain/api/webhooks/payment?provider=<name>
@@ -41,9 +43,12 @@ import {
 } from "@/lib/payments/webhook-logger";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { finalizeCommunityPayment } from "@/lib/payments/community-payment-finalizer";
-import { verifyPesapalTransaction } from "@/lib/pesapal";
 import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { confirmUgcEscrowFromProviderEvent } from "@/lib/ugc/confirm-escrow-payment";
+import {
+  isRetiredPaymentProvider,
+  retiredPaymentProviderResponse,
+} from "@/lib/payments/retired-providers";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -94,6 +99,10 @@ async function handleWebhook(req: NextRequest, method: "GET" | "POST") {
   if (!detectedProvider) {
     console.warn("[webhook/payment] Cannot detect provider");
     return NextResponse.json({ error: "Unknown provider" }, { status: 400 });
+  }
+
+  if (isRetiredPaymentProvider(detectedProvider)) {
+    return retiredPaymentProviderResponse(detectedProvider);
   }
 
   const verifier = getProviderVerifier(detectedProvider);
@@ -306,16 +315,6 @@ async function secondaryVerify(event: PaymentEvent): Promise<boolean> {
       return isFlutterwaveSuccessfulStatus(tx.status);
     } catch {
       return true; // Don't block on network errors
-    }
-  }
-
-  if (event.provider === "pesapal" && event.providerTransactionId) {
-    try {
-      const status = await verifyPesapalTransaction(event.providerTransactionId);
-      const code = String(status.status_code ?? "").toUpperCase();
-      return code === "1" || code === "COMPLETED";
-    } catch {
-      return true;
     }
   }
 

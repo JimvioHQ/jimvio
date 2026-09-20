@@ -354,7 +354,7 @@ export default async function AdminPaymentsPage({
   );
   const commissionsTotal = (commissionData ?? []).reduce((s, c) => s + Number(c.commission_amount as number ?? 0), 0);
 
-  const providers = ["flutterwave", "pesapal", "paypal", "nowpayments", "pawapay", "afripay", "binance"] as const;
+  const providers = ["flutterwave", "nowpayments", "pawapay", "afripay", "binance"] as const;
 const providerHealth = providers
   .map((p) => {
     const rows = (providerStats ?? []).filter((r: any) => r.provider === p);

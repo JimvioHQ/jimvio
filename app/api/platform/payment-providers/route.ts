@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPaymentProvidersSettings } from "@/lib/platform-settings-server";
 import type { PaymentProviderId } from "@/lib/platform-settings-shared";
+import { isRetiredPaymentProvider } from "@/lib/payments/retired-providers";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,10 @@ function envSet(...names: string[]): boolean {
 
 /** Credential presence only — never returns secret values. */
 function providerConfigured(id: PaymentProviderId): boolean {
+  if (isRetiredPaymentProvider(id)) return false;
   switch (id) {
     case "flutterwave":
       return envSet("FLW_SECRET_KEY", "FLUTTERWAVE_SECRET_KEY");
-    case "paypal":
-      return envSet("PAYPAL_CLIENT_ID", "NEXT_PUBLIC_PAYPAL_CLIENT_ID") && envSet("PAYPAL_CLIENT_SECRET");
     case "nowpayments":
       return envSet("NOWPAYMENTS_API_KEY");
     case "binancepay":
@@ -25,8 +25,6 @@ function providerConfigured(id: PaymentProviderId): boolean {
         envSet("BINANCE_PAY_API_KEY", "BINANCEPAY_API_KEY") &&
         envSet("BINANCE_PAY_API_SECRET", "BINANCE_PAY_SECRET_KEY", "BINANCEPAY_SECRET_KEY")
       );
-    case "pesapal":
-      return envSet("PESAPAL_CONSUMER_KEY") && envSet("PESAPAL_CONSUMER_SECRET");
     case "pawapay":
       return envSet("PAWAPAY_API_TOKEN");
     default:
@@ -37,7 +35,7 @@ function providerConfigured(id: PaymentProviderId): boolean {
 export async function GET() {
   const settings = await getPaymentProvidersSettings();
   const adminEnabled = (Object.keys(settings.providers) as PaymentProviderId[]).filter(
-    (id) => settings.providers[id]?.enabled
+    (id) => settings.providers[id]?.enabled && !isRetiredPaymentProvider(id),
   );
   const withCredentials = adminEnabled.filter(providerConfigured);
 

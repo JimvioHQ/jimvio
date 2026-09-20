@@ -17,7 +17,9 @@
 
 ## 3. Core Features
 
-**Gateways (configurable):** Flutterwave, PesaPal, PayPal, NowPayments, PawaPay, Binance Pay, AfriPay
+**Active gateways:** Flutterwave, NowPayments, PawaPay, Binance Pay, AfriPay
+
+**Retired (historical orders only):** PesaPal, PayPal — not available for new checkouts.
 
 - Payment initialization (`payments/initialize`, `initialize-cart`)
 - Provider-specific initiate routes

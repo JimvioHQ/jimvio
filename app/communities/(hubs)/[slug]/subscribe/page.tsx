@@ -25,7 +25,7 @@ export default async function CommunitySubscribePage({
   const { slug } = await params;
   const sp = await searchParams;
   const planRaw = typeof sp.plan === "string" ? sp.plan : "monthly";
-  const providerRaw = typeof sp.provider === "string" ? sp.provider : "pesapal";
+  const providerRaw = typeof sp.provider === "string" ? sp.provider : "flutterwave";
 
   const supabase = await createClient();
   const { data: community } = await supabase

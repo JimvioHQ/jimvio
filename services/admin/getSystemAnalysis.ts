@@ -114,13 +114,6 @@ function buildIntegrations(): IntegrationCheck[] {
             detail: "Card & mobile money",
         },
         {
-            id: "pesapal",
-            label: "PesaPal",
-            category: "payments",
-            status: envPresent("PESAPAL_CONSUMER_KEY", "PESAPAL_CONSUMER_SECRET") ? "ok" : "missing",
-            detail: "East Africa payments",
-        },
-        {
             id: "pawapay",
             label: "PawaPay",
             category: "payments",
@@ -140,13 +133,6 @@ function buildIntegrations(): IntegrationCheck[] {
             category: "payments",
             status: envPresent("BINANCE_PAY_API_KEY", "BINANCE_PAY_API_SECRET") ? "ok" : "missing",
             detail: "Crypto & payouts",
-        },
-        {
-            id: "paypal",
-            label: "PayPal",
-            category: "payments",
-            status: envPresent("PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET") ? "ok" : "missing",
-            detail: "International cards",
         },
         {
             id: "cj",

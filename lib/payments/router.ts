@@ -1,12 +1,11 @@
 /**
  * Chooses a payment integration for checkout (server-only).
  * Does not replace existing /api/payments/* routes — wire this when the multi-gateway flow is ready.
+ * PesaPal and PayPal are retired and must never be selected here.
  */
-import { randomUUID } from "crypto";
 import type { CurrencyCode } from "@/lib/currency/config";
 import { initiateAfriPayPayment } from "./afripay";
 import { createNowPaymentsInvoice } from "./nowpayments";
-import { initiatePesaPalPayment } from "./pesapal";
 
 export type RoutePaymentParams = {
   orderId: string;
@@ -128,36 +127,7 @@ export async function routePayment(params: RoutePaymentParams): Promise<RoutePay
     return { gateway: "afripay", status: af.status, transactionId: af.transactionId };
   }
 
-
-
-  // 6. KES / UGX / TZS → PesaPal
-  if (userCurrency === "KES" || userCurrency === "UGX" || userCurrency === "TZS") {
-    logRoute("pesapal", userCurrency, paymentMethod);
-    if (!customerEmail.trim()) {
-      return fail("pesapal", "customerEmail is required for PesaPal");
-    }
-    const ps = await initiatePesaPalPayment({
-      orderId,
-      amountUSD,
-      currency: userCurrency,
-      customerEmail,
-      customerPhone: phoneNumber || "000000000",
-      description,
-      callbackUrl: `${b}/checkout/success?orderId=${encodeURIComponent(orderId)}`,
-      cancellationUrl: `${b}/checkout/cancel`,
-    });
-    if (ps.error || !ps.redirectUrl) {
-      return fail("pesapal", ps.error ?? "PesaPal failed");
-    }
-    return {
-      gateway: "pesapal",
-      orderTrackingId: ps.orderTrackingId,
-      redirectUrl: ps.redirectUrl,
-      status: "CREATED",
-    };
-  }
-
-  // 7. Default → NowPayments
+  // Default → NowPayments (KES/UGX/TZS no longer route to retired PesaPal)
   logRoute("nowpayments", userCurrency, paymentMethod);
   const inv = await createNowPaymentsInvoice({
     orderId,

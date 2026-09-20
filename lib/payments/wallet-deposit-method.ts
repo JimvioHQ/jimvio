@@ -100,9 +100,9 @@ export function walletDepositMethodLabel(method: string | null | undefined): str
     case "binancepay":
       return "Binance Pay";
     case "paypal":
-      return "PayPal";
+      return "PayPal (retired)";
     case "pesapal":
-      return "PesaPal";
+      return "PesaPal (retired)";
     case "pawapay":
       return "PawaPay";
     case "bank":

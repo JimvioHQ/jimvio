@@ -66,10 +66,9 @@ export type PlatformSecurityPolicies = {
   digital_access_expiry_days: number | null;
 };
 
+/** Active checkout providers only. PesaPal/PayPal are retired — see retired-providers.ts. */
 export type PaymentProviderId =
   | "flutterwave"
-  | "pesapal"
-  | "paypal"
   | "nowpayments"
   | "pawapay"
   | "binancepay";
@@ -83,8 +82,6 @@ export const DEFAULT_PAYMENT_PROVIDERS: PaymentProvidersSettings = {
   sandbox_mode: false,
   providers: {
     flutterwave: { enabled: true },
-    pesapal: { enabled: true },
-    paypal: { enabled: true },
     nowpayments: { enabled: true },
     pawapay: { enabled: true },
     binancepay: { enabled: true },

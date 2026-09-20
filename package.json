@@ -36,7 +36,6 @@
     "release:health": "node scripts/release/post-deploy-health.mjs",
     "release:perf": "node scripts/release/performance-budget.mjs",
     "release:verify-workflows": "node scripts/release/verify-workflows.mjs",
-    "pesapal:verify": "node scripts/pesapal-verify.mjs",
     "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "demo:youtube-oauth-record": "node scripts/google-oauth-verification/record-youtube-demo.mjs",
