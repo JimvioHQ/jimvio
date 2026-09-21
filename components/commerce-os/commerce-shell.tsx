@@ -6,7 +6,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import {
   ArrowLeftRight,
   Banknote,
-  CircleHelp,
   CreditCard,
   FileText,
   Globe,
@@ -212,16 +211,6 @@ function SidebarBody({
           </div>
         ))}
       </nav>
-      <div className="shrink-0 border-t border-[#E5E7EB] px-3 py-2.5">
-        <Link
-          href="/help"
-          onClick={onNavigate}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-medium text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#111827]"
-        >
-          <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Help
-        </Link>
-      </div>
     </div>
   );
 }

@@ -174,10 +174,6 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">
             Orders
           </h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            Pending payment orders appear immediately — payment and fulfillment
-            update as they progress.
-          </p>
         </div>
         <StoreSelector
           stores={stores}

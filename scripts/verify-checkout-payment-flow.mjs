@@ -291,12 +291,69 @@ assert(
   "Enrichment cron must pause when CJ API quota is exhausted"
 );
 
+// ── Commerce OS order-before-payment + UI hardening ─────────────────────────
+const startCheckout = read("lib/actions/checkout.ts");
+assert(
+  startCheckout.includes('payment_status: "pending"') &&
+    startCheckout.includes("Resume existing pending/failed orders") &&
+    startCheckout.includes('event: "order.created"'),
+  "Checkout must create pending orders before payment and notify order.created"
+);
+assert(
+  startCheckout.includes("jimvio_store_id") &&
+    startCheckout.includes("reserveInventoryForOrder"),
+  "Native store checkout must attribute jimvio_store_id and reserve inventory"
+);
+
+const commerceOrders = read("app/(public)/commerce/orders/page.tsx");
+assert(
+  commerceOrders.includes("Pending payment") &&
+    commerceOrders.includes("order_items") &&
+    commerceOrders.includes("Waiting for payment") &&
+    !/\bCJ\b/.test(commerceOrders.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")),
+  "Commerce Orders must show pending payment + line items without CJ branding"
+);
+
+const commerceOrderDetail = read("app/(public)/commerce/orders/[orderId]/page.tsx");
+assert(
+  commerceOrderDetail.includes("Payment pending") &&
+    commerceOrderDetail.includes("isSupplierFulfilled") &&
+    !commerceOrderDetail.includes("CJ / fulfillment") &&
+    !commerceOrderDetail.includes('label: "CJ order"'),
+  "Order detail must use Jimvio Fulfillment language and real timeline events"
+);
+
+const commerceShell = read("components/commerce-os/commerce-shell.tsx");
+assert(
+  !commerceShell.includes('href="/help"') &&
+    !commerceShell.includes("Need help") &&
+    !commerceShell.includes('label: "Channels"') &&
+    !commerceShell.includes("Connected Stores"),
+  "Commerce shell must not show Help promo or channel/Shopify nav"
+);
+
+const flwWebhook = flwWh;
+assert(
+  flwWebhook.includes("validateFlutterwaveWebhookRequest") &&
+    flwWebhook.includes("paymentAmountsMatch") &&
+    flwWebhook.includes("finalizeOrderPayment"),
+  "Flutterwave webhook must verify signature, amount, and finalize via single authority"
+);
+
+const paymentWebhook = read("app/api/webhooks/payment/route.ts");
+assert(
+  paymentWebhook.includes("idempotencyKey") &&
+    paymentWebhook.includes("Duplicate event") &&
+    paymentWebhook.includes("finalizeOrderPayment"),
+  "Unified payment webhook must be idempotent and call finalizeOrderPayment"
+);
+
 if (fails.length) {
   console.error("VERIFY FAIL — checkout/payment flow invariants:");
   for (const f of fails) console.error(" -", f);
   process.exit(1);
 }
 
-console.log("VERIFY OK — checkout/payment/CJ/mobile/theme invariants hold (static).");
+console.log("VERIFY OK — checkout/payment/CJ/mobile/theme/commerce invariants hold (static).");
 console.log("NOTE: real provider sandboxes / live paid orders were not executed.");
 process.exit(0);

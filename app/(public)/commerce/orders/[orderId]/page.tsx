@@ -137,13 +137,20 @@ export default async function CommerceOrderDetailPage({
   const timeline = [
     { label: "Order placed", at: order.created_at, detail: null as string | null },
     {
+      label: "Payment pending",
+      at: paymentPending ? order.created_at : null,
+      detail: null as string | null,
+    },
+    {
       label: "Payment confirmed",
       at: order.paid_at || null,
       detail: null as string | null,
     },
     {
-      label: "Fulfillment started",
-      at: fulfillmentStarted ? order.paid_at || order.created_at : null,
+      label: "Processing",
+      at: fulfillmentStarted && !paymentPending
+        ? order.paid_at || order.created_at
+        : null,
       detail: null as string | null,
     },
     {

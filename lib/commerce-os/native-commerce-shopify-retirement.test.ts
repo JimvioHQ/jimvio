@@ -18,6 +18,7 @@ describe("native commerce OS — Shopify retired from active product", () => {
     assert.equal(src.includes('label: "Channels"'), false);
     assert.equal(src.includes("Need help?"), false);
     assert.equal(src.includes("Help Center"), false);
+    assert.equal(src.includes('href="/help"'), false);
     assert.ok(src.includes("/commerce/finance"));
     assert.ok(src.includes("Native Jimvio Store"));
     assert.ok(src.includes('label: "Revenue"'));
@@ -31,6 +32,8 @@ describe("native commerce OS — Shopify retired from active product", () => {
     assert.equal(src.includes("xl:grid-cols-[minmax(0,1fr)_280px]"), false);
     assert.ok(src.includes("Order pipeline"));
     assert.ok(src.includes("Recent transactions"));
+    assert.ok(src.includes("Pending payment"));
+    assert.ok(src.includes("status=processing"));
   });
 
   it("merchant checkout trust panel no longer says Why checkout with Jimvio", () => {

@@ -31,6 +31,15 @@ function money(amount: number, currency = "USD") {
   }
 }
 
+function paymentBadge(payment: string | null | undefined) {
+  const p = (payment || "").toLowerCase();
+  if (p === "refunded") return "Refunded";
+  if (p === "failed") return "Payment failed";
+  if (p === "cancelled") return "Cancelled";
+  if (p === "paid" || p === "completed" || p === "success") return "Paid";
+  return "Pending payment";
+}
+
 export default async function CommerceOverviewPage({ searchParams }: Props) {
   const auth = await requireCommerceMerchant();
   if (!auth.ok) {
@@ -133,7 +142,7 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
     {
       label: "Processing",
       value: pipeline?.processing ?? 0,
-      href: `/commerce/orders?storeId=${active.id}&status=paid`,
+      href: `/commerce/orders?storeId=${active.id}&status=processing`,
     },
     {
       label: "Shipped",
@@ -371,7 +380,8 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
           </div>
           {!dash.recentOrders.length ? (
             <p className="mt-3 text-[13px] text-[#6B7280]">
-              No orders yet. When customers place orders, they will appear here.
+              No orders yet. Pending payment orders appear here as soon as
+              customers check out.
             </p>
           ) : (
             <div className="mt-3 overflow-x-auto">
@@ -399,7 +409,7 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                         {new Date(o.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-2 text-[#6B7280]">
-                        {o.payment_status || "—"}
+                        {paymentBadge(o.payment_status)}
                       </td>
                       <td className="py-2 text-right tabular-nums font-medium">
                         {money(

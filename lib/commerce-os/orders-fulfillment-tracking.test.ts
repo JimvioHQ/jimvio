@@ -100,4 +100,19 @@ describe("commerce orders — order-before-payment + CJ/Shopify UI purge", () =>
     const src = read("app/(public)/s/[handle]/account/orders/page.tsx");
     assert.ok(src.includes("Pending payment"));
   });
+
+  it("MoMo initiate uses transactions.reference not provider_reference", () => {
+    const src = read("app/api/payments/mobile-money/initiate/route.ts");
+    assert.equal(src.includes("provider_reference:"), false);
+    assert.ok(src.includes("provider_transaction_id: txRef"));
+    assert.ok(src.includes("reference: charge.flwRef"));
+  });
+
+  it("Flutterwave webhook verifies amount and is idempotent", () => {
+    const src = read("app/api/payments/flutterwave/webhook/route.ts");
+    assert.ok(src.includes("paymentAmountsMatch"));
+    assert.ok(src.includes("idempotencyKey"));
+    assert.ok(src.includes("Duplicate"));
+    assert.ok(src.includes("finalizeOrderPayment"));
+  });
 });
