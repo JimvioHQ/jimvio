@@ -83,14 +83,30 @@ describe("theme registry builder helpers", () => {
   });
 
   it("applies design and hero presets without wiping media", () => {
-    const themed = applyDesignPreset(mergeThemeSettings(null, null), "luxury");
-    assert.equal(themed.primaryColor, DESIGN_PRESETS.luxury.settings.primaryColor);
+    const themed = applyDesignPreset(mergeThemeSettings(null, null), "premium");
+    assert.equal(themed.primaryColor, DESIGN_PRESETS.premium.settings.primaryColor);
     const hero = applyHeroPreset(
       { imageUrl: "https://cdn.example/hero.jpg", headline: "Keep me" },
       "split"
     );
     assert.equal(hero.imageUrl, "https://cdn.example/hero.jpg");
     assert.equal(hero.layout, HERO_PRESETS.split.props.layout);
+  });
+
+  it("exposes a curated 10-template library", () => {
+    const ids = Object.keys(DESIGN_PRESETS);
+    assert.equal(ids.length, 10);
+    assert.ok(ids.includes("minimal"));
+    assert.ok(ids.includes("modern"));
+    assert.ok(ids.includes("fashion"));
+    assert.ok(ids.includes("beauty"));
+    assert.ok(ids.includes("electronics"));
+    assert.ok(ids.includes("editorial"));
+    assert.ok(
+      Object.values(DESIGN_PRESETS).every(
+        (p) => p.label && p.description && p.bestFor && p.settings.primaryColor
+      )
+    );
   });
 
   it("warns on low contrast colors", () => {

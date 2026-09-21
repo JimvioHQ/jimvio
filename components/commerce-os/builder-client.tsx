@@ -1053,11 +1053,35 @@ export function BuilderClient({
             ) : null}
             {leftMode === "panels" && panel === "design" && (
               <div className="space-y-3">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Starter themes</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+                  Templates
+                </p>
                 {(Object.keys(DESIGN_PRESETS) as DesignPresetId[]).map((id) => (
-                  <button key={id} type="button" onClick={() => { patchSettings(applyDesignPreset(settings, id)); setPanel("theme"); }} className="block w-full rounded-lg border border-[#E5E7EB] px-3 py-2 text-left hover:border-[#FF5A1F]/50">
-                    <span className="text-xs font-semibold text-[#111827]">{DESIGN_PRESETS[id].label}</span>
-                    <span className="mt-0.5 block text-[11px] text-[#6B7280]">{DESIGN_PRESETS[id].description}</span>
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          "Apply this template’s visual design? Products, collections, pages, and orders stay intact."
+                        )
+                      ) {
+                        return;
+                      }
+                      patchSettings(applyDesignPreset(settings, id));
+                      setPanel("theme");
+                    }}
+                    className="block w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 text-left hover:border-[#FF5A1F]/50"
+                  >
+                    <span className="text-xs font-semibold text-[#111827]">
+                      {DESIGN_PRESETS[id].label}
+                    </span>
+                    <span className="mt-0.5 block text-[11px] text-[#6B7280]">
+                      {DESIGN_PRESETS[id].description}
+                    </span>
+                    <span className="mt-1 block text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">
+                      Best for {DESIGN_PRESETS[id].bestFor}
+                    </span>
                   </button>
                 ))}
               </div>

@@ -41,19 +41,18 @@ export default async function CommerceOrderDetailPage({
       jimvio_store_id, buyer_id, tracking_number, tracking_status, cj_order_id,
       cj_order_num, cj_fulfillment_status, cj_shipping_method,
       order_items (
-        id, product_name, product_image, quantity, unit_price, total_price, sku,
-        product_source, source_metadata
+        id, product_name, product_image, quantity, unit_price, total_price,
+        variant_name, product_source, source_metadata
       )
     `
     )
     .eq("id", orderId)
-    .eq("vendor_id", auth.vendorId)
     .maybeSingle();
 
   if (!order) notFound();
   if (
-    order.jimvio_store_id &&
-    storeIds.size > 0 &&
+    !order.jimvio_store_id ||
+    storeIds.size === 0 ||
     !storeIds.has(order.jimvio_store_id)
   ) {
     notFound();
@@ -217,7 +216,6 @@ export default async function CommerceOrderDetailPage({
               product_image?: string | null;
               quantity?: number;
               total_price?: number;
-              sku?: string | null;
               product_source?: string | null;
             };
             return (
@@ -236,7 +234,6 @@ export default async function CommerceOrderDetailPage({
                   <p className="font-medium">{row.product_name || "Item"}</p>
                   <p className="text-xs text-[#6B7280]">
                     Qty {row.quantity ?? 1}
-                    {row.sku ? ` · SKU ${row.sku}` : ""}
                   </p>
                 </div>
                 <p className="tabular-nums font-semibold">

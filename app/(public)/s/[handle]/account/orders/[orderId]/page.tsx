@@ -57,14 +57,14 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     );
   }
 
-  const { data: order } = await cosTable(supabase, "orders")
+  const { data: order, error: orderLookupError } = await cosTable(supabase, "orders")
     .select(
       `
       id, order_number, total_amount, subtotal, shipping_amount, discount_amount,
       currency, payment_status, status, created_at, shipping_address, metadata,
       tracking_number, tracking_status,
       order_items (
-        id, product_name, product_image, quantity, unit_price, total_price, variant_name, sku
+        id, product_name, product_image, quantity, unit_price, total_price, variant_name
       )
     `
     )
@@ -72,6 +72,14 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     .eq("buyer_id", user.id)
     .eq("jimvio_store_id", store.id)
     .maybeSingle();
+
+  if (orderLookupError) {
+    console.error("[storefront/order-detail] lookup failed", {
+      orderId,
+      storeId: store.id,
+      message: orderLookupError.message,
+    });
+  }
 
   if (!order) notFound();
 
@@ -123,9 +131,17 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     quantity?: number;
     total_price?: number;
     variant_name?: string | null;
-    sku?: string | null;
   }>;
   const currency = order.currency || store.default_currency || "USD";
+  const paymentPending = !["paid", "completed", "success"].includes(
+    String(order.payment_status || "").toLowerCase()
+  );
+  const canResumePayment =
+    paymentPending &&
+    !["cancelled", "refunded"].includes(String(order.status || "").toLowerCase()) &&
+    !["cancelled", "refunded", "failed"].includes(
+      String(order.payment_status || "").toLowerCase()
+    );
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -155,6 +171,25 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
           {fulfillmentLabel}
         </span>
       </div>
+
+      {canResumePayment ? (
+        <div className="mt-6 rounded-[var(--store-card-radius,16px)] border border-amber-200 bg-amber-50/80 p-4 text-sm">
+          <p className="font-semibold text-amber-950">Payment pending</p>
+          <p className="mt-1 text-amber-900/80">
+            Complete payment to continue processing this order.
+          </p>
+          <Link
+            href={storefrontHref(
+              handle,
+              `/checkout?order=${order.id}`,
+              linkOpts
+            )}
+            className="mt-3 inline-flex min-h-11 items-center justify-center rounded-[var(--store-btn-radius,9999px)] bg-[var(--store-primary,#FF5A1F)] px-4 text-xs font-semibold text-white"
+          >
+            Continue payment
+          </Link>
+        </div>
+      ) : null}
 
       <ol className="mt-8 space-y-3">
         {timeline.map((step) => {
@@ -221,7 +256,6 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
                 <p className="text-xs text-[var(--store-muted,#6B7280)]">
                   Qty {row.quantity ?? 1}
                   {row.variant_name ? ` · ${row.variant_name}` : ""}
-                  {row.sku ? ` · ${row.sku}` : ""}
                 </p>
               </div>
               <p className="tabular-nums font-semibold">

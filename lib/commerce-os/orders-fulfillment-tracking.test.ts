@@ -36,6 +36,7 @@ describe("commerce orders — order-before-payment + CJ/Shopify UI purge", () =>
     assert.ok(src.includes("Pending payment"));
     assert.ok(src.includes("order_items"));
     assert.ok(src.includes("Waiting for payment"));
+    assert.equal(src.includes('.eq("vendor_id", auth.vendorId)'), false);
     assert.equal(/\bCJ\b/.test(userFacingText(src)), false);
     assert.equal(/Shopify/i.test(userFacingText(src)), false);
   });

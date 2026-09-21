@@ -307,6 +307,8 @@ async function createVendorOrder(
   // Commerce OS attribution: prefer cart.jimvio_store_id (server-owned), cookie as fallback
   let jimvioStoreId: string | null = null;
   let orderChannel: string = "marketplace";
+  /** For native store orders, merchant store owner — not the product catalog vendor. */
+  let orderOwnerVendorId = vendorId;
   try {
     const { data: cartRow } = await admin
       .from("carts")
@@ -325,13 +327,28 @@ async function createVendorOrder(
           const { data: store } = await cosTable(admin, "jimvio_stores")
             .select("id, vendor_id, status")
             .eq("handle", decoded)
-            .eq("vendor_id", vendorId)
             .maybeSingle();
-          if (store?.id && (store.status === "published" || store.status === "draft")) {
+          if (
+            store?.id &&
+            (store.status === "published" || store.status === "draft")
+          ) {
             jimvioStoreId = store.id;
             orderChannel = "jimvio_store";
+            if (typeof store.vendor_id === "string" && store.vendor_id) {
+              orderOwnerVendorId = store.vendor_id;
+            }
           }
         }
+      }
+    }
+
+    if (jimvioStoreId) {
+      const { data: ownedStore } = await cosTable(admin, "jimvio_stores")
+        .select("id, vendor_id")
+        .eq("id", jimvioStoreId)
+        .maybeSingle();
+      if (ownedStore?.vendor_id) {
+        orderOwnerVendorId = String(ownedStore.vendor_id);
       }
     }
   } catch {
@@ -342,7 +359,7 @@ async function createVendorOrder(
     .from("orders")
     .insert({
       buyer_id: buyerId,
-      vendor_id: vendorId,
+      vendor_id: orderOwnerVendorId,
       status: "pending" as OrderStatusValue,
       payment_status: "pending" as PaymentStatusValue,
       subtotal,
@@ -356,6 +373,9 @@ async function createVendorOrder(
         {
           cart_id: cartId,
           ...(jimvioStoreId ? { jimvio_store_id: jimvioStoreId } : {}),
+          ...(orderOwnerVendorId !== vendorId
+            ? { catalog_vendor_id: vendorId }
+            : {}),
         },
         buildAffiliateAttribution({
           referralCode,
@@ -463,6 +483,19 @@ async function createVendorOrder(
     }
   } catch (merchantNotifyErr) {
     console.warn("[checkout] merchant order.created notify skipped:", merchantNotifyErr);
+  }
+
+  try {
+    revalidatePath("/commerce");
+    revalidatePath("/commerce/orders");
+    if (jimvioStoreId) {
+      revalidatePath(`/commerce/orders/${order.id}`);
+      revalidatePath("/account");
+      revalidatePath("/account/orders");
+      revalidatePath(`/account/orders/${order.id}`);
+    }
+  } catch (revalidateErr) {
+    console.warn("[checkout] revalidate skipped:", revalidateErr);
   }
 
   return order.id;

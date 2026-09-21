@@ -107,7 +107,6 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
     `
     )
     .eq("jimvio_store_id", active.id)
-    .eq("vendor_id", auth.vendorId)
     .order("created_at", { ascending: false })
     .limit(100);
 

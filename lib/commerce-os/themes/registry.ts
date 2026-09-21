@@ -219,18 +219,28 @@ export const HERO_PRESETS: Record<
 export type DesignPresetId =
   | "minimal"
   | "modern"
-  | "luxury"
   | "fashion"
+  | "beauty"
+  | "electronics"
+  | "home"
+  | "lifestyle"
+  | "premium"
   | "creator"
-  | "general";
+  | "editorial";
 
 export const DESIGN_PRESETS: Record<
   DesignPresetId,
-  { label: string; description: string; settings: Partial<ThemeSettings> }
+  {
+    label: string;
+    description: string;
+    bestFor: string;
+    settings: Partial<ThemeSettings>;
+  }
 > = {
   minimal: {
-    label: "Minimal",
-    description: "Clean whitespace, soft neutrals",
+    label: "Minimal Commerce",
+    description: "Clean whitespace and soft neutrals for product-first selling.",
+    bestFor: "Everyday retail",
     settings: {
       primaryColor: "#111827",
       secondaryColor: "#374151",
@@ -244,13 +254,17 @@ export const DESIGN_PRESETS: Record<
       buttonStyle: "filled",
       buttonRadius: "8px",
       radius: "8px",
+      cardRadius: "12px",
       shadow: "none",
       productGridColumns: 3,
+      headingFont: "DM Sans",
+      fontFamily: "DM Sans",
     },
   },
   modern: {
-    label: "Modern Commerce",
-    description: "Jimvio-ready orange energy",
+    label: "Modern Store",
+    description: "Bright product-first storefront with confident CTAs.",
+    bestFor: "General commerce",
     settings: {
       primaryColor: "#FF5A1F",
       secondaryColor: "#0F172A",
@@ -263,13 +277,123 @@ export const DESIGN_PRESETS: Record<
       buttonStyle: "filled",
       buttonRadius: "9999px",
       radius: "12px",
+      cardRadius: "16px",
       shadow: "subtle",
+      productGridColumns: 3,
+      headingFont: "DM Sans",
+      fontFamily: "DM Sans",
+    },
+  },
+  fashion: {
+    label: "Fashion",
+    description: "Editorial pink and soft cream for apparel brands.",
+    bestFor: "Apparel & accessories",
+    settings: {
+      primaryColor: "#BE185D",
+      secondaryColor: "#831843",
+      accentColor: "#F472B6",
+      backgroundColor: "#FFF7ED",
+      surfaceColor: "#FFFFFF",
+      textColor: "#1F2937",
+      buttonColor: "#BE185D",
+      buttonTextColor: "#FFFFFF",
+      buttonStyle: "filled",
+      buttonRadius: "9999px",
+      radius: "16px",
+      cardRadius: "20px",
+      productGridColumns: 4,
+      productImageRatio: "3/4",
+      headingFont: "DM Sans",
+      fontFamily: "DM Sans",
+    },
+  },
+  beauty: {
+    label: "Beauty",
+    description: "Soft blush surfaces with refined product cards.",
+    bestFor: "Beauty & wellness",
+    settings: {
+      primaryColor: "#9D174D",
+      secondaryColor: "#FDF2F8",
+      accentColor: "#FB7185",
+      backgroundColor: "#FFF1F2",
+      surfaceColor: "#FFFFFF",
+      textColor: "#4C0519",
+      mutedTextColor: "#9F1239",
+      buttonColor: "#9D174D",
+      buttonTextColor: "#FFFFFF",
+      buttonRadius: "9999px",
+      radius: "18px",
+      cardRadius: "22px",
+      shadow: "subtle",
+      productGridColumns: 3,
+      productImageRatio: "4/3",
+    },
+  },
+  electronics: {
+    label: "Electronics",
+    description: "High-contrast tech layout with crisp grids.",
+    bestFor: "Gadgets & devices",
+    settings: {
+      primaryColor: "#2563EB",
+      secondaryColor: "#0F172A",
+      accentColor: "#22D3EE",
+      backgroundColor: "#F1F5F9",
+      surfaceColor: "#FFFFFF",
+      textColor: "#0F172A",
+      buttonColor: "#2563EB",
+      buttonTextColor: "#FFFFFF",
+      buttonRadius: "10px",
+      radius: "10px",
+      cardRadius: "12px",
+      shadow: "medium",
+      productGridColumns: 4,
+      productImageRatio: "1/1",
+    },
+  },
+  home: {
+    label: "Home & Living",
+    description: "Warm neutrals for furniture and lifestyle goods.",
+    bestFor: "Home goods",
+    settings: {
+      primaryColor: "#92400E",
+      secondaryColor: "#78350F",
+      accentColor: "#D97706",
+      backgroundColor: "#FFFBEB",
+      surfaceColor: "#FFFFFF",
+      textColor: "#1C1917",
+      mutedTextColor: "#78716C",
+      buttonColor: "#92400E",
+      buttonTextColor: "#FFFFFF",
+      buttonRadius: "12px",
+      radius: "14px",
+      cardRadius: "16px",
+      productGridColumns: 3,
+      productImageRatio: "4/3",
+    },
+  },
+  lifestyle: {
+    label: "Lifestyle",
+    description: "Fresh greens and open spacing for everyday brands.",
+    bestFor: "Lifestyle catalogs",
+    settings: {
+      primaryColor: "#047857",
+      secondaryColor: "#064E3B",
+      accentColor: "#34D399",
+      backgroundColor: "#F0FDF4",
+      surfaceColor: "#FFFFFF",
+      textColor: "#052E16",
+      mutedTextColor: "#166534",
+      buttonColor: "#047857",
+      buttonTextColor: "#FFFFFF",
+      buttonRadius: "9999px",
+      radius: "16px",
       productGridColumns: 3,
     },
   },
-  luxury: {
-    label: "Luxury",
-    description: "Dark surfaces, gold accent",
+  premium: {
+    label: "Premium Brand",
+    description: "Dark surfaces with restrained gold accent.",
+    bestFor: "Luxury labels",
     settings: {
       primaryColor: "#C6A75E",
       secondaryColor: "#F5F5F4",
@@ -284,39 +408,24 @@ export const DESIGN_PRESETS: Record<
       buttonStyle: "filled",
       buttonRadius: "4px",
       radius: "4px",
+      cardRadius: "8px",
       shadow: "medium",
       productGridColumns: 3,
-    },
-  },
-  fashion: {
-    label: "Fashion",
-    description: "Editorial pink and soft cream",
-    settings: {
-      primaryColor: "#BE185D",
-      secondaryColor: "#831843",
-      accentColor: "#F472B6",
-      backgroundColor: "#FFF7ED",
-      surfaceColor: "#FFFFFF",
-      textColor: "#1F2937",
-      buttonColor: "#BE185D",
-      buttonTextColor: "#FFFFFF",
-      buttonStyle: "filled",
-      buttonRadius: "9999px",
-      radius: "16px",
-      productGridColumns: 4,
+      headerBackground: "#0C0A09",
     },
   },
   creator: {
-    label: "Creator Brand",
-    description: "High contrast creator store",
+    label: "Creator Store",
+    description: "Bold contrast for personality-led brands.",
+    bestFor: "Creators & influencers",
     settings: {
-      primaryColor: "#2563EB",
+      primaryColor: "#7C3AED",
       secondaryColor: "#0F172A",
-      accentColor: "#38BDF8",
-      backgroundColor: "#F8FAFC",
+      accentColor: "#A78BFA",
+      backgroundColor: "#FAF5FF",
       surfaceColor: "#FFFFFF",
-      textColor: "#0F172A",
-      buttonColor: "#2563EB",
+      textColor: "#1E1B4B",
+      buttonColor: "#7C3AED",
       buttonTextColor: "#FFFFFF",
       buttonStyle: "filled",
       buttonRadius: "12px",
@@ -324,22 +433,29 @@ export const DESIGN_PRESETS: Record<
       productGridColumns: 3,
     },
   },
-  general: {
-    label: "General Store",
-    description: "Balanced retail defaults",
+  editorial: {
+    label: "Editorial Commerce",
+    description: "Magazine-like hierarchy for story-driven shops.",
+    bestFor: "Brand storytelling",
     settings: {
-      primaryColor: "#0EA5E9",
-      secondaryColor: "#0F172A",
-      accentColor: "#F97316",
-      backgroundColor: "#F8FAFC",
+      primaryColor: "#111827",
+      secondaryColor: "#F8FAFC",
+      accentColor: "#DC2626",
+      backgroundColor: "#FAFAF9",
       surfaceColor: "#FFFFFF",
       textColor: "#111827",
-      buttonColor: "#0EA5E9",
+      mutedTextColor: "#57534E",
+      buttonColor: "#111827",
       buttonTextColor: "#FFFFFF",
-      buttonStyle: "filled",
-      buttonRadius: "10px",
-      radius: "10px",
+      buttonStyle: "outline",
+      buttonRadius: "0px",
+      radius: "0px",
+      cardRadius: "0px",
+      shadow: "none",
       productGridColumns: 3,
+      headerAlign: "centered",
+      headingFont: "DM Sans",
+      fontFamily: "DM Sans",
     },
   },
 };
@@ -549,7 +665,7 @@ export const BUILDER_SECTION_CATALOG: Array<{
   {
     type: "footer",
     label: "Footer",
-    description: "Links + powered by Jimvio",
+    description: "Links and store copyright",
     group: "core",
   },
 ];

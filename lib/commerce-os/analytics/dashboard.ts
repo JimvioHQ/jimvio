@@ -28,7 +28,6 @@ export async function getCommerceOverviewDashboard(
       "id, order_number, total_amount, currency, payment_status, status, created_at"
     )
     .eq("jimvio_store_id", storeId)
-    .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false })
     .limit(8);
 
@@ -36,7 +35,6 @@ export async function getCommerceOverviewDashboard(
     .from("orders")
     .select("buyer_id")
     .eq("jimvio_store_id", storeId)
-    .eq("vendor_id", vendorId)
     .not("buyer_id", "is", null);
 
   const customerIds = new Set(
@@ -80,7 +78,6 @@ export async function getCommerceOverviewDashboard(
     .from("orders")
     .select("id", { count: "exact", head: true })
     .eq("jimvio_store_id", storeId)
-    .eq("vendor_id", vendorId)
     .in("payment_status", ["paid", "completed"]);
 
   const hasProducts = (analytics.productsPublished ?? 0) > 0;

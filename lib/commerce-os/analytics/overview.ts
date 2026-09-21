@@ -39,7 +39,6 @@ export async function getStoreAnalytics(
       "id, total_amount, payment_status, status, created_at, cj_order_id, tracking_number"
     )
     .eq("jimvio_store_id", storeId)
-    .eq("vendor_id", vendorId)
     .gte("created_at", since);
 
   const list = orders ?? [];

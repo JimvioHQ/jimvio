@@ -46,26 +46,22 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("vendor_id", vendorId)
       .eq("jimvio_store_id", storeFilter)
       .in("payment_status", ["paid", "completed"])
       .in("status", ["confirmed", "processing", "paid"]),
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("vendor_id", vendorId)
       .eq("jimvio_store_id", storeFilter)
       .not("cj_order_id", "is", null),
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("vendor_id", vendorId)
       .eq("jimvio_store_id", storeFilter)
       .not("tracking_number", "is", null),
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("vendor_id", vendorId)
       .eq("jimvio_store_id", storeFilter)
       .eq("status", "fulfillment_exception"),
   ]);

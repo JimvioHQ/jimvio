@@ -34,7 +34,6 @@ export async function markJimvioStoreOrderFulfillment(input: {
       "id, vendor_id, jimvio_store_id, payment_status, status, tracking_number, cj_order_id",
     )
     .eq("id", orderId)
-    .eq("vendor_id", auth.vendorId)
     .maybeSingle();
 
   if (error || !order) return { ok: false, error: "Order not found" };
