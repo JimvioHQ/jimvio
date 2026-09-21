@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import IPhoneMockup from "@/components/ui/iphone-mockup";
 import { cn } from "@/lib/utils";
-const ORANGE = "#fd5000";
+
+const ORANGE = "#FF5A1F";
 const GREEN = "#16a34a";
 const PURPLE = "#7c3aed";
 const BLUE = "#2563eb";
-const MUTED = "#6b7280";
 
 type TabId = "home" | "shop" | "wallet" | "campaigns" | "profile";
+
 function InitialAvatar({ label, bg }: { label: string; bg: string }) {
   return (
     <span
@@ -198,55 +199,45 @@ function MarketplaceTabletScreen() {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="border-b border-[#ececec] px-2 py-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[8px] font-black tracking-tight" style={{ color: ORANGE }}>
-            Jimvio
-          </span>
-          <span className="rounded border border-[#ececec] px-1 py-px text-[4px] font-semibold text-[#6b7280]">
-            Lagos · USD
-          </span>
-        </div>
-        <div className="mt-1 flex items-center gap-1 rounded border border-[#e5e5e5] bg-[#fafafa] px-1.5 py-0.5">
-          <Search className="size-2 text-[#9ca3af]" />
-          <span className="text-[5px] text-[#9ca3af]">wireless mic, notion templates…</span>
+    <div className="flex h-full min-h-0 flex-col bg-[#fafafa] text-[#111]">
+      <div className="flex items-center gap-1 border-b border-[#ececec] bg-white px-1.5 py-1">
+        <span className="text-[5px] font-black tracking-tight" style={{ color: ORANGE }}>
+          Jimvio
+        </span>
+        <div className="ml-auto flex items-center gap-0.5 rounded-full bg-[#f4f4f5] px-1 py-0.5">
+          <Search className="size-1.5 text-[#9ca3af]" />
+          <span className="text-[3.5px] text-[#9ca3af]">Search</span>
         </div>
       </div>
-
-      <div className="flex gap-2 border-b border-[#f0f0f0] px-2">
-        {tabs.map((tab, i) => (
+      <div className="flex gap-1 border-b border-[#f0f0f0] bg-white px-1.5 py-1">
+        {tabs.map((t, i) => (
           <span
-            key={tab}
-            className="border-b-2 py-1 text-[5px] font-semibold"
+            key={t}
+            className="rounded-full px-1 py-0.5 text-[3.5px] font-semibold"
             style={{
-              borderColor: i === 0 ? ORANGE : "transparent",
-              color: i === 0 ? "#111" : MUTED,
+              background: i === 0 ? `${ORANGE}14` : "transparent",
+              color: i === 0 ? ORANGE : "#9ca3af",
             }}
           >
-            {tab}
+            {t}
           </span>
         ))}
       </div>
-
-      <div className="flex-1 space-y-px overflow-hidden bg-[#fafafa] p-1.5">
+      <div className="min-h-0 flex-1 space-y-0.5 overflow-hidden p-1">
         {listings.map((row) => (
-          <div
-            key={row.title}
-            className="flex items-center gap-1 border border-[#ececec] bg-white px-1 py-1"
-          >
-            <InitialAvatar label={row.vendor.slice(0, 2).toUpperCase()} bg={row.accent} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[5px] font-bold">{row.title}</p>
-              <p className="truncate text-[4px] text-[#9ca3af]">
-                {row.vendor} · {row.sold}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-[5px] font-bold tabular-nums">{row.price}</p>
-              <p className="text-[4px] font-medium" style={{ color: row.type === "Campaign" ? PURPLE : GREEN }}>
-                {row.comm}
-              </p>
+          <div key={row.title} className="rounded border border-[#ececec] bg-white px-1 py-0.5">
+            <div className="flex items-center gap-1">
+              <InitialAvatar label={row.vendor.slice(0, 1)} bg={row.accent} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[4px] font-bold">{row.title}</p>
+                <p className="truncate text-[3px] text-[#9ca3af]">
+                  {row.vendor} · {row.type}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[4px] font-bold">{row.price}</p>
+                <p className="text-[3px] text-[#9ca3af]">{row.sold}</p>
+              </div>
             </div>
           </div>
         ))}
@@ -255,48 +246,42 @@ function MarketplaceTabletScreen() {
   );
 }
 
-/* ─── Phone: wallet ledger — real transactions, not progress bars ─── */
 function WalletPhoneScreen() {
   const ledger = [
-    { label: "Affiliate · desk mat", sub: "Order JV-48279", amt: "+$6.40", time: "11:02", done: true },
-    { label: "UGC payout · Brief #88", sub: "Approved clip", amt: "+$124.00", time: "Yesterday", done: true },
-    { label: "Store sale · mug set", sub: "Awaiting delivery", amt: "+$34.20", time: "Pending", done: false },
-    { label: "Withdrawal", sub: "To ·••• 4821", amt: "−$200.00", time: "Mon", done: true },
+    { label: "Affiliate payout", sub: "Northline Goods", amt: "+$84.20", time: "Today", done: true },
+    { label: "UGC milestone", sub: "Brief Studio", amt: "+$120.00", time: "Yesterday", done: true },
+    { label: "Withdrawal", sub: "Bank · ****4821", amt: "−$200.00", time: "Mon", done: false },
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#fafafa]">
-      <div className="border-b border-[#ececec] bg-white px-3 pb-2 pt-1">
-        <p className="text-[10px] font-bold text-[#111]">Wallet</p>
-        <p className="text-[7px] text-[#9ca3af]">Payouts clear in 24h · min $25</p>
+    <div className="flex h-full min-h-0 flex-col bg-[#fafafa] text-[#111]">
+      <div className="bg-white px-2.5 pb-2 pt-1">
+        <p className="text-[7px] font-medium text-[#9ca3af]">Available balance</p>
+        <p className="text-[16px] font-black tracking-tight tabular-nums">$1,284.50</p>
+        <div className="mt-1.5 flex gap-1">
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[6px] font-bold text-white"
+            style={{ background: ORANGE }}
+          >
+            Withdraw
+          </span>
+          <span className="rounded-full bg-[#f4f4f5] px-1.5 py-0.5 text-[6px] font-semibold text-[#6b7280]">
+            History
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 space-y-2 overflow-hidden px-2.5 py-2">
-        <div className="border border-[#ececec] bg-white p-2.5">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[6px] font-medium text-[#9ca3af]">Available</p>
-              <p className="mt-0.5 text-[15px] font-bold leading-none tabular-nums text-[#111]">
-                $1,247.60
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[6px] font-medium text-[#9ca3af]">Pending</p>
-              <p className="text-[8px] font-bold tabular-nums" style={{ color: ORANGE }}>
-                $47.20
-              </p>
-            </div>
+      <div className="min-h-0 flex-1 space-y-1.5 overflow-hidden px-2 py-2">
+        <div className="grid grid-cols-2 gap-1">
+          <div className="rounded border border-[#ececec] bg-white px-1.5 py-1">
+            <p className="text-[5px] text-[#9ca3af]">This week</p>
+            <p className="text-[9px] font-bold tabular-nums" style={{ color: GREEN }}>
+              +$204.20
+            </p>
           </div>
-          <div className="mt-2 flex gap-1">
-            <span
-              className="rounded px-2 py-0.5 text-[6px] font-bold text-white"
-              style={{ background: ORANGE }}
-            >
-              Withdraw
-            </span>
-            <span className="rounded border border-[#e5e5e5] bg-[#fafafa] px-2 py-0.5 text-[6px] font-semibold text-[#6b7280]">
-              Statement
-            </span>
+          <div className="rounded border border-[#ececec] bg-white px-1.5 py-1">
+            <p className="text-[5px] text-[#9ca3af]">Pending</p>
+            <p className="text-[9px] font-bold tabular-nums">$62.00</p>
           </div>
         </div>
 
@@ -359,7 +344,7 @@ function WalletPhoneScreen() {
 function LaptopShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`flex shrink-0 flex-col items-center ${className}`}>
-      <div className="w-full rounded-t-[10px] border-[3px] border-b-0 border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:rounded-t-[12px] sm:border-[4px] sm:p-1.5">
+      <div className="w-full rounded-t-[10px] border-[3px] border-b-0 border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_18px_40px_rgba(17,24,39,0.14)] sm:rounded-t-[12px] sm:border-[4px] sm:p-1.5">
         <div className="aspect-[16/10] w-full overflow-hidden rounded-t-[4px] bg-white sm:rounded-t-[6px]">
           {children}
         </div>
@@ -373,7 +358,7 @@ function LaptopShell({ children, className = "" }: { children: React.ReactNode; 
 function TabletShell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`shrink-0 rounded-[12px] border-[4px] border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.3)] sm:rounded-[14px] sm:border-[5px] ${className}`}
+      className={`shrink-0 rounded-[12px] border-[4px] border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_14px_32px_rgba(17,24,39,0.12)] sm:rounded-[14px] sm:border-[5px] ${className}`}
     >
       <div className="aspect-[3/4] w-full overflow-hidden rounded-[6px] bg-white sm:rounded-[8px]">
         {children}
@@ -394,7 +379,7 @@ function IPhonePreview({
       className={cn(
         "relative shrink-0",
         "h-[166px] w-[79px] sm:h-[184px] sm:w-[88px] md:h-[210px] md:w-[100px] lg:h-[245px] lg:w-[117px]",
-        elevated && "-translate-y-2.5 sm:-translate-y-3"
+        elevated && "-translate-y-2.5 sm:-translate-y-3",
       )}
     >
       <div className="absolute left-0 top-0 origin-top-left scale-[0.19] sm:scale-[0.21] md:scale-[0.24] lg:scale-[0.28]">
@@ -415,11 +400,12 @@ function IPhonePreview({
 /** Static placeholder — dimensions match IPhonePreview at default breakpoint */
 export function TakeJimvioDevicesSkeleton() {
   return (
-    <div className="w-full overflow-hidden lg:flex-1" aria-hidden>
-      <div className="flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">
-        <div className="h-[96px] w-[72px] shrink-0 rounded-[12px] bg-white/10 sm:h-[133px] sm:w-[100px] md:h-[173px] md:w-[130px] lg:h-[207px] lg:w-[155px] xl:h-[233px] xl:w-[175px]" />
-        <div className="h-[75px] w-[120px] shrink-0 rounded-t-lg bg-white/10 sm:h-[112px] sm:w-[180px] md:h-[150px] md:w-[240px] lg:h-[187px] lg:w-[300px] xl:h-[225px] xl:w-[360px]" />
-        <div className="h-[166px] w-[79px] shrink-0 rounded-[20px] bg-white/10 sm:h-[184px] sm:w-[88px] md:h-[210px] md:w-[100px] lg:h-[245px] lg:w-[117px]" />
+    <div className="relative w-full overflow-hidden lg:flex-1" aria-hidden>
+      <div className="pointer-events-none absolute inset-x-[8%] bottom-[6%] top-[18%] rounded-[32px] bg-gradient-to-t from-white/80 to-white/30 shadow-[0_24px_60px_rgba(17,24,39,0.06)]" />
+      <div className="relative flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">
+        <div className="h-[96px] w-[72px] shrink-0 rounded-[12px] bg-[#111827]/06 sm:h-[133px] sm:w-[100px] md:h-[173px] md:w-[130px] lg:h-[207px] lg:w-[155px] xl:h-[233px] xl:w-[175px]" />
+        <div className="h-[75px] w-[120px] shrink-0 rounded-t-lg bg-[#111827]/06 sm:h-[112px] sm:w-[180px] md:h-[150px] md:w-[240px] lg:h-[187px] lg:w-[300px] xl:h-[225px] xl:w-[360px]" />
+        <div className="h-[166px] w-[79px] shrink-0 rounded-[20px] bg-[#111827]/06 sm:h-[184px] sm:w-[88px] md:h-[210px] md:w-[100px] lg:h-[245px] lg:w-[117px]" />
       </div>
     </div>
   );
@@ -427,18 +413,31 @@ export function TakeJimvioDevicesSkeleton() {
 
 export function TakeJimvioPhonesClient() {
   return (
-    <div className="w-full overflow-hidden lg:flex-1">
-      <div className="flex w-full items-end justify-center gap-1.5 px-0.5 sm:gap-2 md:gap-3 lg:gap-4">        <TabletShell className="w-[72px] sm:w-[100px] md:w-[130px] lg:w-[155px] xl:w-[175px]">
+    <div className="relative w-full overflow-hidden lg:flex-1">
+      {/* Soft stage behind devices — one composition, no harsh orange slab */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-[4%] bottom-[4%] top-[12%] rounded-[28px] sm:rounded-[36px]"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 55% at 55% 40%, rgba(255,90,31,0.12) 0%, transparent 70%), linear-gradient(165deg, rgba(255,255,255,0.92) 0%, rgba(248,250,252,0.75) 100%)",
+          boxShadow: "0 20px 50px rgba(17,24,39,0.06), inset 0 1px 0 rgba(255,255,255,0.9)",
+          border: "1px solid rgba(17,24,39,0.04)",
+        }}
+      />
+      <div className="relative flex w-full items-end justify-center gap-1.5 px-1 py-3 sm:gap-2 sm:px-2 sm:py-4 md:gap-3 lg:gap-4">
+        <TabletShell className="w-[72px] sm:w-[100px] md:w-[130px] lg:w-[155px] xl:w-[175px]">
           <MarketplaceTabletScreen />
         </TabletShell>
 
-        <LaptopShell className="w-[120px] sm:w-[180px] md:w-[240px] lg:w-[300px] xl:w-[360px] -translate-y-1 sm:-translate-y-2">
+        <LaptopShell className="-translate-y-1 w-[120px] sm:-translate-y-2 sm:w-[180px] md:w-[240px] lg:w-[300px] xl:w-[360px]">
           <DashboardWebScreen />
         </LaptopShell>
 
         <IPhonePreview elevated>
           <WalletPhoneScreen />
-        </IPhonePreview>      </div>
+        </IPhonePreview>
+      </div>
     </div>
   );
 }

@@ -20,24 +20,17 @@ export function HomeCanvasAtmosphere() {
         }}
       />
       <div
-        className="absolute right-[-10%] top-[12%] h-[min(480px,50vw)] w-[min(560px,62vw)] rounded-full opacity-70"
+        className="absolute left-[22%] top-[36%] h-[min(400px,44vw)] w-[min(500px,55vw)] rounded-full opacity-50"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(37,99,235,0.05) 0%, transparent 72%)",
+            "radial-gradient(ellipse at center, rgba(255,90,31,0.045) 0%, transparent 72%)",
         }}
       />
       <div
-        className="absolute left-[18%] top-[38%] h-[min(420px,46vw)] w-[min(520px,58vw)] rounded-full opacity-55"
+        className="absolute bottom-[16%] right-[6%] h-[min(440px,46vw)] w-[min(520px,58vw)] rounded-full opacity-55"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(124,58,237,0.04) 0%, transparent 72%)",
-        }}
-      />
-      <div
-        className="absolute bottom-[18%] right-[8%] h-[min(460px,48vw)] w-[min(540px,60vw)] rounded-full opacity-60"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(22,163,74,0.04) 0%, transparent 70%)",
+            "radial-gradient(ellipse at center, rgba(17,24,39,0.03) 0%, transparent 70%)",
         }}
       />
       <div
@@ -77,6 +70,7 @@ const HOME_CANVAS_CSS = `
 .jimvio-home-canvas .jimvio-action-hub,
 .jimvio-home-canvas .jimvio-journey-hub,
 .jimvio-home-canvas .jimvio-how-works,
+.jimvio-home-canvas .jimvio-take-everywhere,
 .jimvio-home-canvas .jimvio-trusted-strip {
   background-color: transparent !important;
 }

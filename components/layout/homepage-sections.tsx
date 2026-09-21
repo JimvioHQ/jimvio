@@ -1200,120 +1200,150 @@ export function TakeJimvioEverywhere() {
   ];
 
   return (
-    <section className="relative w-full overflow-hidden" style={{ background: ORANGE }}>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.14]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 20% 20%, white 0%, transparent 45%), radial-gradient(circle at 80% 80%, #000 0%, transparent 40%)",
-        }}
-      />
+    <SectionReveal
+      className="jimvio-take-everywhere relative w-full overflow-x-clip py-12 sm:py-14 lg:py-16"
+      aria-labelledby="jimvio-take-everywhere-title"
+      threshold={0.1}
+    >
+      <style>{TAKE_EVERYWHERE_CSS}</style>
 
-      <div className={`relative ${shell} py-10 sm:py-14`}>
-        <div className="flex flex-col gap-8 sm:gap-10 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          {/* Top on mobile — copy */}
-          <div className="w-full shrink-0 text-left text-white lg:max-w-[300px]">
-            <h2 className="text-[28px] font-black leading-tight tracking-tight sm:text-[34px]">
-              Take Jimvio
-              <br />
-              Everywhere
+      {/* Soft Jimvio atmosphere — continuous with Home canvas, not a hard orange block */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 80% 70% at 75% 45%, rgba(255,90,31,0.14) 0%, transparent 62%), radial-gradient(ellipse 55% 50% at 12% 30%, rgba(255,90,31,0.07) 0%, transparent 68%), linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.55) 42%, transparent 100%)",
+          }}
+        />
+      </div>
+
+      <div className={`relative ${shell}`}>
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12 xl:gap-14">
+          <RevealItem
+            index={0}
+            className="jimvio-take-copy w-full max-w-md"
+            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+          >
+            <h2
+              id="jimvio-take-everywhere-title"
+              className="text-[clamp(1.75rem,3.8vw,2.5rem)] font-black leading-[1.1] tracking-[-0.035em] text-[#111827]"
+            >
+              Take Jimvio{" "}
+              <span className="text-[#FF5A1F]">Everywhere</span>
             </h2>
-            <p className="mt-2 text-[14px] font-medium text-white/95">Available on Android &amp; iOS</p>
-            <ul className="mt-5 space-y-2.5">
+            <p className="mt-2.5 text-[14px] font-semibold text-[#FF5A1F] sm:text-[15px]">
+              Available on Android &amp; iOS
+            </p>
+            <p className="mt-3 max-w-[38ch] text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]">
+              Run marketplace, campaigns, and earnings from your phone — the same Jimvio, wherever you are.
+            </p>
+
+            <ul className="mt-6 space-y-3">
               {features.map((t) => (
-                <li key={t} className="flex items-center gap-2.5 text-[13px] font-medium text-white/95">
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-white/20">
-                    <Check className="size-3" strokeWidth={3} />
+                <li
+                  key={t}
+                  className="flex items-center gap-2.5 text-[13.5px] font-medium text-[#374151] sm:text-[14px]"
+                >
+                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[#FF5A1F]/10">
+                    <Check className="size-3 text-[#FF5A1F]" strokeWidth={3} />
                   </span>
                   {t}
                 </li>
               ))}
             </ul>
-          </div>
 
-          {/* Middle on mobile — phone preview */}
-          <TakeJimvioPhonesClient />
-
-          {/* Bottom on mobile — download */}
-          <div className="w-full shrink-0 lg:hidden">
-            <span className="mb-3 block text-[15px] font-bold text-white">Download the App</span>
-            <div className="flex flex-row flex-wrap items-center justify-start gap-3">
-              <a
-                href="#"
-                aria-label="Download on the App Store"
-                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logos/app-store-badge.svg"
-                  alt="Download on the App Store"
-                  width={180}
-                  height={60}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-10 w-auto sm:h-11"
-                />
-              </a>
-              <a
-                href="#"
-                aria-label="Get it on Google Play"
-                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logos/google-play-badge.svg"
-                  alt="Get it on Google Play"
-                  width={200}
-                  height={60}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-10 w-auto sm:h-11"
-                />
-              </a>
+            <div className="mt-7">
+              <span className="mb-3 block text-[13px] font-bold tracking-[-0.01em] text-[#111827]">
+                Download the App
+              </span>
+              <div className="flex flex-row flex-wrap items-center gap-3">
+                <a
+                  href="#"
+                  aria-label="Download on the App Store"
+                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logos/app-store-badge.svg"
+                    alt="Download on the App Store"
+                    width={150}
+                    height={50}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-10 w-auto"
+                  />
+                </a>
+                <a
+                  href="#"
+                  aria-label="Get it on Google Play"
+                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/logos/google-play-badge.svg"
+                    alt="Get it on Google Play"
+                    width={168}
+                    height={50}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-10 w-auto"
+                  />
+                </a>
+              </div>
             </div>
-          </div>
+          </RevealItem>
 
-          {/* Right — download (desktop) */}
-          <div className="hidden w-full shrink-0 flex-col items-start lg:flex lg:max-w-[220px]">
-            <span className="mb-3 text-[15px] font-bold text-white">Download the App</span>
-            <div className="flex w-full max-w-[220px] flex-col gap-3">
-              <a
-                href="#"
-                aria-label="Download on the App Store"
-                className="block transition-opacity hover:opacity-90"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logos/app-store-badge.svg"
-                  alt="Download on the App Store"
-                  width={180}
-                  height={60}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-11 w-auto"
-                />
-              </a>
-              <a
-                href="#"
-                aria-label="Get it on Google Play"
-                className="block transition-opacity hover:opacity-90"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/logos/google-play-badge.svg"
-                  alt="Get it on Google Play"
-                  width={200}
-                  height={60}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-11 w-auto"
-                />
-              </a>
-            </div>
-          </div>
+          <RevealItem
+            index={1}
+            className="jimvio-take-devices w-full min-w-0"
+            style={{
+              ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms`,
+            }}
+          >
+            <TakeJimvioPhonesClient />
+          </RevealItem>
         </div>
       </div>
-    </section>
+    </SectionReveal>
   );
 }
+
+const TAKE_EVERYWHERE_CSS = `
+.jimvio-take-everywhere .jimvio-take-copy.jimvio-reveal-item {
+  --jimvio-reveal-y: 12px;
+}
+.jimvio-take-everywhere .jimvio-take-devices.jimvio-reveal-item {
+  --jimvio-reveal-y: 18px;
+}
+.jimvio-home-canvas .jimvio-take-everywhere {
+  background-color: transparent !important;
+}
+@media (min-width: 768px) {
+  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-devices.jimvio-reveal-item {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.98);
+  }
+  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-devices.jimvio-reveal-item {
+    animation: jimvio-take-devices-in var(--jimvio-duration-reveal, 480ms) var(--jimvio-ease) both;
+  }
+}
+@keyframes jimvio-take-devices-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-devices.jimvio-reveal-item,
+  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-devices.jimvio-reveal-item {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+`;

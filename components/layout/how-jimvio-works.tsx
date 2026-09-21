@@ -131,28 +131,20 @@ export function HowJimvioWorks() {
       <style>{`${JOURNEY_STACK_CSS}${HOW_CSS}`}</style>
 
       <div className={shell}>
-        <div className="mb-10 text-center sm:mb-12">
+        <div className="mb-8 text-center sm:mb-10">
           <RevealItem
             index={0}
-            as="p"
-            className="mb-4 inline-flex items-center rounded-full border border-[#FF5A1F]/12 bg-white/70 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F]"
-            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
-          >
-            Your path on Jimvio
-          </RevealItem>
-          <RevealItem
-            index={1}
             as="h2"
             id="jimvio-how-title"
-            className="text-[clamp(1.75rem,3.8vw,2.5rem)] font-black tracking-[-0.035em] text-[#111827]"
+            className="text-[clamp(1.65rem,3.6vw,2.35rem)] font-black tracking-[-0.035em] text-[#111827]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             How Jimvio <span className="text-[#FF5A1F]">works</span>
           </RevealItem>
           <RevealItem
-            index={2}
+            index={1}
             as="p"
-            className="mx-auto mt-3.5 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
+            className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Roughly how it goes — explore, promote, and double down on what converts.
