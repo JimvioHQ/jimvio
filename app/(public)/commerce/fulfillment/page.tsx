@@ -14,8 +14,7 @@ export const dynamic = "force-dynamic";
 type Props = { searchParams: Promise<{ storeId?: string }> };
 
 /**
- * Native-store fulfillment overview (Jimvio → CJ).
- * Channel / Shopify fulfillment counts are no longer the primary surface.
+ * Native-store fulfillment overview (Jimvio Fulfillment network).
  */
 export default async function CommerceFulfillmentPage({ searchParams }: Props) {
   const auth = await requireCommerceMerchant();
@@ -43,7 +42,7 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
   const vendorId = auth.vendorId;
   const storeFilter = active.id;
 
-  const [pendingPaid, cjLinked, tracking, exceptions] = await Promise.all([
+  const [pendingPaid, networkLinked, tracking, exceptions] = await Promise.all([
     db
       .from("orders")
       .select("id", { count: "exact", head: true })
@@ -79,7 +78,8 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
             Fulfillment
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            Paid native-store orders → CJ order creation → shipment → tracking.
+            Paid orders are processed automatically — shipment and tracking
+            update as fulfillment progresses.
           </p>
         </div>
         <StoreSelector
@@ -97,9 +97,9 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
           </p>
         </CommerceCard>
         <CommerceCard className="p-4">
-          <p className="text-xs text-[#6B7280]">CJ orders</p>
+          <p className="text-xs text-[#6B7280]">In network</p>
           <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {cjLinked.count ?? 0}
+            {networkLinked.count ?? 0}
           </p>
         </CommerceCard>
         <CommerceCard className="p-4">
@@ -119,7 +119,7 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
       <CommerceCard className="p-5">
         <p className="text-sm font-semibold text-[#111827]">Actions</p>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Open paid orders to process fulfillment or review CJ / tracking status.
+          Open paid orders to review fulfillment and tracking status.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
@@ -132,7 +132,7 @@ export default async function CommerceFulfillmentPage({ searchParams }: Props) {
             href={`/commerce/suppliers?storeId=${active.id}`}
             className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
           >
-            Suppliers
+            Fulfillment network
           </Link>
         </div>
       </CommerceCard>

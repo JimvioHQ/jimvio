@@ -418,8 +418,16 @@ async function createVendorOrder(
     type: "order",
     title: "Order received",
     message: `Order #${order.order_number} is ready. Complete payment to confirm your items.`,
-    actionUrl: `/checkout?order=${order.id}`,
-    data: { order_id: order.id, order_number: order.order_number },
+    actionUrl: jimvioStoreId
+      ? `/account/orders/${order.id}`
+      : `/checkout?order=${order.id}`,
+    data: {
+      event: "order.created",
+      order_id: order.id,
+      order_number: order.order_number,
+      payment_status: "pending",
+    },
+    eventKey: `order.created:buyer:${order.id}`,
     email: {
       kind: "order_confirmation",
       orderId: order.id,
@@ -428,6 +436,34 @@ async function createVendorOrder(
       currency: String(order.currency ?? safeCurrency),
     },
   });
+
+  // Merchant: order exists before payment — visible in Commerce → Orders immediately.
+  try {
+    const { data: vendorRow } = await admin
+      .from("vendors")
+      .select("user_id")
+      .eq("id", vendorId)
+      .maybeSingle();
+    if (vendorRow?.user_id && vendorRow.user_id !== buyerId) {
+      await notifyUser(admin, {
+        userId: vendorRow.user_id,
+        type: "order",
+        title: "New order — payment pending",
+        message: `Order #${order.order_number} was placed. Payment is pending.`,
+        actionUrl: `/commerce/orders/${order.id}`,
+        data: {
+          event: "order.created",
+          order_id: order.id,
+          order_number: order.order_number,
+          payment_status: "pending",
+          jimvio_store_id: jimvioStoreId,
+        },
+        eventKey: `order.created:merchant:${order.id}`,
+      });
+    }
+  } catch (merchantNotifyErr) {
+    console.warn("[checkout] merchant order.created notify skipped:", merchantNotifyErr);
+  }
 
   return order.id;
 }

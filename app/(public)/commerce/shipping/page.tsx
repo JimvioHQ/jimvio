@@ -47,8 +47,8 @@ export default async function CommerceShippingPage({ searchParams }: Props) {
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Shipping</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Store shipping zones for {active.name}. Supplier/CJ rates still flow through Jimvio
-          checkout for applicable lines.
+          Store shipping zones for {active.name}. Network shipping rates apply
+          automatically at checkout for eligible products.
         </p>
       </div>
       <StoreSelector

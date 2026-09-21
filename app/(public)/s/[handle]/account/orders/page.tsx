@@ -79,7 +79,7 @@ export default async function StorefrontOrdersPage({ params }: Props) {
             No orders yet
           </p>
           <p className="mt-1">
-            Orders will appear here after you complete checkout.
+            Orders will appear here when you place them — including pending payment.
           </p>
           <Link
             href={storefrontHref(handle, "/collections/all", linkOpts)}

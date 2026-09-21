@@ -95,21 +95,60 @@ export default async function CommerceOrderDetailPage({
     .limit(1)
     .maybeSingle();
 
+  const paymentPending = !["paid", "completed", "success"].includes(
+    String(order.payment_status || "").toLowerCase()
+  );
+  const payDisplay =
+    order.payment_status === "refunded"
+      ? "Refunded"
+      : order.payment_status === "failed"
+        ? "Payment failed"
+        : order.payment_status === "cancelled"
+          ? "Cancelled"
+          : paymentPending
+            ? "Pending payment"
+            : "Paid";
+  const fulfillDisplay = paymentPending
+    ? "Waiting for payment"
+    : order.status === "fulfillment_exception"
+      ? "Exception"
+      : order.status === "delivered"
+        ? "Delivered"
+        : order.status === "shipped"
+          ? "Shipped"
+          : order.status === "processing" || order.status === "confirmed"
+            ? "Processing"
+            : order.status === "cancelled"
+              ? "Cancelled"
+              : order.status === "refunded"
+                ? "Refunded"
+                : "Unfulfilled";
+
+  const fulfillmentStarted =
+    Boolean(order.cj_order_id) ||
+    ["processing", "confirmed", "shipped", "delivered"].includes(
+      String(order.status || "")
+    );
+  const shipped =
+    Boolean(order.tracking_number) ||
+    order.status === "shipped" ||
+    order.status === "delivered";
+
   const timeline = [
-    { label: "Order created", at: order.created_at, detail: null as string | null },
+    { label: "Order placed", at: order.created_at, detail: null as string | null },
     {
       label: "Payment confirmed",
-      at: order.paid_at || (order.payment_status === "paid" ? order.created_at : null),
+      at: order.paid_at || null,
       detail: null as string | null,
     },
     {
-      label: "CJ order",
-      at: order.cj_order_id ? order.paid_at || order.created_at : null,
-      detail: (order.cj_order_num || order.cj_order_id || null) as string | null,
+      label: "Fulfillment started",
+      at: fulfillmentStarted ? order.paid_at || order.created_at : null,
+      detail: null as string | null,
     },
     {
-      label: "Tracking",
-      at: order.tracking_number ? order.paid_at || order.created_at : null,
+      label: "Shipped",
+      at: shipped ? order.paid_at || order.created_at : null,
       detail: (order.tracking_number || null) as string | null,
     },
     {
@@ -118,6 +157,14 @@ export default async function CommerceOrderDetailPage({
       detail: null as string | null,
     },
   ].filter((e) => e.at);
+
+  const { data: buyer } = order.buyer_id
+    ? await db
+        .from("profiles")
+        .select("full_name, email, phone")
+        .eq("id", order.buyer_id)
+        .maybeSingle()
+    : { data: null };
 
   const paymentProvider =
     (typeof meta.payment_provider === "string" && meta.payment_provider) ||
@@ -130,18 +177,27 @@ export default async function CommerceOrderDetailPage({
     null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-5">
       <div>
         <Link href={backHref} className="text-xs font-semibold text-[#6B7280] underline">
           ← Orders
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#111827]">
-          {order.order_number ? `#${order.order_number}` : "Order"}
+          {order.order_number ? `Order #${order.order_number}` : "Order"}
         </h1>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          {store?.name || "Store"} · {order.payment_status || "—"} ·{" "}
-          {order.status || "—"}
-        </p>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+          <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">
+            {payDisplay}
+          </span>
+          <span className="rounded-md bg-[#F3F4F6] px-2 py-1 text-[#4B5563]">
+            Fulfillment: {fulfillDisplay}
+          </span>
+          {store?.name ? (
+            <span className="rounded-md bg-[#F3F4F6] px-2 py-1 text-[#6B7280]">
+              {store.name}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <CommerceCard className="p-5">
@@ -173,8 +229,7 @@ export default async function CommerceOrderDetailPage({
                   <p className="font-medium">{row.product_name || "Item"}</p>
                   <p className="text-xs text-[#6B7280]">
                     Qty {row.quantity ?? 1}
-                    {row.sku ? ` · ${row.sku}` : ""}
-                    {row.product_source ? ` · ${row.product_source}` : ""}
+                    {row.sku ? ` · SKU ${row.sku}` : ""}
                   </p>
                 </div>
                 <p className="tabular-nums font-semibold">
@@ -212,7 +267,7 @@ export default async function CommerceOrderDetailPage({
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Status</dt>
-              <dd className="font-medium">{order.payment_status || "—"}</dd>
+              <dd className="font-medium">{payDisplay}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Provider</dt>
@@ -268,38 +323,63 @@ export default async function CommerceOrderDetailPage({
         </CommerceCard>
       </div>
 
-      {ship ? (
-        <CommerceCard className="p-5">
-          <h2 className="text-sm font-semibold text-[#111827]">Customer / shipping</h2>
-          <p className="mt-2 text-sm text-[#4B5563]">
-            {[ship.name, ship.first_name, ship.last_name].filter(Boolean).join(" ") ||
-              "Customer"}
-            <br />
-            {[ship.address1, ship.address2].filter(Boolean).join(", ")}
-            <br />
-            {[ship.city, ship.zip, ship.country].filter(Boolean).join(", ")}
-            {ship.phone ? (
-              <>
-                <br />
-                {String(ship.phone)}
-              </>
-            ) : null}
-          </p>
-        </CommerceCard>
-      ) : null}
-
       <CommerceCard className="p-5">
-        <h2 className="text-sm font-semibold text-[#111827]">CJ / fulfillment</h2>
+        <h2 className="text-sm font-semibold text-[#111827]">Customer</h2>
         <dl className="mt-3 space-y-2 text-sm">
           <div className="flex justify-between gap-3">
-            <dt className="text-[#6B7280]">CJ order</dt>
-            <dd className="font-medium">
-              {order.cj_order_num || order.cj_order_id || "—"}
+            <dt className="text-[#6B7280]">Name</dt>
+            <dd className="font-medium text-right">
+              {buyer?.full_name ||
+                [ship?.name, ship?.first_name, ship?.last_name]
+                  .filter(Boolean)
+                  .join(" ") ||
+                "—"}
             </dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt className="text-[#6B7280]">CJ status</dt>
-            <dd className="font-medium">{order.cj_fulfillment_status || "—"}</dd>
+            <dt className="text-[#6B7280]">Email</dt>
+            <dd className="font-medium text-right">{buyer?.email || "—"}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[#6B7280]">Phone</dt>
+            <dd className="font-medium text-right">
+              {buyer?.phone || (ship?.phone ? String(ship.phone) : "—")}
+            </dd>
+          </div>
+          {ship ? (
+            <div className="border-t border-[#E5E7EB] pt-2">
+              <dt className="text-[#6B7280]">Shipping address</dt>
+              <dd className="mt-1 text-[#4B5563]">
+                {[ship.address1, ship.address2].filter(Boolean).join(", ")}
+                <br />
+                {[ship.city, ship.zip, ship.country].filter(Boolean).join(", ")}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </CommerceCard>
+
+      <CommerceCard className="p-5">
+        <h2 className="text-sm font-semibold text-[#111827]">Fulfillment</h2>
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex justify-between gap-3">
+            <dt className="text-[#6B7280]">Status</dt>
+            <dd className="font-medium">{fulfillDisplay}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[#6B7280]">Supplier processing</dt>
+            <dd className="font-medium">
+              {paymentPending
+                ? "Waiting for payment"
+                : order.cj_fulfillment_status ||
+                  (order.cj_order_id ? "Processing" : "—")}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-[#6B7280]">Fulfillment reference</dt>
+            <dd className="font-medium">
+              {order.cj_order_num || order.cj_order_id || "—"}
+            </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-[#6B7280]">Tracking</dt>
@@ -320,7 +400,7 @@ export default async function CommerceOrderDetailPage({
               status={order.status}
               paymentStatus={order.payment_status}
               trackingNumber={order.tracking_number}
-              isCj={Boolean(order.cj_order_id)}
+              isSupplierFulfilled={Boolean(order.cj_order_id)}
             />
           </div>
         ) : null}

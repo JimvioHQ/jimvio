@@ -136,8 +136,7 @@ export function CreateStoreForm() {
       <div>
         <p className="text-sm font-medium text-[#111827]">Create a Jimvio store</p>
         <p className="mt-1 text-xs text-[#6B7280]">
-          Goes live immediately at your-handle.jimvio.com — separate from Shopify
-          connectors.
+          Goes live immediately at your-handle.jimvio.com.
         </p>
       </div>
       <label className="block text-sm">

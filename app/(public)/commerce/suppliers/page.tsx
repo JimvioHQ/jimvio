@@ -4,37 +4,35 @@ import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 export const dynamic = "force-dynamic";
 
 /**
- * Suppliers hub — native Jimvio store + CJ sourcing.
- * Shopify channel language removed from active product.
+ * Fulfillment network hub — native Jimvio store sourcing + automated fulfillment.
  */
 export default function CommerceSuppliersPage() {
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">
-          Suppliers
+          Fulfillment network
         </h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Source products and fulfill paid native-store orders through Jimvio&apos;s
-          supplier network (including CJ Dropshipping).
+          Source products and fulfill paid store orders through Jimvio Fulfillment.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <CommerceCard className="p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[#111827]">CJ Dropshipping</p>
+            <p className="text-sm font-semibold text-[#111827]">Jimvio Fulfillment</p>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-              Direct
+              Automatic
             </span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-            After payment is confirmed, eligible CJ-mapped line items submit directly
-            from Jimvio to CJ — no Shopify intermediary.
+            After payment is confirmed, eligible line items are submitted to the
+            fulfillment network. Tracking syncs back to Commerce and your customer.
           </p>
           <ul className="mt-3 space-y-1 text-xs text-[#6B7280]">
-            <li>· Product / variant ID mapping</li>
-            <li>· Order creation after PAID</li>
+            <li>· Product / variant mapping</li>
+            <li>· Order creation after payment</li>
             <li>· Tracking sync to customer + Commerce</li>
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -54,17 +52,16 @@ export default function CommerceSuppliersPage() {
         </CommerceCard>
 
         <CommerceCard className="p-5">
-          <p className="text-sm font-semibold text-[#111827]">Marketplace catalog</p>
+          <p className="text-sm font-semibold text-[#111827]">Catalog</p>
           <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-            Browse the Jimvio marketplace catalog and publish products to your native
-            storefront.
+            Browse the catalog and publish products to your storefront.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
               href="/marketplace/physical"
               className="rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
             >
-              Open marketplace
+              Browse catalog
             </Link>
             <Link
               href="/commerce/stores"

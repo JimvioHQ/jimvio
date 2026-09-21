@@ -6,7 +6,8 @@ import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-s
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 
 /**
- * Merchant Commerce OS fulfillment for native Jimvio-store orders (non-CJ).
+ * Merchant Commerce OS fulfillment for native Jimvio-store orders
+ * that are not on the automated supplier fulfillment network.
  * Ownership: vendor_id + jimvio_store_id must belong to the merchant.
  */
 export async function markJimvioStoreOrderFulfillment(input: {
@@ -43,7 +44,8 @@ export async function markJimvioStoreOrderFulfillment(input: {
   if (order.cj_order_id) {
     return {
       ok: false,
-      error: "CJ dropship orders are fulfilled via the CJ / dropshipping workflow",
+      error:
+        "This order is handled by Jimvio Fulfillment — tracking updates automatically.",
     };
   }
 

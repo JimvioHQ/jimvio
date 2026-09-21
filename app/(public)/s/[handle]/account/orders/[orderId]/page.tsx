@@ -62,8 +62,9 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
       `
       id, order_number, total_amount, subtotal, shipping_amount, discount_amount,
       currency, payment_status, status, created_at, shipping_address, metadata,
+      tracking_number, tracking_status,
       order_items (
-        id, product_name, product_image, quantity, unit_price, total_price
+        id, product_name, product_image, quantity, unit_price, total_price, variant_name, sku
       )
     `
     )
@@ -74,7 +75,7 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
 
   if (!order) notFound();
 
-  const tracking =
+  const trackingFromMeta =
     order.metadata &&
     typeof order.metadata === "object" &&
     !Array.isArray(order.metadata)
@@ -84,6 +85,28 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
             ""
         ).trim() || null
       : null;
+  const tracking = order.tracking_number || trackingFromMeta;
+
+  const paymentLabel = (() => {
+    const p = (order.payment_status || "").toLowerCase();
+    if (p === "refunded") return "Refunded";
+    if (p === "failed") return "Payment failed";
+    if (p === "cancelled") return "Cancelled";
+    if (p === "paid" || p === "completed" || p === "success") return "Paid";
+    return "Pending payment";
+  })();
+  const fulfillmentLabel = (() => {
+    const p = (order.payment_status || "").toLowerCase();
+    const unpaid = !["paid", "completed", "success"].includes(p);
+    const s = (order.status || "").toLowerCase();
+    if (s === "refunded" || p === "refunded") return "Refunded";
+    if (s === "cancelled") return "Cancelled";
+    if (s === "delivered") return "Delivered";
+    if (s === "shipped") return "Shipped";
+    if (unpaid) return "Waiting for payment";
+    if (["processing", "confirmed"].includes(s)) return "Processing";
+    return "Unfulfilled";
+  })();
 
   const timeline = [
     { key: "placed" as const, label: "Order placed" },
@@ -99,6 +122,8 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
     product_image?: string | null;
     quantity?: number;
     total_price?: number;
+    variant_name?: string | null;
+    sku?: string | null;
   }>;
   const currency = order.currency || store.default_currency || "USD";
 
@@ -114,7 +139,7 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
         className="mt-3 text-2xl font-semibold tracking-tight"
         style={{ fontFamily: "var(--store-heading-font, inherit)" }}
       >
-        {order.order_number ? `#${order.order_number}` : "Order"}
+        {order.order_number ? `Order #${order.order_number}` : "Order"}
       </h1>
       <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
         {order.created_at
@@ -122,6 +147,14 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
           : ""}{" "}
         · {store.name}
       </p>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+        <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-800">
+          {paymentLabel}
+        </span>
+        <span className="rounded-md bg-[var(--store-bg,#F3F4F6)] px-2 py-1 text-[var(--store-muted,#4B5563)]">
+          {fulfillmentLabel}
+        </span>
+      </div>
 
       <ol className="mt-8 space-y-3">
         {timeline.map((step) => {
@@ -155,9 +188,14 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
       {tracking ? (
         <div className="mt-6 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] p-4 text-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--store-muted,#6B7280)]">
-            Tracking
+            Track shipment
           </p>
           <p className="mt-1 font-semibold tabular-nums">{tracking}</p>
+          {order.tracking_status ? (
+            <p className="mt-1 text-xs text-[var(--store-muted,#6B7280)]">
+              {order.tracking_status}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -182,6 +220,8 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
                 <p className="font-medium">{row.product_name || "Item"}</p>
                 <p className="text-xs text-[var(--store-muted,#6B7280)]">
                   Qty {row.quantity ?? 1}
+                  {row.variant_name ? ` · ${row.variant_name}` : ""}
+                  {row.sku ? ` · ${row.sku}` : ""}
                 </p>
               </div>
               <p className="tabular-nums font-semibold">

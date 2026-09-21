@@ -2,11 +2,11 @@ import Link from "next/link";
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 
 /**
- * Shopify / external channel surfaces are retired from active Commerce OS.
+ * Legacy external-channel surfaces are retired from active Commerce OS.
  * Historical channel data remains in the database for audit; new commerce is native-store only.
  */
 export default function ChannelRetiredPage({
-  title = "External channels retired",
+  title = "This page is no longer available",
 }: {
   title?: string;
 }) {
@@ -17,10 +17,8 @@ export default function ChannelRetiredPage({
           {title}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-          Jimvio Commerce OS now runs on <strong>native Jimvio stores</strong> only.
-          Shopify connect, channel sync, and channel order tools are no longer part of
-          the active product. Historical channel records remain stored for audit and
-          are not deleted.
+          Jimvio Commerce OS runs on <strong>native Jimvio stores</strong>. Use
+          Orders, Products, and Fulfillment for your storefront commerce.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
@@ -39,7 +37,7 @@ export default function ChannelRetiredPage({
             href="/commerce/orders"
             className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
           >
-            Native orders
+            Orders
           </Link>
         </div>
       </CommerceCard>

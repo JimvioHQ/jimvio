@@ -8,13 +8,14 @@ export function CommerceOrderFulfillmentPanel({
   status,
   paymentStatus,
   trackingNumber,
-  isCj,
+  isSupplierFulfilled,
 }: {
   orderId: string;
   status: string | null;
   paymentStatus: string | null;
   trackingNumber?: string | null;
-  isCj?: boolean;
+  /** True when order is handled by the automated supplier fulfillment network. */
+  isSupplierFulfilled?: boolean;
 }) {
   const [tracking, setTracking] = useState(trackingNumber ?? "");
   const [trackingUrl, setTrackingUrl] = useState("");
@@ -27,11 +28,11 @@ export function CommerceOrderFulfillmentPanel({
     paymentStatus === "paid" ||
     paymentStatus === "success";
 
-  if (isCj) {
+  if (isSupplierFulfilled) {
     return (
       <p className="text-sm text-[#6B7280]">
-        This order is fulfilled through CJ Dropshipping. Use the dropshipping /
-        fulfillment tools for tracking updates.
+        This order is handled by Jimvio Fulfillment. Tracking updates appear
+        automatically as the shipment progresses.
       </p>
     );
   }
@@ -39,7 +40,7 @@ export function CommerceOrderFulfillmentPanel({
   if (!paid) {
     return (
       <p className="text-sm text-[#6B7280]">
-        Fulfillment unlocks after payment is confirmed by the payment webhook.
+        Fulfillment unlocks after payment is confirmed.
       </p>
     );
   }
