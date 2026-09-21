@@ -1,1 +1,5 @@
-export { default } from "@/app/(public)/dropshipping/inventory/page";
+import ChannelRetiredPage from "@/components/commerce-os/channel-retired-page";
+
+export default function Page() {
+  return <ChannelRetiredPage title="Channel inventory retired" />;
+}

@@ -38,22 +38,22 @@ export default async function CommerceStoresPage() {
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Stores</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Native Jimvio storefronts. Connect Shopify and other channels from Integrations.
+          Native Jimvio storefronts — your branded store on {`{handle}`}.jimvio.com.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <Link
-          href="/commerce/integrations"
+          href="/commerce/builder"
           className="rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
         >
-          Connect Store
+          Customize storefront
         </Link>
         <Link
-          href="/commerce/connected-stores"
+          href="/commerce/domains"
           className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#374151]"
         >
-          Connected Stores
+          Domains
         </Link>
       </div>
 

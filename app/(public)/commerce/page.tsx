@@ -9,7 +9,9 @@ import {
   Plus,
   Settings,
   ShoppingBag,
+  Truck,
   Wand2,
+  Wallet,
 } from "lucide-react";
 import {
   requireCommerceMerchant,
@@ -20,9 +22,9 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { CreateStoreForm } from "@/components/commerce-os/create-store-form";
-import {
-  CommerceCard,
-} from "@/components/commerce-os/commerce-shell";
+import { CommerceCard } from "@/components/commerce-os/commerce-shell";
+import { ensureWallet } from "@/lib/wallet-os/ensure";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -68,22 +70,11 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
             Overview
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            Create a Jimvio storefront or connect Shopify to start selling.
+            Create a native Jimvio storefront to start selling. Customers shop on
+            your branded store — not a third-party channel.
           </p>
         </div>
         <CreateStoreForm />
-        <CommerceCard className="p-5">
-          <p className="text-sm font-semibold text-[#111827]">Or connect Shopify</p>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            Publish Jimvio products to your Shopify store and ingest orders.
-          </p>
-          <Link
-            href="/commerce/integrations"
-            className="mt-3 inline-flex rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
-          >
-            Connect Store
-          </Link>
-        </CommerceCard>
       </div>
     );
   }
@@ -96,30 +87,22 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
     days
   );
 
-  // Channel (Shopify / connected store) health — real counts only
-  const [{ count: connectedStoreCount }, { count: failedSyncCount }] =
-    await Promise.all([
-      db
-        .from("merchant_stores")
-        .select("id", { count: "exact", head: true })
-        .eq("vendor_id", auth.vendorId)
-        .eq("status", "connected"),
-      db
-        .from("ds_sync_jobs")
-        .select("id", { count: "exact", head: true })
-        .eq("vendor_id", auth.vendorId)
-        .eq("status", "failed"),
-    ]);
+  const wallet = await ensureWallet(auth.userId);
+  const currency = active.default_currency || PLATFORM_CURRENCY;
+  const available = Number(wallet.available_balance ?? 0);
+  const pending = Number(wallet.pending_balance ?? 0);
+  const pipeline = dash.analytics.pipeline;
+  const fulfillment = dash.analytics.fulfillment;
 
   const kpis = [
     {
-      label: "Total Sales",
-      value: money(dash.analytics.revenue, active.default_currency || "USD"),
+      label: "Gross Sales",
+      value: money(dash.analytics.revenue, currency),
       hint: `${dash.analytics.paidOrders} paid`,
     },
     {
-      label: "Orders",
-      value: String(dash.analytics.orders),
+      label: "Paid Orders",
+      value: String(dash.analytics.paidOrders),
       hint: `Last ${days} days`,
     },
     {
@@ -132,6 +115,36 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
       value: String(dash.analytics.productsPublished),
       hint: "Published",
     },
+    {
+      label: "Pending Fulfillment",
+      value: String(dash.analytics.pendingFulfillment ?? 0),
+      hint: "Paid, not shipped",
+    },
+    {
+      label: "Available Balance",
+      value: money(available, PLATFORM_CURRENCY),
+      hint: `Pending ${money(pending, PLATFORM_CURRENCY)}`,
+    },
+  ];
+
+  const pipelineItems = [
+    { label: "Pending payment", value: pipeline?.pendingPayment ?? 0 },
+    { label: "Paid", value: pipeline?.paid ?? 0 },
+    { label: "Processing", value: pipeline?.processing ?? 0 },
+    { label: "Shipped", value: pipeline?.shipped ?? 0 },
+    { label: "Delivered", value: pipeline?.delivered ?? 0 },
+    { label: "Refunded", value: pipeline?.refunded ?? 0 },
+  ];
+
+  const fulfillmentItems = [
+    { label: "CJ orders", value: fulfillment?.cjOrders ?? 0 },
+    { label: "Processing", value: fulfillment?.processing ?? 0 },
+    { label: "Shipped", value: fulfillment?.shipped ?? 0 },
+    { label: "Tracking available", value: fulfillment?.trackingAvailable ?? 0 },
+    {
+      label: "Exceptions",
+      value: fulfillment?.fulfillmentExceptions ?? 0,
+    },
   ];
 
   const quickActions = [
@@ -141,19 +154,19 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
       icon: Plus,
     },
     {
-      href: "/commerce/integrations",
-      label: "Connect Store",
-      icon: Plus,
-    },
-    {
-      href: "/commerce/suppliers",
-      label: "Add Supplier",
-      icon: Package,
-    },
-    {
       href: `/commerce/orders?storeId=${active.id}`,
       label: "View Orders",
       icon: ShoppingBag,
+    },
+    {
+      href: `/commerce/fulfillment?storeId=${active.id}`,
+      label: "Fulfillment",
+      icon: Truck,
+    },
+    {
+      href: `/commerce/finance?storeId=${active.id}`,
+      label: "Finance",
+      icon: Wallet,
     },
     {
       href: `/commerce/builder?storeId=${active.id}`,
@@ -171,7 +184,6 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF5A1F]">
@@ -181,15 +193,11 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
             Overview
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            Manage your store, products, orders and sales.
+            Native store operations — sales, fulfillment, and earnings.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <StoreSelector
-            stores={stores}
-            activeId={active.id}
-            basePath="/commerce"
-          />
+          <StoreSelector stores={stores} activeId={active.id} basePath="/commerce" />
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={
@@ -233,8 +241,7 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-5">
-          {/* KPIs */}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {kpis.map((kpi) => (
               <CommerceCard key={kpi.label} className="p-4">
                 <p className="text-xs font-medium text-[#6B7280]">{kpi.label}</p>
@@ -246,72 +253,18 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
             ))}
           </div>
 
-          <CommerceCard className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-[#111827]">
-                  Channel health
-                </h2>
-                <p className="mt-1 text-sm text-[#6B7280]">
-                  Connected stores (Shopify) and sync job status.
-                </p>
-              </div>
-              <Link
-                href="/commerce/connected-stores"
-                className="text-xs font-semibold text-[#FF5A1F]"
-              >
-                Manage channels
-              </Link>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
-                <p className="text-[11px] font-medium text-[#6B7280]">
-                  Connected stores
-                </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums text-[#111827]">
-                  {connectedStoreCount ?? 0}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-3">
-                <p className="text-[11px] font-medium text-[#6B7280]">
-                  Failed sync jobs
-                </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums text-[#111827]">
-                  {failedSyncCount ?? 0}
-                </p>
-                {(failedSyncCount ?? 0) > 0 ? (
-                  <Link
-                    href="/commerce/sync"
-                    className="mt-1 inline-flex text-[11px] font-semibold text-[#FF5A1F]"
-                  >
-                    Open Sync Center
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-          </CommerceCard>
-
-          {/* Sales + Recent orders */}
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className="grid gap-5 lg:grid-cols-2">
             <CommerceCard className="p-5">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-[#111827]">
-                  Sales Overview
-                </h2>
-                <span className="text-[11px] text-[#9CA3AF]">Last {days} days</span>
-              </div>
+              <h2 className="text-sm font-semibold text-[#111827]">Sales performance</h2>
               {dash.analytics.revenue > 0 ? (
                 <div className="mt-6">
                   <p className="text-3xl font-semibold tabular-nums text-[#111827]">
-                    {money(dash.analytics.revenue, active.default_currency || "USD")}
+                    {money(dash.analytics.revenue, currency)}
                   </p>
                   <p className="mt-1 text-sm text-[#6B7280]">
                     {dash.analytics.paidOrders} paid order
                     {dash.analytics.paidOrders === 1 ? "" : "s"} · AOV{" "}
-                    {money(
-                      dash.analytics.averageOrderValue,
-                      active.default_currency || "USD"
-                    )}
+                    {money(dash.analytics.averageOrderValue, currency)}
                   </p>
                 </div>
               ) : (
@@ -319,66 +272,157 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                   <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#F3F4F6]">
                     <Package className="h-5 w-5 text-[#9CA3AF]" />
                   </div>
-                  <p className="text-sm font-medium text-[#111827]">No sales data yet</p>
+                  <p className="text-sm font-medium text-[#111827]">No sales yet</p>
                   <p className="mt-1 max-w-xs text-sm text-[#6B7280]">
-                    Start selling to see your sales performance here.
+                    After your first paid order, gross sales and AOV appear here.
                   </p>
                 </div>
               )}
             </CommerceCard>
 
+            <CommerceCard className="p-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-[#111827]">Financial summary</h2>
+                <Link
+                  href={`/commerce/finance?storeId=${active.id}`}
+                  className="text-xs font-semibold text-[#FF5A1F]"
+                >
+                  Open finance
+                </Link>
+              </div>
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#6B7280]">Gross sales</dt>
+                  <dd className="tabular-nums font-medium text-[#111827]">
+                    {money(dash.analytics.revenue, currency)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#6B7280]">Pending balance</dt>
+                  <dd className="tabular-nums font-medium text-[#111827]">
+                    {money(pending, PLATFORM_CURRENCY)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#6B7280]">Available balance</dt>
+                  <dd className="tabular-nums font-semibold text-[#111827]">
+                    {money(available, PLATFORM_CURRENCY)}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[#6B7280]">Lifetime earned</dt>
+                  <dd className="tabular-nums font-medium text-[#111827]">
+                    {money(Number(wallet.total_earned ?? 0), PLATFORM_CURRENCY)}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-[11px] text-[#9CA3AF]">
+                Balances come from the wallet ledger — not estimated UI totals.
+              </p>
+            </CommerceCard>
+          </div>
+
+          <CommerceCard className="p-5">
+            <h2 className="text-sm font-semibold text-[#111827]">Order pipeline</h2>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {pipelineItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3"
+                >
+                  <p className="text-[11px] text-[#6B7280]">{item.label}</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-[#111827]">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CommerceCard>
+
+          <CommerceCard className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-[#111827]">
+                Fulfillment health
+              </h2>
+              <Link
+                href={`/commerce/fulfillment?storeId=${active.id}`}
+                className="text-xs font-semibold text-[#FF5A1F]"
+              >
+                View fulfillment
+              </Link>
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              {fulfillmentItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3"
+                >
+                  <p className="text-[11px] text-[#6B7280]">{item.label}</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-[#111827]">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {(fulfillment?.cjOrders ?? 0) === 0 &&
+            (dash.analytics.paidOrders ?? 0) === 0 ? (
+              <p className="mt-3 text-sm text-[#6B7280]">
+                CJ orders and tracking appear after a paid native-store order is
+                submitted to the supplier.
+              </p>
+            ) : null}
+          </CommerceCard>
+
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <CommerceCard className="flex flex-col p-5">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-[#111827]">
-                  Recent Orders
-                </h2>
+                <h2 className="text-sm font-semibold text-[#111827]">Recent orders</h2>
                 <Link
                   href={`/commerce/orders?storeId=${active.id}`}
                   className="text-xs font-semibold text-[#FF5A1F]"
                 >
-                  View Orders
+                  View orders
                 </Link>
               </div>
               {!dash.recentOrders.length ? (
                 <div className="mt-6 flex flex-1 flex-col items-center justify-center py-6 text-center">
                   <p className="text-sm font-medium text-[#111827]">No orders yet</p>
                   <p className="mt-1 text-sm text-[#6B7280]">
-                    When customers place orders, they&apos;ll appear here.
+                    When customers place orders on your store, they appear here.
                   </p>
                 </div>
               ) : (
                 <ul className="mt-4 divide-y divide-[#F3F4F6]">
                   {dash.recentOrders.map((o) => (
-                    <li
-                      key={o.id}
-                      className="flex items-center justify-between gap-3 py-2.5 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-[#111827]">
-                          {o.order_number || o.id.slice(0, 8)}
+                    <li key={o.id}>
+                      <Link
+                        href={`/commerce/orders/${o.id}?storeId=${active.id}`}
+                        className="flex items-center justify-between gap-3 py-2.5 text-sm transition hover:bg-[#F8FAFC]"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[#111827]">
+                            {o.order_number || o.id.slice(0, 8)}
+                          </p>
+                          <p className="text-[11px] text-[#9CA3AF]">
+                            {new Date(o.created_at).toLocaleDateString()} ·{" "}
+                            {o.payment_status || o.status}
+                          </p>
+                        </div>
+                        <p className="shrink-0 tabular-nums font-medium text-[#111827]">
+                          {money(
+                            Number(o.total_amount || 0),
+                            o.currency || currency
+                          )}
                         </p>
-                        <p className="text-[11px] text-[#9CA3AF]">
-                          {new Date(o.created_at).toLocaleDateString()} ·{" "}
-                          {o.payment_status || o.status}
-                        </p>
-                      </div>
-                      <p className="shrink-0 tabular-nums font-medium text-[#111827]">
-                        {money(
-                          Number(o.total_amount || 0),
-                          o.currency || active.default_currency || "USD"
-                        )}
-                      </p>
+                      </Link>
                     </li>
                   ))}
                 </ul>
               )}
             </CommerceCard>
-          </div>
 
-          {/* Top products / collections / traffic */}
-          <div className="grid gap-5 md:grid-cols-3">
             <CommerceCard className="p-5">
-              <h2 className="text-sm font-semibold text-[#111827]">Top Products</h2>
+              <h2 className="text-sm font-semibold text-[#111827]">Top products</h2>
               {!dash.topProducts.length ? (
                 <p className="mt-6 text-sm text-[#6B7280]">
                   No products yet. Add a product to start selling.
@@ -404,7 +448,6 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                         <p className="truncate text-sm font-medium text-[#111827]">
                           {p.name}
                         </p>
-                        <p className="text-[11px] text-[#9CA3AF]">{p.soldLabel}</p>
                       </div>
                       <p className="shrink-0 text-sm tabular-nums text-[#374151]">
                         {money(p.price, p.currency)}
@@ -414,63 +457,10 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                 </ul>
               )}
             </CommerceCard>
-
-            <CommerceCard className="p-5">
-              <h2 className="text-sm font-semibold text-[#111827]">
-                Top Collections
-              </h2>
-              {dash.analytics.collections > 0 ? (
-                <div className="mt-6">
-                  <p className="text-3xl font-semibold tabular-nums text-[#111827]">
-                    {dash.analytics.collections}
-                  </p>
-                  <p className="mt-1 text-sm text-[#6B7280]">
-                    Collection{dash.analytics.collections === 1 ? "" : "s"} on this
-                    store
-                  </p>
-                  <Link
-                    href={`/commerce/collections?storeId=${active.id}`}
-                    className="mt-4 inline-flex text-xs font-semibold text-[#FF5A1F]"
-                  >
-                    Manage collections
-                  </Link>
-                </div>
-              ) : (
-                <div className="mt-6">
-                  <p className="text-sm text-[#6B7280]">
-                    No collections yet. Create collections to organize your products.
-                  </p>
-                  <Link
-                    href={`/commerce/collections?storeId=${active.id}`}
-                    className="mt-4 inline-flex rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
-                  >
-                    Create Collection
-                  </Link>
-                </div>
-              )}
-            </CommerceCard>
-
-            <CommerceCard className="p-5">
-              <h2 className="text-sm font-semibold text-[#111827]">
-                Traffic Sources
-              </h2>
-              <div className="mt-6 flex flex-col items-center justify-center py-4 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full border-8 border-[#F3F4F6]">
-                  <span className="text-xs font-semibold text-[#9CA3AF]">—</span>
-                </div>
-                <p className="mt-4 text-sm font-medium text-[#111827]">
-                  Not tracked yet
-                </p>
-                <p className="mt-1 text-[11px] text-[#6B7280]">
-                  Visitor analytics will appear once storefront tracking is enabled.
-                </p>
-              </div>
-            </CommerceCard>
           </div>
 
-          {/* Quick actions */}
           <CommerceCard className="p-5">
-            <h2 className="text-sm font-semibold text-[#111827]">Quick Actions</h2>
+            <h2 className="text-sm font-semibold text-[#111827]">Quick actions</h2>
             <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {quickActions.map((a) => (
                 <Link
@@ -488,11 +478,10 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
           </CommerceCard>
         </div>
 
-        {/* Right rail */}
         <aside className="space-y-4">
           <CommerceCard className="p-5">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-[#111827]">Store Status</h2>
+              <h2 className="text-sm font-semibold text-[#111827]">Store status</h2>
               <span
                 className={
                   dash.storeLive
@@ -542,15 +531,15 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
           </CommerceCard>
 
           <CommerceCard className="p-5">
-            <h2 className="text-sm font-semibold text-[#111827]">Latest Activity</h2>
+            <h2 className="text-sm font-semibold text-[#111827]">Recent activity</h2>
             {!dash.recentOrders.length ? (
               <p className="mt-4 text-sm text-[#6B7280]">
-                No recent activity. Orders and product updates will show here.
+                No recent activity. Orders will show here after checkout.
               </p>
             ) : (
-              <ul className="mt-3 space-y-3">
-                {dash.recentOrders.slice(0, 4).map((o) => (
-                  <li key={`act-${o.id}`} className="text-sm">
+              <ul className="mt-4 space-y-3">
+                {dash.recentOrders.slice(0, 5).map((o) => (
+                  <li key={o.id} className="text-sm">
                     <p className="font-medium text-[#111827]">
                       Order {o.order_number || o.id.slice(0, 8)}
                     </p>
@@ -563,20 +552,6 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
               </ul>
             )}
           </CommerceCard>
-
-          <div className="rounded-2xl bg-gradient-to-br from-[#FF5A1F] to-[#FF8A4C] p-5 text-white shadow-[0_8px_24px_rgba(255,90,31,0.25)]">
-            <p className="text-sm font-semibold">Upgrade Your Plan</p>
-            <p className="mt-1 text-xs text-white/90">
-              Unlock more stores, staff seats, and advanced analytics when you&apos;re
-              ready.
-            </p>
-            <Link
-              href="/pricing"
-              className="mt-4 inline-flex rounded-xl bg-white px-3 py-2 text-xs font-semibold text-[#FF5A1F]"
-            >
-              View Plans
-            </Link>
-          </div>
         </aside>
       </div>
     </div>

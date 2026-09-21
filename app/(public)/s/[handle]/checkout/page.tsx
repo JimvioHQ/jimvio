@@ -255,6 +255,8 @@ export default async function StorefrontCheckoutPage({
           preferredMethod={preferredMethod}
           cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
           changes={!isDirectCheckout ? syncResult?.changes : undefined}
+          brandSurface="merchant"
+          storeName={store.name}
         />
       </div>
       <p className="pb-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">

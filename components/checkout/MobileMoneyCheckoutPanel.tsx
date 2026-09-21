@@ -294,7 +294,7 @@ export function MobileMoneyPaymentStep({
           <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
             {phase === "confirm"
               ? "Confirm your mobile wallet details before paying."
-              : subtitle ?? "Pay securely using your local mobile wallet."}
+              : subtitle ?? "Choose your country and mobile wallet."}
           </p>
           {selectedMarket && phase === "setup" ? (
             <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)]">

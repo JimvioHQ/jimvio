@@ -1091,7 +1091,16 @@ export async function finalizeOrderPayment(
     shopify_product_id: string | null;
   }>;
 
-  const shopifyItems = orderItems.filter((item) => isShopifyFulfillmentLine(item));
+  // Shopify fulfillment is retired from active product. Historical credentials remain
+  // readable; new Shopify Admin order creation only runs if explicitly re-enabled.
+  const shopifyFulfillmentEnabled =
+    process.env.SHOPIFY_FULFILLMENT_ENABLED === "true";
+  const shopifyItemsRaw = shopifyFulfillmentEnabled
+    ? orderItems.filter((item) => isShopifyFulfillmentLine(item))
+    : [];
+  // Native Jimvio store orders never go through Shopify.
+  const shopifyItems =
+    order.jimvio_store_id != null ? [] : shopifyItemsRaw;
   const hasShopifyBridge =
     order.shopify_order_id != null ||
     (Array.isArray(order.shopify_order_ids) && order.shopify_order_ids.length > 0);

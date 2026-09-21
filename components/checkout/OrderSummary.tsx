@@ -85,7 +85,7 @@ export function OrderSummary({
         </div>
         <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
           <ShieldCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
-          <span>Buyer protection on eligible orders through Jimvio.</span>
+          <span>Buyer protection on eligible orders.</span>
         </div>
         <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
           <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />

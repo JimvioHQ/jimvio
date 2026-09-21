@@ -9,10 +9,6 @@
 
   "crons": [
     {
-      "path": "/api/cron/shopify-sync",
-      "schedule": "0 0 * * *"
-    },
-    {
       "path": "/api/cron/cj-catalog-sync",
       "schedule": "0 */6 * * *"
     },
@@ -51,10 +47,6 @@
     {
       "path": "/api/cron/community-stories-refresh",
       "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/dropshipping-sync",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

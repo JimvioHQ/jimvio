@@ -5,20 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  Boxes,
   CircleHelp,
   CreditCard,
   FileText,
   Globe,
-  KeyRound,
   LayoutDashboard,
   LayoutGrid,
-  Link2,
   Menu,
   Package,
   Percent,
-  Plug,
-  RefreshCw,
   Settings,
   ShoppingBag,
   Store,
@@ -26,6 +21,7 @@ import {
   Users,
   Wand2,
   Warehouse,
+  Wallet,
   X,
 } from "lucide-react";
 import { AppTopNav } from "@/components/shell/AppTopNav";
@@ -41,62 +37,53 @@ type NavItem = {
 
 type NavGroup = { id: string; label: string; items: NavItem[] };
 
+/** Native Jimvio Store Commerce OS — Shopify/channel nav intentionally removed. */
 const NAV_GROUPS: NavGroup[] = [
   {
-    id: "core",
+    id: "operations",
     label: "Operations",
     items: [
       { href: "/commerce", label: "Overview", exact: true, icon: LayoutDashboard },
-      { href: "/commerce/stores", label: "Stores", icon: Store },
-      { href: "/commerce/products", label: "Products", icon: Package },
       { href: "/commerce/orders", label: "Orders", icon: ShoppingBag },
+      { href: "/commerce/products", label: "Products", icon: Package },
       { href: "/commerce/inventory", label: "Inventory", icon: Warehouse },
-    ],
-  },
-  {
-    id: "channels",
-    label: "Channels",
-    items: [
-      { href: "/commerce/integrations", label: "Integrations", icon: Plug },
-      { href: "/commerce/connected-stores", label: "Connected Stores", icon: Link2 },
-      { href: "/commerce/channel-products", label: "Channel Products", icon: Boxes },
-      { href: "/commerce/channel-orders", label: "Channel Orders", icon: ShoppingBag },
-      { href: "/commerce/channel-inventory", label: "Channel Inventory", icon: Warehouse },
-      { href: "/commerce/pricing", label: "Pricing", icon: Percent },
-      { href: "/commerce/sync", label: "Sync", icon: RefreshCw },
-    ],
-  },
-  {
-    id: "supply",
-    label: "Supply",
-    items: [
-      { href: "/commerce/suppliers", label: "Suppliers", icon: Package },
-      { href: "/commerce/fulfillment", label: "Fulfillment", icon: Truck },
-      { href: "/commerce/shipping", label: "Shipping", icon: Truck },
-    ],
-  },
-  {
-    id: "storefront",
-    label: "Storefront",
-    items: [
-      { href: "/commerce/builder", label: "Builder", icon: Wand2 },
-      { href: "/commerce/collections", label: "Collections", icon: LayoutGrid },
       { href: "/commerce/customers", label: "Customers", icon: Users },
-      { href: "/commerce/discounts", label: "Discounts", icon: Percent },
-      { href: "/commerce/analytics", label: "Analytics", icon: BarChart3 },
-      { href: "/commerce/payments", label: "Payments", icon: CreditCard },
+    ],
+  },
+  {
+    id: "store",
+    label: "Store",
+    items: [
+      { href: "/commerce/stores", label: "Store", icon: Store },
+      { href: "/commerce/builder", label: "Storefront", icon: Wand2 },
+      { href: "/commerce/collections", label: "Collections", icon: LayoutGrid },
       { href: "/commerce/pages", label: "Pages", icon: FileText },
       { href: "/commerce/domains", label: "Domains", icon: Globe },
     ],
   },
   {
-    id: "system",
-    label: "System",
+    id: "sales",
+    label: "Sales",
     items: [
-      { href: "/commerce/settings", label: "Settings", icon: Settings },
-      { href: "/commerce/api-keys", label: "API Keys", icon: KeyRound },
-      { href: "/commerce/channel-settings", label: "Channel Settings", icon: Settings },
+      { href: "/commerce/finance", label: "Finance", icon: Wallet },
+      { href: "/commerce/payments", label: "Payments", icon: CreditCard },
+      { href: "/commerce/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/commerce/discounts", label: "Discounts", icon: Percent },
     ],
+  },
+  {
+    id: "fulfillment",
+    label: "Fulfillment",
+    items: [
+      { href: "/commerce/fulfillment", label: "Fulfillment", icon: Truck },
+      { href: "/commerce/suppliers", label: "Suppliers", icon: Package },
+      { href: "/commerce/shipping", label: "Shipping", icon: Truck },
+    ],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    items: [{ href: "/commerce/settings", label: "Settings", icon: Settings }],
   },
 ];
 
@@ -158,7 +145,7 @@ function SidebarBody({
           Commerce OS
         </p>
         <p className="mt-1 text-[11px] text-[#9CA3AF]">
-          Stores · channels · suppliers
+          Native stores · orders · fulfillment
         </p>
       </div>
       <nav
@@ -190,7 +177,7 @@ function SidebarBody({
             <div>
               <p className="text-xs font-semibold text-[#111827]">Need help?</p>
               <p className="mt-0.5 text-[11px] leading-snug text-[#6B7280]">
-                Stores, Shopify, suppliers, and orders.
+                Stores, orders, payments, and fulfillment.
               </p>
             </div>
           </div>

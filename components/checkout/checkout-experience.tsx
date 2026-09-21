@@ -117,6 +117,9 @@ interface CheckoutExperienceProps {
    mode?: "cart" | "community";
    cartWasUpdated?: boolean;
    changes?: CheckoutSyncChanges;
+   /** Merchant storefront checkout — suppress Jimvio-branded trust copy */
+   brandSurface?: "platform" | "merchant";
+   storeName?: string | null;
 }
 
 const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
@@ -130,6 +133,8 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 
 export function CheckoutExperience({
    orders, profile, preferredMethod, mode = "cart",
+   brandSurface = "platform",
+   storeName = null,
 }: CheckoutExperienceProps) {
    const { formatMoney } = useCurrency();
 
@@ -857,6 +862,8 @@ export function CheckoutExperience({
                   <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-4">
                      <CheckoutTrustSignals />
                      <PremiumTrustPanel
+                        surface={brandSurface}
+                        storeName={storeName}
                         deliveryHint={
                            isAllDigital
                               ? "Digital access is delivered instantly after payment."

@@ -2,38 +2,51 @@
 
 import { ShieldCheck, Truck, Lock, RotateCcw } from "lucide-react";
 
+export type TrustPanelSurface = "platform" | "merchant";
+
 export function PremiumTrustPanel({
   deliveryHint,
+  surface = "platform",
+  storeName,
 }: {
   deliveryHint?: string | null;
+  surface?: TrustPanelSurface;
+  storeName?: string | null;
 }) {
+  const isMerchant = surface === "merchant";
+  const sellerLabel = storeName?.trim() || "this store";
+
   const items = [
     {
       icon: Lock,
       title: "Secure checkout",
-      body: "Encrypted payments with buyer protection.",
+      body: "Encrypted payments with protected payment processing.",
     },
     {
       icon: Truck,
-      title: "Delivery clarity",
+      title: "Delivery tracking",
       body: deliveryHint || "Estimated delivery shown before you pay.",
     },
     {
       icon: RotateCcw,
-      title: "Easy support",
-      body: "Order help and tracking in your Jimvio account.",
+      title: "Order support",
+      body: isMerchant
+        ? "Order help and tracking in your account."
+        : "Order help and tracking in your account.",
     },
     {
       icon: ShieldCheck,
-      title: "Verified sellers",
-      body: "Shop with confidence from Jimvio vendors.",
+      title: "Protected payment",
+      body: isMerchant
+        ? `Shop with confidence from ${sellerLabel}.`
+        : "Shop with confidence from verified sellers.",
     },
   ];
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <p className="mb-3 text-[11px] font-bold uppercase tracking-wide text-[#fd5000]">
-        Why checkout with Jimvio
+        {isMerchant ? "Secure checkout" : "Why checkout here"}
       </p>
       <ul className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
@@ -42,8 +55,12 @@ export function PremiumTrustPanel({
               <item.icon className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-[12px] font-bold text-[var(--color-text-primary)]">{item.title}</p>
-              <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)]">{item.body}</p>
+              <p className="text-[12px] font-bold text-[var(--color-text-primary)]">
+                {item.title}
+              </p>
+              <p className="text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+                {item.body}
+              </p>
             </div>
           </li>
         ))}

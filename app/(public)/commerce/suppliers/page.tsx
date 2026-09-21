@@ -4,8 +4,8 @@ import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 export const dynamic = "force-dynamic";
 
 /**
- * Suppliers hub — Jimvio Store abstraction over the supplier connector network.
- * Underlying provider adapters remain internal; merchants see Jimvio branding only.
+ * Suppliers hub — native Jimvio store + CJ sourcing.
+ * Shopify channel language removed from active product.
  */
 export default function CommerceSuppliersPage() {
   return (
@@ -15,49 +15,49 @@ export default function CommerceSuppliersPage() {
           Suppliers
         </h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Source products, sync inventory, and fulfill orders through Jimvio Store —
-          verified global sourcing with tracking.
+          Source products and fulfill paid native-store orders through Jimvio&apos;s
+          supplier network (including CJ Dropshipping).
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <CommerceCard className="p-5">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-[#111827]">Jimvio Store</p>
+            <p className="text-sm font-semibold text-[#111827]">CJ Dropshipping</p>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-              Verified
+              Direct
             </span>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-            Global sourcing, inventory sync, fulfillment, and tracking — available for
-            products you sell on Jimvio and connected channels.
+            After payment is confirmed, eligible CJ-mapped line items submit directly
+            from Jimvio to CJ — no Shopify intermediary.
           </p>
           <ul className="mt-3 space-y-1 text-xs text-[#6B7280]">
-            <li>· Inventory sync</li>
-            <li>· Fulfillment available</li>
-            <li>· Tracking available</li>
+            <li>· Product / variant ID mapping</li>
+            <li>· Order creation after PAID</li>
+            <li>· Tracking sync to customer + Commerce</li>
           </ul>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
-              href="/marketplace/physical"
+              href="/commerce/products"
               className="rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
             >
-              Browse marketplace
+              Store products
             </Link>
             <Link
-              href="/commerce/channel-products"
+              href="/commerce/fulfillment"
               className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
             >
-              Channel products
+              Fulfillment
             </Link>
           </div>
         </CommerceCard>
 
         <CommerceCard className="p-5">
-          <p className="text-sm font-semibold text-[#111827]">Sell everywhere</p>
+          <p className="text-sm font-semibold text-[#111827]">Marketplace catalog</p>
           <p className="mt-2 text-sm leading-relaxed text-[#6B7280]">
-            Import marketplace products into your Jimvio storefront or a connected Shopify
-            store.
+            Browse the Jimvio marketplace catalog and publish products to your native
+            storefront.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
@@ -67,10 +67,10 @@ export default function CommerceSuppliersPage() {
               Open marketplace
             </Link>
             <Link
-              href="/commerce/integrations"
+              href="/commerce/stores"
               className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
             >
-              Connect Shopify
+              Manage stores
             </Link>
           </div>
         </CommerceCard>
