@@ -14,6 +14,8 @@ import {
   toCreatorPayoutDbMethod,
   withdrawalSpeedLabel,
   customerFacingWithdrawalStatus,
+  flutterwaveTransferNetworkCode,
+  MOBILE_MONEY_BY_COUNTRY,
   WALLET_WITHDRAWAL_METHODS,
 } from "./wallet-payout-method";
 import { calculateWithdrawalFee } from "./withdrawal-fees";
@@ -120,7 +122,7 @@ describe("wallet withdrawal method normalization", () => {
     assert.equal(missingCustom.ok, false);
   });
 
-  it("allows custom mobile money provider", () => {
+  it("rejects custom mobile money provider", () => {
     const ok = validateWithdrawalDestinationDetails("mobile_money", {
       method: "mobile_money",
       country: "RW",
@@ -128,7 +130,74 @@ describe("wallet withdrawal method normalization", () => {
       customProviderName: "Local Wallet Co",
       phone: "+250788123456",
     });
-    assert.equal(ok.ok, true);
+    assert.equal(ok.ok, false);
+  });
+
+  it("accepts Flutterwave-aligned MoMo providers by country", () => {
+    const cases: Array<{ country: string; provider: string; phone: string }> = [
+      { country: "RW", provider: "mtn_momo", phone: "+250788123456" },
+      { country: "RW", provider: "mpesa", phone: "+250788123456" },
+      { country: "GH", provider: "telecel_vodafone", phone: "+233241234567" },
+      { country: "GH", provider: "airteltigo", phone: "+233241234567" },
+      { country: "TZ", provider: "vodacom_tz", phone: "+255712345678" },
+      { country: "TZ", provider: "halopesa", phone: "+255712345678" },
+      { country: "UG", provider: "airtel_money", phone: "+256701234567" },
+      { country: "KE", provider: "mpesa", phone: "+254712345678" },
+      { country: "CI", provider: "wave", phone: "+2250701234567" },
+      { country: "CM", provider: "orange_money", phone: "+237671234567" },
+      { country: "SN", provider: "orange_money", phone: "+221771234567" },
+      { country: "ZM", provider: "mpesa", phone: "+260971234567" },
+      { country: "ET", provider: "amole", phone: "+251911234567" },
+    ];
+    for (const c of cases) {
+      const r = validateWithdrawalDestinationDetails("mobile_money", {
+        method: "mobile_money",
+        country: c.country,
+        provider: c.provider,
+        phone: c.phone,
+      });
+      assert.equal(r.ok, true, `${c.country}/${c.provider} should be valid`);
+    }
+  });
+
+  it("rejects cross-country MoMo providers and Vodafone/Vodacom merge mistakes", () => {
+    // Ghana Telecel code must not work as Tanzania provider id
+    assert.equal(
+      validateWithdrawalDestinationDetails("mobile_money", {
+        method: "mobile_money",
+        country: "TZ",
+        provider: "telecel_vodafone",
+        phone: "+255712345678",
+      }).ok,
+      false,
+    );
+    // Tanzania Vodacom must not work in Ghana
+    assert.equal(
+      validateWithdrawalDestinationDetails("mobile_money", {
+        method: "mobile_money",
+        country: "GH",
+        provider: "vodacom_tz",
+        phone: "+233241234567",
+      }).ok,
+      false,
+    );
+    // Unsupported country
+    assert.equal(
+      validateWithdrawalDestinationDetails("mobile_money", {
+        method: "mobile_money",
+        country: "US",
+        provider: "mtn_momo",
+        phone: "+12025550123",
+      }).ok,
+      false,
+    );
+  });
+
+  it("maps distinct Flutterwave transfer codes for Vodacom TZ vs Telecel GH", () => {
+    assert.equal(flutterwaveTransferNetworkCode("TZ", "vodacom_tz"), "VODACOM");
+    assert.equal(flutterwaveTransferNetworkCode("GH", "telecel_vodafone"), "VODAFONE");
+    assert.ok(MOBILE_MONEY_BY_COUNTRY.TZ.providers.every((p) => p.id !== "custom"));
+    assert.ok(MOBILE_MONEY_BY_COUNTRY.RW.providers.every((p) => p.id !== "custom"));
   });
 });
 

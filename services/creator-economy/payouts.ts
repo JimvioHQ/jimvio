@@ -54,6 +54,12 @@ export async function listPayoutMethods(userId: string) {
   if (error) throw error;
   return data ?? [];
 }
+
+/** Active methods only — for withdrawal selection and settings UI. */
+export async function listActivePayoutMethods(userId: string) {
+  const rows = await listPayoutMethods(userId);
+  return rows.filter((r) => r.is_active !== false);
+}
 export async function savePayoutMethod(input: {
   userId: string;
   id?: string;

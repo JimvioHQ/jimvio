@@ -170,96 +170,117 @@ export function payoutMethodsForCountry(countryCode: string): WalletWithdrawalMe
 export type MobileMoneyProvider = {
   id: string;
   label: string;
+  /** Flutterwave transfer network code when payouts are automated. */
+  flutterwaveCode?: string;
 };
 
+/**
+ * Mobile Money payout providers by country — aligned with Flutterwave transfer
+ * (payout) coverage. Distinct from collection (checkout) capabilities.
+ * Do not expose Custom/Other as a selectable provider.
+ */
 export const MOBILE_MONEY_BY_COUNTRY: Record<
   string,
-  { label: string; dial: string; providers: MobileMoneyProvider[] }
+  { label: string; dial: string; currency: string; providers: MobileMoneyProvider[] }
 > = {
-  RW: {
-    label: "Rwanda",
-    dial: "+250",
-    providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "airtel_money", label: "Airtel Money" },
-    ],
-  },
-  UG: {
-    label: "Uganda",
-    dial: "+256",
-    providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "airtel_money", label: "Airtel Money" },
-    ],
-  },
-  KE: {
-    label: "Kenya",
-    dial: "+254",
-    providers: [
-      { id: "mpesa", label: "M-Pesa" },
-      { id: "airtel_money", label: "Airtel Money" },
-    ],
-  },
-  TZ: {
-    label: "Tanzania",
-    dial: "+255",
-    providers: [
-      { id: "mpesa", label: "M-Pesa" },
-      { id: "tigo_pesa", label: "Tigo Pesa" },
-      { id: "airtel_money", label: "Airtel Money" },
-    ],
-  },
-  GH: {
-    label: "Ghana",
-    dial: "+233",
-    providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "vodafone_cash", label: "Vodafone Cash" },
-      { id: "airteltigo", label: "AirtelTigo Money" },
-    ],
-  },
-  NG: {
-    label: "Nigeria",
-    dial: "+234",
-    providers: [
-      { id: "opay", label: "OPay" },
-      { id: "palm_pay", label: "PalmPay" },
-    ],
-  },
   CM: {
     label: "Cameroon",
     dial: "+237",
+    currency: "XAF",
     providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "orange_money", label: "Orange Money" },
+      { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
+      { id: "orange_money", label: "Orange Money", flutterwaveCode: "ORANGE" },
     ],
   },
   CI: {
     label: "Côte d'Ivoire",
     dial: "+225",
+    currency: "XOF",
     providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "orange_money", label: "Orange Money" },
-      { id: "moov", label: "Moov Money" },
+      { id: "moov", label: "MOOV", flutterwaveCode: "MOOV" },
+      { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
+      { id: "orange_money", label: "Orange", flutterwaveCode: "ORANGE" },
+      { id: "wave", label: "Wave", flutterwaveCode: "WAVE" },
+    ],
+  },
+  ET: {
+    label: "Ethiopia",
+    dial: "+251",
+    currency: "ETB",
+    providers: [{ id: "amole", label: "Amole Money", flutterwaveCode: "AMOLE" }],
+  },
+  GH: {
+    label: "Ghana",
+    dial: "+233",
+    currency: "GHS",
+    providers: [
+      { id: "airteltigo", label: "AirtelTigo", flutterwaveCode: "AIRTELTIGO" },
+      { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
+      { id: "telecel_vodafone", label: "Telecel (Vodafone)", flutterwaveCode: "VODAFONE" },
+    ],
+  },
+  KE: {
+    label: "Kenya",
+    dial: "+254",
+    currency: "KES",
+    providers: [{ id: "mpesa", label: "M-Pesa", flutterwaveCode: "MPS" }],
+  },
+  RW: {
+    label: "Rwanda",
+    dial: "+250",
+    currency: "RWF",
+    providers: [
+      { id: "mpesa", label: "M-Pesa", flutterwaveCode: "MPS" },
+      { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
     ],
   },
   SN: {
     label: "Senegal",
     dial: "+221",
+    currency: "XOF",
     providers: [
-      { id: "orange_money", label: "Orange Money" },
-      { id: "free_money", label: "Free Money" },
+      { id: "orange_money", label: "Orange Money", flutterwaveCode: "ORANGE" },
+      { id: "wave", label: "Wave", flutterwaveCode: "WAVE" },
+    ],
+  },
+  TZ: {
+    label: "Tanzania",
+    dial: "+255",
+    currency: "TZS",
+    providers: [
+      { id: "airtel_money", label: "Airtel", flutterwaveCode: "AIRTEL" },
+      { id: "halopesa", label: "HaloPesa", flutterwaveCode: "HALOPESA" },
+      { id: "tigo_pesa", label: "Tigo", flutterwaveCode: "TIGO" },
+      { id: "vodacom_tz", label: "Vodacom", flutterwaveCode: "VODACOM" },
+    ],
+  },
+  UG: {
+    label: "Uganda",
+    dial: "+256",
+    currency: "UGX",
+    providers: [
+      { id: "airtel_money", label: "Airtel", flutterwaveCode: "AIRTEL" },
+      { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
     ],
   },
   ZM: {
     label: "Zambia",
     dial: "+260",
-    providers: [
-      { id: "mtn_momo", label: "MTN Mobile Money" },
-      { id: "airtel_money", label: "Airtel Money" },
-    ],
+    currency: "ZMW",
+    providers: [{ id: "mpesa", label: "M-Pesa", flutterwaveCode: "MPS" }],
   },
 };
+
+/** Resolve Flutterwave transfer network code for a Jimvio provider id + country. */
+export function flutterwaveTransferNetworkCode(
+  countryCode: string,
+  providerId: string,
+): string | null {
+  const cfg = MOBILE_MONEY_BY_COUNTRY[String(countryCode || "").toUpperCase()];
+  if (!cfg) return null;
+  const p = cfg.providers.find((x) => x.id === providerId);
+  return p?.flutterwaveCode ?? null;
+}
 
 export type BankCountryConfig = {
   label: string;
@@ -402,9 +423,11 @@ export type WithdrawalDestinationDetails = {
   currency?: string;
   // Mobile money
   provider?: string;
-  /** When provider === custom */
+  /** When provider === custom (banks only; MoMo rejects custom) */
   customProviderName?: string;
   phone?: string;
+  /** Flutterwave transfer network code (server-derived) */
+  flutterwaveNetwork?: string;
   // Binance
   binanceId?: string;
   confirmBinanceId?: string;
@@ -568,33 +591,38 @@ export function validateWithdrawalDestinationDetails(
         return { ok: false, error: "Select a supported mobile money country" };
       }
       const provider = String(details.provider ?? "").trim();
-      const isCustom = provider === CUSTOM_INSTITUTION_ID;
-      if (!isCustom && !cfg.providers.some((p) => p.id === provider)) {
-        return { ok: false, error: "Select a mobile money provider for this country" };
+      if (provider === CUSTOM_INSTITUTION_ID) {
+        return {
+          ok: false,
+          error: "Select a supported Mobile Money provider for this country",
+        };
       }
-      const customProviderName = String(details.customProviderName ?? "").trim();
-      if (isCustom && customProviderName.length < 2) {
-        return { ok: false, error: "Enter the mobile money provider name" };
+      if (!cfg.providers.some((p) => p.id === provider)) {
+        return { ok: false, error: "Select a mobile money provider for this country" };
       }
       const phoneRaw = String(details.phone ?? "").replace(/[\s()-]/g, "");
       if (!/^\+?\d{8,15}$/.test(phoneRaw)) {
         return { ok: false, error: "Enter a valid phone number with country code" };
       }
-      // Rwanda: prefer +250 and 9-digit local after country code when provided with dial
-      if (country === "RW") {
+      // Soft country-aware checks when dial code matches selected country
+      const dialDigits = cfg.dial.replace(/\D/g, "");
+      if (phoneRaw.includes(dialDigits) || phoneRaw.startsWith(cfg.dial) || phoneRaw.startsWith(`+${dialDigits}`)) {
         const digits = phoneRaw.replace(/^\+/, "");
         const local =
-          digits.startsWith("250") && digits.length >= 12
-            ? digits.slice(3)
+          digits.startsWith(dialDigits) && digits.length > dialDigits.length
+            ? digits.slice(dialDigits.length)
             : digits.replace(/^0+/, "");
-        if (local.length !== 9 || !/^[7]\d{8}$/.test(local)) {
-          // Soft check: only enforce when number is clearly Rwanda-formatted
-          if (phoneRaw.includes("250") || phoneRaw.startsWith("+250") || phoneRaw.startsWith("07")) {
-            return {
-              ok: false,
-              error: "Enter a valid Rwanda mobile number (+250 7XX XXX XXX)",
-            };
-          }
+        if (country === "RW" && (local.length !== 9 || !/^[7]\d{8}$/.test(local))) {
+          return {
+            ok: false,
+            error: "Enter a valid Rwanda mobile number (+250 7XX XXX XXX)",
+          };
+        }
+        if (local.length < 7 || local.length > 12) {
+          return {
+            ok: false,
+            error: `Enter a valid ${cfg.label} mobile number (${cfg.dial}…)`,
+          };
         }
       }
       const accountHolder = String(details.accountHolder ?? "").trim();
@@ -602,13 +630,15 @@ export function validateWithdrawalDestinationDetails(
       if (!phoneRaw.startsWith("+")) {
         phone = `${cfg.dial}${phoneRaw.replace(/^0+/, "")}`;
       }
+      const flwCode = flutterwaveTransferNetworkCode(country, provider);
       const normalized: WithdrawalDestinationDetails = {
         method: "mobile_money",
         country,
-        provider: isCustom ? CUSTOM_INSTITUTION_ID : provider,
-        customProviderName: isCustom ? customProviderName : undefined,
+        provider,
         phone,
         accountHolder: accountHolder || undefined,
+        currency: cfg.currency,
+        ...(flwCode ? { flutterwaveNetwork: flwCode } : {}),
       };
       return {
         ok: true,

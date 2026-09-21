@@ -69,18 +69,6 @@ export function WalletOverviewClient() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
-      <header className="mb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9CA3AF]">
-          Jimvio Wallet
-        </p>
-        <h1 className="mt-1 text-[26px] font-bold tracking-tight text-[#111827] sm:text-[30px]">
-          Your money, all in one place
-        </h1>
-        <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[#6B7280]">
-          One balance for everything you earn, deposit, and spend.
-        </p>
-      </header>
-
       {status === "loading" && <WalletLoading label="Loading your wallet…" />}
       {status === "error" && (
         <WalletErrorState message={error || "Could not load your wallet overview."} onRetry={retry} />

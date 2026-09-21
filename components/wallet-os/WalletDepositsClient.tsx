@@ -84,6 +84,8 @@ export function WalletDepositsClient() {
   });
   const [momoError, setMomoError] = useState<string | null>(null);
   const [momoAwaiting, setMomoAwaiting] = useState(false);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const momoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const momoPollCountRef = useRef(0);
 
@@ -126,6 +128,26 @@ export function WalletDepositsClient() {
     setMomoError(null);
     setStage("methods");
   }, []);
+
+  async function handleCancelDeposit(depositId: string) {
+    setCancellingId(depositId);
+    try {
+      const res = await fetch(`/api/wallet/os/deposits/${depositId}/cancel`, {
+        method: "POST",
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(body?.error || "Could not cancel deposit");
+      }
+      toast.success("Deposit cancelled");
+      setConfirmCancelId(null);
+      retry();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel deposit");
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
   async function handleCardOrCryptoPay() {
     if (!Number.isFinite(parsedAmount) || parsedAmount < 1) {
@@ -379,23 +401,38 @@ export function WalletDepositsClient() {
             />
           ) : (
             <ul className="mt-4 space-y-2.5">
-              {deposits.map((d) => (
-                <li
-                  key={d.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] px-3 py-2.5"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-[#121113]">
-                      {formatMoneyAsUSD(d.amount, d.currency || currency)}
-                    </p>
-                    <p className="text-[11px] text-[#9B968D]">
-                      {d.methodLabel || walletDepositMethodLabel(d.method)} ·{" "}
-                      {new Date(d.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>
-                </li>
-              ))}
+              {deposits.map((d) => {
+                const cancellable = d.status === "pending" || d.status === "processing";
+                return (
+                  <li
+                    key={d.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-black/[0.06] px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-[#121113]">
+                        {formatMoneyAsUSD(d.amount, d.currency || currency)}
+                      </p>
+                      <p className="text-[11px] text-[#9B968D]">
+                        {d.methodLabel || walletDepositMethodLabel(d.method)} ·{" "}
+                        {new Date(d.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <WalletPill tone={statusTone(d.status)}>{d.status}</WalletPill>
+                      {cancellable ? (
+                        <button
+                          type="button"
+                          disabled={cancellingId === d.id}
+                          onClick={() => setConfirmCancelId(d.id)}
+                          className="rounded-lg border border-black/[0.08] px-2 py-1 text-[11px] font-semibold text-[#6B7280] hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <div className="mt-4">
@@ -405,6 +442,45 @@ export function WalletDepositsClient() {
           </div>
         </WalletCard>
       </div>
+
+      {confirmCancelId ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-deposit-title"
+          onClick={() => setConfirmCancelId(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="cancel-deposit-title" className="text-[16px] font-bold text-[#111827]">
+              Cancel this deposit?
+            </h2>
+            <p className="mt-2 text-[13px] text-[#6B7280]">
+              This payment has not been completed yet. Cancelling will not credit your wallet.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-[#E5E7EB] text-[13px] font-semibold text-[#111827]"
+                onClick={() => setConfirmCancelId(null)}
+              >
+                Keep deposit
+              </button>
+              <button
+                type="button"
+                disabled={cancellingId === confirmCancelId}
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-[#111827] text-[13px] font-bold text-white disabled:opacity-50"
+                onClick={() => void handleCancelDeposit(confirmCancelId)}
+              >
+                {cancellingId === confirmCancelId ? "Cancelling…" : "Cancel deposit"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

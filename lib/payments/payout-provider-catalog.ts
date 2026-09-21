@@ -9,7 +9,8 @@
  * - Only list institutions Jimvio can operationally pay (manual or automated).
  * - `logoSrc` = first-party asset under /public; `logoDomain` = optional favicon
  *   source with UI fallback (never required for the flow to work).
- * - Always include Custom / Other via CUSTOM_INSTITUTION_ID.
+ * - Include Custom / Other for banks only (manual bank name). Never expose
+ *   Custom as a Mobile Money provider — MoMo must use Flutterwave-mapped codes.
  *
  * Rwanda commercial banks: National Bank of Rwanda supervised list
  * (Wikipedia / BNR Q2 2026 commercial banks).
@@ -216,27 +217,19 @@ export const MOBILE_MONEY_PROVIDERS: Record<string, MobileMoneyCatalogProvider> 
     country: "*",
     method: "mobile_money",
   },
+  telecel_vodafone: {
+    id: "telecel_vodafone",
+    name: "Telecel (Vodafone)",
+    shortCode: "Telecel",
+    logoDomain: "vodafone.com.gh",
+    country: "GH",
+    method: "mobile_money",
+  },
   airteltigo: {
     id: "airteltigo",
     name: "AirtelTigo Money",
     shortCode: "AirtelTigo",
     logoDomain: "airteltigo.com.gh",
-    country: "*",
-    method: "mobile_money",
-  },
-  opay: {
-    id: "opay",
-    name: "OPay",
-    shortCode: "OPay",
-    logoDomain: "opayweb.com",
-    country: "*",
-    method: "mobile_money",
-  },
-  palm_pay: {
-    id: "palm_pay",
-    name: "PalmPay",
-    shortCode: "PalmPay",
-    logoDomain: "palmpay.com",
     country: "*",
     method: "mobile_money",
   },
@@ -256,12 +249,36 @@ export const MOBILE_MONEY_PROVIDERS: Record<string, MobileMoneyCatalogProvider> 
     country: "*",
     method: "mobile_money",
   },
-  free_money: {
-    id: "free_money",
-    name: "Free Money",
-    shortCode: "Free",
-    logoDomain: "free.sn",
+  wave: {
+    id: "wave",
+    name: "Wave",
+    shortCode: "Wave",
+    logoDomain: "wave.com",
     country: "*",
+    method: "mobile_money",
+  },
+  halopesa: {
+    id: "halopesa",
+    name: "HaloPesa",
+    shortCode: "HaloPesa",
+    logoDomain: "halopesa.co.tz",
+    country: "TZ",
+    method: "mobile_money",
+  },
+  vodacom_tz: {
+    id: "vodacom_tz",
+    name: "Vodacom",
+    shortCode: "Vodacom",
+    logoDomain: "vodacom.co.tz",
+    country: "TZ",
+    method: "mobile_money",
+  },
+  amole: {
+    id: "amole",
+    name: "Amole Money",
+    shortCode: "Amole",
+    logoDomain: "amole.com",
+    country: "ET",
     method: "mobile_money",
   },
 };

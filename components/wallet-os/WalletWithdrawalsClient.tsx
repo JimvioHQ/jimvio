@@ -185,7 +185,6 @@ export function WalletWithdrawalsClient() {
   const [mmProvider, setMmProvider] = useState(
     MOBILE_MONEY_BY_COUNTRY.RW.providers[0]?.id ?? "",
   );
-  const [customMmProvider, setCustomMmProvider] = useState("");
   const [mmPhone, setMmPhone] = useState("");
   const [mmHolder, setMmHolder] = useState("");
 
@@ -217,13 +216,9 @@ export function WalletWithdrawalsClient() {
   const bankList = useMemo(() => banksForCountry(country), [country]);
   const mmProviders = useMemo(() => {
     if (!mmCfg) return [];
-    const list = mmCfg.providers.map((p) =>
+    return mmCfg.providers.map((p) =>
       enrichMobileMoneyProvider(p.id, p.label, country),
     );
-    list.push(
-      enrichMobileMoneyProvider(CUSTOM_INSTITUTION_ID, "Custom / Other", country),
-    );
-    return list;
   }, [mmCfg, country]);
 
   const selectedBank = bankId ? findBank(country, bankId) : null;
@@ -246,8 +241,7 @@ export function WalletWithdrawalsClient() {
     setBankId(banks[0]?.id ?? CUSTOM_INSTITUTION_ID);
     setCustomBankName("");
     const mm = MOBILE_MONEY_BY_COUNTRY[nextCountry];
-    setMmProvider(mm?.providers[0]?.id ?? CUSTOM_INSTITUTION_ID);
-    setCustomMmProvider("");
+    setMmProvider(mm?.providers[0]?.id ?? "");
     setSavedMethodId(null);
     setStep("form");
   }
@@ -278,8 +272,6 @@ export function WalletWithdrawalsClient() {
           method: "mobile_money",
           country,
           provider: mmProvider,
-          customProviderName:
-            mmProvider === CUSTOM_INSTITUTION_ID ? customMmProvider : undefined,
           phone: mmPhone,
           accountHolder: mmHolder,
         };
@@ -326,10 +318,7 @@ export function WalletWithdrawalsClient() {
     if (method === "mobile_money") {
       lines.push({
         label: "Provider",
-        value:
-          dest.provider === CUSTOM_INSTITUTION_ID
-            ? dest.customProviderName || "Custom"
-            : selectedMm?.name || dest.provider || "—",
+        value: selectedMm?.name || dest.provider || "—",
       });
       lines.push({
         label: "Phone",
@@ -385,7 +374,6 @@ export function WalletWithdrawalsClient() {
     }
     if (canonical === "mobile_money") {
       setMmProvider(String(details.provider ?? ""));
-      setCustomMmProvider(String(details.customProviderName ?? ""));
       setMmPhone(String(details.phone ?? ""));
       setMmHolder(String(details.accountHolder ?? ""));
     }
@@ -523,7 +511,7 @@ export function WalletWithdrawalsClient() {
             >
               Activity
             </WalletButton>
-            <Link href="/creator/payouts">
+            <Link href="/wallet/payout-methods">
               <WalletButton variant="outline" size="md">
                 <Settings2 className="h-4 w-4" />
                 Payout methods
@@ -949,21 +937,9 @@ export function WalletWithdrawalsClient() {
                           onChange={(id) => {
                             setMmProvider(id);
                             setSavedMethodId(null);
-                            if (id !== CUSTOM_INSTITUTION_ID) setCustomMmProvider("");
                           }}
                           searchPlaceholder="Search providers…"
                         />
-                        {mmProvider === CUSTOM_INSTITUTION_ID ? (
-                          <Field id="custom-mm" label="Provider name">
-                            <input
-                              id="custom-mm"
-                              value={customMmProvider}
-                              onChange={(e) => setCustomMmProvider(e.target.value)}
-                              className={fieldClass}
-                              required
-                            />
-                          </Field>
-                        ) : null}
                         <Field
                           id="mm-phone"
                           label="Mobile number"
@@ -1228,7 +1204,7 @@ export function WalletWithdrawalsClient() {
             <p className="text-[11.5px] text-[#9B968D]">
               Manage saved destinations in{" "}
               <Link
-                href="/creator/payouts"
+                href="/wallet/payout-methods"
                 className="font-semibold text-[#D6480F] underline underline-offset-2"
               >
                 payout methods

@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/ugc/platform/auth";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
 import { getWalletSecurityStatus } from "@/lib/wallet-os/security";
 import { logWalletActivity } from "@/lib/wallet-os/activity";
-import { listPayoutMethods, requestWithdrawal } from "@/services/creator-economy/payouts";
+import { listActivePayoutMethods, listPayoutMethods, requestWithdrawal } from "@/services/creator-economy/payouts";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { syncAffiliatePaidOnWithdrawal } from "@/lib/affiliate/credit-wallet";
 import {
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
   };
   });
 
-  const methods = await listPayoutMethods(user.id);
+  const methods = await listActivePayoutMethods(user.id);
   const savedMethods = (methods ?? []).map(
     (row: {
       id: string;
