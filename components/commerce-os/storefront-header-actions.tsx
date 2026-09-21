@@ -72,7 +72,9 @@ export function StorefrontHeaderActions({
   const searchBase = storefrontHref(handle, "/search", linkOpts);
   const cartHref = storefrontHref(handle, "/cart", linkOpts);
   const accountHref = storefrontHref(handle, "/account", linkOpts);
-  const loginHref = storefrontHref(handle, "/login", linkOpts);
+  const loginHref = `${storefrontHref(handle, "/login", linkOpts)}${
+    storefrontHref(handle, "/login", linkOpts).includes("?") ? "&" : "?"
+  }next=${encodeURIComponent(accountHref)}`;
   const desktopSearch =
     previewDevice == null
       ? null

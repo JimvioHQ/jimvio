@@ -20,8 +20,51 @@ function sanitizePath(raw: string | null | undefined): string {
   return sanitizeInternalPath(raw, "/")
 }
 
-/** Default destination after a successful login when no deep-link is present. */
+/** Default destination after a successful platform login when no deep-link is present. */
 export const DEFAULT_POST_LOGIN_PATH = "/communities"
+
+/** Default destination after login on a merchant storefront host. */
+export const MERCHANT_POST_LOGIN_PATH = "/"
+
+/**
+ * Jimvio platform destinations that must never be the post-auth landing
+ * for a merchant storefront customer session.
+ */
+const PLATFORM_DESTINATION_PREFIXES = [
+  "/communities",
+  "/marketplace",
+  "/affiliates",
+  "/ugc",
+  "/commerce",
+  "/dashboard",
+  "/welcome",
+  "/admin",
+  "/wallet",
+  "/identity",
+  "/seller",
+  "/dropshipping",
+  "/owner",
+  "/library",
+  "/messages",
+  "/inbox",
+  "/notifications",
+  "/saved",
+  "/activate",
+  "/settings",
+] as const
+
+export function isPlatformDestinationPath(path: string): boolean {
+  const bare = (path.split("?")[0] || "/").trim()
+  if (!bare.startsWith("/")) return false
+  return PLATFORM_DESTINATION_PREFIXES.some(
+    (prefix) => bare === prefix || bare.startsWith(`${prefix}/`),
+  )
+}
+
+export type ResolvePostLoginOptions = {
+  /** When true, default to merchant storefront home and reject platform `next` paths. */
+  merchantStorefront?: boolean
+}
 
 // Role priority — highest wins.
 // Vendors land on /communities like other members; UGC Campaign Center is intentional
@@ -35,11 +78,27 @@ const ROLE_HOME: Record<string, string> = {
 }
 const ROLE_PRIORITY = ["admin", "vendor", "affiliate", "influencer", "buyer"]
 
+function effectiveNextForContext(
+  rawNext: string | null | undefined,
+  merchantStorefront: boolean,
+): string | null | undefined {
+  if (!rawNext?.trim()) return rawNext
+  if (!merchantStorefront) return rawNext
+  const safe = sanitizePath(rawNext)
+  if (isPlatformDestinationPath(safe)) return null
+  return rawNext
+}
+
 export async function resolvePostLoginPath(
   userId: string,
-  rawNext: string | null | undefined
+  rawNext: string | null | undefined,
+  options?: ResolvePostLoginOptions
 ): Promise<string> {
-  const incoming = sanitizePath(rawNext)
+  const merchant = options?.merchantStorefront === true
+  const defaultHome = merchant ? MERCHANT_POST_LOGIN_PATH : DEFAULT_POST_LOGIN_PATH
+  const scopedNext = effectiveNextForContext(rawNext, merchant)
+
+  const incoming = sanitizePath(scopedNext)
   const safe = isPasswordResetPath(incoming) ? "/" : incoming
 
   if (isAuthCompletionPath(safe) && !isPasswordResetPath(safe)) return safe
@@ -47,9 +106,15 @@ export async function resolvePostLoginPath(
   // If a specific destination was requested and it's not just /,
   // honor it — the user was trying to go somewhere
   const hasExplicitNext =
-    rawNext?.trim() &&
-    rawNext.trim() !== "/" &&
+    Boolean(scopedNext?.trim()) &&
+    scopedNext!.trim() !== "/" &&
     safe !== "/"
+
+  // Merchant customers never enter platform onboarding or role homes.
+  if (merchant) {
+    if (hasExplicitNext && !isPlatformDestinationPath(safe)) return safe
+    return MERCHANT_POST_LOGIN_PATH
+  }
 
   try {
     const { data, error } = await adminDb()
@@ -60,7 +125,7 @@ export async function resolvePostLoginPath(
 
     if (error) {
       console.error("[resolvePostLoginPath] role lookup failed:", error.message)
-      return hasExplicitNext ? safe : DEFAULT_POST_LOGIN_PATH
+      return hasExplicitNext ? safe : defaultHome
     }
 
     const roles = ((data ?? []) as { role: string }[]).map(r => r.role)
@@ -76,7 +141,7 @@ export async function resolvePostLoginPath(
         .eq("user_id", userId)
         .maybeSingle()
       const row = onboarding as { welcome_completed_at?: string | null } | null
-      return row?.welcome_completed_at ? DEFAULT_POST_LOGIN_PATH : "/welcome"
+      return row?.welcome_completed_at ? defaultHome : "/welcome"
     }
 
     const roleHome = ROLE_HOME[topRole]
@@ -104,6 +169,6 @@ export async function resolvePostLoginPath(
 
   } catch (err) {
     console.error("[resolvePostLoginPath] unexpected error:", err)
-    return hasExplicitNext ? safe : DEFAULT_POST_LOGIN_PATH
+    return hasExplicitNext ? safe : defaultHome
   }
 }

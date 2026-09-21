@@ -64,6 +64,7 @@ export function StorefrontHomeSections({
   onSelectSection,
   selectedId,
   storeId,
+  displayCurrency,
 }: {
   sections: ThemeSection[];
   products: Product[];
@@ -78,6 +79,7 @@ export function StorefrontHomeSections({
   onSelectSection?: (id: string) => void;
   selectedId?: string | null;
   storeId?: string;
+  displayCurrency?: string | null;
 }) {
   const compact = device === "mobile" || device === "tablet";
   const previewDevice = preview ? device : undefined;
@@ -241,6 +243,7 @@ export function StorefrontHomeSections({
               handle={handle}
               onStoreHost={onStoreHost}
               storeId={storeId}
+              displayCurrency={displayCurrency}
               title={
                 typeof props.title === "string"
                   ? props.title

@@ -9,6 +9,7 @@ import {
 } from "@/lib/platform-maintenance";
 import { isAccountAccessBlocked } from "@/lib/users/account-status";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { isMerchantAuthContextFromRequest } from "@/lib/auth/merchant-auth-context";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
@@ -259,7 +260,10 @@ export async function updateSession(request: NextRequest) {
         const next =
           request.nextUrl.searchParams.get("next") ??
           request.nextUrl.searchParams.get("redirect");
-        const destination = await resolvePostLoginPath(user.id, next);
+        const merchantStorefront = isMerchantAuthContextFromRequest(request);
+        const destination = await resolvePostLoginPath(user.id, next, {
+          merchantStorefront,
+        });
         const url = request.nextUrl.clone();
         const dest = new URL(destination, request.nextUrl.origin);
         url.pathname = dest.pathname;

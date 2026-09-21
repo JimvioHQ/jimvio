@@ -20,6 +20,8 @@ export function LoginForm({
   turnstileEnabled = true,
   /** Merchant storefront branding — hides platform “Jimvio” copy. */
   storefront,
+  /** Used when the URL has no next/redirect (e.g. merchant /login → /account). */
+  defaultNext,
 }: {
   maintenanceMode?: boolean;
   /** When false, login skips Turnstile UI/gate (temporary demo flag). */
@@ -30,6 +32,7 @@ export function LoginForm({
     registerHref?: string;
     hideHeader?: boolean;
   };
+  defaultNext?: string;
 }) {
   const searchParams = useSearchParams();
 
@@ -37,6 +40,7 @@ export function LoginForm({
     searchParams.get("next") ??
     searchParams.get("redirect") ??
     searchParams.get("returnUrl") ??
+    defaultNext ??
     "";
   const urlError = searchParams.get("error");
   const urlStatus = searchParams.get("status");

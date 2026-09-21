@@ -125,7 +125,7 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   headerAlign: "left",
   logoSize: "medium",
   stickyHeader: true,
-  showPoweredBy: true,
+  showPoweredBy: false,
   mobileNavStyle: "bottom",
   maxWidth: "80rem",
   sectionSpacing: "3.5rem",

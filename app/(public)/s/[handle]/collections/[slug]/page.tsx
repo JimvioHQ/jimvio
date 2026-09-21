@@ -112,6 +112,7 @@ export default async function StorefrontCollectionPage({
           handle={store.handle}
           onStoreHost={onStoreHost}
           storeId={store.id}
+          displayCurrency={store.default_currency}
           title=""
           products={products as CollectionProduct[]}
         />
@@ -212,6 +213,7 @@ export default async function StorefrontCollectionPage({
         handle={store.handle}
         onStoreHost={onStoreHost}
         storeId={store.id}
+        displayCurrency={store.default_currency}
         title=""
         products={products}
       />

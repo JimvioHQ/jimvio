@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/actions/marketplace";
 import { proceedToCheckout } from "@/lib/actions/checkout";
 import { useCartStore } from "@/lib/store/use-cart-store";
-import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import { formatStorefrontMoney } from "@/lib/commerce-os/storefront/money";
 import {
   findVariantForSelectedOptions,
   getPurchasableOptionAxes,
@@ -33,6 +33,8 @@ type Props = {
   storeHandle: string;
   storeId: string;
   currency?: string;
+  /** Catalog currency for price conversion into store display currency. */
+  sourceCurrency?: string;
   className?: string;
   price?: number | string | null;
   soldOut?: boolean;
@@ -50,6 +52,7 @@ export function StorefrontAddToCartButton({
   storeHandle,
   storeId,
   currency = "USD",
+  sourceCurrency,
   className,
   price,
   soldOut = false,
@@ -342,7 +345,11 @@ export function StorefrontAddToCartButton({
         </div>
         {displayPrice != null ? (
           <p className="text-sm font-semibold text-[var(--store-text,#111827)]">
-            {formatStoreMoney(displayPrice, currency)}
+            {formatStorefrontMoney(
+              displayPrice,
+              sourceCurrency || currency,
+              currency,
+            )}
           </p>
         ) : null}
       </div>
@@ -420,7 +427,11 @@ export function StorefrontAddToCartButton({
           >
             {addLabel}
             {displayPrice != null && !selectionBlocked && !selectedSoldOut
-              ? ` · ${formatStoreMoney(displayPrice, currency)}`
+              ? ` · ${formatStorefrontMoney(
+                  displayPrice,
+                  sourceCurrency || currency,
+                  currency,
+                )}`
               : ""}
           </Button>
         </div>

@@ -162,7 +162,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
             settings.headerAlign === "centered" ||
             settings.headerStyle === "centered"
           }
-          showPoweredBy={settings.showPoweredBy !== false}
+          showPoweredBy={false}
           storeId={store.id}
           currency={store.default_currency}
           mobileNavStyle={mobileNavStyle}
@@ -176,7 +176,7 @@ export default async function StorefrontLayout({ children, params }: Props) {
           navItems={footerNav}
           onStoreHost={onStoreHost}
           logoUrl={store.logo_url || settings.logoUrl}
-          showPoweredBy={settings.showPoweredBy !== false}
+          showPoweredBy={false}
           social={store.social}
         />
       ) : null}

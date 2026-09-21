@@ -5,7 +5,13 @@ import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect"
+import {
+  resolvePostLoginPath,
+  DEFAULT_POST_LOGIN_PATH,
+  MERCHANT_POST_LOGIN_PATH,
+  isPlatformDestinationPath,
+} from "@/lib/auth/post-login-redirect"
+import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context"
 import { getPublicAppUrl } from "@/lib/app-url"
 import { verifyTOTP } from "@/lib/totp"
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions"
@@ -135,7 +141,20 @@ function clearFailedAttempts(userId: string) {
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
   // Pass through null/undefined so resolvePostLoginPath treats missing next as
   // "use role default" — do NOT pass DEFAULT as an explicit next (that skips onboarding).
-  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next))
+  const merchantStorefront = await isMerchantAuthContext()
+  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next), {
+    merchantStorefront,
+  })
+}
+
+async function resolveTwoFaFallbackNext(next?: string | null): Promise<string> {
+  const merchantStorefront = await isMerchantAuthContext()
+  const sanitized = sanitizeAuthenticatedNext(next)
+  if (merchantStorefront) {
+    if (sanitized && !isPlatformDestinationPath(sanitized)) return sanitized
+    return MERCHANT_POST_LOGIN_PATH
+  }
+  return sanitized ?? DEFAULT_POST_LOGIN_PATH
 }
 
 async function currentSessionIsPasswordRecovery(
@@ -410,7 +429,7 @@ export async function signIn(formData: FormData) {
       cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
       cookieStore.set(TWO_FA_PENDING_COOKIE, userId, twoFaPendingCookieOptions())
 
-      const safe = sanitizeAuthenticatedNext(next) ?? DEFAULT_POST_LOGIN_PATH
+      const safe = await resolveTwoFaFallbackNext(next)
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
     }
   } catch (err) {

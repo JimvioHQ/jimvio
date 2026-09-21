@@ -118,7 +118,7 @@ export function StorefrontHeader({
   onStoreHost = false,
   sticky = true,
   centered = false,
-  showPoweredBy = true,
+  showPoweredBy = false,
   storeId,
   currency,
   previewDevice,
@@ -650,6 +650,7 @@ export function StorefrontFeaturedProducts({
   subtitle,
   previewDevice,
   storeId,
+  displayCurrency,
   layout = "grid",
 }: {
   title?: string;
@@ -659,6 +660,7 @@ export function StorefrontFeaturedProducts({
   subtitle?: string;
   previewDevice?: StorefrontPreviewDevice;
   storeId?: string;
+  displayCurrency?: string | null;
   layout?: "grid" | "rail";
 }) {
   const linkOpts = { onStoreHost };
@@ -719,6 +721,7 @@ export function StorefrontFeaturedProducts({
                 handle={handle}
                 onStoreHost={onStoreHost}
                 storeId={storeId}
+                displayCurrency={displayCurrency}
               />
             </div>
           ))}
@@ -778,7 +781,7 @@ export function StorefrontFooter({
   onStoreHost = false,
   previewDevice,
   logoUrl,
-  showPoweredBy = true,
+  showPoweredBy = false,
   social,
 }: {
   storeName: string;

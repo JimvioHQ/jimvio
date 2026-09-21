@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
+import {
+  resolvePostLoginPath,
+  DEFAULT_POST_LOGIN_PATH,
+  MERCHANT_POST_LOGIN_PATH,
+  isPlatformDestinationPath,
+} from "@/lib/auth/post-login-redirect";
+import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import { TWO_FA_PENDING_COOKIE, cookieMatchesUser } from "@/lib/auth/two-fa-session";
 
@@ -19,12 +25,24 @@ export async function redirectIfAuthenticated(
 
   if (!user) return;
 
+  const merchantStorefront = await isMerchantAuthContext();
+  const fallback = merchantStorefront
+    ? MERCHANT_POST_LOGIN_PATH
+    : DEFAULT_POST_LOGIN_PATH;
+
   const pending = (await cookies()).get(TWO_FA_PENDING_COOKIE)?.value;
   if (cookieMatchesUser(pending, user.id)) {
-    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : DEFAULT_POST_LOGIN_PATH;
+    const candidate =
+      rawNext && isSafeInternalPath(rawNext) ? rawNext : fallback;
+    const next =
+      merchantStorefront && isPlatformDestinationPath(candidate)
+        ? MERCHANT_POST_LOGIN_PATH
+        : candidate;
     redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
   }
 
-  const destination = await resolvePostLoginPath(user.id, rawNext);
+  const destination = await resolvePostLoginPath(user.id, rawNext, {
+    merchantStorefront,
+  });
   redirect(destination);
 }

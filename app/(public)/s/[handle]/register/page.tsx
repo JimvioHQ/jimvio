@@ -31,7 +31,7 @@ export default async function StorefrontRegisterPage({
     sp.next ??
     sp.redirect ??
     sp.returnUrl ??
-    storefrontHref(handle, "/account", linkOpts);
+    storefrontHref(handle, "/", linkOpts);
 
   await redirectIfAuthenticated(next);
 
@@ -83,15 +83,18 @@ export default async function StorefrontRegisterPage({
         }
       >
         <RegisterForm
+          defaultNext={next}
           storefront={{
             storeName: store.name,
-            loginHref: storefrontHref(handle, "/login", linkOpts),
+            loginHref: `${storefrontHref(handle, "/login", linkOpts)}${
+              storefrontHref(handle, "/login", linkOpts).includes("?") ? "&" : "?"
+            }next=${encodeURIComponent(next)}`,
             hideHeader: true,
           }}
         />
       </Suspense>
       <p className="mt-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">
-        Secure account · Powered by Jimvio
+        Secure shopping account
       </p>
     </div>
   );

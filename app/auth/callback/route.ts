@@ -1,7 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
-import { resolvePostLoginPath, DEFAULT_POST_LOGIN_PATH } from "@/lib/auth/post-login-redirect";
+import {
+  resolvePostLoginPath,
+  DEFAULT_POST_LOGIN_PATH,
+  MERCHANT_POST_LOGIN_PATH,
+  isPlatformDestinationPath,
+} from "@/lib/auth/post-login-redirect";
+import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
 import { canSignInDuringMaintenance } from "@/lib/platform-maintenance";
 import { resolvePublicOrigin } from "@/lib/app-url";
@@ -239,14 +245,31 @@ export async function GET(request: Request) {
     console.error("[auth/callback] session sync failed:", err);
   }
 
+  const merchantStorefront = Boolean(
+    handleFromJimvioSubdomain(new URL(origin).hostname),
+  );
+  const authFallback = merchantStorefront
+    ? MERCHANT_POST_LOGIN_PATH
+    : DEFAULT_POST_LOGIN_PATH;
+
   let destination: string;
   try {
-    destination = await resolvePostLoginPath(user.id, safeNext);
+    destination = await resolvePostLoginPath(user.id, safeNext, {
+      merchantStorefront,
+    });
   } catch (err) {
     console.error("[auth/callback] resolvePostLoginPath threw:", err);
-    destination = safeNext && safeNext !== "/" ? safeNext : DEFAULT_POST_LOGIN_PATH;
+    destination =
+      safeNext &&
+      safeNext !== "/" &&
+      !(merchantStorefront && isPlatformDestinationPath(safeNext))
+        ? safeNext
+        : authFallback;
   }
-  destination = sanitizeAuthenticatedNext(destination) ?? DEFAULT_POST_LOGIN_PATH;
+  destination = sanitizeAuthenticatedNext(destination) ?? authFallback;
+  if (merchantStorefront && isPlatformDestinationPath(destination)) {
+    destination = MERCHANT_POST_LOGIN_PATH;
+  }
 
   const admin = createAdminClient();
   const { data: profile2fa } = await admin
@@ -256,7 +279,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (profile2fa?.two_factor_enabled) {
-    const safeDest = isSafeInternalPath(destination) ? destination : DEFAULT_POST_LOGIN_PATH;
+    const safeDest = isSafeInternalPath(destination) ? destination : authFallback;
     const challenge = NextResponse.redirect(
       `${origin}/login/2fa?next=${encodeURIComponent(safeDest)}`,
     );

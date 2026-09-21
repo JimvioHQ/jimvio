@@ -21,6 +21,7 @@ import { FieldInput } from "@/components/ui/field-input";
 
 export function RegisterForm({
   storefront,
+  defaultNext,
 }: {
   /** Merchant storefront branding — hides platform “Jimvio” marketing copy. */
   storefront?: {
@@ -28,9 +29,15 @@ export function RegisterForm({
     loginHref?: string;
     hideHeader?: boolean;
   };
+  /** Used when the URL has no next/redirect (e.g. merchant /register → /account). */
+  defaultNext?: string;
 } = {}) {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
+  const next =
+    searchParams.get("next") ??
+    searchParams.get("redirect") ??
+    defaultNext ??
+    "";
 
   const [showPw, setShowPw] = useState(false);
   const [password, setPassword] = useState("");

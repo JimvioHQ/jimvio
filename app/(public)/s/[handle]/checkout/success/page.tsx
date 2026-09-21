@@ -198,7 +198,7 @@ export default async function StorefrontCheckoutSuccessPage({
         </Link>
       </div>
       <p className="mt-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">
-        Powered by Jimvio
+        Order confirmation
       </p>
     </ResultShell>
   );

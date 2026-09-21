@@ -80,6 +80,7 @@ export default async function StorefrontHomePage({ params }: Props) {
         themeSettings={store.theme_settings}
         onStoreHost={onStoreHost}
         storeId={store.id}
+        displayCurrency={store.default_currency}
       />
     </>
   );

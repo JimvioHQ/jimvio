@@ -13,7 +13,7 @@ import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
 } from "@/lib/commerce-os/storefront-metadata";
-import { formatStoreMoney, salePercent } from "@/lib/commerce-os/storefront/money";
+import { formatStorefrontMoney, salePercent } from "@/lib/commerce-os/storefront/money";
 import { productImageUrls } from "@/lib/commerce-os/storefront/product-media";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
@@ -61,7 +61,8 @@ export default async function StorefrontProductPage({ params }: Props) {
 
   const { product, variants } = loaded;
   const gallery = productImageUrls(product.images);
-  const currency = (product.currency || store.default_currency || "USD").toUpperCase();
+  const displayCurrency = (store.default_currency || "USD").toUpperCase();
+  const sourceCurrency = (product.currency || displayCurrency).toUpperCase();
   const pct = salePercent(product.price, product.compare_at_price);
   const inStock =
     product.track_inventory !== true ||
@@ -87,12 +88,20 @@ export default async function StorefrontProductPage({ params }: Props) {
           </h1>
           <div className="mt-3 flex flex-wrap items-baseline gap-2">
             <p className="text-2xl font-bold text-[var(--store-primary,#FF5A1F)]">
-              {formatStoreMoney(product.price, currency)}
+              {formatStorefrontMoney(
+                product.price,
+                sourceCurrency,
+                displayCurrency,
+              )}
             </p>
             {pct != null ? (
               <>
                 <p className="text-sm text-[var(--store-muted,#6B7280)] line-through">
-                  {formatStoreMoney(product.compare_at_price, currency)}
+                  {formatStorefrontMoney(
+                    product.compare_at_price,
+                    sourceCurrency,
+                    displayCurrency,
+                  )}
                 </p>
                 <span className="rounded-full bg-[var(--store-primary,#FF5A1F)] px-2 py-0.5 text-[10px] font-bold text-white">
                   -{pct}%
@@ -143,7 +152,8 @@ export default async function StorefrontProductPage({ params }: Props) {
               }))}
               storeHandle={store.handle}
               storeId={store.id}
-              currency={currency}
+              currency={displayCurrency}
+              sourceCurrency={sourceCurrency}
               price={product.price}
               soldOut={!inStock}
               sticky
@@ -172,6 +182,7 @@ export default async function StorefrontProductPage({ params }: Props) {
           handle={store.handle}
           onStoreHost={onStoreHost}
           storeId={store.id}
+          displayCurrency={displayCurrency}
           title="You may also like"
           products={related}
         />

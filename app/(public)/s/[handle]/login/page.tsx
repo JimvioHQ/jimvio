@@ -33,7 +33,7 @@ export default async function StorefrontLoginPage({
     sp.next ??
     sp.redirect ??
     sp.returnUrl ??
-    storefrontHref(handle, "/account", linkOpts);
+    storefrontHref(handle, "/", linkOpts);
 
   await redirectIfAuthenticated(next);
 
@@ -88,6 +88,7 @@ export default async function StorefrontLoginPage({
         <LoginForm
           maintenanceMode={maintenanceMode}
           turnstileEnabled={turnstileEnabled}
+          defaultNext={next}
           storefront={{
             storeName: store.name,
             registerHref: storefrontHref(handle, "/register", linkOpts),
@@ -96,7 +97,7 @@ export default async function StorefrontLoginPage({
         />
       </Suspense>
       <p className="mt-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">
-        Secure account · Powered by Jimvio
+        Secure shopping account
       </p>
     </div>
   );

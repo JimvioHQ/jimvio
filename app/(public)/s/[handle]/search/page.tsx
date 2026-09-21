@@ -83,6 +83,7 @@ export default async function StorefrontSearchPage({ params, searchParams }: Pro
             handle={store.handle}
             onStoreHost={onStoreHost}
             storeId={store.id}
+            displayCurrency={store.default_currency}
             title=""
             products={products as Array<{
               id: string;

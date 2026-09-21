@@ -258,7 +258,7 @@ export default async function StorefrontCheckoutPage({
         />
       </div>
       <p className="pb-8 text-center text-[11px] text-[var(--store-muted,#9CA3AF)]">
-        Payments processed securely · Powered by Jimvio
+        Payments processed securely
       </p>
     </div>
   );

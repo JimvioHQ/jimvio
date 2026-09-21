@@ -2,6 +2,7 @@ import Link from "next/link";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import {
   formatStoreMoney,
+  formatStorefrontMoney,
   salePercent,
 } from "@/lib/commerce-os/storefront/money";
 import { productImageAt } from "@/lib/commerce-os/storefront/product-media";
@@ -25,7 +26,7 @@ export type StorefrontProductCardData = {
   vendor_id?: string | null;
 };
 
-export { formatStoreMoney, salePercent };
+export { formatStoreMoney, formatStorefrontMoney, salePercent };
 
 function cardSubtitle(name: string, shortDescription?: string | null): string | null {
   const blurb = shortDescription?.trim() || "";
@@ -43,11 +44,14 @@ export function StorefrontProductCard({
   handle,
   onStoreHost = false,
   storeId,
+  displayCurrency,
 }: {
   product: StorefrontProductCardData;
   handle: string;
   onStoreHost?: boolean;
   storeId?: string;
+  /** Merchant store currency (e.g. USD). Converts from product.currency when needed. */
+  displayCurrency?: string | null;
 }) {
   const linkOpts = { onStoreHost };
   const href = storefrontHref(handle, `/product/${product.slug}`, linkOpts);
@@ -60,6 +64,7 @@ export function StorefrontProductCard({
     typeof product.inventory_quantity === "number" &&
     product.inventory_quantity <= 0;
   const canAdd = Boolean(storeId && product.vendor_id && !soldOut);
+  const storeCurrency = displayCurrency || "USD";
 
   return (
     <article
@@ -128,11 +133,19 @@ export function StorefrontProductCard({
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0">
               <p className="truncate text-[13px] font-bold text-[var(--store-primary,#FF5A1F)] sm:text-sm">
-                {formatStoreMoney(product.price, product.currency)}
+                {formatStorefrontMoney(
+                  product.price,
+                  product.currency,
+                  storeCurrency,
+                )}
               </p>
               {pct != null ? (
                 <p className="truncate text-[11px] text-[var(--store-muted,#6B7280)] line-through">
-                  {formatStoreMoney(product.compare_at_price, product.currency)}
+                  {formatStorefrontMoney(
+                    product.compare_at_price,
+                    product.currency,
+                    storeCurrency,
+                  )}
                 </p>
               ) : null}
             </div>

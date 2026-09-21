@@ -1,5 +1,6 @@
 /**
- * Verifies default post-login destination is /communities (not UGC campaign center).
+ * Verifies default post-login destination is /communities (not UGC campaign center),
+ * and merchant storefronts have an isolated default of "/".
  * Usage: node scripts/verify-post-login-default.mjs
  */
 
@@ -16,8 +17,11 @@ function assert(cond, msg) {
 }
 
 assert(src.includes('DEFAULT_POST_LOGIN_PATH = "/communities"'), "default path");
+assert(src.includes('MERCHANT_POST_LOGIN_PATH = "/"'), "merchant default path");
 assert(/vendor:\s*DEFAULT_POST_LOGIN_PATH/.test(src), "vendor must use DEFAULT_POST_LOGIN_PATH");
 assert(!/vendor:\s*"\/ugc\/campaign-center"/.test(src), "vendor must not hardcode campaign-center");
+assert(src.includes("merchantStorefront"), "merchant storefront option required");
+assert(src.includes("isPlatformDestinationPath"), "platform destination guard required");
 
 const nextConfig = fs.readFileSync(path.join(root, "next.config.ts"), "utf8");
 assert(
