@@ -2,6 +2,7 @@ import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { Hero } from "./hero";
 import { WhatToDoToday } from "./action-hub";
 import { ChooseYourJourney } from "./choose-your-journey";
+import { HomeCanvas } from "./home-canvas";
 import {
   TrustedStrip,
   PlatformOverviewBar,
@@ -80,14 +81,12 @@ export function HomepageRedesign({
   platform,
 }: HomepageRedesignProps) {
   return (
-    <div
-      className="min-h-screen w-full max-w-[100dvw] overflow-x-hidden"
-      style={{ background: "var(--color-bg)" }}
-    >
+    <HomeCanvas>
       <Hero />
       <WhatToDoToday />
       <TrustedStrip />
       <ChooseYourJourney />
+      <HowJimvioWorks />
       <TrendingProductsRow
         products={products as never}
         flashDeals={flashDeals as never}
@@ -100,7 +99,6 @@ export function HomepageRedesign({
         loadError={communitiesLoadError}
       />
       <PlatformOverviewBar />
-      <HowJimvioWorks />
       <HomeMotionSection>
         <OnePlatformOpportunities />
       </HomeMotionSection>
@@ -128,6 +126,6 @@ export function HomepageRedesign({
       <HomeMotionSection>
         <TakeJimvioEverywhere />
       </HomeMotionSection>
-    </div>
+    </HomeCanvas>
   );
 }

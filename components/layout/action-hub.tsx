@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import { JourneyStack, JOURNEY_STACK_CSS } from "./journey-stack";
+import { MobileStoryStack } from "./mobile-story-stack";
 import {
   BuyProductsVisual,
   SellProductsVisual,
@@ -107,8 +108,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
         aria-label={`${action.title}. ${action.cta}`}
       >
         <JourneyStack accent={action.accent} className="h-full" density="hero">
-          <div className="relative flex h-full min-h-[308px] flex-col sm:min-h-[332px]">
-            {/* Soft stage wash */}
+          <div className="relative flex h-full min-h-[clamp(300px,72vw,340px)] flex-col sm:min-h-[332px]">
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
@@ -117,7 +117,6 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
               }}
             />
 
-            {/* Brand accent chip */}
             <span
               aria-hidden
               className={cn(
@@ -132,21 +131,20 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
               <Sparkles className="size-3.5 text-white sm:size-4" strokeWidth={2.4} />
             </span>
 
-            {/* Visual stage */}
-            <div className="relative flex h-[176px] items-center justify-center overflow-visible px-4 pt-6 sm:h-[196px] sm:pt-7">
+            <div className="relative flex h-[clamp(168px,42vw,196px)] items-center justify-center overflow-visible px-4 pt-6 sm:h-[196px] sm:pt-7">
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-x-6 top-8 h-28 rounded-full opacity-70 blur-2xl"
                 style={{
-                  background: `radial-gradient(ellipse at center, color-mix(in srgb, ${action.accent} 30%, transparent), transparent 72%)`,
+                  background: `radial-gradient(ellipse at center, color-mix(in srgb, ${action.accent} 28%, transparent), transparent 72%)`,
                 }}
               />
               <div
                 className={cn(
-                  "relative z-[1] h-[148px] w-[164px] sm:h-[164px] sm:w-[176px]",
+                  "jimvio-card-visual relative z-[1] h-[clamp(140px,36vw,164px)] w-[clamp(152px,40vw,176px)]",
                   "drop-shadow-[0_20px_32px_rgba(17,24,39,0.14)]",
                   "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                  "group-hover/stack:-translate-y-3 group-hover/stack:scale-[1.06]",
+                  "group-hover/stack:-translate-y-3 group-hover/stack:scale-[1.05]",
                   "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:scale-100",
                 )}
               >
@@ -154,11 +152,10 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
               </div>
             </div>
 
-            {/* Floating info panel */}
             <div
               className={cn(
-                "relative z-[2] mx-3 mb-3 mt-auto rounded-[20px] border border-[rgba(17,24,39,0.05)]",
-                "bg-white/95 px-4 py-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)] backdrop-blur-md",
+                "jimvio-card-panel relative z-[2] mx-3 mb-3 mt-auto rounded-[20px] border border-[rgba(17,24,39,0.05)]",
+                "bg-white/95 px-4 py-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)]",
                 "sm:mx-4 sm:mb-4 sm:px-5 sm:py-[18px]",
                 "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 "group-hover/stack:-translate-y-1",
@@ -193,44 +190,18 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
 export function WhatToDoToday() {
   return (
     <SectionReveal
-      className="jimvio-action-hub relative overflow-x-clip bg-[#F8FAFC] pt-16 pb-14 sm:pt-[4.5rem] sm:pb-16 lg:pt-20 lg:pb-[4.5rem]"
+      className="jimvio-action-hub relative overflow-x-clip pt-14 pb-12 sm:pt-16 sm:pb-14 lg:pt-[4.5rem] lg:pb-16"
       aria-labelledby="jimvio-action-hub-title"
-      threshold={0.1}
+      threshold={0.08}
     >
       <style>{`${JOURNEY_STACK_CSS}${ACTION_HUB_CSS}`}</style>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FF5A1F]/25 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-[8%] top-[4%] h-[320px] w-[320px] rounded-full opacity-70 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(255,90,31,0.11) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[6%] top-[14%] h-[280px] w-[280px] rounded-full opacity-55 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-[8%] left-[40%] h-[200px] w-[240px] rounded-full opacity-40 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)",
-        }}
-      />
-
       <div className={shell}>
-        <header className="mx-auto mb-12 max-w-3xl text-center sm:mb-14 lg:mb-16">
+        <header className="mx-auto mb-10 max-w-3xl text-center sm:mb-12 lg:mb-14">
           <RevealItem
             index={0}
             as="p"
-            className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#FF5A1F]/15 bg-[#FFF7F3] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:mb-6 sm:text-[11.5px] sm:tracking-[0.2em]"
+            className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#FF5A1F]/15 bg-white/70 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:mb-6 sm:text-[11.5px] sm:tracking-[0.2em]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             <span
@@ -259,11 +230,11 @@ export function WhatToDoToday() {
           </RevealItem>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 overflow-visible sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
+        <MobileStoryStack desktopClassName="md:grid md:grid-cols-2 md:gap-7 lg:grid-cols-3 lg:gap-8">
           {ACTIONS.map((action, index) => (
             <ActionHubCard key={action.href + action.title} action={action} index={index} />
           ))}
-        </div>
+        </MobileStoryStack>
       </div>
     </SectionReveal>
   );
@@ -272,5 +243,10 @@ export function WhatToDoToday() {
 const ACTION_HUB_CSS = `
 .jimvio-action-hub-card:hover .jimvio-stack-face {
   border-color: color-mix(in srgb, var(--hub-accent) 24%, rgba(255,255,255,0.9));
+}
+@media (min-width: 768px) {
+  .jimvio-action-hub .jimvio-story-stack {
+    display: grid;
+  }
 }
 `;

@@ -11,7 +11,7 @@ const loading = () => (
 );
 
 export const HowJimvioWorks = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.HowJimvioWorks })),
+  () => import("./how-jimvio-works").then((m) => ({ default: m.HowJimvioWorks })),
   { loading },
 );
 

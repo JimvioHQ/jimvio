@@ -384,21 +384,26 @@ const HeroTrustBadges = memo(function HeroTrustBadges() {
 const HeroPremiumBackground = memo(function HeroPremiumBackground() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[var(--color-bg)]" />
-      <div className="absolute inset-0 bg-[var(--color-surface)]/90" />
-      {/* Static soft glow — no animated blur / continuous GPU work */}
+      {/* Soft dissolve into the shared Home canvas — no hard white slab */}
       <div
-        className="absolute left-1/2 top-[16%] h-[min(360px,48vw)] w-[min(560px,78vw)] -translate-x-1/2 rounded-full opacity-70"
+        className="absolute left-1/2 top-[14%] h-[min(380px,50vw)] w-[min(620px,82vw)] -translate-x-1/2 rounded-full opacity-80"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(255,90,31,0.06) 0%, transparent 68%)",
+            "radial-gradient(ellipse at center, rgba(255,90,31,0.07) 0%, transparent 70%)",
         }}
       />
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at center, transparent 62%, rgba(15,23,42,0.015) 100%)",
+            "radial-gradient(ellipse at center, transparent 58%, rgba(15,23,42,0.012) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-24"
+        style={{
+          background:
+            "linear-gradient(180deg, transparent 0%, rgba(248,250,252,0.55) 100%)",
         }}
       />
     </div>
@@ -433,7 +438,7 @@ export function Hero() {
   const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
 
   return (
-    <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
+    <div className="w-full max-w-[100dvw] overflow-x-hidden bg-transparent">
       <section ref={sectionRef} className="relative flex w-full flex-col overflow-hidden">
         <HeroPremiumBackground />
 

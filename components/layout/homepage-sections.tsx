@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment, type CSSProperties, type ReactNode } from "react";
+import { useState, useMemo, useEffect, type CSSProperties, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Sparkles,
-  Bot, Wand2, Search, Clapperboard, Share2, Star,
-  ChevronDown, TrendingUp, Wallet, Target, BarChart3, LineChart,
+  Bot, Wand2, Search, Clapperboard, Star,
+  ChevronDown, TrendingUp, Wallet, Target, LineChart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -62,8 +62,9 @@ const BLUE = "#2563eb";
 const YELLOW = "#ca8a04";
 
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
-const section = "bg-[var(--color-surface)]";
-const sectionAlt = "bg-[var(--color-surface-secondary)]";
+/** Transparent so HomeCanvas atmosphere flows through every section. */
+const section = "bg-transparent";
+const sectionAlt = "bg-transparent";
 const cardBase =
   "rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]";
 const textPrimary = "text-[var(--color-text-primary)]";
@@ -136,10 +137,10 @@ export function TrustedStrip() {
   return (
     <SectionReveal
       as="div"
-      className="border-y border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+      className="jimvio-trusted-strip relative"
       threshold={0.2}
     >
-      <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
+      <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-5 sm:gap-6 sm:py-6`}>
         <RevealBlock index={0} className="flex -space-x-2.5">
           {AVATARS.map((src, i) => (
             <img
@@ -150,7 +151,7 @@ export function TrustedStrip() {
               height={36}
               loading="lazy"
               decoding="async"
-              className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9"
+              className="size-8 rounded-full border-2 border-white object-cover shadow-sm sm:size-9"
             />
           ))}
         </RevealBlock>
@@ -175,7 +176,7 @@ export function TrustedStrip() {
               height={28}
               loading="lazy"
               decoding="async"
-              className="size-7 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] object-cover shadow-sm"
+              className="size-7 rounded-full border border-white/80 bg-white object-cover shadow-sm"
             />
           ))}
           <span className="ml-1 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-neutral-700">
@@ -199,7 +200,7 @@ const OVERVIEW = [
 
 export function PlatformOverviewBar() {
   return (
-    <SectionReveal className={`${section} py-8 sm:py-10`}>
+    <SectionReveal className="py-8 sm:py-10">
       <div className={shell}>
         <RevealBlock index={0}>
           <SectionTitle>Everything You Need In One Platform</SectionTitle>
@@ -229,268 +230,7 @@ export function PlatformOverviewBar() {
 export { ChooseYourJourney } from "./choose-your-journey";
 
 /* ═══ 5. How Jimvio works ═══ */
-const STEPS = [
-  {
-    step: "01",
-    title: "Look around",
-    desc: "Check products, open campaigns, and skim communities before you pick a lane.",
-    detail: "Marketplace, UGC, and groups live in one app.",
-    icon: Search,
-    color: ORANGE,
-  },
-  {
-    step: "02",
-    title: "Promote & earn",
-    desc: "List stock, drop affiliate links, or ship content for a live brief.",
-    detail: "Payouts hit your Jimvio wallet.",
-    icon: Share2,
-    color: GREEN,
-  },
-  {
-    step: "03",
-    title: "See what sticks",
-    desc: "Watch which links and posts actually convert, then do more of that.",
-    detail: "Sales and clicks in one dashboard.",
-    icon: BarChart3,
-    color: BLUE,
-  },
-] as const;
-
-function HowJimvioConnector({
-  filled,
-  fromColor,
-  toColor,
-  id,
-  variant = "horizontal",
-}: {
-  filled: boolean;
-  fromColor: string;
-  toColor: string;
-  id: string;
-  variant?: "horizontal" | "vertical";
-}) {
-  const strokeColor = filled ? `url(#${id})` : "var(--color-border)";
-  const opacity = filled ? 1 : 0.5;
-
-  if (variant === "vertical") {
-    return (
-      <div className="flex justify-center py-1 md:hidden" aria-hidden>
-        <svg
-          viewBox="0 0 36 100"
-          className="h-14 w-9"
-          fill="none"
-          style={{ opacity }}
-        >
-          {filled && (
-            <defs>
-              <linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={fromColor} />
-                <stop offset="100%" stopColor={toColor} />
-              </linearGradient>
-            </defs>
-          )}
-          <path d="M 6 8 H 30" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M 18 8 V 92" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-          <path d="M 6 92 H 30" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-        </svg>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="hidden min-w-[52px] max-w-[148px] flex-1 items-center justify-center self-center px-1 md:flex"
-      aria-hidden
-    >
-      <svg
-        viewBox="0 0 100 36"
-        className="h-9 w-full"
-        preserveAspectRatio="none"
-        fill="none"
-        style={{ opacity }}
-      >
-        {filled && (
-          <defs>
-            <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={fromColor} />
-              <stop offset="100%" stopColor={toColor} />
-            </linearGradient>
-          </defs>
-        )}
-        {/* Top rail */}
-        <path d="M 8 6 H 92" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-        {/* Left drop */}
-        <path d="M 8 6 V 28" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-        {/* Right drop */}
-        <path d="M 92 6 V 28" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-        {/* Feet */}
-        <path d="M 3 28 H 13" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M 87 28 H 97" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
-    </div>
-  );
-}
-
-export function HowJimvioWorks() {
-  const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const node = document.getElementById("jimvio-how-it-works");
-    if (!node || typeof IntersectionObserver === "undefined") {
-      setInView(true);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
-      { threshold: 0.15 },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (paused || !inView) return;
-    const timer = setInterval(
-      () => setActive((current) => (current + 1) % STEPS.length),
-      5200,
-    );
-    return () => clearInterval(timer);
-  }, [paused, inView]);
-
-  const focusStep = (index: number) => {
-    setActive(index);
-    setPaused(true);
-  };
-
-  return (
-    <SectionReveal id="jimvio-how-it-works" className={`${sectionAlt} py-10 sm:py-14`}>
-      <div className={shell}>
-        <RevealBlock index={0}>
-          <SectionTitle sub="Roughly how it goes — tap a step if you want the detail.">
-            How Jimvio works
-          </SectionTitle>
-        </RevealBlock>
-
-        {/* Showcase cards */}
-        <div
-          className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5"
-          onMouseLeave={() => setPaused(false)}
-        >
-          {STEPS.map((s, index) => (
-            <Fragment key={s.step}>
-              {index > 0 && (
-                <HowJimvioConnector
-                  id={`jimvio-connector-v-${index}`}
-                  filled={index <= active}
-                  fromColor={STEPS[index - 1].color}
-                  toColor={s.color}
-                  variant="vertical"
-                />
-              )}
-              <article
-                role="button"
-                tabIndex={0}
-                onClick={() => focusStep(index)}
-                onMouseEnter={() => focusStep(index)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    focusStep(index);
-                  }
-                }}
-                className={cn(
-                  "jimvio-reveal-item relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-[transform,opacity,border-color] duration-200 sm:p-5",
-                  active === index
-                    ? "-translate-y-0.5 border-transparent"
-                    : "border-[var(--color-border)] opacity-75 hover:opacity-100",
-                )}
-                style={
-                  {
-                    ["--reveal-i" as string]: index + 1,
-                    ["--reveal-stagger" as string]: `${jimvioStagger.default}ms`,
-                    ...(active === index
-                      ? {
-                          borderColor: `${s.color}35`,
-                        }
-                      : {}),
-                  } as CSSProperties
-                }
-              >
-                <span
-                  className={cn(
-                    "absolute left-0 top-5 bottom-5 w-1 rounded-r-full transition-all duration-300",
-                    active === index ? "opacity-100" : "opacity-35",
-                  )}
-                  style={{ background: s.color }}
-                  aria-hidden
-                />
-
-                <div className="mb-4 flex items-center justify-between gap-3 pl-2.5">
-                  <span
-                    className="font-[family-name:var(--font-jetbrains-mono)] text-[11px] font-bold tracking-widest"
-                    style={{ color: s.color }}
-                  >
-                    {s.step}
-                  </span>
-                  <span
-                    className={cn(
-                      "grid size-10 place-items-center rounded-xl transition-transform duration-200",
-                      active === index && "scale-[1.04]",
-                    )}
-                    style={{ background: `${s.color}12`, color: s.color }}
-                  >
-                    <s.icon className="size-[18px]" strokeWidth={2.2} />
-                  </span>
-                </div>
-
-                <h3 className="pl-2.5 text-[17px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[18px]">
-                  {s.title}
-                </h3>
-                <p
-                  className={cn(
-                    "mt-2 flex-1 pl-2.5 text-[13px] leading-relaxed transition-colors duration-300",
-                    active === index
-                      ? "text-[var(--color-text-secondary)]"
-                      : "text-[var(--color-text-muted)]",
-                  )}
-                >
-                  {s.desc}
-                </p>
-
-                <p
-                  className={cn(
-                    "mt-4 border-t pt-3 pl-2.5 text-[11px] font-medium leading-snug transition-opacity duration-300 sm:text-[12px]",
-                    active === index ? "opacity-100" : "opacity-70",
-                  )}
-                  style={{ borderColor: `${s.color}22`, color: s.color }}
-                >
-                  {s.detail}
-                </p>
-              </article>
-            </Fragment>
-          ))}
-        </div>
-
-        <p className="mt-5 text-center text-[11px] text-[var(--color-text-muted)] sm:text-[12px]">
-          {paused ? "Auto-play paused" : "Showcase auto-advances every few seconds"}
-          {" · "}
-          <button
-            type="button"
-            onClick={() => {
-              setPaused((p) => !p);
-              if (paused) setActive(0);
-            }}
-            className="font-semibold text-[var(--color-text-secondary)] underline-offset-2 hover:underline"
-          >
-            {paused ? "Resume showcase" : "Pause"}
-          </button>
-        </p>
-      </div>
-    </SectionReveal>
-  );
-}
+export { HowJimvioWorks } from "./how-jimvio-works";
 
 /* ═══ 6. Trending Products ═══ */
 export function TrendingProductsRow({
@@ -506,7 +246,7 @@ export function TrendingProductsRow({
 }) {
   if (loadError) {
     return (
-      <section className="bg-[#F8FAFC] py-12 sm:py-16">
+      <section className="py-12 sm:py-16">
         <div className={shell}>
           <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827]">
             Trending Products
@@ -523,7 +263,7 @@ export function TrendingProductsRow({
   if (!trending.length) return null;
 
   return (
-    <SectionReveal className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
         <RevealBlock index={0} className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
           <div>

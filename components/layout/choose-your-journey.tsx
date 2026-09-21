@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import { JourneyStack, JOURNEY_STACK_CSS } from "./journey-stack";
+import { MobileStoryStack } from "./mobile-story-stack";
 import {
   BuyerBagVisual,
   SellerStoreVisual,
@@ -112,7 +113,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         aria-label={`${journey.role}. ${journey.cta}`}
       >
         <JourneyStack accent={journey.color} className="h-full" density="compact">
-          <div className="relative flex h-full min-h-[300px] flex-col overflow-hidden sm:min-h-[268px] sm:flex-row sm:items-stretch">
+          <div className="relative flex h-full min-h-[clamp(290px,78vw,320px)] flex-col overflow-hidden sm:min-h-[268px] sm:flex-row sm:items-stretch">
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
@@ -121,10 +122,9 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
               }}
             />
 
-            {/* Visual column */}
             <div
               className={cn(
-                "relative z-[2] flex shrink-0 items-center justify-center",
+                "jimvio-card-visual relative z-[2] flex shrink-0 items-center justify-center",
                 "mx-auto mt-5 h-[124px] w-[136px]",
                 "sm:mx-0 sm:mt-0 sm:h-auto sm:w-[42%] sm:max-w-[168px] sm:self-stretch",
                 "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -144,11 +144,10 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
               </div>
             </div>
 
-            {/* Floating info card */}
             <div
               className={cn(
-                "relative z-[3] mx-3 mb-3 mt-2 flex flex-1 flex-col rounded-[20px] border border-[rgba(17,24,39,0.05)]",
-                "bg-white/95 p-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)] backdrop-blur-md",
+                "jimvio-card-panel relative z-[3] mx-3 mb-3 mt-2 flex flex-1 flex-col rounded-[20px] border border-[rgba(17,24,39,0.05)]",
+                "bg-white/95 p-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)]",
                 "sm:mx-0 sm:mb-3 sm:mr-3 sm:mt-3 sm:p-[18px]",
                 "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 "group-hover/stack:-translate-y-1",
@@ -189,7 +188,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
               </ul>
 
               <span
-                className="mt-auto pt-3.5 inline-flex min-h-11 items-center gap-1.5 text-[13px] font-bold sm:text-[13.5px]"
+                className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-3.5 text-[13px] font-bold sm:text-[13.5px]"
                 style={{ color: journey.color }}
               >
                 {journey.cta}
@@ -210,40 +209,18 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
 export function ChooseYourJourney() {
   return (
     <SectionReveal
-      className="jimvio-journey-hub relative overflow-x-clip bg-white py-14 sm:py-16 lg:py-20"
+      className="jimvio-journey-hub relative overflow-x-clip py-12 sm:py-14 lg:py-16"
       aria-labelledby="jimvio-journey-title"
-      threshold={0.1}
+      threshold={0.08}
     >
       <style>{`${JOURNEY_STACK_CSS}${JOURNEY_CSS}`}</style>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-[6%] top-[10%] h-[280px] w-[280px] rounded-full opacity-55 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(255,90,31,0.08) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[8%] top-[18%] h-[240px] w-[240px] rounded-full opacity-45 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-[12%] left-[35%] h-[220px] w-[220px] rounded-full opacity-35 blur-3xl"
-        style={{
-          background: "radial-gradient(circle, rgba(22,163,74,0.05) 0%, transparent 70%)",
-        }}
-      />
-
       <div className={shell}>
-        <div className="mb-12 text-center sm:mb-14">
+        <div className="mb-10 text-center sm:mb-12">
           <RevealItem
             index={0}
             as="p"
-            className="mb-4 inline-flex items-center rounded-full border border-[#FF5A1F]/12 bg-[#FFF7F3] px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:mb-5"
+            className="mb-4 inline-flex items-center rounded-full border border-[#FF5A1F]/12 bg-white/70 px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:mb-5"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Your Jimvio Journey
@@ -267,11 +244,11 @@ export function ChooseYourJourney() {
           </RevealItem>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 overflow-visible sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
+        <MobileStoryStack desktopClassName="md:grid md:grid-cols-2 md:gap-7 lg:grid-cols-3 lg:gap-8">
           {JOURNEYS.map((journey, index) => (
             <JourneyCard key={journey.role} journey={journey} index={index} />
           ))}
-        </div>
+        </MobileStoryStack>
       </div>
     </SectionReveal>
   );
@@ -280,5 +257,10 @@ export function ChooseYourJourney() {
 const JOURNEY_CSS = `
 .jimvio-journey-card:hover .jimvio-stack-face {
   border-color: color-mix(in srgb, var(--journey-accent) 24%, rgba(255,255,255,0.9));
+}
+@media (min-width: 768px) {
+  .jimvio-journey-hub .jimvio-story-stack {
+    display: grid;
+  }
 }
 `;

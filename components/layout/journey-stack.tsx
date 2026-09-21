@@ -11,7 +11,7 @@ type JourneyStackProps = {
 
 /**
  * Art-directed translucent layer stack used by Home journey cards.
- * Back layers fan behind a smaller face so the stack reads as a physical object.
+ * Layers use opacity (not backdrop-filter) for performance across many cards.
  */
 export function JourneyStack({
   accent,
@@ -36,70 +36,62 @@ export function JourneyStack({
         } as CSSProperties
       }
     >
-      {/* Soft accent glow */}
       <span
         aria-hidden
         className={cn(
           "pointer-events-none absolute left-1/2 top-[18%] -z-20 -translate-x-1/2 rounded-full blur-3xl",
-          "opacity-55 transition-opacity duration-500 ease-out group-hover/stack:opacity-95",
+          "opacity-50 transition-opacity duration-500 ease-out group-hover/stack:opacity-85",
           "motion-reduce:transition-none",
           isHero ? "h-[62%] w-[82%]" : "h-[56%] w-[76%]",
         )}
         style={{
-          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${accent} 34%, transparent) 0%, transparent 72%)`,
+          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${accent} 30%, transparent) 0%, transparent 72%)`,
         }}
       />
 
-      {/* Far back layer */}
       <span
         aria-hidden
         className={cn(
           "jimvio-stack-layer pointer-events-none absolute inset-x-4 bottom-3 top-7 -z-10 rounded-[28px] sm:inset-x-5 sm:top-8",
-          "border border-white/50 bg-white/30 shadow-[0_18px_44px_rgba(17,24,39,0.045)]",
-          "backdrop-blur-[6px]",
+          "border border-white/55 bg-white/35 shadow-[0_18px_44px_rgba(17,24,39,0.04)]",
           "origin-bottom transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-1.5 group-hover/stack:-rotate-[7deg]",
+          "group-hover/stack:-translate-y-1.5 group-hover/stack:-rotate-[6.5deg]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:rotate-0",
-          "-rotate-[6deg] -translate-x-1.5",
+          "-rotate-[5.5deg] -translate-x-1.5",
         )}
       />
 
-      {/* Mid layer */}
       <span
         aria-hidden
         className={cn(
-          "jimvio-stack-layer pointer-events-none absolute inset-x-3 bottom-2 top-4.5 -z-10 rounded-[28px] sm:inset-x-3.5 sm:top-5",
-          "border border-white/70 bg-white/45 shadow-[0_14px_40px_rgba(17,24,39,0.05)]",
-          "backdrop-blur-[8px]",
+          "jimvio-stack-layer pointer-events-none absolute inset-x-3 bottom-2 top-5 -z-10 rounded-[28px] sm:inset-x-3.5 sm:top-5",
+          "border border-white/70 bg-white/50 shadow-[0_14px_40px_rgba(17,24,39,0.045)]",
           "origin-bottom transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-1 group-hover/stack:rotate-[5deg]",
+          "group-hover/stack:-translate-y-1 group-hover/stack:rotate-[4.5deg]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:rotate-0",
-          "rotate-[4.5deg] translate-x-1.5",
+          "rotate-[4deg] translate-x-1.5",
         )}
       />
 
-      {/* Near back layer — subtle peek */}
       <span
         aria-hidden
         className={cn(
           "jimvio-stack-layer pointer-events-none absolute inset-x-2 bottom-1 top-3 -z-10 rounded-[28px] sm:inset-x-2.5 sm:top-3.5",
-          "border border-white/80 bg-white/60 shadow-[0_10px_32px_rgba(17,24,39,0.05)]",
-          "backdrop-blur-[10px]",
+          "border border-white/85 bg-white/70 shadow-[0_10px_32px_rgba(17,24,39,0.045)]",
           "origin-bottom transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-0.5 group-hover/stack:rotate-[1.5deg]",
+          "group-hover/stack:-translate-y-0.5 group-hover/stack:rotate-[1.25deg]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:rotate-0",
-          "rotate-[1.25deg]",
+          "rotate-[1.1deg]",
         )}
       />
 
-      {/* Front surface */}
       <div
         className={cn(
           "jimvio-stack-face relative z-0 h-full overflow-hidden rounded-[26px] sm:rounded-[28px]",
-          "border border-[rgba(17,24,39,0.055)] bg-white/95",
-          "shadow-[0_2px_8px_rgba(17,24,39,0.04),0_22px_56px_rgba(17,24,39,0.085)]",
+          "border border-[rgba(17,24,39,0.055)] bg-white",
+          "shadow-[0_2px_8px_rgba(17,24,39,0.04),0_22px_56px_rgba(17,24,39,0.08)]",
           "transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-2 group-hover/stack:shadow-[0_12px_28px_rgba(17,24,39,0.08),0_36px_72px_rgba(17,24,39,0.13)]",
+          "group-hover/stack:-translate-y-[6px] group-hover/stack:shadow-[0_12px_28px_rgba(17,24,39,0.08),0_36px_72px_rgba(17,24,39,0.12)]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
         )}
       >
@@ -110,8 +102,9 @@ export function JourneyStack({
 }
 
 export const JOURNEY_STACK_CSS = `
-.jimvio-action-hub .grid,
-.jimvio-journey-hub .grid {
+.jimvio-action-hub .jimvio-story-stack,
+.jimvio-journey-hub .jimvio-story-stack,
+.jimvio-how-works .jimvio-story-stack {
   overflow: visible;
 }
 .jimvio-journey-stack:focus-within .jimvio-stack-face {
@@ -120,7 +113,7 @@ export const JOURNEY_STACK_CSS = `
     0 0 0 2px #F8FAFC,
     0 0 0 4px color-mix(in srgb, var(--stack-accent) 55%, transparent),
     0 12px 28px rgba(17,24,39,0.08),
-    0 36px 72px rgba(17,24,39,0.13);
+    0 36px 72px rgba(17,24,39,0.12);
 }
 @media (prefers-reduced-motion: reduce) {
   .jimvio-journey-stack .jimvio-stack-layer,
