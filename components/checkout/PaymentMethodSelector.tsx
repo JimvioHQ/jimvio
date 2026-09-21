@@ -510,7 +510,6 @@ export type MethodId =
   | "nowpayments"
   | "flutterwave"
   | "mobile_money"
-  | "pawapay"
   | "binancepay";
 
 interface MethodDef {
@@ -519,15 +518,14 @@ interface MethodDef {
   description: string;
   iconNode: React.ReactNode;
   logos: React.ReactNode[];
-  recommended?: boolean;
   feeLabel: string;
 }
 
 const METHODS: MethodDef[] = [
   {
     id: "flutterwave",
-    title: "International Payments",
-    description: "Pay securely with Visa, Mastercard, and other cards",
+    title: "Pay with Cards",
+    description: "Pay securely with Visa, Mastercard, Amex, and other supported cards",
     iconNode: (
       <div style={{
         width: 48, height: 48, borderRadius: "50%",
@@ -542,13 +540,11 @@ const METHODS: MethodDef[] = [
       </div>
     ),
     logos: [
-      <Discover key="disc" />,
       <Visa key="v" />,
-      <Amex key="amex" />,
       <Mastercard key="mc" />,
+      <Amex key="amex" />,
       <Verve key="verve" />,
     ],
-    recommended: true,
     feeLabel: "Free",
   },
   {
@@ -567,8 +563,7 @@ const METHODS: MethodDef[] = [
         </svg>
       </div>
     ),
-    // Logos are rendered dynamically after country selection in MobileMoneyCheckoutPanel.
-    // Do NOT put static MTN/Airtel/Rwanda operators on the global method card.
+    // Providers are shown on the dedicated Mobile Money step — never inline here.
     logos: [],
     feeLabel: "Free",
   },
@@ -715,16 +710,10 @@ export function PaymentMethodSelector({
 
                 {/* Body */}
                 <div className="flex-1 min-w-0">
-                  {/* Title + recommended */}
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <p className="text-[14px] font-bold leading-none max-lg:text-[15px]">
                       {m.title}
                     </p>
-                    {m.recommended && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500 text-white leading-none">
-                        Recommended
-                      </span>
-                    )}
                   </div>
 
                   {/* Description */}
@@ -734,7 +723,7 @@ export function PaymentMethodSelector({
 
                   {m.id === "mobile_money" && (
                     <p className="text-[11px] text-[var(--color-text-muted)] mb-1.5">
-                      Select your country to see available providers
+                      Continue to a secure Mobile Money checkout
                     </p>
                   )}
 

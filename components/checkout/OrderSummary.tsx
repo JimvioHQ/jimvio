@@ -89,7 +89,7 @@ export function OrderSummary({
         </div>
         <div className="flex items-start gap-2.5 text-[11px] text-[var(--color-text-secondary)]">
           <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)] mt-0.5" aria-hidden />
-          <span>PCI-aligned payment partners (PesaPal, PawaPay, NowPayments).</span>
+          <span>PCI-aligned payment partners (Flutterwave, Binance Pay, NowPayments).</span>
         </div>
       </div>
     </div>

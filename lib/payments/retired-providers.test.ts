@@ -9,12 +9,17 @@ import {
 } from "./retired-providers.ts";
 
 describe("retired payment providers", () => {
-  it("recognizes pesapal and paypal as retired", () => {
+  it("recognizes pesapal, paypal, afripay, and pawapay as retired", () => {
     assert.equal(isRetiredPaymentProvider("pesapal"), true);
     assert.equal(isRetiredPaymentProvider("PayPal"), true);
+    assert.equal(isRetiredPaymentProvider("afripay"), true);
+    assert.equal(isRetiredPaymentProvider("PawaPay"), true);
     assert.equal(isRetiredPaymentProvider("flutterwave"), false);
     assert.equal(isRetiredPaymentProvider("nowpayments"), false);
-    assert.deepEqual([...RETIRED_PAYMENT_PROVIDERS], ["pesapal", "paypal"]);
+    assert.deepEqual(
+      [...RETIRED_PAYMENT_PROVIDERS],
+      ["pesapal", "paypal", "afripay", "pawapay"],
+    );
   });
 
   it("returns a safe 410 rejection body", async () => {
@@ -35,6 +40,8 @@ describe("retired payment providers", () => {
     const methodIdBlock = match![0];
     assert.equal(/pesapal/.test(methodIdBlock), false);
     assert.equal(/paypal/.test(methodIdBlock), false);
+    assert.equal(/pawapay/.test(methodIdBlock), false);
+    assert.equal(/afripay/.test(methodIdBlock), false);
     assert.match(methodIdBlock, /flutterwave/);
     assert.match(methodIdBlock, /nowpayments/);
     assert.match(methodIdBlock, /mobile_money/);
@@ -48,6 +55,8 @@ describe("retired payment providers", () => {
     assert.match(src, /RETIRED_PAYMENT_PROVIDERS|isRetiredPaymentProvider/);
     assert.equal(/case "pesapal":/.test(src), false);
     assert.equal(/case "paypal":/.test(src), false);
+    assert.equal(/case "pawapay":/.test(src), false);
+    assert.equal(/case "afripay":/.test(src), false);
   });
 
   it("admin payments form does not offer retired provider toggles", () => {
@@ -57,6 +66,8 @@ describe("retired payment providers", () => {
     );
     assert.equal(/pesapal:\s*"PesaPal"/.test(src), false);
     assert.equal(/paypal:\s*"PayPal"/.test(src), false);
+    assert.equal(/pawapay:\s*"PawaPay"/.test(src), false);
+    assert.equal(/afripay:\s*"AfriPay"/.test(src), false);
   });
 
   it("historical order labels still recognize retired providers", () => {
@@ -66,5 +77,7 @@ describe("retired payment providers", () => {
     );
     assert.match(src, /pesapal/);
     assert.match(src, /paypal/);
+    assert.match(src, /pawapay/);
+    assert.match(src, /afripay/);
   });
 });

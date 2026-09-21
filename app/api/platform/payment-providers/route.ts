@@ -28,8 +28,6 @@ function providerConfigured(id: PaymentProviderId): boolean {
         envSet("BINANCE_PAY_API_KEY", "BINANCEPAY_API_KEY") &&
         envSet("BINANCE_PAY_API_SECRET", "BINANCE_PAY_SECRET_KEY", "BINANCEPAY_SECRET_KEY")
       );
-    case "pawapay":
-      return envSet("PAWAPAY_API_TOKEN");
     default:
       return false;
   }

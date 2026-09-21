@@ -34,7 +34,12 @@ export async function POST(
   }
 
   const provider = (paymentProvider || "flutterwave").toLowerCase();
-  if (provider === "pesapal" || provider === "paypal") {
+  if (
+    provider === "pesapal" ||
+    provider === "paypal" ||
+    provider === "pawapay" ||
+    provider === "afripay"
+  ) {
     return NextResponse.json(
       { error: "This payment provider is no longer available. Please choose another method." },
       { status: 410 },

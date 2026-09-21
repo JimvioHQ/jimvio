@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Loader2, Smartphone } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Lock, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type MoMoMarketClient = {
@@ -29,13 +29,16 @@ type Quote = {
   amountUsd: number;
 };
 
-interface MobileMoneyCheckoutPanelProps {
+export interface MobileMoneyPaymentStepProps {
   amountUsd: number;
   formatMoney: (amount: number, currency: string) => string;
   preferredCountry?: string | null;
   preferredPhone?: string | null;
   value: MoMoFormState;
   onChange: (next: MoMoFormState) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  submitting?: boolean;
   awaitingConfirmation?: boolean;
   error?: string | null;
 }
@@ -58,7 +61,6 @@ function authHint(mode: MoMoMarketClient["authorizationMode"]): string {
   return "Authorize the charge on your phone after you continue.";
 }
 
-/** Compact provider chip — label only, no fake logos. */
 function ProviderChip({
   label,
   selected,
@@ -77,12 +79,12 @@ function ProviderChip({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "inline-flex h-10 items-center justify-center rounded-lg border px-3 text-[12px] font-semibold transition-colors",
+        "inline-flex min-h-11 min-w-[5.5rem] flex-1 items-center justify-center rounded-xl border px-4 text-[13px] font-semibold transition-colors sm:flex-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35",
         selected
-          ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/50 text-[var(--color-text-primary)]"
+          ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/50 text-[var(--color-text-primary)] shadow-[0_4px_14px_rgba(253,80,0,0.1)]"
           : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] hover:border-[var(--color-border-strong)]",
-        disabled && "opacity-50 cursor-not-allowed",
+        disabled && "cursor-not-allowed opacity-50",
       )}
     >
       {label}
@@ -90,21 +92,30 @@ function ProviderChip({
   );
 }
 
-export function MobileMoneyCheckoutPanel({
+/**
+ * Dedicated Mobile Money payment step — not an inline expandable panel.
+ * Selecting the method only navigates here; payment starts on Continue.
+ */
+export function MobileMoneyPaymentStep({
   amountUsd,
   formatMoney,
   preferredCountry,
   preferredPhone,
   value,
   onChange,
+  onBack,
+  onContinue,
+  submitting = false,
   awaitingConfirmation = false,
   error = null,
-}: MobileMoneyCheckoutPanelProps) {
+}: MobileMoneyPaymentStepProps) {
   const [markets, setMarkets] = useState<MoMoMarketClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [preferredUnsupported, setPreferredUnsupported] = useState(false);
+
+  const busy = submitting || awaitingConfirmation;
 
   useEffect(() => {
     let cancelled = false;
@@ -128,8 +139,6 @@ export function MobileMoneyCheckoutPanel({
           setPreferredUnsupported(true);
         }
 
-        // Only auto-seed when the preferred checkout country is actually supported.
-        // Never silently default to Rwanda (or any other first catalog entry).
         if (!value.country && preferred) {
           const phoneLocal = preferredPhone
             ? stripDial(preferredPhone, preferred.dialCode)
@@ -164,9 +173,9 @@ export function MobileMoneyCheckoutPanel({
       return;
     }
     let cancelled = false;
-    const country = value.country;
+    setQuoteLoading(true);
     fetch(
-      `/api/payments/mobile-money/capabilities?country=${encodeURIComponent(country)}&amountUsd=${encodeURIComponent(String(amountUsd))}`,
+      `/api/payments/mobile-money/capabilities?country=${encodeURIComponent(value.country)}&amountUsd=${encodeURIComponent(String(amountUsd))}`,
     )
       .then((r) => r.json())
       .then((data) => {
@@ -210,209 +219,284 @@ export function MobileMoneyCheckoutPanel({
     });
   }
 
-  if (loading) {
-    return (
-      <div
-        className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-4"
-        role="status"
-        aria-live="polite"
-      >
-        <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)]">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          Loading Mobile Money options…
-        </div>
-      </div>
-    );
-  }
-
-  if (markets.length === 0) {
-    return (
-      <div
-        className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-4 text-[13px] text-[var(--color-text-secondary)]"
-        role="alert"
-      >
-        Mobile Money is not available right now. Please choose another payment
-        method.
-      </div>
-    );
-  }
+  const canContinue =
+    Boolean(value.country) &&
+    Boolean(value.phone.trim()) &&
+    (!selectedMarket?.requiresNetwork || Boolean(value.network)) &&
+    !busy &&
+    markets.length > 0;
 
   return (
     <div
-      className="mt-4 space-y-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 p-4 max-lg:p-3.5"
-      aria-label="Mobile Money payment details"
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
+      aria-label="Mobile Money payment"
     >
-      <div className="flex items-start gap-3">
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={busy}
+        className={cn(
+          "mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-secondary)]",
+          "transition-colors hover:text-[var(--color-text-primary)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 rounded-md",
+          busy && "opacity-50 cursor-not-allowed",
+        )}
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to payment methods
+      </button>
+
+      <div className="mb-6 flex items-start gap-3.5">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-400/90 text-black"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+          style={{
+            background: "linear-gradient(135deg, #FFCC00 0%, #F5A623 100%)",
+          }}
           aria-hidden
         >
-          <Smartphone className="h-5 w-5" />
+          <Smartphone className="h-5 w-5 text-black" />
         </div>
         <div className="min-w-0">
-          <p className="text-[14px] font-bold text-[var(--color-text-primary)]">
+          <h1 className="text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)] sm:text-[22px]">
             Mobile Money
+          </h1>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
+            Pay securely using your local mobile wallet.
           </p>
-          <p className="mt-0.5 text-[12px] text-[var(--color-text-secondary)]">
-            {selectedMarket
-              ? authHint(selectedMarket.authorizationMode)
-              : "Select your country to see available providers"}
-          </p>
+          {selectedMarket && (
+            <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)]">
+              {authHint(selectedMarket.authorizationMode)}
+            </p>
+          )}
         </div>
       </div>
 
-      {preferredUnsupported && !value.country && (
-        <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-900 dark:text-amber-100" role="status">
-          Mobile Money is not currently available in this country. Choose a
-          supported country for your mobile wallet, or pick another payment
-          method.
-        </p>
-      )}
-
-      <label className="block space-y-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-          Country
+      <div className="mb-5 flex items-baseline justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/70 px-4 py-3">
+        <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">
+          Your order
         </span>
-        <select
-          value={value.country}
-          onChange={(e) => handleCountryChange(e.target.value)}
-          disabled={awaitingConfirmation}
-          className={cn(
-            "h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[14px]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35",
-          )}
-          aria-required
+        <span className="text-[16px] font-bold tabular-nums text-[var(--color-text-primary)]">
+          {formatMoney(amountUsd, "USD")}
+        </span>
+      </div>
+
+      {loading ? (
+        <div
+          className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-4 py-8 text-[13px] text-[var(--color-text-secondary)]"
+          role="status"
         >
-          <option value="" disabled>
-            Choose your country
-          </option>
-          {markets.map((m) => (
-            <option key={m.countryCode} value={m.countryCode}>
-              {m.flag} {m.countryName}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {selectedMarket && selectedMarket.networks.length > 0 && (
-        <fieldset className="space-y-2" disabled={awaitingConfirmation}>
-          <legend className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            {selectedMarket.requiresNetwork
-              ? "Mobile Money Provider"
-              : "Provider"}
-          </legend>
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label="Mobile Money providers"
-          >
-            {selectedMarket.networks.map((n) => (
-              <ProviderChip
-                key={n.id}
-                label={n.label}
-                selected={
-                  selectedMarket.requiresNetwork
-                    ? value.network === n.id
-                    : true
-                }
-                disabled={awaitingConfirmation || !selectedMarket.requiresNetwork}
-                onSelect={() => {
-                  if (!selectedMarket.requiresNetwork) return;
-                  onChange({ ...value, network: n.id });
-                }}
-              />
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {selectedMarket && (
-        <label className="block space-y-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Mobile Number
-          </span>
-          <div className="flex gap-2">
-            <span
-              className="inline-flex h-11 shrink-0 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] font-semibold text-[var(--color-text-primary)]"
-              aria-hidden
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Loading Mobile Money options…
+        </div>
+      ) : markets.length === 0 ? (
+        <div
+          className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-5 text-[13px] text-[var(--color-text-secondary)]"
+          role="alert"
+        >
+          Mobile Money is not available right now. Please choose another payment
+          method.
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {preferredUnsupported && !value.country && (
+            <p
+              className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-2.5 text-[12px] text-amber-900 dark:text-amber-100"
+              role="status"
             >
-              {selectedMarket.flag} {selectedMarket.dialCode}
+              Mobile Money is not currently available in this country. Choose a
+              supported country for your mobile wallet, or go back and pick
+              another payment method.
+            </p>
+          )}
+
+          <label className="block space-y-2">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+              Country
             </span>
-            <input
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              placeholder="Mobile wallet number"
-              value={value.phone}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  phone: e.target.value.replace(/[^\d\s]/g, ""),
-                })
-              }
-              disabled={awaitingConfirmation}
+            <select
+              value={value.country}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              disabled={busy}
               className={cn(
-                "h-11 min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[14px]",
+                "h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-[14px]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35",
               )}
               aria-required
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? "momo-error" : "momo-phone-hint"}
-            />
-          </div>
-          <span id="momo-phone-hint" className="text-[11px] text-[var(--color-text-muted)]">
-            Enter the number linked to your {selectedMarket.countryName} mobile
-            wallet.
-          </span>
-        </label>
-      )}
+            >
+              <option value="" disabled>
+                Select country
+              </option>
+              {markets.map((m) => (
+                <option key={m.countryCode} value={m.countryCode}>
+                  {m.flag} {m.countryName}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      {selectedMarket && (
-        <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-3 space-y-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[12px] text-[var(--color-text-secondary)]">
-              Order total
-            </span>
-            <span className="text-[14px] font-bold text-[var(--color-text-primary)] tabular-nums">
-              {formatMoney(amountUsd, "USD")}
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-[12px] text-[var(--color-text-secondary)]">
-              Mobile Money amount
-            </span>
-            <span
-              className="text-[14px] font-bold text-[var(--color-text-primary)] tabular-nums"
+          {selectedMarket && selectedMarket.networks.length > 0 && (
+            <fieldset className="space-y-2.5" disabled={busy}>
+              <legend className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                {selectedMarket.requiresNetwork
+                  ? "Mobile Money Provider"
+                  : "Provider"}
+              </legend>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Mobile Money providers"
+              >
+                {selectedMarket.networks.map((n) => (
+                  <ProviderChip
+                    key={n.id}
+                    label={n.label}
+                    selected={
+                      selectedMarket.requiresNetwork
+                        ? value.network === n.id
+                        : true
+                    }
+                    disabled={busy || !selectedMarket.requiresNetwork}
+                    onSelect={() => {
+                      if (!selectedMarket.requiresNetwork) return;
+                      onChange({ ...value, network: n.id });
+                    }}
+                  />
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {selectedMarket && (
+            <label className="block space-y-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                Mobile Number
+              </span>
+              <div className="flex gap-2">
+                <span
+                  className="inline-flex h-12 shrink-0 items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
+                  aria-hidden
+                >
+                  {selectedMarket.flag} {selectedMarket.dialCode}
+                </span>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="Mobile wallet number"
+                  value={value.phone}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      phone: e.target.value.replace(/[^\d\s]/g, ""),
+                    })
+                  }
+                  disabled={busy}
+                  className={cn(
+                    "h-12 min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-[14px]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35",
+                  )}
+                  aria-required
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "momo-error" : "momo-phone-hint"}
+                />
+              </div>
+              <span
+                id="momo-phone-hint"
+                className="block text-[12px] text-[var(--color-text-muted)]"
+              >
+                Enter the number linked to your {selectedMarket.countryName}{" "}
+                mobile wallet.
+              </span>
+            </label>
+          )}
+
+          {selectedMarket && (
+            <div className="space-y-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
+                Payment Amount
+              </p>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">
+                  Order total
+                </span>
+                <span className="text-[14px] font-bold tabular-nums text-[var(--color-text-primary)]">
+                  {formatMoney(amountUsd, "USD")}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[13px] text-[var(--color-text-secondary)]">
+                  Mobile Money amount
+                </span>
+                <span
+                  className="text-[15px] font-bold tabular-nums text-[var(--color-accent)]"
+                  aria-live="polite"
+                >
+                  {quoteLoading
+                    ? "…"
+                    : quote
+                      ? `≈ ${quote.currency} ${quote.amount.toLocaleString()}`
+                      : `Charged in ${selectedMarket.currency}`}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {awaitingConfirmation && (
+            <div
+              className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-3 text-[13px] text-amber-900 dark:text-amber-100"
+              role="status"
               aria-live="polite"
             >
-              {quoteLoading
-                ? "…"
-                : quote
-                  ? `≈ ${quote.currency} ${quote.amount.toLocaleString()}`
-                  : `Charged in ${selectedMarket.currency}`}
-            </span>
-          </div>
-        </div>
-      )}
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+              {selectedMarket?.authorizationMode === "push"
+                ? "Check your phone and approve the payment…"
+                : "Waiting for Mobile Money confirmation…"}
+            </div>
+          )}
 
-      {awaitingConfirmation && (
-        <div
-          className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[13px] text-amber-900 dark:text-amber-100"
-          role="status"
-          aria-live="polite"
-        >
-          <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
-          {selectedMarket?.authorizationMode === "push"
-            ? "Check your phone and approve the payment…"
-            : "Waiting for Mobile Money confirmation…"}
-        </div>
-      )}
+          {error && (
+            <p id="momo-error" className="text-[13px] text-red-600" role="alert">
+              {error}
+            </p>
+          )}
 
-      {error && (
-        <p id="momo-error" className="text-[13px] text-red-600" role="alert">
-          {error}
-        </p>
+          <button
+            type="button"
+            onClick={onContinue}
+            disabled={!canContinue}
+            className={cn(
+              "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-bold text-white",
+              "bg-[var(--color-accent)] shadow-[0_4px_14px_rgba(253,80,0,0.22)]",
+              "transition-[transform,background-color,opacity] duration-200",
+              "hover:scale-[1.01] hover:bg-[var(--color-accent)]/90",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+              "active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100",
+            )}
+          >
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                {awaitingConfirmation
+                  ? "Waiting for confirmation…"
+                  : "Starting Mobile Money payment…"}
+              </>
+            ) : (
+              <>
+                <Lock className="h-4 w-4" aria-hidden />
+                Continue with Mobile Money
+                <ArrowRight className="h-4 w-4" aria-hidden />
+              </>
+            )}
+          </button>
+
+          <p className="text-center text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+            Secure payment — completed only after confirmation.
+          </p>
+        </div>
       )}
     </div>
   );
 }
+
+/** @deprecated Prefer MobileMoneyPaymentStep */
+export const MobileMoneyCheckoutPanel = MobileMoneyPaymentStep;

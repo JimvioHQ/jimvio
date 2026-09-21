@@ -262,98 +262,30 @@ export const verifyPesaPal: ProviderVerifier = async (_headers, _rawBody) => {
 };
 
 // ---------------------------------------------------------------------------
-// AfriPay
+// AfriPay (retired — reject all new webhook processing)
 // ---------------------------------------------------------------------------
 
-export const verifyAfriPay: ProviderVerifier = async (headers, rawBody) => {
-  void headers;
-  let body: { transactionId?: string; status?: string } = {};
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return { ok: false, reason: "Invalid JSON", status: 400 };
-  }
-
-  const transactionId = body.transactionId?.trim();
-  if (!transactionId) {
-    return { ok: false, reason: "Missing transactionId", status: 400 };
-  }
-
-  // Fail closed: confirm with AfriPay API before marking paid.
-  const { checkAfriPayStatus } = await import("@/lib/payments/afripay");
-  const verified = await checkAfriPayStatus(transactionId);
-  const rawStatus = (verified.status || "").toLowerCase();
-  let status: PaymentEventStatus = "pending";
-  if (rawStatus === "success" || rawStatus === "completed" || rawStatus === "paid") {
-    status = "paid";
-  } else if (rawStatus === "failed" || rawStatus === "cancelled") {
-    status = "failed";
-  }
-
+export const verifyAfriPay: ProviderVerifier = async (_headers, _rawBody) => {
+  void _headers;
+  void _rawBody;
   return {
-    ok: true,
-    event: {
-      provider: "afripay",
-      providerTransactionId: transactionId,
-      jimvioOrderId: null, // resolved by DB lookup on payment_external_reference
-      idempotencyKey: `afripay-${transactionId}-${status}`,
-      status,
-      rawBody,
-    },
+    ok: false,
+    reason: "AfriPay is no longer available",
+    status: 410,
   };
 };
 
 // ---------------------------------------------------------------------------
-// PawaPay
+// PawaPay (retired — reject all new webhook processing)
 // ---------------------------------------------------------------------------
 
-export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
-  void headers;
-  // PawaPay sends JSON callbacks with depositId + status
-  let body: Record<string, unknown> = {};
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return { ok: false, reason: "Invalid JSON", status: 400 };
-  }
-
-  // depositId lives at top level or under .data
-  const depositId =
-    (typeof body.depositId === "string" ? body.depositId : null) ||
-    (typeof (body.data as Record<string, unknown>)?.depositId === "string"
-      ? ((body.data as Record<string, unknown>).depositId as string)
-      : null);
-
-  if (!depositId) {
-    return {
-      ok: true,
-      event: {
-        provider: "pawapay",
-        providerTransactionId: "unknown",
-        idempotencyKey: `pawapay-noop-${Date.now()}`,
-        status: "ignored",
-        rawBody,
-      },
-    };
-  }
-
-  // Fail closed: never trust callback body status alone.
-  const { confirmPawaPayDepositCompleted } = await import(
-    "@/lib/payments/confirm-pawapay-deposit"
-  );
-  const completed = await confirmPawaPayDepositCompleted(depositId);
-  const status: PaymentEventStatus = completed ? "paid" : "pending";
-
+export const verifyPawaPay: ProviderVerifier = async (_headers, _rawBody) => {
+  void _headers;
+  void _rawBody;
   return {
-    ok: true,
-    event: {
-      provider: "pawapay",
-      providerTransactionId: depositId,
-      jimvioOrderId: null, // resolved by DB lookup on pawapay_deposit_id in resolveOrderId
-      idempotencyKey: `pawapay-${depositId}-${status}`,
-      status,
-      rawBody,
-    },
+    ok: false,
+    reason: "PawaPay is no longer available",
+    status: 410,
   };
 };
 
@@ -364,14 +296,12 @@ export const verifyPawaPay: ProviderVerifier = async (headers, rawBody) => {
 const PROVIDER_VERIFIERS: Record<string, ProviderVerifier> = {
   flutterwave: verifyFlutterwave,
   nowpayments: verifyNowPayments,
-  afripay: verifyAfriPay,
-  pawapay: verifyPawaPay,
 };
 
 /**
  * Auto-detect the payment provider from request headers.
  * Returns the provider key to look up in PROVIDER_VERIFIERS.
- * Retired providers (PesaPal/PayPal) are detected only so callers can reject them.
+ * Retired providers are detected only so callers can reject them.
  */
 export function detectProvider(headers: Headers): string | null {
   if (headers.get("verif-hash") || headers.get("flutterwave-signature")) {
@@ -385,9 +315,16 @@ export function detectProvider(headers: Headers): string | null {
   return null;
 }
 
+const RETIRED_VERIFIERS: Record<string, ProviderVerifier> = {
+  paypal: verifyPayPal,
+  pesapal: verifyPesaPal,
+  afripay: verifyAfriPay,
+  pawapay: verifyPawaPay,
+};
+
 export function getProviderVerifier(provider: string): ProviderVerifier | null {
   if (isRetiredPaymentProvider(provider)) {
-    return provider === "paypal" ? verifyPayPal : verifyPesaPal;
+    return RETIRED_VERIFIERS[provider] ?? null;
   }
   return PROVIDER_VERIFIERS[provider] ?? null;
 }

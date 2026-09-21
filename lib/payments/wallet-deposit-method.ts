@@ -25,7 +25,7 @@ export type WalletDepositDbMethod = (typeof WALLET_DEPOSIT_DB_METHODS)[number];
 
 /**
  * Providers that can initiate + verify a wallet deposit end-to-end.
- * PayPal / PesaPal / PawaPay are checkout providers but not wired for wallet top-up.
+ * PayPal / PesaPal / PawaPay are retired checkout providers (not wired for wallet top-up).
  */
 export const WALLET_DEPOSIT_INITIABLE_METHODS = [
   "flutterwave",
@@ -104,7 +104,7 @@ export function walletDepositMethodLabel(method: string | null | undefined): str
     case "pesapal":
       return "PesaPal (retired)";
     case "pawapay":
-      return "PawaPay";
+      return "PawaPay (retired)";
     case "bank":
       return "Bank transfer";
     case "manual":

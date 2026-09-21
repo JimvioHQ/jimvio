@@ -1,10 +1,10 @@
 /**
  * Chooses a payment integration for checkout (server-only).
  * Does not replace existing /api/payments/* routes — wire this when the multi-gateway flow is ready.
- * PesaPal and PayPal are retired and must never be selected here.
+ * PesaPal, PayPal, AfriPay, and PawaPay are retired and must never be selected here.
+ * Mobile money is handled via Flutterwave (see /api/payments/mobile-money).
  */
 import type { CurrencyCode } from "@/lib/currency/config";
-import { initiateAfriPayPayment } from "./afripay";
 import { createNowPaymentsInvoice } from "./nowpayments";
 
 export type RoutePaymentParams = {
@@ -48,8 +48,6 @@ export async function routePayment(params: RoutePaymentParams): Promise<RoutePay
     paymentMethod,
     description,
     callbackBaseUrl,
-    phoneNumber = "",
-    mobileNetwork = "",
     customerEmail = "",
   } = params;
 
@@ -105,29 +103,7 @@ export async function routePayment(params: RoutePaymentParams): Promise<RoutePay
     };
   }
 
-  // 3. RWF + mobile money → AfriPay
-  if (userCurrency === "RWF" && paymentMethod === "mobile_money") {
-    logRoute("afripay", userCurrency, paymentMethod);
-    const net = (mobileNetwork || "MTN").toUpperCase();
-    let network: "MTN" | "BK" | "MPESA" = "MTN";
-    if (net.includes("MPESA")) network = "MPESA";
-    else if (net.includes("BK")) network = "BK";
-    const af = await initiateAfriPayPayment({
-      transactionId: orderId,
-      amountUSD,
-      currency: "RWF",
-      phone: phoneNumber,
-      network,
-      description,
-      callbackUrl: `${b}/api/webhooks/afripay`,
-    });
-    if (af.error) {
-      return fail("afripay", af.error);
-    }
-    return { gateway: "afripay", status: af.status, transactionId: af.transactionId };
-  }
-
-  // Default → NowPayments (KES/UGX/TZS no longer route to retired PesaPal)
+  // Default → NowPayments (AfriPay/PawaPay/PesaPal retired; mobile money via Flutterwave routes)
   logRoute("nowpayments", userCurrency, paymentMethod);
   const inv = await createNowPaymentsInvoice({
     orderId,

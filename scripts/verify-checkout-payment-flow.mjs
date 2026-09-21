@@ -184,12 +184,14 @@ assert(
 );
 assert(
   selector.includes('id: "mobile_money"') &&
+    selector.includes("Pay with Cards") &&
+    !selector.includes("International Payments") &&
     !selector.includes("Pay with Any Card, Mobile Money or Apple Pay") &&
     !selector.includes("Popular in Rwanda") &&
     !selector.includes("Other Networks") &&
     selector.includes("Pay securely with your local mobile wallet") &&
-    selector.includes("Select your country to see available providers"),
-  "Checkout must show dedicated Mobile Money without Rwanda-specific or fake network copy"
+    selector.includes("Continue to a secure Mobile Money checkout"),
+  "Checkout must show Pay with Cards + dedicated Mobile Money without Rwanda-specific copy"
 );
 assert(
   !momoInitiate.includes("provider_reference:") &&
@@ -207,17 +209,40 @@ assert(
 );
 assert(
   checkout.includes("/api/payments/mobile-money/initiate") &&
+    checkout.includes("openMobileMoneyStep") &&
+    checkout.includes("backToPaymentMethods") &&
+    checkout.includes("MobileMoneyPaymentStep") &&
     (checkout.includes("Waiting for Mobile Money confirmation") ||
       checkout.includes("Waiting for Mobile Money authorization")),
-  "Checkout experience must initiate MoMo and poll pending confirmation"
+  "Checkout must navigate to dedicated MoMo step and poll pending confirmation"
 );
 const momoPanel = read("components/checkout/MobileMoneyCheckoutPanel.tsx");
 assert(
-  momoPanel.includes("Never silently default") &&
-    momoPanel.includes("Choose your country") &&
+  momoPanel.includes("Back to payment methods") &&
+    momoPanel.includes("Continue with Mobile Money") &&
+    momoPanel.includes("Select country") &&
     !momoPanel.includes("Popular in Rwanda") &&
     !momoPanel.includes("Other Networks"),
-  "MoMo panel must require explicit country and never show Rwanda-only marketing"
+  "MoMo dedicated step must require explicit country and never show Rwanda-only marketing"
+);
+const paymentIdx = checkout.indexOf('{stage === "payment" && (');
+const momoStageIdx = checkout.indexOf('{stage === "mobile_money" && (');
+assert(
+  paymentIdx >= 0 &&
+    momoStageIdx > paymentIdx &&
+    !checkout.slice(paymentIdx, momoStageIdx).includes("MobileMoneyPaymentStep") &&
+    checkout.slice(paymentIdx, momoStageIdx).includes("PaymentMethodSelector"),
+  "MoMo must not expand inline under payment methods"
+);
+
+const retired = read("lib/payments/retired-providers.ts");
+assert(
+  retired.includes('"afripay"') && retired.includes('"pawapay"'),
+  "AfriPay and PawaPay must be marked retired"
+);
+assert(
+  !selector.match(/^export type MethodId =[\s\S]*?pawapay/m),
+  "Checkout MethodId must not include pawapay"
 );
 
 const binancePay = read("lib/binance-pay/index.ts");

@@ -11,7 +11,7 @@ import { OrderSummaryCard } from "./OrderSummaryCard";
 import { PremiumTrustPanel } from "./premium-trust-panel";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
 import {
-  MobileMoneyCheckoutPanel,
+  MobileMoneyPaymentStep,
   type MoMoFormState,
 } from "./MobileMoneyCheckoutPanel";
 import ShippingForm, { type ShippingFormValues, validateShippingForm } from "./ShippingForm";
@@ -87,7 +87,6 @@ function extractErrorMessage(data: PaymentApiResponse): string {
 const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
    flutterwave: "/api/payments/flutterwave/initiate",
    mobile_money: "/api/payments/mobile-money/initiate",
-   pawapay: "/api/pawapay/checkout",
    nowpayments: "/api/payments/nowpayments/initiate",
    binancepay: "/api/payments/binancepay/initiate",
 } as const;
@@ -101,7 +100,7 @@ function getCJWeight(item: CartItem): number | null {
    return item.variant_weight ?? item.source_metadata?.cj_weight ?? null;
 }
 
-type Stage = "shipping" | "delivery" | "payment";
+type Stage = "shipping" | "delivery" | "payment" | "mobile_money";
 
 type CheckoutSyncChanges = {
    itemsAdded: number;
@@ -149,7 +148,7 @@ export function CheckoutExperience({
 
    // ── Payment ───────────────────────────────────────────────────────────────
    const [payment, setPayment] = useState<MethodId>(() => {
-      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "pawapay", "binancepay"];
+      const valid: MethodId[] = ["nowpayments", "flutterwave", "mobile_money", "binancepay"];
       if (preferredMethod && valid.includes(preferredMethod as MethodId)) {
          return preferredMethod as MethodId;
       }
@@ -165,6 +164,42 @@ export function CheckoutExperience({
    const [momoError, setMomoError] = useState<string | null>(null);
    const momoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
    const momoPollCountRef = useRef(0);
+
+   function syncPaymentQuery(next: "mobile_money" | null) {
+      if (typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      if (next === "mobile_money") {
+         url.searchParams.set("payment", "mobile_money");
+      } else {
+         url.searchParams.delete("payment");
+      }
+      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+   }
+
+   function openMobileMoneyStep() {
+      setPayment("mobile_money");
+      setMomoError(null);
+      setMomoAwaiting(false);
+      setStage("mobile_money");
+      syncPaymentQuery("mobile_money");
+   }
+
+   function backToPaymentMethods() {
+      setMomoError(null);
+      setMomoAwaiting(false);
+      setPayment("flutterwave");
+      setStage("payment");
+      syncPaymentQuery(null);
+   }
+
+   useEffect(() => {
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("payment") === "mobile_money") {
+         setPayment("mobile_money");
+         setStage("mobile_money");
+      }
+   }, []);
 
    useEffect(() => {
       fetch("/api/platform/payment-providers")
@@ -615,7 +650,9 @@ export function CheckoutExperience({
    }
 
    const payDisabled =
-      isCJOrder && (shippingCost === null || !cjSelected);
+      (isCJOrder && (shippingCost === null || !cjSelected)) ||
+      stage === "mobile_money" ||
+      (stage === "payment" && payment === "mobile_money");
 
    return (
       <div className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--color-bg)]">
@@ -769,33 +806,49 @@ export function CheckoutExperience({
                            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:p-5 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-7"
                         >
                            <PaymentMethodSelector
-                              selected={payment}
+                              selected={payment === "mobile_money" ? null : payment}
                               onSelect={(m) => {
+                                 if (m === "mobile_money") {
+                                    openMobileMoneyStep();
+                                    return;
+                                 }
                                  setPayment(m);
                                  setMomoError(null);
-                                 if (m !== "mobile_money") setMomoAwaiting(false);
+                                 setMomoAwaiting(false);
                               }}
                               orderCurrency={PLATFORM_CURRENCY}
                               orderTotal={total}
                               showSummary={false}
                               enabledMethodIds={enabledPaymentMethods}
                            />
-                           {payment === "mobile_money" && (
-                              <MobileMoneyCheckoutPanel
-                                 amountUsd={total}
-                                 formatMoney={formatMoney}
-                                 preferredCountry={
-                                    normalizeCountryCode(shipping.countryCode) ??
-                                    normalizeCountryCode(shipping.country) ??
-                                    normalizeCountryCode(countryCode)
-                                 }
-                                 preferredPhone={shipping.phone || profile?.phone}
-                                 value={momoForm}
-                                 onChange={setMomoForm}
-                                 awaitingConfirmation={momoAwaiting}
-                                 error={momoError}
-                              />
-                           )}
+                        </motion.div>
+                     )}
+
+                     {stage === "mobile_money" && (
+                        <motion.div
+                           key="mobile_money"
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -6 }}
+                           transition={{ duration: 0.28, ease: "easeOut" }}
+                        >
+                           <MobileMoneyPaymentStep
+                              amountUsd={total}
+                              formatMoney={formatMoney}
+                              preferredCountry={
+                                 normalizeCountryCode(shipping.countryCode) ??
+                                 normalizeCountryCode(shipping.country) ??
+                                 normalizeCountryCode(countryCode)
+                              }
+                              preferredPhone={shipping.phone || profile?.phone}
+                              value={momoForm}
+                              onChange={setMomoForm}
+                              onBack={backToPaymentMethods}
+                              onContinue={() => void handlePay()}
+                              submitting={submitting}
+                              awaitingConfirmation={momoAwaiting}
+                              error={momoError}
+                           />
                         </motion.div>
                      )}
                      </AnimatePresence>
@@ -881,7 +934,7 @@ export function CheckoutExperience({
                <button
                   type="button"
                   onClick={handlePay}
-                  disabled={submitting || payDisabled}
+                  disabled={submitting || payDisabled || !payment || payment === "mobile_money"}
                   className={cn(
                      "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
                      "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
@@ -894,6 +947,33 @@ export function CheckoutExperience({
                   ) : (
                      <>
                         Complete Secure Payment
+                        <ChevronRight className="h-4 w-4" />
+                     </>
+                  )}
+               </button>
+            )}
+            {stage === "mobile_money" && (
+               <button
+                  type="button"
+                  onClick={() => void handlePay()}
+                  disabled={
+                     submitting ||
+                     momoAwaiting ||
+                     !momoForm.country ||
+                     !momoForm.phone.trim()
+                  }
+                  className={cn(
+                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
+                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
+                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
+                  )}
+               >
+                  {submitting || momoAwaiting ? (
+                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                     <>
+                        Continue with Mobile Money
                         <ChevronRight className="h-4 w-4" />
                      </>
                   )}

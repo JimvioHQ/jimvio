@@ -80,13 +80,14 @@ export function CommunitySubscribeClient({
   community,
   initialPlan,
   initialProvider,
-  profilePhone,
+  profilePhone: _profilePhone,
 }: {
   community: CommunitySub;
   initialPlan: string;
   initialProvider: string;
   profilePhone: string | null;
 }) {
+  void _profilePhone;
   const router = useRouter();
   const { formatMoney, userCurrency: currentCurrency } = useCurrency();
 
@@ -97,15 +98,12 @@ export function CommunitySubscribeClient({
   const [payment, setPayment] = useState<CommunityPaymentMethod | null>(
     initialProvider === "nowpayments" ||
       initialProvider === "flutterwave" ||
-      initialProvider === "pawapay" ||
       initialProvider === "binancepay"
       ? (initialProvider as CommunityPaymentMethod)
       : "flutterwave",
   );
 
   const [submitting, setSubmitting] = useState(false);
-  const [afripayNetwork, setAfripayNetwork] = useState<"MTN" | "BK" | "MPESA">("MTN");
-  const [afripayPhone, setAfripayPhone] = useState(profilePhone || "");
   const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
   const monthly = Number(community.monthly_price ?? 0);
   const yearly = Number(community.yearly_price ?? 0);
@@ -138,32 +136,12 @@ export function CommunitySubscribeClient({
     if (!payment) { toast.error("Please select a payment method"); return; }
     setSubmitting(true);
     try {
-      if (payment === "pawapay") {
-        const res = await fetch("/api/pawapay/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount, currency,
-            orderId: community.slug,
-            country: "RW",
-            returnUrl: `${window.location.origin}/communities/${community.slug}`,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || data.error || "Initiation failed");
-        const redirect = data.redirectUrl || data.redirectURL;
-        if (redirect) { window.location.href = redirect; return; }
-        throw new Error("No redirect URL received");
-      }
-
       const res = await fetch(`/api/communities/${community.slug}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planType: plan,
           paymentProvider: payment,
-          afripayNetwork,
-          afripayPhone: afripayPhone.trim(),
           flutterwaveMethod,
         }),
       });

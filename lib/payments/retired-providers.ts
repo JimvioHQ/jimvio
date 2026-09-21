@@ -6,13 +6,20 @@ import { NextResponse } from "next/server";
  * display labels, but never initiate or finalize new payments through them.
  */
 
-export const RETIRED_PAYMENT_PROVIDERS = ["pesapal", "paypal"] as const;
+export const RETIRED_PAYMENT_PROVIDERS = [
+  "pesapal",
+  "paypal",
+  "afripay",
+  "pawapay",
+] as const;
 
 export type RetiredPaymentProviderId = (typeof RETIRED_PAYMENT_PROVIDERS)[number];
 
 export const RETIRED_PROVIDER_LABELS: Record<RetiredPaymentProviderId, string> = {
   pesapal: "PesaPal (retired)",
   paypal: "PayPal (retired)",
+  afripay: "AfriPay (retired)",
+  pawapay: "PawaPay (retired)",
 };
 
 export function isRetiredPaymentProvider(
@@ -32,7 +39,11 @@ export function retiredPaymentProviderResponse(provider?: string) {
       ? "PayPal"
       : id === "pesapal"
         ? "PesaPal"
-        : "This payment provider";
+        : id === "afripay"
+          ? "AfriPay"
+          : id === "pawapay"
+            ? "PawaPay"
+            : "This payment provider";
   return NextResponse.json(
     {
       error: `${label} is no longer available. Please choose another payment method.`,

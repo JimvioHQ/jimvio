@@ -22,7 +22,6 @@ import {
 const PROVIDER_LABELS: Record<PaymentProviderId, string> = {
   flutterwave: "Flutterwave",
   nowpayments: "NOWPayments (Crypto)",
-  pawapay: "PawaPay",
   binancepay: "Binance Pay",
 };
 

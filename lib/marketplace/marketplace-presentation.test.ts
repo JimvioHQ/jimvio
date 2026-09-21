@@ -78,9 +78,17 @@ describe("checkout first-load hardening", () => {
     assert.equal(selector.includes("Pay with Any Card, Mobile Money or Apple Pay"), false);
     assert.equal(selector.includes("Popular in Rwanda"), false);
     assert.equal(selector.includes("Other Networks"), false);
-    assert.equal(selector.includes("Pay securely with Visa, Mastercard, and other cards"), true);
+    assert.equal(selector.includes("International Payments"), false);
+    assert.equal(selector.includes("Pay with Cards"), true);
+    assert.equal(selector.includes("Pay securely with Visa, Mastercard, Amex, and other supported cards"), true);
     assert.equal(selector.includes("Pay securely with your local mobile wallet"), true);
-    assert.equal(selector.includes("Select your country to see available providers"), true);
+    assert.equal(selector.includes("Continue to a secure Mobile Money checkout"), true);
+    // No Recommended badge in the live METHODS block
+    const methodsStart = selector.lastIndexOf("const METHODS:");
+    const methodsEnd = selector.indexOf("// ─── Trust badge", methodsStart);
+    const methodsBlock = selector.slice(methodsStart, methodsEnd > 0 ? methodsEnd : undefined);
+    assert.equal(methodsBlock.includes("Recommended"), false);
+    assert.equal(methodsBlock.includes("recommended:"), false);
     // Global method card must not hardcode operator logos (MTN/Airtel/MoMo pills).
     const momoStart = selector.lastIndexOf('id: "mobile_money"');
     const nowStart = selector.lastIndexOf('id: "nowpayments"');
@@ -93,11 +101,22 @@ describe("checkout first-load hardening", () => {
     const checkout = readFileSync(join(root, "components/checkout/checkout-experience.tsx"), "utf8");
     assert.equal(checkout.includes("mobile_money"), true);
     assert.equal(checkout.includes("/api/payments/mobile-money/initiate"), true);
+    assert.equal(checkout.includes("openMobileMoneyStep"), true);
+    assert.equal(checkout.includes("backToPaymentMethods"), true);
+    assert.equal(checkout.includes("MobileMoneyPaymentStep"), true);
+    // Must not render MoMo form inline under payment methods
+    const paymentIdx = checkout.indexOf('{stage === "payment" && (');
+    const momoStageIdx = checkout.indexOf('{stage === "mobile_money" && (');
+    assert.ok(paymentIdx >= 0 && momoStageIdx > paymentIdx);
+    const paymentOnly = checkout.slice(paymentIdx, momoStageIdx);
+    assert.equal(paymentOnly.includes("MobileMoneyPaymentStep"), false);
+    assert.equal(paymentOnly.includes("PaymentMethodSelector"), true);
 
     const panel = readFileSync(join(root, "components/checkout/MobileMoneyCheckoutPanel.tsx"), "utf8");
     assert.equal(panel.includes("Popular in Rwanda"), false);
     assert.equal(panel.includes("Other Networks"), false);
-    assert.equal(panel.includes("Never silently default"), true);
-    assert.equal(panel.includes("Choose your country"), true);
+    assert.equal(panel.includes("Back to payment methods"), true);
+    assert.equal(panel.includes("Continue with Mobile Money"), true);
+    assert.equal(panel.includes("Select country"), true);
   });
 });
