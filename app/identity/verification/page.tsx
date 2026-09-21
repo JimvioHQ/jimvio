@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getIdentityByUserId } from "@/lib/identity/resolve";
@@ -17,8 +18,16 @@ export default async function IdentityVerificationPage() {
 
   const payload = await getIdentityByUserId(user.id, user.id);
   return (
-    <IdentityVerificationClient
-      initialVerified={Boolean(payload?.profile.identityVerified)}
-    />
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-2xl px-4 py-16 text-[13px] text-[#8B8579]">
+          Loading verification…
+        </div>
+      }
+    >
+      <IdentityVerificationClient
+        initialVerified={Boolean(payload?.profile.identityVerified)}
+      />
+    </Suspense>
   );
 }

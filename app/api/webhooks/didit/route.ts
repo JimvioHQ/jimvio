@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  canTransitionDiditStatus,
   diditWebhookSecret,
   fingerprintEvent,
+  normalizeDiditStatus,
   verifyDiditWebhook,
 } from "@/lib/identity/didit";
+import { applyDiditIdentityResult } from "@/lib/identity/apply-didit-result";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,7 +61,7 @@ export async function POST(req: NextRequest) {
   };
 
   const sessionId = String(envelope.session_id || envelope.business_session_id || "");
-  const status = String(envelope.status || "");
+  const status = normalizeDiditStatus(envelope.status);
   const webhookType = String(envelope.webhook_type || "");
   const sessionKind = String(envelope.session_kind || "").toLowerCase();
   const metaPurpose = String(envelope.metadata?.purpose || "").toLowerCase();
@@ -70,7 +73,6 @@ export async function POST(req: NextRequest) {
     String(envelope.event_id || "").trim() ||
     fingerprintEvent([sessionId, status, webhookType, String(envelope.vendor_data || "")]);
 
-  // Acknowledge quickly; apply idempotently
   const admin = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   const { error: insertEventError } = await admin.from("jip_didit_webhook_events").insert({
@@ -81,8 +83,10 @@ export async function POST(req: NextRequest) {
   });
 
   if (insertEventError) {
-    // Unique violation → already processed
-    if (String(insertEventError.code) === "23505" || /duplicate|unique/i.test(insertEventError.message)) {
+    if (
+      String(insertEventError.code) === "23505" ||
+      /duplicate|unique/i.test(insertEventError.message)
+    ) {
       return NextResponse.json({ ok: true, duplicate: true });
     }
     console.error("[didit webhook] event log failed", { code: insertEventError.code });
@@ -92,58 +96,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: true });
   }
 
-  // Resolve user: vendor_data (preferred) or existing session row
   let userId = String(envelope.vendor_data || "").trim() || null;
   let existingPurpose: string | null = null;
+  let currentStatus: string | null = null;
   {
     const { data: existing } = await admin
       .from("jip_didit_sessions")
-      .select("user_id, decision_summary")
+      .select("user_id, status, decision_summary")
       .eq("session_id", sessionId)
       .maybeSingle();
     if (!userId) {
       userId = (existing as { user_id?: string } | null)?.user_id ?? null;
     }
+    currentStatus = (existing as { status?: string } | null)?.status ?? null;
     const summary = (existing as { decision_summary?: { purpose?: string } } | null)
       ?.decision_summary;
     if (summary?.purpose) existingPurpose = String(summary.purpose);
   }
 
-  const isBusinessFromDb = existingPurpose === "business";
-  const businessSession = isBusinessSession || isBusinessFromDb;
+  const businessSession = isBusinessSession || existingPurpose === "business";
 
   if (!userId) {
     console.warn("[didit webhook] unknown session", { hasSession: Boolean(sessionId) });
     return NextResponse.json({ ok: true, unmatched: true });
   }
 
-  // Minimal decision summary — never store full document payloads; preserve purpose
-  const decisionSummary: Record<string, unknown> = {
-    received: true,
-    at: new Date().toISOString(),
-  };
-  if (businessSession || metaPurpose === "business") {
-    decisionSummary.purpose = "business";
-  } else if (existingPurpose) {
-    decisionSummary.purpose = existingPurpose;
+  if (!canTransitionDiditStatus(currentStatus, status)) {
+    return NextResponse.json({ ok: true, skipped: true, reason: "stale_transition" });
   }
 
-  await admin.from("jip_didit_sessions").upsert(
-    {
-      user_id: userId,
-      session_id: sessionId,
-      status: status || "In Progress",
-      vendor_data: userId,
-      last_event_id: eventId,
-      decision_summary: decisionSummary,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "session_id" },
-  );
+  if (businessSession) {
+    await admin.from("jip_didit_sessions").upsert(
+      {
+        user_id: userId,
+        session_id: sessionId,
+        status: status || "In Progress",
+        vendor_data: userId,
+        last_event_id: eventId,
+        decision_summary: {
+          received: true,
+          at: new Date().toISOString(),
+          purpose: "business",
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "session_id" },
+    );
 
-  if (status === "Approved") {
-    if (businessSession) {
-      // Business verification (KYB) → unlock physical product selling
+    if (status === "Approved") {
       await admin
         .from("vendors")
         .update({
@@ -152,60 +152,52 @@ export async function POST(req: NextRequest) {
           verification_notes: "Didit business verification approved",
         })
         .eq("user_id", userId);
-    } else {
+    } else if (
+      status === "Declined" ||
+      status === "Expired" ||
+      status === "Abandoned" ||
+      status === "KYC Expired"
+    ) {
       await admin
-        .from("jip_identity")
-        .update({
-          identity_verified: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId);
-
-      await admin
-        .from("profiles")
-        .update({ is_verified: true })
-        .eq("id", userId);
-    }
-  } else if (
-    businessSession &&
-    (status === "Declined" || status === "Expired" || status === "Abandoned" || status === "KYC Expired")
-  ) {
-    await admin
-      .from("vendors")
-      .update({
-        verification_status: status === "Declined" ? "rejected" : "pending",
-        verification_notes:
-          status === "Declined"
-            ? "Didit business verification declined"
-            : `Didit business verification ${status.toLowerCase()}`,
-      })
-      .eq("user_id", userId)
-      .neq("verification_status", "verified");
-
-    // Consume paid fee so a new KYB attempt requires another $5.65 payment
-    try {
-      const { consumeVerificationFeeForVendor } = await import(
-        "@/lib/identity/confirm-verification-fee"
-      );
-      const { data: vendor } = await admin
         .from("vendors")
-        .select("id")
+        .update({
+          verification_status: status === "Declined" ? "rejected" : "pending",
+          verification_notes:
+            status === "Declined"
+              ? "Didit business verification declined"
+              : `Didit business verification ${status.toLowerCase()}`,
+        })
         .eq("user_id", userId)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (vendor?.id) {
-        await consumeVerificationFeeForVendor(admin, vendor.id, sessionId);
+        .neq("verification_status", "verified");
+
+      try {
+        const { consumeVerificationFeeForVendor } = await import(
+          "@/lib/identity/confirm-verification-fee"
+        );
+        const { data: vendor } = await admin
+          .from("vendors")
+          .select("id")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (vendor?.id) {
+          await consumeVerificationFeeForVendor(admin, vendor.id, sessionId);
+        }
+      } catch (feeErr) {
+        console.error("[Didit webhook] fee consume failed", feeErr);
       }
-    } catch (feeErr) {
-      console.error("[Didit webhook] fee consume failed", feeErr);
     }
-  } else if (status === "Declined") {
-    // Do not flip personal verified on
-    await admin
-      .from("jip_identity")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
+  } else {
+    await applyDiditIdentityResult({
+      admin,
+      userId,
+      sessionId,
+      status,
+      currentStatus,
+      eventId,
+      purpose: "identity",
+    });
   }
 
   return NextResponse.json({ ok: true });

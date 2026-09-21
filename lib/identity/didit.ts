@@ -14,11 +14,48 @@ export type DiditSessionStatus =
   | "In Review"
   | "In Progress"
   | "Not Started"
+  | "Not Finished"
   | "Abandoned"
   | "Expired"
   | "KYC Expired"
   | "Resubmitted"
   | string;
+
+/** Terminal statuses that must not regress to in-progress. */
+export const DIDIT_TERMINAL_STATUSES = new Set([
+  "Approved",
+  "Declined",
+  "Expired",
+  "KYC Expired",
+  "Abandoned",
+]);
+
+export function normalizeDiditStatus(status: string | null | undefined): string {
+  return String(status ?? "").trim();
+}
+
+/**
+ * Whether an incoming Didit status may overwrite the stored session status.
+ * Approved never regresses. Declined/Expired do not become In Progress.
+ */
+export function canTransitionDiditStatus(
+  current: string | null | undefined,
+  next: string | null | undefined,
+): boolean {
+  const from = normalizeDiditStatus(current);
+  const to = normalizeDiditStatus(next);
+  if (!to) return false;
+  if (!from) return true;
+  if (from === to) return true;
+  if (from === "Approved") return false;
+  if (
+    (from === "Declined" || from === "Expired" || from === "KYC Expired" || from === "Abandoned") &&
+    (to === "In Progress" || to === "Not Started" || to === "Not Finished" || to === "Resubmitted")
+  ) {
+    return false;
+  }
+  return true;
+}
 
 export function diditConfigured(): boolean {
   return Boolean(
@@ -35,25 +72,58 @@ export function diditWebhookSecret(): string | null {
 export function mapDiditStatusToCustomer(status: string | null | undefined): {
   key: "not_started" | "in_progress" | "in_review" | "verified" | "failed" | "expired";
   label: string;
+  headline: string;
+  detail: string;
 } {
-  const s = String(status ?? "").trim();
+  const s = normalizeDiditStatus(status);
   switch (s) {
     case "Approved":
-      return { key: "verified", label: "Identity verified" };
+      return {
+        key: "verified",
+        label: "Verified",
+        headline: "Verification successful",
+        detail: "Your identity has been verified.",
+      };
     case "Declined":
-      return { key: "failed", label: "Verification could not be completed" };
+      return {
+        key: "failed",
+        label: "Verification failed",
+        headline: "Verification failed",
+        detail: "We couldn't verify your identity.",
+      };
     case "In Review":
-      return { key: "in_review", label: "Verification under review" };
+      return {
+        key: "in_review",
+        label: "Verification in review",
+        headline: "Verification in review",
+        detail: "We're still processing your verification.",
+      };
     case "In Progress":
     case "Resubmitted":
     case "Not Started":
-      return { key: "in_progress", label: "Verification in progress" };
+    case "Not Finished":
+      return {
+        key: "in_progress",
+        label: "Verification in progress",
+        headline: "Verification in progress",
+        detail: "Complete verification with our provider, then return here.",
+      };
     case "Expired":
     case "KYC Expired":
     case "Abandoned":
-      return { key: "expired", label: "Verification expired" };
+      return {
+        key: "expired",
+        label: "Verification expired",
+        headline: "Verification expired",
+        detail: "Please start a new verification.",
+      };
     default:
-      return { key: "not_started", label: "Verify your identity" };
+      return {
+        key: "not_started",
+        label: "Verify your identity",
+        headline: "Verify your identity",
+        detail: "Secure identity verification helps protect your account.",
+      };
   }
 }
 
@@ -67,7 +137,6 @@ function shortenFloats(value: unknown): unknown {
     return out;
   }
   if (typeof value === "number" && !Number.isInteger(value)) {
-    // Match Didit’s shortened float canonicalization for V2
     return Number(Number(value).toPrecision(15));
   }
   return value;
@@ -75,7 +144,10 @@ function shortenFloats(value: unknown): unknown {
 
 /** Canonical JSON for X-Signature-V2 (sorted keys, compact, Unicode preserved). */
 export function diditCanonicalJson(payload: unknown): string {
-  return JSON.stringify(shortenFloats(payload), Object.keys(payload as object).sort?.() ? undefined : undefined);
+  return JSON.stringify(
+    shortenFloats(payload),
+    Object.keys(payload as object).sort?.() ? undefined : undefined,
+  );
 }
 
 function stableStringify(value: unknown): string {
@@ -131,14 +203,20 @@ export function verifyDiditWebhook(input: {
 
   if (input.signatureV2) {
     const expected = hexHmac(input.secret, diditCanonicalJsonV2(input.parsed));
-    if (safeEqualHex(expected, input.signatureV2.toLowerCase()) || safeEqualHex(expected, input.signatureV2)) {
+    if (
+      safeEqualHex(expected, input.signatureV2.toLowerCase()) ||
+      safeEqualHex(expected, input.signatureV2)
+    ) {
       return { ok: true };
     }
   }
 
   if (input.signature) {
     const expected = hexHmac(input.secret, input.rawBody);
-    if (safeEqualHex(expected, input.signature.toLowerCase()) || safeEqualHex(expected, input.signature)) {
+    if (
+      safeEqualHex(expected, input.signature.toLowerCase()) ||
+      safeEqualHex(expected, input.signature)
+    ) {
       return { ok: true };
     }
   }
@@ -239,6 +317,57 @@ export async function createDiditSession(input: {
     verificationUrl,
     status: body.status || "Not Started",
     sessionKind: body.session_kind || (purpose === "business" ? "business" : "user"),
+  };
+}
+
+/**
+ * Retrieve authoritative Didit session status (server-only).
+ * GET https://verification.didit.me/v3/session/{sessionId}/
+ */
+export async function retrieveDiditSession(
+  sessionId: string,
+): Promise<
+  | { ok: true; sessionId: string; status: string; sessionKind?: string }
+  | { ok: false; error: string; statusCode?: number }
+> {
+  const apiKey = process.env.DIDIT_API_KEY?.trim();
+  const id = String(sessionId || "").trim();
+  if (!apiKey) {
+    return { ok: false, error: "Identity verification is not configured yet" };
+  }
+  if (!id || id.length > 128) {
+    return { ok: false, error: "Invalid session" };
+  }
+
+  const res = await fetch(`${DIDIT_SESSION_API}${encodeURIComponent(id)}/`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "x-api-key": apiKey,
+    },
+    cache: "no-store",
+  });
+
+  const body = (await res.json().catch(() => null)) as {
+    session_id?: string;
+    status?: string;
+    session_kind?: string;
+  } | null;
+
+  if (!res.ok || !body) {
+    console.error("[didit] session retrieve failed", { status: res.status });
+    return {
+      ok: false,
+      error: "Could not retrieve verification status",
+      statusCode: res.status,
+    };
+  }
+
+  return {
+    ok: true,
+    sessionId: body.session_id || id,
+    status: normalizeDiditStatus(body.status) || "In Progress",
+    sessionKind: body.session_kind,
   };
 }
 

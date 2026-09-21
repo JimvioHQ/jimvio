@@ -2,18 +2,34 @@ import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { describe, it } from "node:test";
 import {
+  canTransitionDiditStatus,
   diditCanonicalJsonV2,
   fingerprintEvent,
   mapDiditStatusToCustomer,
   verifyDiditWebhook,
 } from "./didit";
+import {
+  assertNonLocalhostProductionOrigin,
+  getCanonicalAppOrigin,
+} from "@/lib/app-origin";
 
 describe("didit helpers", () => {
-  it("maps Approved to verified without inventing statuses", () => {
+  it("maps Didit statuses explicitly (Approved never looks like in progress)", () => {
     assert.equal(mapDiditStatusToCustomer("Approved").key, "verified");
+    assert.equal(mapDiditStatusToCustomer("Approved").headline, "Verification successful");
     assert.equal(mapDiditStatusToCustomer("Declined").key, "failed");
     assert.equal(mapDiditStatusToCustomer("In Review").key, "in_review");
+    assert.equal(mapDiditStatusToCustomer("Not Finished").key, "in_progress");
+    assert.equal(mapDiditStatusToCustomer("Expired").key, "expired");
     assert.equal(mapDiditStatusToCustomer("").key, "not_started");
+  });
+
+  it("never regresses Approved to In Progress", () => {
+    assert.equal(canTransitionDiditStatus("Approved", "In Progress"), false);
+    assert.equal(canTransitionDiditStatus("Approved", "Approved"), true);
+    assert.equal(canTransitionDiditStatus("In Progress", "Approved"), true);
+    assert.equal(canTransitionDiditStatus("Declined", "In Progress"), false);
+    assert.equal(canTransitionDiditStatus("In Progress", "Declined"), true);
   });
 
   it("rejects stale timestamps", () => {
@@ -86,5 +102,42 @@ describe("didit helpers", () => {
   it("fingerprints events stably", () => {
     assert.equal(fingerprintEvent(["a", "b"]), fingerprintEvent(["a", "b"]));
     assert.notEqual(fingerprintEvent(["a", "b"]), fingerprintEvent(["a", "c"]));
+  });
+});
+
+describe("canonical app origin for Didit callbacks", () => {
+  it("never returns localhost when VERCEL_ENV=production", () => {
+    const prevVercel = process.env.VERCEL_ENV;
+    const prevApp = process.env.NEXT_PUBLIC_APP_URL;
+    process.env.VERCEL_ENV = "production";
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    try {
+      const origin = getCanonicalAppOrigin();
+      assert.equal(origin, "https://www.jimvio.com");
+      assert.equal(
+        assertNonLocalhostProductionOrigin("http://localhost:3000"),
+        "https://www.jimvio.com",
+      );
+    } finally {
+      if (prevVercel === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prevVercel;
+      if (prevApp === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+      else process.env.NEXT_PUBLIC_APP_URL = prevApp;
+    }
+  });
+
+  it("normalizes apex jimvio.com to www", () => {
+    const prevVercel = process.env.VERCEL_ENV;
+    const prevApp = process.env.NEXT_PUBLIC_APP_URL;
+    process.env.VERCEL_ENV = "production";
+    process.env.NEXT_PUBLIC_APP_URL = "https://jimvio.com";
+    try {
+      assert.equal(getCanonicalAppOrigin(), "https://www.jimvio.com");
+    } finally {
+      if (prevVercel === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prevVercel;
+      if (prevApp === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+      else process.env.NEXT_PUBLIC_APP_URL = prevApp;
+    }
   });
 });

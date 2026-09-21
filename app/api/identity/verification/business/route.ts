@@ -6,6 +6,10 @@ import {
   diditBusinessConfigured,
   mapDiditStatusToCustomer,
 } from "@/lib/identity/didit";
+import {
+  assertNonLocalhostProductionOrigin,
+  getCanonicalAppOrigin,
+} from "@/lib/app-origin";
 import { ensureSellerVendor } from "@/lib/actions/seller-products";
 import {
   businessVerificationCustomerStatus,
@@ -146,7 +150,7 @@ export async function POST() {
     }
   }
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.jimvio.com").replace(/\/$/, "");
+  const appUrl = assertNonLocalhostProductionOrigin(getCanonicalAppOrigin());
   const callbackUrl = `${appUrl}/marketplace/new?business_verification=1`;
 
   const created = await createDiditSession({

@@ -136,7 +136,7 @@ describe("wallet withdrawal method normalization", () => {
   it("accepts Flutterwave-aligned MoMo providers by country", () => {
     const cases: Array<{ country: string; provider: string; phone: string }> = [
       { country: "RW", provider: "mtn_momo", phone: "+250788123456" },
-      { country: "RW", provider: "mpesa", phone: "+250788123456" },
+      { country: "RW", provider: "airtel_money", phone: "+250788123456" },
       { country: "GH", provider: "telecel_vodafone", phone: "+233241234567" },
       { country: "GH", provider: "airteltigo", phone: "+233241234567" },
       { country: "TZ", provider: "vodacom_tz", phone: "+255712345678" },
@@ -198,6 +198,20 @@ describe("wallet withdrawal method normalization", () => {
     assert.equal(flutterwaveTransferNetworkCode("GH", "telecel_vodafone"), "VODAFONE");
     assert.ok(MOBILE_MONEY_BY_COUNTRY.TZ.providers.every((p) => p.id !== "custom"));
     assert.ok(MOBILE_MONEY_BY_COUNTRY.RW.providers.every((p) => p.id !== "custom"));
+  });
+
+  it("Rwanda shows MTN + Airtel and never M-Pesa; Kenya keeps M-Pesa", () => {
+    const rwIds = MOBILE_MONEY_BY_COUNTRY.RW.providers.map((p) => p.id);
+    assert.deepEqual(rwIds, ["mtn_momo", "airtel_money"]);
+    assert.ok(!rwIds.includes("mpesa"));
+    assert.equal(
+      MOBILE_MONEY_BY_COUNTRY.RW.providers.some((p) => /m-?pesa/i.test(p.label)),
+      false,
+    );
+    assert.equal(MOBILE_MONEY_BY_COUNTRY.KE.providers[0]?.id, "mpesa");
+    assert.equal(flutterwaveTransferNetworkCode("RW", "mtn_momo"), "MTN");
+    assert.equal(flutterwaveTransferNetworkCode("RW", "airtel_money"), "AIRTEL");
+    assert.equal(flutterwaveTransferNetworkCode("RW", "mpesa"), null);
   });
 });
 

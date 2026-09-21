@@ -225,13 +225,20 @@ export const MOBILE_MONEY_BY_COUNTRY: Record<
     currency: "KES",
     providers: [{ id: "mpesa", label: "M-Pesa", flutterwaveCode: "MPS" }],
   },
+  /**
+   * Rwanda — Jimvio UX + Flutterwave collection/help-center networks: MTN + Airtel.
+   * Do not expose M-Pesa here (Kenya/Zambia keep M-Pesa). Flutterwave transfer
+   * API samples historically use network code "MPS" for RWF; Jimvio does not
+   * map that to an M-Pesa UI label. Withdrawals are ops-processed destinations;
+   * flutterwaveCode is retained for future automated transfers.
+   */
   RW: {
     label: "Rwanda",
     dial: "+250",
     currency: "RWF",
     providers: [
-      { id: "mpesa", label: "M-Pesa", flutterwaveCode: "MPS" },
       { id: "mtn_momo", label: "MTN", flutterwaveCode: "MTN" },
+      { id: "airtel_money", label: "Airtel", flutterwaveCode: "AIRTEL" },
     ],
   },
   SN: {
