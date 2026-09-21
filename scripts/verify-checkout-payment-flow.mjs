@@ -192,8 +192,23 @@ assert(
   "Checkout must show dedicated Mobile Money without Rwanda-specific or fake network copy"
 );
 assert(
+  !momoInitiate.includes("provider_reference:") &&
+    momoInitiate.includes("provider_transaction_id: txRef"),
+  "MoMo initiate must not write nonexistent transactions.provider_reference"
+);
+assert(
+  !momoStatus.includes("provider_reference"),
+  "MoMo status must not select nonexistent transactions.provider_reference"
+);
+assert(
+  momoService.includes("buildFlutterwaveMobileMoneyCharge") &&
+    momoService.includes("includeOrderIdInCharge"),
+  "MoMo adapter must build market-specific Flutterwave charge payloads"
+);
+assert(
   checkout.includes("/api/payments/mobile-money/initiate") &&
-    checkout.includes("Waiting for Mobile Money confirmation"),
+    (checkout.includes("Waiting for Mobile Money confirmation") ||
+      checkout.includes("Waiting for Mobile Money authorization")),
   "Checkout experience must initiate MoMo and poll pending confirmation"
 );
 const momoPanel = read("components/checkout/MobileMoneyCheckoutPanel.tsx");

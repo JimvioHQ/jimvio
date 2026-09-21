@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   const { data: tx } = await supabase
     .from("transactions")
     .select(
-      "id, status, amount, currency, provider_transaction_id, provider_reference, metadata",
+      "id, status, amount, currency, provider_transaction_id, reference, metadata",
     )
     .eq("order_id", orderId)
     .eq("provider", "flutterwave")

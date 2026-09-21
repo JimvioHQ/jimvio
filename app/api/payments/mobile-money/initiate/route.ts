@@ -36,8 +36,8 @@ type ApiError =
   | { code: "ORDER_NOT_FOUND" }
   | { code: "ORDER_ALREADY_PAID"; currentStatus: string }
   | { code: "BUYER_EMAIL_MISSING" }
-  | { code: "UNSUPPORTED_COUNTRY" }
-  | { code: "UNSUPPORTED_NETWORK" }
+  | { code: "UNSUPPORTED_COUNTRY"; message?: string }
+  | { code: "UNSUPPORTED_NETWORK"; message?: string }
   | { code: "INVALID_PHONE"; message: string }
   | { code: "PAYMENT_INIT_FAILED"; message: string }
   | { code: "INTERNAL_ERROR"; reason: string };
@@ -171,21 +171,37 @@ export async function POST(req: NextRequest) {
         redirectUrl,
       });
     } catch (err) {
-      if (err instanceof FlutterwaveError && err.statusCode === 400) {
+      if (err instanceof FlutterwaveError) {
         const msg = err.message;
-        if (/phone|number/i.test(msg)) {
-          return apiError(400, { code: "INVALID_PHONE", message: msg });
+        if (err.statusCode === 400) {
+          if (/phone|number/i.test(msg)) {
+            return apiError(400, { code: "INVALID_PHONE", message: msg });
+          }
+          if (/network|provider/i.test(msg)) {
+            return apiError(400, { code: "UNSUPPORTED_NETWORK", message: msg });
+          }
+          if (/country/i.test(msg)) {
+            return apiError(400, { code: "UNSUPPORTED_COUNTRY", message: msg });
+          }
+          return apiError(400, {
+            code: "PAYMENT_INIT_FAILED",
+            message: msg,
+          });
         }
-        if (/network/i.test(msg)) {
-          return apiError(400, { code: "UNSUPPORTED_NETWORK" });
+        if (/exchange-rate|fx|conversion/i.test(msg)) {
+          return apiError(502, {
+            code: "PAYMENT_INIT_FAILED",
+            message:
+              "Mobile Money exchange-rate conversion is temporarily unavailable.",
+          });
         }
-        if (/country/i.test(msg)) {
-          return apiError(400, { code: "UNSUPPORTED_COUNTRY" });
-        }
-        return apiError(400, {
-          code: "PAYMENT_INIT_FAILED",
-          message: msg,
-        });
+        return apiError(
+          err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502,
+          {
+            code: "PAYMENT_INIT_FAILED",
+            message: msg || "We couldn't initiate the Mobile Money payment.",
+          },
+        );
       }
       console.error("[mobile-money/initiate] charge error", {
         orderId,
@@ -242,6 +258,8 @@ export async function POST(req: NextRequest) {
       .eq("provider", "flutterwave")
       .eq("status", "pending");
 
+    // `transactions` has provider_transaction_id + reference — NOT provider_reference
+    // (provider_reference belongs to payouts). Storing flw_ref in metadata/reference.
     const { error: txError } = await supabase.from("transactions").insert({
       user_id: order.buyer_id,
       order_id: orderId,
@@ -254,7 +272,7 @@ export async function POST(req: NextRequest) {
       status: charge.status === "failed" ? "failed" : "pending",
       provider: "flutterwave",
       provider_transaction_id: txRef,
-      provider_reference: charge.flwRef,
+      reference: charge.flwRef,
       description: `Mobile Money · Order ${order.order_number ?? orderId.slice(0, 8)}`,
       metadata: {
         method: "mobile_money",
@@ -263,6 +281,7 @@ export async function POST(req: NextRequest) {
         charge_type: charge.chargeType,
         phone_masked: charge.phoneMasked,
         flw_transaction_id: charge.flwTransactionId,
+        flw_ref: charge.flwRef,
         initiated_at: new Date().toISOString(),
         original_currency: orderCurrency,
         original_amount: Number(order.total_amount),
@@ -277,11 +296,13 @@ export async function POST(req: NextRequest) {
     if (txError && txError.code !== "23505") {
       console.error("[mobile-money/initiate] tx insert failed", {
         orderId,
+        txRef,
         reason: txError.message.slice(0, 160),
       });
       return apiError(500, {
-        code: "INTERNAL_ERROR",
-        reason: "Could not record payment attempt.",
+        code: "PAYMENT_INIT_FAILED",
+        message:
+          "Your Mobile Money payment was started but we could not save the payment record. Please contact support with your order number before retrying.",
       });
     }
 

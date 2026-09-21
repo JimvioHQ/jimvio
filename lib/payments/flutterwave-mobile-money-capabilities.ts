@@ -33,10 +33,26 @@ export type FlutterwaveMoMoMarket = {
   /** Hosted `payment_options` token (reference only — we use direct charge). */
   paymentOption: string;
   networks: FlutterwaveMoMoNetwork[];
-  /** When true, `network` must be sent on charge. */
+  /**
+   * When true, checkout must collect a provider/network selection.
+   * This is a UI/capability concern — it does NOT always mean Flutterwave
+   * accepts a `network` field on the direct-charge body.
+   */
   requiresNetwork: boolean;
+  /**
+   * When true, include `network` on the Flutterwave `/charges` body.
+   * Distinct from transfer (payout) network codes and from UI selection.
+   */
+  includeNetworkInCharge: boolean;
+  /**
+   * When true, include top-level `order_id` on the charge body
+   * (required for Rwanda collection; optional elsewhere).
+   */
+  includeOrderIdInCharge: boolean;
   /** Francophone franco charge requires `country` in body. */
   requiresCountryInPayload: boolean;
+  /** When true, include `redirect_url` on the charge body. */
+  includeRedirectUrlInCharge: boolean;
   requiresPhone: boolean;
   authorizationMode: MoMoAuthorizationMode;
   /** Expected national significant number length(s) after dial code. */
@@ -67,8 +83,12 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "MTN", label: "MTN" },
       { id: "AIRTEL", label: "Airtel" },
     ],
+    // UI selects provider; Rwanda direct-charge OpenAPI does not accept `network`.
     requiresNetwork: true,
+    includeNetworkInCharge: false,
+    includeOrderIdInCharge: true,
     requiresCountryInPayload: false,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "redirect",
     localLengths: [9],
@@ -85,7 +105,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
     paymentOption: "mpesa",
     networks: [{ id: "MPESA", label: "M-Pesa" }],
     requiresNetwork: false,
+    includeNetworkInCharge: false,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: false,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "push",
     localLengths: [9],
@@ -105,7 +128,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "AIRTEL", label: "Airtel" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: false,
+    includeRedirectUrlInCharge: true,
     requiresPhone: true,
     authorizationMode: "redirect",
     localLengths: [9],
@@ -126,7 +152,11 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "AIRTELTIGO", label: "AirtelTigo" },
     ],
     requiresNetwork: true,
-    requiresCountryInPayload: false,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
+    // Ghana docs require country in some guides; send ISO2 for safety.
+    requiresCountryInPayload: true,
+    includeRedirectUrlInCharge: true,
     requiresPhone: true,
     authorizationMode: "redirect",
     localLengths: [9],
@@ -148,7 +178,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "VODACOM", label: "Vodacom" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: false,
+    includeRedirectUrlInCharge: true,
     requiresPhone: true,
     authorizationMode: "push",
     localLengths: [9],
@@ -169,7 +202,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "ZAMTEL", label: "Zamtel" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: false,
+    includeRedirectUrlInCharge: true,
     requiresPhone: true,
     authorizationMode: "redirect",
     localLengths: [9],
@@ -189,7 +225,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "ORANGEMONEY", label: "Orange Money" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: true,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "redirect_or_push",
     localLengths: [8, 9],
@@ -210,7 +249,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "WAVE", label: "Wave" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: true,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "redirect_or_push",
     localLengths: [8, 10],
@@ -229,13 +271,17 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "WAVE", label: "Wave" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: true,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "redirect_or_push",
     localLengths: [9],
     amountDecimals: 0,
   },
   {
+    // Franco OpenAPI country enum explicitly lists BF (Burkina Faso).
     countryCode: "BF",
     countryName: "Burkina Faso",
     flag: "🇧🇫",
@@ -248,7 +294,10 @@ export const FLUTTERWAVE_MOMO_CATALOG: readonly FlutterwaveMoMoMarket[] = [
       { id: "MOBICASH", label: "Moov (MobiCash)" },
     ],
     requiresNetwork: true,
+    includeNetworkInCharge: true,
+    includeOrderIdInCharge: false,
     requiresCountryInPayload: true,
+    includeRedirectUrlInCharge: false,
     requiresPhone: true,
     authorizationMode: "redirect_or_push",
     localLengths: [8],

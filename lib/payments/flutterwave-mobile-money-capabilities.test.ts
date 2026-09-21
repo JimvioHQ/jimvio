@@ -109,5 +109,11 @@ describe("flutterwave mobile money capabilities", () => {
     assert.ok(types.has("mobile_money_tanzania"));
     assert.ok(types.has("mobile_money_zambia"));
     assert.ok(types.has("mobile_money_franco"));
+
+    const rw = getMoMoMarketByCountry("RW")!;
+    assert.equal(rw.includeNetworkInCharge, false);
+    assert.equal(rw.includeOrderIdInCharge, true);
+    assert.equal(getMoMoMarketByCountry("KE")!.includeNetworkInCharge, false);
+    assert.equal(getMoMoMarketByCountry("UG")!.includeNetworkInCharge, true);
   });
 });

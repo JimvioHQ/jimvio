@@ -53,9 +53,9 @@ const USER_FACING_ERRORS: Record<string, string> = {
    BINANCEPAY_UNAVAILABLE: "Binance Pay is temporarily unavailable. Please choose another payment method.",
    INVALID_REQUEST_PAYLOAD: "Invalid payment request. Please try again.",
    UNSUPPORTED_COUNTRY: "Mobile Money is not available in this country.",
-   UNSUPPORTED_NETWORK: "This network is currently unavailable.",
+   UNSUPPORTED_NETWORK: "This Mobile Money provider is currently unavailable.",
    INVALID_PHONE: "Please enter a valid Mobile Money number.",
-   PAYMENT_INIT_FAILED: "We couldn't initiate the Mobile Money payment.",
+   PAYMENT_INIT_FAILED: "We couldn't start your Mobile Money payment. Please check your phone number and provider.",
    INTERNAL_ERROR: "Something went wrong on our end. Please contact support if this persists.",
 } as const;
 
@@ -493,7 +493,11 @@ export function CheckoutExperience({
                   : `/api/payments/mobile-money/status?orderId=${primaryOrderId}&txRef=${encodeURIComponent(String(data.txRef ?? ""))}`;
 
             setMomoAwaiting(true);
-            toast.message("Waiting for Mobile Money confirmation…");
+            toast.message(
+              typeof data.message === "string" && data.message
+                ? data.message
+                : "Waiting for Mobile Money authorization…",
+            );
 
             if (momoPollRef.current) clearInterval(momoPollRef.current);
             momoPollCountRef.current = 0;
