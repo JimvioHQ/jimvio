@@ -581,34 +581,24 @@ async function verifyTransaction(
             }
 
             case "pawapay": {
-                const res = await fetch(
-                    `https://api.pawapay.io/payouts/${providerTxId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${process.env.PAWAPAY_API_KEY}`,
-                            "Content-Type": "application/json",
-                        },
-                        signal: AbortSignal.timeout(8_000),
-                    }
-                );
-                const json = await res.json() as Array<{
-                    status?: string;
-                    depositId?: string;
-                    amount?: string;
-                    currency?: string;
-                    created?: string;
-                }>;
-                const d = Array.isArray(json) ? json[0] : null;
-                if (!d) return { data: null, raw: json };
                 return {
-                    data: {
-                        status: d.status?.toLowerCase() === "completed" ? "successful" : (d.status?.toLowerCase() ?? "unknown"),
-                        amount: parseFloat(d.amount ?? "0"),
-                        currency: d.currency ?? "",
-                        tx_ref: d.depositId,
-                        created_at: d.created,
+                    data: null,
+                    raw: {
+                        retired: true,
+                        message: "PawaPay is no longer available for live verification",
+                        providerTxId,
                     },
-                    raw: json,
+                };
+            }
+
+            case "afripay": {
+                return {
+                    data: null,
+                    raw: {
+                        retired: true,
+                        message: "AfriPay is no longer available for live verification",
+                        providerTxId,
+                    },
                 };
             }
 

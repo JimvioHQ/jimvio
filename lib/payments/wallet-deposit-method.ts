@@ -105,6 +105,8 @@ export function walletDepositMethodLabel(method: string | null | undefined): str
       return "PesaPal (retired)";
     case "pawapay":
       return "PawaPay (retired)";
+    case "afripay":
+      return "AfriPay (retired)";
     case "bank":
       return "Bank transfer";
     case "manual":

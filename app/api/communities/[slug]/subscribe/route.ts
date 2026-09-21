@@ -22,11 +22,9 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { planType, paymentProvider = "flutterwave", pawapayProvider, pawapayPhone } = (await req.json()) as {
+  const { planType, paymentProvider = "flutterwave" } = (await req.json()) as {
     planType?: string;
     paymentProvider?: string;
-    pawapayProvider?: string;
-    pawapayPhone?: string;
   };
 
   if (!planType || !["monthly", "yearly", "lifetime"].includes(planType)) {

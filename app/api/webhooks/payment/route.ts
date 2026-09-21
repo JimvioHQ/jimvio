@@ -3,10 +3,11 @@
  *
  * UNIFIED PAYMENT WEBHOOK HANDLER
  * ================================
- * Single endpoint that handles webhooks from remaining payment providers:
- *   Flutterwave · NowPayments · AfriPay · PawaPay · Binance Pay
+ * Single endpoint that handles webhooks from active payment providers:
+ *   Flutterwave · NowPayments · Binance Pay
  *
- * PesaPal and PayPal are retired — requests for those providers are rejected.
+ * PesaPal, PayPal, AfriPay, and PawaPay are retired — requests for those
+ * providers are rejected with 410 (historical order rows remain readable).
  *
  * Usage — configure each provider's dashboard to POST/GET to:
  *   https://your-domain/api/webhooks/payment?provider=<name>
@@ -63,7 +64,7 @@ function getDb() {
 }
 
 // ---------------------------------------------------------------------------
-// POST — used by Flutterwave, PayPal, NowPayments, AfriPay, PawaPay
+// POST — used by Flutterwave, NowPayments (and retired providers → 410)
 // ---------------------------------------------------------------------------
 export async function POST(req: NextRequest) {
   return handleWebhook(req, "POST");

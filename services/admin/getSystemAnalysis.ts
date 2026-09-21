@@ -114,13 +114,6 @@ function buildIntegrations(): IntegrationCheck[] {
             detail: "Card & mobile money",
         },
         {
-            id: "pawapay",
-            label: "PawaPay",
-            category: "payments",
-            status: envPresent("PAWAPAY_API_TOKEN") ? "ok" : "missing",
-            detail: "Mobile money",
-        },
-        {
             id: "nowpayments",
             label: "NowPayments",
             category: "payments",

@@ -244,6 +244,17 @@ assert(
   !selector.match(/^export type MethodId =[\s\S]*?pawapay/m),
   "Checkout MethodId must not include pawapay"
 );
+assert(
+  !existsSync(join(root, "lib/payments/afripay.ts")) &&
+    !existsSync(join(root, "lib/afripay/afripay.ts")) &&
+    !existsSync(join(root, "lib/payments/confirm-pawapay-deposit.ts")) &&
+    !existsSync(join(root, "lib/pawapay-convert.ts")),
+  "AfriPay/PawaPay adapter modules must be deleted"
+);
+assert(
+  !read("services/admin/getSystemAnalysis.ts").includes("PAWAPAY_API_TOKEN"),
+  "System analysis must not check PAWAPAY_API_TOKEN"
+);
 
 const binancePay = read("lib/binance-pay/index.ts");
 assert(
