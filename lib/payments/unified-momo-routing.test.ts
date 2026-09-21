@@ -76,10 +76,21 @@ describe("unified Mobile Money routing — no hosted card checkout", () => {
   it("Wallet overview uses available as Total Balance, not netWorth hero", () => {
     const src = read("components/wallet-os/WalletOverviewClient.tsx");
     assert.match(src, /overview\?\.available/);
-    assert.match(src, /Total balance/);
-    assert.match(src, /Recent activity/);
+    assert.match(src, /Balance/);
+    assert.match(src, /Recent Transactions/);
+    assert.match(src, /Add Funds/);
+    assert.match(src, /Withdraw/);
     assert.doesNotMatch(src, /Your wallet is empty for now/);
+    assert.doesNotMatch(src, /Your Jimvio balance is ready/);
     assert.doesNotMatch(src, /tone="ink"/);
     assert.doesNotMatch(src, /This month/);
+    assert.doesNotMatch(src, /checkout\.flutterwave\.com\/v3\/hosted\/pay/);
+  });
+
+  it("Wallet shell uses light Jimvio navigation (not black banking theme)", () => {
+    const src = read("components/wallet-os/WalletOsShell.tsx");
+    assert.match(src, /bg-\[#F8FAFC\]/);
+    assert.match(src, /bg-white/);
+    assert.doesNotMatch(src, /bg-\[#0E0E10\]/);
   });
 });
