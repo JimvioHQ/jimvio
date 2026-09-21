@@ -104,7 +104,7 @@ export default async function CommerceFinancePage({ searchParams }: Props) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">
-            Finance
+            Revenue
           </h1>
           <p className="mt-1 text-sm text-[#6B7280]">
             Ledger-backed balances for {active.name}. No estimated profit figures.

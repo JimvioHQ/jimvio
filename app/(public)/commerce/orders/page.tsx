@@ -59,7 +59,7 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
           Orders
         </h1>
         <p className="text-sm text-[#6B7280]">
-          Create a store to see store-channel orders.
+          Create a store to manage orders for your storefront.
         </p>
         <Link href="/commerce/stores" className="text-sm font-semibold text-[#FF5A1F]">
           Go to Stores

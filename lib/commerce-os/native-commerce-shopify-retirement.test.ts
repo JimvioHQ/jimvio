@@ -10,14 +10,27 @@ function read(rel: string) {
 }
 
 describe("native commerce OS — Shopify retired from active product", () => {
-  it("Commerce shell nav has no Channels / Connected Stores", () => {
+  it("Commerce shell nav has no Channels / Connected Stores / Need Help card", () => {
     const src = read("components/commerce-os/commerce-shell.tsx");
     assert.equal(src.includes("Connected Stores"), false);
     assert.equal(src.includes("Channel Products"), false);
     assert.equal(src.includes('href: "/commerce/integrations"'), false);
     assert.equal(src.includes('label: "Channels"'), false);
+    assert.equal(src.includes("Need help?"), false);
+    assert.equal(src.includes("Help Center"), false);
     assert.ok(src.includes("/commerce/finance"));
     assert.ok(src.includes("Native Jimvio Store"));
+    assert.ok(src.includes('label: "Revenue"'));
+  });
+
+  it("Overview has no right-rail Store Status / Latest Activity / Upgrade cards", () => {
+    const src = read("app/(public)/commerce/page.tsx");
+    assert.equal(src.includes("Store status"), false);
+    assert.equal(src.includes("Latest activity"), false);
+    assert.equal(src.includes("Upgrade Your Plan"), false);
+    assert.equal(src.includes("xl:grid-cols-[minmax(0,1fr)_280px]"), false);
+    assert.ok(src.includes("Order pipeline"));
+    assert.ok(src.includes("Recent transactions"));
   });
 
   it("merchant checkout trust panel no longer says Why checkout with Jimvio", () => {

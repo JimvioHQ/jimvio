@@ -36,9 +36,9 @@ export default async function CommerceStoresPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-[#111827]">Stores</h1>
+        <h1 className="text-xl font-semibold text-[#111827]">Store</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Native Jimvio storefronts — your branded store on {`{handle}`}.jimvio.com.
+          Store identity, public URL, currency, and live status.
         </p>
       </div>
 

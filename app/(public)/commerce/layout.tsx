@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { CommerceShell } from "@/components/commerce-os/commerce-shell";
@@ -44,5 +45,15 @@ export default async function CommerceLayout({
     };
   }
 
-  return <CommerceShell user={user}>{children}</CommerceShell>;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-dvh items-center justify-center bg-[#F8FAFC] text-sm text-[#6B7280]">
+          Loading Commerce…
+        </div>
+      }
+    >
+      <CommerceShell user={user}>{children}</CommerceShell>
+    </Suspense>
+  );
 }
