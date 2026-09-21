@@ -13,11 +13,16 @@ const PLATFORM_HOSTS = new Set([
 
 /**
  * Paths that must stay on the platform router even when requested on a
- * merchant store host (APIs, workspaces). Storefront-owned surfaces
- * (/cart, /checkout, /login, /account, /orders) rewrite to /s/{handle}/….
+ * merchant store host (APIs, workspaces, auth infrastructure). Storefront-owned
+ * surfaces (/cart, /checkout, /login, /account, /orders) rewrite to /s/{handle}/….
+ *
+ * Auth callbacks and recovery pages must NOT rewrite to /s/{handle}/… — they
+ * live under app/(auth) and app/auth so email/OAuth links keep working on the
+ * merchant host while staying on that origin.
  */
 const PLATFORM_PATH_PREFIXES = [
   "/api",
+  "/auth",
   "/admin",
   "/commerce",
   "/dropshipping",
@@ -31,9 +36,19 @@ const PLATFORM_PATH_PREFIXES = [
   "/messages",
   "/seller",
   "/dashboard",
+  "/reset-password",
+  "/verify",
+  "/complete",
   "/s/", // already path-based storefront
   "/_next",
 ];
+
+/** Exact paths (and /login/2fa) that must not rewrite on merchant hosts. */
+const PLATFORM_EXACT_PATHS = new Set([
+  "/reset-password",
+  "/verify",
+  "/complete",
+]);
 
 /**
  * Jimvio platform surfaces that must NOT render on a merchant store host.
@@ -89,6 +104,11 @@ export function shouldAttemptStoreHostRewrite(
   pathname: string
 ): boolean {
   if (isPlatformHostname(hostname)) return false;
+  // 2FA challenge lives under (auth)/login/2fa — do not rewrite to storefront.
+  if (pathname === "/login/2fa" || pathname.startsWith("/login/2fa/")) {
+    return false;
+  }
+  if (PLATFORM_EXACT_PATHS.has(pathname)) return false;
   for (const prefix of PLATFORM_PATH_PREFIXES) {
     if (pathMatchesPrefix(pathname, prefix)) {
       return false;

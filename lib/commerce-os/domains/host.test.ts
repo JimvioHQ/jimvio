@@ -32,6 +32,7 @@ describe("commerce host routing", () => {
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/checkout"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/login"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/register"), true);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/forgot-password"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/account"), true);
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/orders"), true);
     assert.equal(
@@ -43,6 +44,14 @@ describe("commerce host routing", () => {
       true
     );
     assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/terms"), true);
+  });
+
+  it("does not rewrite auth infrastructure on merchant hosts", () => {
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/auth/callback"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/reset-password"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/verify"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/complete"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/login/2fa"), false);
   });
 
   it("maps friendly legal paths on merchant hosts", () => {

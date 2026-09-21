@@ -168,8 +168,9 @@ export function RegisterForm({
     );
   }
 
+  const isMerchantStorefront = Boolean(storefront);
   const subtitle = storefront
-    ? `Create an account to checkout faster and manage your orders at ${storefront.storeName}.`
+    ? "Create an account to checkout faster and manage your orders."
     : "Join Jimvio — free to start";
 
   return (
@@ -186,9 +187,12 @@ export function RegisterForm({
       )}
 
       <div className="space-y-5">
-        <GoogleAuthButton next={next || undefined} disabled={pending} />
-
-        <AuthDivider label="or sign up with email" />
+        {!isMerchantStorefront ? (
+          <>
+            <GoogleAuthButton next={next || undefined} disabled={pending} />
+            <AuthDivider label="or sign up with email" />
+          </>
+        ) : null}
 
         <form method="post" action="/register" onSubmit={handleSubmit} className="space-y-4" noValidate>
           {error && <AuthAlert tone="error">{error}</AuthAlert>}

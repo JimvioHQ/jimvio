@@ -227,6 +227,8 @@ const LOGIN_QUERY_MESSAGES: Record<string, string> = {
   no_user: "Sign-in could not be completed. Please try again.",
   server_error: "Sign-in is temporarily unavailable. Please try again.",
   google_signin_failed: "Google sign-in failed. Please try again.",
+  social_unavailable:
+    "Social sign-in is unavailable for this store. Please use email and password.",
   identity_exists:
     "This email is already in use. Sign in with your existing method, then connect Google from Account settings.",
   link_expired: "Reset link expired. Request a new one.",

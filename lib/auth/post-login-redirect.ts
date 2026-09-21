@@ -42,6 +42,7 @@ const PLATFORM_DESTINATION_PREFIXES = [
   "/wallet",
   "/identity",
   "/seller",
+  "/creator",
   "/dropshipping",
   "/owner",
   "/library",

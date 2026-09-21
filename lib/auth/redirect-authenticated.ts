@@ -5,8 +5,8 @@ import {
   resolvePostLoginPath,
   DEFAULT_POST_LOGIN_PATH,
   MERCHANT_POST_LOGIN_PATH,
-  isPlatformDestinationPath,
 } from "@/lib/auth/post-login-redirect";
+import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect";
 import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import { TWO_FA_PENDING_COOKIE, cookieMatchesUser } from "@/lib/auth/two-fa-session";
@@ -32,17 +32,20 @@ export async function redirectIfAuthenticated(
 
   const pending = (await cookies()).get(TWO_FA_PENDING_COOKIE)?.value;
   if (cookieMatchesUser(pending, user.id)) {
-    const candidate =
-      rawNext && isSafeInternalPath(rawNext) ? rawNext : fallback;
-    const next =
-      merchantStorefront && isPlatformDestinationPath(candidate)
-        ? MERCHANT_POST_LOGIN_PATH
-        : candidate;
+    const next = merchantStorefront
+      ? resolveMerchantAuthRedirect(rawNext)
+      : rawNext && isSafeInternalPath(rawNext)
+        ? rawNext
+        : fallback;
     redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
   }
 
+  if (merchantStorefront) {
+    redirect(resolveMerchantAuthRedirect(rawNext));
+  }
+
   const destination = await resolvePostLoginPath(user.id, rawNext, {
-    merchantStorefront,
+    merchantStorefront: false,
   });
   redirect(destination);
 }

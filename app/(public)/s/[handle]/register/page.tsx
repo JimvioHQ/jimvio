@@ -70,8 +70,7 @@ export default async function StorefrontRegisterPage({
           Create your account
         </h1>
         <p className="mt-2 text-sm text-[var(--store-muted,#6B7280)]">
-          Create an account to checkout faster and manage your orders at{" "}
-          {store.name}.
+          Create an account to checkout faster and manage your orders.
         </p>
       </div>
       <Suspense

@@ -5,8 +5,8 @@ import {
   resolvePostLoginPath,
   DEFAULT_POST_LOGIN_PATH,
   MERCHANT_POST_LOGIN_PATH,
-  isPlatformDestinationPath,
 } from "@/lib/auth/post-login-redirect";
+import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
 import { canSignInDuringMaintenance } from "@/lib/platform-maintenance";
@@ -31,6 +31,20 @@ import {
   twoFaPendingCookieOptions,
 } from "@/lib/auth/two-fa-session";
 import { isExistingAccountAuthError } from "@/lib/auth/sign-in-errors";
+
+function providersFromAuthUser(user: {
+  identities?: { provider?: string }[] | null;
+  app_metadata?: { providers?: string[]; provider?: string } | null;
+}): string[] {
+  const fromIdentities = (user.identities ?? [])
+    .map((identity) => identity.provider)
+    .filter((provider): provider is string => Boolean(provider));
+  if (fromIdentities.length > 0) return Array.from(new Set(fromIdentities));
+  const meta = user.app_metadata?.providers;
+  if (Array.isArray(meta) && meta.length > 0) return meta.filter(Boolean);
+  if (user.app_metadata?.provider) return [user.app_metadata.provider];
+  return [];
+}
 
 const HASH_TRAMPOLINE = `<!DOCTYPE html>
 <html lang="en">
@@ -239,36 +253,50 @@ export async function GET(request: Request) {
     return maintenance;
   }
 
+  const merchantStorefront = Boolean(
+    handleFromJimvioSubdomain(new URL(origin).hostname),
+  );
+
+  // Stale Google/OAuth callbacks on merchant hosts must not establish a session
+  // or send customers to www. Email OTP flows (signup/magiclink/recovery) keep working.
+  const isSocialOAuthCallback =
+    Boolean(code) && !tokenHash && !otpType && !isRecovery;
+  if (merchantStorefront && isSocialOAuthCallback) {
+    const providers = providersFromAuthUser(user);
+    if (providers.includes("google") || providers.includes("apple")) {
+      await supabase.auth.signOut({ scope: "local" });
+      const denied = NextResponse.redirect(
+        `${origin}/login?error=social_unavailable`,
+      );
+      denied.cookies.delete(PASSWORD_RECOVERY_COOKIE);
+      denied.cookies.delete("sb-code-verifier");
+      return denied;
+    }
+  }
+
   try {
     await syncUserSession(user.id, extractSessionMeta(request.headers), { reactivate: true });
   } catch (err) {
     console.error("[auth/callback] session sync failed:", err);
   }
 
-  const merchantStorefront = Boolean(
-    handleFromJimvioSubdomain(new URL(origin).hostname),
-  );
   const authFallback = merchantStorefront
     ? MERCHANT_POST_LOGIN_PATH
     : DEFAULT_POST_LOGIN_PATH;
 
   let destination: string;
-  try {
-    destination = await resolvePostLoginPath(user.id, safeNext, {
-      merchantStorefront,
-    });
-  } catch (err) {
-    console.error("[auth/callback] resolvePostLoginPath threw:", err);
-    destination =
-      safeNext &&
-      safeNext !== "/" &&
-      !(merchantStorefront && isPlatformDestinationPath(safeNext))
-        ? safeNext
-        : authFallback;
-  }
-  destination = sanitizeAuthenticatedNext(destination) ?? authFallback;
-  if (merchantStorefront && isPlatformDestinationPath(destination)) {
-    destination = MERCHANT_POST_LOGIN_PATH;
+  if (merchantStorefront) {
+    destination = resolveMerchantAuthRedirect(safeNext);
+  } else {
+    try {
+      destination = await resolvePostLoginPath(user.id, safeNext, {
+        merchantStorefront: false,
+      });
+    } catch (err) {
+      console.error("[auth/callback] resolvePostLoginPath threw:", err);
+      destination = safeNext && safeNext !== "/" ? safeNext : authFallback;
+    }
+    destination = sanitizeAuthenticatedNext(destination) ?? authFallback;
   }
 
   const admin = createAdminClient();

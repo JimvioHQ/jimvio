@@ -30,6 +30,8 @@ export function LoginForm({
     storeName: string;
     /** Relative register path on the merchant host, e.g. `/register`. */
     registerHref?: string;
+    /** Relative forgot-password path on the merchant host. */
+    forgotPasswordHref?: string;
     hideHeader?: boolean;
   };
   defaultNext?: string;
@@ -44,6 +46,7 @@ export function LoginForm({
     "";
   const urlError = searchParams.get("error");
   const urlStatus = searchParams.get("status");
+  const isMerchantStorefront = Boolean(storefront);
 
   const [showPw, setShowPw] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -101,9 +104,10 @@ export function LoginForm({
   const registerHref = next
     ? `${registerBase}${registerBase.includes("?") ? "&" : "?"}next=${encodeURIComponent(next)}`
     : registerBase;
+  const forgotPasswordHref = storefront?.forgotPasswordHref || "/forgot-password";
 
   const subtitle = storefront
-    ? `Sign in to continue shopping and manage your orders at ${storefront.storeName}.`
+    ? "Access your orders and manage your account."
     : "Sign in to continue to Jimvio";
 
   return (
@@ -134,9 +138,12 @@ export function LoginForm({
       )}
 
       <div className="space-y-5">
-        <GoogleAuthButton next={next || undefined} disabled={pending} />
-
-        <AuthDivider label="or continue with email" />
+        {!isMerchantStorefront ? (
+          <>
+            <GoogleAuthButton next={next || undefined} disabled={pending} />
+            <AuthDivider label="or continue with email" />
+          </>
+        ) : null}
 
         <form method="post" action="/login" onSubmit={handleSubmit} className="space-y-4" noValidate>
           {displayNotice && !displayError && <AuthAlert tone="success">{displayNotice}</AuthAlert>}
@@ -158,7 +165,7 @@ export function LoginForm({
           <div className="relative">
             <Field label="Password" required icon={<Lock className="h-4 w-4" />}>
               <Link
-                href="/forgot-password"
+                href={forgotPasswordHref}
                 className="absolute right-0 -top-6 z-10 text-[13px] font-semibold text-orange-600 transition-colors hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 rounded-sm"
               >
                 Forgot password?
@@ -216,7 +223,7 @@ export function LoginForm({
           href={registerHref}
           className="font-bold text-orange-600 transition-colors hover:text-orange-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40 rounded-sm"
         >
-          Create one
+          Create account
         </Link>
       </p>
     </div>

@@ -8,9 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import {
   resolvePostLoginPath,
   DEFAULT_POST_LOGIN_PATH,
-  MERCHANT_POST_LOGIN_PATH,
-  isPlatformDestinationPath,
 } from "@/lib/auth/post-login-redirect"
+import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect"
 import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context"
 import { getPublicAppUrl } from "@/lib/app-url"
 import { verifyTOTP } from "@/lib/totp"
@@ -142,18 +141,20 @@ async function resolveLandingPath(userId: string, next?: string | null): Promise
   // Pass through null/undefined so resolvePostLoginPath treats missing next as
   // "use role default" — do NOT pass DEFAULT as an explicit next (that skips onboarding).
   const merchantStorefront = await isMerchantAuthContext()
+  if (merchantStorefront) {
+    return resolveMerchantAuthRedirect(next)
+  }
   return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next), {
-    merchantStorefront,
+    merchantStorefront: false,
   })
 }
 
 async function resolveTwoFaFallbackNext(next?: string | null): Promise<string> {
   const merchantStorefront = await isMerchantAuthContext()
-  const sanitized = sanitizeAuthenticatedNext(next)
   if (merchantStorefront) {
-    if (sanitized && !isPlatformDestinationPath(sanitized)) return sanitized
-    return MERCHANT_POST_LOGIN_PATH
+    return resolveMerchantAuthRedirect(next)
   }
+  const sanitized = sanitizeAuthenticatedNext(next)
   return sanitized ?? DEFAULT_POST_LOGIN_PATH
 }
 
@@ -597,6 +598,11 @@ export async function signInWithGoogle(
   next?: string,
   opts?: { errorReturn?: string },
 ): Promise<void> {
+  // Merchant storefronts are email/password only — never initiate Google OAuth.
+  if (await isMerchantAuthContext()) {
+    redirect("/login?error=social_unavailable")
+  }
+
   let redirectUrl: string
   const safeNext = sanitizeAuthenticatedNext(next)
   const errorReturn = sanitizeAuthenticatedNext(opts?.errorReturn) ?? safeNext

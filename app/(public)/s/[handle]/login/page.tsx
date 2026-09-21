@@ -74,7 +74,7 @@ export default async function StorefrontLoginPage({
           Sign in to {store.name}
         </h1>
         <p className="mt-2 text-sm text-[var(--store-muted,#6B7280)]">
-          Sign in to continue shopping and manage your orders.
+          Access your orders and manage your account.
         </p>
       </div>
       <Suspense
@@ -92,6 +92,7 @@ export default async function StorefrontLoginPage({
           storefront={{
             storeName: store.name,
             registerHref: storefrontHref(handle, "/register", linkOpts),
+            forgotPasswordHref: storefrontHref(handle, "/forgot-password", linkOpts),
             hideHeader: true,
           }}
         />

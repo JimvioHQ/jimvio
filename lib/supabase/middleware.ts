@@ -9,6 +9,7 @@ import {
 } from "@/lib/platform-maintenance";
 import { isAccountAccessBlocked } from "@/lib/users/account-status";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect";
 import { isMerchantAuthContextFromRequest } from "@/lib/auth/merchant-auth-context";
 import {
   getSupabasePublishableKey,
@@ -49,7 +50,8 @@ function isGuestOnlyAuthPath(pathname: string): boolean {
   return (
     pathname === "/login" ||
     pathname === "/register" ||
-    pathname === "/forgot-password"
+    pathname === "/forgot-password" ||
+    pathname.endsWith("/forgot-password")
   );
 }
 
@@ -261,9 +263,11 @@ export async function updateSession(request: NextRequest) {
           request.nextUrl.searchParams.get("next") ??
           request.nextUrl.searchParams.get("redirect");
         const merchantStorefront = isMerchantAuthContextFromRequest(request);
-        const destination = await resolvePostLoginPath(user.id, next, {
-          merchantStorefront,
-        });
+        const destination = merchantStorefront
+          ? resolveMerchantAuthRedirect(next)
+          : await resolvePostLoginPath(user.id, next, {
+              merchantStorefront: false,
+            });
         const url = request.nextUrl.clone();
         const dest = new URL(destination, request.nextUrl.origin);
         url.pathname = dest.pathname;
@@ -274,7 +278,8 @@ export async function updateSession(request: NextRequest) {
       if (!user && isProtected) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
-        url.searchParams.set("redirect", request.nextUrl.pathname);
+        url.search = "";
+        url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
         return NextResponse.redirect(url);
       }
     }

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { noIndexMetadata } from "@/lib/seo";
 import { JimvioLogo } from "@/components/ui/logo";
+import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context";
 
 export const metadata: Metadata = noIndexMetadata(
   "Account",
@@ -11,7 +12,22 @@ export const metadata: Metadata = noIndexMetadata(
   "/login",
 );
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const merchantStorefront = await isMerchantAuthContext();
+
+  // Merchant host recovery/2FA pages: stay storefront-minimal — no Jimvio marketing shell.
+  if (merchantStorefront) {
+    return (
+      <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--color-bg,#fafafa)] px-4 py-12">
+        <div className="w-full max-w-md">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[100dvh] bg-[var(--color-bg)]">
       <div className="relative flex flex-1 flex-col justify-center bg-[var(--color-surface)] px-5 py-10 sm:px-8 lg:w-[48%] lg:flex-none xl:w-[42%]">
