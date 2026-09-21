@@ -41,6 +41,12 @@ export interface MobileMoneyPaymentStepProps {
   submitting?: boolean;
   awaitingConfirmation?: boolean;
   error?: string | null;
+  /** Contextual copy — defaults match Marketplace checkout. */
+  title?: string;
+  subtitle?: string;
+  amountLabel?: string;
+  continueLabel?: string;
+  secureNote?: string;
 }
 
 function stripDial(phone: string, dialCode: string): string {
@@ -108,6 +114,11 @@ export function MobileMoneyPaymentStep({
   submitting = false,
   awaitingConfirmation = false,
   error = null,
+  title = "Mobile Money",
+  subtitle,
+  amountLabel = "Order total",
+  continueLabel = "Continue with Mobile Money",
+  secureNote = "Your payment will only be completed after confirmation.",
 }: MobileMoneyPaymentStepProps) {
   const [markets, setMarkets] = useState<MoMoMarketClient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,12 +289,12 @@ export function MobileMoneyPaymentStep({
         </div>
         <div className="min-w-0">
           <h1 className="text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)] sm:text-[22px]">
-            Mobile Money
+            {title}
           </h1>
           <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
             {phase === "confirm"
               ? "Confirm your mobile wallet details before paying."
-              : "Choose your country and mobile wallet"}
+              : subtitle ?? "Pay securely using your local mobile wallet."}
           </p>
           {selectedMarket && phase === "setup" ? (
             <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)]">
@@ -295,7 +306,7 @@ export function MobileMoneyPaymentStep({
 
       <div className="mb-5 flex items-baseline justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/70 px-4 py-3">
         <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">
-          Order total
+          {amountLabel}
         </span>
         <span className="text-[16px] font-bold tabular-nums text-[var(--color-text-primary)]">
           {formatMoney(amountUsd, "USD")}
@@ -389,7 +400,7 @@ export function MobileMoneyPaymentStep({
             ) : (
               <>
                 <Lock className="h-4 w-4" aria-hidden />
-                Continue to secure payment
+                {continueLabel}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </>
             )}
@@ -564,7 +575,7 @@ export function MobileMoneyPaymentStep({
           </button>
 
           <p className="text-center text-[11px] leading-relaxed text-[var(--color-text-muted)]">
-            Secure payment — completed only after confirmation.
+            {secureNote}
           </p>
         </div>
       )}

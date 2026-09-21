@@ -394,23 +394,96 @@ export async function POST(req: NextRequest) {
     const { completeWalletDepositByReference } = await import(
       "@/lib/wallet-os/complete-deposit"
     );
+
+    // MoMo deposits charge local currency but wallet credits USD — resolve via amount_usd.
+    let walletVerifiedAmount =
+      amount != null ? Number(amount) : null;
+    let walletVerifiedCurrency = currency ?? "USD";
+    const { data: depositTx } = await supabase
+      .from("transactions")
+      .select("amount, currency, amount_usd, metadata")
+      .eq("provider_transaction_id", txRef)
+      .eq("type", "wallet_deposit")
+      .maybeSingle();
+    const depMeta =
+      depositTx?.metadata &&
+      typeof depositTx.metadata === "object" &&
+      !Array.isArray(depositTx.metadata)
+        ? (depositTx.metadata as Record<string, unknown>)
+        : {};
+    if (
+      depMeta.method === "mobile_money" &&
+      depositTx?.amount_usd != null &&
+      Number.isFinite(Number(depositTx.amount_usd))
+    ) {
+      const localOk =
+        amount != null &&
+        Math.abs(Number(amount) - Number(depositTx.amount)) < 0.01 &&
+        String(currency ?? "").toUpperCase() ===
+          String(depositTx.currency ?? "").toUpperCase();
+      if (!localOk) {
+        console.error("[Flutterwave webhook] MoMo deposit local mismatch", {
+          txRef,
+          amount,
+          currency,
+          expected: depositTx.amount,
+          expectedCurrency: depositTx.currency,
+        });
+        if (eventId) await markWebhookFailed(supabase, eventId, "MoMo amount mismatch");
+        return NextResponse.json({ received: true });
+      }
+      walletVerifiedAmount = Number(depositTx.amount_usd);
+      walletVerifiedCurrency = "USD";
+    }
+
     const deposit = await completeWalletDepositByReference(supabase, {
       providerReference: txRef,
       provider: "flutterwave",
-      verifiedAmount: amount != null ? Number(amount) : null,
-      verifiedCurrency: currency ?? "USD",
+      verifiedAmount: walletVerifiedAmount,
+      verifiedCurrency: walletVerifiedCurrency,
     });
     if (deposit.handled) {
       if (eventId) await markWebhookProcessed(supabase, eventId, null);
       return NextResponse.json({ received: true, walletDeposit: true });
     }
 
+    // UGC MoMo: confirm using USD amount_usd when local currency was charged.
+    let ugcAmount = amount;
+    let ugcCurrency = currency;
+    const { data: ugcTx } = await supabase
+      .from("transactions")
+      .select("amount, currency, amount_usd, metadata")
+      .eq("provider_transaction_id", txRef)
+      .eq("type", "ugc_escrow")
+      .maybeSingle();
+    const ugcMeta =
+      ugcTx?.metadata &&
+      typeof ugcTx.metadata === "object" &&
+      !Array.isArray(ugcTx.metadata)
+        ? (ugcTx.metadata as Record<string, unknown>)
+        : {};
+    if (
+      ugcMeta.method === "mobile_money" &&
+      ugcTx?.amount_usd != null &&
+      Number.isFinite(Number(ugcTx.amount_usd))
+    ) {
+      const localOk =
+        amount != null &&
+        Math.abs(Number(amount) - Number(ugcTx.amount)) < 0.01 &&
+        String(currency ?? "").toUpperCase() ===
+          String(ugcTx.currency ?? "").toUpperCase();
+      if (localOk) {
+        ugcAmount = Number(ugcTx.amount_usd);
+        ugcCurrency = "USD";
+      }
+    }
+
     const ugc = await confirmUgcEscrowFromProviderEvent(supabase, {
       provider: "flutterwave",
       providerTransactionId: txId != null ? String(txId) : txRef,
       txRef,
-      amount,
-      currency,
+      amount: ugcAmount,
+      currency: ugcCurrency,
       rawBody,
     });
     if (ugc.handled) {

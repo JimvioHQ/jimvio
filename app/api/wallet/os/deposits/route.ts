@@ -194,7 +194,26 @@ export async function POST(req: NextRequest) {
   let checkoutUrl: string | null = null;
 
   try {
-    if (method === "flutterwave" || method === "mobile_money") {
+    // Mobile Money must use the dedicated Global MoMo direct-charge flow —
+    // never Flutterwave hosted card checkout (/v3/payments → hosted/pay).
+    if (method === "mobile_money") {
+      await db
+        .from("wallet_deposits")
+        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .eq("id", inserted.id)
+        .eq("status", "pending");
+      return NextResponse.json(
+        {
+          error:
+            "Select Mobile Money again to open the dedicated Mobile Money deposit step.",
+          code: "USE_MOBILE_MONEY_FLOW",
+          redirectHint: "/wallet/deposits?payment=mobile_money",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (method === "flutterwave") {
       const { data: profile } = await db
         .from("profiles")
         .select("email, full_name, phone")
@@ -210,6 +229,7 @@ export async function POST(req: NextRequest) {
         customerPhone: body.phone || profile?.phone || "",
         orderDescription: `Jimvio wallet deposit ${inserted.id.slice(0, 8)}`,
         meta: { purpose: "wallet_deposit", deposit_id: inserted.id },
+        paymentOptions: "card",
       });
     } else if (method === "nowpayments") {
       const { data: profile } = await db
@@ -319,8 +339,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Persist invoice URL for Flutterwave / others when not already saved
-  if (method === "flutterwave" || method === "mobile_money") {
+  // Persist invoice URL for Flutterwave card checkout (MoMo uses dedicated initiate).
+  if (method === "flutterwave") {
     await db
       .from("wallet_deposits")
       .update({ invoice_url: checkoutUrl })

@@ -144,7 +144,16 @@ async function initiateExternalCheckout(
     "https://www.jimvio.com";
   const appUrl = origin.replace(/\/$/, "");
 
-  if (opts.paymentMethod === "flutterwave" || opts.paymentMethod === "mobile_money") {
+  if (opts.paymentMethod === "mobile_money") {
+    return {
+      ok: false,
+      error:
+        "Select Mobile Money again to open the dedicated Mobile Money funding step.",
+      status: 400,
+    };
+  }
+
+  if (opts.paymentMethod === "flutterwave") {
     const { data: profile } = await db
       .from("profiles")
       .select("email, full_name, phone")
@@ -162,6 +171,7 @@ async function initiateExternalCheckout(
         customerPhone: opts.phone || profile?.phone || "",
         orderDescription: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
         meta: { purpose: "ugc_escrow", campaign_id: opts.campaignId },
+        paymentOptions: "card",
       });
       await db.from("transactions").insert({
         user_id: opts.user.id,
@@ -344,12 +354,16 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const phone = typeof body.phone === "string" ? body.phone.trim() : "";
   const paymentMethodRaw =
-    typeof body.payment_method === "string" ? body.payment_method : "mobile_money";
+    typeof body.payment_method === "string" ? body.payment_method : "flutterwave";
   const payment_method = normalizeUgcPaymentMethod(paymentMethodRaw);
 
-  if ((payment_method === "mobile_money" || payment_method === "flutterwave") && !phone) {
+  if (payment_method === "mobile_money") {
     return NextResponse.json(
-      { error: "A valid funding phone number is required." },
+      {
+        error:
+          "Select Mobile Money again to open the dedicated Mobile Money funding step.",
+        code: "USE_MOMO_DEDICATED_FLOW",
+      },
       { status: 400 },
     );
   }

@@ -80,7 +80,10 @@ describe("checkout first-load hardening", () => {
     assert.equal(selector.includes("Other Networks"), false);
     assert.equal(selector.includes("International Payments"), false);
     assert.equal(selector.includes("Pay with Cards"), true);
-    assert.equal(selector.includes("Pay securely with Visa, Mastercard, Amex, and other supported cards"), true);
+    assert.equal(
+      selector.includes("Secure checkout with Visa, Mastercard and supported cards"),
+      true,
+    );
     assert.equal(selector.includes("Pay securely with your local mobile wallet"), true);
     assert.equal(selector.includes("Continue to a secure Mobile Money checkout"), true);
     // No Recommended badge in the live METHODS block
@@ -116,7 +119,12 @@ describe("checkout first-load hardening", () => {
     assert.equal(panel.includes("Popular in Rwanda"), false);
     assert.equal(panel.includes("Other Networks"), false);
     assert.equal(panel.includes("Back to payment methods"), true);
-    assert.equal(panel.includes("Continue with Mobile Money"), true);
+    assert.equal(
+      panel.includes("Continue with Mobile Money") ||
+        panel.includes("Continue to secure payment"),
+      true,
+    );
     assert.equal(panel.includes("Select country"), true);
+    assert.equal(panel.includes("Choose your country and mobile wallet"), true);
   });
 });

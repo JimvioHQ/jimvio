@@ -100,13 +100,43 @@ export async function GET(req: NextRequest) {
             const { completeWalletDeposit, completeWalletDepositByReference } = await import(
                 "@/lib/wallet-os/complete-deposit"
             );
+
+            // Resolve USD credit amount for MoMo (local FX) vs hosted USD card deposits.
+            let verifiedAmount =
+                txData.amount != null ? Number(txData.amount) : null;
+            let verifiedCurrency = txData.currency ?? "USD";
+            const { data: depTx } = await supabase
+                .from("transactions")
+                .select("amount, currency, amount_usd, metadata")
+                .eq("provider_transaction_id", txRef)
+                .eq("type", "wallet_deposit")
+                .maybeSingle();
+            const depMeta =
+                depTx?.metadata &&
+                typeof depTx.metadata === "object" &&
+                !Array.isArray(depTx.metadata)
+                    ? (depTx.metadata as Record<string, unknown>)
+                    : {};
+            if (
+                depMeta.method === "mobile_money" &&
+                depTx?.amount_usd != null &&
+                Number.isFinite(Number(depTx.amount_usd)) &&
+                verifiedAmount != null &&
+                Math.abs(verifiedAmount - Number(depTx.amount)) < 0.01 &&
+                String(verifiedCurrency).toUpperCase() ===
+                    String(depTx.currency ?? "").toUpperCase()
+            ) {
+                verifiedAmount = Number(depTx.amount_usd);
+                verifiedCurrency = "USD";
+            }
+
             if (depositParam) {
                 const dep = await completeWalletDeposit(supabase, {
                     depositId: depositParam,
                     providerReference: txRef,
                     provider: "flutterwave",
-                    verifiedAmount: txData.amount != null ? Number(txData.amount) : null,
-                    verifiedCurrency: txData.currency ?? "USD",
+                    verifiedAmount,
+                    verifiedCurrency,
                 });
                 if (dep.credited || dep.amount > 0) {
                     return await redirect(`/wallet/deposits?status=success&deposit=${depositParam}`);
@@ -115,19 +145,44 @@ export async function GET(req: NextRequest) {
             const byRef = await completeWalletDepositByReference(supabase, {
                 providerReference: txRef,
                 provider: "flutterwave",
-                verifiedAmount: txData.amount != null ? Number(txData.amount) : null,
-                verifiedCurrency: txData.currency ?? "USD",
+                verifiedAmount,
+                verifiedCurrency,
             });
             if (byRef.handled) {
                 return await redirect(`/wallet/deposits?status=success`);
+            }
+
+            let ugcAmount = txData.amount != null ? Number(txData.amount) : null;
+            let ugcCurrency = txData.currency ?? "USD";
+            const { data: ugcTx } = await supabase
+                .from("transactions")
+                .select("amount, currency, amount_usd, metadata")
+                .eq("provider_transaction_id", txRef)
+                .eq("type", "ugc_escrow")
+                .maybeSingle();
+            const ugcMeta =
+                ugcTx?.metadata &&
+                typeof ugcTx.metadata === "object" &&
+                !Array.isArray(ugcTx.metadata)
+                    ? (ugcTx.metadata as Record<string, unknown>)
+                    : {};
+            if (
+                ugcMeta.method === "mobile_money" &&
+                ugcTx?.amount_usd != null &&
+                Number.isFinite(Number(ugcTx.amount_usd)) &&
+                ugcAmount != null &&
+                Math.abs(ugcAmount - Number(ugcTx.amount)) < 0.01
+            ) {
+                ugcAmount = Number(ugcTx.amount_usd);
+                ugcCurrency = "USD";
             }
 
             const ugc = await confirmUgcEscrowPayment(supabase, {
                 paymentRef: txRef,
                 providerTransactionId: txRef,
                 campaignId: searchParams.get("campaign"),
-                amount: txData.amount != null ? Number(txData.amount) : null,
-                currency: txData.currency ?? "USD",
+                amount: ugcAmount,
+                currency: ugcCurrency,
                 provider: "flutterwave",
             });
             if (ugc.handled) {

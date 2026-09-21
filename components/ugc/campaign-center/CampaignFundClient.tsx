@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,6 +26,10 @@ import {
   PaymentMethodSelector,
   type MethodId,
 } from "@/components/checkout/PaymentMethodSelector";
+import {
+  MobileMoneyPaymentStep,
+  type MoMoFormState,
+} from "@/components/checkout/MobileMoneyCheckoutPanel";
 import { WALLET_DEPOSIT_INITIABLE_METHODS } from "@/lib/payments/wallet-deposit-method";
 
 const MIN_FUNDING_USD = 1;
@@ -36,10 +40,22 @@ type PaySelection =
   | { kind: "wallet" }
   | { kind: "external"; id: MethodId };
 
+type Stage = "methods" | "mobile_money";
+
 function mapExternalToDepositMethod(id: MethodId): "flutterwave" | "crypto" | "binancepay" {
   if (id === "nowpayments") return "crypto";
   if (id === "binancepay") return "binancepay";
   return "flutterwave";
+}
+
+function extractRedirectUrl(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  for (const key of ["redirectUrl", "checkoutUrl", "checkout_url", "link"]) {
+    const v = d[key];
+    if (typeof v === "string" && v.startsWith("https://")) return v;
+  }
+  return null;
 }
 
 export function CampaignFundClient() {
@@ -54,7 +70,16 @@ export function CampaignFundClient() {
     kind: "external",
     id: "flutterwave",
   });
-  const [phone, setPhone] = useState("");
+  const [stage, setStage] = useState<Stage>("methods");
+  const [momoForm, setMomoForm] = useState<MoMoFormState>({
+    country: "",
+    network: "",
+    phone: "",
+  });
+  const [momoError, setMomoError] = useState<string | null>(null);
+  const [momoAwaiting, setMomoAwaiting] = useState(false);
+  const momoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const momoPollCountRef = useRef(0);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletCurrency, setWalletCurrency] = useState<string>(PLATFORM_CURRENCY);
   const [funding, setFunding] = useState(false);
@@ -122,6 +147,12 @@ export function CampaignFundClient() {
     };
   }, [id]);
 
+  useEffect(() => {
+    return () => {
+      if (momoPollRef.current) clearInterval(momoPollRef.current);
+    };
+  }, []);
+
   const amountToFund = useMemo(() => {
     const budget = Number(campaign?.total_budget) || MIN_FUNDING_USD;
     return Math.max(MIN_FUNDING_USD, budget);
@@ -154,6 +185,127 @@ export function CampaignFundClient() {
     ? "wallet"
     : mapExternalToDepositMethod(externalId ?? "flutterwave");
 
+  const backToMethods = useCallback(() => {
+    if (momoPollRef.current) clearInterval(momoPollRef.current);
+    setMomoAwaiting(false);
+    setMomoError(null);
+    setStage("methods");
+  }, []);
+
+  const fundMobileMoney = async () => {
+    if (!campaign) return;
+    if (readiness && !readiness.success) {
+      setMomoError(readiness.errors.map((e) => e.message).join(" · "));
+      return;
+    }
+    if (!momoForm.country) {
+      setMomoError("Mobile Money is not available in this country.");
+      return;
+    }
+    if (!momoForm.phone.trim()) {
+      setMomoError("Please enter a valid Mobile Money number.");
+      return;
+    }
+
+    setFunding(true);
+    setMomoError(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/ugc/campaigns/${campaign.id}/deposit/mobile-money/initiate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amountToFund,
+          country: momoForm.country,
+          network: momoForm.network || undefined,
+          phone: momoForm.phone,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = json.error || t("fundingFailed");
+        setMomoError(msg);
+        throw new Error(msg);
+      }
+      if (json.already_funded) {
+        setOutcome("activated");
+        toast.success(t("campaignActivated"));
+        window.setTimeout(() => router.push("/ugc/campaign-center/active"), 1800);
+        return;
+      }
+
+      const redirectUrl = extractRedirectUrl(json);
+      if (redirectUrl) {
+        if (redirectUrl.includes("checkout.flutterwave.com/v3/hosted/pay")) {
+          setMomoError("Mobile Money could not start. Please try again.");
+          throw new Error("Invalid Mobile Money redirect");
+        }
+        window.location.assign(redirectUrl);
+        return;
+      }
+
+      const txRef = typeof json.txRef === "string" ? json.txRef : "";
+      if (!txRef) throw new Error(t("fundingFailed"));
+
+      const pollUrl = `/api/ugc/campaigns/${campaign.id}/deposit/mobile-money/status?txRef=${encodeURIComponent(txRef)}`;
+      setMomoAwaiting(true);
+      toast.message(
+        typeof json.message === "string" && json.message
+          ? json.message
+          : "Waiting for Mobile Money authorization…",
+      );
+
+      if (momoPollRef.current) clearInterval(momoPollRef.current);
+      momoPollCountRef.current = 0;
+      const MAX_POLLS = 60;
+
+      await new Promise<void>((resolve, reject) => {
+        momoPollRef.current = setInterval(async () => {
+          momoPollCountRef.current += 1;
+          if (momoPollCountRef.current > MAX_POLLS) {
+            if (momoPollRef.current) clearInterval(momoPollRef.current);
+            setMomoAwaiting(false);
+            reject(new Error("The payment expired. Please try again."));
+            return;
+          }
+          try {
+            const st = await fetch(pollUrl);
+            const body = await st.json();
+            if (body.status === "successful") {
+              if (momoPollRef.current) clearInterval(momoPollRef.current);
+              setMomoAwaiting(false);
+              setOutcome("activated");
+              toast.success(t("campaignActivated"));
+              window.setTimeout(() => router.push("/ugc/campaign-center/active"), 1800);
+              resolve();
+              return;
+            }
+            if (body.status === "failed" || body.status === "cancelled") {
+              if (momoPollRef.current) clearInterval(momoPollRef.current);
+              setMomoAwaiting(false);
+              reject(
+                new Error(
+                  body.message ||
+                    (body.status === "cancelled"
+                      ? "The payment was cancelled."
+                      : "The payment failed."),
+                ),
+              );
+            }
+          } catch {
+            // Transient — keep polling
+          }
+        }, 5000);
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t("fundingFailed");
+      setMomoError(msg);
+      setError(msg);
+    } finally {
+      setFunding(false);
+    }
+  };
+
   const fund = async () => {
     if (!campaign) return;
     if (readiness && !readiness.success) {
@@ -164,12 +316,12 @@ export function CampaignFundClient() {
       setError(t("minFundingIs", { amount: money(MIN_FUNDING_USD) }));
       return;
     }
-    if (depositMethod === "flutterwave" && !phone.trim()) {
-      setError(t("phoneRequired"));
-      return;
-    }
     if (usingWallet && walletBalance < amountToFund) {
       setError(t("insufficientWalletEscrow"));
+      return;
+    }
+    if (!usingWallet && externalId === "mobile_money") {
+      setStage("mobile_money");
       return;
     }
     setFunding(true);
@@ -181,7 +333,6 @@ export function CampaignFundClient() {
         body: JSON.stringify({
           amount: amountToFund,
           payment_method: depositMethod,
-          phone: depositMethod === "flutterwave" ? phone : undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -298,285 +449,186 @@ export function CampaignFundClient() {
     <div className="mx-auto w-full min-w-0 max-w-[920px] px-4 py-6 sm:px-6">
       <Link
         href="/ugc/campaign-center"
-        className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6B7280] hover:text-[#FF5A1F]"
+        className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6B7280] hover:text-[#111827]"
       >
-        <ArrowLeft className="h-3.5 w-3.5" />
+        <ArrowLeft className="h-4 w-4" />
         {t("backToCampaignCenter")}
       </Link>
 
-      <div className="mt-4 min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
-          {t("campaignCenter")}
-        </p>
-        <h1 className="mt-1 break-words text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
-          {t("fundCampaign")}
-        </h1>
-        <p className="mt-1 max-w-xl text-[13px] text-[#6B7280]">
-          {t("fundMustBeFunded")}
-        </p>
-      </div>
-
-      {readiness && !readiness.success ? (
-        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800" role="alert">
-          <p className="font-semibold">{t("campaignNotReadyToFund")}</p>
-          <ul className="mt-2 list-disc space-y-1 pl-4">
-            {incompleteSteps.map((s) => (
-              <li key={s.id}>
-                {s.label}: {s.errors.map((e) => e.message).join(" ")}
-              </li>
-            ))}
-          </ul>
-          <Link
-            href={`/ugc/campaign-center/${campaign.id}/edit`}
-            className="mt-3 inline-flex text-[13px] font-semibold text-[#FF5A1F]"
-          >
-            {t("completeRequiredFields")}
-          </Link>
-        </div>
-      ) : null}
-
-      <ol className="mt-5 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
-        {[
-          { id: "draft", label: t("statusDraft"), done: true, current: false },
-          { id: "pending", label: t("pendingFundingLabel"), done: true, current: true },
-          { id: "active", label: t("statusActive"), done: outcome === "activated", current: false },
-        ].map((s, i) => (
-          <li key={s.id} className="flex items-center gap-2">
-            {i > 0 ? <span className="text-[#D1D5DB]" aria-hidden="true">→</span> : null}
-            <span
-              aria-current={s.current && outcome !== "activated" ? "step" : undefined}
-              className={cn(
-                "rounded-full px-2.5 py-1",
-                s.done && !s.current && "bg-[#ECFDF5] text-[#059669]",
-                s.current && outcome === "idle" && "bg-[#FFF0E8] text-[#FF5A1F]",
-                outcome === "activated" && s.id === "active" && "bg-[#ECFDF5] text-[#059669]",
-                outcome === "pending" && s.id === "pending" && "bg-[#FFF0E8] text-[#FF5A1F]",
-                !s.done && !s.current && "bg-[#F3F4F6] text-[#9CA3AF]",
-              )}
-            >
-              {s.label}
-            </span>
-          </li>
-        ))}
-      </ol>
-
       <AnimatePresence mode="wait">
-        {outcome !== "idle" ? (
+        {outcome === "activated" ? (
           <motion.div
-            key="ok"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mt-8 rounded-3xl border border-[#BBF7D0] bg-gradient-to-br from-[#ECFDF5] to-white p-10 text-center shadow-lg"
-            role="status"
-            aria-live="polite"
+            key="activated"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-[#D1FAE5] bg-[#ECFDF5] px-6 py-10 text-center"
           >
-            <motion.div
-              initial={{ scale: 0.6 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 320, damping: 18 }}
-              className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#059669] text-white shadow-[0_10px_30px_rgba(5,150,105,0.35)]"
-              aria-hidden="true"
-            >
-              <Check className="h-8 w-8" strokeWidth={2.5} />
-            </motion.div>
-            <h2 className="mt-5 text-[22px] font-bold text-[#111827]">
-              {outcome === "activated" ? t("campaignActivated") : t("fundingPending")}
-            </h2>
-            <p className="mt-2 text-[13px] text-[#6B7280]">
-              {outcome === "activated"
-                ? t("escrowLockedCreatorsCanJoin", { title: campaign.title })
-                : t("escrowPending")}
-            </p>
-            {outcome === "pending" ? (
-              <Link
-                href="/ugc/campaign-center"
-                className="mt-6 inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
-              >
-                {t("backToCampaignCenter")}
-              </Link>
-            ) : null}
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-white">
+              <Check className="h-7 w-7 text-[#059669]" />
+            </div>
+            <h1 className="mt-4 text-[22px] font-bold text-[#111827]">{t("campaignActivated")}</h1>
+            <p className="mt-2 text-[13px] text-[#6B7280]">Redirecting to active campaigns…</p>
+          </motion.div>
+        ) : outcome === "pending" ? (
+          <motion.div
+            key="pending"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-10 text-center"
+          >
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-700" />
+            <h1 className="mt-4 text-[20px] font-bold text-[#111827]">{t("escrowPending")}</h1>
           </motion.div>
         ) : (
           <motion.div
-            key="form"
+            key="fund"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[1.05fr_0.95fr]"
+            className="mx-auto max-w-xl"
           >
-            <div className="min-w-0 space-y-4">
-              <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
-                <h2 className="text-[14px] font-bold text-[#111827]">{t("campaignSummary")}</h2>
-                <p className="mt-2 break-words text-[16px] font-bold text-[#111827]">{campaign.title}</p>
-                <p className="mt-1 line-clamp-3 text-[12.5px] text-[#6B7280]">
-                  {campaign.description || t("noDescription")}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-[12px]">
-                  <div className="min-w-0 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
-                    <p className="text-[#9CA3AF]">{t("reviewType")}</p>
-                    <p className="mt-0.5 break-words font-semibold capitalize text-[#111827]">
-                      {campaign.campaign_type.replace(/_/g, " ")}
-                    </p>
-                  </div>
-                  <div className="min-w-0 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
-                    <p className="text-[#9CA3AF]">{t("wizardTotalBudget")}</p>
-                    <p className="mt-0.5 font-semibold text-[#111827]">
-                      {money(campaign.total_budget ?? 0)}
-                    </p>
-                  </div>
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 sm:p-6">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#FFF1EA] text-[#FF5A1F]">
+                  <Sparkles className="h-5 w-5" />
                 </div>
-                <div className="mt-4 rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-3">
-                  <div className="flex items-center gap-2 text-[12px] font-semibold text-[#9A3412]">
-                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
-                    {t("estimatedCreatorReach")}
-                  </div>
-                  <p className="mt-1 text-[18px] font-bold tabular-nums text-[#FF5A1F]">
-                    {t("viewsApprox", { count: estimatedReach.toLocaleString() })}
-                  </p>
+                <div>
+                  <h1 className="text-[20px] font-bold tracking-tight text-[#111827] sm:text-[22px]">
+                    Fund campaign
+                  </h1>
+                  <p className="mt-1 text-[13px] text-[#6B7280]">{campaign.title}</p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
-                <h2 className="text-[14px] font-bold text-[#111827]">{t("fundingProgress")}</h2>
-                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#F3F4F6]">
-                  <div
-                    className="h-full rounded-full bg-[#FF5A1F] transition-all"
-                    style={{ width: "18%" }}
-                  />
-                </div>
-                <p className="mt-2 text-[12px] text-[#6B7280]">
-                  {t("escrowEmptyFund")}
-                </p>
-              </div>
-            </div>
-
-            <div className="min-w-0 rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <div className="flex items-start gap-2">
-                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5A1F]" />
-                <div className="min-w-0">
-                  <h2 className="text-[14px] font-bold text-[#111827]">{t("secureFunding")}</h2>
-                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B7280]">
-                    {t("fundsLockedUntilApproved")}{" "}
-                    <strong className="text-[#111827]">
-                      {money(MIN_FUNDING_USD)}
-                    </strong>
-                    .
-                  </p>
-                </div>
+              <div className="mt-5 space-y-2">
+                <Row label="Campaign budget" value={money(amountToFund)} strong />
+                <Row label="Estimated reach" value={`~${estimatedReach.toLocaleString()} views`} />
               </div>
 
-              <div className="mt-5 space-y-2.5">
-                <Row label={t("currentBalance")} value={money(walletBalance, walletCurrency)} />
-                <Row
-                  label={t("minimumRequired")}
-                  value={money(MIN_FUNDING_USD)}
-                />
-                <Row
-                  label={t("amountToFund")}
-                  value={money(amountToFund)}
-                  strong
-                />
-              </div>
+              {readiness && !readiness.success ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-900">
+                  <p className="font-semibold">Complete your campaign setup first</p>
+                  <ul className="mt-1 list-inside list-disc">
+                    {incompleteSteps.map((s) => (
+                      <li key={s.id}>{s.label}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="mt-5 space-y-3">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={walletSelected}
-                  aria-pressed={walletSelected}
-                  onClick={() => setSelection({ kind: "wallet" })}
-                  className={cn(
-                    "relative w-full text-left transition-[transform,border-color,background-color,box-shadow] duration-200",
-                    "rounded-xl overflow-hidden border active:scale-[0.99]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 focus-visible:ring-offset-2",
-                    walletSelected
-                      ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[#FF5A1F]/25"
-                      : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB]",
-                  )}
-                >
-                  <div className="flex items-start gap-3 px-4 py-3.5 lg:items-center">
-                    <div
+                {stage === "mobile_money" ? (
+                  <MobileMoneyPaymentStep
+                    amountUsd={amountToFund}
+                    formatMoney={(amt, cur) => formatMoneyAsUSD(amt, cur)}
+                    value={momoForm}
+                    onChange={setMomoForm}
+                    onBack={backToMethods}
+                    onContinue={() => void fundMobileMoney()}
+                    submitting={funding}
+                    awaitingConfirmation={momoAwaiting}
+                    error={momoError}
+                    title="Fund with Mobile Money"
+                    subtitle="Pay securely using your local mobile wallet."
+                    amountLabel="Funding amount"
+                    continueLabel="Continue with Mobile Money"
+                    secureNote="Your campaign is funded only after payment is verified."
+                  />
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={walletSelected}
+                      aria-pressed={walletSelected}
+                      onClick={() => setSelection({ kind: "wallet" })}
                       className={cn(
-                        "grid h-12 w-12 shrink-0 place-items-center rounded-full",
-                        walletSelected ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
-                      )}
-                    >
-                      <Wallet className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-bold text-[#111827]">{t("methodWallet")}</p>
-                      <p className="mt-0.5 text-[12px] text-[#6B7280]">{t("methodWalletDesc")}</p>
-                      <p className="mt-1 text-[11px] font-medium text-[#9CA3AF]">
-                        {money(walletBalance, walletCurrency)} available
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                        "relative w-full text-left transition-[transform,border-color,background-color,box-shadow] duration-200",
+                        "rounded-xl overflow-hidden border active:scale-[0.99]",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 focus-visible:ring-offset-2",
                         walletSelected
-                          ? "border-[#FF5A1F] bg-[#FF5A1F]"
-                          : "border-[#D1D5DB] bg-white",
+                          ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[#FF5A1F]/25"
+                          : "border-[#E5E7EB] bg-white hover:border-[#D1D5DB]",
                       )}
-                      aria-hidden="true"
                     >
-                      {walletSelected ? <Check className="h-3 w-3 text-white" strokeWidth={3} /> : null}
-                    </span>
-                  </div>
-                </button>
+                      <div className="flex items-start gap-3 px-4 py-3.5 lg:items-center">
+                        <div
+                          className={cn(
+                            "grid h-12 w-12 shrink-0 place-items-center rounded-full",
+                            walletSelected ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
+                          )}
+                        >
+                          <Wallet className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[14px] font-bold text-[#111827]">{t("methodWallet")}</p>
+                          <p className="mt-0.5 text-[12px] text-[#6B7280]">{t("methodWalletDesc")}</p>
+                          <p className="mt-1 text-[11px] font-medium text-[#9CA3AF]">
+                            {money(walletBalance, walletCurrency)} available
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
+                            walletSelected
+                              ? "border-[#FF5A1F] bg-[#FF5A1F]"
+                              : "border-[#D1D5DB] bg-white",
+                          )}
+                          aria-hidden="true"
+                        >
+                          {walletSelected ? <Check className="h-3 w-3 text-white" strokeWidth={3} /> : null}
+                        </span>
+                      </div>
+                    </button>
 
-                <PaymentMethodSelector
-                  selected={
-                    usingWallet
-                      ? (("__wallet__" as unknown) as MethodId)
-                      : (externalId as MethodId)
-                  }
-                  onSelect={(id) => setSelection({ kind: "external", id })}
-                  orderTotal={amountToFund}
-                  orderCurrency={PLATFORM_CURRENCY}
-                  showSummary={false}
-                  enabledMethodIds={enabledMethods}
-                  loading={funding}
-                />
-
-                {depositMethod === "flutterwave" ? (
-                  <div>
-                    <label htmlFor="ugc-fund-phone" className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
-                      {t("phoneMobileMoney")}
-                    </label>
-                    <input
-                      id="ugc-fund-phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="2507…"
-                      autoComplete="tel"
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? "ugc-fund-error" : undefined}
-                      className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
+                    <PaymentMethodSelector
+                      selected={
+                        usingWallet
+                          ? (("__wallet__" as unknown) as MethodId)
+                          : externalId === "mobile_money"
+                            ? null
+                            : (externalId as MethodId)
+                      }
+                      onSelect={(methodId) => {
+                        if (methodId === "mobile_money") {
+                          setSelection({ kind: "external", id: "mobile_money" });
+                          setMomoError(null);
+                          setError(null);
+                          setStage("mobile_money");
+                          return;
+                        }
+                        setSelection({ kind: "external", id: methodId });
+                      }}
+                      orderTotal={amountToFund}
+                      orderCurrency={PLATFORM_CURRENCY}
+                      showSummary={false}
+                      enabledMethodIds={enabledMethods}
+                      loading={funding}
                     />
-                  </div>
-                ) : null}
 
-                <button
-                  type="button"
-                  disabled={payDisabled}
-                  onClick={() => void fund()}
-                  aria-describedby={error ? "ugc-fund-error" : undefined}
-                  className={cn(
-                    "flex w-full items-center justify-center gap-2 rounded-sm py-3.5 text-[15px] font-bold text-white transition-all duration-150",
-                    "bg-[#FF5A1F] hover:bg-[#E54E18] active:scale-[0.99]",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                >
-                  {funding ? (
-                    "Processing…"
-                  ) : (
-                    <>
-                      <Lock className="h-4 w-4" />
-                      {usingWallet
-                        ? `${t("fundAndActivate")} · ${money(amountToFund)}`
-                        : "Complete Secure Payment"}
-                    </>
-                  )}
-                </button>
+                    <button
+                      type="button"
+                      disabled={payDisabled || externalId === "mobile_money"}
+                      onClick={() => void fund()}
+                      aria-describedby={error ? "ugc-fund-error" : undefined}
+                      className={cn(
+                        "flex w-full items-center justify-center gap-2 rounded-sm py-3.5 text-[15px] font-bold text-white transition-all duration-150",
+                        "bg-[#FF5A1F] hover:bg-[#E54E18] active:scale-[0.99]",
+                        "disabled:cursor-not-allowed disabled:opacity-50",
+                      )}
+                    >
+                      {funding ? (
+                        "Processing…"
+                      ) : (
+                        <>
+                          <Lock className="h-4 w-4" />
+                          {usingWallet
+                            ? `${t("fundAndActivate")} · ${money(amountToFund)}`
+                            : "Complete Secure Payment"}
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
 
               {error ? (
