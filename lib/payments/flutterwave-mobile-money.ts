@@ -51,6 +51,7 @@ export type MobileMoneyChargeResult = {
   country: string;
   phoneMasked: string;
   chargeType: string;
+  authorizationMode: string;
   rawMessage?: string;
 };
 
@@ -246,6 +247,7 @@ export async function createMobileMoneyPayment(
     country: market.countryCode,
     phoneMasked: phone.masked,
     chargeType: market.chargeType,
+    authorizationMode: market.authorizationMode,
     rawMessage: data.message,
   };
 }

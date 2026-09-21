@@ -185,13 +185,24 @@ assert(
 assert(
   selector.includes('id: "mobile_money"') &&
     !selector.includes("Pay with Any Card, Mobile Money or Apple Pay") &&
-    selector.includes("Pay directly using your local mobile wallet"),
-  "Checkout must show dedicated Mobile Money without duplicating it under International Payments"
+    !selector.includes("Popular in Rwanda") &&
+    !selector.includes("Other Networks") &&
+    selector.includes("Pay securely with your local mobile wallet") &&
+    selector.includes("Select your country to see available providers"),
+  "Checkout must show dedicated Mobile Money without Rwanda-specific or fake network copy"
 );
 assert(
   checkout.includes("/api/payments/mobile-money/initiate") &&
     checkout.includes("Waiting for Mobile Money confirmation"),
   "Checkout experience must initiate MoMo and poll pending confirmation"
+);
+const momoPanel = read("components/checkout/MobileMoneyCheckoutPanel.tsx");
+assert(
+  momoPanel.includes("Never silently default") &&
+    momoPanel.includes("Choose your country") &&
+    !momoPanel.includes("Popular in Rwanda") &&
+    !momoPanel.includes("Other Networks"),
+  "MoMo panel must require explicit country and never show Rwanda-only marketing"
 );
 
 const binancePay = read("lib/binance-pay/index.ts");

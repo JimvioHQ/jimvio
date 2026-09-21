@@ -76,11 +76,28 @@ describe("checkout first-load hardening", () => {
     const selector = readFileSync(join(root, "components/checkout/PaymentMethodSelector.tsx"), "utf8");
     assert.equal(selector.includes('id: "mobile_money"'), true);
     assert.equal(selector.includes("Pay with Any Card, Mobile Money or Apple Pay"), false);
+    assert.equal(selector.includes("Popular in Rwanda"), false);
+    assert.equal(selector.includes("Other Networks"), false);
     assert.equal(selector.includes("Pay securely with Visa, Mastercard, and other cards"), true);
-    assert.equal(selector.includes("Pay directly using your local mobile wallet"), true);
+    assert.equal(selector.includes("Pay securely with your local mobile wallet"), true);
+    assert.equal(selector.includes("Select your country to see available providers"), true);
+    // Global method card must not hardcode operator logos (MTN/Airtel/MoMo pills).
+    const momoStart = selector.lastIndexOf('id: "mobile_money"');
+    const nowStart = selector.lastIndexOf('id: "nowpayments"');
+    assert.ok(momoStart >= 0 && nowStart > momoStart);
+    const momoBlock = selector.slice(momoStart, nowStart);
+    assert.equal(momoBlock.includes("<MTN"), false);
+    assert.equal(momoBlock.includes("<Airtel"), false);
+    assert.equal(momoBlock.includes("logos: []"), true);
 
     const checkout = readFileSync(join(root, "components/checkout/checkout-experience.tsx"), "utf8");
     assert.equal(checkout.includes("mobile_money"), true);
     assert.equal(checkout.includes("/api/payments/mobile-money/initiate"), true);
+
+    const panel = readFileSync(join(root, "components/checkout/MobileMoneyCheckoutPanel.tsx"), "utf8");
+    assert.equal(panel.includes("Popular in Rwanda"), false);
+    assert.equal(panel.includes("Other Networks"), false);
+    assert.equal(panel.includes("Never silently default"), true);
+    assert.equal(panel.includes("Choose your country"), true);
   });
 });

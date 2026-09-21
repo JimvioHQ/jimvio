@@ -445,43 +445,6 @@ function Verve() {
   return <span style={{ ...pillBase, background: "#007B5E", color: "#fff", minWidth: 42 }}>Verve</span>;
 }
 
-function MobileMoney() {
-  return (
-    <span style={{ ...pillBase, background: "#FFCC00", color: "#000", minWidth: 52, fontSize: 9 }}>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{ marginRight: 3 }}>
-        <rect x="5" y="2" width="14" height="20" rx="2" fill="#000" opacity="0.4" />
-        <rect x="8" y="18" width="8" height="2" rx="1" fill="#000" />
-      </svg>
-      Mobile
-    </span>
-  );
-}
-
-function MTN() {
-  return <span style={{ ...pillBase, background: "#FFCC00", color: "#000" }}>MTN</span>;
-}
-
-function Airtel() {
-  return (
-    <span style={{ ...pillBase, background: "#E60000", color: "#fff", fontStyle: "italic" }}>
-      airtel
-    </span>
-  );
-}
-
-function MoMo() {
-  return (
-    <img
-      src="https://img.logokit.com/mtn.com"
-      alt="MoMo"
-      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
-      onError={(e) => {
-        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=mtn.com&sz=64";
-      }}
-    />
-  );
-}
-
 // Crypto coin icons — colored circles matching the screenshot
 function BTCIcon() {
   return (
@@ -591,7 +554,7 @@ const METHODS: MethodDef[] = [
   {
     id: "mobile_money",
     title: "Mobile Money",
-    description: "Pay directly using your local mobile wallet",
+    description: "Pay securely with your local mobile wallet",
     iconNode: (
       <div style={{
         width: 48, height: 48, borderRadius: "50%",
@@ -604,12 +567,9 @@ const METHODS: MethodDef[] = [
         </svg>
       </div>
     ),
-    logos: [
-      <MTN key="mtn" />,
-      <Airtel key="air" />,
-      <MoMo key="mm" />,
-      <MobileMoney key="pill" />,
-    ],
+    // Logos are rendered dynamically after country selection in MobileMoneyCheckoutPanel.
+    // Do NOT put static MTN/Airtel/Rwanda operators on the global method card.
+    logos: [],
     feeLabel: "Free",
   },
   {
@@ -772,8 +732,14 @@ export function PaymentMethodSelector({
                     {m.description}
                   </p>
 
-                  {/* Payment logos row - only for non-crypto methods */}
-                  {m.id !== "nowpayments" && m.id !== "binancepay" && (
+                  {m.id === "mobile_money" && (
+                    <p className="text-[11px] text-[var(--color-text-muted)] mb-1.5">
+                      Select your country to see available providers
+                    </p>
+                  )}
+
+                  {/* Payment logos row - only for non-crypto methods with logos */}
+                  {m.id !== "nowpayments" && m.id !== "binancepay" && m.logos.length > 0 && (
                     <PaymentLogoRail>
                       {m.logos}
                       {fee > 0 && (

@@ -53,7 +53,7 @@ const METHOD_META: Record<
   },
   mobile_money: {
     label: "Mobile Money",
-    hint: "Rwanda MoMo via Flutterwave (charged in RWF equivalent of $5.65)",
+    hint: "Pay with your local mobile wallet via Flutterwave",
     logo: "/logos/Flutterwave-main.svg",
   },
   nowpayments: {

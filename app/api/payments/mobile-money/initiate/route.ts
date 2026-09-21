@@ -317,10 +317,13 @@ export async function POST(req: NextRequest) {
       country: charge.country,
       network: charge.network,
       redirectUrl: charge.redirectUrl,
+      authorizationMode: charge.authorizationMode,
       pollUrl: `/api/payments/mobile-money/status?orderId=${orderId}&txRef=${encodeURIComponent(txRef)}`,
       message:
         charge.status === "pending"
-          ? "Waiting for Mobile Money confirmation…"
+          ? charge.authorizationMode === "push"
+            ? "Check your phone and approve the payment."
+            : "Waiting for Mobile Money confirmation…"
           : undefined,
     });
   } catch (err) {
