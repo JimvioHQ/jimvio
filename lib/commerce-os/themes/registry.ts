@@ -49,6 +49,12 @@ export type ThemeSettings = {
   sectionSpacing?: string;
   shadow?: ShadowLevel;
   productImageRatio?: "1/1" | "4/3" | "3/4";
+  /** Merchant PDP: sticky purchase bar on mobile. */
+  productStickyAtc?: boolean;
+  /** Merchant PDP: show parsed specifications grid when available. */
+  productShowSpecs?: boolean;
+  /** Merchant PDP: show related products rail. */
+  productShowRelated?: boolean;
 };
 
 export type SectionType =
@@ -131,6 +137,9 @@ export const DEFAULT_THEME_SETTINGS: ThemeSettings = {
   sectionSpacing: "3.5rem",
   shadow: "subtle",
   productImageRatio: "1/1",
+  productStickyAtc: true,
+  productShowSpecs: true,
+  productShowRelated: true,
 };
 
 /** Hero layout/content presets — preserve compatible fields when applied. */

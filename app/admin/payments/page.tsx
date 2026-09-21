@@ -354,25 +354,25 @@ export default async function AdminPaymentsPage({
   );
   const commissionsTotal = (commissionData ?? []).reduce((s, c) => s + Number(c.commission_amount as number ?? 0), 0);
 
-  const providers = ["flutterwave", "nowpayments", "pawapay", "afripay", "binance"] as const;
-const providerHealth = providers
-  .map((p) => {
-    const rows = (providerStats ?? []).filter((r: any) => r.provider === p);
-    const total = rows.length;
-    const completed = rows.filter((r: any) => r.status === "completed").length;
-    const failed = rows.filter((r: any) => r.status === "failed").length;
-    const successRate = total > 0 ? completed / total : 0;
-    return { provider: p, total, completed, failed, successRate };
-  })
-  .sort((a, b) => {
-    if (a.total !== b.total && (a.total === 0 || b.total === 0)) {
+  const providers = ["flutterwave", "nowpayments", "binancepay"] as const;
+  const providerHealth = providers
+    .map((p) => {
+      const rows = (providerStats ?? []).filter((r: any) => r.provider === p);
+      const total = rows.length;
+      const completed = rows.filter((r: any) => r.status === "completed").length;
+      const failed = rows.filter((r: any) => r.status === "failed").length;
+      const successRate = total > 0 ? completed / total : 0;
+      return { provider: p, total, completed, failed, successRate };
+    })
+    .sort((a, b) => {
+      if (a.total !== b.total && (a.total === 0 || b.total === 0)) {
+        return b.total - a.total;
+      }
+      if (b.successRate !== a.successRate) {
+        return b.successRate - a.successRate;
+      }
       return b.total - a.total;
-    }
-    if (b.successRate !== a.successRate) {
-      return b.successRate - a.successRate;
-    }
-    return b.total - a.total;
-  });
+    });
 
   const activeTabCount =
     tab === "transactions" ? (txCount ?? 0)

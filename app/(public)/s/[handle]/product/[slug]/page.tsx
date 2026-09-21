@@ -1,23 +1,22 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   loadPublishedStoreByHandle,
   loadStoreProductBySlug,
   loadStoreProducts,
 } from "@/lib/commerce-os";
-import { StorefrontAddToCartButton } from "@/components/commerce-os/storefront-add-to-cart";
-import { StorefrontProductGallery } from "@/components/commerce-os/storefront-product-gallery";
+import { StorefrontProductBuyLayout } from "@/components/commerce-os/storefront-product-buy-layout";
+import { StorefrontProductInfo } from "@/components/commerce-os/storefront-product-info";
 import { StorefrontFeaturedProducts } from "@/components/commerce-os/storefront-sections";
 import {
   buildMissingStorefrontMetadata,
   buildStorefrontMetadata,
 } from "@/lib/commerce-os/storefront-metadata";
-import { formatStorefrontMoney, salePercent } from "@/lib/commerce-os/storefront/money";
 import { productImageUrls } from "@/lib/commerce-os/storefront/product-media";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
-import Link from "next/link";
 import { relatedStoreProducts } from "@/lib/commerce-os/storefront/related-products";
 
 export const dynamic = "force-dynamic";
@@ -63,121 +62,86 @@ export default async function StorefrontProductPage({ params }: Props) {
   const gallery = productImageUrls(product.images);
   const displayCurrency = (store.default_currency || "USD").toUpperCase();
   const sourceCurrency = (product.currency || displayCurrency).toUpperCase();
-  const pct = salePercent(product.price, product.compare_at_price);
-  const inStock =
-    product.track_inventory !== true ||
-    (typeof product.inventory_quantity === "number" &&
-      product.inventory_quantity > 0);
   const related = relatedStoreProducts(
     await loadStoreProducts(supabase, store.id, { limit: 12 }),
     product.id,
-    8
+    8,
   );
+  const theme = store.theme_settings;
+  const showSpecs = theme?.productShowSpecs !== false;
+  const showRelated = theme?.productShowRelated !== false;
+  const stickyAtc = theme?.productStickyAtc !== false;
+  const linkOpts = { onStoreHost };
+  const collectionsHref = storefrontHref(handle, "/collections/all", linkOpts);
+  const homeHref = storefrontHref(handle, "/", linkOpts);
 
   return (
     <div className="pb-24 lg:pb-10">
-      <div className="mx-auto grid max-w-[var(--store-max-width,80rem)] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-10">
-        <StorefrontProductGallery images={gallery} alt={product.name} />
-
-        <div>
-          <h1
-            className="text-2xl font-semibold tracking-tight text-[var(--store-text,#111827)] sm:text-3xl"
-            style={{ fontFamily: "var(--store-heading-font, inherit)" }}
-          >
+      <nav
+        aria-label="Breadcrumb"
+        className="mx-auto max-w-[var(--store-max-width,80rem)] px-4 pt-6 text-[12px] text-[var(--store-muted,#6B7280)] sm:px-6"
+      >
+        <ol className="flex flex-wrap items-center gap-1.5">
+          <li>
+            <Link href={homeHref} className="hover:text-[var(--store-text)]">
+              Home
+            </Link>
+          </li>
+          <li aria-hidden>/</li>
+          <li>
+            <Link
+              href={collectionsHref}
+              className="hover:text-[var(--store-text)]"
+            >
+              All products
+            </Link>
+          </li>
+          <li aria-hidden>/</li>
+          <li className="max-w-[14rem] truncate font-medium text-[var(--store-text,#111827)] sm:max-w-none">
             {product.name}
-          </h1>
-          <div className="mt-3 flex flex-wrap items-baseline gap-2">
-            <p className="text-2xl font-bold text-[var(--store-primary,#FF5A1F)]">
-              {formatStorefrontMoney(
-                product.price,
-                sourceCurrency,
-                displayCurrency,
-              )}
-            </p>
-            {pct != null ? (
-              <>
-                <p className="text-sm text-[var(--store-muted,#6B7280)] line-through">
-                  {formatStorefrontMoney(
-                    product.compare_at_price,
-                    sourceCurrency,
-                    displayCurrency,
-                  )}
-                </p>
-                <span className="rounded-full bg-[var(--store-primary,#FF5A1F)] px-2 py-0.5 text-[10px] font-bold text-white">
-                  -{pct}%
-                </span>
-              </>
-            ) : null}
-          </div>
-          <p className="mt-3 text-sm font-medium">
-            <span
-              className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
-                inStock ? "bg-emerald-500" : "bg-rose-500"
-              }`}
-              aria-hidden
-            />
-            {inStock
-              ? product.track_inventory === true &&
-                typeof product.inventory_quantity === "number" &&
-                product.inventory_quantity <= 99
-                ? `In stock — ${product.inventory_quantity} left`
-                : "In stock"
-              : "Sold out"}
-          </p>
-          {product.short_description &&
-          product.short_description.trim().toLowerCase() !==
-            String(product.name || "").trim().toLowerCase() ? (
-            <p className="mt-4 text-sm leading-relaxed text-[var(--store-muted,#6B7280)]">
-              {product.short_description}
-            </p>
-          ) : null}
-          {product.description ? (
-            <div
-              className="prose prose-sm mt-6 max-w-none opacity-90"
-              dangerouslySetInnerHTML={{ __html: product.description }}
-            />
-          ) : null}
-          <div className="mt-8">
-            <StorefrontAddToCartButton
-              productId={product.id}
-              vendorId={product.vendor_id || store.vendor_id}
-              variants={variants.map((v) => ({
-                id: v.id,
-                name: (v as { name?: string | null }).name,
-                price: v.price,
-                options: (v as { options?: unknown }).options,
-                inventory_quantity: v.inventory_quantity,
-                image_url: (v as { image_url?: string | null }).image_url,
-                is_active: (v as { is_active?: boolean | null }).is_active,
-              }))}
-              storeHandle={store.handle}
-              storeId={store.id}
-              currency={displayCurrency}
-              sourceCurrency={sourceCurrency}
-              price={product.price}
-              soldOut={!inStock}
-              sticky
-              onStoreHost={onStoreHost}
-              trackInventory={product.track_inventory === true}
-            />
-          </div>
-          <div className="mt-8 grid grid-cols-1 gap-3 border-t border-[var(--store-border,rgba(0,0,0,0.06))] pt-6 text-center text-[11px] text-[var(--store-muted,#6B7280)] sm:grid-cols-3">
-            <Link href={storefrontHref(handle, onStoreHost ? "/shipping-policy" : "/pages/shipping-policy", { onStoreHost })} className="rounded-[var(--store-card-radius,16px)] bg-[var(--store-bg,#F8FAFC)] px-3 py-4">
-              <p className="font-semibold text-[var(--store-text,#111827)]">Shipping</p>
-              <p className="mt-0.5">See store policy</p>
-            </Link>
-            <Link href={storefrontHref(handle, onStoreHost ? "/refund-policy" : "/pages/refund-policy", { onStoreHost })} className="rounded-[var(--store-card-radius,16px)] bg-[var(--store-bg,#F8FAFC)] px-3 py-4">
-              <p className="font-semibold text-[var(--store-text,#111827)]">Returns</p>
-              <p className="mt-0.5">Merchant policy applies</p>
-            </Link>
-            <Link href={storefrontHref(handle, onStoreHost ? "/contact" : "/pages/contact", { onStoreHost })} className="rounded-[var(--store-card-radius,16px)] bg-[var(--store-bg)] px-3 py-4">
-              <p className="font-semibold text-[var(--store-text)]">Contact</p>
-              <p className="mt-0.5">Ask the merchant</p>
-            </Link>
-          </div>
-        </div>
-      </div>
-      {related.length ? (
+          </li>
+        </ol>
+      </nav>
+
+      <StorefrontProductBuyLayout
+        handle={handle}
+        storeHandle={store.handle}
+        storeId={store.id}
+        storeVendorId={store.vendor_id}
+        product={{
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          compare_at_price: product.compare_at_price,
+          vendor_id: product.vendor_id,
+          short_description: product.short_description,
+          inventory_quantity: product.inventory_quantity,
+          track_inventory: product.track_inventory,
+          sku: (product as { sku?: string | null }).sku,
+        }}
+        variants={variants.map((v) => ({
+          id: v.id,
+          name: (v as { name?: string | null }).name,
+          price: v.price,
+          options: (v as { options?: unknown }).options,
+          inventory_quantity: v.inventory_quantity,
+          image_url: (v as { image_url?: string | null }).image_url,
+          is_active: (v as { is_active?: boolean | null }).is_active,
+        }))}
+        gallery={gallery}
+        displayCurrency={displayCurrency}
+        sourceCurrency={sourceCurrency}
+        stickyAtc={stickyAtc}
+        onStoreHost={onStoreHost}
+      />
+
+      <StorefrontProductInfo
+        description={product.description}
+        sku={(product as { sku?: string | null }).sku}
+        showSpecs={showSpecs}
+      />
+
+      {showRelated && related.length ? (
         <StorefrontFeaturedProducts
           handle={store.handle}
           onStoreHost={onStoreHost}
@@ -185,6 +149,7 @@ export default async function StorefrontProductPage({ params }: Props) {
           displayCurrency={displayCurrency}
           title="You may also like"
           products={related}
+          layout="grid"
         />
       ) : null}
     </div>

@@ -35,6 +35,40 @@ const PLATFORM_PATH_PREFIXES = [
   "/_next",
 ];
 
+/**
+ * Jimvio platform surfaces that must NOT render on a merchant store host.
+ * Customers hitting these get redirected to the merchant homepage.
+ * /api and /_next stay available for auth, payments, and assets.
+ */
+const MERCHANT_HOST_BLOCKED_PREFIXES = [
+  "/communities",
+  "/marketplace",
+  "/affiliates",
+  "/ugc",
+  "/commerce",
+  "/dropshipping",
+  "/wallet",
+  "/settings",
+  "/messages",
+  "/seller",
+  "/dashboard",
+  "/admin",
+  "/owner",
+  "/library",
+  "/inbox",
+  "/notifications",
+  "/saved",
+  "/activate",
+] as const;
+
+function pathMatchesPrefix(pathname: string, prefix: string): boolean {
+  return (
+    pathname === prefix ||
+    pathname.startsWith(prefix + "/") ||
+    (prefix.endsWith("/") && pathname.startsWith(prefix))
+  );
+}
+
 export function normalizeHostname(hostname: string): string {
   return hostname
     .toLowerCase()
@@ -56,15 +90,22 @@ export function shouldAttemptStoreHostRewrite(
 ): boolean {
   if (isPlatformHostname(hostname)) return false;
   for (const prefix of PLATFORM_PATH_PREFIXES) {
-    if (
-      pathname === prefix ||
-      pathname.startsWith(prefix + "/") ||
-      (prefix.endsWith("/") && pathname.startsWith(prefix))
-    ) {
+    if (pathMatchesPrefix(pathname, prefix)) {
       return false;
     }
   }
   return true;
+}
+
+/**
+ * True when a merchant-host request targets a Jimvio platform experience
+ * that must not leak into the customer storefront.
+ */
+export function isMerchantHostBlockedPlatformPath(pathname: string): boolean {
+  for (const prefix of MERCHANT_HOST_BLOCKED_PREFIXES) {
+    if (pathMatchesPrefix(pathname, prefix)) return true;
+  }
+  return false;
 }
 
 /**

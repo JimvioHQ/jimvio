@@ -41,6 +41,8 @@ type Props = {
   sticky?: boolean;
   onStoreHost?: boolean;
   trackInventory?: boolean;
+  /** Notify parent when the selected variant has a dedicated image. */
+  onVariantImageChange?: (src: string | null) => void;
 };
 
 type CtaMode = "idle" | "adding" | "added" | "checkout" | "select";
@@ -59,6 +61,7 @@ export function StorefrontAddToCartButton({
   sticky = false,
   onStoreHost = true,
   trackInventory = false,
+  onVariantImageChange,
 }: Props) {
   const needsSelection = requiresPurchasableVariantSelection(variants);
   const axes = useMemo(() => getPurchasableOptionAxes(variants), [variants]);
@@ -111,6 +114,10 @@ export function StorefrontAddToCartButton({
       selected.inventory_quantity <= 0);
   const selectionBlocked = needsSelection && !variantId;
   const canPurchase = !selectedSoldOut && !selectionBlocked && !loading;
+
+  useEffect(() => {
+    onVariantImageChange?.(selected?.image_url?.trim() || null);
+  }, [selected?.image_url, onVariantImageChange]);
 
   const mode: CtaMode =
     actionMode !== "idle"

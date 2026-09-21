@@ -1356,7 +1356,15 @@ export default function PublicOrderDetailPage() {
     setPaying(true);
     try {
       const provider = latestTransaction?.provider?.toLowerCase() || "flutterwave";
-      const endpoint = provider === "pawapay" ? "/api/pawapay/checkout" : `/api/payments/${provider}/initiate`;
+      if (provider === "pawapay" || provider === "afripay" || provider === "pesapal" || provider === "paypal") {
+        throw new Error("This payment method is no longer available. Please choose another method from checkout.");
+      }
+      const endpoint =
+        provider === "mobile_money" || provider === "flutterwave"
+          ? provider === "mobile_money"
+            ? "/api/payments/mobile-money/initiate"
+            : "/api/payments/flutterwave/initiate"
+          : `/api/payments/${provider}/initiate`;
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

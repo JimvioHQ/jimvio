@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   handleFromJimvioSubdomain,
+  isMerchantHostBlockedPlatformPath,
   isMerchantStorefrontPath,
   isMerchantStorefrontRequest,
   isPlatformHostname,
@@ -91,5 +92,16 @@ describe("commerce host routing", () => {
     assert.equal(handleFromJimvioSubdomain("no-such-store.jimvio.com"), "no-such-store");
     assert.equal(isPlatformHostname("no-such-store.jimvio.com"), false);
     assert.equal(isMerchantStorefrontRequest("no-such-store.jimvio.com", "/"), true);
+  });
+
+  it("blocks Jimvio platform paths on merchant hosts", () => {
+    assert.equal(isMerchantHostBlockedPlatformPath("/communities"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/marketplace"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/affiliates/x"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/ugc"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/commerce/orders"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/cart"), false);
+    assert.equal(isMerchantHostBlockedPlatformPath("/product/x"), false);
+    assert.equal(isMerchantHostBlockedPlatformPath("/login"), false);
   });
 });

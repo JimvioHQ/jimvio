@@ -1538,14 +1538,51 @@ function BrandPanel({
         />
         Sticky header
       </label>
-      <label className="flex items-center gap-2 text-xs font-semibold">
-        <input
-          type="checkbox"
-          checked={settings.showPoweredBy !== false}
-          onChange={(e) => onPatch({ showPoweredBy: e.target.checked })}
-        />
-        Show “Powered by Jimvio”
-      </label>
+      <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3 space-y-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-[#6B7280]">
+          Product page
+        </p>
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input
+            type="checkbox"
+            checked={settings.productStickyAtc !== false}
+            onChange={(e) => onPatch({ productStickyAtc: e.target.checked })}
+          />
+          Sticky Add to Cart (mobile)
+        </label>
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input
+            type="checkbox"
+            checked={settings.productShowSpecs !== false}
+            onChange={(e) => onPatch({ productShowSpecs: e.target.checked })}
+          />
+          Product details / specifications
+        </label>
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input
+            type="checkbox"
+            checked={settings.productShowRelated !== false}
+            onChange={(e) => onPatch({ productShowRelated: e.target.checked })}
+          />
+          Related products
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-semibold">Product image ratio</span>
+          <select
+            value={settings.productImageRatio || "1/1"}
+            onChange={(e) =>
+              onPatch({
+                productImageRatio: e.target.value as ThemeSettings["productImageRatio"],
+              })
+            }
+            className="h-9 w-full rounded-md border border-[#E5E7EB] px-2 text-sm"
+          >
+            <option value="1/1">Square 1:1</option>
+            <option value="4/3">Landscape 4:3</option>
+            <option value="3/4">Portrait 3:4</option>
+          </select>
+        </label>
+      </div>
       <label className="block text-xs">
         <span className="mb-1 block font-semibold">Mobile navigation</span>
         <select
@@ -2265,7 +2302,7 @@ function PreviewCanvas({
               settings.headerAlign === "centered" ||
               settings.headerStyle === "centered"
             }
-            showPoweredBy={settings.showPoweredBy !== false}
+            showPoweredBy={false}
             storeId={storeId}
             previewDevice={device}
             mobileNavStyle={settings.mobileNavStyle || "bottom"}
@@ -2310,7 +2347,7 @@ function PreviewCanvas({
             onStoreHost
             previewDevice={device}
             logoUrl={logo}
-            showPoweredBy={settings.showPoweredBy !== false}
+            showPoweredBy={false}
             social={social}
           />
         </CanvasSectionFrame>

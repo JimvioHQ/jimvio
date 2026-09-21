@@ -8,7 +8,6 @@
 }
 
 [data-storefront-chrome="product-grid"] > * {
-  max-width: 14.5rem;
   width: 100%;
   min-width: 0;
 }

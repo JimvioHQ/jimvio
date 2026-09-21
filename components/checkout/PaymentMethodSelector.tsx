@@ -525,7 +525,7 @@ const METHODS: MethodDef[] = [
   {
     id: "flutterwave",
     title: "Pay with Cards",
-    description: "Pay securely with Visa, Mastercard, Amex, and other supported cards",
+    description: "Secure checkout with Visa, Mastercard and supported cards",
     iconNode: (
       <div style={{
         width: 48, height: 48, borderRadius: "50%",
@@ -783,40 +783,37 @@ export function PaymentMethodSelector({
         })}
       </div>
 
-      {/* ── Powered by strip ──────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-4 pt-3 pb-3 flex-wrap">
-        <span className="text-[10px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest w-full text-center mb-2">
-          Powered by trusted partners
-        </span>
-        <div className="w-full flex items-center justify-center gap-6 flex-wrap">
-          {[
-            { label: "NowPayments", domain: "nowpayments.io", localSrc: "/logos/NOWPayments_idKVr3HnXR_1.svg" },
-            { label: "Flutterwave", domain: "flutterwave.com", localSrc: "/logos/flutterwave.png" },
-            { label: "Payoneer", domain: "payoneer.com", localSrc: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg" },
-            { label: "Binance Pay", domain: "binance.com", localSrc: "/logos/binance.png" },
-          ].map((partner) => (
-            <img
-              key={partner.domain}
-              src={partner.localSrc ?? `https://img.logokit.com/${partner.domain}`}
-              alt={partner.label}
-              className={cn(
-                "h-6 w-auto object-contain rounded-sm p-0.5",
-                partner.label === "NowPayments" || partner.label === "Payoneer"
-                  ? "text-slate-900 dark:text-white"
-                  : ""
-              )}
-              onError={(event) => {
-                const img = event.currentTarget;
-                if (partner.localSrc) {
-                  return;
-                }
-                img.onerror = null;
-                img.src = `https://www.google.com/s2/favicons?domain=${partner.domain}&sz=64`;
-              }}
-            />
-          ))}
+      {/* ── Active partners strip (only methods actually available) ── */}
+      {visibleMethods.length > 0 ? (
+        <div className="flex flex-col items-center gap-3 pt-3 pb-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
+            Secure payment partners
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-5">
+            {visibleMethods.some((m) => m.id === "flutterwave" || m.id === "mobile_money") ? (
+              <img
+                src="/logos/flutterwave.png"
+                alt="Flutterwave"
+                className="h-5 w-auto object-contain"
+              />
+            ) : null}
+            {visibleMethods.some((m) => m.id === "nowpayments") ? (
+              <img
+                src="/logos/NOWPayments_idKVr3HnXR_1.svg"
+                alt="NOWPayments"
+                className="h-5 w-auto object-contain"
+              />
+            ) : null}
+            {visibleMethods.some((m) => m.id === "binancepay") ? (
+              <img
+                src="/logos/binance.png"
+                alt="Binance Pay"
+                className="h-5 w-auto object-contain"
+              />
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* ── Order summary ──────────────────────────────────────────── */}
       {showSummary && orderTotal > 0 && (

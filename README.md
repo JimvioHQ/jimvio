@@ -81,18 +81,14 @@ The project relies on the following configuration values. A full sample is avail
 - `NEXT_PUBLIC_APP_URL` (optional, used for auth links)
 
 ### Payments
-- `FLW_SECRET_KEY` / `FLW_PUBLIC_KEY` (Flutterwave)
-- `PAWAPAY_API_TOKEN`
-- `PAWAPAY_ENV`
+- `FLW_SECRET_KEY` / `FLW_PUBLIC_KEY` (Flutterwave — cards + Mobile Money)
 - `NOWPAYMENTS_API_KEY`
 - `NOWPAYMENTS_IPN_SECRET`
 - `NOWPAYMENTS_ENV`
-- `AFRIPAY_APP_ID`
-- `AFRIPAY_APP_SECRET`
 - `BINANCE_PAY_API_KEY`
 - `BINANCE_PAY_API_SECRET`
 
-Retired (do not configure for new checkouts): PesaPal, PayPal.
+Retired (do not configure for new checkouts): PesaPal, PayPal, AfriPay (`AFRIPAY_*`), PawaPay (`PAWAPAY_*`).
 
 ### Shopify
 - `SHOPIFY_CLIENT_ID`

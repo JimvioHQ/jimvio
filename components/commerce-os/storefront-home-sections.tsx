@@ -260,9 +260,11 @@ export function StorefrontHomeSections({
               }
               products={list}
               layout={
-                section.type === "sale_rail" || section.type === "featured_products"
+                section.type === "sale_rail"
                   ? "rail"
-                  : "grid"
+                  : typeof props.layout === "string" && props.layout === "rail"
+                    ? "rail"
+                    : "grid"
               }
               previewDevice={preview ? device : undefined}
             />

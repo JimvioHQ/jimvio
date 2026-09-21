@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import {
   handleFromJimvioSubdomain,
+  isMerchantHostBlockedPlatformPath,
   resolveStoreHostPath,
   shouldAttemptStoreHostRewrite,
 } from "@/lib/commerce-os/domains/host";
@@ -16,6 +17,16 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   const subdomainHandle = handleFromJimvioSubdomain(hostname);
+
+  // Never render Jimvio platform shells (Communities, Marketplace, …)
+  // on a merchant storefront host — send customers home.
+  if (subdomainHandle && isMerchantHostBlockedPlatformPath(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   const needsStoreRewrite =
     Boolean(subdomainHandle) &&
     shouldAttemptStoreHostRewrite(hostname, pathname) &&

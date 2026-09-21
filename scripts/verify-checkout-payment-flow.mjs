@@ -219,8 +219,10 @@ assert(
 const momoPanel = read("components/checkout/MobileMoneyCheckoutPanel.tsx");
 assert(
   momoPanel.includes("Back to payment methods") &&
-    momoPanel.includes("Continue with Mobile Money") &&
+    (momoPanel.includes("Continue with Mobile Money") ||
+      momoPanel.includes("Continue to secure payment")) &&
     momoPanel.includes("Select country") &&
+    momoPanel.includes("Choose your country and mobile wallet") &&
     !momoPanel.includes("Popular in Rwanda") &&
     !momoPanel.includes("Other Networks"),
   "MoMo dedicated step must require explicit country and never show Rwanda-only marketing"
