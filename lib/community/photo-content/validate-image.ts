@@ -104,7 +104,8 @@ export async function downloadAndValidateImage(sourceUrl: string): Promise<Valid
     redirect: "follow",
     headers: {
       "User-Agent": "JimvioEditorialPhotoSeeder/1.0 (+https://www.jimvio.com)",
-      Accept: "image/avif,image/webp,image/*,*/*;q=0.8",
+      // Prefer JPEG so serverless validation does not depend on AVIF/WebP decode.
+      Accept: "image/jpeg,image/jpg,image/png,image/webp;q=0.8,*/*;q=0.5",
     },
   });
   if (!res.ok) {

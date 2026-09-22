@@ -14,10 +14,10 @@ export function normalizeUnsplashPhotoId(id: string): string {
   return trimmed.startsWith("photo-") ? trimmed : `photo-${trimmed}`;
 }
 
-/** High-res crop suitable for community feed media. */
+/** High-res crop suitable for community feed media. Always request JPEG for reliable validation. */
 export function unsplashDownloadUrl(photoId: string, width = 1600): string {
   const id = normalizeUnsplashPhotoId(photoId);
-  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85`;
+  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${width}&q=85&fm=jpg`;
 }
 
 export function unsplashAttributionUrl(photoId: string): string {
