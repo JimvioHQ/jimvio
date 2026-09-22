@@ -2,7 +2,6 @@
  * Download + validate licensed images before Cloudinary upload.
  * Uses sharp when available; falls back to magic-byte checks for serverless.
  */
-import type { Metadata } from "sharp";
 
 export type ValidatedImage = {
   buffer: Buffer;
@@ -89,7 +88,9 @@ function liteDimensions(
   return null;
 }
 
-async function sharpMetadata(buffer: Buffer): Promise<Metadata | null> {
+async function sharpMetadata(
+  buffer: Buffer
+): Promise<{ width?: number; height?: number } | null> {
   try {
     const sharp = (await import("sharp")).default;
     return await sharp(buffer, { failOn: "error" }).metadata();
