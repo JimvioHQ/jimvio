@@ -59,50 +59,51 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  if (!opsAuthorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: Body;
   try {
-    body = (await req.json()) as Body;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    if (!opsAuthorized(req)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
-  const sourceId = typeof body.sourceId === "string" ? body.sourceId.trim() : "";
-  if (!sourceUrl || !sourceId) {
-    return NextResponse.json({ error: "sourceUrl and sourceId required" }, { status: 400 });
-  }
-  if (!isAllowedSourceUrl(sourceUrl)) {
-    return NextResponse.json({ error: "source host not allowed" }, { status: 400 });
-  }
+    let body: Body;
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-  const photo: LicensedPhotoSpec = {
-    sourceId,
-    provider: body.provider === "pexels" || body.provider === "wikimedia" ? body.provider : "unsplash",
-    sourceUrl,
-    attributionUrl:
-      typeof body.attributionUrl === "string" && body.attributionUrl.trim()
-        ? body.attributionUrl.trim()
-        : sourceUrl,
-    license:
-      typeof body.license === "string" && body.license.trim()
-        ? body.license.trim()
-        : "Unsplash License",
-    licenseUrl:
-      typeof body.licenseUrl === "string" && body.licenseUrl.trim()
-        ? body.licenseUrl.trim()
-        : "https://unsplash.com/license",
-    photographer:
-      typeof body.photographer === "string" && body.photographer.trim()
-        ? body.photographer.trim()
-        : undefined,
-    themes: [],
-  };
+    const sourceUrl = typeof body.sourceUrl === "string" ? body.sourceUrl.trim() : "";
+    const sourceId = typeof body.sourceId === "string" ? body.sourceId.trim() : "";
+    if (!sourceUrl || !sourceId) {
+      return NextResponse.json({ error: "sourceUrl and sourceId required" }, { status: 400 });
+    }
+    if (!isAllowedSourceUrl(sourceUrl)) {
+      return NextResponse.json({ error: "source host not allowed" }, { status: 400 });
+    }
 
-  try {
+    const photo: LicensedPhotoSpec = {
+      sourceId,
+      provider:
+        body.provider === "pexels" || body.provider === "wikimedia" ? body.provider : "unsplash",
+      sourceUrl,
+      attributionUrl:
+        typeof body.attributionUrl === "string" && body.attributionUrl.trim()
+          ? body.attributionUrl.trim()
+          : sourceUrl,
+      license:
+        typeof body.license === "string" && body.license.trim()
+          ? body.license.trim()
+          : "Unsplash License",
+      licenseUrl:
+        typeof body.licenseUrl === "string" && body.licenseUrl.trim()
+          ? body.licenseUrl.trim()
+          : "https://unsplash.com/license",
+      photographer:
+        typeof body.photographer === "string" && body.photographer.trim()
+          ? body.photographer.trim()
+          : undefined,
+      themes: [],
+    };
+
     const validated = await downloadAndValidateImage(photo.sourceUrl);
     const upload = await uploadValidatedImageToCloudinaryDirect(validated, photo);
     return NextResponse.json({
@@ -118,6 +119,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "upload failed";
-    return NextResponse.json({ error: message }, { status: 422 });
+    console.error("[ops/editorial-media]", message);
+    const status = /Missing Cloudinary|Unauthorized/i.test(message) ? 503 : 422;
+    return NextResponse.json({ error: message }, { status });
   }
 }

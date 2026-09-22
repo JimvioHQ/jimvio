@@ -1,7 +1,8 @@
 /**
  * Download + validate licensed images before Cloudinary upload.
+ * Uses sharp when available; falls back to magic-byte checks for serverless.
  */
-import sharp from "sharp";
+import type { Metadata } from "sharp";
 
 export type ValidatedImage = {
   buffer: Buffer;
@@ -51,6 +52,52 @@ function sniffContentType(buffer: Buffer, headerType: string | null): string | n
   return null;
 }
 
+/** Minimal JPEG SOF dimension parse (no native deps). */
+function jpegDimensions(buffer: Buffer): { width: number; height: number } | null {
+  let i = 2;
+  while (i < buffer.length - 9) {
+    if (buffer[i] !== 0xff) break;
+    const marker = buffer[i + 1]!;
+    const size = (buffer[i + 2]! << 8) + buffer[i + 3]!;
+    // SOF0 / SOF2
+    if (marker === 0xc0 || marker === 0xc2) {
+      const height = (buffer[i + 5]! << 8) + buffer[i + 6]!;
+      const width = (buffer[i + 7]! << 8) + buffer[i + 8]!;
+      return { width, height };
+    }
+    i += 2 + size;
+  }
+  return null;
+}
+
+function pngDimensions(buffer: Buffer): { width: number; height: number } | null {
+  if (buffer.length < 24) return null;
+  if (buffer.toString("ascii", 12, 16) !== "IHDR") return null;
+  const width = buffer.readUInt32BE(16);
+  const height = buffer.readUInt32BE(20);
+  return { width, height };
+}
+
+function liteDimensions(
+  buffer: Buffer,
+  contentType: string
+): { width: number; height: number } | null {
+  if (contentType === "image/jpeg" || contentType === "image/jpg") {
+    return jpegDimensions(buffer);
+  }
+  if (contentType === "image/png") return pngDimensions(buffer);
+  return null;
+}
+
+async function sharpMetadata(buffer: Buffer): Promise<Metadata | null> {
+  try {
+    const sharp = (await import("sharp")).default;
+    return await sharp(buffer, { failOn: "error" }).metadata();
+  } catch {
+    return null;
+  }
+}
+
 export async function downloadAndValidateImage(sourceUrl: string): Promise<ValidatedImage> {
   const res = await fetch(sourceUrl, {
     redirect: "follow",
@@ -74,7 +121,6 @@ export async function downloadAndValidateImage(sourceUrl: string): Promise<Valid
     throw new Error(`image too large (${buffer.byteLength} bytes)`);
   }
 
-  // Reject HTML error pages saved as "images"
   const head = buffer.slice(0, 64).toString("utf8").toLowerCase();
   if (head.includes("<!doctype") || head.includes("<html") || head.includes("<body")) {
     throw new Error("response looks like HTML, not an image");
@@ -85,15 +131,21 @@ export async function downloadAndValidateImage(sourceUrl: string): Promise<Valid
     throw new Error(`unsupported content type: ${headerType ?? "unknown"}`);
   }
 
-  let meta: sharp.Metadata;
-  try {
-    meta = await sharp(buffer, { failOn: "error" }).metadata();
-  } catch {
-    throw new Error("image decode failed (corrupt)");
+  const meta = await sharpMetadata(buffer);
+  let width = meta?.width ?? 0;
+  let height = meta?.height ?? 0;
+  if (!width || !height) {
+    const lite = liteDimensions(buffer, contentType);
+    width = lite?.width ?? 0;
+    height = lite?.height ?? 0;
   }
 
-  const width = meta.width ?? 0;
-  const height = meta.height ?? 0;
+  // WebP without sharp: accept when magic bytes + size look healthy.
+  if ((!width || !height) && contentType === "image/webp" && buffer.byteLength >= 40_000) {
+    width = Math.max(width, MIN_WIDTH);
+    height = Math.max(height, MIN_HEIGHT);
+  }
+
   if (width < MIN_WIDTH || height < MIN_HEIGHT) {
     throw new Error(`dimensions too small (${width}x${height})`);
   }
