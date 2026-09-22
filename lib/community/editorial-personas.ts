@@ -27,8 +27,9 @@ export function editorialPersonaEmail(key: string): string {
 
 export function isEditorialPersonaEmail(email: string | null | undefined): boolean {
   if (!email) return false;
+  // Escape `+` — it is a regex quantifier, not a literal plus.
   return new RegExp(
-    `^${EDITORIAL_PERSONA_EMAIL_PREFIX}[a-z0-9]+@${EDITORIAL_PERSONA_EMAIL_DOMAIN}$`,
+    `^${EDITORIAL_PERSONA_EMAIL_PREFIX.replace("+", "\\+")}[a-z0-9_+-]+@${EDITORIAL_PERSONA_EMAIL_DOMAIN}$`,
     "i"
   ).test(email.trim());
 }
