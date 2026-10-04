@@ -213,37 +213,49 @@ export async function loadFeedSidebarPopularUsers(
   }
 
   if (candidates.length < POPULAR_USER_COUNT) {
-    const { data: profileRows } = (await admin
-      .from("profiles")
-      .select(
-        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
-      )
-      .eq("is_active", true)
-      .order("follower_count", { ascending: false })
-      .limit(80)) as { data: ProfileRow[] | null };
+    // Page past editorial-heavy rows so organic creators remain discoverable.
+    let from = 0;
+    while (candidates.length < POPULAR_USER_COUNT && from < 400) {
+      const to = from + 79;
+      const { data: profileRows } = (await admin
+        .from("profiles")
+        .select(
+          "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
+        )
+        .eq("is_active", true)
+        .order("follower_count", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to)) as { data: ProfileRow[] | null };
 
-    for (const profile of profileRows ?? []) {
-      if (candidates.length >= POPULAR_USER_COUNT) break;
-      if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
-      if (isEditorialPersona(profile)) continue;
-      const name = displayName(profile.full_name, profile.username);
-      if (!name || !isPublicUsername(profile.username)) continue;
-      const username = normalizeUsername(profile.username!);
-      if (username.toLowerCase() === "jimvio") continue;
+      const rows = profileRows ?? [];
+      if (!rows.length) break;
 
-      pushCandidate({
-        userId: profile.id,
-        name,
-        username,
-        avatarUrl: isValidAvatar(profile.avatar_url)
-          ? mediaUrlOrNull(profile.avatar_url, 96)
-          : null,
-        followerCount: resolveProfileFollowerCount({
+      for (const profile of rows) {
+        if (candidates.length >= POPULAR_USER_COUNT) break;
+        if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
+        if (isEditorialPersona(profile)) continue;
+        const name = displayName(profile.full_name, profile.username);
+        if (!name || !isPublicUsername(profile.username)) continue;
+        const username = normalizeUsername(profile.username!);
+        if (username.toLowerCase() === "jimvio") continue;
+
+        pushCandidate({
+          userId: profile.id,
+          name,
           username,
-          follower_count: profile.follower_count,
-        }),
-        verified: Boolean(profile.is_verified),
-      });
+          avatarUrl: isValidAvatar(profile.avatar_url)
+            ? mediaUrlOrNull(profile.avatar_url, 96)
+            : null,
+          followerCount: resolveProfileFollowerCount({
+            username,
+            follower_count: profile.follower_count,
+          }),
+          verified: Boolean(profile.is_verified),
+        });
+      }
+
+      if (rows.length < 80) break;
+      from += 80;
     }
   }
 
