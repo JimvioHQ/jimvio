@@ -6,7 +6,7 @@ import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Sparkles,
   Bot, Wand2, Search, Clapperboard, Star,
-  ChevronDown, TrendingUp, Wallet, Target, LineChart,
+  ChevronDown, TrendingUp, Wallet, Target, LineChart, BarChart3,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -16,7 +16,6 @@ import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCampaignCard";
 import type { UGCCampaign, UGCCampaignType, UGCPaymentModel, UGCCampaignStatus } from "@/types/ugc";
 import { type WorldMapPin } from "@/components/ui/world-map";
-import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
 import {
   HomepageShowcaseRail,
@@ -31,14 +30,6 @@ import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { RevealBlock, RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
-
-const TakeJimvioPhonesClient = dynamic(
-  () =>
-    import("@/components/layout/take-jimvio-phones-client").then(
-      (m) => m.TakeJimvioPhonesClient
-    ),
-  { ssr: false, loading: () => <TakeJimvioDevicesSkeleton /> }
-);
 
 /** Defer dotted-map (~1MB data-URI) out of SSR HTML — identical UI after hydrate. */
 const WorldMap = dynamic(
@@ -365,7 +356,7 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
   if (!campaigns.length) return null;
 
   return (
-    <SectionReveal className="bg-white py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
         <RevealBlock index={0} className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
           <div>
@@ -1191,14 +1182,28 @@ export function TrustedBrands() {
 }
 
 
-/* ═══ 17. Take Jimvio everywhere ═══ */
-export function TakeJimvioEverywhere() {
-  const features = [
-    "Shop & sell on the go",
-    "Track earnings in real time",
-    "Join campaigns from your phone",
-  ];
+/* ═══ 17. Take Jimvio everywhere — premium mobile app section ═══ */
+const TAKE_JIMVIO_FEATURES = [
+  {
+    title: "Shop & sell on the go",
+    desc: "Discover, buy and sell products anytime, anywhere.",
+    icon: ShoppingBag,
+  },
+  {
+    title: "Track earnings in real time",
+    desc: "Monitor sales, commissions and payouts instantly.",
+    icon: BarChart3,
+  },
+  {
+    title: "Join campaigns from your phone",
+    desc: "Collaborate with brands and grow your income.",
+    icon: Users,
+  },
+] as const;
 
+const TAKE_JIMVIO_HERO_SRC = "/images/jimvio-mobile-app-hero.jpg";
+
+export function TakeJimvioEverywhere() {
   return (
     <SectionReveal
       className="jimvio-take-everywhere relative w-full overflow-x-clip py-12 sm:py-14 lg:py-16"
@@ -1207,53 +1212,64 @@ export function TakeJimvioEverywhere() {
     >
       <style>{TAKE_EVERYWHERE_CSS}</style>
 
-      {/* Soft Jimvio atmosphere — continuous with Home canvas, not a hard orange block */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 80% 70% at 75% 45%, rgba(255,90,31,0.14) 0%, transparent 62%), radial-gradient(ellipse 55% 50% at 12% 30%, rgba(255,90,31,0.07) 0%, transparent 68%), linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.55) 42%, transparent 100%)",
+              "radial-gradient(ellipse 70% 65% at 78% 42%, rgba(255,90,31,0.12) 0%, transparent 64%), radial-gradient(ellipse 48% 46% at 10% 28%, rgba(255,90,31,0.06) 0%, transparent 70%), linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%)",
           }}
         />
       </div>
 
       <div className={`relative ${shell}`}>
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.18fr)] lg:gap-12 xl:gap-14">
+        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:gap-12 xl:gap-14">
           <RevealItem
             index={0}
-            className="jimvio-take-copy w-full max-w-md"
+            className="jimvio-take-copy w-full max-w-xl"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
-            <h2
-              id="jimvio-take-everywhere-title"
-              className="text-[clamp(1.75rem,3.8vw,2.5rem)] font-black leading-[1.1] tracking-[-0.035em] text-[#111827]"
-            >
-              Take Jimvio{" "}
-              <span className="text-[#FF5A1F]">Everywhere</span>
-            </h2>
-            <p className="mt-2.5 text-[14px] font-semibold text-[#FF5A1F] sm:text-[15px]">
-              Available on Android &amp; iOS
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:text-[12px]">
+              Jimvio Mobile App
             </p>
-            <p className="mt-3 max-w-[38ch] text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]">
+
+            <div className="mt-3 flex min-w-0 items-stretch gap-3 sm:mt-3.5 sm:gap-3.5">
+              <span
+                aria-hidden
+                className="mt-1.5 w-[3px] shrink-0 rounded-full bg-[#FF5A1F] sm:mt-2"
+              />
+              <h2
+                id="jimvio-take-everywhere-title"
+                className="min-w-0 text-[clamp(1.65rem,5.2vw,2.65rem)] font-black leading-[1.08] tracking-[-0.035em] text-[#111827] text-balance"
+              >
+                Take Jimvio{" "}
+                <span className="text-[#FF5A1F]">Everywhere</span>
+              </h2>
+            </div>
+
+            <p className="mt-3.5 max-w-[42ch] text-[14px] leading-relaxed text-[#6B7280] sm:mt-4 sm:text-[15px]">
               Run marketplace, campaigns, and earnings from your phone — the same Jimvio, wherever you are.
             </p>
 
-            <ul className="mt-6 space-y-3">
-              {features.map((t) => (
-                <li
-                  key={t}
-                  className="flex items-center gap-2.5 text-[13.5px] font-medium text-[#374151] sm:text-[14px]"
-                >
-                  <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[#FF5A1F]/10">
-                    <Check className="size-3 text-[#FF5A1F]" strokeWidth={3} />
+            <ul className="mt-6 space-y-4 sm:mt-7">
+              {TAKE_JIMVIO_FEATURES.map(({ title, desc, icon: Icon }) => (
+                <li key={title} className="flex items-start gap-3">
+                  <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-[#FF5A1F]/10 text-[#FF5A1F]">
+                    <Icon className="size-4" strokeWidth={2.15} aria-hidden />
                   </span>
-                  {t}
+                  <span className="min-w-0 pt-0.5">
+                    <span className="block text-[14px] font-bold tracking-[-0.015em] text-[#111827] sm:text-[15px]">
+                      {title}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] leading-relaxed text-[#6B7280] sm:text-[13.5px]">
+                      {desc}
+                    </span>
+                  </span>
                 </li>
               ))}
             </ul>
 
-            <div className="mt-7">
+            <div className="mt-7 sm:mt-8">
               <span className="mb-3 block text-[13px] font-bold tracking-[-0.01em] text-[#111827]">
                 Download the App
               </span>
@@ -1261,7 +1277,7 @@ export function TakeJimvioEverywhere() {
                 <a
                   href="#"
                   aria-label="Download on the App Store"
-                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
+                  className="inline-flex min-h-11 shrink-0 items-center transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -1271,13 +1287,13 @@ export function TakeJimvioEverywhere() {
                     height={50}
                     loading="lazy"
                     decoding="async"
-                    className="h-10 w-auto"
+                    className="h-10 w-auto sm:h-11"
                   />
                 </a>
                 <a
                   href="#"
                   aria-label="Get it on Google Play"
-                  className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
+                  className="inline-flex min-h-11 shrink-0 items-center transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -1287,21 +1303,43 @@ export function TakeJimvioEverywhere() {
                     height={50}
                     loading="lazy"
                     decoding="async"
-                    className="h-10 w-auto"
+                    className="h-10 w-auto sm:h-11"
                   />
                 </a>
               </div>
+              <p className="mt-3 text-[12px] leading-relaxed text-[#9CA3AF] sm:text-[12.5px]">
+                Secure · Easy to use · Available wherever supported
+              </p>
             </div>
           </RevealItem>
 
           <RevealItem
             index={1}
-            className="jimvio-take-devices w-full min-w-0"
+            className="jimvio-take-visual w-full min-w-0"
             style={{
               ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms`,
             }}
           >
-            <TakeJimvioPhonesClient />
+            <div className="relative mx-auto w-full max-w-[720px] overflow-hidden rounded-[22px] sm:rounded-[24px] lg:max-w-none">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -inset-x-6 -inset-y-4 rounded-[32px]"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 70% 72% at 58% 48%, rgba(255,90,31,0.16) 0%, transparent 72%)",
+                }}
+              />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={TAKE_JIMVIO_HERO_SRC}
+                alt="Jimvio creators using the mobile app and laptop — Create, Connect, Earn Anywhere"
+                width={687}
+                height={342}
+                loading="lazy"
+                decoding="async"
+                className="relative z-[1] h-auto w-full select-none object-contain object-[center_center]"
+              />
+            </div>
           </RevealItem>
         </div>
       </div>
@@ -1313,22 +1351,22 @@ const TAKE_EVERYWHERE_CSS = `
 .jimvio-take-everywhere .jimvio-take-copy.jimvio-reveal-item {
   --jimvio-reveal-y: 12px;
 }
-.jimvio-take-everywhere .jimvio-take-devices.jimvio-reveal-item {
+.jimvio-take-everywhere .jimvio-take-visual.jimvio-reveal-item {
   --jimvio-reveal-y: 18px;
 }
 .jimvio-home-canvas .jimvio-take-everywhere {
   background-color: transparent !important;
 }
 @media (min-width: 768px) {
-  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-devices.jimvio-reveal-item {
+  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-visual.jimvio-reveal-item {
     opacity: 0;
     transform: translate3d(0, 18px, 0) scale(0.98);
   }
-  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-devices.jimvio-reveal-item {
-    animation: jimvio-take-devices-in var(--jimvio-duration-reveal, 480ms) var(--jimvio-ease) both;
+  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-visual.jimvio-reveal-item {
+    animation: jimvio-take-visual-in var(--jimvio-duration-reveal, 480ms) var(--jimvio-ease) both;
   }
 }
-@keyframes jimvio-take-devices-in {
+@keyframes jimvio-take-visual-in {
   from {
     opacity: 0;
     transform: translate3d(0, 18px, 0) scale(0.98);
@@ -1339,8 +1377,8 @@ const TAKE_EVERYWHERE_CSS = `
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-devices.jimvio-reveal-item,
-  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-devices.jimvio-reveal-item {
+  .jimvio-take-everywhere[data-reveal="ready"] .jimvio-take-visual.jimvio-reveal-item,
+  .jimvio-take-everywhere[data-reveal="in"] .jimvio-take-visual.jimvio-reveal-item {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

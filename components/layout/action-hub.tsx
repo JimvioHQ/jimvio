@@ -51,7 +51,7 @@ const ACTIONS: ActionItem[] = [
     title: "Sell Products",
     desc: "Launch your products, manage inventory, and grow your store with Jimvio.",
     cta: "Open Seller Hub",
-    href: "/",
+    href: "/seller/products",
     accent: ORANGE,
     group: "commerce",
     visual: <SellProductsVisual accent={ORANGE} />,
@@ -100,7 +100,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
       <Link
         href={action.href}
         className={cn(
-          "jimvio-action-hub-card block h-full rounded-[24px]",
+          "jimvio-action-hub-card block h-full rounded-[22px]",
           "focus-visible:outline-none",
           "active:scale-[0.995] motion-reduce:active:scale-100",
         )}
@@ -108,7 +108,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
         aria-label={`${action.title}. ${action.cta}`}
       >
         <JourneyStack accent={action.accent} className="h-full" density="compact">
-          <div className="relative flex h-full min-h-[248px] flex-col sm:min-h-[260px]">
+          <div className="relative flex h-full min-h-[208px] flex-col sm:min-h-[216px]">
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
@@ -117,21 +117,21 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
               }}
             />
 
-            <div className="relative flex h-[118px] items-center justify-center overflow-visible px-3 pt-4 sm:h-[128px] sm:pt-5">
+            <div className="relative flex h-[86px] items-center justify-center overflow-visible px-3 pt-3 sm:h-[94px] sm:pt-3.5">
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-x-8 top-6 h-20 rounded-full opacity-60 blur-2xl"
+                className="pointer-events-none absolute inset-x-10 top-5 h-14 rounded-full opacity-50 blur-2xl"
                 style={{
-                  background: `radial-gradient(ellipse at center, color-mix(in srgb, ${action.accent} 24%, transparent), transparent 72%)`,
+                  background: `radial-gradient(ellipse at center, color-mix(in srgb, ${action.accent} 22%, transparent), transparent 72%)`,
                 }}
               />
               <div
                 className={cn(
-                  "jimvio-card-visual relative z-[1] h-[108px] w-[120px] sm:h-[116px] sm:w-[128px]",
-                  "drop-shadow-[0_14px_24px_rgba(17,24,39,0.12)]",
+                  "jimvio-card-visual relative z-[1] h-[78px] w-[88px] sm:h-[84px] sm:w-[94px]",
+                  "drop-shadow-[0_10px_18px_rgba(17,24,39,0.1)]",
                   "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                  "group-hover/stack:-translate-y-2 group-hover/stack:scale-[1.04]",
-                  "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:scale-100",
+                  "group-hover/stack:-translate-y-1",
+                  "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
                 )}
               >
                 {action.visual}
@@ -140,9 +140,9 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
 
             <div
               className={cn(
-                "jimvio-card-panel relative z-[2] mx-2.5 mb-2.5 mt-auto rounded-[16px] border border-[rgba(17,24,39,0.05)]",
-                "bg-white px-3.5 py-3.5 shadow-[0_8px_20px_rgba(17,24,39,0.05)]",
-                "sm:mx-3 sm:mb-3 sm:px-4 sm:py-4",
+                "jimvio-card-panel relative z-[2] mx-2.5 mb-2.5 mt-auto rounded-[14px] border border-[rgba(17,24,39,0.05)]",
+                "bg-white px-3.5 py-3 shadow-[0_6px_16px_rgba(17,24,39,0.045)]",
+                "sm:mx-3 sm:mb-3 sm:px-3.5 sm:py-3.5",
                 "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 "group-hover/stack:-translate-y-0.5",
                 "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
@@ -151,7 +151,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
               <h3 className="text-[15px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:text-[16px]">
                 {action.title}
               </h3>
-              <p className="mt-1 max-w-[34ch] text-[12px] leading-relaxed text-[#6B7280] sm:text-[12.5px]">
+              <p className="mt-1 text-[12px] leading-relaxed text-[#6B7280] sm:text-[12.5px]">
                 {action.desc}
               </p>
               <span
@@ -183,7 +183,7 @@ export function WhatToDoToday() {
       <style>{`${JOURNEY_STACK_CSS}${ACTION_HUB_CSS}`}</style>
 
       <div className={shell}>
-        <header className="mx-auto mb-8 max-w-2xl text-center sm:mb-9 lg:mb-10">
+        <header className="mx-auto mb-6 max-w-2xl text-center sm:mb-7 lg:mb-8">
           <RevealItem
             index={0}
             as="h2"

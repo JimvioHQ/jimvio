@@ -63,7 +63,7 @@ function HowStepCard({ step, index }: { step: Step; index: number }) {
         density="compact"
         style={{ ["--how-accent" as string]: step.color } as CSSProperties}
       >
-        <div className="relative flex h-full min-h-[280px] flex-col sm:min-h-[300px]">
+        <div className="relative flex h-full min-h-[236px] flex-col sm:min-h-[248px]">
           <span
             aria-hidden
             className="pointer-events-none absolute inset-0"
@@ -72,7 +72,7 @@ function HowStepCard({ step, index }: { step: Step; index: number }) {
             }}
           />
 
-          <div className="relative flex h-[132px] items-center justify-center px-4 pt-5 sm:h-[148px]">
+          <div className="relative flex h-[108px] items-center justify-center px-4 pt-4 sm:h-[118px]">
             <span
               className="absolute left-4 top-4 rounded-full px-2.5 py-1 font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-[0.14em] sm:left-5 sm:top-5"
               style={{ background: `${step.color}14`, color: step.color }}
@@ -81,10 +81,10 @@ function HowStepCard({ step, index }: { step: Step; index: number }) {
             </span>
             <div
               className={cn(
-                "jimvio-card-visual relative h-[118px] w-[132px] sm:h-[128px] sm:w-[144px]",
-                "drop-shadow-[0_16px_28px_rgba(17,24,39,0.12)]",
-                "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/stack:-translate-y-2 group-hover/stack:scale-[1.04]",
+                "jimvio-card-visual relative h-[96px] w-[108px] sm:h-[104px] sm:w-[116px]",
+                "drop-shadow-[0_12px_22px_rgba(17,24,39,0.11)]",
+                "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "group-hover/stack:-translate-y-1",
                 "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:scale-100",
               )}
             >

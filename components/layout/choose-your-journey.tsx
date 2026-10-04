@@ -54,7 +54,7 @@ const JOURNEYS: readonly Journey[] = [
     tagline: "List products, manage orders, and get paid without a separate tool stack.",
     items: ["Store dashboard", "Inventory & orders", "Fast payouts"],
     cta: "Open your store",
-    href: "/",
+    href: "/seller/products",
     visual: <SellerStoreVisual accent={BLUE} />,
   },
   {
@@ -105,7 +105,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
       <Link
         href={journey.href}
         className={cn(
-          "jimvio-journey-card block h-full rounded-[24px]",
+          "jimvio-journey-card block h-full rounded-[22px]",
           "focus-visible:outline-none",
           "active:scale-[0.995] motion-reduce:active:scale-100",
         )}
@@ -113,7 +113,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         aria-label={`${journey.role}. ${journey.cta}`}
       >
         <JourneyStack accent={journey.color} className="h-full" density="compact">
-          <div className="relative flex h-full min-h-[248px] flex-col overflow-hidden sm:min-h-[236px] sm:flex-row sm:items-stretch">
+          <div className="relative flex h-full min-h-[220px] flex-col overflow-hidden sm:min-h-[200px] sm:flex-row sm:items-stretch">
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
@@ -125,10 +125,10 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
             <div
               className={cn(
                 "jimvio-card-visual relative z-[2] flex shrink-0 items-center justify-center",
-                "mx-auto mt-4 h-[100px] w-[112px]",
-                "sm:mx-0 sm:mt-0 sm:h-auto sm:w-[38%] sm:max-w-[132px] sm:self-stretch",
+                "mx-auto mt-3 h-[84px] w-[94px]",
+                "sm:mx-0 sm:mt-0 sm:h-auto sm:w-[34%] sm:max-w-[118px] sm:self-stretch",
                 "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/stack:-translate-y-1 sm:group-hover/stack:translate-x-0.5",
+                "group-hover/stack:-translate-y-1",
                 "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:translate-x-0",
               )}
             >
@@ -146,9 +146,9 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
 
             <div
               className={cn(
-                "jimvio-card-panel relative z-[3] mx-2.5 mb-2.5 mt-1.5 flex flex-1 flex-col rounded-[16px] border border-[rgba(17,24,39,0.05)]",
-                "bg-white p-3.5 shadow-[0_8px_20px_rgba(17,24,39,0.05)]",
-                "sm:mx-0 sm:mb-2.5 sm:mr-2.5 sm:mt-2.5 sm:p-4",
+                "jimvio-card-panel relative z-[3] mx-2.5 mb-2.5 mt-1 flex flex-1 flex-col rounded-[14px] border border-[rgba(17,24,39,0.05)]",
+                "bg-white p-3 shadow-[0_6px_16px_rgba(17,24,39,0.045)]",
+                "sm:mx-0 sm:mb-2.5 sm:mr-2.5 sm:mt-2.5 sm:p-3.5",
                 "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 "group-hover/stack:-translate-y-0.5",
                 "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
@@ -216,7 +216,7 @@ export function ChooseYourJourney() {
       <style>{`${JOURNEY_STACK_CSS}${JOURNEY_CSS}`}</style>
 
       <div className={shell}>
-        <div className="mb-8 text-center sm:mb-9">
+        <div className="mb-6 text-center sm:mb-7">
           <RevealItem
             index={0}
             as="h2"

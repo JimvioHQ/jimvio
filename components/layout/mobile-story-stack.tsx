@@ -27,7 +27,7 @@ export function MobileStoryStack({
       {items.map((child, index) => (
         <div
           key={index}
-          className="jimvio-story-card relative h-full max-md:sticky max-md:top-[calc(var(--navbar-height,68px)+10px)] max-md:mb-5 max-md:pb-1"
+          className="jimvio-story-card relative h-full max-md:sticky max-md:top-[calc(var(--navbar-height,68px)+10px)] max-md:mb-4 max-md:pb-1"
           style={
             {
               zIndex: index + 1,
@@ -59,12 +59,12 @@ const MOBILE_STORY_CSS = `
     }
     @keyframes jimvio-story-recede {
       0% {
-        transform: scale(1) translateY(0);
+        transform: scale(1);
         opacity: 1;
       }
       100% {
-        transform: scale(0.94) translateY(-8px);
-        opacity: 0.7;
+        transform: scale(0.98);
+        opacity: 0.92;
       }
     }
   }

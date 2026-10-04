@@ -54,7 +54,7 @@ export function JourneyStack({
           "jimvio-stack-layer pointer-events-none absolute inset-x-3 bottom-2 top-5 -z-10 rounded-[22px] sm:inset-x-3.5 sm:top-5",
           "border border-white/60 bg-white/40 shadow-[0_12px_32px_rgba(17,24,39,0.035)]",
           "origin-bottom transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-1 group-hover/stack:-rotate-[5deg]",
+          "group-hover/stack:-translate-y-0.5 group-hover/stack:-rotate-[4deg]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:rotate-0",
           "-rotate-[4.5deg] -translate-x-1",
         )}
@@ -66,7 +66,7 @@ export function JourneyStack({
           "jimvio-stack-layer pointer-events-none absolute inset-x-2 bottom-1.5 top-3.5 -z-10 rounded-[22px] sm:inset-x-2.5 sm:top-4",
           "border border-white/80 bg-white/65 shadow-[0_10px_28px_rgba(17,24,39,0.04)]",
           "origin-bottom transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-0.5 group-hover/stack:rotate-[3.5deg]",
+          "group-hover/stack:-translate-y-px group-hover/stack:rotate-[2.75deg]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:rotate-0",
           "rotate-[3deg] translate-x-1",
         )}
@@ -78,7 +78,7 @@ export function JourneyStack({
           "border border-[rgba(17,24,39,0.05)] bg-white",
           "shadow-[0_2px_6px_rgba(17,24,39,0.035),0_16px_40px_rgba(17,24,39,0.07)]",
           "transition-[transform,box-shadow,border-color] duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          "group-hover/stack:-translate-y-[5px] group-hover/stack:shadow-[0_10px_24px_rgba(17,24,39,0.07),0_28px_56px_rgba(17,24,39,0.1)]",
+          "group-hover/stack:-translate-y-1 group-hover/stack:shadow-[0_8px_20px_rgba(17,24,39,0.06),0_22px_44px_rgba(17,24,39,0.09)]",
           "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
         )}
       >

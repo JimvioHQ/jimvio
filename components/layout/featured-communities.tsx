@@ -184,7 +184,7 @@ export function FeaturedCommunities({
 }) {
   if (loadError) {
     return (
-      <section className="bg-[#F8FAFC] py-12 sm:py-16">
+      <section className="py-12 sm:py-16">
         <div className={shell}>
           <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827]">
             Featured Communities
@@ -200,7 +200,7 @@ export function FeaturedCommunities({
   if (!communities.length) return null;
 
   return (
-    <SectionReveal className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
+    <SectionReveal className="py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
         <RevealBlock index={0} className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
           <div>
