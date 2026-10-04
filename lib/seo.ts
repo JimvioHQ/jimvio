@@ -83,7 +83,7 @@ export const PAGE_SEO = {
   about: {
     title: "About Jimvio",
     description:
-      "We got tired of jumping between apps to sell, promote, and get paid. Jimvio puts the main pieces in one spot.",
+      "Why Jimvio exists: a borderless creator-commerce platform for marketplace, affiliates, UGC, communities, and payouts.",
     path: "/about",
   },
   blog: {
@@ -115,6 +115,12 @@ export const PAGE_SEO = {
     title: "Careers",
     description: "Join the Jimvio team and help build the global creator commerce platform.",
     path: "/careers",
+  },
+  legal: {
+    title: "Legal Center",
+    description:
+      "Jimvio Legal Center — terms, privacy, cookies, seller and buyer policies, community guidelines, and more.",
+    path: "/legal",
   },
   terms: {
     title: "Terms of service",

@@ -48,7 +48,9 @@ const footerLinks = {
     { label: "About Us", href: "/about" },
     { label: "Careers", href: "/careers" },
     { label: "Press", href: "/press" },
-    { label: "Trust & Safety", href: "/safety" },
+    { label: "Trust & Safety", href: "/community-guidelines" },
+    { label: "Legal Center", href: "/legal" },
+    { label: "Prohibited Products", href: "/prohibited-products" },
     { label: "Contact", href: "/contact" },
     { label: "Investor Relations", href: "/investors" },
   ],
@@ -70,9 +72,12 @@ const statusUrl = process.env.STATUS_WEBSITE_URL || "https://status.jimvio.com";
 
 export const legalLinks: LegalLink[] = [
   { label: "Status", href: statusUrl, external: true },
+  { label: "Legal", href: "/legal" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
   { label: "Cookies", href: "/cookies" },
+  { label: "Cookie Settings", href: "/cookie-settings" },
+  { label: "Refunds", href: "/refunds-payouts" },
   { label: "Sitemap", href: "/sitemap.xml", external: true },
 ];
 
