@@ -99,7 +99,7 @@ export async function loadFeedSidebarPopularUsers(
   function pushCandidate(input: {
     userId: string;
     name: string;
-    username: string;
+    username: string | null;
     avatarUrl: string | null;
     followerCount: number;
     verified: boolean;
@@ -187,10 +187,15 @@ export async function loadFeedSidebarPopularUsers(
     const name = displayName(profile?.full_name, profile?.username, inf.display_name);
     if (!name) continue;
     const usernameRaw = profile?.username?.trim() || null;
-    if (!isPublicUsername(usernameRaw)) continue;
-    const username = normalizeUsername(usernameRaw);
+    const username = isPublicUsername(usernameRaw)
+      ? normalizeUsername(usernameRaw)
+      : null;
     // Skip platform system account from Popular Users suggestions.
-    if (username.toLowerCase() === "jimvio") continue;
+    if (username?.toLowerCase() === "jimvio") continue;
+    // Influencers may lack a public handle — still show with /influencers/u/:id.
+    if (!username && !isValidAvatar(profile?.avatar_url) && !isValidAvatar(inf.profile_image)) {
+      continue;
+    }
 
     const avatarRaw =
       (isValidAvatar(profile?.avatar_url) ? profile.avatar_url : null) ??
@@ -213,49 +218,41 @@ export async function loadFeedSidebarPopularUsers(
   }
 
   if (candidates.length < POPULAR_USER_COUNT) {
-    // Page past editorial-heavy rows so organic creators remain discoverable.
-    let from = 0;
-    while (candidates.length < POPULAR_USER_COUNT && from < 400) {
-      const to = from + 79;
-      const { data: profileRows } = (await admin
-        .from("profiles")
-        .select(
-          "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
-        )
-        .eq("is_active", true)
-        .order("follower_count", { ascending: false })
-        .order("id", { ascending: true })
-        .range(from, to)) as { data: ProfileRow[] | null };
+    // Exclude editorial personas in SQL — they dominate follower_count ties
+    // and would otherwise starve the organic Popular Users fill.
+    const { data: profileRows } = (await admin
+      .from("profiles")
+      .select(
+        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
+      )
+      .eq("is_active", true)
+      .or("email.is.null,email.not.ilike.editorial+%@jimvio.com")
+      .order("follower_count", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(80)) as { data: ProfileRow[] | null };
 
-      const rows = profileRows ?? [];
-      if (!rows.length) break;
+    for (const profile of profileRows ?? []) {
+      if (candidates.length >= POPULAR_USER_COUNT) break;
+      if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
+      if (isEditorialPersona(profile)) continue;
+      const name = displayName(profile.full_name, profile.username);
+      if (!name || !isPublicUsername(profile.username)) continue;
+      const username = normalizeUsername(profile.username!);
+      if (username.toLowerCase() === "jimvio") continue;
 
-      for (const profile of rows) {
-        if (candidates.length >= POPULAR_USER_COUNT) break;
-        if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
-        if (isEditorialPersona(profile)) continue;
-        const name = displayName(profile.full_name, profile.username);
-        if (!name || !isPublicUsername(profile.username)) continue;
-        const username = normalizeUsername(profile.username!);
-        if (username.toLowerCase() === "jimvio") continue;
-
-        pushCandidate({
-          userId: profile.id,
-          name,
+      pushCandidate({
+        userId: profile.id,
+        name,
+        username,
+        avatarUrl: isValidAvatar(profile.avatar_url)
+          ? mediaUrlOrNull(profile.avatar_url, 96)
+          : null,
+        followerCount: resolveProfileFollowerCount({
           username,
-          avatarUrl: isValidAvatar(profile.avatar_url)
-            ? mediaUrlOrNull(profile.avatar_url, 96)
-            : null,
-          followerCount: resolveProfileFollowerCount({
-            username,
-            follower_count: profile.follower_count,
-          }),
-          verified: Boolean(profile.is_verified),
-        });
-      }
-
-      if (rows.length < 80) break;
-      from += 80;
+          follower_count: profile.follower_count,
+        }),
+        verified: Boolean(profile.is_verified),
+      });
     }
   }
 
