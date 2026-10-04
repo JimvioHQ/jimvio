@@ -18,8 +18,10 @@ import {
 } from "@/lib/feed/apply-feed-tab-filter";
 import { loadPublicCommunityIds } from "@/lib/feed/load-public-discovery-feed";
 
-const POOL_PAGE = 1000;
+const POOL_PAGE = 500;
 const MAX_POOL = 10_000;
+/** PostgREST `.in()` URL length stays safe below ~100–150 UUIDs. */
+const COMMUNITY_IN_CHUNK = 120;
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -41,43 +43,136 @@ export type GlobalCommunityFeedPost = Record<string, unknown> & {
   communities?: { slug?: string | null; name?: string | null; is_private?: boolean | null } | null;
 };
 
+type RawCursor = { created_at: string; id: string };
+
+function chunkIds(ids: string[], size: number): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+function compareRecency(a: GlobalCommunityFeedPost, b: GlobalCommunityFeedPost): number {
+  const byCreated = b.created_at.localeCompare(a.created_at);
+  if (byCreated !== 0) return byCreated;
+  return b.id.localeCompare(a.id);
+}
+
+function isEligiblePost(
+  post: GlobalCommunityFeedPost,
+  opts?: { memberAccess?: boolean; memberSet?: Set<string> },
+): boolean {
+  if (isTechnicalFeedBody(post.body)) return false;
+  if (isExcludedFromGlobalFeed(post)) return false;
+  if (opts?.memberAccess && opts.memberSet) {
+    return isMemberVisiblePost(post, opts.memberSet);
+  }
+  return isGuestVisiblePublicPost(post);
+}
+
+function isBeforeCursor(post: GlobalCommunityFeedPost, before: RawCursor): boolean {
+  if (post.created_at < before.created_at) return true;
+  if (post.created_at > before.created_at) return false;
+  return post.id < before.id;
+}
+
+/**
+ * Fetch the next raw page across community-id chunks using a keyset cursor,
+ * then merge/sort with id tie-breaker so chunking does not hide newer posts.
+ */
+async function fetchRawBatch(
+  db: Db,
+  communityIds: string[],
+  before: RawCursor | null,
+  limit: number,
+): Promise<GlobalCommunityFeedPost[]> {
+  const chunks = chunkIds(communityIds, COMMUNITY_IN_CHUNK);
+  // Over-fetch slightly so id-level tie-breaks after created_at.lte still fill a page.
+  const fetchLimit = Math.min(limit + 32, 1000);
+  const pages = await Promise.all(
+    chunks.map(async (ids) => {
+      let query = db
+        .from("community_posts")
+        .select(
+          "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username, email), communities(slug, name, is_private)",
+        )
+        .in("community_id", ids)
+        .eq("is_published", true)
+        .is("archived_at", null)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(fetchLimit);
+
+      if (before) {
+        // Avoid PostgREST `.or()` with unquoted ISO timestamps (colons break parsing).
+        query = query.lte("created_at", before.created_at);
+      }
+
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      const rows = (data ?? []) as GlobalCommunityFeedPost[];
+      return before ? rows.filter((row) => isBeforeCursor(row, before)) : rows;
+    }),
+  );
+
+  const seen = new Set<string>();
+  const merged: GlobalCommunityFeedPost[] = [];
+  for (const row of pages.flat().sort(compareRecency)) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    merged.push(row);
+    if (merged.length >= limit) break;
+  }
+  return merged;
+}
+
+/**
+ * Accumulate until MAX_POOL *eligible* posts (not raw rows).
+ * Prevents editorial-heavy recent windows from starving older organic posts.
+ */
 async function loadEligiblePostPool(
   db: Db,
   communityIds: string[],
-  opts?: { memberAccess?: boolean },
+  opts?: { memberAccess?: boolean; asOf?: number },
 ): Promise<GlobalCommunityFeedPost[]> {
   if (!communityIds.length) return [];
 
-  const rows: GlobalCommunityFeedPost[] = [];
-  let from = 0;
+  const memberSet = new Set(communityIds);
+  const eligible: GlobalCommunityFeedPost[] = [];
+  const seen = new Set<string>();
+  let before: RawCursor | null = null;
+  let guard = 0;
 
-  while (rows.length < MAX_POOL) {
-    const to = from + POOL_PAGE - 1;
-    const { data, error } = await db
-      .from("community_posts")
-      .select(
-        "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username, email), communities(slug, name, is_private)",
-      )
-      .in("community_id", communityIds)
-      .eq("is_published", true)
-      .is("archived_at", null)
-      .order("created_at", { ascending: false })
-      .range(from, to);
+  while (eligible.length < MAX_POOL && guard < 40) {
+    guard += 1;
+    const batch = await fetchRawBatch(db, communityIds, before, POOL_PAGE);
+    if (!batch.length) break;
 
-    if (error) throw new Error(error.message);
-    const batch = (data ?? []) as GlobalCommunityFeedPost[];
-    rows.push(...batch);
+    for (const post of batch) {
+      if (seen.has(post.id)) continue;
+      seen.add(post.id);
+
+      if (opts?.asOf != null) {
+        const created = Date.parse(post.created_at);
+        if (Number.isFinite(created) && created > opts.asOf) continue;
+      }
+
+      if (
+        isEligiblePost(post, {
+          memberAccess: opts?.memberAccess,
+          memberSet,
+        })
+      ) {
+        eligible.push(post);
+        if (eligible.length >= MAX_POOL) break;
+      }
+    }
+
+    const last = batch[batch.length - 1]!;
+    before = { created_at: last.created_at, id: last.id };
     if (batch.length < POOL_PAGE) break;
-    from += POOL_PAGE;
   }
 
-  const memberSet = new Set(communityIds);
-  return rows.filter((post) => {
-    if (isTechnicalFeedBody(post.body)) return false;
-    if (isExcludedFromGlobalFeed(post)) return false;
-    if (opts?.memberAccess) return isMemberVisiblePost(post, memberSet);
-    return isGuestVisiblePublicPost(post);
-  });
+  return eligible;
 }
 
 function isMemberVisiblePost(
@@ -113,10 +208,13 @@ export type LoadGlobalCommunityFeedResult = {
 };
 
 /**
- * Global community feed: all eligible public posts, excluding Jimvio promo/system posts.
+ * Global community feed: all eligible published posts from discoverable
+ * (and member-private) communities, including editorial/demo content that
+ * is intentionally published. Promotional/system posts stay excluded.
+ *
  * Ranked with quality-first + session-seeded community mix when useRanking=true.
- * Fresh requests (no cursor) mint a new seed so reloads can change the mix;
- * pagination locks that seed in the cursor.
+ * Fresh requests (no cursor) mint a new seed + asOf freeze; pagination locks
+ * both so load-more stays stable while newer posts arrive.
  */
 export async function loadGlobalCommunityFeed(
   db: Db,
@@ -125,8 +223,9 @@ export async function loadGlobalCommunityFeed(
   const limit = Math.min(Math.max(Number(params.limit ?? 20) || 20, 1), 50);
   const now = Date.now();
   const parsed = parseGlobalFeedCursor(params.cursor, now);
-  // Fresh loads mint a unique session seed; load-more reuses the cursor seed.
+  // Fresh loads mint a unique session seed; load-more / soft-refresh reuse cursor.
   const bucket = params.cursor ? parsed.bucket : getGlobalFeedRotationBucket(now);
+  const asOf = params.cursor ? parsed.asOf : now;
   const offset = parsed.offset;
 
   const { ids: communityIds, error } = await loadPublicCommunityIds(db);
@@ -140,9 +239,11 @@ export async function loadGlobalCommunityFeed(
   }
 
   const [publicPool, memberPool] = await Promise.all([
-    communityIds.length ? loadEligiblePostPool(db, communityIds) : Promise.resolve([]),
+    communityIds.length
+      ? loadEligiblePostPool(db, communityIds, { asOf })
+      : Promise.resolve([]),
     memberOnlyIds.length
-      ? loadEligiblePostPool(db, memberOnlyIds, { memberAccess: true })
+      ? loadEligiblePostPool(db, memberOnlyIds, { memberAccess: true, asOf })
       : Promise.resolve([]),
   ]);
 
@@ -159,7 +260,7 @@ export async function loadGlobalCommunityFeed(
 
   // Tab filters must run before offset pagination so Hot/Trending/Rising
   // pages are full and next_cursor reflects the filtered pool.
-  let eligible = applyFeedTabFilter(dedupedPool, filter, now);
+  let eligible = applyFeedTabFilter(dedupedPool, filter, asOf);
   if (filter === "verified" && params.verifiedCommunityIds) {
     eligible = eligible.filter((p) => params.verifiedCommunityIds!.has(p.community_id));
   }
@@ -169,22 +270,26 @@ export async function loadGlobalCommunityFeed(
     ordered = rankGlobalFeedItems(eligible, {
       viewerId: params.viewerId ?? "",
       followedAuthorIds: params.followedAuthorIds ?? new Set(),
-      now,
+      now: asOf,
       bucket,
     });
     if (filter === "rising") {
-      ordered = sortRisingByVelocity(ordered, now);
+      ordered = sortRisingByVelocity(ordered, asOf);
     }
     ordered = diversifyAuthors(ordered);
   } else {
-    ordered = [...eligible].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    ordered = [...eligible].sort((a, b) => {
+      const byCreated = b.created_at.localeCompare(a.created_at);
+      if (byCreated !== 0) return byCreated;
+      return b.id.localeCompare(a.id);
+    });
   }
 
   const page = ordered.slice(offset, offset + limit);
   const nextOffset = offset + limit;
   const next_cursor =
     nextOffset < ordered.length
-      ? encodeGlobalFeedCursor({ bucket, offset: nextOffset })
+      ? encodeGlobalFeedCursor({ bucket, offset: nextOffset, asOf })
       : null;
 
   return { posts: page, next_cursor, rotation_bucket: bucket };

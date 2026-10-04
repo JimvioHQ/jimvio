@@ -27,12 +27,14 @@ import {
   consumeSessionBoostPost,
   prependUniqueById,
 } from "@/lib/feed/session-boost-post";
+import { sessionStartCursorFrom } from "@/lib/feed/global-feed-exclusions";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
+
 
 export type ApiPost = {
   id: string;
@@ -224,7 +226,9 @@ export function FeedPostCard({
 
   const filter = FEED_TAB_FILTERS[tab];
   const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean; refresh?: boolean }) => {
-    const isMore = Boolean(nextCursor);
+    // Soft/refresh may pass a session seed cursor (bucket:0:asOf) — that is a
+    // replace, not infinite-scroll append.
+    const isMore = Boolean(nextCursor) && !opts?.soft && !opts?.refresh;
     const isRefresh = Boolean(opts?.refresh);
     if (isMore) {
       if (loadingMoreRef.current) return;
@@ -304,15 +308,18 @@ export function FeedPostCard({
   }, [filter]);
 
   useEffect(() => {
-    // Keep SSR/seeded posts visible; soft-refresh likes/membership in background.
+    // Soft-refresh with the SSR session seed so the first page does not
+    // reshuffle (and hide) posts under a newly minted ranking bucket.
+    // If SSR exhausted the pool (no next_cursor), keep SSR posts — do not remint.
     if (initialPosts.length > 0 && filter === FEED_TAB_FILTERS["For You"]) {
-      void load(undefined, { soft: true });
+      const seed = sessionStartCursorFrom(initialNextCursor);
+      if (seed) void load(seed, { soft: true });
       return;
     }
     void load();
-  }, [load, initialPosts.length, filter]);
+  }, [load, initialPosts.length, filter, initialNextCursor]);
 
-  // Soft re-entry / bfcache restore should mint a fresh rotation seed.
+  // bfcache restore: explicit refresh mints a fresh session (new ranking seed).
   useEffect(() => {
     function onPageShow(e: PageTransitionEvent) {
       if (e.persisted) void load(undefined, { refresh: true });

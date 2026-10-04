@@ -41,7 +41,12 @@ export function rankGlobalFeedItems<T extends RankableFeedItem & { community_id?
     communityId: item.community_id ?? "",
   }));
 
-  scored.sort((a, b) => b.quality - a.quality || a.index - b.index);
+  scored.sort(
+    (a, b) =>
+      b.quality - a.quality ||
+      a.index - b.index ||
+      String(a.item.id ?? "").localeCompare(String(b.item.id ?? "")),
+  );
 
   const highQualityCutoff = Math.max(3, Math.min(8, Math.ceil(scored.length * 0.04)));
   // Draw the head from a larger quality pool, then seed-select so fresh loads

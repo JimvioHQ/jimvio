@@ -71,18 +71,21 @@ export function rankFeedItems<T extends RankableFeedItem>(
   items: T[],
   ctx: RankContext = {}
 ): T[] {
-  // Dedupe near-identical bodies from same author within window
+  // Near-identical bodies from the same author are demoted, never dropped —
+  // hard deletes hid eligible posts from later infinite-scroll pages.
   const seen = new Set<string>();
-  const deduped: T[] = [];
-  for (const item of items) {
-    const key = `${item.author_id ?? ""}:${(item.body ?? "").trim().slice(0, 80).toLowerCase()}`;
-    if (item.body && seen.has(key)) continue;
-    if (item.body) seen.add(key);
-    deduped.push(item);
-  }
-
-  return deduped
-    .map((item, index) => ({ item, index, score: feedScore(item, ctx) }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
+  return items
+    .map((item, index) => {
+      const key = `${item.author_id ?? ""}:${(item.body ?? "").trim().slice(0, 80).toLowerCase()}`;
+      const isNearDupe = Boolean(item.body) && seen.has(key);
+      if (item.body) seen.add(key);
+      const score = feedScore(item, ctx) - (isNearDupe ? 8 : 0);
+      const idTie = String(item.id ?? "");
+      return { item, index, score, idTie };
+    })
+    .sort(
+      (a, b) =>
+        b.score - a.score || a.index - b.index || a.idTie.localeCompare(b.idTie),
+    )
     .map(({ item }) => item);
 }

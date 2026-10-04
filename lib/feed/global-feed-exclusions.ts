@@ -1,7 +1,12 @@
-import {
-  JIMVIO_EDITORIAL_AUTHOR_EMAIL,
-  readPostEditorialMeta,
-} from "@/lib/community/editorial-origin";
+import { readPostEditorialMeta } from "@/lib/community/editorial-origin";
+
+/**
+ * Global hub feed exclusions and session-cursor helpers.
+ *
+ * Only true promotional / system posts are excluded. Intentionally published
+ * editorial, demo, and seeded persona posts remain discoverable in the main
+ * Community Feed (visibility / RLS still apply).
+ */
 
 /**
  * Legacy constant retained for docs/tests that mention the old window.
@@ -29,32 +34,51 @@ export function getGlobalFeedRotationBucket(now = Date.now()): number {
 export type GlobalFeedCursor = {
   bucket: number;
   offset: number;
+  /** Wall-clock freeze: posts created after asOf stay out of this session. */
+  asOf: number;
 };
 
 export function encodeGlobalFeedCursor(cursor: GlobalFeedCursor): string {
-  return `${cursor.bucket}:${cursor.offset}`;
+  return `${cursor.bucket}:${cursor.offset}:${cursor.asOf}`;
 }
 
 export function parseGlobalFeedCursor(
   raw: string | null | undefined,
   now = Date.now(),
 ): GlobalFeedCursor {
-  if (!raw) return { bucket: now, offset: 0 };
-  const [bucketPart, offsetPart] = raw.split(":");
-  const parsedBucket = Number.parseInt(bucketPart ?? "", 10);
-  const offset = Number.parseInt(offsetPart ?? "", 10);
-  if (!Number.isFinite(parsedBucket) || !Number.isFinite(offset) || offset < 0) {
-    return { bucket: now, offset: 0 };
+  if (!raw) {
+    return { bucket: getGlobalFeedRotationBucket(now), offset: 0, asOf: now };
   }
-  // Trust the cursor seed so infinite-scroll pages stay consistent even as
-  // wall-clock advances between page fetches.
-  return { bucket: parsedBucket, offset };
+  const parts = raw.split(":");
+  const parsedBucket = Number.parseInt(parts[0] ?? "", 10);
+  const offset = Number.parseInt(parts[1] ?? "", 10);
+  const parsedAsOf = Number.parseInt(parts[2] ?? "", 10);
+  if (!Number.isFinite(parsedBucket) || !Number.isFinite(offset) || offset < 0) {
+    return { bucket: getGlobalFeedRotationBucket(now), offset: 0, asOf: now };
+  }
+  // Legacy 2-part cursors (bucket:offset) — keep seed, freeze at parse time.
+  const asOf = Number.isFinite(parsedAsOf) && parsedAsOf > 0 ? parsedAsOf : now;
+  return { bucket: parsedBucket, offset, asOf };
+}
+
+/** Reuse an existing session seed at offset 0 (soft refresh / re-entry). */
+export function sessionStartCursorFrom(
+  raw: string | null | undefined,
+  now = Date.now(),
+): string | null {
+  if (!raw) return null;
+  const parsed = parseGlobalFeedCursor(raw, now);
+  return encodeGlobalFeedCursor({
+    bucket: parsed.bucket,
+    offset: 0,
+    asOf: parsed.asOf,
+  });
 }
 
 /**
- * Global discovery feed excludes Jimvio promotional/system posts AND seeded
- * editorial persona posts. Community-scoped feeds may still show editorial
- * programming where the member opted into that community.
+ * Global discovery feed excludes Jimvio promotional/system posts only.
+ * Published editorial / demo / seeded persona posts stay eligible so the
+ * main Community Feed surfaces the full intentionally-visible dataset.
  */
 export function isExcludedFromGlobalFeed(post: {
   attachments?: unknown;
@@ -62,20 +86,14 @@ export function isExcludedFromGlobalFeed(post: {
   profiles?: { username?: string | null; email?: string | null } | null;
 }): boolean {
   const meta = readPostEditorialMeta(post.attachments);
-  if (meta.origin === "promotion" || meta.origin === "editorial") return true;
+  // Promotions are platform ads — keep them out of organic discovery.
+  if (meta.origin === "promotion") return true;
 
   const username = (post.profiles?.username ?? "").trim().toLowerCase();
   if (username === "jimvio") return true;
 
-  const email = (post.profiles?.email ?? "").trim().toLowerCase();
-  if (email === JIMVIO_EDITORIAL_AUTHOR_EMAIL.toLowerCase()) return true;
-  if (email.startsWith("editorial+") && email.endsWith("@jimvio.com")) return true;
-
   const body = (post.body ?? "").trim();
   if (body.startsWith("From Jimvio")) return true;
-  if (/\n\nShare what you have tried in .+\. Prefer specifics over slogans\.\s*$/i.test(body)) {
-    return true;
-  }
 
   return false;
 }

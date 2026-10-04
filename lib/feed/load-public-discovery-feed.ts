@@ -32,7 +32,8 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
 /** Match RLS COALESCE(is_private, false) = false — NULL privacy is public. */
 export async function loadPublicCommunityIds(
   db: Db,
-  limit = 2000,
+  /** Soft ceiling so discovery stays complete without unbounded memory. */
+  limit = 10_000,
 ): Promise<{ ids: string[]; error: string | null }> {
   const ids: string[] = [];
   const pageSize = 200;
@@ -45,7 +46,9 @@ export async function loadPublicCommunityIds(
       .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
       .eq("is_active", true)
       .or("is_private.eq.false,is_private.is.null")
+      // Stable order: member_count then id so pagination does not skip rows.
       .order("member_count", { ascending: false })
+      .order("id", { ascending: true })
       .range(from, to);
 
     if (error) {
@@ -132,7 +135,7 @@ export async function loadPublicDiscoveryFeed(
     return { ok: true, posts: [], next_cursor: null };
   }
 
-  // Global feed: ranked pool with Jimvio promo/system exclusions.
+  // Global feed: ranked eligible pool (promo/system excluded; editorial kept).
   if (!communityId) {
     const useRanking = publicFilter !== "newest";
     try {
