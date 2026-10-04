@@ -106,7 +106,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         href={journey.href}
         className={cn(
           "jimvio-journey-card block h-full rounded-[22px]",
-          "focus-visible:outline-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
           "active:scale-[0.995] motion-reduce:active:scale-100",
         )}
         style={{ ["--journey-accent" as string]: journey.color } as CSSProperties}

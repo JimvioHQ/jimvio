@@ -101,7 +101,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
         href={action.href}
         className={cn(
           "jimvio-action-hub-card block h-full rounded-[22px]",
-          "focus-visible:outline-none",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
           "active:scale-[0.995] motion-reduce:active:scale-100",
         )}
         style={{ ["--hub-accent" as string]: action.accent } as CSSProperties}
