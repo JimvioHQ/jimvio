@@ -117,10 +117,10 @@ export function SharedCommunityCard({
               : "h-[96px] sm:h-[112px]"
           )}
         >
-          {safeMediaUrl(c.cover_image, featured ? 800 : 480) ? (
+          {safeMediaUrl(c.cover_image || c.avatar_url || c.image_url, featured ? 800 : 480) ? (
             <CommunityCoverImage
               name={c.name}
-              src={c.cover_image}
+              src={c.cover_image || c.avatar_url || c.image_url}
               featured={featured}
               sizes={featured ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 50vw, 20vw"}
             />

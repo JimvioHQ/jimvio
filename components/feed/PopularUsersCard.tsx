@@ -106,7 +106,7 @@ export function PopularUsersCard() {
 
   if (loading) {
     return (
-      <FeedSidebarCard title="Popular Users" viewAllHref="/communities/explore">
+      <FeedSidebarCard title="Popular Users" viewAllHref="/influencers/browse">
         <FeedSidebarSkeleton rows={5} />
       </FeedSidebarCard>
     );
@@ -114,7 +114,7 @@ export function PopularUsersCard() {
 
   if (!popularReady || popularUsers.length === 0) {
     return (
-      <FeedSidebarCard title="Popular Users" viewAllHref="/communities/explore">
+      <FeedSidebarCard title="Popular Users" viewAllHref="/influencers/browse">
         <p className="py-2 text-center text-[11px] text-[var(--color-text-muted,#6b7280)]">
           No users to show yet
         </p>
@@ -123,7 +123,7 @@ export function PopularUsersCard() {
   }
 
   return (
-    <FeedSidebarCard title="Popular Users" viewAllHref="/communities/explore">
+    <FeedSidebarCard title="Popular Users" viewAllHref="/influencers/browse">
       <ul className="divide-y divide-[var(--color-border,#e5e7eb)]/60">
         {popularUsers.slice(0, POPULAR_USER_COUNT).map((user) => (
           <PopularUserRow key={user.userId} user={user} />

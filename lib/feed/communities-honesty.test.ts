@@ -20,11 +20,11 @@ import { isTikTokOfficialLivePublishingAvailable } from "../live/destinations/ti
 const root = join(process.cwd());
 
 describe("Communities real-data honesty", () => {
-  it("has empty showcase / priority maps", () => {
+  it("keeps showcase floors empty and pins only real priority handles", () => {
     assert.equal(Object.keys(SHOWCASE_PROFILE_FOLLOWER_COUNTS).length, 0);
     assert.equal(Object.keys(SHOWCASE_COMMUNITY_MEMBER_COUNTS).length, 0);
-    assert.equal(PRIORITY_POPULAR_USERNAMES.length, 0);
-    assert.equal(PRIORITY_TRENDING_COMMUNITY_SLUGS.length, 0);
+    assert.deepEqual([...PRIORITY_POPULAR_USERNAMES], ["barick", "p7provider"]);
+    assert.deepEqual([...PRIORITY_TRENDING_COMMUNITY_SLUGS], ["p7provider"]);
   });
 
   it("does not inflate follower or member counts", () => {

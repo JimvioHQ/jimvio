@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { ArrowRight, Users } from "lucide-react";
-import { cn, fmtCount } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import {
+  formatMemberCountLabel,
+  resolveCommunityMemberCount,
+} from "@/lib/community/member-count";
 import {
   defaultShowcaseVisibleCount,
   HomepageShowcaseRail,
@@ -53,8 +57,9 @@ function communityImages(c: FeaturedCommunityRow) {
   const avatar = c.avatar_url ?? c.image_url ?? profile?.avatar_url ?? null;
   const cover = c.cover_image ?? null;
   return {
+    // Always prefer a real image over letter placeholders.
     hero: cover ?? avatar,
-    avatar,
+    avatar: avatar ?? cover,
   };
 }
 
@@ -71,7 +76,8 @@ function FeaturedCommunityCard({
   const avatarSrc = safeMediaUrl(avatar, 96);
   const tagline = community.tagline?.trim() || null;
   const href = `/communities/${community.slug}`;
-  const members = community.member_count ?? 0;
+  const members = resolveCommunityMemberCount(community);
+  const memberLabel = formatMemberCountLabel(members, { compact: members >= 1000 });
 
   return (
     <RevealItem index={index + 1} className="h-full">
@@ -159,7 +165,7 @@ function FeaturedCommunityCard({
 
           <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-muted)]">
             <Users className="size-3.5 shrink-0 opacity-70" strokeWidth={2} aria-hidden />
-            <span className="tabular-nums">{fmtCount(members)}</span> members
+            <span className="tabular-nums">{memberLabel}</span>
           </p>
 
           <span

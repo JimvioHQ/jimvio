@@ -10,7 +10,8 @@ import {
   loadFeedSidebarPopularUsers,
 } from "@/lib/feed/load-feed-sidebar";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
-import { readCommunityEditorialOrigin } from "@/lib/community/editorial-origin";
+import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
+import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -218,20 +219,47 @@ export async function GET() {
     });
   }
 
-  trendingRows = trendingRows.slice(0, 16);
+  trendingRows = trendingRows.slice(0, 24);
 
-  const qualityRows = trendingRows.filter((row) => {
-    if (!row.name?.trim() || !row.slug?.trim()) return false;
-    // Global Trending rail: real organic communities only — no Jimvio editorial hubs.
-    if (readCommunityEditorialOrigin((row as { settings?: unknown }).settings) === "editorial") {
-      return false;
+  // Ensure priority communities (e.g. P7 PROVIDER) are considered even if
+  // they fall outside the activity RPC window.
+  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length) {
+    const have = new Set(trendingRows.map((r) => r.slug));
+    const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter((s) => !have.has(s));
+    if (missing.length) {
+      const { data: priorityRows } = await supabase
+        .from("communities")
+        .select(
+          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
+        )
+        .in("slug", missing)
+        .eq("is_active", true);
+      for (const row of priorityRows ?? []) {
+        if (!communityIsPubliclyDiscoverable(row)) continue;
+        trendingRows.push({
+          ...(row as unknown as TrendingCommunityRow),
+          online_members: 0,
+          trending_score: communityTrendingScore({
+            member_count: row.member_count,
+            post_count: row.post_count,
+            is_featured: row.is_featured,
+          }),
+        });
+      }
     }
-    if (row.is_featured) return true;
-    const members = Number(row.member_count ?? 0) || 0;
-    const posts = Number(row.post_count ?? 0) || 0;
-    const score = Number(row.trending_score ?? 0) || 0;
-    return members >= 1 || posts >= 1 || score > 0;
-  }).slice(0, 8);
+  }
+
+  const qualityRows = selectDiscoveryCommunities(
+    trendingRows.filter((row) => {
+      if (!row.name?.trim() || !row.slug?.trim()) return false;
+      if (row.is_featured) return true;
+      const members = Number(row.member_count ?? 0) || 0;
+      const posts = Number(row.post_count ?? 0) || 0;
+      const score = Number(row.trending_score ?? 0) || 0;
+      return members >= 1 || posts >= 1 || score > 0;
+    }),
+    8,
+  );
 
   return NextResponse.json({
     communities: qualityRows.map((row) =>

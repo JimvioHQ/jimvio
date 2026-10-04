@@ -22,6 +22,9 @@ export type TrendingCommunity = {
   verified: boolean;
   href: string;
   join_href: string;
+  is_free?: boolean;
+  monthly_price?: number | null;
+  currency?: string | null;
 };
 
 type TrendingTopic = {
@@ -71,6 +74,10 @@ function CommunityMiniCard({
   cover,
   logo,
   verified,
+  memberCount,
+  isFree,
+  monthlyPrice,
+  currency,
 }: {
   href: string;
   name: string;
@@ -79,26 +86,45 @@ function CommunityMiniCard({
   cover?: string | null;
   logo?: string | null;
   verified?: boolean;
+  memberCount?: number;
+  isFree?: boolean;
+  monthlyPrice?: number | null;
+  currency?: string | null;
 }) {
-  const coverSrc = safeMediaUrl(cover, 320);
+  // Prefer cover, then logo — avoid letter placeholders when any real image exists.
+  const heroSrc = cover || logo || null;
+  const coverSrc = safeMediaUrl(heroSrc, 320);
   const logoSrc = safeMediaUrl(logo, 96);
   const description = communityTagline({ tagline, category, name });
+  const members =
+    typeof memberCount === "number" && Number.isFinite(memberCount)
+      ? formatNumber(memberCount)
+      : null;
+  const price =
+    isFree === false
+      ? (() => {
+          const n = Number(monthlyPrice);
+          if (!Number.isFinite(n) || n <= 0) return "Paid";
+          const symbol = (currency || "USD").toUpperCase() === "USD" ? "$" : `${currency} `;
+          return `${symbol}${Math.round(n)}/mo`;
+        })()
+      : null;
 
   return (
     <article
       className={cn(
-        "group flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
+        "group flex w-[172px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
         "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none",
         "hover:-translate-y-0.5 hover:border-[#FF5A1F]/35 hover:shadow-md active:scale-[0.98] motion-reduce:active:scale-100"
       )}
     >
       <Link href={href} className="relative flex flex-col">
-        <div className="relative h-[84px] w-full bg-[var(--color-surface-secondary)]">
+        <div className="relative h-[88px] w-full bg-[var(--color-surface-secondary)]">
           {coverSrc ? (
             <CommunityCoverImage
               name={name}
-              src={cover}
-              sizes="168px"
+              src={heroSrc}
+              sizes="172px"
               imageClassName="transition duration-300 group-hover:scale-105"
             />
           ) : (
@@ -108,6 +134,11 @@ function CommunityMiniCard({
               textClassName="text-3xl font-black text-[#fd5000]/80"
             />
           )}
+          {price ? (
+            <span className="absolute right-2 top-2 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+              {price}
+            </span>
+          ) : null}
         </div>
 
         <div className="relative px-3">
@@ -139,6 +170,11 @@ function CommunityMiniCard({
           <p className="mt-1 truncate text-[11px] leading-snug text-[var(--color-text-muted)]">
             {description}
           </p>
+          {members ? (
+            <p className="mt-1.5 text-[11px] font-medium tabular-nums text-[var(--color-text-secondary)]">
+              {members} members
+            </p>
+          ) : null}
         </div>
       </Link>
     </article>
@@ -243,6 +279,10 @@ export function FeedDiscoverRail({
                 cover={community.cover_image}
                 logo={community.avatar_url}
                 verified={community.verified}
+                memberCount={community.member_count}
+                isFree={community.is_free}
+                monthlyPrice={community.monthly_price}
+                currency={community.currency}
               />
             ))}
           </div>

@@ -87,8 +87,37 @@ export async function canReadPublicCommunityRoom(roomId: string): Promise<boolea
  * Members always qualify; non-members may engage when the room is publicly readable.
  */
 export async function canEngageWithRoom(userId: string, roomId: string): Promise<boolean> {
+  if (!roomId) return false;
   if (await canAccessRoom(userId, roomId)) return true;
   return canReadPublicCommunityRoom(roomId);
+}
+
+/**
+ * Hub-feed safe engagement: room rules first, then community membership,
+ * then public (non-private) community for authenticated users.
+ */
+export async function canEngageWithCommunityPost(
+  userId: string,
+  post: { room_id?: string | null; community_id?: string | null },
+): Promise<boolean> {
+  if (post.room_id && (await canEngageWithRoom(userId, post.room_id))) {
+    return true;
+  }
+  if (!post.community_id) return false;
+
+  const membership = await getUserMembership(userId, post.community_id);
+  if (isMembershipActive(membership)) return true;
+
+  const supabase = getService();
+  const { data: community } = await supabase
+    .from("communities")
+    .select("owner_id, is_private, is_active")
+    .eq("id", post.community_id)
+    .maybeSingle();
+  if (!community || community.is_active === false) return false;
+  if (community.owner_id === userId) return true;
+  if (community.is_private === true) return false;
+  return true;
 }
 
 export async function canAccessSpace(userId: string, spaceId: string): Promise<boolean> {

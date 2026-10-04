@@ -499,24 +499,30 @@ export function FeedPostCard({
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
         liked?: boolean;
+        like_count?: number | null;
       };
       if (!res.ok) {
         throw new Error(data.error || "Could not update like");
       }
-      // Reconcile optimistic UI with authoritative server liked flag.
+      // Reconcile optimistic UI with authoritative server state.
       if (typeof data.liked === "boolean") {
         setPosts((prev) =>
           prev.map((p) => {
             if (p.id !== postId) return p;
-            const wasLiked = Boolean(snapshot?.liked);
+            const serverCount = Number(data.like_count);
             const likes =
-              typeof p.engagement.likes === "number"
-                ? Math.max(
-                    0,
-                    Number(snapshot?.engagement.likes ?? p.engagement.likes) +
-                      (data.liked === wasLiked ? 0 : data.liked ? 1 : -1),
-                  )
-                : p.engagement.likes;
+              Number.isFinite(serverCount) && serverCount >= 0
+                ? Math.floor(serverCount)
+                : (() => {
+                    const wasLiked = Boolean(snapshot?.liked);
+                    return typeof p.engagement.likes === "number"
+                      ? Math.max(
+                          0,
+                          Number(snapshot?.engagement.likes ?? p.engagement.likes) +
+                            (data.liked === wasLiked ? 0 : data.liked ? 1 : -1),
+                        )
+                      : p.engagement.likes;
+                  })();
             return {
               ...p,
               liked: data.liked,

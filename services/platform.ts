@@ -151,8 +151,8 @@ async function fetchPublicCommunitiesUncached(limit: number) {
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v8-${limit}`],
-    { revalidate: 120 },
+    [`public-communities-v9-${limit}`],
+    { revalidate: 60 },
   )();
 }
 
@@ -160,36 +160,38 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
-    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, is_featured, visibility, visibility_mode, archived_at, settings")
+    .select(
+      "id, name, slug, tagline, member_count, post_count, avatar_url, cover_image, category, is_private, is_active, is_featured, is_free, monthly_price, currency, visibility, visibility_mode, archived_at, settings",
+    )
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
     .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
-    .limit(Math.max(limit * 4, 32));
+    .limit(Math.max(limit * 8, 48));
 
   if (error) {
     console.error("Error fetching homepage communities:", error);
     throw error;
   }
-  const { readCommunityEditorialOrigin } = await import(
-    "@/lib/community/editorial-origin"
+  const { selectDiscoveryCommunities } = await import(
+    "@/lib/community/discovery-selection"
   );
-  return (data ?? [])
-    .filter(communityIsPubliclyDiscoverable)
-    .filter(
-      (row) =>
-        readCommunityEditorialOrigin((row as { settings?: unknown }).settings) !==
-        "editorial"
-    )
-    .slice(0, limit);
+  const { resolveCommunityMemberCount } = await import(
+    "@/lib/community/member-count"
+  );
+  const discoverable = (data ?? []).filter(communityIsPubliclyDiscoverable);
+  return selectDiscoveryCommunities(discoverable, limit).map((row) => ({
+    ...row,
+    member_count: resolveCommunityMemberCount(row),
+  }));
 }
 
 /** Lighter query for homepage cards — skips owner profile join. */
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v7-${limit}`],
-    { revalidate: 120 },
+    [`homepage-communities-v9-${limit}`],
+    { revalidate: 60 },
   )();
 }
 

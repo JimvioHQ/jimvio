@@ -81,6 +81,23 @@ function SkeletonCard() {
   );
 }
 
+function pickFeaturedHero(list: CommunityRow[]): CommunityRow | null {
+  if (!list.length) return null;
+  const scored = [...list].sort((a, b) => {
+    const score = (c: CommunityRow) => {
+      let s = 0;
+      if (c.slug === "p7provider") s += 100;
+      if (c.is_featured) s += 20;
+      if (c.cover_image || c.avatar_url) s += 10;
+      if (!c.is_free && Number(c.monthly_price) > 0) s += 6;
+      s += Math.log1p(resolveCommunityMemberCount(c));
+      return s;
+    };
+    return score(b) - score(a);
+  });
+  return scored[0] ?? null;
+}
+
 function CommunitiesHero({
   community,
   priceFilter,
@@ -91,46 +108,57 @@ function CommunitiesHero({
   const price = priceLabel(community);
   const owner =
     community.profiles?.full_name || community.profiles?.username || null;
+  const members = resolveCommunityMemberCount(community);
+  const memberLabel = formatMemberCountLabel(members, {
+    compact: members >= 1000,
+  });
+  const heroImage = community.cover_image || community.avatar_url || null;
 
   return (
-    <section className="mb-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr] sm:mb-8">
-      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="grid sm:grid-cols-[1.1fr_1fr]">
-          <div className="relative min-h-[200px] sm:min-h-[260px]">
+    <section className="mb-6 sm:mb-8">
+      <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
+        <div className="grid sm:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+          <div className="relative aspect-[16/10] sm:aspect-auto sm:min-h-[220px]">
             <CommunityCoverImage
               name={community.name}
-              src={community.cover_image}
+              src={heroImage}
               featured
-              sizes="(max-width: 640px) 100vw, 40vw"
+              sizes="(max-width: 640px) 100vw, 320px"
               className="absolute inset-0"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent sm:bg-gradient-to-t sm:from-black/55 sm:via-black/15 sm:to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent sm:bg-gradient-to-r sm:from-transparent sm:via-transparent sm:to-black/10" />
+            {community.category ? (
+              <span className="absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                {community.category}
+              </span>
+            ) : null}
           </div>
 
-          <div className="flex flex-col justify-center gap-4 p-5 sm:p-6">
+          <div className="flex flex-col justify-center gap-3 p-4 sm:gap-3.5 sm:p-5 lg:p-6">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                 {featuredEyebrow(priceFilter)}
               </p>
-              <h2 className="mt-2 min-w-0 break-words text-xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+              <h2 className="mt-1.5 min-w-0 break-words text-lg font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-xl lg:text-2xl">
                 {community.name}
               </h2>
               {community.tagline && (
-                <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-[var(--color-text-muted)]">
+                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-[14px]">
                   {community.tagline}
                 </p>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--color-text-muted)]">
-              <span>{formatMemberCountLabel(community.member_count ?? 0)}</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--color-text-muted)] sm:text-[13px]">
+              <span className="tabular-nums">{memberLabel}</span>
               {price && (
                 <>
                   <span aria-hidden>·</span>
                   <span
                     className={cn(
-                      community.is_free &&
-                        "font-medium text-emerald-600 dark:text-emerald-400"
+                      community.is_free
+                        ? "font-medium text-emerald-600 dark:text-emerald-400"
+                        : "font-medium text-[#FF5A1F]"
                     )}
                   >
                     {price}
@@ -145,40 +173,23 @@ function CommunitiesHero({
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-0.5">
               <Link
                 href={`/communities/${community.slug}`}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-4 text-[13px] font-medium text-[var(--color-bg)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
               >
                 View community
                 <ArrowUpRight size={14} />
               </Link>
               <Link
                 href={`/communities/${community.slug}/subscribe`}
-                className="inline-flex min-h-11 items-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
+                className="inline-flex min-h-11 items-center rounded-xl border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[#FF5A1F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
               >
                 {community.is_free ? "Join free" : "Join now"}
               </Link>
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-          Before you join
-        </p>
-        <ul className="mt-4 flex flex-1 flex-col gap-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-          <li>See member count and price before you commit.</li>
-          <li>Free groups let you lurk first; paid groups bill monthly.</li>
-          <li>Owners can run courses, live rooms, and chat in one hub.</li>
-        </ul>
-        <Link
-          href="/communities/create"
-          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
-        >
-          Start your own
-        </Link>
       </div>
     </section>
   );
@@ -757,8 +768,10 @@ export function CommunitiesDiscovery({
 
   const hasMore = items.length < total;
   const showHero = !debounced && visibleItems.length > 0;
-  const heroCommunity = showHero ? visibleItems[0] : null;
-  const gridItems = showHero ? visibleItems.slice(1) : visibleItems;
+  const heroCommunity = showHero ? pickFeaturedHero(visibleItems) : null;
+  const gridItems = showHero
+    ? visibleItems.filter((c) => c.id !== heroCommunity?.id)
+    : visibleItems;
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

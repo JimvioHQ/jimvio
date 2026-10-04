@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { resolveProfileFollowerCount } from "@/lib/community/follower-count";
+import { PRIORITY_POPULAR_USERNAMES } from "@/lib/community/discovery-priorities";
 
 export const POPULAR_USER_COUNT = 5;
 
@@ -95,6 +96,67 @@ export async function loadFeedSidebarPopularUsers(
     return email.startsWith("editorial+") && email.endsWith("@jimvio.com");
   }
 
+  function pushCandidate(input: {
+    userId: string;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    followerCount: number;
+    verified: boolean;
+  }) {
+    if (seen.has(input.userId) || input.userId === excludeUserId) return;
+    if (candidates.length >= POPULAR_USER_COUNT) return;
+    seen.add(input.userId);
+    candidates.push({
+      userId: input.userId,
+      name: input.name,
+      username: input.username,
+      avatarUrl: input.avatarUrl,
+      followerCount: input.followerCount,
+      verified: input.verified,
+      href: profileHref(input.username, input.userId),
+    });
+  }
+
+  // Pin real product-priority profiles first (Barick, P7 PROVIDER, …).
+  if (PRIORITY_POPULAR_USERNAMES.length) {
+    const usernameVariants = PRIORITY_POPULAR_USERNAMES.flatMap((u) => [u, `@${u}`]);
+    const { data: priorityProfiles } = (await admin
+      .from("profiles")
+      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
+      .in("username", usernameVariants)
+      .eq("is_active", true)
+      .limit(20)) as { data: ProfileRow[] | null };
+
+    const byNorm = new Map<string, ProfileRow>();
+    for (const profile of priorityProfiles ?? []) {
+      if (!profile.username) continue;
+      byNorm.set(normalizeUsername(profile.username).toLowerCase(), profile);
+    }
+    for (const wanted of PRIORITY_POPULAR_USERNAMES) {
+      const profile = byNorm.get(wanted.toLowerCase());
+      if (!profile || isEditorialPersona(profile)) continue;
+      const usernameRaw = profile.username?.trim() || null;
+      if (!isPublicUsername(usernameRaw)) continue;
+      const username = normalizeUsername(usernameRaw);
+      const name = displayName(profile.full_name, username);
+      if (!name) continue;
+      pushCandidate({
+        userId: profile.id,
+        name,
+        username,
+        avatarUrl: isValidAvatar(profile.avatar_url)
+          ? mediaUrlOrNull(profile.avatar_url, 96)
+          : null,
+        followerCount: resolveProfileFollowerCount({
+          username,
+          follower_count: profile.follower_count,
+        }),
+        verified: Boolean(profile.is_verified),
+      });
+    }
+  }
+
   const { data: influencers } = (await admin
     .from("influencers")
     .select("user_id, display_name, profile_image, total_followers, is_verified, is_featured")
@@ -139,15 +201,13 @@ export async function loadFeedSidebarPopularUsers(
       follower_count: profile?.follower_count ?? inf.total_followers ?? 0,
     });
 
-    seen.add(inf.user_id);
-    candidates.push({
+    pushCandidate({
       userId: inf.user_id,
       name,
       username,
       avatarUrl,
       followerCount,
       verified: Boolean(profile?.is_verified || inf.is_verified),
-      href: profileHref(username, inf.user_id),
     });
     if (candidates.length >= POPULAR_USER_COUNT) break;
   }
@@ -171,8 +231,7 @@ export async function loadFeedSidebarPopularUsers(
       const username = normalizeUsername(profile.username!);
       if (username.toLowerCase() === "jimvio") continue;
 
-      seen.add(profile.id);
-      candidates.push({
+      pushCandidate({
         userId: profile.id,
         name,
         username,
@@ -184,7 +243,6 @@ export async function loadFeedSidebarPopularUsers(
           follower_count: profile.follower_count,
         }),
         verified: Boolean(profile.is_verified),
-        href: profileHref(username, profile.id),
       });
     }
   }
