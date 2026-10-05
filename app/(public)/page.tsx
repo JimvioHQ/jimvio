@@ -21,7 +21,8 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("home");
 
-export const revalidate = 60;
+// Never SSG against Supabase — a saturated DB must not fail production builds.
+export const dynamic = "force-dynamic";
 
 /** Drop data-URI blobs from SSR props — they inflate HTML/RSC and block FCP. */
 function stripDataUriProps<T>(value: T): T {
