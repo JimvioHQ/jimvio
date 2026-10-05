@@ -36,16 +36,21 @@ export function useOwnerGroups(communityId: string | null) {
         includeArchived: includeArchived ? "1" : "0",
       });
       const res = await fetch(`/api/c/owner/groups?${params.toString()}`);
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Failed to load groups");
-        setGroups([]);
+        setError(
+          typeof data?.error === "string" ? data.error : "Failed to load Spaces"
+        );
+        // Keep prior groups on soft failure — never pretend the community has none.
         return;
       }
-      setGroups(data.groups ?? []);
+      if (!Array.isArray(data.groups)) {
+        setError("Invalid Spaces response");
+        return;
+      }
+      setGroups(data.groups);
     } catch {
-      setError("Failed to load groups");
-      setGroups([]);
+      setError("Failed to load Spaces");
     } finally {
       setLoading(false);
     }

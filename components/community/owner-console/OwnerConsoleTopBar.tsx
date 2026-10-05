@@ -135,7 +135,7 @@ export function OwnerConsoleTopBar({
           {!isManage ? <option value="">All communities</option> : null}
           {communities.map((c) => (
             <option key={c.id} value={c.slug}>
-              {c.name}
+              {c.name} — {ROLE_LABELS[c.role] ?? c.role}
             </option>
           ))}
         </select>

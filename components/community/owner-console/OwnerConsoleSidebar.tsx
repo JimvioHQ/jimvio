@@ -245,17 +245,7 @@ export function OwnerConsoleSidebar({
         })}
       </nav>
 
-      {communitySlug ? (
-        <div className="shrink-0 border-t border-[#E5E7EB] p-3">
-          <Link
-            href={`/communities/${encodeURIComponent(communitySlug)}`}
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center justify-center rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[12px] font-semibold text-[#4B5563] transition hover:border-[#FF5A1F]/30 hover:text-[#111827]"
-          >
-            View Community
-          </Link>
-        </div>
-      ) : null}
+      {/* View Community lives in the manager top bar — keep sidebar nav-only. */}
     </div>
   );
 

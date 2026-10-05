@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { pickPrimarySpaceCandidate } from "@/lib/community/workspace/primary-space";
 import {
   DEFAULT_GROUP_COLOR,
   DEFAULT_GROUP_CONTENT,
@@ -80,9 +79,6 @@ export async function GET(req: NextRequest) {
   const includeArchived =
     req.nextUrl.searchParams.get("includeArchived") === "1" ||
     req.nextUrl.searchParams.get("includeArchived") === "true";
-  const includeSystem =
-    req.nextUrl.searchParams.get("includeSystem") === "1" ||
-    req.nextUrl.searchParams.get("includeSystem") === "true";
 
   const admin = createServiceRoleClient();
   let query = admin
@@ -101,24 +97,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // Canonical manager list: every Space the staffer is authorized to manage.
+  // Do not hide legacy system slugs (e.g. `general` displayed as "P7 PROVIDER SPACE").
   const rows = asSpaceRows(data);
-  const activeRows = rows.filter((r) => r.is_active !== false);
-  const primary = pickPrimarySpaceCandidate(activeRows) ?? pickPrimarySpaceCandidate(rows);
-
-  const filtered = includeSystem
-    ? primary
-      ? [primary]
-      : []
-    : primary && !mapSpaceToOwnerGroup(primary).isSystem
-      ? [primary]
-      : [];
-
   const staffMap = await loadStaffMap(
     admin,
-    filtered.map((r) => r.id)
+    rows.map((r) => r.id)
   );
 
-  const groups = filtered.map((r) =>
+  const groups = rows.map((r) =>
     mapSpaceToOwnerGroup(r, staffMap.get(r.id) ?? [])
   );
 

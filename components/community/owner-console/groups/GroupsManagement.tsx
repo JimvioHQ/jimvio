@@ -213,16 +213,27 @@ export function GroupsManagement() {
       )}
 
       {error && (
-        <p className="text-sm text-rose-600" role="alert">
-          {error}
-        </p>
+        <div
+          className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+          role="alert"
+        >
+          <p className="font-semibold">Couldn’t load Spaces</p>
+          <p className="mt-0.5 text-[13px]">{error}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-2 text-[12px] font-semibold underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       {loading ? (
         <div className="rounded-2xl border border-[var(--color-border)] px-6 py-16 text-center text-sm text-[var(--color-text-muted)]">
           Loading Spaces…
         </div>
-      ) : (
+      ) : error && groups.length === 0 ? null : (
         <GroupsList
           groups={groups}
           view={view}

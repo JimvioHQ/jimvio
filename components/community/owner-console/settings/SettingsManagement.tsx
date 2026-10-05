@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { hasCapability } from "@/lib/community/workspace/permissions";
 import {
   SETTINGS_SECTION_DESCRIPTIONS,
@@ -13,6 +15,7 @@ import { useOwnerSettings } from "./useOwnerSettings";
 
 export function SettingsManagement() {
   const { community, role } = useOwnerConsole();
+  const searchParams = useSearchParams();
   const canView =
     hasCapability(role, "settings.view") ||
     hasCapability(role, "settings.manage");
@@ -32,6 +35,13 @@ export function SettingsManagement() {
     danger,
     exportData,
   } = useOwnerSettings(community?.id ?? null);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")?.trim() as SettingsSectionId | undefined;
+    if (tab && (SETTINGS_SECTIONS as readonly string[]).includes(tab)) {
+      setSection(tab);
+    }
+  }, [searchParams, setSection]);
 
   if (!community) {
     return (

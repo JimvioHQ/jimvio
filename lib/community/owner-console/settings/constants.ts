@@ -12,7 +12,7 @@ export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
   general: "General",
   branding: "Branding",
   info: "Community Info",
-  privacy: "Privacy",
+  privacy: "Privacy & Access",
   discovery: "Discovery",
   onboarding: "Onboarding",
   groups: "Spaces Defaults",

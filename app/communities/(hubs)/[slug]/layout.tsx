@@ -10,6 +10,7 @@ import {
 } from "@/lib/community/load-community-workspace";
 import {
   buildHubLoginUrl,
+  getCommunitySubroute,
   isCommunityWorkspaceSubroute,
 } from "@/lib/community/hub-auth";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
@@ -71,6 +72,15 @@ export default async function CommunitySlugLayout({
     headerList.get("x-jimvio-pathname") ??
     headerList.get("next-url") ??
     `/communities/${slug}`;
+
+  // Manage Community uses OwnerConsoleLayout only — never nest member workspace chrome.
+  const isManageRoute =
+    getCommunitySubroute(pathname) === "manage" ||
+    /\/communities\/[^/]+\/manage(?:\/|$)/.test(pathname);
+  if (isManageRoute) {
+    return <div className="h-full min-h-0">{children}</div>;
+  }
+
   const needsWorkspace = isCommunityWorkspaceSubroute(pathname);
 
   const supabase = await createClient();
