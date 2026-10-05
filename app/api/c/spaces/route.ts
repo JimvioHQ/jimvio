@@ -65,7 +65,6 @@ export async function GET(req: NextRequest) {
     .eq("is_active", true)
     .eq("is_hidden", false)
     .eq("communities.is_active", true)
-    .or("communities.is_private.eq.false,communities.is_private.is.null")
     .order("sort_order", { ascending: true })
     .limit(fetchLimit);
 
@@ -76,6 +75,12 @@ export async function GET(req: NextRequest) {
   const seenCommunities = new Set<string>();
   const items = [];
   for (const space of spaces ?? []) {
+    const communityRaw = space.communities;
+    const community = Array.isArray(communityRaw)
+      ? communityRaw[0]
+      : communityRaw;
+    if (!community?.slug) continue;
+    if (community.is_private === true) continue;
     const access = String(space.access_type ?? "free").toLowerCase();
     const privacy = String(space.privacy ?? "public").toLowerCase();
     const isPrivate =
@@ -88,11 +93,6 @@ export async function GET(req: NextRequest) {
     if (isPrivate) continue;
     if (seenCommunities.has(space.community_id)) continue;
     seenCommunities.add(space.community_id);
-    const communityRaw = space.communities;
-    const community = Array.isArray(communityRaw)
-      ? communityRaw[0]
-      : communityRaw;
-    if (!community?.slug) continue;
     const communityCount = resolveCommunityMemberCount({
       slug: community.slug,
       member_count: community.member_count,
