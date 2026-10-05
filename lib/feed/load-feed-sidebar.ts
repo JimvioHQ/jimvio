@@ -91,6 +91,8 @@ export async function loadFeedSidebarPopularUsers(
   const seen = new Set<string>();
   const seenDisplayNames = new Set<string>();
   const seenFirstNames = new Set<string>();
+  const seenFirstPrefixes = new Set<string>();
+  const seenLastNames = new Set<string>();
   const seenAvatarKeys = new Set<string>();
 
   function isEditorialPersona(profile: ProfileRow | undefined): boolean {
@@ -106,6 +108,20 @@ export async function loadFeedSidebarPopularUsers(
   function firstNameKey(name: string): string {
     const first = normalizeDisplayName(name).split(" ")[0] ?? "";
     return first.replace(/[^a-z0-9]/g, "");
+  }
+
+  /** Collapse near-identical given names (Abdulahi / Abeba / Abena). */
+  function firstNamePrefixKey(name: string): string | null {
+    const first = firstNameKey(name);
+    if (first.length < 3) return first || null;
+    return first.slice(0, 3);
+  }
+
+  function lastNameKey(name: string): string | null {
+    const parts = normalizeDisplayName(name).split(" ").filter(Boolean);
+    if (parts.length < 2) return null;
+    const last = (parts[parts.length - 1] ?? "").replace(/[^a-z0-9]/g, "");
+    return last || null;
   }
 
   /** Strip size/query noise so identical Unsplash/CDN assets collide. */
@@ -135,6 +151,8 @@ export async function loadFeedSidebarPopularUsers(
     if (candidates.length >= POPULAR_USER_COUNT) return;
     const nameKey = normalizeDisplayName(input.name);
     const firstKey = firstNameKey(input.name);
+    const prefixKey = firstNamePrefixKey(input.name);
+    const lastKey = lastNameKey(input.name);
     const avatarKey = avatarDiversityKey(input.avatarUrl);
     // Prefer distinct display names so the rail does not look artificial.
     if (nameKey && seenDisplayNames.has(nameKey)) return;
@@ -144,6 +162,18 @@ export async function loadFeedSidebarPopularUsers(
       seenFirstNames.has(firstKey) &&
       !input.allowDuplicateFirstName
     ) {
+      return;
+    }
+    // Avoid visually similar first-name clusters (Abeba / Abena).
+    if (
+      prefixKey &&
+      seenFirstPrefixes.has(prefixKey) &&
+      !input.allowDuplicateFirstName
+    ) {
+      return;
+    }
+    // Prefer distinct surnames when alternatives exist (Diallo ×2).
+    if (lastKey && seenLastNames.has(lastKey) && !input.allowDuplicateFirstName) {
       return;
     }
     // Prefer distinct avatar assets when legitimate alternatives exist.
@@ -157,6 +187,8 @@ export async function loadFeedSidebarPopularUsers(
     seen.add(input.userId);
     if (nameKey) seenDisplayNames.add(nameKey);
     if (firstKey) seenFirstNames.add(firstKey);
+    if (prefixKey) seenFirstPrefixes.add(prefixKey);
+    if (lastKey) seenLastNames.add(lastKey);
     if (avatarKey) seenAvatarKeys.add(avatarKey);
     candidates.push({
       userId: input.userId,
@@ -348,8 +380,9 @@ export async function loadFeedSidebarPopularUsers(
       )
       .eq("is_active", true)
       .ilike("email", "editorial+%@jimvio.com")
-      .order("username", { ascending: true })
-      .limit(24)) as { data: ProfileRow[] | null };
+      .order("follower_count", { ascending: false })
+      .order("id", { ascending: true })
+      .limit(48)) as { data: ProfileRow[] | null };
 
     for (const profile of demoRows ?? []) {
       if (candidates.length >= POPULAR_USER_COUNT) break;
