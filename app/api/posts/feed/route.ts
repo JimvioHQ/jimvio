@@ -14,6 +14,7 @@ import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 15;
 
 const PAGE_SIZE = 20;
 const AUDIENCES = new Set(["public", "followers", "community", "private"]);
@@ -60,6 +61,9 @@ async function getPublicDiscoveryFeed(
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
+  const hasSessionCookie = req.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  if (!hasSessionCookie) return getPublicDiscoveryFeed(req, supabase);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -158,6 +162,7 @@ export async function GET(req: NextRequest) {
         useRanking,
         filter,
         verifiedCommunityIds,
+        signal: AbortSignal.timeout(8_000),
       });
 
       const pageRows = global.posts;

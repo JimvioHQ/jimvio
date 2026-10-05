@@ -8,30 +8,20 @@ import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import {
   loadFeedSidebarLiveNow,
   loadFeedSidebarPopularUsers,
+  type FeedSidebarLiveCreator,
+  type FeedSidebarPopularUser,
 } from "@/lib/feed/load-feed-sidebar";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
 import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection";
 
 export const dynamic = "force-dynamic";
+/** Fail the invoke quickly instead of waiting the platform 300s default. */
+export const maxDuration = 15;
 
-/** Cap each discover rail so a saturated DB cannot hold the route for minutes. */
-const RAIL_TIMEOUT_MS = 2_500;
-
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(fallback), ms);
-    promise
-      .then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch(() => {
-        clearTimeout(timer);
-        resolve(fallback);
-      });
-  });
-}
+/** Hard budget so a saturated DB cannot pin this serverless invoke. */
+const DISCOVER_BUDGET_MS = 3_500;
+const SIDEBAR_BUDGET_MS = 1_200;
 
 type TrendingCommunityRow = {
   id: string;
@@ -87,14 +77,14 @@ function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
 }
 
 /**
- * Lightweight fallback when the trending RPC is unavailable.
- * Uses maintained community counters only — does not scan posts/memberships
- * (previous scan of 2000+ rows contributed to production statement timeouts).
+ * Lightweight trending list using maintained counters only.
+ * AbortSignal is required so a stalled PostgREST call cannot hold the isolate.
  */
 async function fetchTrendingViaFallback(
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  signal: AbortSignal,
 ): Promise<TrendingCommunityRow[]> {
-  const { data: communities } = await supabase
+  const { data: communities, error } = await supabase
     .from("communities")
     .select(
       "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
@@ -104,7 +94,10 @@ async function fetchTrendingViaFallback(
     .is("archived_at", null)
     .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
-    .limit(40);
+    .limit(40)
+    .abortSignal(signal);
+
+  if (error || signal.aborted) return [];
 
   return (communities ?? [])
     .filter(communityIsPubliclyDiscoverable)
@@ -127,129 +120,69 @@ async function fetchTrendingViaFallback(
     .slice(0, 8);
 }
 
+async function fetchPriorityCommunities(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  missing: string[],
+  signal: AbortSignal,
+): Promise<TrendingCommunityRow[]> {
+  if (!missing.length || signal.aborted) return [];
+  const { data: priorityRows, error } = await supabase
+    .from("communities")
+    .select(
+      "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
+    )
+    .in("slug", missing)
+    .eq("is_active", true)
+    .abortSignal(signal);
+  if (error || signal.aborted) return [];
+
+  const out: TrendingCommunityRow[] = [];
+  for (const row of priorityRows ?? []) {
+    if (!communityIsPubliclyDiscoverable(row)) continue;
+    out.push({
+      ...(row as unknown as TrendingCommunityRow),
+      online_members: 0,
+      trending_score: communityTrendingScore({
+        member_count: row.member_count,
+        post_count: row.post_count,
+        is_featured: row.is_featured,
+      }),
+    });
+  }
+  return out;
+}
+
 /** GET — discover rails for the Creator OS home feed. */
 export async function GET(req: Request) {
   const supabase = await createClient();
-  // Skip auth round-trip for anonymous visitors (cookie-less) — popular-users
-  // exclusion is the only consumer of user.id here.
-  const hasSessionCookie = (req.headers.get("cookie") || "").includes("sb-");
-  let user: { id: string } | null = null;
-  if (hasSessionCookie) {
-    const auth = await withTimeout(
-      supabase.auth.getUser().then((r) => r.data.user),
-      800,
-      null,
-    );
-    user = auth;
+  const budget = AbortSignal.timeout(DISCOVER_BUDGET_MS);
+
+  // Prefer the light counter path with a hard abort — never await an
+  // unabortable PostgREST call (dangling promises pin the serverless isolate).
+  let trendingRows = await fetchTrendingViaFallback(supabase, budget);
+
+  // Best-effort RPC upgrade when the light path is empty or thin.
+  if (trendingRows.length < 4 && !budget.aborted) {
+    try {
+      const rpc = await (supabase as any).rpc(
+        "get_trending_communities",
+        { p_limit: 24 },
+        { abortSignal: budget },
+      );
+      if (!rpc.error && Array.isArray(rpc.data) && rpc.data.length) {
+        trendingRows = rpc.data as TrendingCommunityRow[];
+      }
+    } catch {
+      // keep light rows
+    }
   }
 
-  // Fan out independent rails; do not fail the whole payload if one is slow.
-  let liveRows: Awaited<ReturnType<typeof loadFeedSidebarLiveNow>> = [];
-  let popularUsers: Awaited<ReturnType<typeof loadFeedSidebarPopularUsers>> = [];
-  let trendingRows: TrendingCommunityRow[] = [];
-
-  const [liveResult, popularResult, trendingResult] = await Promise.allSettled([
-    withTimeout(loadFeedSidebarLiveNow(8), RAIL_TIMEOUT_MS, []),
-    withTimeout(loadFeedSidebarPopularUsers(user?.id ?? null), RAIL_TIMEOUT_MS, []),
-    withTimeout(
-      (async () => {
-        const rpc = await (supabase as any).rpc("get_trending_communities", {
-          p_limit: 24,
-        });
-        if (!rpc.error && Array.isArray(rpc.data)) {
-          return rpc.data as TrendingCommunityRow[];
-        }
-        return fetchTrendingViaFallback(supabase);
-      })(),
-      RAIL_TIMEOUT_MS,
-      [] as TrendingCommunityRow[],
-    ),
-  ]);
-  if (liveResult.status === "fulfilled") liveRows = liveResult.value;
-  if (popularResult.status === "fulfilled") popularUsers = popularResult.value;
-  if (trendingResult.status === "fulfilled") trendingRows = trendingResult.value;
-
-  // If the RPC/fallback timed out empty, try the light counter-based list once more
-  // with its own short budget (priority communities still fill below).
-  if (!trendingRows.length) {
-    trendingRows = await withTimeout(
-      fetchTrendingViaFallback(supabase),
-      1_200,
-      [] as TrendingCommunityRow[],
-    );
-  }
-
-  // Single enrichment pass: visibility filter + display copy (was 2 round-trips).
-  if (trendingRows.length) {
-    const ids = trendingRows.map((row) => row.id);
-    const { data: enrichRows } = await supabase
-      .from("communities")
-      .select(
-        "id, is_private, is_active, visibility, visibility_mode, archived_at, tagline, description, settings, is_free, monthly_price, currency, is_featured",
-      )
-      .in("id", ids);
-    const allowed = new Set(
-      (enrichRows ?? []).filter(communityIsPubliclyDiscoverable).map((row) => row.id),
-    );
-    const copyById = new Map(
-      ((enrichRows ?? []) as Array<{
-        id: string;
-        tagline: string | null;
-        description: string | null;
-        settings?: unknown;
-        is_free?: boolean | null;
-        monthly_price?: number | null;
-        currency?: string | null;
-        is_featured?: boolean | null;
-      }>).map((row) => [row.id, row]),
-    );
-    trendingRows = trendingRows
-      .filter((row) => allowed.has(row.id))
-      .map((row) => {
-        const copy = copyById.get(row.id);
-        return copy
-          ? {
-              ...row,
-              tagline: row.tagline ?? copy.tagline,
-              description: row.description ?? copy.description,
-              settings: (row as { settings?: unknown }).settings ?? copy.settings,
-              is_featured: row.is_featured ?? copy.is_featured ?? null,
-              is_free: copy.is_free,
-              monthly_price: copy.monthly_price,
-              currency: copy.currency,
-            }
-          : row;
-      });
-  }
-
-  trendingRows = trendingRows.slice(0, 24);
-
-  // Ensure priority communities (e.g. P7 PROVIDER) are considered even if
-  // they fall outside the activity RPC window.
-  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length) {
+  // Ensure priority communities (e.g. P7 PROVIDER) are present.
+  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length && !budget.aborted) {
     const have = new Set(trendingRows.map((r) => r.slug));
     const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter((s) => !have.has(s));
-    if (missing.length) {
-      const { data: priorityRows } = await supabase
-        .from("communities")
-        .select(
-          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
-        )
-        .in("slug", missing)
-        .eq("is_active", true);
-      for (const row of priorityRows ?? []) {
-        if (!communityIsPubliclyDiscoverable(row)) continue;
-        trendingRows.push({
-          ...(row as unknown as TrendingCommunityRow),
-          online_members: 0,
-          trending_score: communityTrendingScore({
-            member_count: row.member_count,
-            post_count: row.post_count,
-            is_featured: row.is_featured,
-          }),
-        });
-      }
-    }
+    const priorityRows = await fetchPriorityCommunities(supabase, missing, budget);
+    trendingRows = [...trendingRows, ...priorityRows];
   }
 
   const qualityRows = selectDiscoveryCommunities(
@@ -264,11 +197,52 @@ export async function GET(req: Request) {
     8,
   );
 
+  // Sidebar rails are optional — short abort budget, empty on failure.
+  // Note: sidebar loaders do not yet accept AbortSignal; race returns empty
+  // while their queries may still complete in the background briefly.
+  let liveRows: FeedSidebarLiveCreator[] = [];
+  let popularUsers: FeedSidebarPopularUser[] = [];
+  if (!budget.aborted) {
+    const sidebarSignal = AbortSignal.timeout(SIDEBAR_BUDGET_MS);
+    const hasSessionCookie = (req.headers.get("cookie") || "").includes("sb-");
+    let excludeUserId: string | null = null;
+    if (hasSessionCookie) {
+      try {
+        const auth = await Promise.race([
+          supabase.auth.getUser().then((r) => r.data.user),
+          new Promise<null>((resolve) => {
+            sidebarSignal.addEventListener("abort", () => resolve(null), { once: true });
+          }),
+        ]);
+        excludeUserId = auth?.id ?? null;
+      } catch {
+        excludeUserId = null;
+      }
+    }
+
+    const [liveSettled, popularSettled] = await Promise.allSettled([
+      Promise.race([
+        loadFeedSidebarLiveNow(8),
+        new Promise<FeedSidebarLiveCreator[]>((resolve) => {
+          sidebarSignal.addEventListener("abort", () => resolve([]), { once: true });
+        }),
+      ]),
+      Promise.race([
+        loadFeedSidebarPopularUsers(excludeUserId),
+        new Promise<FeedSidebarPopularUser[]>((resolve) => {
+          sidebarSignal.addEventListener("abort", () => resolve([]), { once: true });
+        }),
+      ]),
+    ]);
+    if (liveSettled.status === "fulfilled") liveRows = liveSettled.value;
+    if (popularSettled.status === "fulfilled") popularUsers = popularSettled.value;
+  }
+
   return NextResponse.json({
     communities: qualityRows.map((row) =>
       mapCommunity(row as TrendingCommunityRow & { settings?: unknown })
     ),
-    live: liveRows.map((s) => ({
+    live: liveRows.map((s: FeedSidebarLiveCreator) => ({
       id: s.id,
       title: s.title,
       subtitle: "Live now",

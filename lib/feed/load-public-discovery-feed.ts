@@ -148,6 +148,7 @@ export async function loadPublicDiscoveryFeed(
         useRanking,
         filter: publicFilter,
         verifiedCommunityIds,
+        signal: AbortSignal.timeout(8_000),
       });
 
       const enriched = global.posts.map((post) => ({

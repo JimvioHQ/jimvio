@@ -107,6 +107,7 @@ async function fetchPublicRawBatch(
   db: Db,
   before: RawCursor | null,
   limit: number,
+  signal?: AbortSignal,
 ): Promise<GlobalCommunityFeedPost[]> {
   const fetchLimit = Math.min(limit + 32, 1000);
   let query = db
@@ -124,8 +125,12 @@ async function fetchPublicRawBatch(
   if (before) {
     query = query.lte("created_at", before.created_at);
   }
+  if (signal) {
+    query = query.abortSignal(signal);
+  }
 
   const { data, error } = await query;
+  if (signal?.aborted) return [];
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as GlobalCommunityFeedPost[];
   return before ? rows.filter((row) => isBeforeCursor(row, before)) : rows;
@@ -184,6 +189,7 @@ async function loadEligiblePostPool(
     mode: "public" | "member";
     communityIds?: string[];
     asOf?: number;
+    signal?: AbortSignal;
   },
 ): Promise<GlobalCommunityFeedPost[]> {
   if (opts.mode === "member" && !opts.communityIds?.length) return [];
@@ -196,10 +202,11 @@ async function loadEligiblePostPool(
   let guard = 0;
 
   while (eligible.length < MAX_POOL && guard < MAX_POOL_ROUNDS) {
+    if (opts.signal?.aborted) break;
     guard += 1;
     const batch: GlobalCommunityFeedPost[] =
       opts.mode === "public"
-        ? await fetchPublicRawBatch(db, before, POOL_PAGE)
+        ? await fetchPublicRawBatch(db, before, POOL_PAGE, opts.signal)
         : await fetchMemberRawBatch(db, opts.communityIds ?? [], before, POOL_PAGE);
     if (!batch.length) break;
 
@@ -257,6 +264,8 @@ export type LoadGlobalCommunityFeedParams = {
   filter?: string | null;
   /** Featured community IDs for the verified tab (optional). */
   verifiedCommunityIds?: Set<string>;
+  /** Abort stalled PostgREST calls so the serverless isolate can return. */
+  signal?: AbortSignal;
 };
 
 export type LoadGlobalCommunityFeedResult = {
@@ -316,12 +325,13 @@ export async function loadGlobalCommunityFeed(
   // Public pool uses communities!inner (no ID fan-out). Member-private pool
   // only runs when the viewer has private memberships outside the public set.
   const [publicPool, memberPool] = await Promise.all([
-    loadEligiblePostPool(db, { mode: "public", asOf }),
+    loadEligiblePostPool(db, { mode: "public", asOf, signal: params.signal }),
     memberOnlyIds.length
       ? loadEligiblePostPool(db, {
           mode: "member",
           communityIds: memberOnlyIds,
           asOf,
+          signal: params.signal,
         })
       : Promise.resolve([]),
   ]);
