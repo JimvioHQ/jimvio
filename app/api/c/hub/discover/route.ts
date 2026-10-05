@@ -65,7 +65,6 @@ function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
   });
   const tagline =
     (typeof row.tagline === "string" && row.tagline.trim()) ||
-    (typeof row.description === "string" && row.description.trim()) ||
     null;
 
   return {
@@ -100,7 +99,7 @@ async function fetchTrendingViaFallback(
   const { data: communities, error } = await db
     .from("communities")
     .select(
-      "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
+      "id, name, slug, category, tagline, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
     )
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
@@ -170,7 +169,7 @@ async function fetchPriorityCommunities(
   const { data: priorityRows, error } = await db
     .from("communities")
     .select(
-      "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
+      "id, name, slug, category, tagline, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
     )
     .in("slug", missing)
     .eq("is_active", true)
@@ -306,22 +305,30 @@ export async function GET(req: Request) {
     if (popularSettled.status === "fulfilled") popularUsers = popularSettled.value;
   }
 
-  return NextResponse.json({
-    communities: qualityRows.map((row) =>
-      mapCommunity(row as TrendingCommunityRow & { settings?: unknown }),
-    ),
-    live: liveRows.map((s: FeedSidebarLiveCreator) => ({
-      id: s.id,
-      title: s.title,
-      subtitle: "Live now",
-      href: s.href,
-      image: s.thumbnailUrl ?? s.hostAvatarUrl,
-      badge: "Live",
-      hostName: s.hostName,
-      hostAvatarUrl: s.hostAvatarUrl,
-      viewerCount: s.viewerCount,
-      thumbnailUrl: s.thumbnailUrl,
-    })),
-    popularUsers,
-  });
+  return NextResponse.json(
+    {
+      communities: qualityRows.map((row) =>
+        mapCommunity(row as TrendingCommunityRow & { settings?: unknown }),
+      ),
+      live: liveRows.map((s: FeedSidebarLiveCreator) => ({
+        id: s.id,
+        title: s.title,
+        subtitle: "Live now",
+        href: s.href,
+        image: s.thumbnailUrl ?? s.hostAvatarUrl,
+        badge: "Live",
+        hostName: s.hostName,
+        hostAvatarUrl: s.hostAvatarUrl,
+        viewerCount: s.viewerCount,
+        thumbnailUrl: s.thumbnailUrl,
+      })),
+      popularUsers,
+    },
+    {
+      headers: {
+        // Public discovery metadata — short CDN cache; never private auth data.
+        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+      },
+    },
+  );
 }

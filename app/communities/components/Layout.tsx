@@ -56,6 +56,11 @@ function usePageTitle(pathname: string): string {
 
     useEffect(() => {
         if (!slug) { setCommunityName(null); return; }
+        // Manage shell has its own identity chrome — skip hub title fetch.
+        if (/\/manage(?:\/|$)/.test(pathname)) {
+            setCommunityName(null);
+            return;
+        }
         let cancelled = false;
         (async () => {
             const supabase = createClient();
@@ -67,7 +72,7 @@ function usePageTitle(pathname: string): string {
             if (!cancelled) setCommunityName(data?.name ?? null);
         })();
         return () => { cancelled = true; };
-    }, [slug]);
+    }, [slug, pathname]);
 
     if (slug) return communityName ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     return staticTitle;
@@ -79,6 +84,10 @@ function useCommunityIdFromPath(pathname: string): string | null {
 
     useEffect(() => {
         if (!slug) {
+            setCommunityId(null);
+            return;
+        }
+        if (/\/manage(?:\/|$)/.test(pathname)) {
             setCommunityId(null);
             return;
         }
@@ -95,7 +104,7 @@ function useCommunityIdFromPath(pathname: string): string | null {
         return () => {
             cancelled = true;
         };
-    }, [slug]);
+    }, [slug, pathname]);
 
     return communityId;
 }

@@ -208,7 +208,8 @@ async function fetchPublicRawBatch(
   signal?: AbortSignal,
 ): Promise<GlobalCommunityFeedPost[]> {
   // Over-fetch so privacy/exclusion filtering can still fill a full UI page.
-  const fetchLimit = Math.min(Math.max(limit * 3, 500), 800);
+  // Cap near MAX_POOL — previous min(500) pulled far more rows than ranking uses.
+  const fetchLimit = Math.min(Math.max(limit * 6, 72), MAX_POOL);
   let query = db
     .from("community_posts")
     .select(POST_COLUMNS)

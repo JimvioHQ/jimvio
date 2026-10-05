@@ -51,14 +51,16 @@ export async function GET() {
   // Guests: service-role read of public stories only (app-enforced privacy).
   // Authenticated: user-scoped client so RLS + membership rules apply.
   const reader = user ? (supabase as any) : (createServiceRoleClient() as any);
+  const selectCols = user
+    ? "id, author_id, community_id, media_url, media_type, caption, thumbnail_url, privacy, mentions, view_count, unique_view_count, reply_count, expires_at, created_at, profiles!community_stories_author_id_fkey(full_name, avatar_url, username)"
+    : "id, author_id, community_id, media_url, media_type, caption, thumbnail_url, privacy, expires_at, created_at, profiles!community_stories_author_id_fkey(full_name, avatar_url, username)";
+
   let query = reader
     .from("community_stories")
-    .select(
-      "id, author_id, community_id, media_url, media_type, caption, thumbnail_url, privacy, mentions, view_count, unique_view_count, reply_count, expires_at, created_at, profiles!community_stories_author_id_fkey(full_name, avatar_url, username)"
-    )
+    .select(selectCols)
     .gt("expires_at", nowIso)
-    .order("created_at", { ascending: true })
-    .limit(200);
+    .order("created_at", { ascending: false })
+    .limit(user ? 120 : 40);
 
   if (!user) {
     query = query.eq("privacy", "public");
@@ -69,15 +71,28 @@ export async function GET() {
   if (error) {
     // Soft-fail when migration not applied yet
     if (/relation|does not exist|community_stories/i.test(error.message)) {
-      return NextResponse.json({
-        groups: [],
-        current_user_id: user?.id ?? null,
-      });
+      return NextResponse.json(
+        {
+          groups: [],
+          current_user_id: user?.id ?? null,
+        },
+        user
+          ? undefined
+          : {
+              headers: {
+                "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+              },
+            }
+      );
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
   const rows = (data ?? []) as StoryRow[];
+  // Guest feed is newest-first for fast cutoff; restore chronological within groups later.
+  if (!user) {
+    rows.reverse();
+  }
   const storyIds = rows.map((r) => r.id);
 
   const viewedSet = new Set<string>();
@@ -133,10 +148,10 @@ export async function GET() {
       caption: row.caption,
       thumbnail_url: row.thumbnail_url,
       privacy: row.privacy,
-      mentions: row.mentions,
-      view_count: row.view_count,
-      unique_view_count: row.unique_view_count,
-      reply_count: row.reply_count,
+      mentions: row.mentions ?? [],
+      view_count: row.view_count ?? 0,
+      unique_view_count: row.unique_view_count ?? 0,
+      reply_count: row.reply_count ?? 0,
       expires_at: row.expires_at,
       created_at: row.created_at,
       viewed,
@@ -177,10 +192,19 @@ export async function GET() {
       return bLatest.localeCompare(aLatest);
     });
 
-  return NextResponse.json({
-    groups,
-    current_user_id: user?.id ?? null,
-  });
+  return NextResponse.json(
+    {
+      groups,
+      current_user_id: user?.id ?? null,
+    },
+    user
+      ? undefined
+      : {
+          headers: {
+            "Cache-Control": "public, s-maxage=20, stale-while-revalidate=60",
+          },
+        }
+  );
 }
 
 /** POST — create story; expires_at = now + 48h */

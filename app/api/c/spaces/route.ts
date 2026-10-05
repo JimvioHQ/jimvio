@@ -53,49 +53,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ...result, spaces });
   }
 
-  // Guests: public spaces from public/active communities only.
+  // Guests: one batched public-space read (no per-space queries).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = createServiceRoleClient() as any;
-  const { data: communities } = await admin
-    .from("communities")
-    .select(
-      "id, name, slug, avatar_url, cover_image, member_count, settings, is_private, visibility"
-    )
-    .eq("is_active", true)
-    .or("is_private.eq.false,is_private.is.null")
-    .order("member_count", { ascending: false })
-    .limit(80);
-
-  type PublicCommunityRow = {
-    id: string;
-    name: string;
-    slug: string;
-    avatar_url: string | null;
-    cover_image: string | null;
-    member_count: number | null;
-    settings: unknown;
-  };
-
-  const communityById = new Map<string, PublicCommunityRow>();
-  for (const row of (communities ?? []) as PublicCommunityRow[]) {
-    if (row?.id) communityById.set(row.id, row);
-  }
-
-  const communityIds = [...communityById.keys()];
-  if (!communityIds.length) {
-    return NextResponse.json({ spaces: [], nextOffset: null, total: 0 });
-  }
-
-  const { data: spaces } = await admin
+  const fetchLimit = Math.min(Math.max((offset + limit) * 3, 60), 120);
+  const { data: spaces, error } = await admin
     .from("spaces")
     .select(
-      "id, name, slug, description, community_id, member_count, cover_url, banner_url, access_type, sort_order, privacy"
+      "id, name, slug, description, community_id, member_count, cover_url, banner_url, access_type, sort_order, privacy, communities!inner(id, name, slug, avatar_url, cover_image, member_count, settings, is_active, is_private)"
     )
-    .in("community_id", communityIds)
     .eq("is_active", true)
     .eq("is_hidden", false)
+    .eq("communities.is_active", true)
+    .or("communities.is_private.eq.false,communities.is_private.is.null")
     .order("sort_order", { ascending: true })
-    .limit(200);
+    .limit(fetchLimit);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 
   const seenCommunities = new Set<string>();
   const items = [];
@@ -112,8 +88,11 @@ export async function GET(req: NextRequest) {
     if (isPrivate) continue;
     if (seenCommunities.has(space.community_id)) continue;
     seenCommunities.add(space.community_id);
-    const community = communityById.get(space.community_id);
-    if (!community) continue;
+    const communityRaw = space.communities;
+    const community = Array.isArray(communityRaw)
+      ? communityRaw[0]
+      : communityRaw;
+    if (!community?.slug) continue;
     const communityCount = resolveCommunityMemberCount({
       slug: community.slug,
       member_count: community.member_count,
@@ -156,7 +135,14 @@ export async function GET(req: NextRequest) {
   const total = filtered.length;
   const page = filtered.slice(offset, offset + limit);
   const nextOffset = offset + limit < total ? offset + limit : null;
-  return NextResponse.json({ spaces: page, nextOffset, total });
+  return NextResponse.json(
+    { spaces: page, nextOffset, total },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+      },
+    }
+  );
 }
 
 /** Create a Space with a primary room matching the Space type. */

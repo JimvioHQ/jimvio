@@ -145,20 +145,40 @@ export async function loadFeedSidebarPopularUsers(
     });
   }
 
-  // Official community logos for branded provider accounts (never invent images).
+  // Official logos + priority pins + influencer pool in parallel.
+  const usernameVariants = PRIORITY_POPULAR_USERNAMES.flatMap((u) => [u, `@${u}`]);
+  const [brandedSettled, prioritySettled, influencersSettled] = await Promise.all([
+    PRIORITY_POPULAR_USERNAMES.length
+      ? admin
+          .from("communities")
+          .select("slug, avatar_url, cover_image")
+          .in("slug", PRIORITY_POPULAR_USERNAMES)
+          .eq("is_active", true)
+          .limit(10)
+      : Promise.resolve({ data: [] as { slug: string; avatar_url: string | null; cover_image: string | null }[] }),
+    PRIORITY_POPULAR_USERNAMES.length
+      ? admin
+          .from("profiles")
+          .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
+          .in("username", usernameVariants)
+          .eq("is_active", true)
+          .limit(20)
+      : Promise.resolve({ data: [] as ProfileRow[] }),
+    admin
+      .from("influencers")
+      .select("user_id, display_name, profile_image, total_followers, is_verified, is_featured")
+      .eq("is_active", true)
+      .order("is_featured", { ascending: false })
+      .order("total_followers", { ascending: false })
+      .limit(40),
+  ]);
+
   const brandedAvatarByUsername = new Map<string, string>();
   {
-    const { data: brandedCommunities } = (await admin
-      .from("communities")
-      .select("slug, avatar_url, cover_image")
-      .in("slug", PRIORITY_POPULAR_USERNAMES)
-      .eq("is_active", true)
-      .limit(10)) as {
-      data:
-        | { slug: string; avatar_url: string | null; cover_image: string | null }[]
-        | null;
-    };
-    for (const row of brandedCommunities ?? []) {
+    const brandedCommunities =
+      (brandedSettled as { data: { slug: string; avatar_url: string | null; cover_image: string | null }[] | null })
+        .data ?? [];
+    for (const row of brandedCommunities) {
       const logo =
         (isValidAvatar(row.avatar_url) ? row.avatar_url : null) ??
         (isValidAvatar(row.cover_image) ? row.cover_image : null);
@@ -167,23 +187,16 @@ export async function loadFeedSidebarPopularUsers(
   }
 
   // Pin real product-priority profiles first (Barick, P7 PROVIDER, …).
-  if (PRIORITY_POPULAR_USERNAMES.length) {
-    const usernameVariants = PRIORITY_POPULAR_USERNAMES.flatMap((u) => [u, `@${u}`]);
-    const { data: priorityProfiles } = (await admin
-      .from("profiles")
-      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
-      .in("username", usernameVariants)
-      .eq("is_active", true)
-      .limit(20)) as { data: ProfileRow[] | null };
-
+  {
+    const priorityProfiles =
+      ((prioritySettled as { data: ProfileRow[] | null }).data ?? []) as ProfileRow[];
     const byNorm = new Map<string, ProfileRow>();
-    for (const profile of priorityProfiles ?? []) {
+    for (const profile of priorityProfiles) {
       if (!profile.username) continue;
       byNorm.set(normalizeUsername(profile.username).toLowerCase(), profile);
     }
     for (const wanted of PRIORITY_POPULAR_USERNAMES) {
       const profile = byNorm.get(wanted.toLowerCase());
-      // Priority pins may be brand accounts (including non-editorial owners).
       if (!profile) continue;
       const usernameRaw = profile.username?.trim() || null;
       if (!isPublicUsername(usernameRaw)) continue;
@@ -209,20 +222,15 @@ export async function loadFeedSidebarPopularUsers(
     }
   }
 
-  const { data: influencers } = (await admin
-    .from("influencers")
-    .select("user_id, display_name, profile_image, total_followers, is_verified, is_featured")
-    .eq("is_active", true)
-    .order("is_featured", { ascending: false })
-    .order("total_followers", { ascending: false })
-    .limit(24)) as { data: InfluencerRow[] | null };
+  const influencers =
+    ((influencersSettled as { data: InfluencerRow[] | null }).data ?? []) as InfluencerRow[];
 
   const influencerIds = [
-    ...new Set((influencers ?? []).map((r) => r.user_id).filter(Boolean)),
+    ...new Set(influencers.map((r) => r.user_id).filter(Boolean)),
   ].filter((id) => id !== excludeUserId);
 
   const profileById = new Map<string, ProfileRow>();
-  if (influencerIds.length) {
+  if (influencerIds.length && candidates.length < POPULAR_USER_COUNT) {
     const { data: profiles } = (await admin
       .from("profiles")
       .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active, email")
@@ -232,7 +240,8 @@ export async function loadFeedSidebarPopularUsers(
     }
   }
 
-  for (const inf of influencers ?? []) {
+  for (const inf of influencers) {
+    if (candidates.length >= POPULAR_USER_COUNT) break;
     if (!inf.user_id || seen.has(inf.user_id) || inf.user_id === excludeUserId) continue;
     const profile = profileById.get(inf.user_id);
     if (isEditorialPersona(profile)) continue;
@@ -265,7 +274,6 @@ export async function loadFeedSidebarPopularUsers(
       followerCount,
       verified: Boolean(profile?.is_verified || inf.is_verified),
     });
-    if (candidates.length >= POPULAR_USER_COUNT) break;
   }
 
   if (candidates.length < POPULAR_USER_COUNT) {
@@ -279,7 +287,7 @@ export async function loadFeedSidebarPopularUsers(
       .or("email.is.null,email.not.ilike.editorial+%@jimvio.com")
       .order("follower_count", { ascending: false })
       .order("id", { ascending: true })
-      .limit(80)) as { data: ProfileRow[] | null };
+      .limit(40)) as { data: ProfileRow[] | null };
 
     for (const profile of profileRows ?? []) {
       if (candidates.length >= POPULAR_USER_COUNT) break;
@@ -316,7 +324,7 @@ export async function loadFeedSidebarPopularUsers(
       .eq("is_active", true)
       .ilike("email", "editorial+%@jimvio.com")
       .order("username", { ascending: true })
-      .limit(60)) as { data: ProfileRow[] | null };
+      .limit(24)) as { data: ProfileRow[] | null };
 
     for (const profile of demoRows ?? []) {
       if (candidates.length >= POPULAR_USER_COUNT) break;
