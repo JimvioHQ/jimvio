@@ -27,8 +27,8 @@ import {
  * first several UI pages; older content remains reachable via pagination
  * cursors that advance the keyset.
  */
-const MAX_POOL = 150;
-const POOL_PAGE = 150;
+const MAX_POOL = 200;
+const POOL_PAGE = 200;
 const MAX_POOL_ROUNDS = 1;
 /** PostgREST `.in()` URL length stays safe below ~100–150 UUIDs. */
 const COMMUNITY_IN_CHUNK = 120;
@@ -207,8 +207,8 @@ async function fetchPublicRawBatch(
   limit: number,
   signal?: AbortSignal,
 ): Promise<GlobalCommunityFeedPost[]> {
-  // Over-fetch slightly so privacy filtering still fills the ranking pool.
-  const fetchLimit = Math.min(Math.max(limit * 2, limit + 32), 400);
+  // Over-fetch so privacy/exclusion filtering can still fill a full UI page.
+  const fetchLimit = Math.min(Math.max(limit * 3, 500), 800);
   let query = db
     .from("community_posts")
     .select(POST_COLUMNS)
