@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/cj-enrichment",
-      "schedule": "*/2 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/cj-intelligence-daily",
@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/cj-marketplace-maintenance",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/cj-stock-health",

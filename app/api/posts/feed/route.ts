@@ -88,8 +88,16 @@ export async function GET(req: NextRequest) {
     return getPublicDiscoveryFeed(req, supabase);
   }
 
+  // Global feed path no longer needs a full public-community ID scan.
+  // Following/friends/draft/community-scoped fallthrough still needs an ID list.
+  const needsCommunityIdList =
+    Boolean(communityId) ||
+    draftsOnly ||
+    filter === "following" ||
+    filter === "friends";
+
   let publicCommunityIds: string[] = [];
-  if (!communityId && !draftsOnly) {
+  if (needsCommunityIdList && !communityId) {
     const loaded = await loadPublicCommunityIds(supabase);
     if (loaded.error) {
       return NextResponse.json({ error: loaded.error }, { status: 400 });
@@ -101,7 +109,7 @@ export async function GET(req: NextRequest) {
     ? [communityId]
     : Array.from(new Set([...membershipIds, ...publicCommunityIds]));
 
-  if (!communityIds.length) {
+  if (needsCommunityIdList && !communityIds.length) {
     return NextResponse.json({ posts: [], next_cursor: null });
   }
 

@@ -68,71 +68,40 @@ function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
   };
 }
 
+/**
+ * Lightweight fallback when the trending RPC is unavailable.
+ * Uses maintained community counters only — does not scan posts/memberships
+ * (previous scan of 2000+ rows contributed to production statement timeouts).
+ */
 async function fetchTrendingViaFallback(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<TrendingCommunityRow[]> {
-  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-  const onlineCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-
-  const [{ data: communities }, { data: recentPosts }, { data: recentJoins }, { data: onlineRows }] =
-    await Promise.all([
-      supabase
-        .from("communities")
-        .select(
-          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at"
-        )
-        .eq("is_active", true)
-        .or("is_private.eq.false,is_private.is.null")
-        .order("member_count", { ascending: false })
-        .limit(40),
-      supabase
-        .from("community_posts")
-        .select("community_id")
-        .eq("is_published", true)
-        .gte("created_at", since)
-        .limit(2000),
-      supabase
-        .from("community_memberships")
-        .select("community_id")
-        .eq("status", "active")
-        .gte("subscribed_at", since)
-        .limit(2000),
-      supabase
-        .from("member_points")
-        .select("community_id")
-        .gte("last_active_at", onlineCutoff)
-        .limit(2000),
-    ]);
-
-  const countBy = (rows: Array<{ community_id: string }> | null) => {
-    const map = new Map<string, number>();
-    for (const row of rows ?? []) {
-      map.set(row.community_id, (map.get(row.community_id) ?? 0) + 1);
-    }
-    return map;
-  };
-
-  const postsMap = countBy(recentPosts as Array<{ community_id: string }> | null);
-  const joinsMap = countBy(recentJoins as Array<{ community_id: string }> | null);
-  const onlineMap = countBy(onlineRows as Array<{ community_id: string }> | null);
+  const { data: communities } = await supabase
+    .from("communities")
+    .select(
+      "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
+    )
+    .eq("is_active", true)
+    .or("is_private.eq.false,is_private.is.null")
+    .is("archived_at", null)
+    .order("is_featured", { ascending: false })
+    .order("member_count", { ascending: false })
+    .limit(40);
 
   return (communities ?? [])
     .filter(communityIsPubliclyDiscoverable)
     .map((c) => {
-      const recent_posts = postsMap.get(c.id) ?? 0;
-      const recent_joins = joinsMap.get(c.id) ?? 0;
-      const online_members = onlineMap.get(c.id) ?? 0;
       const trending_score = communityTrendingScore({
         member_count: c.member_count,
         post_count: c.post_count,
         is_featured: c.is_featured,
-        recent_posts,
-        recent_joins,
-        online_members,
+        recent_posts: 0,
+        recent_joins: 0,
+        online_members: 0,
       });
       return {
         ...c,
-        online_members,
+        online_members: 0,
         trending_score,
       } satisfies TrendingCommunityRow;
     })
@@ -147,51 +116,42 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Fan out independent rails; do not fail the whole payload if one is slow.
   let liveRows: Awaited<ReturnType<typeof loadFeedSidebarLiveNow>> = [];
   let popularUsers: Awaited<ReturnType<typeof loadFeedSidebarPopularUsers>> = [];
-  const [liveResult, popularResult] = await Promise.allSettled([
+  let trendingRows: TrendingCommunityRow[] = [];
+
+  const [liveResult, popularResult, trendingResult] = await Promise.allSettled([
     loadFeedSidebarLiveNow(8),
     loadFeedSidebarPopularUsers(user?.id ?? null),
+    (async () => {
+      const rpc = await (supabase as any).rpc("get_trending_communities", {
+        p_limit: 24,
+      });
+      if (!rpc.error && Array.isArray(rpc.data)) {
+        return rpc.data as TrendingCommunityRow[];
+      }
+      return fetchTrendingViaFallback(supabase);
+    })(),
   ]);
   if (liveResult.status === "fulfilled") liveRows = liveResult.value;
   if (popularResult.status === "fulfilled") popularUsers = popularResult.value;
+  if (trendingResult.status === "fulfilled") trendingRows = trendingResult.value;
 
-  let trendingRows: TrendingCommunityRow[] = [];
-  const rpc = await (supabase as any).rpc("get_trending_communities", {
-    p_limit: 24,
-  });
-
-  if (rpc.error || !Array.isArray(rpc.data)) {
-    try {
-      trendingRows = await fetchTrendingViaFallback(supabase);
-    } catch {
-      trendingRows = [];
-    }
-  } else {
-    trendingRows = rpc.data as TrendingCommunityRow[];
-  }
-
+  // Single enrichment pass: visibility filter + display copy (was 2 round-trips).
   if (trendingRows.length) {
     const ids = trendingRows.map((row) => row.id);
-    const { data: visRows } = await supabase
+    const { data: enrichRows } = await supabase
       .from("communities")
-      .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
+      .select(
+        "id, is_private, is_active, visibility, visibility_mode, archived_at, tagline, description, settings, is_free, monthly_price, currency, is_featured",
+      )
       .in("id", ids);
     const allowed = new Set(
-      (visRows ?? []).filter(communityIsPubliclyDiscoverable).map((row) => row.id),
+      (enrichRows ?? []).filter(communityIsPubliclyDiscoverable).map((row) => row.id),
     );
-    trendingRows = trendingRows.filter((row) => allowed.has(row.id));
-  }
-
-  // Enrich display copy (tagline/description) without changing ranking.
-  if (trendingRows.length) {
-    const ids = trendingRows.map((row) => row.id);
-    const { data: copyRows } = await supabase
-      .from("communities")
-      .select("id, tagline, description, settings, is_free, monthly_price, currency, is_featured")
-      .in("id", ids);
     const copyById = new Map(
-      ((copyRows ?? []) as Array<{
+      ((enrichRows ?? []) as Array<{
         id: string;
         tagline: string | null;
         description: string | null;
@@ -200,23 +160,25 @@ export async function GET() {
         monthly_price?: number | null;
         currency?: string | null;
         is_featured?: boolean | null;
-      }>).map((row) => [row.id, row])
+      }>).map((row) => [row.id, row]),
     );
-    trendingRows = trendingRows.map((row) => {
-      const copy = copyById.get(row.id);
-      return copy
-        ? {
-            ...row,
-            tagline: row.tagline ?? copy.tagline,
-            description: row.description ?? copy.description,
-            settings: (row as { settings?: unknown }).settings ?? copy.settings,
-            is_featured: row.is_featured ?? copy.is_featured ?? null,
-            is_free: copy.is_free,
-            monthly_price: copy.monthly_price,
-            currency: copy.currency,
-          }
-        : row;
-    });
+    trendingRows = trendingRows
+      .filter((row) => allowed.has(row.id))
+      .map((row) => {
+        const copy = copyById.get(row.id);
+        return copy
+          ? {
+              ...row,
+              tagline: row.tagline ?? copy.tagline,
+              description: row.description ?? copy.description,
+              settings: (row as { settings?: unknown }).settings ?? copy.settings,
+              is_featured: row.is_featured ?? copy.is_featured ?? null,
+              is_free: copy.is_free,
+              monthly_price: copy.monthly_price,
+              currency: copy.currency,
+            }
+          : row;
+      });
   }
 
   trendingRows = trendingRows.slice(0, 24);

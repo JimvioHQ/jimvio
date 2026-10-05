@@ -29,12 +29,24 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
   return rows.filter((row) => !isTechnicalFeedBody(row.body));
 }
 
+/** Short process-local cache for public community IDs (public data only). */
+const PUBLIC_IDS_TTL_MS = 60_000;
+let publicIdsCache: { ids: string[]; expiresAt: number } | null = null;
+
 /** Match RLS COALESCE(is_private, false) = false — NULL privacy is public. */
 export async function loadPublicCommunityIds(
   db: Db,
   /** Soft ceiling so discovery stays complete without unbounded memory. */
   limit = 10_000,
 ): Promise<{ ids: string[]; error: string | null }> {
+  if (
+    publicIdsCache &&
+    publicIdsCache.expiresAt > Date.now() &&
+    publicIdsCache.ids.length <= limit
+  ) {
+    return { ids: publicIdsCache.ids.slice(0, limit), error: null };
+  }
+
   const ids: string[] = [];
   const pageSize = 200;
   let from = 0;
@@ -46,6 +58,7 @@ export async function loadPublicCommunityIds(
       .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
       .eq("is_active", true)
       .or("is_private.eq.false,is_private.is.null")
+      .is("archived_at", null)
       // Stable order: member_count then id so pagination does not skip rows.
       .order("member_count", { ascending: false })
       .order("id", { ascending: true })
@@ -62,7 +75,9 @@ export async function loadPublicCommunityIds(
     from += pageSize;
   }
 
-  return { ids: ids.slice(0, limit), error: null };
+  const sliced = ids.slice(0, limit);
+  publicIdsCache = { ids: sliced, expiresAt: Date.now() + PUBLIC_IDS_TTL_MS };
+  return { ids: sliced, error: null };
 }
 
 export type PublicDiscoveryFeedParams = {
@@ -108,34 +123,7 @@ export async function loadPublicDiscoveryFeed(
   const publicFilter =
     filter === "following" || filter === "friends" ? "for-you" : filter;
 
-  let publicCommunityIds: string[] = [];
-  if (communityId) {
-    const { data: community, error: communityError } = await db
-      .from("communities")
-      .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
-      .eq("id", communityId)
-      .maybeSingle();
-    if (communityError) {
-      console.error("Error loading public community:", communityError);
-      return { ok: false, status: 400, error: communityError.message };
-    }
-    if (!community || !communityIsPubliclyDiscoverable(community)) {
-      return { ok: false, status: 403, error: "No access" };
-    }
-    publicCommunityIds = [community.id];
-  } else {
-    const loaded = await loadPublicCommunityIds(db);
-    if (loaded.error) {
-      return { ok: false, status: 400, error: loaded.error };
-    }
-    publicCommunityIds = loaded.ids;
-  }
-
-  if (!publicCommunityIds.length) {
-    return { ok: true, posts: [], next_cursor: null };
-  }
-
-  // Global feed: ranked eligible pool (promo/system excluded; editorial kept).
+  // Global feed: ranked eligible pool via communities!inner (no public-ID scan).
   if (!communityId) {
     const useRanking = publicFilter !== "newest";
     try {
@@ -143,10 +131,15 @@ export async function loadPublicDiscoveryFeed(
       if (publicFilter === "verified") {
         const { data: featuredCommunities } = await db
           .from("communities")
-          .select("id")
-          .in("id", publicCommunityIds)
+          .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
+          .eq("is_active", true)
+          .is("archived_at", null)
           .or("is_featured.eq.true,member_count.gte.100");
-        verifiedCommunityIds = new Set((featuredCommunities ?? []).map((c) => c.id));
+        verifiedCommunityIds = new Set(
+          (featuredCommunities ?? [])
+            .filter(communityIsPubliclyDiscoverable)
+            .map((c) => c.id),
+        );
       }
 
       const global = await loadGlobalCommunityFeed(db, {
@@ -175,6 +168,21 @@ export async function loadPublicDiscoveryFeed(
       return { ok: false, status: 400, error: message };
     }
   }
+
+  // Community-scoped public feed (single community — validate discoverability).
+  const { data: community, error: communityError } = await db
+    .from("communities")
+    .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
+    .eq("id", communityId)
+    .maybeSingle();
+  if (communityError) {
+    console.error("Error loading public community:", communityError);
+    return { ok: false, status: 400, error: communityError.message };
+  }
+  if (!community || !communityIsPubliclyDiscoverable(community)) {
+    return { ok: false, status: 403, error: "No access" };
+  }
+  const publicCommunityIds = [community.id];
 
   let query = db
     .from("community_posts")
