@@ -66,36 +66,13 @@ export async function POST(
   const db = supabase as any;
   const permalink = permalinkFor(postId, sourceCommunity?.slug);
 
-  // Analytics ledger — opening the menu is never recorded here.
-  const { error: shareInsertError } = await db.from("community_post_shares").insert({
-    post_id: postId,
-    user_id: user.id,
-    share_type: shareType,
-    target_community_id: body.communityId ?? null,
-  });
-  if (shareInsertError) {
-    // Unique / race: still return current count honestly.
-    console.error("[posts/share] ledger:", shareInsertError.message);
-  }
-
-  const { data: row } = await db
-    .from("community_posts")
-    .select("share_count")
-    .eq("id", postId)
-    .maybeSingle();
-
-  const next = ((row?.share_count as number | null | undefined) ?? 0) + 1;
-  await db
-    .from("community_posts")
-    .update({ share_count: next, updated_at: new Date().toISOString() })
-    .eq("id", postId);
-
   let repostId: string | null = null;
   const targetCommunityId =
     shareType === "repost" || shareType === "community"
       ? body.communityId || post.community_id
       : null;
 
+  // Membership + duplicate checks before any share_count mutation.
   if ((shareType === "repost" || shareType === "community") && targetCommunityId) {
     const { data: membership } = await supabase
       .from("community_memberships")
@@ -105,18 +82,22 @@ export async function POST(
       .eq("status", "active")
       .maybeSingle();
     if (!membership) {
+      const { data: row } = await db
+        .from("community_posts")
+        .select("share_count")
+        .eq("id", postId)
+        .maybeSingle();
       return NextResponse.json(
         {
           ok: false,
           error: "You must be a member of that community to share there",
-          share_count: next,
+          share_count: Number(row?.share_count ?? 0) || 0,
           permalink,
         },
         { status: 403 },
       );
     }
 
-    // Prevent duplicate active reposts of the same source by the same author.
     const { data: existingRepost } = await db
       .from("community_posts")
       .select("id")
@@ -127,9 +108,14 @@ export async function POST(
       .is("archived_at", null)
       .maybeSingle();
     if (existingRepost?.id) {
+      const { data: row } = await db
+        .from("community_posts")
+        .select("share_count")
+        .eq("id", postId)
+        .maybeSingle();
       return NextResponse.json({
         ok: true,
-        share_count: next,
+        share_count: Number(row?.share_count ?? 0) || 0,
         share_type: shareType,
         repost_id: existingRepost.id,
         permalink,
@@ -145,46 +131,78 @@ export async function POST(
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    if (room?.id && room.space_id) {
-      const attribution =
-        shareType === "community"
-          ? `Shared from ${sourceCommunity?.slug ? `@${sourceCommunity.slug}` : "Jimvio"}`
-          : "";
-      const { data: created, error: createError } = await db
+    if (!room?.id || !room.space_id) {
+      const { data: row } = await db
         .from("community_posts")
-        .insert({
-          community_id: targetCommunityId,
-          room_id: room.id,
-          space_id: room.space_id,
-          author_id: user.id,
-          body: post.body ?? "",
-          title: post.title ?? null,
-          images: post.images ?? null,
-          video_url: post.video_url ?? null,
-          post_type: "discussion",
-          quote_of_post_id: postId,
-          is_published: true,
-          published_at: new Date().toISOString(),
-          attachments: {
-            share_type: shareType,
-            source_post_id: postId,
-            source_community_id: post.community_id,
-            attribution,
-          },
-        })
-        .select("id")
-        .single();
-      if (createError) {
-        return NextResponse.json({ error: createError.message }, { status: 400 });
-      }
-      repostId = created?.id ?? null;
-    } else {
+        .select("share_count")
+        .eq("id", postId)
+        .maybeSingle();
       return NextResponse.json(
-        { error: "No active room available in that community", share_count: next, permalink },
+        {
+          error: "No active room available in that community",
+          share_count: Number(row?.share_count ?? 0) || 0,
+          permalink,
+        },
         { status: 400 },
       );
     }
+
+    const attribution =
+      shareType === "community"
+        ? `Shared from ${sourceCommunity?.slug ? `@${sourceCommunity.slug}` : "Jimvio"}`
+        : "";
+    const { data: created, error: createError } = await db
+      .from("community_posts")
+      .insert({
+        community_id: targetCommunityId,
+        room_id: room.id,
+        space_id: room.space_id,
+        author_id: user.id,
+        body: post.body ?? "",
+        title: post.title ?? null,
+        images: post.images ?? null,
+        video_url: post.video_url ?? null,
+        post_type: "discussion",
+        quote_of_post_id: postId,
+        is_published: true,
+        published_at: new Date().toISOString(),
+        attachments: {
+          share_type: shareType,
+          source_post_id: postId,
+          source_community_id: post.community_id,
+          attribution,
+        },
+      })
+      .select("id")
+      .single();
+    if (createError) {
+      return NextResponse.json({ error: createError.message }, { status: 400 });
+    }
+    repostId = created?.id ?? null;
   }
+
+  // Analytics ledger — menu opens are never recorded; failed membership never reaches here.
+  const { error: shareInsertError } = await db.from("community_post_shares").insert({
+    post_id: postId,
+    user_id: user.id,
+    share_type: shareType,
+    target_community_id: body.communityId ?? null,
+  });
+  if (shareInsertError) {
+    console.error("[posts/share] ledger:", shareInsertError.message);
+  }
+
+  const { data: row } = await db
+    .from("community_posts")
+    .select("share_count")
+    .eq("id", postId)
+    .maybeSingle();
+
+  const next = ((row?.share_count as number | null | undefined) ?? 0) + 1;
+  await db
+    .from("community_posts")
+    .update({ share_count: next, updated_at: new Date().toISOString() })
+    .eq("id", postId);
 
   return NextResponse.json({
     ok: true,

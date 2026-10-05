@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom, canEngageWithRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
+import {
+  canAccessRoom,
+  canEngageWithCommunityPost,
+  canReadPublicCommunityRoom,
+} from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
 import { assertCanCommentInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -19,13 +23,20 @@ export async function GET(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("room_id")
+    .select("room_id, community_id")
     .eq("id", postId)
     .maybeSingle();
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const memberAccess = user ? await canAccessRoom(user.id, post.room_id) : false;
-  const publicAccess = memberAccess ? true : await canReadPublicCommunityRoom(post.room_id);
+  const publicAccess = memberAccess
+    ? true
+    : user
+      ? await canEngageWithCommunityPost(user.id, {
+          room_id: post.room_id,
+          community_id: post.community_id,
+        })
+      : await canReadPublicCommunityRoom(post.room_id);
   if (!memberAccess && !publicAccess) {
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
@@ -116,7 +127,11 @@ export async function POST(
     return NextResponse.json({ error: "Comments are disabled on this post" }, { status: 403 });
   }
 
-  const hasAccess = await canEngageWithRoom(user.id, post.room_id);
+  // Same hub-feed engagement gate as likes/share/views (public communities + members).
+  const hasAccess = await canEngageWithCommunityPost(user.id, {
+    room_id: post.room_id,
+    community_id: post.community_id,
+  });
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
   const memberAccess = await canAccessRoom(user.id, post.room_id);

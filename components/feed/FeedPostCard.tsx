@@ -207,6 +207,7 @@ function HubFeedArticle({
   post,
   index,
   shareOpen,
+  likePending = false,
   onToggleLike,
   onOpenComments,
   onOpenShare,
@@ -216,6 +217,7 @@ function HubFeedArticle({
   post: DisplayPost;
   index: number;
   shareOpen: boolean;
+  likePending?: boolean;
   onToggleLike: () => void;
   onOpenComments: () => void;
   onOpenShare: () => void;
@@ -361,10 +363,12 @@ function HubFeedArticle({
           <button
             type="button"
             onClick={onToggleLike}
+            disabled={likePending}
+            aria-busy={likePending || undefined}
             aria-label={post.liked ? "Unlike post" : "Like post"}
             aria-pressed={post.liked}
             className={cn(
-              "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+              "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 disabled:pointer-events-none disabled:opacity-60",
               post.liked ? "text-red-500" : "text-gray-500",
             )}
           >
@@ -438,6 +442,10 @@ export function FeedPostCard({
   const pullStartY = useRef<number | null>(null);
   const pullDistanceRef = useRef(0);
   const likeInFlightRef = useRef<Set<string>>(new Set());
+  /** Re-render gate so Like stays disabled while a request is in flight. */
+  const [likingPostIds, setLikingPostIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const filter = FEED_TAB_FILTERS[tab];
   const load = useCallback(async (nextCursor?: string | null, opts?: { soft?: boolean; refresh?: boolean }) => {
@@ -690,6 +698,11 @@ export function FeedPostCard({
     }
     if (likeInFlightRef.current.has(postId)) return;
     likeInFlightRef.current.add(postId);
+    setLikingPostIds((prev) => {
+      const nextSet = new Set(prev);
+      nextSet.add(postId);
+      return nextSet;
+    });
 
     const snapshot = posts.find((p) => p.id === postId);
     setPosts((prev) =>
@@ -755,6 +768,11 @@ export function FeedPostCard({
       }
     } finally {
       likeInFlightRef.current.delete(postId);
+      setLikingPostIds((prev) => {
+        const nextSet = new Set(prev);
+        nextSet.delete(postId);
+        return nextSet;
+      });
     }
   }
 
@@ -840,6 +858,7 @@ export function FeedPostCard({
           post={post}
           index={index}
           shareOpen={sharePostId === post.id}
+          likePending={likingPostIds.has(post.id)}
           onToggleLike={() => void toggleLike(post.id)}
           onOpenComments={() => setCommentPostId(post.id)}
           onOpenShare={() =>
