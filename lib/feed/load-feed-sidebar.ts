@@ -90,6 +90,7 @@ export async function loadFeedSidebarPopularUsers(
   const candidates: FeedSidebarPopularUser[] = [];
   const seen = new Set<string>();
   const seenDisplayNames = new Set<string>();
+  const seenFirstNames = new Set<string>();
 
   function isEditorialPersona(profile: ProfileRow | undefined): boolean {
     if (!profile) return false;
@@ -101,6 +102,11 @@ export async function loadFeedSidebarPopularUsers(
     return name.trim().toLowerCase().replace(/\s+/g, " ");
   }
 
+  function firstNameKey(name: string): string {
+    const first = normalizeDisplayName(name).split(" ")[0] ?? "";
+    return first.replace(/[^a-z0-9]/g, "");
+  }
+
   function pushCandidate(input: {
     userId: string;
     name: string;
@@ -108,14 +114,26 @@ export async function loadFeedSidebarPopularUsers(
     avatarUrl: string | null;
     followerCount: number;
     verified: boolean;
+    /** Priority pins may share a first name with others; still enforce unique ids. */
+    allowDuplicateFirstName?: boolean;
   }) {
     if (seen.has(input.userId) || input.userId === excludeUserId) return;
     if (candidates.length >= POPULAR_USER_COUNT) return;
     const nameKey = normalizeDisplayName(input.name);
+    const firstKey = firstNameKey(input.name);
     // Prefer distinct display names so the rail does not look artificial.
     if (nameKey && seenDisplayNames.has(nameKey)) return;
+    // Also avoid stacks of "Abdulahi …" / identical given names.
+    if (
+      firstKey &&
+      seenFirstNames.has(firstKey) &&
+      !input.allowDuplicateFirstName
+    ) {
+      return;
+    }
     seen.add(input.userId);
     if (nameKey) seenDisplayNames.add(nameKey);
+    if (firstKey) seenFirstNames.add(firstKey);
     candidates.push({
       userId: input.userId,
       name: input.name,
@@ -186,6 +204,7 @@ export async function loadFeedSidebarPopularUsers(
           follower_count: profile.follower_count,
         }),
         verified: Boolean(profile.is_verified),
+        allowDuplicateFirstName: true,
       });
     }
   }
