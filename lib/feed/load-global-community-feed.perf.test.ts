@@ -20,9 +20,10 @@ describe("global feed performance bounds", () => {
     assert.ok(Number.isFinite(maxRounds) && maxRounds <= 2);
   });
 
-  it("uses communities!inner for the public pool instead of UUID .in() chunks", () => {
-    assert.match(src, /communities!inner/);
+  it("uses flat post reads plus batched hydration instead of embed joins", () => {
+    assert.match(src, /hydratePosts/);
     assert.match(src, /fetchPublicRawBatch/);
+    assert.doesNotMatch(src, /communities!inner/);
     assert.doesNotMatch(src, /const MAX_POOL = 10_000/);
     assert.doesNotMatch(src, /const MAX_POOL = 2_500/);
   });

@@ -312,9 +312,11 @@ function PriceFilterChips({
 function TrendingCommunitiesRow({
   items,
   loading,
+  error,
 }: {
   items: CommunityRow[];
   loading?: boolean;
+  error?: string | null;
 }) {
   if (loading) {
     return (
@@ -333,6 +335,20 @@ function TrendingCommunitiesRow({
               <SkeletonCard />
             </div>
           ))}
+        </div>
+      </section>
+    );
+  }
+  if (error) {
+    return (
+      <section className="mb-8 sm:mb-10">
+        <div className="mb-4">
+          <h2 className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[18px]">
+            Trending communities
+          </h2>
+          <p className="mt-2 text-[13px] text-red-600" role="alert">
+            {error}
+          </p>
         </div>
       </section>
     );
@@ -499,6 +515,7 @@ export function CommunitiesDiscovery({
   const [myCommunitiesLoading, setMyCommunitiesLoading] = useState(false);
   const [trendingItems, setTrendingItems] = useState<CommunityRow[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
+  const [trendingError, setTrendingError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -528,9 +545,12 @@ export function CommunitiesDiscovery({
     let cancelled = false;
     (async () => {
       setTrendingLoading(true);
+      setTrendingError(null);
       try {
         const res = await fetch(`/api/c/hub/discover`, { cache: "no-store" });
         const json = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
           communities?: Array<{
             id: string;
             name: string;
@@ -544,9 +564,18 @@ export function CommunitiesDiscovery({
             is_free?: boolean | null;
             monthly_price?: number | null;
             currency?: string | null;
-          }>;
+          }> | null;
         };
         if (cancelled) return;
+        if (!res.ok || json.communities == null) {
+          setTrendingItems([]);
+          setTrendingError(
+            json.message ||
+              json.error ||
+              "Trending communities are temporarily unavailable. Please retry.",
+          );
+          return;
+        }
         const rows = Array.isArray(json.communities) ? json.communities : [];
         setTrendingItems(
           rows.map((row) => ({
@@ -569,7 +598,12 @@ export function CommunitiesDiscovery({
           }))
         );
       } catch {
-        if (!cancelled) setTrendingItems([]);
+        if (!cancelled) {
+          setTrendingItems([]);
+          setTrendingError(
+            "Trending communities are temporarily unavailable. Please retry.",
+          );
+        }
       } finally {
         if (!cancelled) setTrendingLoading(false);
       }
@@ -1017,6 +1051,7 @@ export function CommunitiesDiscovery({
               <TrendingCommunitiesRow
                 items={trendingItems}
                 loading={trendingLoading}
+                error={trendingError}
               />
             ) : null}
 

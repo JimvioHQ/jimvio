@@ -104,12 +104,102 @@ function isBeforeCursor(post: GlobalCommunityFeedPost, before: RawCursor): boole
   return post.id < before.id;
 }
 
-const POST_SELECT =
-  "id, community_id, author_id, created_at, body, attachments, audience, is_exclusive, space_id, post_type, like_count, comment_count, view_count, share_count, title, images, video_url, room_id, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities!inner(slug, name, is_private, is_active, visibility, visibility_mode, archived_at)";
+const POST_COLUMNS =
+  "id, community_id, author_id, created_at, body, attachments, audience, is_exclusive, space_id, post_type, like_count, comment_count, view_count, share_count, title, images, video_url, room_id";
+
+async function hydratePosts(
+  db: Db,
+  rows: GlobalCommunityFeedPost[],
+  signal?: AbortSignal,
+): Promise<GlobalCommunityFeedPost[]> {
+  if (!rows.length) return [];
+  const communityIds = [...new Set(rows.map((r) => r.community_id).filter(Boolean))];
+  const authorIds = [
+    ...new Set(rows.map((r) => r.author_id).filter((id): id is string => Boolean(id))),
+  ];
+
+  let communityQuery = communityIds.length
+    ? db
+        .from("communities")
+        .select(
+          "id, slug, name, is_private, is_active, visibility, visibility_mode, archived_at",
+        )
+        .in("id", communityIds)
+    : null;
+  let profileQuery = authorIds.length
+    ? db.from("profiles").select("id, full_name, avatar_url, username").in("id", authorIds)
+    : null;
+  if (signal && communityQuery) communityQuery = communityQuery.abortSignal(signal);
+  if (signal && profileQuery) profileQuery = profileQuery.abortSignal(signal);
+
+  const [communityRes, profileRes] = await Promise.all([
+    communityQuery ?? Promise.resolve({ data: [], error: null }),
+    profileQuery ?? Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (
+    signal?.aborted ||
+    isAbortLikeError(communityRes.error) ||
+    isAbortLikeError(profileRes.error)
+  ) {
+    throw new UpstreamUnavailableError(
+      "Feed hydration timed out waiting for the database",
+    );
+  }
+  if (communityRes.error) throw new Error(communityRes.error.message);
+  if (profileRes.error) throw new Error(profileRes.error.message);
+
+  const communitiesById = new Map(
+    ((communityRes.data ?? []) as Array<{
+      id: string;
+      slug: string | null;
+      name: string | null;
+      is_private: boolean | null;
+      is_active: boolean | null;
+      visibility: string | null;
+      visibility_mode: string | null;
+      archived_at: string | null;
+    }>).map((c) => [c.id, c]),
+  );
+  const profilesById = new Map(
+    ((profileRes.data ?? []) as Array<{
+      id: string;
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    }>).map((p) => [p.id, p]),
+  );
+
+  return rows.map((row) => {
+    const community = communitiesById.get(row.community_id) ?? null;
+    const profile = row.author_id ? profilesById.get(row.author_id) ?? null : null;
+    return {
+      ...row,
+      communities: community
+        ? {
+            slug: community.slug,
+            name: community.name,
+            is_private: community.is_private,
+            is_active: community.is_active,
+            visibility: community.visibility,
+            visibility_mode: community.visibility_mode,
+            archived_at: community.archived_at,
+          }
+        : null,
+      profiles: profile
+        ? {
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+            username: profile.username,
+          }
+        : null,
+    };
+  });
+}
 
 /**
- * Public discoverable posts via a single communities!inner join.
- * Avoids loading hundreds of community UUIDs into `.in()` chunks.
+ * Public posts via flat keyset read + batched community/profile lookups.
+ * Nested PostgREST embeds were timing out under DB saturation.
  */
 async function fetchPublicRawBatch(
   db: Db,
@@ -117,15 +207,13 @@ async function fetchPublicRawBatch(
   limit: number,
   signal?: AbortSignal,
 ): Promise<GlobalCommunityFeedPost[]> {
-  const fetchLimit = Math.min(limit + 32, 1000);
+  // Over-fetch slightly so privacy filtering still fills the ranking pool.
+  const fetchLimit = Math.min(Math.max(limit * 2, limit + 32), 400);
   let query = db
     .from("community_posts")
-    .select(POST_SELECT)
+    .select(POST_COLUMNS)
     .eq("is_published", true)
     .is("archived_at", null)
-    .eq("communities.is_active", true)
-    .is("communities.archived_at", null)
-    .or("communities.is_private.eq.false,communities.is_private.is.null")
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(fetchLimit);
@@ -144,8 +232,9 @@ async function fetchPublicRawBatch(
     );
   }
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as GlobalCommunityFeedPost[];
-  return before ? rows.filter((row) => isBeforeCursor(row, before)) : rows;
+  const raw = (data ?? []) as GlobalCommunityFeedPost[];
+  const keyed = before ? raw.filter((row) => isBeforeCursor(row, before)) : raw;
+  return hydratePosts(db, keyed, signal);
 }
 
 /**
@@ -166,7 +255,7 @@ async function fetchMemberRawBatch(
     chunks.map(async (ids) => {
       let query = db
         .from("community_posts")
-        .select(POST_SELECT)
+        .select(POST_COLUMNS)
         .in("community_id", ids)
         .eq("is_published", true)
         .is("archived_at", null)
@@ -201,7 +290,7 @@ async function fetchMemberRawBatch(
     merged.push(row);
     if (merged.length >= limit) break;
   }
-  return merged;
+  return hydratePosts(db, merged, signal);
 }
 
 async function loadEligiblePostPool(
@@ -326,7 +415,7 @@ export async function loadGlobalCommunityFeed(
   const asOf = params.cursor ? parsed.asOf : now;
   const offset = parsed.offset;
 
-  // Public pool uses communities!inner — no full public-ID scan required.
+  // Public pool uses a flat post keyset + batched lookups.
   // Only resolve which memberships are private (usually a tiny IN list).
   const memberIds = (params.memberCommunityIds ?? []).filter(Boolean);
   let memberOnlyIds: string[] = [];
@@ -353,8 +442,8 @@ export async function loadGlobalCommunityFeed(
     }
   }
 
-  // Public pool uses communities!inner (no ID fan-out). Member-private pool
-  // only runs when the viewer has private memberships outside the public set.
+  // Public pool is a flat keyset read. Member-private pool only runs when the
+  // viewer has private memberships outside the public set.
   const [publicPool, memberPool] = await Promise.all([
     loadEligiblePostPool(db, { mode: "public", asOf, signal: params.signal }),
     memberOnlyIds.length
