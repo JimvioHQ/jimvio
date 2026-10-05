@@ -445,6 +445,9 @@ export class LiveMediaPlane {
             ? "window"
             : "monitor";
       const high = options?.quality !== "standard";
+      // Native picker exposes Chrome Tab / Window / Entire Screen where the
+      // browser/OS supports them. PreferCurrentTab stays off so the Live room
+      // tab itself is not the default (avoids recursive capture).
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: surface,
@@ -452,23 +455,18 @@ export class LiveMediaPlane {
           height: { ideal: high ? 1080 : 720 },
           frameRate: { ideal: high ? 30 : 24 },
         } as MediaTrackConstraints,
+        // Browser may offer tab audio when a Chrome Tab is selected.
         audio: true,
-        // Prevent picking this browser tab (avoids recursive Live Room capture).
         preferCurrentTab: false,
         selfBrowserSurface: "exclude",
+        ...(options?.target === "browser_tab"
+          ? { monitorTypeSurfaces: "exclude" }
+          : {}),
       } as DisplayMediaStreamOptions);
       this.stopShareTracks();
       this.shareStream = stream;
       const vt = stream.getVideoTracks()[0];
       if (vt) {
-        const settings = vt.getSettings?.() as { displaySurface?: string } | undefined;
-        if (settings?.displaySurface === "browser") {
-          this.lastError =
-            "Sharing this browser tab can mirror the live room. Choose a window or entire screen instead.";
-          this.stopShareTracks();
-          this.emit();
-          return false;
-        }
         vt.addEventListener("ended", () => {
           this.stopScreenShare();
         });

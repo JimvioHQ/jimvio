@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Loader2, MessageSquare, Share2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Facebook,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Share2,
+  Users,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +33,26 @@ type ShareThread = {
   avatarUrl: string | null;
   subtitle: string | null;
   communitySlug: string;
+  roomId?: string | null;
 };
+
+function openExternalShare(
+  kind: "whatsapp" | "facebook" | "x" | "email",
+  url: string,
+  title: string
+) {
+  const encoded = encodeURIComponent(url);
+  const text = encodeURIComponent(`${title || "Jimvio Live"} — ${url}`);
+  const href =
+    kind === "whatsapp"
+      ? `https://wa.me/?text=${text}`
+      : kind === "facebook"
+        ? `https://www.facebook.com/sharer/sharer.php?u=${encoded}`
+        : kind === "x"
+          ? `https://twitter.com/intent/tweet?url=${encoded}&text=${encodeURIComponent(title || "Jimvio Live")}`
+          : `mailto:?subject=${encodeURIComponent(title || "Jimvio Live")}&body=${encoded}`;
+  window.open(href, "_blank", "noopener,noreferrer");
+}
 
 export function LiveShareSheet({
   open,
@@ -51,6 +79,7 @@ export function LiveShareSheet({
   const [threads, setThreads] = useState<ShareThread[]>([]);
   const [q, setQ] = useState("");
   const [nativeAvailable, setNativeAvailable] = useState(false);
+  const [tab, setTab] = useState<"people" | "spaces">("people");
 
   const url = sessionId ? canonicalLiveUrl(sessionId) : "";
 
@@ -66,6 +95,7 @@ export function LiveShareSheet({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setQ("");
+    setTab("people");
     void (async () => {
       try {
         const res = await fetch("/api/c/messages");
@@ -74,7 +104,6 @@ export function LiveShareSheet({
         if (!cancelled) {
           setThreads(
             (data.threads ?? []).filter((t) => {
-              if (t.kind !== "direct") return false;
               if (!communityBound) return true;
               return Boolean(t.communitySlug);
             })
@@ -91,15 +120,30 @@ export function LiveShareSheet({
     };
   }, [open, communityBound]);
 
+  const directThreads = useMemo(
+    () => threads.filter((t) => t.kind === "direct"),
+    [threads]
+  );
+  const spaceThreads = useMemo(
+    () =>
+      threads.filter(
+        (t) =>
+          (t.kind === "group" || t.kind === "space") && Boolean(t.roomId)
+      ),
+    [threads]
+  );
+
+  const list = tab === "people" ? directThreads : spaceThreads;
+
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    if (!needle) return threads;
-    return threads.filter(
+    if (!needle) return list;
+    return list.filter(
       (t) =>
         t.name.toLowerCase().includes(needle) ||
         (t.subtitle ?? "").toLowerCase().includes(needle)
     );
-  }, [threads, q]);
+  }, [list, q]);
 
   async function copyLink() {
     if (!url) {
@@ -143,10 +187,20 @@ export function LiveShareSheet({
     if (!sessionId || sendingId) return;
     setSendingId(thread.id);
     try {
+      const payload =
+        thread.kind === "direct"
+          ? { conversationId: thread.id }
+          : thread.roomId
+            ? { roomId: thread.roomId }
+            : null;
+      if (!payload) {
+        onError(LIVE_SHARE_CLIENT_MESSAGE.conversation_unavailable);
+        return;
+      }
       const res = await fetch(`/api/c/live/sessions/${sessionId}/share`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId: thread.id }),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
@@ -173,7 +227,7 @@ export function LiveShareSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-black">Share Live</DialogTitle>
+          <DialogTitle className="text-lg font-black">Invite to Live</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2">
@@ -192,20 +246,66 @@ export function LiveShareSheet({
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] text-[13px] font-semibold hover:bg-[var(--color-surface-secondary)]"
             >
               <Share2 className="h-4 w-4" />
-              Device share
+              Share
             </button>
           )}
         </div>
 
+        {url ? (
+          <div className="grid grid-cols-4 gap-2">
+            {(
+              [
+                { id: "whatsapp" as const, label: "WhatsApp", icon: MessageSquare },
+                { id: "x" as const, label: "X", icon: Share2 },
+                { id: "facebook" as const, label: "Facebook", icon: Facebook },
+                { id: "email" as const, label: "Email", icon: Mail },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => openExternalShare(item.id, url, title)}
+                className="flex flex-col items-center gap-1 rounded-xl border border-[var(--color-border)] px-1 py-2 text-[10px] font-semibold text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div>
-          <p className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-            <MessageSquare className="h-3.5 w-3.5" />
-            Message
-          </p>
+          <div className="mb-2 flex gap-1">
+            <button
+              type="button"
+              onClick={() => setTab("people")}
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
+                tab === "people"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600"
+              }`}
+            >
+              Invite user
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("spaces")}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold ${
+                tab === "spaces"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600"
+              }`}
+            >
+              <Users className="h-3 w-3" />
+              Share to Space
+            </button>
+          </div>
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search conversations…"
+            placeholder={
+              tab === "spaces" ? "Search spaces…" : "Search conversations…"
+            }
             className="mb-2 h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--color-accent,#fd5000)]/20"
           />
           {loading ? (
@@ -214,7 +314,9 @@ export function LiveShareSheet({
             </div>
           ) : filtered.length === 0 ? (
             <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
-              No conversations yet. Copy the link instead.
+              {tab === "spaces"
+                ? "No accessible Spaces with chat yet. Copy the link instead."
+                : "No conversations yet. Copy the link instead."}
             </p>
           ) : (
             <div className="max-h-72 space-y-1 overflow-y-auto">
@@ -230,7 +332,8 @@ export function LiveShareSheet({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-bold">{t.name}</p>
                     <p className="truncate text-[11px] text-[var(--color-text-muted)]">
-                      {t.subtitle ?? "Direct message"}
+                      {t.subtitle ??
+                        (t.kind === "direct" ? "Direct message" : "Space")}
                     </p>
                   </div>
                   {sendingId === t.id && (

@@ -9,18 +9,19 @@ import {
   Fullscreen,
   HelpCircle,
   LogOut,
+  MessageSquare,
   Mic,
   MicOff,
   MoreHorizontal,
   MousePointer2,
   PenLine,
   Presentation,
-  MessageSquare,
   ScreenShare,
   ScreenShareOff,
   Share2,
   Smile,
   Timer,
+  Users,
   UsersRound,
   Video,
   VideoOff,
@@ -56,6 +57,7 @@ function ControlDockImpl({
   sharing,
   focusMode,
   canPublish = true,
+  dark = false,
   onMic,
   onCam,
   onShare,
@@ -66,6 +68,8 @@ function ControlDockImpl({
   onInvite,
   onChat,
   chatOpen = false,
+  onPeople,
+  participantCount,
   onReact,
   onQa,
   onCopyLink,
@@ -88,6 +92,7 @@ function ControlDockImpl({
   sharing?: boolean;
   focusMode?: boolean;
   canPublish?: boolean;
+  dark?: boolean;
   onMic: () => void;
   onCam: () => void;
   onShare: () => void;
@@ -98,6 +103,8 @@ function ControlDockImpl({
   onInvite: () => void;
   onChat?: () => void;
   chatOpen?: boolean;
+  onPeople?: () => void;
+  participantCount?: number;
   onReact?: () => void;
   onQa?: () => void;
   onCopyLink?: () => void;
@@ -118,14 +125,17 @@ function ControlDockImpl({
   const showAv = canPublish;
 
   return (
-    <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-2.5")}>
+    <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-1")}>
       <div
         role="toolbar"
         aria-label="Live session controls"
         className={cn(
-          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(15,23,42,0.10)] sm:gap-1 sm:px-2.5 sm:py-2",
+          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl px-2 py-1.5 sm:gap-1 sm:px-2.5 sm:py-2",
           MOTION,
-          "scrollbar-hide"
+          "scrollbar-hide",
+          dark
+            ? "bg-[#0b1220]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/10"
+            : "bg-white shadow-[0_8px_30px_rgba(15,23,42,0.10)]"
         )}
       >
         {(activity === "live" || activity === "share" || activity === "present") && showAv && (
@@ -136,6 +146,7 @@ function ControlDockImpl({
               onClick={onMic}
               label={micOn ? "Mute" : "Unmute"}
               hint="M"
+              dark={dark}
             >
               {micOn ? (
                 <Mic className={icon} strokeWidth={sw} aria-hidden />
@@ -149,6 +160,7 @@ function ControlDockImpl({
               onClick={onCam}
               label={camOn ? "Stop Video" : "Start Video"}
               hint="V"
+              dark={dark}
             >
               {camOn ? (
                 <Video className={icon} strokeWidth={sw} aria-hidden />
@@ -165,26 +177,47 @@ function ControlDockImpl({
               <DockBtn
                 pressed={sharing}
                 success={sharing}
-                onClick={onShare}
-                label="Share Screen"
+                onClick={sharing ? onStopShare : onShare}
+                label={sharing ? "Stop Share" : "Share Screen"}
                 hint="S"
+                dark={dark}
               >
-                <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
+                {sharing ? (
+                  <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
+                ) : (
+                  <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
+                )}
               </DockBtn>
             ) : null}
             {onCopyLink && (
-              <DockBtn onClick={onCopyLink} label="Share">
+              <DockBtn onClick={onCopyLink} label="Share" dark={dark}>
                 <Share2 className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             )}
-            <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex">
+            <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex" dark={dark}>
               <UsersRound className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
+            {onPeople ? (
+              <DockBtn
+                onClick={onPeople}
+                label="Participants"
+                className="hidden sm:flex"
+                dark={dark}
+                badge={
+                  typeof participantCount === "number" && participantCount > 0
+                    ? participantCount
+                    : undefined
+                }
+              >
+                <Users className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
             {onChat ? (
               <DockBtn
                 pressed={chatOpen}
                 onClick={onChat}
                 label={chatOpen ? "Close chat" : "Chat"}
+                dark={dark}
               >
                 <MessageSquare className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
@@ -195,26 +228,27 @@ function ControlDockImpl({
               onClick={onRecord}
               label="Record"
               hint="R"
+              dark={dark}
             >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             {onReact ? (
-              <DockBtn onClick={onReact} label="React" className="hidden md:flex">
+              <DockBtn onClick={onReact} label="Reactions" className="hidden md:flex" dark={dark}>
                 <Smile className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
             {onPoll ? (
-              <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex">
+              <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex" dark={dark}>
                 <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
             {onQa ? (
-              <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex">
+              <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex" dark={dark}>
                 <HelpCircle className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
             {onMore ? (
-              <DockBtn onClick={onMore} label="More" className="hidden lg:flex">
+              <DockBtn onClick={onMore} label="More" className="hidden lg:flex" dark={dark}>
                 <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
@@ -310,23 +344,29 @@ function ControlDockImpl({
           </>
         )}
 
-        <span className="mx-1 hidden h-8 w-px bg-neutral-200/80 sm:block" aria-hidden />
+        <span
+          className={cn(
+            "mx-1 hidden h-8 w-px sm:block",
+            dark ? "bg-white/10" : "bg-neutral-200/80"
+          )}
+          aria-hidden
+        />
 
         {canEnd ? (
           <button
             type="button"
-            title="End Room"
+            title="End Live"
             aria-label="End live session"
             onClick={onEnd}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#FF5A1F] px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
               FOCUS_RING,
-              "hover:bg-accent-hover active:scale-[0.98] sm:h-11 sm:px-5"
+              "hover:bg-[#e04e1a] active:scale-[0.98] sm:h-11 sm:px-5"
             )}
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden sm:inline">End Room</span>
+            <span className="hidden sm:inline">End Live</span>
             <span className="sm:hidden">End</span>
           </button>
         ) : (
@@ -336,10 +376,13 @@ function ControlDockImpl({
             aria-label="Leave live session"
             onClick={onLeave}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-neutral-900 px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold tracking-[-0.01em]",
               MOTION,
               FOCUS_RING,
-              "hover:bg-neutral-800 active:scale-[0.98] sm:h-11 sm:px-5"
+              "active:scale-[0.98] sm:h-11 sm:px-5",
+              dark
+                ? "bg-white/10 text-white hover:bg-white/15"
+                : "bg-neutral-900 text-white hover:bg-neutral-800"
             )}
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />
@@ -362,6 +405,8 @@ function DockBtn({
   success,
   onClick,
   className,
+  dark,
+  badge,
 }: {
   children: React.ReactNode;
   label: string;
@@ -373,6 +418,8 @@ function DockBtn({
   success?: boolean;
   onClick?: () => void;
   className?: string;
+  dark?: boolean;
+  badge?: number;
 }) {
   return (
     <button
@@ -382,37 +429,39 @@ function DockBtn({
       aria-pressed={typeof pressed === "boolean" ? pressed : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 sm:min-w-[56px]",
+        "relative inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 sm:min-w-[56px]",
         MOTION,
         FOCUS_RING,
         "hover:scale-[1.01] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
         off
-          ? "bg-red-500/10 text-red-600"
+          ? dark
+            ? "bg-red-500/20 text-red-300"
+            : "bg-red-500/10 text-red-600"
           : accent
             ? "bg-neutral-900 text-white"
             : recording
               ? "bg-red-500 text-white"
               : success
-                ? "bg-emerald-500/10 text-emerald-600"
-                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+                ? dark
+                  ? "bg-emerald-500/20 text-emerald-300"
+                  : "bg-emerald-500/10 text-emerald-600"
+                : dark
+                  ? pressed
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
         className
       )}
     >
       {children}
-      <span
-        className={cn(
-          "max-w-[68px] truncate text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
-          off
-            ? "text-red-600"
-            : accent || recording
-              ? "text-white/90"
-              : success
-                ? "text-emerald-600"
-                : "text-neutral-400"
-        )}
-      >
+      <span className="max-w-[64px] truncate text-[9px] font-medium leading-none sm:text-[10px]">
         {label}
       </span>
+      {typeof badge === "number" ? (
+        <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-[#FF5A1F] px-1 text-center text-[9px] font-semibold leading-4 text-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </button>
   );
 }

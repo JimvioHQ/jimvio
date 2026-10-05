@@ -84,6 +84,8 @@ export function LiveMobileDock({
   onCam,
   onShare,
   onStopShare,
+  screenShareSupported = true,
+  screenShareReason = null,
   onChat,
   onReact,
   onShareLink,
@@ -104,6 +106,8 @@ export function LiveMobileDock({
   onCam?: () => void;
   onShare?: () => void;
   onStopShare?: () => void;
+  screenShareSupported?: boolean;
+  screenShareReason?: string | null;
   onChat?: () => void;
   onReact?: () => void;
   onShareLink?: () => void;
@@ -160,8 +164,12 @@ export function LiveMobileDock({
       : camLabel;
 
   const handleShare = () => {
-    if (sharing) onStopShare?.();
-    else onShare?.();
+    if (sharing) {
+      onStopShare?.();
+      return;
+    }
+    if (!screenShareSupported) return;
+    onShare?.();
   };
 
   return (
@@ -225,8 +233,25 @@ export function LiveMobileDock({
               return (
                 <DockAction
                   key={id}
-                  label={sharing ? "Stop" : "Share"}
-                  onClick={handleShare}
+                  label={
+                    sharing
+                      ? "Stop"
+                      : screenShareSupported
+                        ? "Share"
+                        : "No share"
+                  }
+                  title={
+                    sharing
+                      ? "Stop sharing"
+                      : screenShareSupported
+                        ? "Share screen"
+                        : (screenShareReason ??
+                          "Screen sharing is not supported on this device")
+                  }
+                  onClick={
+                    sharing || screenShareSupported ? handleShare : undefined
+                  }
+                  disabled={!sharing && !screenShareSupported}
                   active={Boolean(sharing)}
                 >
                   {sharing ? (

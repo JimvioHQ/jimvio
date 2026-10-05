@@ -216,18 +216,6 @@ export function AnalyticsPanel({ analytics }: { analytics: LiveDashboard["analyt
   );
 }
 
-type PeopleRoleFilter = "all" | "speaker" | "cohost" | "moderator" | "viewer" | "host";
-
-function normalizePeopleRole(role: string | undefined | null): PeopleRoleFilter | "member" {
-  const key = String(role || "").toLowerCase();
-  if (key === "host") return "host";
-  if (key === "cohost" || key === "co-host") return "cohost";
-  if (key === "speaker") return "speaker";
-  if (key === "moderator") return "moderator";
-  if (key === "viewer") return "viewer";
-  return "member";
-}
-
 export function PeoplePanel({
   speakers,
   viewers,
@@ -279,28 +267,15 @@ export function PeoplePanel({
   onRemove?: (id: string) => void;
   ui?: Record<string, SpeakerUi>;
 }) {
-  const [roleFilter, setRoleFilter] = useState<PeopleRoleFilter>("all");
   const q = query.trim().toLowerCase();
-  const filtered = speakers.filter((s) => {
-    if (!s.name.toLowerCase().includes(q)) return false;
-    if (roleFilter === "all") return true;
-    const role = normalizePeopleRole(ui?.[s.id]?.role || s.role);
-    if (roleFilter === "speaker") return role === "speaker" || role === "host";
-    return role === roleFilter;
-  });
+  // People shows everyone — role filters stay internal for permissions only.
+  const filtered = speakers.filter((s) => s.name.toLowerCase().includes(q));
   const filteredRequests = (pendingRequests ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
   const filteredWaiting = (waitingRoom ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
-  const ROLE_FILTERS: { id: PeopleRoleFilter; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "speaker", label: "Speaker" },
-    { id: "cohost", label: "Co-host" },
-    { id: "moderator", label: "Moderator" },
-    { id: "viewer", label: "Viewer" },
-  ];
   return (
     <div className="space-y-3">
       <input
@@ -355,33 +330,14 @@ export function PeoplePanel({
           )}
         </div>
       )}
-      <div
-        role="tablist"
-        aria-label="Participant role filter"
-        className="flex flex-wrap gap-1 px-0.5"
-      >
-        {ROLE_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            role="tab"
-            aria-selected={roleFilter === f.id}
-            onClick={() => setRoleFilter(f.id)}
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
-              FOCUS_RING,
-              roleFilter === f.id
-                ? "bg-neutral-900 text-white"
-                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <span className="rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-white">
+          All
+        </span>
+        <p className="text-[12px] tabular-nums text-neutral-400">
+          {formatCount(viewers)} watching
+        </p>
       </div>
-      <p className="px-1 text-[12px] text-neutral-400">
-        {formatCount(viewers)} watching
-      </p>
       {filteredWaiting.length > 0 && (
         <div className="space-y-0.5">
           <div className="flex items-center justify-between px-1">
@@ -697,6 +653,45 @@ export function LayoutPanel({
   );
 }
 
+function permissionLabel(
+  access: "idle" | "requesting" | "granted" | "denied" | "not_found" | "unavailable" | "overconstrained" | "security" | "unknown" | undefined
+): string {
+  switch (access) {
+    case "granted":
+      return "Allowed";
+    case "denied":
+      return "Denied";
+    case "requesting":
+      return "Requesting…";
+    case "not_found":
+      return "No device";
+    case "unavailable":
+      return "Unavailable";
+    case "security":
+      return "Blocked";
+    case "idle":
+    default:
+      return "Not requested";
+  }
+}
+
+function SettingsSection({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+        {label}
+      </p>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+}
+
 export function SettingsPanel({
   title,
   onSaveTitle,
@@ -714,6 +709,10 @@ export function SettingsPanel({
   sharing,
   onStartShare,
   onStopShare,
+  screenShareSupported = true,
+  screenShareReason = null,
+  audioAccess,
+  videoAccess,
   chatEnabled = true,
   onChatEnabled,
   canManageChat = false,
@@ -738,6 +737,28 @@ export function SettingsPanel({
   sharing?: boolean;
   onStartShare?: () => void;
   onStopShare?: () => void;
+  screenShareSupported?: boolean;
+  screenShareReason?: string | null;
+  audioAccess?:
+    | "idle"
+    | "requesting"
+    | "granted"
+    | "denied"
+    | "not_found"
+    | "unavailable"
+    | "overconstrained"
+    | "security"
+    | "unknown";
+  videoAccess?:
+    | "idle"
+    | "requesting"
+    | "granted"
+    | "denied"
+    | "not_found"
+    | "unavailable"
+    | "overconstrained"
+    | "security"
+    | "unknown";
   chatEnabled?: boolean;
   onChatEnabled?: (enabled: boolean) => void;
   canManageChat?: boolean;
@@ -753,10 +774,7 @@ export function SettingsPanel({
   return (
     <div className="space-y-5 px-1 pb-4">
       {canEditTitle && onSaveTitle ? (
-        <div>
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-            Live title
-          </p>
+        <SettingsSection label="Live">
           <div className="flex gap-2">
             <input
               value={draftTitle}
@@ -795,127 +813,166 @@ export function SettingsPanel({
             </button>
           </div>
           {titleMsg ? (
-            <p className="mt-1.5 text-[11px] text-neutral-500" role="status">
+            <p className="text-[11px] text-neutral-500" role="status">
               {titleMsg}
             </p>
           ) : null}
-        </div>
+        </SettingsSection>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-          Audio
-        </p>
-        <div className="space-y-1.5">
-          {onToggleMic ? (
-            <button
-              type="button"
-              onClick={onToggleMic}
-              className={cn(
-                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-                FOCUS_RING
-              )}
-            >
-              Microphone
-              <span className="text-[11px] font-semibold text-neutral-500">
-                {micOn ? "On" : "Off"}
-              </span>
-            </button>
-          ) : null}
-          {audioDevices.length > 0 && onSwitchMic ? (
-            <select
-              value={activeAudioId ?? audioDevices[0]?.deviceId ?? ""}
-              onChange={(e) => onSwitchMic(e.target.value)}
-              aria-label="Select microphone"
-              className={cn(
-                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[12px]",
-                FOCUS_RING
-              )}
-            >
-              {audioDevices.map((d) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="px-1 text-[12px] text-neutral-400">
-              Enable mic to list devices.
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-          Video
-        </p>
-        <div className="space-y-1.5">
-          {onToggleCam ? (
-            <button
-              type="button"
-              onClick={onToggleCam}
-              className={cn(
-                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-                FOCUS_RING
-              )}
-            >
-              Camera
-              <span className="text-[11px] font-semibold text-neutral-500">
-                {camOn ? "On" : "Off"}
-              </span>
-            </button>
-          ) : null}
-          {videoDevices.length > 0 && onSwitchCam ? (
-            <select
-              value={activeVideoId ?? videoDevices[0]?.deviceId ?? ""}
-              onChange={(e) => onSwitchCam(e.target.value)}
-              aria-label="Select camera"
-              className={cn(
-                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[12px]",
-                FOCUS_RING
-              )}
-            >
-              {videoDevices.map((d) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="px-1 text-[12px] text-neutral-400">
-              Enable camera to list devices.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {(onStartShare || onStopShare) && (
-        <div>
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-            Screen share
-          </p>
+      <SettingsSection label="Audio">
+        {onToggleMic ? (
           <button
             type="button"
-            onClick={sharing ? onStopShare : onStartShare}
+            onClick={onToggleMic}
             className={cn(
               "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
               FOCUS_RING
             )}
           >
-            {sharing ? "Stop sharing" : "Share screen"}
+            Microphone
             <span className="text-[11px] font-semibold text-neutral-500">
-              {sharing ? "Active" : "Off"}
+              {micOn ? "On" : "Off"}
             </span>
           </button>
-        </div>
+        ) : null}
+        <p className="px-1 text-[11px] text-neutral-400">
+          Permission: {permissionLabel(audioAccess)}
+        </p>
+        {audioDevices.length > 0 && onSwitchMic ? (
+          <div className="space-y-1" role="radiogroup" aria-label="Microphone">
+            {audioDevices.map((d) => {
+              const selected = (activeAudioId ?? audioDevices[0]?.deviceId) === d.deviceId;
+              return (
+                <button
+                  key={d.deviceId}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onSwitchMic(d.deviceId)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px] hover:bg-neutral-50",
+                    FOCUS_RING,
+                    selected && "bg-neutral-100 font-semibold"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-3.5 w-3.5 shrink-0 rounded-full border",
+                      selected
+                        ? "border-neutral-900 bg-neutral-900"
+                        : "border-neutral-300"
+                    )}
+                    aria-hidden
+                  />
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="px-1 text-[12px] text-neutral-400">
+            Turn on the microphone to list input devices.
+          </p>
+        )}
+      </SettingsSection>
+
+      <SettingsSection label="Video">
+        {onToggleCam ? (
+          <button
+            type="button"
+            onClick={onToggleCam}
+            className={cn(
+              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+              FOCUS_RING
+            )}
+          >
+            Camera
+            <span className="text-[11px] font-semibold text-neutral-500">
+              {camOn ? "On" : "Off"}
+            </span>
+          </button>
+        ) : null}
+        <p className="px-1 text-[11px] text-neutral-400">
+          Permission: {permissionLabel(videoAccess)}
+        </p>
+        {videoDevices.length > 0 && onSwitchCam ? (
+          <div className="space-y-1" role="radiogroup" aria-label="Camera">
+            {videoDevices.map((d) => {
+              const selected = (activeVideoId ?? videoDevices[0]?.deviceId) === d.deviceId;
+              return (
+                <button
+                  key={d.deviceId}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onSwitchCam(d.deviceId)}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px] hover:bg-neutral-50",
+                    FOCUS_RING,
+                    selected && "bg-neutral-100 font-semibold"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex h-3.5 w-3.5 shrink-0 rounded-full border",
+                      selected
+                        ? "border-neutral-900 bg-neutral-900"
+                        : "border-neutral-300"
+                    )}
+                    aria-hidden
+                  />
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="px-1 text-[12px] text-neutral-400">
+            Turn on the camera to list video devices.
+          </p>
+        )}
+      </SettingsSection>
+
+      {(onStartShare || onStopShare) && (
+        <SettingsSection label="Screen share">
+          <p className="px-1 text-[11px] text-neutral-400">
+            Status:{" "}
+            {sharing
+              ? "Sharing"
+              : screenShareSupported
+                ? "Supported"
+                : "Unsupported"}
+          </p>
+          {!screenShareSupported && screenShareReason ? (
+            <p className="rounded-xl bg-neutral-50 px-3 py-2 text-[12px] text-neutral-600">
+              {screenShareReason}
+            </p>
+          ) : null}
+          {screenShareSupported ? (
+            <button
+              type="button"
+              onClick={sharing ? onStopShare : onStartShare}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+                FOCUS_RING
+              )}
+            >
+              {sharing ? "Stop sharing" : "Share screen"}
+              <span className="text-[11px] font-semibold text-neutral-500">
+                {sharing ? "Active" : "Off"}
+              </span>
+            </button>
+          ) : null}
+          <p className="px-1 text-[11px] text-neutral-400">
+            Uses your browser’s source picker (tab, window, or entire screen when
+            available). Tab audio is included only when the browser offers it.
+          </p>
+        </SettingsSection>
       )}
 
       {canManageChat && onChatEnabled ? (
-        <div>
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-            Chat
-          </p>
+        <SettingsSection label="Chat">
           <button
             type="button"
             onClick={() => onChatEnabled(!chatEnabled)}
@@ -929,8 +986,23 @@ export function SettingsPanel({
               {chatEnabled ? "On" : "Off"}
             </span>
           </button>
-        </div>
+        </SettingsSection>
       ) : null}
+
+      <SettingsSection label="Permissions">
+        <div className="space-y-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] text-neutral-600">
+          <p>Microphone — {permissionLabel(audioAccess)}</p>
+          <p>Camera — {permissionLabel(videoAccess)}</p>
+          <p>
+            Screen share —{" "}
+            {sharing
+              ? "Active"
+              : screenShareSupported
+                ? "Supported"
+                : "Unsupported"}
+          </p>
+        </div>
+      </SettingsSection>
     </div>
   );
 }

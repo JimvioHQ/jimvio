@@ -6,11 +6,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
+  Crown,
   Fullscreen,
   Loader2,
   Menu,
   MessageSquare,
-  MonitorPlay,
   MoreHorizontal,
   Settings,
   Share2,
@@ -41,8 +41,7 @@ import { presenceToChatMessages } from "@/lib/live/presence-events";
 import { sortMessagesChronologically } from "@/lib/live/chat-message-state";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
-import { canonicalLiveUrl } from "@/lib/live/live-url";
-import { copyTextToClipboard } from "@/lib/live/native-share";
+import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
 import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
@@ -85,7 +84,7 @@ import {
   ScreenShareMenu,
 } from "@/components/community/live-collab";
 import { useLiveCollabStore } from "@/lib/community/live-collab";
-import { SpeakerStrip } from "./live/SpeakerStrip";
+import { LiveParticipantGallery } from "./live/LiveParticipantGallery";
 import {
   LEFT_TOOLS,
   RIGHT_TABS,
@@ -212,9 +211,13 @@ export function HubLivePage({
     return hasLiveVideo ? candidate : null;
   })();
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+  const loadDashboard = useCallback(async (opts?: { soft?: boolean }) => {
+    const soft = Boolean(opts?.soft);
+    // Soft refresh must not blank the Live room UI.
+    if (!soft) {
+      setLoading(true);
+      setLoadError(null);
+    }
     try {
       const qs = communitySlugProp
         ? `?slug=${encodeURIComponent(communitySlugProp)}`
@@ -222,12 +225,13 @@ export function HubLivePage({
       const res = await fetch(`/api/c/live${qs}`);
       if (!res.ok) {
         setLoadError("server");
-        setData(normalizeHubLiveDashboard(null));
+        if (!soft) setData(normalizeHubLiveDashboard(null));
         return;
       }
       const json = (await res.json()) as LiveDashboard;
       const normalized = normalizeHubLiveDashboard(json);
       setData(normalized);
+      setLoadError(null);
       const hostSpeaker = normalized.speakers.find(
         (s) => s.role === "host" || s.role === "Host"
       );
@@ -235,9 +239,9 @@ export function HubLivePage({
       else if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
     } catch {
       setLoadError("network");
-      setData(normalizeHubLiveDashboard(null));
+      if (!soft) setData(normalizeHubLiveDashboard(null));
     } finally {
-      setLoading(false);
+      if (!soft) setLoading(false);
     }
   }, [communitySlugProp]);
 
@@ -721,8 +725,20 @@ export function HubLivePage({
 
   const recordingActive = recording || egressRecording;
 
+  const [screenShareCapability, setScreenShareCapability] = useState(() =>
+    detectScreenShareCapability()
+  );
+  useEffect(() => {
+    setScreenShareCapability(detectScreenShareCapability());
+  }, []);
+
   const startShare = useCallback(async () => {
     if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
+    const capability = detectScreenShareCapability();
+    if (!capability.supported) {
+      showToast(capability.reason ?? "Screen sharing is not supported on this device");
+      return;
+    }
     const prefs = useLiveCollabStore.getState();
     const ok = await media.startScreenShare({
       target: prefs.shareTarget,
@@ -865,7 +881,7 @@ export function HubLivePage({
       }
       setElapsed(0);
       showToast(communityId ? "You are live" : "Creator Live started");
-      void loadDashboard();
+      void loadDashboard({ soft: true });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not start live";
       // Recover from race / orphaned live — open the active session.
@@ -1338,22 +1354,6 @@ export function HubLivePage({
     return RIGHT_TABS.filter((t) => t.id === "chat");
   }, []);
 
-  const copyLiveLink = useCallback(async () => {
-    if (!live.session?.id) {
-      showToast("No live session to share");
-      return;
-    }
-    const url = canonicalLiveUrl(live.session.id);
-    const ok = await copyTextToClipboard(url);
-    if (!ok) {
-      showToast("Could not copy the Live link.");
-      return;
-    }
-    setCopied(true);
-    showToast("Link copied");
-    setTimeout(() => setCopied(false), 1600);
-  }, [live.session?.id, showToast]);
-
   const openShareSheet = useCallback(() => {
     if (!live.session?.id) {
       showToast("No live session to share");
@@ -1427,6 +1427,35 @@ export function HubLivePage({
   const stageHostName = hostSpeaker?.name ?? session.host;
   const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
 
+  /** Camera streams for gallery tiles — real LiveKit remotes + local if not host. */
+  const participantStreams = useMemo(() => {
+    const map: Record<string, MediaStream | null> = {};
+    for (const r of livekit.remotes) {
+      map[r.identity] = r.cameraStream;
+    }
+    if (live.userId && live.userId !== hostUserId && media.camOn && media.cameraStream) {
+      map[live.userId] = media.cameraStream;
+    }
+    return map;
+  }, [livekit.remotes, live.userId, hostUserId, media.camOn, media.cameraStream]);
+
+  const galleryParticipants = useMemo(() => {
+    const source = peopleList.length ? peopleList : speakers;
+    return source.filter((p) => p.id !== hostUserId);
+  }, [peopleList, speakers, hostUserId]);
+
+  const participantCountLabel = useMemo(() => {
+    const joined = live.participants.filter((p) => p.status === "joined").length;
+    if (joined > 0) return joined;
+    // Never conflate with viewer/watching counts — those stay on People/nav/chat.
+    return galleryParticipants.length + (hostUserId ? 1 : 0);
+  }, [live.participants, galleryParticipants.length, hostUserId]);
+
+  const watchingCountLabel = useMemo(() => {
+    const n = live.viewerCount || analytics?.liveViewers || analytics?.viewers || 0;
+    return typeof n === "number" && n >= 0 ? n : 0;
+  }, [live.viewerCount, analytics?.liveViewers, analytics?.viewers]);
+
   const handleBack = useCallback(() => {
     if (hasSession && isLiveHost) {
       setConfirmDialog("back");
@@ -1444,7 +1473,7 @@ export function HubLivePage({
   const canEditLiveTitle =
     (hasSession && (isLiveHost || live.myRole === "cohost") && Boolean(live.session?.id)) ||
     canStartLive;
-  const immersive = activity === "share" || focusMode;
+  const immersive = activity === "share" || focusMode || hasSession;
   const startedLabel = live.session?.started_at
     ? `Started ${formatTime(live.session.started_at)}`
     : null;
@@ -1485,6 +1514,10 @@ export function HubLivePage({
       sharing={media.sharing}
       onStartShare={() => void startShare()}
       onStopShare={stopShare}
+      screenShareSupported={screenShareCapability.supported}
+      screenShareReason={screenShareCapability.reason}
+      audioAccess={media.audioAccess}
+      videoAccess={media.videoAccess}
       canManageChat={canModerateChat(live.myRole) || isLiveHost}
       chatEnabled={
         (
@@ -1512,7 +1545,7 @@ export function HubLivePage({
       {isLiveHost || canStartLive ? (
         <div className="space-y-2 px-1">
           <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-            Streaming
+            Live destinations
           </p>
           <LiveDestinationsPanel
             dest={destinations}
@@ -1595,7 +1628,7 @@ export function HubLivePage({
           <button
             type="button"
             onClick={() => {
-              void loadDashboard();
+              void loadDashboard({ soft: true });
               void liveChat.reload().catch(() => undefined);
               void liveChat.flushOutbox();
               if (sessionIdProp) {
@@ -1650,11 +1683,14 @@ export function HubLivePage({
           onFollow={() => void toggleFollowHost()}
           onShare={openShareSheet}
           onMore={() => toggleLeft("settings")}
-          onOpenChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
+          onOpenChat={toggleChat}
           copied={copied}
           showFollow={Boolean(hostUserId && hostUserId !== live.userId && hasSession)}
           showGoLive={canStartLive}
           onGoLive={() => void createOrJoinLive()}
+          liveActive={hasSession}
+          watchingCount={hasSession ? watchingCountLabel : undefined}
+          elapsedLabel={hasSession ? formatElapsed(elapsed) : undefined}
           canEditTitle={canEditLiveTitle}
           onSaveTitle={
             canEditLiveTitle
@@ -1805,26 +1841,33 @@ export function HubLivePage({
           </>
         )}
 
-        {/* Stage — large 16:9 player, speakers, dock */}
-        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f7f8]">
+        {/* Stage — host-dominant Meet/Zoom canvas + real participant gallery */}
+        <main
+          className={cn(
+            "relative flex min-w-0 flex-1 flex-col overflow-hidden",
+            hasSession ? "bg-[#111827]" : "bg-[#f7f7f8]"
+          )}
+        >
           <div
             className={cn(
               "flex min-h-0 flex-1 flex-col",
               immersive
                 ? "overflow-hidden p-0"
-                : "overflow-y-auto px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
+                : hasSession
+                  ? "gap-3 overflow-y-auto px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 sm:pb-4"
+                  : "overflow-y-auto px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
             )}
           >
             <div
               role="presentation"
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
-                "relative w-full cursor-default overflow-hidden bg-neutral-950 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
+                "relative w-full cursor-default overflow-hidden bg-neutral-950",
                 immersive
                   ? "min-h-0 flex-1 rounded-none"
                   : hasSession
-                    ? "aspect-video shrink-0 rounded-none sm:rounded-2xl lg:aspect-auto lg:min-h-0 lg:flex-1"
-                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none sm:rounded-2xl",
+                    ? "aspect-video min-h-0 shrink-0 rounded-2xl ring-2 ring-[#FF5A1F] sm:aspect-auto sm:flex-1"
+                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:rounded-2xl",
                 activity === "share" && "motion-safe:sm:scale-[1.002]",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
@@ -1837,6 +1880,23 @@ export function HubLivePage({
                   Boolean(stageStream)
                 }
               />
+              {media.sharing ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[3] flex justify-center px-3 sm:bottom-24">
+                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md">
+                    <span>You&apos;re sharing your screen</span>
+                    <button
+                      type="button"
+                      onClick={stopShare}
+                      className={cn(
+                        "rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
+                        FOCUS_RING_DARK
+                      )}
+                    >
+                      Stop sharing
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
@@ -1844,31 +1904,44 @@ export function HubLivePage({
 
               {hasSession ? (
                 <div className="relative z-[2] h-full w-full">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3">
-                    <div className="pointer-events-auto flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-2 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
+                    <div className="pointer-events-auto flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                         LIVE
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
-                        {formatCount(live.viewerCount || analytics?.viewers || 0)} watching
+                      <span className="inline-flex items-center rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
+                        {watchingCountLabel === 1
+                          ? "1 watching"
+                          : `${formatCount(watchingCountLabel)} watching`}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleLeft("people")}
+                        className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md hover:bg-black/70"
+                        aria-label="Open participants"
+                      >
+                        People
+                      </button>
                       {recordingActive && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-1 text-[10px] font-semibold text-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-white" />
                           REC
                         </span>
                       )}
                     </div>
                     <div className="pointer-events-auto flex items-center gap-1.5">
+                      <span className="rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white/90 backdrop-blur-md">
+                        {formatElapsed(elapsed)}
+                      </span>
                       <span
                         className={cn(
-                          "rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium backdrop-blur-md",
+                          "rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium backdrop-blur-md",
                           connectionLabel === "Poor" || connectionLabel === "Disconnected"
                             ? "text-red-300"
                             : connectionLabel === "Reconnecting"
                               ? "text-amber-200"
-                              : "text-white/90"
+                              : "text-emerald-300"
                         )}
                         aria-label={`Connection ${connectionLabel}`}
                       >
@@ -1876,15 +1949,48 @@ export function HubLivePage({
                       </span>
                       <button
                         type="button"
-                        onClick={() => toggleLeft("settings")}
+                        onClick={() => setFocusMode(true)}
                         className={cn(
-                          "inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
                           FOCUS_RING_DARK
                         )}
-                        aria-label="Player settings"
+                        aria-label="Enter fullscreen"
+                      >
+                        <Fullscreen className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleLeft("settings")}
+                        className={cn(
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
+                          FOCUS_RING_DARK
+                        )}
+                        aria-label="Open settings"
                       >
                         <Settings className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
                       </button>
+                    </div>
+                  </div>
+
+                  {/* Host identity badge — always dominant stage */}
+                  <div className="pointer-events-none absolute left-3 top-14 z-10 sm:top-16">
+                    <div className="inline-flex items-start gap-2 rounded-xl bg-black/55 px-2.5 py-2 backdrop-blur-md">
+                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">
+                        <Crown className="h-3.5 w-3.5" aria-hidden />
+                        Host
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-white">{stageHostName}</p>
+                        <p className="text-[10px] text-white/50">
+                          {media.camOn || hostRemote?.camOn
+                            ? micOn || hostRemote?.micOn
+                              ? "On stage"
+                              : "Muted"
+                            : micOn || hostRemote?.micOn
+                              ? "Audio active"
+                              : "Camera off"}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -1926,42 +2032,6 @@ export function HubLivePage({
                       )}
                     </>
                   )}
-
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-2.5 pt-10">
-                    <div className="mb-2 h-[3px] overflow-hidden rounded-full bg-white/25">
-                      <div className="h-full w-full rounded-full bg-accent" />
-                    </div>
-                    <div className="pointer-events-auto flex items-center gap-2.5 text-white/90">
-                      <button
-                        type="button"
-                        className={cn("rounded p-0.5 hover:bg-white/10", FOCUS_RING_DARK)}
-                        aria-label="Play"
-                        onClick={() => undefined}
-                      >
-                        <MonitorPlay className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-                      </button>
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                        LIVE
-                      </span>
-                      <span className="tabular-nums text-[11px] text-white/70">
-                        {formatElapsed(elapsed)}
-                      </span>
-                      <div className="ml-auto flex items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setFocusMode(true)}
-                          className={cn(
-                            "inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/10",
-                            FOCUS_RING_DARK
-                          )}
-                          aria-label="Enter fullscreen"
-                        >
-                          <Fullscreen className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
 
                   {focusMode && (
                     <button
@@ -2011,49 +2081,49 @@ export function HubLivePage({
             </div>
 
             {hasSession && showSpeakers && (
-              <div className="mt-2.5 shrink-0 sm:mt-3">
-                <SpeakerStrip
-                  speakers={speakers}
-                  ui={speakerUi}
-                  activeId={activeSpeakerId}
-                  onSelect={setActiveSpeakerId}
-                  onInvite={() => toggleLeft("people")}
-                />
-              </div>
+              <LiveParticipantGallery
+                participants={galleryParticipants}
+                ui={speakerUi}
+                streams={participantStreams}
+                activeId={activeSpeakerId}
+                hostId={hostUserId}
+                onSelect={setActiveSpeakerId}
+                onOpenPeople={() => toggleLeft("people")}
+              />
             )}
 
             {hasSession ? (
-            <div className="hidden lg:block">
-            <ControlDock
-              activity={activity}
-              micOn={micOn}
-              camOn={camOn}
-              recording={recordingActive}
-              sharing={media.sharing}
-              focusMode={focusMode}
-              canPublish={canPublishAv(live.myRole)}
-              onMic={() => void toggleMic()}
-              onCam={() => void toggleCam()}
-              onShare={() => void startShare()}
-              onStopShare={stopShare}
-              onPresent={() => setActivity((a) => (a === "present" ? "live" : "present"))}
-              onRecord={() => void toggleRecord()}
-              onInvite={() => {
-                if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
-                toggleLeft("people");
-              }}
-              onChat={toggleChat}
-              chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
-              onReact={() => {
-                if (live.session?.id) void live.react("❤️");
-              }}
-              onCopyLink={openShareSheet}
-              onFullscreen={() => setFocusMode(true)}
-              onEnd={() => setConfirmDialog("end")}
-              onLeave={() => void leaveLive()}
-              canEnd={canEndLive(live.myRole)}
-            />
-            </div>
+              <div className="hidden lg:block">
+                <ControlDock
+                  activity={activity}
+                  micOn={micOn}
+                  camOn={camOn}
+                  recording={recordingActive}
+                  sharing={media.sharing}
+                  focusMode={focusMode}
+                  canPublish={canPublishAv(live.myRole)}
+                  dark
+                  onMic={() => void toggleMic()}
+                  onCam={() => void toggleCam()}
+                  onShare={() => void startShare()}
+                  onStopShare={stopShare}
+                  onPresent={() => setActivity((a) => (a === "present" ? "live" : "present"))}
+                  onRecord={() => void toggleRecord()}
+                  onInvite={openShareSheet}
+                  onChat={toggleChat}
+                  chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
+                  onPeople={() => toggleLeft("people")}
+                  participantCount={participantCountLabel}
+                  onReact={() => {
+                    if (live.session?.id) void live.react("❤️");
+                  }}
+                  onCopyLink={openShareSheet}
+                  onFullscreen={() => setFocusMode(true)}
+                  onEnd={() => setConfirmDialog("end")}
+                  onLeave={() => void leaveLive()}
+                  canEnd={canEndLive(live.myRole)}
+                />
+              </div>
             ) : null}
           </div>
         </main>
@@ -2403,6 +2473,8 @@ export function HubLivePage({
         audioAccess={media.audioAccess}
         videoAccess={media.videoAccess}
         permissionDenied={media.permissionDenied}
+        screenShareSupported={screenShareCapability.supported}
+        screenShareReason={screenShareCapability.reason}
         onMic={() => void toggleMic()}
         onCam={() => void toggleCam()}
         onShare={() => void startShare()}

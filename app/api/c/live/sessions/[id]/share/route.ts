@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/ops/rate-limit";
 import { liveStudioLog } from "@/lib/live/observability";
 import { canViewLiveSession, getSession } from "@/services/live/session-service";
 import { LIVE_SHARE_CLIENT_MESSAGE } from "@/lib/live/share-messages";
-import { shareLiveToInbox } from "@/services/live/share-live";
+import { shareLiveToInbox, shareLiveToRoom } from "@/services/live/share-live";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,7 @@ export async function POST(
 
   const body = (await req.json().catch(() => ({}))) as {
     conversationId?: string;
+    roomId?: string;
     url?: string;
     senderId?: string;
     liveId?: string;
@@ -63,14 +64,22 @@ export async function POST(
 
   // Client-supplied sender / URL / live / community IDs are ignored.
   const conversationId =
-    typeof body.conversationId === "string" ? body.conversationId : "";
+    typeof body.conversationId === "string" ? body.conversationId.trim() : "";
+  const roomId = typeof body.roomId === "string" ? body.roomId.trim() : "";
 
-  const result = await shareLiveToInbox({
-    supabase,
-    session,
-    senderId: user.id,
-    conversationId,
-  });
+  const result = roomId
+    ? await shareLiveToRoom({
+        supabase,
+        session,
+        senderId: user.id,
+        roomId,
+      })
+    : await shareLiveToInbox({
+        supabase,
+        session,
+        senderId: user.id,
+        conversationId,
+      });
 
   if ("error" in result) {
     return NextResponse.json(
@@ -80,7 +89,7 @@ export async function POST(
   }
 
   liveStudioLog("info", "unhandled", {
-    action: "live_share",
+    action: roomId ? "live_share_room" : "live_share",
     sessionId,
     userId: user.id,
   });

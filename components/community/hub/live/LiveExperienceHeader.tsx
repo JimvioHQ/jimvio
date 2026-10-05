@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCount } from "./studio-utils";
 import { FOCUS_RING, MOTION_COLORS } from "./studio-ui";
 
 export function LiveExperienceHeader({
@@ -31,6 +32,9 @@ export function LiveExperienceHeader({
   onSaveTitle,
   backHref = "/communities/live",
   onBack,
+  liveActive = false,
+  watchingCount,
+  elapsedLabel,
 }: {
   title: string;
   immersive?: boolean;
@@ -48,6 +52,10 @@ export function LiveExperienceHeader({
   backHref?: string;
   /** When set, back uses this handler instead of navigation link (e.g. confirm before leaving live). */
   onBack?: () => void;
+  liveActive?: boolean;
+  /** Authoritative watching / viewer count — not participant count. */
+  watchingCount?: number;
+  elapsedLabel?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -209,6 +217,36 @@ export function LiveExperienceHeader({
               >
                 <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
               </button>
+            ) : null}
+            {liveActive ? (
+              <span className="ml-1 hidden items-center gap-2 sm:inline-flex">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-[0.04em] text-white">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                  LIVE
+                </span>
+                {typeof watchingCount === "number" ? (
+                  <span
+                    className={cn(
+                      "text-[12px] font-medium tabular-nums",
+                      immersive ? "text-white/70" : "text-neutral-500"
+                    )}
+                  >
+                    {watchingCount === 1
+                      ? "1 watching"
+                      : `${formatCount(watchingCount)} watching`}
+                  </span>
+                ) : null}
+                {elapsedLabel ? (
+                  <span
+                    className={cn(
+                      "text-[12px] font-medium tabular-nums",
+                      immersive ? "text-white/55" : "text-neutral-400"
+                    )}
+                  >
+                    {elapsedLabel}
+                  </span>
+                ) : null}
+              </span>
             ) : null}
           </div>
         )}
