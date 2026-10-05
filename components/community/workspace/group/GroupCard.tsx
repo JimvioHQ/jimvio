@@ -62,7 +62,6 @@ export function GroupCard({
 }) {
   const coverFallback =
     "linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 48%, #1c1917), #0f172a 74%)";
-  const logo = group.icon?.trim() || group.name.trim().charAt(0).toUpperCase() || "G";
   const description =
     group.description?.trim() ||
     `Collaborate in ${group.name} — channels, knowledge, and live sessions.`;
@@ -161,10 +160,16 @@ export function GroupCard({
         <div className="-mt-8 mb-3 flex items-end justify-between gap-2">
           <Link
             href={href}
-            className="flex h-16 w-16 items-center justify-center rounded-[1.15rem] border-[3px] border-[var(--color-surface)] bg-[var(--color-surface-secondary)] text-[24px] shadow-md transition duration-300 group-hover:scale-[1.04]"
+            className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[1.15rem] border-[3px] border-[var(--color-surface)] bg-[var(--color-surface-secondary)] shadow-md transition duration-300 group-hover:scale-[1.04]"
             aria-label={`${group.name} avatar`}
           >
-            {logo.length <= 2 ? logo : logo.slice(0, 2)}
+            <SpaceAvatar
+              name={group.name}
+              src={group.cover}
+              icon={group.icon}
+              size={64}
+              className="!rounded-[1rem] !ring-0"
+            />
           </Link>
           <div className="flex items-center gap-0.5 pb-0.5">
             <button
