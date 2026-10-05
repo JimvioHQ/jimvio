@@ -104,20 +104,22 @@ export function partitionSpacesForDisplay(
 }
 
 /**
- * Space imagery only — never substitute a Community avatar/cover.
- * Callers should fall back to initials when this returns null.
- * Extra community args are accepted for call-site compatibility and ignored.
+ * Space identity image for community surfaces.
+ * Prefer Space artwork, then the parent community logo/cover.
+ * Letter/initials fallbacks are only used when this returns null.
  */
 export function resolveSpaceAvatarSrc(
   space: Pick<WorkspaceSpaceRow, "cover_url" | "banner_url" | "icon">,
   communityAvatar?: string | null,
   communityCover?: string | null
 ): string | null {
-  void communityAvatar;
-  void communityCover;
   const spaceCover = space.cover_url?.trim() || space.banner_url?.trim() || "";
   if (spaceCover) return spaceCover;
   const icon = space.icon?.trim() || "";
   if (/^https?:\/\//i.test(icon)) return icon;
+  const communityLogo = communityAvatar?.trim() || "";
+  if (communityLogo) return communityLogo;
+  const cover = communityCover?.trim() || "";
+  if (cover) return cover;
   return null;
 }

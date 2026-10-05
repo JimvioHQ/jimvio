@@ -118,6 +118,27 @@ export async function loadFeedSidebarPopularUsers(
     });
   }
 
+  // Official community logos for branded provider accounts (never invent images).
+  const brandedAvatarByUsername = new Map<string, string>();
+  {
+    const { data: brandedCommunities } = (await admin
+      .from("communities")
+      .select("slug, avatar_url, cover_image")
+      .in("slug", PRIORITY_POPULAR_USERNAMES)
+      .eq("is_active", true)
+      .limit(10)) as {
+      data:
+        | { slug: string; avatar_url: string | null; cover_image: string | null }[]
+        | null;
+    };
+    for (const row of brandedCommunities ?? []) {
+      const logo =
+        (isValidAvatar(row.avatar_url) ? row.avatar_url : null) ??
+        (isValidAvatar(row.cover_image) ? row.cover_image : null);
+      if (logo) brandedAvatarByUsername.set(row.slug.toLowerCase(), logo);
+    }
+  }
+
   // Pin real product-priority profiles first (Barick, P7 PROVIDER, …).
   if (PRIORITY_POPULAR_USERNAMES.length) {
     const usernameVariants = PRIORITY_POPULAR_USERNAMES.flatMap((u) => [u, `@${u}`]);
@@ -135,19 +156,22 @@ export async function loadFeedSidebarPopularUsers(
     }
     for (const wanted of PRIORITY_POPULAR_USERNAMES) {
       const profile = byNorm.get(wanted.toLowerCase());
-      if (!profile || isEditorialPersona(profile)) continue;
+      // Priority pins may be brand accounts (including non-editorial owners).
+      if (!profile) continue;
       const usernameRaw = profile.username?.trim() || null;
       if (!isPublicUsername(usernameRaw)) continue;
       const username = normalizeUsername(usernameRaw);
       const name = displayName(profile.full_name, username);
       if (!name) continue;
+      const branded = brandedAvatarByUsername.get(username.toLowerCase());
+      const avatarRaw =
+        (branded && isValidAvatar(branded) ? branded : null) ??
+        (isValidAvatar(profile.avatar_url) ? profile.avatar_url : null);
       pushCandidate({
         userId: profile.id,
         name,
         username,
-        avatarUrl: isValidAvatar(profile.avatar_url)
-          ? mediaUrlOrNull(profile.avatar_url, 96)
-          : null,
+        avatarUrl: avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null,
         followerCount: resolveProfileFollowerCount({
           username,
           follower_count: profile.follower_count,
@@ -187,20 +211,19 @@ export async function loadFeedSidebarPopularUsers(
     const name = displayName(profile?.full_name, profile?.username, inf.display_name);
     if (!name) continue;
     const usernameRaw = profile?.username?.trim() || null;
-    const username = isPublicUsername(usernameRaw)
-      ? normalizeUsername(usernameRaw)
-      : null;
-    // Skip platform system account from Popular Users suggestions.
-    if (username?.toLowerCase() === "jimvio") continue;
-    // Influencers may lack a public handle — still show with /influencers/u/:id.
-    if (!username && !isValidAvatar(profile?.avatar_url) && !isValidAvatar(inf.profile_image)) {
-      continue;
-    }
+    // Popular Users requires a real public handle — skip nameless influencer rows
+    // (e.g. personal Google accounts) so brand accounts stay featured cleanly.
+    if (!isPublicUsername(usernameRaw)) continue;
+    const username = normalizeUsername(usernameRaw);
+    if (username.toLowerCase() === "jimvio") continue;
 
+    const branded = brandedAvatarByUsername.get(username.toLowerCase());
     const avatarRaw =
+      (branded && isValidAvatar(branded) ? branded : null) ??
       (isValidAvatar(profile?.avatar_url) ? profile.avatar_url : null) ??
       (isValidAvatar(inf.profile_image) ? inf.profile_image : null);
-    const avatarUrl = avatarRaw ? mediaUrlOrNull(avatarRaw, 96) : null;
+    if (!avatarRaw) continue;
+    const avatarUrl = mediaUrlOrNull(avatarRaw, 96);
     const followerCount = resolveProfileFollowerCount({
       username,
       follower_count: profile?.follower_count ?? inf.total_followers ?? 0,
@@ -218,8 +241,7 @@ export async function loadFeedSidebarPopularUsers(
   }
 
   if (candidates.length < POPULAR_USER_COUNT) {
-    // Exclude editorial personas in SQL — they dominate follower_count ties
-    // and would otherwise starve the organic Popular Users fill.
+    // Prefer real non-editorial profiles with public handles + avatars.
     const { data: profileRows } = (await admin
       .from("profiles")
       .select(
@@ -239,14 +261,49 @@ export async function loadFeedSidebarPopularUsers(
       if (!name || !isPublicUsername(profile.username)) continue;
       const username = normalizeUsername(profile.username!);
       if (username.toLowerCase() === "jimvio") continue;
+      if (!isValidAvatar(profile.avatar_url)) continue;
 
       pushCandidate({
         userId: profile.id,
         name,
         username,
-        avatarUrl: isValidAvatar(profile.avatar_url)
-          ? mediaUrlOrNull(profile.avatar_url, 96)
-          : null,
+        avatarUrl: mediaUrlOrNull(profile.avatar_url, 96),
+        followerCount: resolveProfileFollowerCount({
+          username,
+          follower_count: profile.follower_count,
+        }),
+        verified: Boolean(profile.is_verified),
+      });
+    }
+  }
+
+  // Designated demo creators (editorial personas) fill remaining slots only —
+  // never displace priority brand accounts, and never invent followers.
+  if (candidates.length < POPULAR_USER_COUNT) {
+    const { data: demoRows } = (await admin
+      .from("profiles")
+      .select(
+        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
+      )
+      .eq("is_active", true)
+      .ilike("email", "editorial+%@jimvio.com")
+      .order("username", { ascending: true })
+      .limit(60)) as { data: ProfileRow[] | null };
+
+    for (const profile of demoRows ?? []) {
+      if (candidates.length >= POPULAR_USER_COUNT) break;
+      if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
+      if (!isPublicUsername(profile.username) || !isValidAvatar(profile.avatar_url)) {
+        continue;
+      }
+      const username = normalizeUsername(profile.username!);
+      const name = displayName(profile.full_name, username);
+      if (!name) continue;
+      pushCandidate({
+        userId: profile.id,
+        name,
+        username,
+        avatarUrl: mediaUrlOrNull(profile.avatar_url, 96),
         followerCount: resolveProfileFollowerCount({
           username,
           follower_count: profile.follower_count,

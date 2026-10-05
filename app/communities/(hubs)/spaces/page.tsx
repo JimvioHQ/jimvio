@@ -45,7 +45,11 @@ function accessLabel(accessType: string): { label: string; private: boolean } {
 }
 
 function SpaceCard({ space }: { space: HubSpace }) {
-  const avatarSrc = resolveSpaceAvatar(space.cover_url, space.community_avatar_url);
+  const avatarSrc = resolveSpaceAvatar(
+    space.cover_url,
+    space.community_avatar_url,
+    null
+  );
   const access = accessLabel(space.access_type);
   const lastActive = space.last_message_at
     ? formatDistanceToNow(new Date(space.last_message_at), { addSuffix: true })

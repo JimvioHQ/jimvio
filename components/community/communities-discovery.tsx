@@ -115,41 +115,41 @@ function CommunitiesHero({
   const heroImage = community.cover_image || community.avatar_url || null;
 
   return (
-    <section className="mb-6 sm:mb-8">
+    <section className="mb-5 sm:mb-6">
       <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
-        <div className="grid sm:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-          <div className="relative aspect-[16/10] sm:aspect-auto sm:min-h-[220px]">
+        <div className="flex flex-col gap-0 sm:flex-row sm:items-stretch">
+          <div className="relative aspect-[21/9] w-full shrink-0 sm:aspect-auto sm:w-[200px] lg:w-[240px]">
             <CommunityCoverImage
               name={community.name}
               src={heroImage}
               featured
-              sizes="(max-width: 640px) 100vw, 320px"
+              sizes="(max-width: 640px) 100vw, 240px"
               className="absolute inset-0"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent sm:bg-gradient-to-r sm:from-transparent sm:via-transparent sm:to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent sm:bg-gradient-to-r sm:from-transparent sm:to-black/5" />
             {community.category ? (
-              <span className="absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+              <span className="absolute left-2.5 top-2.5 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
                 {community.category}
               </span>
             ) : null}
           </div>
 
-          <div className="flex flex-col justify-center gap-3 p-4 sm:gap-3.5 sm:p-5 lg:p-6">
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-2.5 p-3.5 sm:gap-3 sm:p-4">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                 {featuredEyebrow(priceFilter)}
               </p>
-              <h2 className="mt-1.5 min-w-0 break-words text-lg font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-xl lg:text-2xl">
+              <h2 className="mt-1 min-w-0 break-words text-base font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-lg">
                 {community.name}
               </h2>
               {community.tagline && (
-                <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-[14px]">
+                <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-[13px]">
                   {community.tagline}
                 </p>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-[var(--color-text-muted)] sm:text-[13px]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[12px] text-[var(--color-text-muted)]">
               <span className="tabular-nums">{memberLabel}</span>
               {price && (
                 <>
@@ -173,17 +173,17 @@ function CommunitiesHero({
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-0.5">
+            <div className="flex flex-wrap gap-2">
               <Link
                 href={`/communities/${community.slug}`}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#FF5A1F] px-3.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
               >
                 View community
                 <ArrowUpRight size={14} />
               </Link>
               <Link
                 href={`/communities/${community.slug}/subscribe`}
-                className="inline-flex min-h-11 items-center rounded-xl border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[#FF5A1F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                className="inline-flex min-h-10 items-center rounded-xl border border-[var(--color-border)] px-3.5 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[#FF5A1F]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
               >
                 {community.is_free ? "Join free" : "Join now"}
               </Link>

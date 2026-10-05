@@ -12,8 +12,8 @@ type SpaceAvatarProps = {
 };
 
 /**
- * Polished Space avatar — image, emoji icon, or initials. Never uses
- * unrelated Community artwork as a substitute.
+ * Polished Space avatar — image (including parent community logo via
+ * resolveSpaceAvatarSrc), emoji icon, or neutral initials as last resort.
  */
 export function SpaceAvatar({
   name,
