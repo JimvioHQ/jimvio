@@ -5,16 +5,21 @@ function getFirstParam(value: string | string[] | undefined): string | undefined
   return value;
 }
 
-export default function CheckoutErrorPage({
-  searchParams,
-}: {
-  searchParams: {
+type CheckoutErrorPageProps = {
+  searchParams: Promise<{
     msg?: string | string[];
     order?: string | string[];
-  };
-}) {
-  const message = getFirstParam(searchParams.msg) ?? "Something went wrong while completing your payment.";
-  const orderId = getFirstParam(searchParams.order);
+  }>;
+};
+
+export default async function CheckoutErrorPage({
+  searchParams,
+}: CheckoutErrorPageProps) {
+  const params = await searchParams;
+  const message =
+    getFirstParam(params.msg) ??
+    "Something went wrong while completing your payment.";
+  const orderId = getFirstParam(params.order);
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] py-20 px-4 text-center">

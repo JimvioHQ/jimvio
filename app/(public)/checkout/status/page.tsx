@@ -10,16 +10,19 @@ function getFirstParam(value: string | string[] | undefined): string | undefined
   return value;
 }
 
-export default function CheckoutStatusPage({
-  searchParams,
-}: {
-  searchParams: {
+type CheckoutStatusPageProps = {
+  searchParams: Promise<{
     status?: string | string[];
     order?: string | string[];
-  };
-}) {
-  const status = (getFirstParam(searchParams.status) ?? "pending").toLowerCase();
-  const orderId = getFirstParam(searchParams.order);
+  }>;
+};
+
+export default async function CheckoutStatusPage({
+  searchParams,
+}: CheckoutStatusPageProps) {
+  const params = await searchParams;
+  const status = (getFirstParam(params.status) ?? "pending").toLowerCase();
+  const orderId = getFirstParam(params.order);
 
   const statusLabel =
     status === "pending"
