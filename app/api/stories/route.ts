@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -38,16 +39,19 @@ function profileOf(row: StoryRow): ProfileRow | null {
   return Array.isArray(p) ? p[0] ?? null : p;
 }
 
-/** GET — active stories (expires_at > now), grouped by author */
+/** GET — active stories (expires_at > now), grouped by author.
+ * Guests receive public stories only; authenticated users keep full visibility. */
 export async function GET() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const nowIso = new Date().toISOString();
-  const { data, error } = await (supabase as any)
+  // Guests: service-role read of public stories only (app-enforced privacy).
+  // Authenticated: user-scoped client so RLS + membership rules apply.
+  const reader = user ? (supabase as any) : (createServiceRoleClient() as any);
+  let query = reader
     .from("community_stories")
     .select(
       "id, author_id, community_id, media_url, media_type, caption, thumbnail_url, privacy, mentions, view_count, unique_view_count, reply_count, expires_at, created_at, profiles!community_stories_author_id_fkey(full_name, avatar_url, username)"
@@ -56,10 +60,19 @@ export async function GET() {
     .order("created_at", { ascending: true })
     .limit(200);
 
+  if (!user) {
+    query = query.eq("privacy", "public");
+  }
+
+  const { data, error } = await query;
+
   if (error) {
     // Soft-fail when migration not applied yet
     if (/relation|does not exist|community_stories/i.test(error.message)) {
-      return NextResponse.json({ groups: [], current_user_id: user.id });
+      return NextResponse.json({
+        groups: [],
+        current_user_id: user?.id ?? null,
+      });
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
@@ -68,7 +81,7 @@ export async function GET() {
   const storyIds = rows.map((r) => r.id);
 
   const viewedSet = new Set<string>();
-  if (storyIds.length > 0) {
+  if (user && storyIds.length > 0) {
     const { data: views } = await (supabase as any)
       .from("community_story_views")
       .select("story_id")
@@ -146,15 +159,15 @@ export async function GET() {
       order.push(row.author_id);
     }
     group.stories.push(story);
-    if (!viewed && row.author_id !== user.id) group.has_unseen = true;
+    if (!viewed && (!user || row.author_id !== user.id)) group.has_unseen = true;
   }
 
   // Own stories first, then unseen, then rest (by most recent story)
   const groups = order
     .map((id) => byAuthor.get(id)!)
     .sort((a, b) => {
-      const aOwn = a.author_id === user.id ? 0 : 1;
-      const bOwn = b.author_id === user.id ? 0 : 1;
+      const aOwn = user && a.author_id === user.id ? 0 : 1;
+      const bOwn = user && b.author_id === user.id ? 0 : 1;
       if (aOwn !== bOwn) return aOwn - bOwn;
       const aUnseen = a.has_unseen ? 0 : 1;
       const bUnseen = b.has_unseen ? 0 : 1;
@@ -164,7 +177,10 @@ export async function GET() {
       return bLatest.localeCompare(aLatest);
     });
 
-  return NextResponse.json({ groups, current_user_id: user.id });
+  return NextResponse.json({
+    groups,
+    current_user_id: user?.id ?? null,
+  });
 }
 
 /** POST — create story; expires_at = now + 48h */

@@ -89,11 +89,16 @@ export async function loadFeedSidebarPopularUsers(
 
   const candidates: FeedSidebarPopularUser[] = [];
   const seen = new Set<string>();
+  const seenDisplayNames = new Set<string>();
 
   function isEditorialPersona(profile: ProfileRow | undefined): boolean {
     if (!profile) return false;
     const email = (profile.email ?? "").trim().toLowerCase();
     return email.startsWith("editorial+") && email.endsWith("@jimvio.com");
+  }
+
+  function normalizeDisplayName(name: string): string {
+    return name.trim().toLowerCase().replace(/\s+/g, " ");
   }
 
   function pushCandidate(input: {
@@ -106,7 +111,11 @@ export async function loadFeedSidebarPopularUsers(
   }) {
     if (seen.has(input.userId) || input.userId === excludeUserId) return;
     if (candidates.length >= POPULAR_USER_COUNT) return;
+    const nameKey = normalizeDisplayName(input.name);
+    // Prefer distinct display names so the rail does not look artificial.
+    if (nameKey && seenDisplayNames.has(nameKey)) return;
     seen.add(input.userId);
+    if (nameKey) seenDisplayNames.add(nameKey);
     candidates.push({
       userId: input.userId,
       name: input.name,

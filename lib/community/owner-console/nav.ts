@@ -129,7 +129,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   content: navItem(
     "content",
-    "Media",
+    "Posts",
     "content",
     "channel.manage",
     "Posts, pins, and media library"
@@ -215,10 +215,10 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   settings: navItem(
     "settings",
-    "Community Settings",
+    "General",
     "settings",
     "settings.view",
-    "Community profile and preferences"
+    "Name, description, and branding"
   ),
 };
 
@@ -256,7 +256,7 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
   },
 ];
 
-/** Lean manage-mode navigation (no Tools clutter). */
+/** Lean manage-mode navigation — Commerce OS–style IA. */
 export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
   {
     id: "overview",
@@ -265,8 +265,8 @@ export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
     items: ["overview"],
   },
   {
-    id: "manage",
-    label: "Manage",
+    id: "community",
+    label: "Community",
     collapsible: true,
     items: ["spaces", "members", "roles"],
   },
@@ -277,10 +277,16 @@ export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
     items: ["content", "courses", "events", "live"],
   },
   {
-    id: "community",
-    label: "Community",
+    id: "growth",
+    label: "Growth",
     collapsible: true,
-    items: ["settings", "analytics", "moderation"],
+    items: ["analytics", "ai", "moderation"],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    collapsible: true,
+    items: ["settings", "integrations"],
   },
 ];
 

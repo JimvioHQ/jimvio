@@ -43,7 +43,6 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
   "/communities/settings",
   "/communities/profile",
   "/communities/live",
-  "/communities/spaces",
   "/communities/channels",
   "/communities/missions",
   "/communities/courses",

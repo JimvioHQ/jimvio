@@ -31,6 +31,7 @@ type HubSpace = {
   access_type: string;
   last_message: string | null;
   last_message_at: string | null;
+  is_member?: boolean;
 };
 
 function accessLabel(accessType: string): { label: string; private: boolean } {
@@ -44,6 +45,13 @@ function accessLabel(accessType: string): { label: string; private: boolean } {
   return { label: "Public", private: false };
 }
 
+function spaceCta(space: HubSpace): string {
+  const access = accessLabel(space.access_type);
+  if (space.is_member) return "Open Space";
+  if (access.private) return "Request Access";
+  return "Join Space";
+}
+
 function SpaceCard({ space }: { space: HubSpace }) {
   const avatarSrc = resolveSpaceAvatar(
     space.cover_url,
@@ -51,6 +59,7 @@ function SpaceCard({ space }: { space: HubSpace }) {
     null
   );
   const access = accessLabel(space.access_type);
+  const cta = spaceCta(space);
   const lastActive = space.last_message_at
     ? formatDistanceToNow(new Date(space.last_message_at), { addSuffix: true })
     : null;
@@ -59,7 +68,7 @@ function SpaceCard({ space }: { space: HubSpace }) {
     <Link
       href={space.href}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border,#e4e4e7)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#FF5A1F]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
-      aria-label={`Enter ${space.name}`}
+      aria-label={`${cta}: ${space.name}`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#FF5A1F]/[0.06] to-[#F8FAFC]">
         {avatarSrc ? (
@@ -121,7 +130,7 @@ function SpaceCard({ space }: { space: HubSpace }) {
             <p className="text-[10px] text-[var(--color-text-muted)]">Active {lastActive}</p>
           ) : null}
           <span className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[#FF5A1F] px-2.5 py-1.5 text-[10px] font-bold text-white transition group-hover:bg-[#e54e1a]">
-            Enter Space
+            {cta}
             <ArrowRight className="h-3 w-3" />
           </span>
         </div>

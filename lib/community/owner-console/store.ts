@@ -23,8 +23,10 @@ export const useOwnerConsoleUiStore = create<OwnerConsoleUiState>()(
       sidebarCollapsed: false,
       sidebarMobileOpen: false,
       expandedSections: [
+        "manage",
         "community",
         "content",
+        "growth",
         "commerce",
         "engagement",
         "settings",

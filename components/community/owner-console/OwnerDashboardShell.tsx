@@ -4,8 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
-  ArrowUpRight,
-  BarChart3,
   BookOpen,
   CalendarPlus,
   ChevronRight,
@@ -150,8 +148,8 @@ export function OwnerQuickActionsGrid({
   ).slice(0, 7);
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
-      {actions.map((a: OwnerQuickAction, i) => {
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      {actions.slice(0, 6).map((a: OwnerQuickAction, i) => {
         const Icon = ACTION_ICONS[a.id] ?? Sparkles;
         const href = resolveQuickActionHref(
           a.href({ communityId, slug }),
@@ -162,15 +160,15 @@ export function OwnerQuickActionsGrid({
           <Link
             key={a.id}
             href={href}
-            className="group flex flex-col items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-3.5 transition duration-200 hover:border-[#FF5A1F]/30 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+            className="group flex items-center gap-2.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 transition hover:border-[#FF5A1F]/30 hover:bg-[#FAFAFB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
           >
             <span
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl transition group-hover:scale-105",
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
                 ACTION_COLORS[i % ACTION_COLORS.length]
               )}
             >
-              <Icon className="h-[18px] w-[18px]" aria-hidden />
+              <Icon className="h-4 w-4" aria-hidden />
             </span>
             <span className="text-[12px] font-semibold leading-snug text-[#111827]">
               {a.label}
@@ -187,49 +185,45 @@ const SETTINGS_LINKS: Array<{
   description: string;
   section: string;
   id: OwnerConsoleSectionId;
+  query?: Record<string, string>;
+  icon: LucideIcon;
 }> = [
   {
-    label: "General Settings",
+    label: "Community Settings",
     description: "Name, description, branding",
     section: "settings",
     id: "settings",
+    icon: Settings,
   },
   {
     label: "Privacy & Access",
     description: "Visibility and join rules",
     section: "settings",
     id: "settings",
+    query: { tab: "privacy" },
+    icon: ShieldCheck,
   },
   {
     label: "Roles & Permissions",
     description: "Owners, admins, moderators",
     section: "roles",
     id: "roles",
+    icon: Users,
   },
   {
     label: "Notifications",
-    description: "Alerts and intelligence",
+    description: "Alerts and community notifications",
     section: "ai",
     id: "ai",
+    icon: Sparkles,
   },
   {
     label: "Integrations",
     description: "Connected services",
     section: "integrations",
     id: "integrations",
+    icon: Layers,
   },
-];
-
-const TOOL_LINKS: Array<{
-  label: string;
-  section: string;
-  id: keyof typeof OWNER_NAV_ITEMS;
-}> = [
-  { label: "Content Moderation", section: "moderation", id: "moderation" },
-  { label: "Member Management", section: "members", id: "members" },
-  { label: "Analytics & Reports", section: "analytics", id: "analytics" },
-  { label: "Community Store", section: "commerce", id: "commerce" },
-  { label: "Monetization", section: "automations", id: "automations" },
 ];
 
 /**
@@ -287,9 +281,6 @@ export function OwnerDashboardShell({
   const visibleSettings = SETTINGS_LINKS.filter((item) =>
     hasCapability(role, OWNER_NAV_ITEMS[item.id].capability)
   );
-  const visibleTools = TOOL_LINKS.filter((item) =>
-    hasCapability(role, OWNER_NAV_ITEMS[item.id].capability)
-  );
 
   const shareCommunity = useCallback(async () => {
     if (!community?.slug) return;
@@ -320,12 +311,11 @@ export function OwnerDashboardShell({
   const isManage = consoleMode === "manage";
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header */}
-      <header className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-5">
+    <div className="space-y-5 animate-in fade-in duration-300">
+      <header className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3.5">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6] ring-1 ring-[#E5E7EB]">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6] ring-1 ring-[#E5E7EB]">
               {community.avatarUrl ? (
                 <Image
                   src={community.avatarUrl}
@@ -335,7 +325,7 @@ export function OwnerDashboardShell({
                   unoptimized
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#FF5A1F]">
+                <span className="flex h-full w-full items-center justify-center text-base font-bold text-[#FF5A1F]">
                   {community.name[0]}
                 </span>
               )}
@@ -347,9 +337,7 @@ export function OwnerDashboardShell({
               <p className="mt-0.5 text-[13px] text-[#64748B]">
                 <span className="font-medium capitalize text-[#111827]">{role}</span>
                 <span className="mx-1.5 text-[#D1D5DB]">·</span>
-                <span>
-                  {community.memberCount.toLocaleString()} members
-                </span>
+                <span>{community.memberCount.toLocaleString()} members</span>
               </p>
             </div>
           </div>
@@ -357,7 +345,7 @@ export function OwnerDashboardShell({
             {workspaceHref ? (
               <Link
                 href={workspaceHref}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                 View Community
@@ -366,29 +354,27 @@ export function OwnerDashboardShell({
             <button
               type="button"
               onClick={() => void shareCommunity()}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
             >
               <Share2 className="h-3.5 w-3.5" aria-hidden />
               Share
             </button>
-            {hasCapability(role, "analytics.view") ? (
+            {hasCapability(role, "channel.manage") ? (
               <Link
-                href={hrefSection("analytics")}
-                className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white transition hover:bg-[#e54e1a]"
+                href={hrefSection("content", { action: "create" })}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#FF5A1F] px-3 text-[12px] font-semibold text-white transition hover:bg-[#e54e1a]"
               >
-                <BarChart3 className="h-3.5 w-3.5" aria-hidden />
-                Analytics
+                Create
               </Link>
             ) : null}
           </div>
         </div>
       </header>
 
-      {/* Metrics */}
       {metrics.length > 0 ? (
         <section
           aria-label="Key metrics"
-          className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
         >
           {metrics.map((m) => (
             <OwnerDashboardMetricCard key={m.id} metric={m} />
@@ -396,171 +382,118 @@ export function OwnerDashboardShell({
         </section>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="space-y-6 xl:col-span-8">
-          {/* Quick actions */}
-          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-            <h2 className="text-[15px] font-semibold text-[#111827]">Quick Actions</h2>
-            <p className="mt-0.5 text-[13px] text-[#6B7280]">
-              Common tasks for {community.name}
-            </p>
-            <div className="mt-4">
-              <OwnerQuickActionsGrid
-                role={role}
-                communityId={community.id}
-                slug={community.slug}
-              />
-            </div>
-          </section>
-
-          {/* Spaces */}
-          {hasCapability(role, "group.manage") ? (
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-[15px] font-semibold text-[#111827]">
-                    Spaces Management
-                  </h2>
-                  <p className="mt-0.5 text-[13px] text-[#6B7280]">
-                    Organize discussions, courses, and live rooms
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Link
-                    href={hrefSection("spaces")}
-                    className="text-[12px] font-semibold text-[#FF5A1F] hover:underline"
-                  >
-                    View all
-                  </Link>
-                  <Link
-                    href={hrefSection("spaces", { action: "create" })}
-                    className="inline-flex h-9 items-center rounded-lg bg-[#FF5A1F]/10 px-3 text-[12px] font-semibold text-[#FF5A1F]"
-                  >
-                    Create Space
-                  </Link>
-                </div>
-              </div>
-              {spacesLoading ? (
-                <p className="mt-4 text-[13px] text-[#9CA3AF]">Loading spaces…</p>
-              ) : spaces.length === 0 ? (
-                <p className="mt-4 text-[13px] text-[#6B7280]">
-                  No spaces yet. Create your first space to organize members.
-                </p>
-              ) : (
-                <ul className="mt-4 divide-y divide-[#F3F4F6]">
-                  {spaces.map((space) => (
-                    <li key={space.id}>
-                      <Link
-                        href={hrefSection(`spaces/${space.id}`)}
-                        className="flex items-center justify-between gap-3 py-3 transition hover:bg-[#FAFAFB]/80"
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-[13px] font-semibold text-[#111827]">
-                            {space.name}
-                          </p>
-                          <p className="text-[12px] text-[#6B7280]">
-                            {space.memberCount != null
-                              ? `${space.memberCount} members`
-                              : "Space"}
-                            {space.status ? ` · ${space.status}` : ""}
-                          </p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-[#D1D5DB]" />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : null}
-
-          {/* Analytics entry */}
-          {hasCapability(role, "analytics.view") ? (
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-[15px] font-semibold text-[#111827]">
-                    Analytics
-                  </h2>
-                  <p className="mt-0.5 text-[13px] text-[#6B7280]">
-                    Growth, engagement, and revenue insights
-                  </p>
-                </div>
-                <Link
-                  href={hrefSection("analytics")}
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#FF5A1F] hover:underline"
-                >
-                  Open analytics
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </section>
-          ) : null}
+      <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5">
+        <h2 className="text-[15px] font-semibold text-[#111827]">Quick Actions</h2>
+        <p className="mt-0.5 text-[13px] text-[#6B7280]">
+          Fast paths for day-to-day management
+        </p>
+        <div className="mt-3">
+          <OwnerQuickActionsGrid
+            role={role}
+            communityId={community.id}
+            slug={community.slug}
+          />
         </div>
+      </section>
 
-        <aside className="space-y-5 xl:col-span-4">
-          {/* Settings card */}
-          {visibleSettings.length > 0 ? (
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              <div className="mb-3 flex items-center gap-2">
-                <Settings className="h-4 w-4 text-[#FF5A1F]" aria-hidden />
-                <h2 className="text-[15px] font-semibold text-[#111827]">
-                  Community Settings
-                </h2>
-              </div>
-              <ul className="space-y-1">
-                {visibleSettings.map((item) => (
-                  <li key={item.label}>
-                    <Link
-                      href={hrefSection(item.section)}
-                      className="flex items-center justify-between gap-2 rounded-xl px-2 py-2.5 transition hover:bg-[#FAFAFB]"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-[#111827]">
-                          {item.label}
-                        </p>
-                        <p className="text-[11px] text-[#9CA3AF]">
-                          {item.description}
-                        </p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-[#D1D5DB]" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {/* Tools */}
-          {visibleTools.length > 0 ? (
-            <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              <h2 className="text-[15px] font-semibold text-[#111827]">
-                Community Tools
-              </h2>
-              <ul className="mt-3 space-y-1">
-                {visibleTools.map((tool) => (
-                  <li key={tool.label}>
-                    <Link
-                      href={hrefSection(tool.section)}
-                      className="flex items-center justify-between rounded-xl px-2 py-2 text-[13px] font-medium text-[#4B5563] transition hover:bg-[#FAFAFB] hover:text-[#111827]"
-                    >
-                      {tool.label}
-                      <ChevronRight className="h-4 w-4 text-[#D1D5DB]" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {!isManage && communities.length > 1 ? (
-            <p className="px-1 text-[12px] text-[#9CA3AF]">
-              Managing {communities.length} communities
-              {badges.reports > 0 ? ` · ${badges.reports} open reports` : ""}
+      {hasCapability(role, "group.manage") ? (
+        <section className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-[15px] font-semibold text-[#111827]">Spaces</h2>
+              <p className="mt-0.5 text-[13px] text-[#6B7280]">
+                Rooms and discussion areas
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Link
+                href={hrefSection("spaces")}
+                className="text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+              >
+                View all
+              </Link>
+              <Link
+                href={hrefSection("spaces", { action: "create" })}
+                className="inline-flex h-8 items-center rounded-lg bg-[#FF5A1F]/10 px-3 text-[12px] font-semibold text-[#FF5A1F]"
+              >
+                Create Space
+              </Link>
+            </div>
+          </div>
+          {spacesLoading ? (
+            <p className="mt-3 text-[13px] text-[#9CA3AF]">Loading spaces…</p>
+          ) : spaces.length === 0 ? (
+            <p className="mt-3 text-[13px] text-[#6B7280]">
+              No spaces yet. Create one to organize members.
             </p>
-          ) : null}
-        </aside>
-      </div>
+          ) : (
+            <ul className="mt-3 divide-y divide-[#F3F4F6]">
+              {spaces.map((space) => (
+                <li key={space.id}>
+                  <Link
+                    href={hrefSection(`spaces/${space.id}`)}
+                    className="flex items-center justify-between gap-3 py-2.5 transition hover:bg-[#FAFAFB]/80"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-[#111827]">
+                        {space.name}
+                      </p>
+                      <p className="text-[12px] text-[#6B7280]">
+                        {space.memberCount != null
+                          ? `${space.memberCount} members`
+                          : "Space"}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[#D1D5DB]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
+
+      {visibleSettings.length > 0 ? (
+        <section className="rounded-xl border border-[#E5E7EB] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="border-b border-[#E5E7EB] px-4 py-3 sm:px-5">
+            <h2 className="text-[15px] font-semibold text-[#111827]">Settings</h2>
+            <p className="mt-0.5 text-[13px] text-[#6B7280]">
+              Configure community access and integrations
+            </p>
+          </div>
+          <ul className="divide-y divide-[#F3F4F6]">
+            {visibleSettings.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={hrefSection(item.section, item.query)}
+                    className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-[#FAFAFB] sm:px-5"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F8FAFC] text-[#64748B]">
+                      <Icon className="h-4 w-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-[#111827]">
+                        {item.label}
+                      </p>
+                      <p className="text-[12px] text-[#9CA3AF]">{item.description}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[#D1D5DB]" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
+      {!isManage && communities.length > 1 ? (
+        <p className="px-1 text-[12px] text-[#9CA3AF]">
+          Managing {communities.length} communities
+          {badges.reports > 0 ? ` · ${badges.reports} open reports` : ""}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -74,11 +74,10 @@ export function buildManageDashboardMetrics(
   const slug = community.slug;
   const link = (section: string) => manageCommunityHref(slug, section);
   const members = community.memberCount ?? 0;
-  const reports = options?.reports ?? 0;
   const live = options?.live ?? 0;
   const spaces = options?.spacesCount ?? 0;
 
-  return [
+  const metrics: OwnerDashboardMetric[] = [
     {
       id: "members",
       label: "Members",
@@ -89,25 +88,29 @@ export function buildManageDashboardMetrics(
     },
     {
       id: "communities",
-      label: "Spaces",
+      label: "Active Spaces",
       value: spaces,
       hint: spaces === 1 ? "Primary Space" : "Active Spaces",
       href: link("spaces"),
     },
     {
       id: "live",
-      label: "Live",
+      label: "Live Sessions",
       value: live,
       hint: live > 0 ? "Live now" : "No active lives",
       href: link("live"),
     },
-    {
-      id: "reports",
-      label: "Reports",
-      value: reports,
-      hint: reports > 0 ? "Open moderation items" : "All clear",
-      tone: reports > 0 ? "warn" : "default",
-      href: link("moderation"),
-    },
   ];
+
+  if (options?.postCount != null) {
+    metrics.splice(1, 0, {
+      id: "reports",
+      label: "Posts",
+      value: options.postCount.toLocaleString(),
+      hint: "Published posts",
+      href: link("content"),
+    });
+  }
+
+  return metrics;
 }

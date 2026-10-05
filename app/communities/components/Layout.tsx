@@ -125,6 +125,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const isLiveStudio =
       pathname.startsWith("/communities/live") ||
       /\/communities\/[^/]+\/live(?:\/|$)/.test(pathname);
+    /** Manage Community is its own OS shell — avoid nested hub sidebars. */
+    const isCommunityManager =
+      /\/communities\/[^/]+\/manage(?:\/|$)/.test(pathname);
     const { refreshCounts } = useCartStore();
     const { openAssistant } = useAIStore();
 
@@ -264,6 +267,34 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         return (
             <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
                 {children}
+            </div>
+        );
+    }
+
+    // Manage Community mirrors Commerce OS: global AppTopNav + its own sidebar.
+    if (isCommunityManager) {
+        return (
+            <div className="flex h-dvh flex-col overflow-hidden bg-[#F8FAFC] text-[#111827]">
+                <AppTopNav
+                    activeNav="Communities"
+                    createContext="communities"
+                    user={navUser}
+                    notificationCount={unreadNotifications}
+                    messageCount={unreadMessages}
+                    signInHref={isAuthenticated === false ? loginHref : undefined}
+                    extraAccountItems={
+                        isAuthenticated
+                            ? [
+                                  {
+                                      label: myCommunityHome?.label ?? "My Community",
+                                      href: myCommunityHome?.href ?? profileHref,
+                                      icon: Users,
+                                  },
+                              ]
+                            : undefined
+                    }
+                />
+                <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
             </div>
         );
     }
