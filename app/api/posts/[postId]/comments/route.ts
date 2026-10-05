@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   canAccessRoom,
   canEngageWithCommunityPost,
@@ -21,6 +22,8 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Authz with user client; load comments via service role after gate so
+  // nested RLS on comments+communities cannot statement-timeout the read.
   const { data: post } = await supabase
     .from("community_posts")
     .select("room_id, community_id")
@@ -46,9 +49,13 @@ export async function GET(
   const before = searchParams.get("before");
   const sort = searchParams.get("sort") ?? "newest"; // top | newest | oldest
 
-  let query = supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createServiceRoleClient() as any;
+  let query = admin
     .from("community_post_comments")
-    .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
+    .select(
+      "id, post_id, author_id, parent_id, body, created_at, updated_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
+    )
     .eq("post_id", postId)
     .eq("is_published", true);
 
@@ -59,7 +66,12 @@ export async function GET(
     .order("created_at", { ascending: false })
     .limit(Math.min(200, limit * 2));
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    return NextResponse.json(
+      { error: error.message || "Failed to load comments" },
+      { status: 500 }
+    );
+  }
 
   type CommentRow = {
     created_at: string;
@@ -170,11 +182,23 @@ export async function POST(
       author_id: user.id,
       parent_id: parentId,
       body: text,
+      is_published: true,
     })
     .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    return NextResponse.json(
+      { error: error.message || "Failed to post comment" },
+      { status: 400 }
+    );
+  }
+  if (!data?.id) {
+    return NextResponse.json(
+      { error: "Comment was not saved" },
+      { status: 500 }
+    );
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await supabase.rpc("increment_post_comment_count" as any, { p_post_id: postId });

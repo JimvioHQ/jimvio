@@ -1774,27 +1774,53 @@ function PostDetailPanel({
 
     useEffect(() => {
         let cancelled = false;
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => controller.abort(), 20_000);
         (async () => {
             setLoadingComments(true);
             try {
                 const res = await fetch(
                     `/api/posts/${postId}/comments?sort=${commentSort}`,
-                    { cache: "no-store", signal: AbortSignal.timeout(20_000) }
+                    { cache: "no-store", signal: controller.signal }
                 );
                 const data = await res.json().catch(() => ({}));
                 if (cancelled) return;
-                if (res.ok) {
-                    setComments(data.comments ?? []);
-                } else {
-                    setComments([]);
+                if (!res.ok) {
+                    setSendError(
+                        typeof data.error === "string"
+                            ? data.error
+                            : "Couldn't load comments. Please try again."
+                    );
+                    return;
                 }
-            } catch {
-                if (!cancelled) setComments([]);
+                if (!Array.isArray(data.comments)) {
+                    setSendError("Invalid comments response");
+                    return;
+                }
+                setComments((prev) => {
+                    const server = data.comments as Comment[];
+                    // Keep any rows not yet in the server payload (race with POST).
+                    const serverIds = new Set(server.map((c) => c.id));
+                    const extras = prev.filter((c) => !serverIds.has(c.id));
+                    return extras.length ? [...extras, ...server] : server;
+                });
+                setSendError(null);
+            } catch (err) {
+                if (cancelled) return;
+                if (err instanceof DOMException && err.name === "AbortError") {
+                    setSendError("Comments took too long to load. Please try again.");
+                    return;
+                }
+                setSendError("Couldn't load comments. Please try again.");
             } finally {
                 if (!cancelled) setLoadingComments(false);
             }
         })();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            controller.abort();
+            window.clearTimeout(timer);
+        };
     }, [postId, commentSort]);
 
     // Deep-link / open: focus composer so Comment action lands in the writing surface.
@@ -1893,7 +1919,9 @@ function PostDetailPanel({
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                setSendError(err.error ?? "Failed to post comment. Please try again.");
+                setSendError(
+                    err.error ?? "Couldn't post your comment. Please try again."
+                );
                 return;
             }
             const data = await res.json();

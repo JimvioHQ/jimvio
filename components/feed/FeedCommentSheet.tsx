@@ -93,40 +93,54 @@ export function FeedCommentSheet({
   const [sending, setSending] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
 
-  const loadComments = useCallback(async () => {
+  const loadComments = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 20_000);
     try {
       const res = await fetch(`/api/posts/${postId}/comments?sort=newest&limit=50`, {
         cache: "no-store",
-        signal: controller.signal,
+        signal,
       });
       const data = await res.json().catch(() => ({}));
+      if (signal?.aborted) return;
       if (!res.ok) {
         toast.error(data.error || "Failed to load comments");
-        setComments([]);
+        // Never wipe in-flight / optimistic comments on a failed fetch.
         return;
       }
-      setComments((data.comments ?? []) as FeedComment[]);
+      if (!Array.isArray(data.comments)) {
+        toast.error("Invalid comments response");
+        return;
+      }
+      setComments((prev) => {
+        const server = data.comments as FeedComment[];
+        const pending = prev.filter((c) => String(c.id).startsWith("optimistic-"));
+        if (!pending.length) return server;
+        const ids = new Set(server.map((c) => c.id));
+        return [...pending.filter((c) => !ids.has(c.id)), ...server];
+      });
     } catch (err) {
+      if (signal?.aborted) return;
       if (err instanceof DOMException && err.name === "AbortError") {
         toast.error("Comments took too long to load. Try again.");
       } else {
         toast.error("Failed to load comments");
       }
-      setComments([]);
     } finally {
-      window.clearTimeout(timer);
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, [postId]);
 
   useEffect(() => {
     if (!open) return;
-    void loadComments();
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 20_000);
+    void loadComments(controller.signal);
     const t = window.setTimeout(() => inputRef.current?.focus(), 120);
-    return () => window.clearTimeout(t);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+      window.clearTimeout(t);
+    };
   }, [open, loadComments]);
 
   // Realtime comments for the open post — dedupe by id.
@@ -253,7 +267,7 @@ export function FeedCommentSheet({
       if (!res.ok) {
         setComments((prev) => prev.filter((c) => c.id !== optimisticId));
         onCommentCountChange?.(-1);
-        toast.error(data.error || "Failed to post comment");
+        toast.error(data.error || "Couldn't post your comment. Please try again.");
         return;
       }
       const saved = data.comment as FeedComment | undefined;

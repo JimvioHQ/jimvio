@@ -100,41 +100,46 @@ export function PostComposer({
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  // Prefetch communities (slug preselect when provided)
+  // Authorized destinations only (owned first) — server-deduped by community id.
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
     (async () => {
       try {
-        const { createClient } = await import("@/lib/supabase/client");
-        const supabase = createClient();
-        const { data: mships } = await supabase
-          .from("community_memberships")
-          .select("community_id")
-          .eq("status", "active")
-          .order("created_at", { ascending: false });
-        if (cancelled || !mships?.length) return;
-        const ids = mships.map((m: { community_id: string }) => m.community_id);
-        const { data: comms } = await supabase
-          .from("communities")
-          .select("id, name, slug")
-          .in("id", ids)
-          .eq("is_active", true);
-        if (cancelled || !comms?.length) return;
-        const byId = new Map(
-          (comms as CommunityOption[]).map((c) => [c.id, c] as const)
-        );
-        // Preserve membership recency order from the query above.
-        const options = (ids as string[])
-          .map((id: string) => byId.get(id))
-          .filter((c): c is CommunityOption => Boolean(c));
+        const res = await fetch("/api/posts/destinations", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setCommunities([]);
+          setCommunityId(null);
+          return;
+        }
+        const destinations = Array.isArray(data.destinations)
+          ? (data.destinations as Array<{
+              id: string;
+              name: string;
+              slug: string;
+            }>)
+          : [];
+        // Unique by id (server already dedupes; belt-and-suspenders).
+        const seen = new Set<string>();
+        const options: CommunityOption[] = [];
+        for (const d of destinations) {
+          if (!d?.id || seen.has(d.id)) continue;
+          seen.add(d.id);
+          options.push({ id: d.id, name: d.name, slug: d.slug });
+        }
         setCommunities(options);
-        const bySlug = initialCommunitySlug
-          ? options.find((c) => c.slug === initialCommunitySlug)
+        const preferredSlug = initialCommunitySlug?.trim().toLowerCase() ?? "";
+        const bySlug = preferredSlug
+          ? options.find((c) => c.slug.toLowerCase() === preferredSlug)
           : null;
         setCommunityId(bySlug?.id ?? options[0]?.id ?? null);
       } catch {
-        /* ignore */
+        if (!cancelled) {
+          setCommunities([]);
+          setCommunityId(null);
+        }
       }
     })();
     return () => {

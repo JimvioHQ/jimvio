@@ -69,12 +69,21 @@ export async function POST(
       .delete()
       .eq("post_id", postId)
       .eq("user_id", user.id);
-    // Keep legacy like row cleared when clearing reaction
-    await supabase
+    // Keep legacy like row cleared when clearing reaction — and keep like_count honest.
+    const { data: existingLike } = await supabase
       .from("community_post_likes")
-      .delete()
+      .select("id")
       .eq("post_id", postId)
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existingLike) {
+      await supabase
+        .from("community_post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", user.id);
+      await supabase.rpc("decrement_post_like_count" as any, { p_post_id: postId });
+    }
     const counts = await recountReactions(supabase, postId);
     return NextResponse.json({ reaction: null, counts });
   }
