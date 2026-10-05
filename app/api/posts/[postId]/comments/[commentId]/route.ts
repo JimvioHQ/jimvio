@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canAccessRoom } from "@/services/accessControl";
 
 export const dynamic = "force-dynamic";
+
+const COMMENT_COLUMNS =
+  "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published";
 
 /** PATCH — edit / pin comment. Body: { body?, is_pinned? } */
 export async function PATCH(
@@ -31,7 +35,9 @@ export async function PATCH(
   const hasAccess = await canAccessRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const { data: comment } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createServiceRoleClient() as any;
+  const { data: comment } = await admin
     .from("community_post_comments")
     .select("id, author_id, post_id")
     .eq("id", commentId)
@@ -71,15 +77,26 @@ export async function PATCH(
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await admin
     .from("community_post_comments")
     .update(patch)
     .eq("id", commentId)
-    .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
+    .select(COMMENT_COLUMNS)
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ comment: data });
+
+  let profiles = null;
+  if (data?.author_id) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("full_name, avatar_url, username")
+      .eq("id", data.author_id)
+      .maybeSingle();
+    profiles = profile ?? null;
+  }
+
+  return NextResponse.json({ comment: { ...data, profiles } });
 }
 
 /** DELETE a comment (author or mod). */
@@ -104,7 +121,9 @@ export async function DELETE(
   const hasAccess = await canAccessRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const { data: comment } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createServiceRoleClient() as any;
+  const { data: comment } = await admin
     .from("community_post_comments")
     .select("id, author_id")
     .eq("id", commentId)
@@ -127,20 +146,20 @@ export async function DELETE(
     }
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("community_post_comments")
     .delete()
     .eq("id", commentId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const { data: row } = await supabase
+  const { data: row } = await admin
     .from("community_posts")
     .select("comment_count")
     .eq("id", postId)
     .maybeSingle();
   if (row) {
-    await supabase
+    await admin
       .from("community_posts")
       .update({ comment_count: Math.max(0, (row.comment_count ?? 1) - 1) })
       .eq("id", postId);
