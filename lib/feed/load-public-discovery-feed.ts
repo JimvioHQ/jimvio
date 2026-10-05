@@ -6,6 +6,14 @@ import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
 import { isGuestVisiblePublicPost } from "@/lib/feed/public-post-visibility";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
+import {
+  isUpstreamUnavailable,
+  UpstreamUnavailableError,
+} from "@/lib/feed/upstream-error";
+import {
+  createServiceRoleClient,
+  hasSupabaseSecretKey,
+} from "@/lib/supabase/service-role";
 
 const PAGE_SIZE = 20;
 const FEED_FILTERS = new Set([
@@ -142,7 +150,13 @@ export async function loadPublicDiscoveryFeed(
         );
       }
 
-      const global = await loadGlobalCommunityFeed(db, {
+      // Public feed reads use service-role + app privacy filters to avoid RLS
+      // re-evaluation cost under connection pressure.
+      const feedDb = hasSupabaseSecretKey()
+        ? (createServiceRoleClient() as Parameters<typeof loadGlobalCommunityFeed>[0])
+        : db;
+
+      const global = await loadGlobalCommunityFeed(feedDb, {
         limit,
         cursor,
         useRanking,
@@ -150,6 +164,14 @@ export async function loadPublicDiscoveryFeed(
         verifiedCommunityIds,
         signal: AbortSignal.timeout(12_000),
       });
+
+      if (!global.posts.length && !cursor) {
+        // Fresh global feed with zero posts is not a legitimate production state
+        // after curation (~2500 active). Treat as upstream failure.
+        throw new UpstreamUnavailableError(
+          "Feed returned no posts from a non-empty database",
+        );
+      }
 
       const enriched = global.posts.map((post) => ({
         ...post,
@@ -166,7 +188,8 @@ export async function loadPublicDiscoveryFeed(
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load global feed";
-      return { ok: false, status: 400, error: message };
+      const status = isUpstreamUnavailable(err) ? 503 : 400;
+      return { ok: false, status, error: message };
     }
   }
 

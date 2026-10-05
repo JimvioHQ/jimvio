@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
+  createServiceRoleClient,
+  hasSupabaseSecretKey,
+} from "@/lib/supabase/service-role";
+import {
   communityTrendingScore,
   isCommunityVerified,
 } from "@/lib/community/trending-score";
@@ -14,14 +18,23 @@ import {
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
 import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection";
+import {
+  UpstreamUnavailableError,
+  isAbortLikeError,
+} from "@/lib/feed/upstream-error";
 
 export const dynamic = "force-dynamic";
-/** Fail the invoke quickly instead of waiting the platform 300s default. */
 export const maxDuration = 20;
 
-/** Hard budget so a saturated DB cannot pin this serverless invoke. */
-const DISCOVER_BUDGET_MS = 8_000;
+const DISCOVER_BUDGET_MS = 10_000;
 const SIDEBAR_BUDGET_MS = 2_000;
+
+type Db = {
+  // Service-role and cookie clients share PostgREST surface; keep loose to avoid
+  // incompatible generic unions across @supabase/ssr vs supabase-js.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  from: (relation: string) => any;
+};
 
 type TrendingCommunityRow = {
   id: string;
@@ -78,13 +91,13 @@ function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
 
 /**
  * Lightweight trending list using maintained counters only.
- * AbortSignal is required so a stalled PostgREST call cannot hold the isolate.
+ * Privacy is enforced in application code (service-role read path).
  */
 async function fetchTrendingViaFallback(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  db: Db,
   signal: AbortSignal,
 ): Promise<TrendingCommunityRow[]> {
-  const { data: communities, error } = await supabase
+  const { data: communities, error } = await db
     .from("communities")
     .select(
       "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
@@ -97,9 +110,37 @@ async function fetchTrendingViaFallback(
     .limit(40)
     .abortSignal(signal);
 
-  if (error || signal.aborted) return [];
+  if (signal.aborted || isAbortLikeError(error)) {
+    throw new UpstreamUnavailableError(
+      "Discovery query timed out waiting for the database",
+    );
+  }
+  if (error) {
+    throw new UpstreamUnavailableError(error.message);
+  }
 
-  return (communities ?? [])
+  return ((communities ?? []) as Array<Record<string, unknown> & {
+    id: string;
+    name: string;
+    slug: string;
+    category: string | null;
+    tagline?: string | null;
+    description?: string | null;
+    cover_image: string | null;
+    avatar_url: string | null;
+    member_count: number | null;
+    post_count?: number | null;
+    is_featured: boolean | null;
+    is_private?: boolean | null;
+    is_active?: boolean | null;
+    visibility?: string | null;
+    visibility_mode?: string | null;
+    archived_at?: string | null;
+    settings?: unknown;
+    is_free?: boolean | null;
+    monthly_price?: number | null;
+    currency?: string | null;
+  }>)
     .filter(communityIsPubliclyDiscoverable)
     .map((c) => {
       const trending_score = communityTrendingScore({
@@ -121,12 +162,12 @@ async function fetchTrendingViaFallback(
 }
 
 async function fetchPriorityCommunities(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  db: Db,
   missing: string[],
   signal: AbortSignal,
 ): Promise<TrendingCommunityRow[]> {
-  if (!missing.length || signal.aborted) return [];
-  const { data: priorityRows, error } = await supabase
+  if (!missing.length) return [];
+  const { data: priorityRows, error } = await db
     .from("communities")
     .select(
       "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings, is_free, monthly_price, currency",
@@ -134,7 +175,15 @@ async function fetchPriorityCommunities(
     .in("slug", missing)
     .eq("is_active", true)
     .abortSignal(signal);
-  if (error || signal.aborted) return [];
+
+  if (signal.aborted || isAbortLikeError(error)) {
+    throw new UpstreamUnavailableError(
+      "Discovery priority query timed out waiting for the database",
+    );
+  }
+  if (error) {
+    throw new UpstreamUnavailableError(error.message);
+  }
 
   const out: TrendingCommunityRow[] = [];
   for (const row of priorityRows ?? []) {
@@ -154,35 +203,39 @@ async function fetchPriorityCommunities(
 
 /** GET — discover rails for the Creator OS home feed. */
 export async function GET(req: Request) {
-  const supabase = await createClient();
   const budget = AbortSignal.timeout(DISCOVER_BUDGET_MS);
+  // Service-role for public discovery metadata only — privacy filtered in-app.
+  // Avoids RLS re-evaluation cost under connection saturation.
+  const db: Db = hasSupabaseSecretKey()
+    ? createServiceRoleClient()
+    : await createClient();
 
-  // Prefer the light counter path with a hard abort — never await an
-  // unabortable PostgREST call (dangling promises pin the serverless isolate).
-  let trendingRows = await fetchTrendingViaFallback(supabase, budget);
+  let trendingRows: TrendingCommunityRow[] = [];
+  try {
+    trendingRows = await fetchTrendingViaFallback(db, budget);
 
-  // Best-effort RPC upgrade when the light path is empty or thin.
-  if (trendingRows.length < 4 && !budget.aborted) {
-    try {
-      const rpc = await (supabase as any).rpc(
-        "get_trending_communities",
-        { p_limit: 24 },
-        { abortSignal: budget },
-      );
-      if (!rpc.error && Array.isArray(rpc.data) && rpc.data.length) {
-        trendingRows = rpc.data as TrendingCommunityRow[];
+    if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length && !budget.aborted) {
+      const have = new Set(trendingRows.map((r) => r.slug));
+      const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter((s) => !have.has(s));
+      if (missing.length) {
+        const priorityRows = await fetchPriorityCommunities(db, missing, budget);
+        trendingRows = [...trendingRows, ...priorityRows];
       }
-    } catch {
-      // keep light rows
     }
-  }
-
-  // Ensure priority communities (e.g. P7 PROVIDER) are present.
-  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length && !budget.aborted) {
-    const have = new Set(trendingRows.map((r) => r.slug));
-    const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter((s) => !have.has(s));
-    const priorityRows = await fetchPriorityCommunities(supabase, missing, budget);
-    trendingRows = [...trendingRows, ...priorityRows];
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Discovery temporarily unavailable";
+    console.error("[discover] upstream failure:", message);
+    return NextResponse.json(
+      {
+        error: "upstream_unavailable",
+        message,
+        communities: null,
+        live: null,
+        popularUsers: null,
+      },
+      { status: 503 },
+    );
   }
 
   const qualityRows = selectDiscoveryCommunities(
@@ -197,9 +250,23 @@ export async function GET(req: Request) {
     8,
   );
 
-  // Sidebar rails are optional — short abort budget, empty on failure.
-  // Note: sidebar loaders do not yet accept AbortSignal; race returns empty
-  // while their queries may still complete in the background briefly.
+  // Empty after a successful query is legitimate only if the DB truly has no
+  // discoverable communities — which production does not. Treat as failure.
+  if (!qualityRows.length) {
+    console.error("[discover] empty result after successful queries");
+    return NextResponse.json(
+      {
+        error: "upstream_unavailable",
+        message: "Discovery returned no communities from a non-empty database",
+        communities: null,
+        live: null,
+        popularUsers: null,
+      },
+      { status: 503 },
+    );
+  }
+
+  // Optional sidebar rails — never block communities payload.
   let liveRows: FeedSidebarLiveCreator[] = [];
   let popularUsers: FeedSidebarPopularUser[] = [];
   if (!budget.aborted) {
@@ -208,8 +275,9 @@ export async function GET(req: Request) {
     let excludeUserId: string | null = null;
     if (hasSessionCookie) {
       try {
+        const userClient = await createClient();
         const auth = await Promise.race([
-          supabase.auth.getUser().then((r) => r.data.user),
+          userClient.auth.getUser().then((r) => r.data.user),
           new Promise<null>((resolve) => {
             sidebarSignal.addEventListener("abort", () => resolve(null), { once: true });
           }),
@@ -240,7 +308,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     communities: qualityRows.map((row) =>
-      mapCommunity(row as TrendingCommunityRow & { settings?: unknown })
+      mapCommunity(row as TrendingCommunityRow & { settings?: unknown }),
     ),
     live: liveRows.map((s: FeedSidebarLiveCreator) => ({
       id: s.id,

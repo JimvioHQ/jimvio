@@ -12,6 +12,14 @@ import { requireCommunityMember } from "@/lib/community/rbac";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
+import {
+  isUpstreamUnavailable,
+  UpstreamUnavailableError,
+} from "@/lib/feed/upstream-error";
+import {
+  createServiceRoleClient,
+  hasSupabaseSecretKey,
+} from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 20;
@@ -153,7 +161,11 @@ export async function GET(req: NextRequest) {
         verifiedCommunityIds = new Set((featuredCommunities ?? []).map((c) => c.id));
       }
 
-      const global = await loadGlobalCommunityFeed(supabase, {
+      const feedDb = hasSupabaseSecretKey()
+        ? (createServiceRoleClient() as Parameters<typeof loadGlobalCommunityFeed>[0])
+        : supabase;
+
+      const global = await loadGlobalCommunityFeed(feedDb, {
         limit,
         cursor,
         viewerId: user.id,
@@ -162,8 +174,14 @@ export async function GET(req: NextRequest) {
         useRanking,
         filter,
         verifiedCommunityIds,
-        signal: AbortSignal.timeout(8_000),
+        signal: AbortSignal.timeout(12_000),
       });
+
+      if (!global.posts.length && !cursor) {
+        throw new UpstreamUnavailableError(
+          "Feed returned no posts from a non-empty database",
+        );
+      }
 
       const pageRows = global.posts;
       const postIds = pageRows.map((post) => post.id);
@@ -218,7 +236,8 @@ export async function GET(req: NextRequest) {
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load global feed";
-      return NextResponse.json({ error: message }, { status: 400 });
+      const status = isUpstreamUnavailable(err) ? 503 : 400;
+      return NextResponse.json({ error: message }, { status });
     }
   }
 

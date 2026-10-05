@@ -16,18 +16,26 @@ import {
   diversifyAuthors,
   sortRisingByVelocity,
 } from "@/lib/feed/apply-feed-tab-filter";
+import {
+  UpstreamUnavailableError,
+  isAbortLikeError,
+} from "@/lib/feed/upstream-error";
 /**
- * Ranking pool size. Large enough to cover the curated ~2500 active posts
- * without scanning unbounded history. Previous MAX_POOL=10000 with chunked
- * `.in(community_id)` fan-out caused 100+ DB round-trips per request.
+ * Ranking pool size for a single request.
+ * Previous 6×500 / 2500 pool filled under DB saturation caused multi-minute
+ * feeds and empty abort responses. One bounded page is enough to rank the
+ * first several UI pages; older content remains reachable via pagination
+ * cursors that advance the keyset.
  */
-const MAX_POOL = 2_500;
-const POOL_PAGE = 500;
-const MAX_POOL_ROUNDS = 6;
+const MAX_POOL = 150;
+const POOL_PAGE = 150;
+const MAX_POOL_ROUNDS = 1;
 /** PostgREST `.in()` URL length stays safe below ~100–150 UUIDs. */
 const COMMUNITY_IN_CHUNK = 120;
 
-type Db = Awaited<ReturnType<typeof createClient>>;
+type Db = {
+  from: Awaited<ReturnType<typeof createClient>>["from"];
+};
 
 export type GlobalCommunityFeedPost = Record<string, unknown> & {
   id: string;
@@ -97,7 +105,7 @@ function isBeforeCursor(post: GlobalCommunityFeedPost, before: RawCursor): boole
 }
 
 const POST_SELECT =
-  "id, community_id, author_id, created_at, body, attachments, audience, is_exclusive, space_id, post_type, like_count, comment_count, view_count, share_count, title, images, video_url, room_id, profiles!community_posts_author_id_fkey(full_name, avatar_url, username, email), communities!inner(slug, name, is_private, is_active, visibility, visibility_mode, archived_at)";
+  "id, community_id, author_id, created_at, body, attachments, audience, is_exclusive, space_id, post_type, like_count, comment_count, view_count, share_count, title, images, video_url, room_id, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities!inner(slug, name, is_private, is_active, visibility, visibility_mode, archived_at)";
 
 /**
  * Public discoverable posts via a single communities!inner join.
@@ -130,7 +138,11 @@ async function fetchPublicRawBatch(
   }
 
   const { data, error } = await query;
-  if (signal?.aborted) return [];
+  if (signal?.aborted || isAbortLikeError(error)) {
+    throw new UpstreamUnavailableError(
+      "Feed query timed out waiting for the database",
+    );
+  }
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as GlobalCommunityFeedPost[];
   return before ? rows.filter((row) => isBeforeCursor(row, before)) : rows;
@@ -145,6 +157,7 @@ async function fetchMemberRawBatch(
   communityIds: string[],
   before: RawCursor | null,
   limit: number,
+  signal?: AbortSignal,
 ): Promise<GlobalCommunityFeedPost[]> {
   if (!communityIds.length) return [];
   const chunks = chunkIds(communityIds, COMMUNITY_IN_CHUNK);
@@ -164,8 +177,16 @@ async function fetchMemberRawBatch(
       if (before) {
         query = query.lte("created_at", before.created_at);
       }
+      if (signal) {
+        query = query.abortSignal(signal);
+      }
 
       const { data, error } = await query;
+      if (signal?.aborted || isAbortLikeError(error)) {
+        throw new UpstreamUnavailableError(
+          "Feed query timed out waiting for the database",
+        );
+      }
       if (error) throw new Error(error.message);
       const rows = (data ?? []) as GlobalCommunityFeedPost[];
       return before ? rows.filter((row) => isBeforeCursor(row, before)) : rows;
@@ -202,12 +223,22 @@ async function loadEligiblePostPool(
   let guard = 0;
 
   while (eligible.length < MAX_POOL && guard < MAX_POOL_ROUNDS) {
-    if (opts.signal?.aborted) break;
+    if (opts.signal?.aborted) {
+      throw new UpstreamUnavailableError(
+        "Feed query timed out waiting for the database",
+      );
+    }
     guard += 1;
     const batch: GlobalCommunityFeedPost[] =
       opts.mode === "public"
         ? await fetchPublicRawBatch(db, before, POOL_PAGE, opts.signal)
-        : await fetchMemberRawBatch(db, opts.communityIds ?? [], before, POOL_PAGE);
+        : await fetchMemberRawBatch(
+            db,
+            opts.communityIds ?? [],
+            before,
+            POOL_PAGE,
+            opts.signal,
+          );
     if (!batch.length) break;
 
     for (const post of batch) {
