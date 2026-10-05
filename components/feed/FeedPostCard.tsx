@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Check,
+  Eye,
   Flame,
   Heart,
   Loader2,
@@ -28,7 +29,9 @@ import {
   prependUniqueById,
 } from "@/lib/feed/session-boost-post";
 import { sessionStartCursorFrom } from "@/lib/feed/global-feed-exclusions";
+import { usePostViewTracker } from "@/lib/feed/use-post-view-tracker";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
+import { PostShareMenu } from "@/components/feed/PostShareMenu";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
@@ -46,6 +49,8 @@ export type ApiPost = {
   like_count?: number | null;
   comment_count?: number | null;
   share_count?: number | null;
+  view_count?: number | null;
+  unique_view_count?: number | null;
   created_at?: string | null;
   user_has_liked?: boolean | null;
   community_id?: string | null;
@@ -84,6 +89,8 @@ type DisplayPost = {
   engagement: {
     likes: number | string;
     comments: number;
+    views: number;
+    /** Internal only — never shown on the feed card. */
     shares: number;
   };
   liked?: boolean;
@@ -92,6 +99,7 @@ type DisplayPost = {
   promotionLabel?: string | null;
   communityName?: string | null;
   communitySlug?: string | null;
+  communityId?: string | null;
 };
 
 function mapApiPost(post: ApiPost): DisplayPost {
@@ -132,11 +140,14 @@ function mapApiPost(post: ApiPost): DisplayPost {
     engagement: {
       likes: post.like_count ?? 0,
       comments: post.comment_count ?? 0,
+      // Authoritative aggregate on the post row (legacy baselines + new events).
+      views: Number(post.view_count ?? post.unique_view_count ?? 0) || 0,
       shares: post.share_count ?? 0,
     },
     liked: Boolean(post.user_has_liked),
     communityName: post.communities?.name ?? null,
     communitySlug: post.communities?.slug ?? null,
+    communityId: post.community_id ?? null,
     href: post.communities?.slug
       ? `/communities/${post.communities.slug}/feed?post=${post.id}`
       : `/communities/feed?post=${post.id}`,
@@ -192,6 +203,209 @@ function AuthorAvatar({
   );
 }
 
+function HubFeedArticle({
+  post,
+  index,
+  shareOpen,
+  onToggleLike,
+  onOpenComments,
+  onOpenShare,
+  onCloseShare,
+  onViewCount,
+}: {
+  post: DisplayPost;
+  index: number;
+  shareOpen: boolean;
+  onToggleLike: () => void;
+  onOpenComments: () => void;
+  onOpenShare: () => void;
+  onCloseShare: () => void;
+  onViewCount: (views: number) => void;
+}) {
+  const viewRef = usePostViewTracker<HTMLElement>(post.id, (count, recorded) => {
+    if (recorded && typeof count === "number") onViewCount(count);
+  });
+
+  return (
+    <article
+      ref={viewRef}
+      className="bg-transparent px-0.5 py-3.5 transition-colors first:pt-3 hover:bg-[var(--color-surface)]/40"
+    >
+      <div className="mb-2.5 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          {post.author.profileHref ? (
+            <Link
+              href={post.author.profileHref}
+              aria-label={`View ${post.author.name}'s profile`}
+              className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AuthorAvatar name={post.author.name} url={post.author.avatar} />
+            </Link>
+          ) : (
+            <AuthorAvatar name={post.author.name} url={post.author.avatar} className="mt-0.5 shrink-0" />
+          )}
+          <div className="min-w-0 pt-0.5">
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+              {post.author.profileHref ? (
+                <Link
+                  href={post.author.profileHref}
+                  aria-label={`View ${post.author.name}'s profile`}
+                  className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {post.author.name}
+                </Link>
+              ) : (
+                <span className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900">
+                  {post.author.name}
+                </span>
+              )}
+              {post.author.verified && (
+                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900">
+                  <Check className="h-2 w-2 text-white" strokeWidth={3} />
+                </span>
+              )}
+              {post.author.profileHref ? (
+                <Link
+                  href={post.author.profileHref}
+                  className="text-[12px] text-gray-400 hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {post.author.handle}
+                </Link>
+              ) : (
+                <span className="text-[12px] text-gray-400">{post.author.handle}</span>
+              )}
+              <span className="text-[12px] text-gray-300">·</span>
+              <span className="text-[12px] text-gray-400">{post.timestamp}</span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {post.communitySlug && post.communityName ? (
+                <Link
+                  href={`/communities/${post.communitySlug}`}
+                  className="text-[12px] font-medium text-[#fd5000] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {post.communityName}
+                </Link>
+              ) : null}
+              {post.pinned && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-600">
+                  <Pin className="h-3 w-3" />
+                  Pinned
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          aria-label="Post options"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="min-w-0 pl-0 sm:pl-[52px]">
+        {post.promotionLabel && (
+          <span className="mb-2 inline-flex rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+            {post.promotionLabel}
+          </span>
+        )}
+        {post.title && (
+          <h3 className="mb-1 min-w-0 break-words text-[15px] font-semibold leading-snug text-gray-900 dark:text-[var(--color-text-primary)]">
+            {post.title}
+          </h3>
+        )}
+        {post.body ? (
+          <p className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
+            {post.body}
+          </p>
+        ) : null}
+
+        {post.media?.type === "video" && (
+          <div className="mb-2.5 overflow-hidden rounded-2xl">
+            <FeedVideoPlayer
+              src={post.media.src}
+              poster={post.media.thumbnail || undefined}
+            />
+          </div>
+        )}
+        {post.media?.type === "image" && (
+          <div className="mb-2.5 overflow-hidden rounded-2xl bg-gray-50">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.media.thumbnail}
+              alt={post.body.slice(0, 80) || post.author.name}
+              loading={index < 2 ? "eager" : "lazy"}
+              decoding="async"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+              className="max-h-[70vh] w-full object-contain"
+            />
+          </div>
+        )}
+
+        {/* Views · Likes · Comments · Share (no share count) */}
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          <span
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500"
+            aria-label={`${formatEngagement(post.engagement.views)} views`}
+          >
+            <Eye className="h-4 w-4" aria-hidden />
+            {formatEngagement(post.engagement.views)}
+          </span>
+          <button
+            type="button"
+            onClick={onToggleLike}
+            aria-label={post.liked ? "Unlike post" : "Like post"}
+            aria-pressed={post.liked}
+            className={cn(
+              "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+              post.liked ? "text-red-500" : "text-gray-500",
+            )}
+          >
+            <Heart
+              className={cn("h-4 w-4", post.liked ? "fill-red-500 text-red-500" : "")}
+            />
+            {formatEngagement(post.engagement.likes)}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenComments}
+            aria-label={`Comments (${post.engagement.comments})`}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {formatEngagement(post.engagement.comments)}
+          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={onOpenShare}
+              aria-label="Share post"
+              aria-expanded={shareOpen}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
+            <PostShareMenu
+              postId={post.id}
+              permalinkPath={post.href ?? `/communities/feed?post=${post.id}`}
+              defaultCommunityId={post.communityId}
+              open={shareOpen}
+              onClose={onCloseShare}
+            />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function FeedPostCard({
   tab = "For You",
   initialPosts = [],
@@ -212,6 +426,7 @@ export function FeedPostCard({
   const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
   const [loadError, setLoadError] = useState(false);
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const [sharePostId, setSharePostId] = useState<string | null>(null);
   const [pendingNewCount, setPendingNewCount] = useState(0);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -356,6 +571,7 @@ export function FeedPostCard({
               const likeCount = Number(payload?.new?.like_count);
               const commentCount = Number(payload?.new?.comment_count);
               const shareCount = Number(payload?.new?.share_count);
+              const viewCount = Number(payload?.new?.view_count);
               const archived = payload?.new?.archived_at != null;
               const unpublished = payload?.new?.is_published === false;
               if (archived || unpublished) {
@@ -375,6 +591,7 @@ export function FeedPostCard({
                       comments: Number.isFinite(commentCount)
                         ? commentCount
                         : p.engagement.comments,
+                      views: Number.isFinite(viewCount) ? viewCount : p.engagement.views,
                       shares: Number.isFinite(shareCount) ? shareCount : p.engagement.shares,
                     },
                   };
@@ -541,41 +758,6 @@ export function FeedPostCard({
     }
   }
 
-  async function sharePost(post: DisplayPost) {
-    const path = post.href ?? `/communities/feed?post=${post.id}`;
-    const url =
-      typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: post.body.slice(0, 80), url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Link copied");
-      }
-      if (isAuthenticated) {
-        const res = await fetch(`/api/posts/${post.id}/share`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "link" }),
-        });
-        if (res.ok) {
-          const data = (await res.json().catch(() => ({}))) as { share_count?: number };
-          if (typeof data.share_count === "number") {
-            setPosts((prev) =>
-              prev.map((p) =>
-                p.id === post.id
-                  ? { ...p, engagement: { ...p.engagement, shares: data.share_count! } }
-                  : p
-              )
-            );
-          }
-        }
-      }
-    } catch {
-      /* user cancelled share */
-    }
-  }
-
   if (loading && posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
@@ -653,170 +835,27 @@ export function FeedPostCard({
         </div>
       )}
       {posts.map((post, index) => (
-        <article
+        <HubFeedArticle
           key={post.id}
-          className="bg-transparent px-0.5 py-3.5 transition-colors first:pt-3 hover:bg-[var(--color-surface)]/40"
-        >
-          <div className="mb-2.5 flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-3">
-              {post.author.profileHref ? (
-                <Link
-                  href={post.author.profileHref}
-                  aria-label={`View ${post.author.name}'s profile`}
-                  className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <AuthorAvatar name={post.author.name} url={post.author.avatar} />
-                </Link>
-              ) : (
-                <AuthorAvatar name={post.author.name} url={post.author.avatar} className="mt-0.5 shrink-0" />
-              )}
-              <div className="min-w-0 pt-0.5">
-                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  {post.author.profileHref ? (
-                    <Link
-                      href={post.author.profileHref}
-                      aria-label={`View ${post.author.name}'s profile`}
-                      className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {post.author.name}
-                    </Link>
-                  ) : (
-                    <span className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900">
-                      {post.author.name}
-                    </span>
-                  )}
-                  {post.author.verified && (
-                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900">
-                      <Check className="h-2 w-2 text-white" strokeWidth={3} />
-                    </span>
-                  )}
-                  {post.author.profileHref ? (
-                    <Link
-                      href={post.author.profileHref}
-                      className="text-[12px] text-gray-400 hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {post.author.handle}
-                    </Link>
-                  ) : (
-                    <span className="text-[12px] text-gray-400">{post.author.handle}</span>
-                  )}
-                  <span className="text-[12px] text-gray-300">·</span>
-                  <span className="text-[12px] text-gray-400">{post.timestamp}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  {post.communitySlug && post.communityName ? (
-                    <Link
-                      href={`/communities/${post.communitySlug}`}
-                      className="text-[12px] font-medium text-[#fd5000] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {post.communityName}
-                    </Link>
-                  ) : null}
-                  {post.pinned && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-600">
-                      <Pin className="h-3 w-3" />
-                      Pinned
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              aria-label="Post options"
-              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="min-w-0 pl-0 sm:pl-[52px]">
-            {post.promotionLabel && (
-              <span className="mb-2 inline-flex rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
-                {post.promotionLabel}
-              </span>
-            )}
-            {post.title && (
-              <h3 className="mb-1 min-w-0 break-words text-[15px] font-semibold leading-snug text-gray-900 dark:text-[var(--color-text-primary)]">
-                {post.title}
-              </h3>
-            )}
-            {post.body ? (
-              <p className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
-                {post.body}
-              </p>
-            ) : null}
-
-            {post.media?.type === "video" && (
-              <div className="mb-2.5 overflow-hidden rounded-2xl">
-                <FeedVideoPlayer
-                  src={post.media.src}
-                  poster={post.media.thumbnail || undefined}
-                />
-              </div>
-            )}
-            {post.media?.type === "image" && (
-              <div className="mb-2.5 overflow-hidden rounded-2xl bg-gray-50">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.media.thumbnail}
-                  alt={post.body.slice(0, 80) || post.author.name}
-                  loading={index < 2 ? "eager" : "lazy"}
-                  decoding="async"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                  className="max-h-[70vh] w-full object-contain"
-                />
-              </div>
-            )}
-
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => void toggleLike(post.id)}
-                  aria-label={post.liked ? "Unlike post" : "Like post"}
-                  aria-pressed={post.liked}
-                  className={cn(
-                    "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
-                    post.liked ? "text-red-500" : "text-gray-500"
-                  )}
-                >
-                  <Heart
-                    className={cn(
-                      "h-4 w-4",
-                      post.liked ? "fill-red-500 text-red-500" : ""
-                    )}
-                  />
-                  {formatEngagement(post.engagement.likes)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCommentPostId(post.id)}
-                  aria-label={`Comments (${post.engagement.comments})`}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  {post.engagement.comments}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void sharePost(post)}
-                  aria-label="Share post"
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-                >
-                  <Share2 className="h-4 w-4" />
-                  {post.engagement.shares}
-                </button>
-              </div>
-            </div>
-          </div>
-        </article>
+          post={post}
+          index={index}
+          shareOpen={sharePostId === post.id}
+          onToggleLike={() => void toggleLike(post.id)}
+          onOpenComments={() => setCommentPostId(post.id)}
+          onOpenShare={() =>
+            setSharePostId((id) => (id === post.id ? null : post.id))
+          }
+          onCloseShare={() => setSharePostId(null)}
+          onViewCount={(views) => {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === post.id
+                  ? { ...p, engagement: { ...p.engagement, views } }
+                  : p,
+              ),
+            );
+          }}
+        />
       ))}
       <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
       {loadingMore && (

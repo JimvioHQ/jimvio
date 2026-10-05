@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canEngageWithRoom } from "@/services/accessControl";
+import { canEngageWithCommunityPost } from "@/services/accessControl";
 
 export const dynamic = "force-dynamic";
 
-const SHARE_TYPES = new Set(["link", "repost", "quote", "community", "external", "copy"]);
+const SHARE_TYPES = new Set([
+  "link",
+  "repost",
+  "quote",
+  "community",
+  "external",
+  "copy",
+  "whatsapp",
+  "facebook",
+  "x",
+  "email",
+]);
 
-/** POST — record a share (ledger + counter). Body: { type?, communityId? } */
+function permalinkFor(
+  postId: string,
+  communitySlug: string | null | undefined,
+): string {
+  if (communitySlug) return `/communities/${communitySlug}/feed?post=${postId}`;
+  return `/communities/feed?post=${postId}`;
+}
+
+/** POST — record a share/repost. Body: { type?, communityId? } */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
@@ -26,23 +45,38 @@ export async function POST(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("id, room_id, community_id, body, author_id")
+    .select("id, room_id, community_id, body, author_id, images, video_url, title")
     .eq("id", postId)
     .maybeSingle();
 
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const hasAccess = await canEngageWithRoom(user.id, post.room_id);
+  const hasAccess = await canEngageWithCommunityPost(user.id, {
+    room_id: post.room_id,
+    community_id: post.community_id,
+  });
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const db = supabase as any;
+  const { data: sourceCommunity } = await supabase
+    .from("communities")
+    .select("slug")
+    .eq("id", post.community_id)
+    .maybeSingle();
 
-  await db.from("community_post_shares").insert({
+  const db = supabase as any;
+  const permalink = permalinkFor(postId, sourceCommunity?.slug);
+
+  // Analytics ledger — opening the menu is never recorded here.
+  const { error: shareInsertError } = await db.from("community_post_shares").insert({
     post_id: postId,
     user_id: user.id,
     share_type: shareType,
     target_community_id: body.communityId ?? null,
   });
+  if (shareInsertError) {
+    // Unique / race: still return current count honestly.
+    console.error("[posts/share] ledger:", shareInsertError.message);
+  }
 
   const { data: row } = await db
     .from("community_posts")
@@ -57,42 +91,98 @@ export async function POST(
     .eq("id", postId);
 
   let repostId: string | null = null;
-  if (shareType === "repost" && body.communityId) {
+  const targetCommunityId =
+    shareType === "repost" || shareType === "community"
+      ? body.communityId || post.community_id
+      : null;
+
+  if ((shareType === "repost" || shareType === "community") && targetCommunityId) {
     const { data: membership } = await supabase
       .from("community_memberships")
       .select("id")
-      .eq("community_id", body.communityId)
+      .eq("community_id", targetCommunityId)
       .eq("user_id", user.id)
       .eq("status", "active")
       .maybeSingle();
-    if (membership) {
-      const { data: room } = await supabase
-        .from("rooms")
-        .select("id, space_id")
-        .eq("community_id", body.communityId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (room?.id && room.space_id) {
-        const { data: created } = await db
-          .from("community_posts")
-          .insert({
-            community_id: body.communityId,
-            room_id: room.id,
-            space_id: room.space_id,
-            author_id: user.id,
-            body: post.body ?? "",
-            post_type: "discussion",
-            quote_of_post_id: postId,
-            is_published: true,
-            published_at: new Date().toISOString(),
-            attachments: { share_type: "repost", source_post_id: postId },
-          })
-          .select("id")
-          .single();
-        repostId = created?.id ?? null;
+    if (!membership) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "You must be a member of that community to share there",
+          share_count: next,
+          permalink,
+        },
+        { status: 403 },
+      );
+    }
+
+    // Prevent duplicate active reposts of the same source by the same author.
+    const { data: existingRepost } = await db
+      .from("community_posts")
+      .select("id")
+      .eq("author_id", user.id)
+      .eq("quote_of_post_id", postId)
+      .eq("community_id", targetCommunityId)
+      .eq("is_published", true)
+      .is("archived_at", null)
+      .maybeSingle();
+    if (existingRepost?.id) {
+      return NextResponse.json({
+        ok: true,
+        share_count: next,
+        share_type: shareType,
+        repost_id: existingRepost.id,
+        permalink,
+        duplicate: true,
+      });
+    }
+
+    const { data: room } = await supabase
+      .from("rooms")
+      .select("id, space_id")
+      .eq("community_id", targetCommunityId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (room?.id && room.space_id) {
+      const attribution =
+        shareType === "community"
+          ? `Shared from ${sourceCommunity?.slug ? `@${sourceCommunity.slug}` : "Jimvio"}`
+          : "";
+      const { data: created, error: createError } = await db
+        .from("community_posts")
+        .insert({
+          community_id: targetCommunityId,
+          room_id: room.id,
+          space_id: room.space_id,
+          author_id: user.id,
+          body: post.body ?? "",
+          title: post.title ?? null,
+          images: post.images ?? null,
+          video_url: post.video_url ?? null,
+          post_type: "discussion",
+          quote_of_post_id: postId,
+          is_published: true,
+          published_at: new Date().toISOString(),
+          attachments: {
+            share_type: shareType,
+            source_post_id: postId,
+            source_community_id: post.community_id,
+            attribution,
+          },
+        })
+        .select("id")
+        .single();
+      if (createError) {
+        return NextResponse.json({ error: createError.message }, { status: 400 });
       }
+      repostId = created?.id ?? null;
+    } else {
+      return NextResponse.json(
+        { error: "No active room available in that community", share_count: next, permalink },
+        { status: 400 },
+      );
     }
   }
 
@@ -101,6 +191,6 @@ export async function POST(
     share_count: next,
     share_type: shareType,
     repost_id: repostId,
-    permalink: `/communities/feed?post=${postId}`,
+    permalink,
   });
 }

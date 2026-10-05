@@ -14,6 +14,7 @@ import {
     Send,
     MessageCircle,
     Heart,
+    Eye,
     Share2,
     Bookmark,
     BookmarkCheck,
@@ -82,6 +83,7 @@ interface Post {
     like_count: number;
     comment_count: number;
     share_count?: number;
+    view_count?: number | null;
     is_pinned: boolean | null;
     is_published?: boolean | null;
     created_at: string;
@@ -150,6 +152,7 @@ function normalizePost(raw: Post): Post {
         user_has_liked: raw.user_has_liked ?? Boolean(userReaction),
         user_reaction: userReaction,
         reaction_counts: raw.reaction_counts ?? null,
+        view_count: raw.view_count ?? null,
         unique_view_count: raw.unique_view_count ?? null,
         video_url: raw.video_url ?? null,
         audience: raw.audience ?? null,
@@ -1186,10 +1189,17 @@ function PostCard({
             (entries) => {
                 if (!entries[0]?.isIntersecting || viewedPostIds.has(post.id)) return;
                 viewedPostIds.add(post.id);
-                void fetch(`/api/posts/${post.id}/view`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ source: "feed" }),
+                void import("@/lib/feed/view-session").then(({ getPostViewSessionId }) => {
+                    void fetch(`/api/posts/${post.id}/view`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            source: "workspace-feed",
+                            sessionId: getPostViewSessionId(),
+                            watchMs: 800,
+                        }),
+                        keepalive: true,
+                    });
                 });
                 obs.disconnect();
             },
@@ -1605,6 +1615,16 @@ function PostCard({
             )}
 
             <div className="flex items-center gap-1 -ml-2 relative">
+                <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted"
+                    aria-label={`${post.view_count ?? 0} views`}
+                >
+                    <Eye className="w-3.5 h-3.5" aria-hidden />
+                    {(post.view_count ?? 0) > 0 && (
+                        <span className="font-semibold">{post.view_count}</span>
+                    )}
+                </span>
+
                 {/* Reactions */}
                 <div className="relative">
                     <button
@@ -1692,7 +1712,6 @@ function PostCard({
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
                     >
                         <Share2 className="w-3.5 h-3.5" />
-                        {(post.share_count ?? 0) > 0 && <span className="font-semibold">{post.share_count}</span>}
                     </button>
                     {shareOpen && (
                         <div className="absolute bottom-full left-0 mb-1 z-30 min-w-[150px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
