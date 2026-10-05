@@ -4,7 +4,7 @@ import { getCachedFeaturedCollections } from "@/lib/marketplace/collections";
 import { CollectionsSection } from "@/components/marketplace/new/CollectionsSection";
 import { ChevronLeft } from "lucide-react";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Collections | Jimvio Marketplace",
