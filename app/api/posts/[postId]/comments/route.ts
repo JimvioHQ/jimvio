@@ -54,7 +54,7 @@ export async function GET(
   let query = admin
     .from("community_post_comments")
     .select(
-      "id, post_id, author_id, parent_id, body, created_at, updated_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
+      "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
     )
     .eq("post_id", postId)
     .eq("is_published", true);
