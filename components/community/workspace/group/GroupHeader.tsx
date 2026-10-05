@@ -94,8 +94,8 @@ export function GroupHeader({
   return (
     <header
       className={cn(
-        "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-sm",
-        "px-3 py-1.5 sm:px-4 sm:py-2",
+        "relative shrink-0 border-b border-[#E5E7EB] bg-white/95 backdrop-blur-sm",
+        "px-3 py-2 sm:px-4 sm:py-2.5",
         className
       )}
     >
@@ -109,8 +109,8 @@ export function GroupHeader({
         />
 
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-            <h1 className="min-w-0 break-words text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[16px]">
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:flex-nowrap sm:items-center">
+            <h1 className="min-w-0 truncate text-[15px] font-semibold tracking-tight text-[#111827] sm:text-[16px]">
               {group.name}
             </h1>
             <span

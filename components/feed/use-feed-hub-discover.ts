@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FeedSidebarLiveCreator, FeedSidebarPopularUser } from "@/lib/feed/load-feed-sidebar";
+import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
 type HubDiscoverPayload = {
   live?: Array<
@@ -12,10 +13,15 @@ type HubDiscoverPayload = {
     }
   >;
   popularUsers?: FeedSidebarPopularUser[];
+  communities?: TrendingCommunity[];
 };
 
-let cache: { at: number; live: FeedSidebarLiveCreator[]; popularUsers: FeedSidebarPopularUser[] } | null =
-  null;
+let cache: {
+  at: number;
+  live: FeedSidebarLiveCreator[];
+  popularUsers: FeedSidebarPopularUser[];
+  communities: TrendingCommunity[];
+} | null = null;
 const CACHE_MS = 20_000;
 const listeners = new Set<() => void>();
 
@@ -46,20 +52,24 @@ async function loadHubDiscover(force = false) {
       at: Date.now(),
       live: mapLiveRows(json.live),
       popularUsers: json.popularUsers ?? [],
+      communities: json.communities ?? [],
     };
   } catch {
-    cache = { at: Date.now(), live: [], popularUsers: [] };
+    cache = { at: Date.now(), live: [], popularUsers: [], communities: [] };
   }
 
   notify();
   return cache;
 }
 
-/** Shared discover payload for feed sidebar widgets (live + popular users). */
+/** Shared discover payload for feed sidebar + in-feed modules. */
 export function useFeedHubDiscover() {
   const [live, setLive] = useState<FeedSidebarLiveCreator[]>(cache?.live ?? []);
   const [popularUsers, setPopularUsers] = useState<FeedSidebarPopularUser[]>(
     cache?.popularUsers ?? []
+  );
+  const [communities, setCommunities] = useState<TrendingCommunity[]>(
+    cache?.communities ?? []
   );
   const [loading, setLoading] = useState(!cache);
 
@@ -70,6 +80,7 @@ export function useFeedHubDiscover() {
       if (cancelled || !cache) return;
       setLive(cache.live);
       setPopularUsers(cache.popularUsers);
+      setCommunities(cache.communities);
       setLoading(false);
     };
 
@@ -78,15 +89,18 @@ export function useFeedHubDiscover() {
       if (!cancelled) sync();
     });
 
-    const t = setInterval(() => void loadHubDiscover(true), 30_000);
+    const interval = window.setInterval(() => {
+      void loadHubDiscover(true);
+    }, 30_000);
+
     return () => {
       cancelled = true;
       listeners.delete(sync);
-      clearInterval(t);
+      window.clearInterval(interval);
     };
   }, []);
 
-  const popularReady = !loading;
+  const popularReady = !loading || popularUsers.length > 0;
 
-  return { live, popularUsers, loading, popularReady };
+  return { live, popularUsers, communities, loading, popularReady };
 }

@@ -91,6 +91,7 @@ export async function loadFeedSidebarPopularUsers(
   const seen = new Set<string>();
   const seenDisplayNames = new Set<string>();
   const seenFirstNames = new Set<string>();
+  const seenAvatarKeys = new Set<string>();
 
   function isEditorialPersona(profile: ProfileRow | undefined): boolean {
     if (!profile) return false;
@@ -107,6 +108,18 @@ export async function loadFeedSidebarPopularUsers(
     return first.replace(/[^a-z0-9]/g, "");
   }
 
+  /** Strip size/query noise so identical Unsplash/CDN assets collide. */
+  function avatarDiversityKey(url: string | null | undefined): string | null {
+    if (!url?.trim()) return null;
+    try {
+      const u = new URL(url.trim());
+      // Drop common transform params; keep host+path as fingerprint.
+      return `${u.host}${u.pathname}`.toLowerCase();
+    } catch {
+      return url.trim().split("?")[0].toLowerCase();
+    }
+  }
+
   function pushCandidate(input: {
     userId: string;
     name: string;
@@ -116,11 +129,13 @@ export async function loadFeedSidebarPopularUsers(
     verified: boolean;
     /** Priority pins may share a first name with others; still enforce unique ids. */
     allowDuplicateFirstName?: boolean;
+    allowDuplicateAvatar?: boolean;
   }) {
     if (seen.has(input.userId) || input.userId === excludeUserId) return;
     if (candidates.length >= POPULAR_USER_COUNT) return;
     const nameKey = normalizeDisplayName(input.name);
     const firstKey = firstNameKey(input.name);
+    const avatarKey = avatarDiversityKey(input.avatarUrl);
     // Prefer distinct display names so the rail does not look artificial.
     if (nameKey && seenDisplayNames.has(nameKey)) return;
     // Also avoid stacks of "Abdulahi …" / identical given names.
@@ -131,9 +146,18 @@ export async function loadFeedSidebarPopularUsers(
     ) {
       return;
     }
+    // Prefer distinct avatar assets when legitimate alternatives exist.
+    if (
+      avatarKey &&
+      seenAvatarKeys.has(avatarKey) &&
+      !input.allowDuplicateAvatar
+    ) {
+      return;
+    }
     seen.add(input.userId);
     if (nameKey) seenDisplayNames.add(nameKey);
     if (firstKey) seenFirstNames.add(firstKey);
+    if (avatarKey) seenAvatarKeys.add(avatarKey);
     candidates.push({
       userId: input.userId,
       name: input.name,
@@ -218,6 +242,7 @@ export async function loadFeedSidebarPopularUsers(
         }),
         verified: Boolean(profile.is_verified),
         allowDuplicateFirstName: true,
+        allowDuplicateAvatar: true,
       });
     }
   }

@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
   BadgeCheck,
   BookMarked,
-  Bookmark,
   CheckCheck,
   CheckCircle2,
   CheckSquare,
@@ -47,11 +45,8 @@ import {
   displayName,
   messageAttachments,
   messageDeepLink,
+  replyAuthorLabel,
 } from "@/lib/community/chat/message-experience";
-import {
-  isBookmarked,
-  toggleBookmark,
-} from "@/lib/community/chat/message-bookmarks";
 import {
   ANSWER_PICKS,
   ANSWER_PICK_LABELS,
@@ -59,6 +54,7 @@ import {
 } from "@/lib/community/knowledge";
 import { AnswerBadge } from "@/components/community/knowledge/KnowledgeCardView";
 import { ReplyQuote } from "../ReplyQuote";
+import { SwipeReplyFrame } from "../SwipeReplyFrame";
 import { MessageRichBody } from "./MessageRichBody";
 import { FileAttachmentCard } from "./FileAttachmentCard";
 import { ThreadPreview } from "./ThreadPreview";
@@ -79,6 +75,7 @@ export type MessageCardProps = {
   onEdit: (msg: Msg) => void;
   onReply: (msg: Msg) => void;
   onQuote?: (msg: Msg) => void;
+  onForward?: (msg: Msg) => void;
   onTogglePin?: (id: string, pin: boolean) => void;
   onReport?: (id: string) => void;
   onOpenAi?: (msg: Msg) => void;
@@ -107,6 +104,7 @@ export function MessageCard({
   onEdit,
   onReply,
   onQuote,
+  onForward,
   onTogglePin,
   onReport,
   onOpenAi,
@@ -123,21 +121,21 @@ export function MessageCard({
   const name = displayName(m);
   const profileHref = communityProfileHref(p?.username);
   const role = communityRole || m.sender_role || null;
-  const showDiscussionMeta = discussion && !compact;
-  const showDiscussionAvatar = discussion && !compact;
+  const showDiscussionMeta = discussion && !compact && !isOwn;
+  const showDiscussionAvatar = discussion && !compact && !isOwn;
   const attachments = messageAttachments(m);
   const reactions = (
     m.reactions && typeof m.reactions === "object" ? m.reactions : {}
   ) as Record<string, string[]>;
   const isRoot = !m.thread_id;
   const replyCount = m.reply_count ?? 0;
-  const hasReplyQuote = !!m.reply_to_id && !!m.reply_to_body;
+  const hasReplyQuote = !!m.reply_to_id && (!!m.reply_to_body || !!m.reply_to_sender);
+  const forwarded = (m.metadata?.forwarded_from ?? null) as
+    | { id?: string; body?: string; sender?: string }
+    | null;
   const linkPreview = (m.metadata?.link_preview ?? null) as LinkPreview | null;
   const commerceEmbed = parseCommerceEmbed(m);
   const featureInCommunity = useCreatorCommerceStore((s) => s.featureInCommunity);
-  const [bookmarked, setBookmarked] = useState(() =>
-    isBookmarked(userId, m.id)
-  );
 
   const linkPreviewHost = linkPreview
     ? (() => {
@@ -174,13 +172,12 @@ export function MessageCard({
     }
   }
 
-  function onBookmark() {
-    const next = toggleBookmark(userId, m.id);
-    setBookmarked(next);
-    toast.success(next ? "Message bookmarked" : "Bookmark removed");
-  }
-
   return (
+    <SwipeReplyFrame
+      enabled={discussion}
+      onReply={() => onReply(m)}
+      className="w-full"
+    >
     <article
       id={`msg-${m.id}`}
       tabIndex={-1}
@@ -288,15 +285,15 @@ export function MessageCard({
               "relative transition-shadow duration-200",
               discussion
                 ? cn(
-                    "px-2.5 py-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+                    "px-3 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]",
                     isOwn
-                      ? "rounded-[16px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/10"
-                      : "rounded-[16px] rounded-bl-md bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]"
+                      ? "rounded-[18px] rounded-br-md bg-[#FF5A1F] text-white"
+                      : "rounded-[18px] rounded-bl-md bg-white ring-1 ring-[#E5E7EB]"
                   )
                 : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
                     isOwn
-                      ? "rounded-br-sm rounded-bl-lg rounded-t-lg bg-[var(--color-accent-light)]"
+                      ? "rounded-br-sm rounded-bl-lg rounded-t-lg bg-[#FF5A1F] text-white"
                       : "rounded-bl-sm rounded-br-lg rounded-t-lg bg-[var(--color-surface)]"
                   )
             )}
@@ -380,10 +377,29 @@ export function MessageCard({
 
             {hasReplyQuote && (
               <ReplyQuote
-                body={m.reply_to_body!}
-                sender={m.reply_to_sender || "Member"}
-                isOwn={Boolean(isOwn)}
+                body={m.reply_to_body || ""}
+                sender={replyAuthorLabel(m.reply_to_sender, null)}
+                isOwn={Boolean(isOwn && discussion)}
               />
+            )}
+
+            {forwarded && (
+              <div
+                className={cn(
+                  "mb-1.5 rounded-lg border-l-2 px-2 py-1 text-[11px]",
+                  isOwn && discussion
+                    ? "border-white/50 bg-white/15 text-white/90"
+                    : "border-[var(--color-accent)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
+                )}
+              >
+                <p className="font-semibold">
+                  Forwarded
+                  {forwarded.sender ? ` · ${forwarded.sender}` : ""}
+                </p>
+                {forwarded.body ? (
+                  <p className="line-clamp-2 opacity-90">{forwarded.body}</p>
+                ) : null}
+              </div>
             )}
 
             {m.body?.trim() && (
@@ -392,7 +408,10 @@ export function MessageCard({
                   body={m.body}
                   className={
                     discussion
-                      ? "min-w-0 break-words text-[13px] leading-snug text-[var(--color-text-primary)]"
+                      ? cn(
+                          "min-w-0 break-words text-[13px] leading-snug",
+                          isOwn ? "text-white" : "text-[var(--color-text-primary)]"
+                        )
                       : undefined
                   }
                 />
@@ -487,11 +506,17 @@ export function MessageCard({
 
             {/* Own-message receipt — discussion layout */}
             {discussion && isOwn && (
-              <div className="mt-1 flex items-center justify-end gap-1">
+              <div className="mt-0.5 flex items-center justify-end gap-1">
                 {m.is_pinned && (
-                  <Pin className="h-3 w-3 text-[var(--color-accent)]" aria-label="Pinned" />
+                  <Pin className="h-3 w-3 text-white/80" aria-label="Pinned" />
                 )}
-                <CheckCheck className="h-3.5 w-3.5 text-teal-500" />
+                <time
+                  dateTime={m.created_at}
+                  className="text-[10px] tabular-nums text-white/80"
+                >
+                  {format(new Date(m.created_at), "h:mm a")}
+                </time>
+                <CheckCheck className="h-3.5 w-3.5 text-white" aria-label="Delivered" />
               </div>
             )}
 
@@ -594,13 +619,6 @@ export function MessageCard({
                 compact={discussion}
               />
             )}
-            <ActionChip
-              icon={bookmarked ? BookMarked : Bookmark}
-              label={bookmarked ? "Saved" : "Bookmark"}
-              onClick={onBookmark}
-              active={bookmarked}
-              compact={discussion}
-            />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -633,11 +651,13 @@ export function MessageCard({
                   label="Share"
                   onClick={() => share()}
                 />
-                <MenuItem
-                  icon={Forward}
-                  label="Forward"
-                  onClick={() => copyLink()}
-                />
+                {onForward && (
+                  <MenuItem
+                    icon={Forward}
+                    label="Forward"
+                    onClick={() => onForward(m)}
+                  />
+                )}
                 {isStaff && isRoot && !isDM && onTogglePin && (
                   <MenuItem
                     icon={m.is_pinned ? PinOff : Pin}
@@ -645,18 +665,15 @@ export function MessageCard({
                     onClick={() => onTogglePin(m.id, !m.is_pinned)}
                   />
                 )}
-                <MenuItem
-                  icon={Bookmark}
-                  label={bookmarked ? "Remove bookmark" : "Bookmark"}
-                  onClick={onBookmark}
-                />
                 <MenuItem icon={Copy} label="Copy link" onClick={copyLink} />
                 <MenuItem icon={Copy} label="Copy text" onClick={copyText} />
-                <MenuItem
-                  icon={Languages}
-                  label="Translate"
-                  onClick={() => onOpenAi?.(m)}
-                />
+                {onOpenAi && (
+                  <MenuItem
+                    icon={Languages}
+                    label="Translate"
+                    onClick={() => onOpenAi(m)}
+                  />
+                )}
                 {onOpenAi && (
                   <MenuItem
                     icon={Sparkles}
@@ -738,6 +755,7 @@ export function MessageCard({
         </div>
       </div>
     </article>
+    </SwipeReplyFrame>
   );
 }
 

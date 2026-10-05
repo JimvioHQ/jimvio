@@ -207,10 +207,38 @@ export async function POST(
   // Reply-to snapshot only applies to top-level messages, not thread replies.
   if (!threadId && typeof reply_to_id === "string" && reply_to_id) {
     insertRow.reply_to_id = reply_to_id;
-    insertRow.reply_to_body =
+    let bodySnap =
       typeof reply_to_body === "string" ? reply_to_body.slice(0, 200) : null;
-    insertRow.reply_to_sender =
-      typeof reply_to_sender === "string" ? reply_to_sender.slice(0, 120) : null;
+    let senderSnap =
+      typeof reply_to_sender === "string" ? reply_to_sender.trim().slice(0, 120) : null;
+    // Resolve real author when client sent a generic label or omitted it.
+    if (!senderSnap || /^member$/i.test(senderSnap) || !bodySnap) {
+      const { data: original } = await untyped(supabase)
+        .from("community_messages")
+        .select(
+          "body, profiles!community_messages_sender_id_fkey(full_name, username)"
+        )
+        .eq("id", reply_to_id)
+        .eq("room_id", roomId)
+        .maybeSingle();
+      if (original) {
+        if (!bodySnap && typeof original.body === "string") {
+          bodySnap = original.body.slice(0, 200);
+        }
+        const p = Array.isArray(original.profiles)
+          ? original.profiles[0]
+          : original.profiles;
+        const resolved =
+          (typeof p?.full_name === "string" && p.full_name.trim()) ||
+          (typeof p?.username === "string" && p.username.trim()) ||
+          null;
+        if (resolved && (!senderSnap || /^member$/i.test(senderSnap))) {
+          senderSnap = resolved.slice(0, 120);
+        }
+      }
+    }
+    insertRow.reply_to_body = bodySnap;
+    insertRow.reply_to_sender = senderSnap || "Someone";
   }
 
   const { data, error } = await untyped(supabase)

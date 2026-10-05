@@ -31,6 +31,7 @@ interface ChatInputZoneProps {
   pendingMain: ChatAttachmentPayload[];
   setPendingMain: React.Dispatch<React.SetStateAction<ChatAttachmentPayload[]>>;
   replyingTo: Msg | null;
+  forwardingTo?: Msg | null;
   onCancelReply: () => void;
   voiceBlob: Blob | null;
   voiceRecording: boolean;
@@ -64,6 +65,7 @@ export function ChatInputZone({
   pendingMain,
   setPendingMain,
   replyingTo,
+  forwardingTo = null,
   onCancelReply,
   voiceBlob,
   voiceRecording,
@@ -186,7 +188,13 @@ export function ChatInputZone({
         </div>
       )}
 
-      {replyingTo && <ReplyBar msg={replyingTo} onClose={onCancelReply} />}
+      {(replyingTo || forwardingTo) && (
+        <ReplyBar
+          msg={(replyingTo || forwardingTo)!}
+          onClose={onCancelReply}
+          mode={forwardingTo ? "forward" : "reply"}
+        />
+      )}
 
       {voiceBlob && !voiceRecording && (
         <div className="px-3 pt-2 pb-1">

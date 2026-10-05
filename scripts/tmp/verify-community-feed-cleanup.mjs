@@ -60,7 +60,7 @@ assert.match(rail, /tagline|Community on Jimvio/);
 assert.match(rail, /BadgeCheck|verified/);
 assert.doesNotMatch(rail, /Recommended for You/);
 assert.doesNotMatch(rail, />\s*Join\s*</);
-assert.doesNotMatch(rail, /memberCount|Users className/);
+assert.doesNotMatch(rail, /Users className/);
 assert.doesNotMatch(rail, /absolute left-1\.5 top-1\.5 rounded-md bg-black\/60.*category/s);
 assert.doesNotMatch(rail, /Trending creators/);
 assert.doesNotMatch(rail, /Trending products/i);

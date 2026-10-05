@@ -32,6 +32,10 @@ import { sessionStartCursorFrom } from "@/lib/feed/global-feed-exclusions";
 import { usePostViewTracker } from "@/lib/feed/use-post-view-tracker";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
 import { PostShareMenu } from "@/components/feed/PostShareMenu";
+import {
+  FeedInlineModule,
+  feedModuleAtIndex,
+} from "@/components/feed/FeedInlineModule";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
@@ -852,30 +856,35 @@ export function FeedPostCard({
           </button>
         </div>
       )}
-      {posts.map((post, index) => (
-        <HubFeedArticle
-          key={post.id}
-          post={post}
-          index={index}
-          shareOpen={sharePostId === post.id}
-          likePending={likingPostIds.has(post.id)}
-          onToggleLike={() => void toggleLike(post.id)}
-          onOpenComments={() => setCommentPostId(post.id)}
-          onOpenShare={() =>
-            setSharePostId((id) => (id === post.id ? null : post.id))
-          }
-          onCloseShare={() => setSharePostId(null)}
-          onViewCount={(views) => {
-            setPosts((prev) =>
-              prev.map((p) =>
-                p.id === post.id
-                  ? { ...p, engagement: { ...p.engagement, views } }
-                  : p,
-              ),
-            );
-          }}
-        />
-      ))}
+      {posts.map((post, index) => {
+        const moduleKind = feedModuleAtIndex(index);
+        return (
+          <div key={post.id}>
+            <HubFeedArticle
+              post={post}
+              index={index}
+              shareOpen={sharePostId === post.id}
+              likePending={likingPostIds.has(post.id)}
+              onToggleLike={() => void toggleLike(post.id)}
+              onOpenComments={() => setCommentPostId(post.id)}
+              onOpenShare={() =>
+                setSharePostId((id) => (id === post.id ? null : post.id))
+              }
+              onCloseShare={() => setSharePostId(null)}
+              onViewCount={(views) => {
+                setPosts((prev) =>
+                  prev.map((p) =>
+                    p.id === post.id
+                      ? { ...p, engagement: { ...p.engagement, views } }
+                      : p,
+                  ),
+                );
+              }}
+            />
+            {moduleKind ? <FeedInlineModule kind={moduleKind} /> : null}
+          </div>
+        );
+      })}
       <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
       {loadingMore && (
         <div className="flex justify-center py-5 text-gray-400">

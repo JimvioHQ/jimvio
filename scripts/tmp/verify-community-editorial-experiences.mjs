@@ -100,7 +100,7 @@ assert.match(feedCard, /promotionLabel/);
 assert.match(feedCard, /jimvioPromotionLabel/);
 
 assert.match(platform, /order\("is_featured"/);
-assert.match(platform, /homepage-communities-v6/);
+assert.match(platform, /homepage-communities-v9/);
 assert.match(platform, /getPublicCommunitiesTotal/);
 
 const explore = read("app/communities/(discovery)/explore/page.tsx");

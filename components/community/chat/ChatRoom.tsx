@@ -285,7 +285,7 @@ export function ChatRoom({
         .split("\n")
         .map((l) => `> ${l}`)
         .join("\n");
-      hook.setReplyingTo(msg);
+      hook.beginReply(msg);
       hook.setText(quote ? `${quote}\n\n` : "");
     },
     [hook]
@@ -327,8 +327,9 @@ export function ChatRoom({
           hook.setEditingMsg(msg);
           hook.setEditBody(msg.body);
         }}
-        onReply={(msg) => hook.setReplyingTo(msg)}
+        onReply={(msg) => hook.beginReply(msg)}
         onQuote={quoteMessage}
+        onForward={(msg) => hook.beginForward(msg)}
         onTogglePin={hook.togglePin}
         onReport={hook.reportMessage}
         onOpenAi={setAiMsg}
@@ -636,7 +637,8 @@ export function ChatRoom({
             pendingMain={hook.pendingMain}
             setPendingMain={hook.setPendingMain}
             replyingTo={hook.replyingTo}
-            onCancelReply={() => hook.setReplyingTo(null)}
+            forwardingTo={hook.forwardingTo}
+            onCancelReply={hook.cancelReplyOrForward}
             voiceBlob={hook.voiceBlob}
             voiceRecording={hook.voiceRecording}
             voiceSeconds={hook.voiceSeconds}
@@ -710,7 +712,7 @@ export function ChatRoom({
             hook.setEditingMsg(msg);
             hook.setEditBody(msg.body);
           }}
-          onReply={(msg) => hook.setReplyingTo(msg)}
+          onReply={(msg) => hook.beginReply(msg)}
           onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
           onAttachFile={(files) => hook.handleFiles(files, "thread")}
           onOpenAi={setAiMsg}

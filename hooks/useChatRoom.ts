@@ -16,6 +16,10 @@ import {
 } from "@/lib/community/workspace";
 import { setActiveChatTarget } from "@/lib/community/chat/active-chat-target";
 import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import { newOutboxClientId } from "@/lib/community/chat/message-outbox";
+import {
+    replyAuthorLabel,
+} from "@/lib/community/chat/message-experience";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
 import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 import type {
@@ -493,8 +497,24 @@ export function useChatRoom({
     const [pendingMain, setPendingMain] = useState<ChatAttachmentPayload[]>([]);
     const [pendingThread, setPendingThread] = useState<ChatAttachmentPayload[]>([]);
     const [replyingTo, setReplyingTo] = useState<Msg | null>(null);
+    const [forwardingTo, setForwardingTo] = useState<Msg | null>(null);
     const [uploading, setUploading] = useState(false);
     const [sending, setSending] = useState(false);
+
+    const beginReply = useCallback((msg: Msg) => {
+        setForwardingTo(null);
+        setReplyingTo(msg);
+    }, []);
+
+    const beginForward = useCallback((msg: Msg) => {
+        setReplyingTo(null);
+        setForwardingTo(msg);
+    }, []);
+
+    const cancelReplyOrForward = useCallback(() => {
+        setReplyingTo(null);
+        setForwardingTo(null);
+    }, []);
 
     // ── File upload ──────────────────────────────────────────────────────────────
     const handleFiles = useCallback(
@@ -559,15 +579,75 @@ export function useChatRoom({
             const isThread = !!threadId;
             const t = (isThread ? threadReplyText : text).trim();
             const queue = isThread ? pendingThread : pendingMain;
-            if ((!t && queue.length === 0) || sending) return;
+            if ((!t && queue.length === 0 && !forwardingTo) || sending) return;
             if (!navigator.onLine) {
                 toast.error("You're offline — reconnect to send.");
                 return;
             }
             setSending(true);
             if (!isThread) setTyping(false);
+
+            const replyTarget = !isThread ? replyingTo : null;
+            const forwardTarget = !isThread ? forwardingTo : null;
+            const bodyText =
+                t ||
+                (forwardTarget
+                    ? (forwardTarget.body || "").trim() || "Forwarded message"
+                    : "");
+            const replySender = replyTarget
+                ? replyAuthorLabel(null, replyTarget)
+                : null;
+            const forwardMeta = forwardTarget
+                ? {
+                      forwarded_from: {
+                          id: forwardTarget.id,
+                          body: (forwardTarget.body || "").slice(0, 200),
+                          sender: replyAuthorLabel(null, forwardTarget),
+                      },
+                  }
+                : null;
+
+            const clientId = !isThread ? newOutboxClientId() : null;
+            const createdAt = new Date().toISOString();
+
+            if (!isThread && clientId && userId) {
+                const optimistic: Msg = {
+                    id: clientId,
+                    body: bodyText,
+                    sender_id: userId,
+                    created_at: createdAt,
+                    message_type: deriveMessageType(queue, bodyText),
+                    thread_id: null,
+                    attachments: queue,
+                    reactions: {},
+                    profiles: null,
+                    reply_to_id: replyTarget?.id ?? null,
+                    reply_to_body: replyTarget?.body?.slice(0, 200) ?? null,
+                    reply_to_sender: replySender,
+                    metadata: forwardMeta,
+                    is_edited: false,
+                    reply_count: 0,
+                };
+                upsertMessage(optimistic);
+                setText("");
+                setPendingMain([]);
+                setReplyingTo(null);
+                setForwardingTo(null);
+                setAtBottom(true);
+                requestAnimationFrame(() =>
+                    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+                );
+            }
+
             try {
-                const metadata = queue.length === 0 && t ? await fetchLinkPreview(t) : undefined;
+                const linkMeta =
+                    queue.length === 0 && bodyText
+                        ? await fetchLinkPreview(bodyText)
+                        : undefined;
+                const metadata = {
+                    ...(linkMeta ?? {}),
+                    ...(forwardMeta ?? {}),
+                };
                 const ep = activeConvId
                     ? `/api/communities/${slug}/inbox/${activeConvId}/messages`
                     : `/api/messages/${roomId}`;
@@ -575,16 +655,17 @@ export function useChatRoom({
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        body: t,
+                        body: bodyText,
                         threadId: threadId ?? null,
                         attachments: queue,
-                        message_type: deriveMessageType(queue, t),
-                        reply_to_id: !isThread && replyingTo ? replyingTo.id : null,
-                        reply_to_body: !isThread && replyingTo ? replyingTo.body?.slice(0, 200) : null,
-                        reply_to_sender: !isThread && replyingTo
-                            ? (replyingTo.profiles?.full_name ?? replyingTo.profiles?.username ?? "Member")
+                        message_type: deriveMessageType(queue, bodyText),
+                        reply_to_id: replyTarget ? replyTarget.id : null,
+                        reply_to_body: replyTarget
+                            ? replyTarget.body?.slice(0, 200)
                             : null,
-                        metadata,
+                        reply_to_sender: replySender,
+                        metadata:
+                            Object.keys(metadata).length > 0 ? metadata : undefined,
                     }),
                 });
                 const data = await res.json();
@@ -595,25 +676,29 @@ export function useChatRoom({
                         p.some((m) => m.id === msg.id)
                             ? p
                             : [...p, msg].sort(
-                                (a, b) =>
-                                    new Date(a.created_at).getTime() -
-                                    new Date(b.created_at).getTime()
-                            )
+                                  (a, b) =>
+                                      new Date(a.created_at).getTime() -
+                                      new Date(b.created_at).getTime()
+                              )
                     );
                     setThreadReplyText("");
                     setPendingThread([]);
                 } else {
                     upsertMessage(msg);
-                    setText("");
-                    setPendingMain([]);
-                    setReplyingTo(null);
-                    setAtBottom(true);
-                    requestAnimationFrame(() =>
-                        bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-                    );
+                    if (!clientId) {
+                        setText("");
+                        setPendingMain([]);
+                        setReplyingTo(null);
+                        setForwardingTo(null);
+                        setAtBottom(true);
+                        requestAnimationFrame(() =>
+                            bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+                        );
+                    }
                 }
             } catch (e: unknown) {
                 console.error(e);
+                if (clientId) removeConversationMessage(clientId);
                 toast.error(e instanceof Error ? e.message : "Failed to send message");
             } finally {
                 setSending(false);
@@ -629,7 +714,10 @@ export function useChatRoom({
             slug,
             roomId,
             replyingTo,
+            forwardingTo,
+            userId,
             upsertMessage,
+            removeConversationMessage,
             setTyping,
             fetchLinkPreview,
         ]
@@ -1202,6 +1290,10 @@ export function useChatRoom({
         setPendingThread,
         replyingTo,
         setReplyingTo,
+        forwardingTo,
+        beginReply,
+        beginForward,
+        cancelReplyOrForward,
         uploading,
         sending,
         handleFiles,

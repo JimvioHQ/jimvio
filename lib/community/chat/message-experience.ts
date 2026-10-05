@@ -188,7 +188,25 @@ export function messageDeepLink(messageId: string, baseHref?: string): string {
 }
 
 export function displayName(m: Msg): string {
-  return m.profiles?.full_name || m.profiles?.username || "Member";
+  const full = m.profiles?.full_name?.trim();
+  if (full) return full;
+  const username = m.profiles?.username?.trim();
+  if (username) return username.replace(/^@+/, "");
+  return "Someone";
+}
+
+/** Resolve reply/quote author label — never prefer bare "Member". */
+export function replyAuthorLabel(
+  sender: string | null | undefined,
+  fallbackMsg?: Msg | null
+): string {
+  const raw = sender?.trim();
+  if (raw && !/^member$/i.test(raw)) return raw;
+  if (fallbackMsg) {
+    const fromProfile = displayName(fallbackMsg);
+    if (fromProfile && fromProfile !== "Someone") return fromProfile;
+  }
+  return raw && raw.length > 0 ? raw : "Someone";
 }
 
 export function formatFileSize(bytes?: number | null): string {

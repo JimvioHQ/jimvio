@@ -10,16 +10,28 @@ export function ReplyQuote({ body, sender, isOwn }: ReplyQuoteProps) {
   return (
     <div
       className={cn(
-        "mb-1.5 rounded-sm overflow-hidden flex",
-        "border-l-[3px] border-[var(--color-accent)]",
-        isOwn ? "bg-black/[0.07]" : "bg-black/[0.05]"
+        "mb-1.5 overflow-hidden rounded-md flex",
+        "border-l-[3px]",
+        isOwn
+          ? "border-white/70 bg-white/15"
+          : "border-[var(--color-accent)] bg-black/[0.04]"
       )}
     >
-      <div className="px-2.5 py-1.5 min-w-0 flex-1">
-        <p className="text-[11px] font-semibold truncate text-[var(--color-accent)]">
+      <div className="min-w-0 flex-1 px-2.5 py-1.5">
+        <p
+          className={cn(
+            "truncate text-[11px] font-semibold",
+            isOwn ? "text-white" : "text-[var(--color-accent)]"
+          )}
+        >
           {sender}
         </p>
-        <p className="text-[12px] truncate leading-snug text-[var(--color-text-muted)]">
+        <p
+          className={cn(
+            "truncate text-[12px] leading-snug",
+            isOwn ? "text-white/85" : "text-[var(--color-text-muted)]"
+          )}
+        >
           {body || "📎 Attachment"}
         </p>
       </div>
