@@ -15,6 +15,24 @@ import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection"
 
 export const dynamic = "force-dynamic";
 
+/** Cap each discover rail so a saturated DB cannot hold the route for minutes. */
+const RAIL_TIMEOUT_MS = 2_500;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(fallback);
+      });
+  });
+}
+
 type TrendingCommunityRow = {
   id: string;
   name: string;
@@ -110,11 +128,20 @@ async function fetchTrendingViaFallback(
 }
 
 /** GET — discover rails for the Creator OS home feed. */
-export async function GET() {
+export async function GET(req: Request) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Skip auth round-trip for anonymous visitors (cookie-less) — popular-users
+  // exclusion is the only consumer of user.id here.
+  const hasSessionCookie = (req.headers.get("cookie") || "").includes("sb-");
+  let user: { id: string } | null = null;
+  if (hasSessionCookie) {
+    const auth = await withTimeout(
+      supabase.auth.getUser().then((r) => r.data.user),
+      800,
+      null,
+    );
+    user = auth;
+  }
 
   // Fan out independent rails; do not fail the whole payload if one is slow.
   let liveRows: Awaited<ReturnType<typeof loadFeedSidebarLiveNow>> = [];
@@ -122,21 +149,35 @@ export async function GET() {
   let trendingRows: TrendingCommunityRow[] = [];
 
   const [liveResult, popularResult, trendingResult] = await Promise.allSettled([
-    loadFeedSidebarLiveNow(8),
-    loadFeedSidebarPopularUsers(user?.id ?? null),
-    (async () => {
-      const rpc = await (supabase as any).rpc("get_trending_communities", {
-        p_limit: 24,
-      });
-      if (!rpc.error && Array.isArray(rpc.data)) {
-        return rpc.data as TrendingCommunityRow[];
-      }
-      return fetchTrendingViaFallback(supabase);
-    })(),
+    withTimeout(loadFeedSidebarLiveNow(8), RAIL_TIMEOUT_MS, []),
+    withTimeout(loadFeedSidebarPopularUsers(user?.id ?? null), RAIL_TIMEOUT_MS, []),
+    withTimeout(
+      (async () => {
+        const rpc = await (supabase as any).rpc("get_trending_communities", {
+          p_limit: 24,
+        });
+        if (!rpc.error && Array.isArray(rpc.data)) {
+          return rpc.data as TrendingCommunityRow[];
+        }
+        return fetchTrendingViaFallback(supabase);
+      })(),
+      RAIL_TIMEOUT_MS,
+      [] as TrendingCommunityRow[],
+    ),
   ]);
   if (liveResult.status === "fulfilled") liveRows = liveResult.value;
   if (popularResult.status === "fulfilled") popularUsers = popularResult.value;
   if (trendingResult.status === "fulfilled") trendingRows = trendingResult.value;
+
+  // If the RPC/fallback timed out empty, try the light counter-based list once more
+  // with its own short budget (priority communities still fill below).
+  if (!trendingRows.length) {
+    trendingRows = await withTimeout(
+      fetchTrendingViaFallback(supabase),
+      1_200,
+      [] as TrendingCommunityRow[],
+    );
+  }
 
   // Single enrichment pass: visibility filter + display copy (was 2 round-trips).
   if (trendingRows.length) {

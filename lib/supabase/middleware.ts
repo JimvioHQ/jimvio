@@ -79,6 +79,11 @@ export async function updateSession(request: NextRequest) {
     request: { headers: requestHeaders },
   });
 
+  // Lightweight ops probes must never wait on platform_settings / auth.
+  if (pathname === "/api/ops/health" || pathname.startsWith("/api/ops/health/")) {
+    return supabaseResponse;
+  }
+
   try {
     const protectedPaths = ["/admin", "/settings", "/wallet", "/identity", "/orders", "/checkout", "/account", "/owner", "/library", "/messages", "/activate", "/inbox", "/notifications", "/saved", "/seller", "/dropshipping", "/commerce"];
     const isProtected =

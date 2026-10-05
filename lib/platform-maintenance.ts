@@ -16,6 +16,10 @@ export function isAdminEmail(email: string | null | undefined): boolean {
   return isBootstrapAdminEmail(email);
 }
 
+const MAINTENANCE_LOOKUP_MS = 400;
+/** Brief negative cache so a saturated DB cannot stampede every request. */
+const MAINTENANCE_FAIL_CACHE_MS = 5_000;
+
 export async function getMaintenanceModeEnabled(): Promise<boolean> {
   const now = Date.now();
   if (cachedMaintenance && cachedMaintenance.expiresAt > now) {
@@ -28,11 +32,33 @@ export async function getMaintenanceModeEnabled(): Promise<boolean> {
 
   try {
     const admin = createAdminClient();
-    const { data } = await admin
+    const lookup = admin
       .from("platform_settings")
       .select("value")
       .eq("key", "features")
       .maybeSingle();
+
+    // Middleware runs on nearly every request — never block the edge on a
+    // saturated Postgres. Soft-fail to "not in maintenance" on timeout.
+    const timedOut = Symbol("maintenance-timeout");
+    const raced = await Promise.race([
+      lookup.then((result) => ({ kind: "ok" as const, result })),
+      new Promise<{ kind: "timeout"; token: typeof timedOut }>((resolve) => {
+        setTimeout(() => resolve({ kind: "timeout", token: timedOut }), MAINTENANCE_LOOKUP_MS);
+      }),
+    ]);
+
+    if (raced.kind === "timeout") {
+      cachedMaintenance = { value: false, expiresAt: now + MAINTENANCE_FAIL_CACHE_MS };
+      return false;
+    }
+
+    const { data, error } = raced.result;
+    if (error) {
+      console.error("[maintenance] failed to read platform settings:", error.message);
+      cachedMaintenance = { value: false, expiresAt: now + MAINTENANCE_FAIL_CACHE_MS };
+      return false;
+    }
 
     const features =
       data?.value && typeof data.value === "object"
@@ -44,6 +70,7 @@ export async function getMaintenanceModeEnabled(): Promise<boolean> {
     return enabled;
   } catch (err) {
     console.error("[maintenance] failed to read platform settings:", err);
+    cachedMaintenance = { value: false, expiresAt: now + MAINTENANCE_FAIL_CACHE_MS };
     return false;
   }
 }
