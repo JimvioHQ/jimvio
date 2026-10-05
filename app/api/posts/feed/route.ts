@@ -14,7 +14,7 @@ import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 15;
+export const maxDuration = 20;
 
 const PAGE_SIZE = 20;
 const AUDIENCES = new Set(["public", "followers", "community", "private"]);

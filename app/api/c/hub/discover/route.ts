@@ -17,11 +17,11 @@ import { selectDiscoveryCommunities } from "@/lib/community/discovery-selection"
 
 export const dynamic = "force-dynamic";
 /** Fail the invoke quickly instead of waiting the platform 300s default. */
-export const maxDuration = 15;
+export const maxDuration = 20;
 
 /** Hard budget so a saturated DB cannot pin this serverless invoke. */
-const DISCOVER_BUDGET_MS = 3_500;
-const SIDEBAR_BUDGET_MS = 1_200;
+const DISCOVER_BUDGET_MS = 8_000;
+const SIDEBAR_BUDGET_MS = 2_000;
 
 type TrendingCommunityRow = {
   id: string;
