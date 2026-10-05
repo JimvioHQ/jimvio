@@ -163,7 +163,10 @@ export async function POST(
 
   let parentId: string | null = null;
   if (typeof parent_id === "string" && parent_id) {
-    const { data: parent } = await supabase
+    // Parent lookup via service role after post-level authz (avoids nested comment RLS).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const adminCheck = createServiceRoleClient() as any;
+    const { data: parent } = await adminCheck
       .from("community_post_comments")
       .select("id, post_id")
       .eq("id", parent_id)
@@ -175,7 +178,11 @@ export async function POST(
     parentId = parent.id;
   }
 
-  const { data, error } = await supabase
+  // Authz already verified above. Insert + hydrate via service role so nested
+  // comment RLS WITH CHECK / RETURNING policies cannot statement-timeout.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createServiceRoleClient() as any;
+  const { data, error } = await admin
     .from("community_post_comments")
     .insert({
       post_id: postId,
@@ -184,7 +191,9 @@ export async function POST(
       body: text,
       is_published: true,
     })
-    .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
+    .select(
+      "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
+    )
     .single();
 
   if (error) {
@@ -200,8 +209,7 @@ export async function POST(
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await supabase.rpc("increment_post_comment_count" as any, { p_post_id: postId });
+  await admin.rpc("increment_post_comment_count", { p_post_id: postId });
 
   void notifyPostAuthorOfComment(supabase, post, postId, user.id, data);
 
