@@ -195,11 +195,22 @@ export function HubLivePage({
   const micOn = media.micOn;
   const camOn = media.camOn;
   const recording = media.recordingState === "recording" || media.recordingState === "paused";
-  const stageStream =
-    livekit.stageStream ??
-    (live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker"
-      ? media.previewStream
-      : null);
+  // Never feed mic-only MediaStreams into the video stage (black rectangle).
+  const canPublishLocal =
+    live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker";
+  const stageStream = (() => {
+    if (media.sharing) {
+      return livekit.stageStream ?? media.shareStream ?? null;
+    }
+    const candidate =
+      livekit.stageStream ??
+      (canPublishLocal && camOn ? media.previewStream : null);
+    if (!candidate) return null;
+    const hasLiveVideo = candidate
+      .getVideoTracks()
+      .some((t) => t.readyState === "live" && t.enabled && !t.muted);
+    return hasLiveVideo ? candidate : null;
+  })();
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -559,7 +570,7 @@ export function HubLivePage({
     (next: StudioMode) => {
       setMode(next);
       writeMode(next);
-      if (next === "minimal") updateDrawer({ leftPanel: "none", rightOpen: true });
+      if (next === "minimal") updateDrawer({ leftPanel: "none", rightOpen: false });
     },
     [updateDrawer]
   );
@@ -584,6 +595,16 @@ export function HubLivePage({
     },
     [updateDrawer]
   );
+
+  const toggleChat = useCallback(() => {
+    if (drawer.rightOpen && drawer.rightTab === "chat") {
+      updateDrawer({ rightOpen: false });
+      return;
+    }
+    updateDrawer({ rightOpen: true, rightTab: "chat" });
+    setChatIdle(false);
+    setFocusMode(false);
+  }, [drawer.rightOpen, drawer.rightTab, updateDrawer]);
 
   useEffect(() => {
     if (drawer.rightTab !== "chat") {
@@ -1665,26 +1686,21 @@ export function HubLivePage({
             <LiveContextNav
               leftPanel={drawer.leftPanel}
               rightTab={drawer.rightTab}
+              rightOpen={drawer.rightOpen}
               viewerCount={live.viewerCount || analytics?.viewers || 0}
               onOverview={() => {
-                updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
+                updateDrawer({ leftPanel: "none", rightOpen: false });
                 setLiveNavOpen(false);
               }}
               onOpenLeft={(panel) => {
                 toggleLeft(panel);
                 setLiveNavOpen(false);
               }}
-              onOpenRight={(tab) => {
-                openRight(tab);
+              onToggleChat={() => {
+                toggleChat();
                 setLiveNavOpen(false);
               }}
               onShare={openShareSheet}
-              onInvite={() => {
-                if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
-                toggleLeft("people");
-                setLiveNavOpen(false);
-              }}
-              onReport={reportLive}
             />
             {liveNavOpen && (
               <div className="fixed inset-0 z-50 lg:hidden">
@@ -1710,27 +1726,21 @@ export function HubLivePage({
                       variant="drawer"
                       leftPanel={drawer.leftPanel}
                       rightTab={drawer.rightTab}
+                      rightOpen={drawer.rightOpen}
                       viewerCount={live.viewerCount || analytics?.viewers || 0}
                       onOverview={() => {
-                        updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
+                        updateDrawer({ leftPanel: "none", rightOpen: false });
                         setLiveNavOpen(false);
                       }}
                       onOpenLeft={(panel) => {
                         toggleLeft(panel);
                         setLiveNavOpen(false);
                       }}
-                      onOpenRight={(tab) => {
-                        openRight(tab);
+                      onToggleChat={() => {
+                        toggleChat();
                         setLiveNavOpen(false);
                       }}
                       onShare={openShareSheet}
-                      onInvite={() => {
-                        if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only"))
-                          return;
-                        toggleLeft("people");
-                        setLiveNavOpen(false);
-                      }}
-                      onReport={reportLive}
                     />
                   </div>
                 </div>
@@ -1841,7 +1851,7 @@ export function HubLivePage({
                         LIVE
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
-                        {formatCount(live.viewerCount || analytics?.viewers || 0)}
+                        {formatCount(live.viewerCount || analytics?.viewers || 0)} watching
                       </span>
                       {recordingActive && (
                         <span className="inline-flex items-center gap-1.5 rounded-md bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white">
@@ -2032,6 +2042,8 @@ export function HubLivePage({
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
               }}
+              onChat={toggleChat}
+              chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
               onReact={() => {
                 if (live.session?.id) void live.react("❤️");
               }}
@@ -2062,10 +2074,13 @@ export function HubLivePage({
               "flex w-full shrink-0 flex-col bg-white",
               "fixed inset-x-0 bottom-0 z-40 max-h-[min(72vh,620px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
               "pb-[env(safe-area-inset-bottom)]",
-              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none",
-              "transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              drawer.rightOpen ? "translate-y-0" : "translate-y-full lg:translate-y-0"
+              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none",
+              "transition-[transform,width,opacity] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              drawer.rightOpen
+                ? "translate-y-0 lg:w-[min(360px,32vw)] lg:opacity-100"
+                : "pointer-events-none translate-y-full lg:w-0 lg:overflow-hidden lg:border-0 lg:opacity-0"
             )}
+            aria-hidden={!drawer.rightOpen}
           >
             <div
               className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-200 lg:hidden"
@@ -2392,10 +2407,7 @@ export function HubLivePage({
         onCam={() => void toggleCam()}
         onShare={() => void startShare()}
         onStopShare={stopShare}
-        onChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
-        onReact={() => {
-          if (live.session?.id) void live.react("❤️");
-        }}
+        onChat={toggleChat}
         onShareLink={openShareSheet}
         onMore={() => setLiveNavOpen(true)}
         onEndLive={() => setConfirmDialog("end")}

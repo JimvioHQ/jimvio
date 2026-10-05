@@ -1,7 +1,8 @@
 "use client";
 
-import { MicOff, Monitor, VideoOff } from "lucide-react";
+import { Mic, MicOff, Monitor, VideoOff } from "lucide-react";
 import { HubAvatar } from "../hub-ui";
+import { cn } from "@/lib/utils";
 
 export function LiveStageFallback({
   hostName,
@@ -18,23 +19,43 @@ export function LiveStageFallback({
   screenSharing?: boolean;
   reconnecting?: boolean;
 }) {
+  const audioOnly = cameraOff && !screenSharing && !reconnecting;
   const statusLabel = reconnecting
     ? "Host reconnecting…"
     : screenSharing
       ? "Sharing screen"
-      : cameraOff
-        ? "Camera off"
+      : audioOnly
+        ? micOff
+          ? "Camera off · Muted"
+          : "Audio active"
         : "Starting stream…";
 
-  const StatusIcon = screenSharing ? Monitor : cameraOff ? VideoOff : MicOff;
+  const StatusIcon = screenSharing
+    ? Monitor
+    : audioOnly
+      ? micOff
+        ? MicOff
+        : Mic
+      : VideoOff;
 
   return (
     <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_50%_40%,#1a1a1a_0%,#050505_72%)] px-6 text-center">
       <div className="relative mb-4">
-        <HubAvatar name={hostName} src={avatarUrl} size={96} className="!ring-4 !ring-white/10" />
+        <div
+          className={cn(
+            "rounded-full",
+            audioOnly && !micOff && "ring-4 ring-[#fd5000]/35 animate-pulse"
+          )}
+        >
+          <HubAvatar name={hostName} src={avatarUrl} size={96} className="!ring-4 !ring-white/10" />
+        </div>
         {micOff ? (
           <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white ring-2 ring-neutral-900">
             <MicOff className="h-3.5 w-3.5" aria-hidden />
+          </span>
+        ) : audioOnly ? (
+          <span className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#fd5000] text-white ring-2 ring-neutral-900">
+            <Mic className="h-3.5 w-3.5" aria-hidden />
           </span>
         ) : null}
       </div>

@@ -124,16 +124,17 @@ export function useLiveKitRoom(opts: {
     void transportRef.current?.syncScreenShare(shareStream, sharing);
   }, [shareStream, sharing, snap.connected, snap.resyncGeneration]);
 
-  /* Stage composition: local preview preferred for host; remotes for viewers */
+  /* Stage composition: local preview preferred for host; remotes for viewers.
+     Mic-only must NOT attach an audio MediaStream to the video stage (black tile). */
   useEffect(() => {
     let localStage: MediaStream | null = null;
     if (preferLocalStage) {
       if (sharing) localStage = shareStream ?? null;
-      else if ((camOn || micOn) && localAvStream) localStage = localAvStream;
+      else if (camOn && localAvStream) localStage = localAvStream;
     }
     transportRef.current?.setPreferLocalStage(preferLocalStage);
     transportRef.current?.setLocalPreview(localStage);
-  }, [preferLocalStage, sharing, shareStream, localAvStream, camOn, micOn]);
+  }, [preferLocalStage, sharing, shareStream, localAvStream, camOn]);
 
   useEffect(() => {
     transportRef.current?.setHostIdentity(hostIdentity ?? null);

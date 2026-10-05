@@ -49,21 +49,22 @@ export function desktopDockControls(
   return [
     "mic",
     "cam",
+    "chat",
     "share",
     "copyLink",
     "invite",
     "record",
-    "react",
     endOrLeave,
   ];
 }
 
 /**
  * Mobile dock control order (product contract):
- * Audio → Video → Chat → React → Share → More → Leave/End
+ * Audio → Video → Chat → Share → More → Leave/End
  *
  * Mic/Cam stay first and visible for everyone on mobile (disabled when the
- * role cannot publish). Screen-share never hides A/V.
+ * role cannot publish). Screen-share never hides A/V. Chat is the primary
+ * bottom action (reactions remain available via secondary controls).
  */
 export function mobileDockControls(opts: {
   canPublish: boolean;
@@ -77,7 +78,7 @@ export function mobileDockControls(opts: {
     : "copyLink";
   const endOrLeave: LiveDockControlId = opts.isHost ? "end" : "leave";
 
-  return ["mic", "cam", "chat", "react", share, "more", endOrLeave];
+  return ["mic", "cam", "chat", share, "more", endOrLeave];
 }
 
 export function dockKeepsAvDuringShare(activity: LiveDockActivity): boolean {

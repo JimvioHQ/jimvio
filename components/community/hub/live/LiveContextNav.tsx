@@ -2,12 +2,11 @@
 
 import { memo, useMemo } from "react";
 import {
-  Flag,
   LayoutGrid,
   MessageSquare,
+  Settings,
   Share2,
   Users,
-  UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LeftPanel, RightTab } from "./studio-types";
@@ -26,25 +25,25 @@ type NavItem = {
 function LiveContextNavImpl({
   leftPanel,
   rightTab,
+  rightOpen,
   viewerCount,
   onOverview,
   onOpenLeft,
-  onOpenRight,
+  onToggleChat,
   onShare,
-  onInvite,
-  onReport,
   variant = "desktop",
 }: {
   leftPanel: LeftPanel;
   rightTab: RightTab;
+  rightOpen: boolean;
   viewerCount: number;
   qaCount?: number;
   onOverview: () => void;
   onOpenLeft: (panel: Exclude<LeftPanel, "none">) => void;
-  onOpenRight: (tab: RightTab) => void;
+  onToggleChat: () => void;
   onShare: () => void;
-  onInvite: () => void;
-  onReport: () => void;
+  onInvite?: () => void;
+  onReport?: () => void;
   variant?: "desktop" | "drawer";
 }) {
   const liveNow: NavItem[] = useMemo(
@@ -53,12 +52,12 @@ function LiveContextNavImpl({
         id: "overview",
         label: "Overview",
         icon: LayoutGrid,
-        active: leftPanel === "none" && rightTab === "chat",
+        active: leftPanel === "none" && !rightOpen,
         onClick: onOverview,
       },
       {
         id: "people",
-        label: "Participants",
+        label: "People",
         icon: Users,
         badge: formatCount(viewerCount),
         active: leftPanel === "people",
@@ -66,22 +65,27 @@ function LiveContextNavImpl({
       },
       {
         id: "chat",
-        label: "Chat",
+        label: rightOpen && rightTab === "chat" ? "Close chat" : "Open chat",
         icon: MessageSquare,
-        active: rightTab === "chat",
-        onClick: () => onOpenRight("chat"),
+        active: rightOpen && rightTab === "chat",
+        onClick: onToggleChat,
       },
     ],
-    [leftPanel, rightTab, viewerCount, onOverview, onOpenLeft, onOpenRight]
+    [leftPanel, rightTab, rightOpen, viewerCount, onOverview, onOpenLeft, onToggleChat]
   );
 
   const quick: NavItem[] = useMemo(
     () => [
-      { id: "share", label: "Share", icon: Share2, onClick: onShare },
-      { id: "invite", label: "Invite", icon: UsersRound, onClick: onInvite },
-      { id: "report", label: "Report", icon: Flag, onClick: onReport },
+      {
+        id: "settings",
+        label: "Settings",
+        icon: Settings,
+        active: leftPanel === "settings",
+        onClick: () => onOpenLeft("settings"),
+      },
+      { id: "share", label: "Share live", icon: Share2, onClick: onShare },
     ],
-    [onShare, onInvite, onReport]
+    [leftPanel, onOpenLeft, onShare]
   );
 
   if (variant === "drawer") {
@@ -112,8 +116,7 @@ function LiveContextNavImpl({
         {liveNow.map((item) => (
           <IconRailButton key={item.id} item={item} />
         ))}
-      </div>
-      <div className="flex flex-col items-center gap-1 border-t border-neutral-100 px-1.5 py-2">
+        <div className="my-1.5 h-px w-8 bg-neutral-100" aria-hidden />
         {quick.map((item) => (
           <IconRailButton key={item.id} item={item} muted />
         ))}
@@ -148,6 +151,8 @@ function NavRow({ item, muted }: { item: NavItem; muted?: boolean }) {
       type="button"
       onClick={item.onClick}
       aria-current={item.active ? "page" : undefined}
+      aria-label={item.label}
+      title={item.label}
       className={cn(
         "flex w-full items-center gap-1.5 rounded-[10px] px-2.5 py-[7px] text-left text-[12.5px]",
         MOTION_COLORS,

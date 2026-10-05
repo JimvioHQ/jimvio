@@ -20,6 +20,7 @@ import {
   subscribePostgresChanges,
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
+import { mergeCommentLists } from "@/lib/community/comment-list-merge";
 
 type CommentProfile = {
   full_name?: string | null;
@@ -89,11 +90,14 @@ export function FeedCommentSheet({
   );
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [keyboardInset, setKeyboardInset] = useState(0);
+  const loadGenerationRef = useRef(0);
 
   const loadComments = useCallback(async (signal?: AbortSignal) => {
+    const generation = ++loadGenerationRef.current;
     setLoading(true);
     try {
       const res = await fetch(`/api/posts/${postId}/comments?sort=newest&limit=50`, {
@@ -101,32 +105,41 @@ export function FeedCommentSheet({
         signal,
       });
       const data = await res.json().catch(() => ({}));
-      if (signal?.aborted) return;
+      if (signal?.aborted || generation !== loadGenerationRef.current) return;
       if (!res.ok) {
-        toast.error(data.error || "Failed to load comments");
-        // Never wipe in-flight / optimistic comments on a failed fetch.
+        const msg =
+          typeof data.error === "string" && !/statement timeout|canceling statement/i.test(data.error)
+            ? data.error
+            : "Couldn't refresh comments. Your comments are still here. Try again.";
+        setLoadError(msg);
+        toast.error(msg);
+        // Never wipe in-flight / optimistic / known comments on a failed fetch.
         return;
       }
       if (!Array.isArray(data.comments)) {
-        toast.error("Invalid comments response");
+        setLoadError("Invalid comments response");
+        toast.error("Couldn't refresh comments. Your comments are still here. Try again.");
         return;
       }
-      setComments((prev) => {
-        const server = data.comments as FeedComment[];
-        const pending = prev.filter((c) => String(c.id).startsWith("optimistic-"));
-        if (!pending.length) return server;
-        const ids = new Set(server.map((c) => c.id));
-        return [...pending.filter((c) => !ids.has(c.id)), ...server];
-      });
+      setLoadError(null);
+      setComments((prev) => mergeCommentLists(prev, data.comments as FeedComment[]));
     } catch (err) {
-      if (signal?.aborted) return;
+      if (signal?.aborted || generation !== loadGenerationRef.current) return;
       if (err instanceof DOMException && err.name === "AbortError") {
-        toast.error("Comments took too long to load. Try again.");
+        const msg =
+          "Couldn't refresh comments. Your comments are still here. Try again.";
+        setLoadError(msg);
+        toast.error(msg);
       } else {
-        toast.error("Failed to load comments");
+        const msg =
+          "Couldn't refresh comments. Your comments are still here. Try again.";
+        setLoadError(msg);
+        toast.error(msg);
       }
     } finally {
-      if (!signal?.aborted) setLoading(false);
+      if (!signal?.aborted && generation === loadGenerationRef.current) {
+        setLoading(false);
+      }
     }
   }, [postId]);
 
@@ -338,10 +351,24 @@ export function FeedCommentSheet({
         </div>
 
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-          {loading ? (
+          {loading && topLevel.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-2 text-[var(--color-text-muted)]">
               <Loader2 className="h-5 w-5 animate-spin" />
               <p className="text-[13px]">Loading comments...</p>
+            </div>
+          ) : loadError && topLevel.length === 0 ? (
+            <div className="flex h-40 flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+                Couldn&apos;t load comments
+              </p>
+              <p className="text-[12px] text-[var(--color-text-muted)]">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => void loadComments()}
+                className="mt-1 rounded-lg bg-[#fd5000] px-3 py-1.5 text-[12px] font-semibold text-white"
+              >
+                Try again
+              </button>
             </div>
           ) : topLevel.length === 0 ? (
             <div className="flex h-40 flex-col items-center justify-center gap-2 text-center">
@@ -357,6 +384,20 @@ export function FeedCommentSheet({
             </div>
           ) : (
             <ul className="space-y-4">
+              {loadError ? (
+                <li className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Couldn&apos;t refresh comments. Yours are still here.</span>
+                    <button
+                      type="button"
+                      onClick={() => void loadComments()}
+                      className="shrink-0 font-semibold underline"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </li>
+              ) : null}
               {topLevel.map((comment) => {
                 const name =
                   comment.profiles?.full_name ||

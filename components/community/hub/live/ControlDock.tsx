@@ -15,6 +15,7 @@ import {
   MousePointer2,
   PenLine,
   Presentation,
+  MessageSquare,
   ScreenShare,
   ScreenShareOff,
   Share2,
@@ -63,6 +64,8 @@ function ControlDockImpl({
   onRecord,
   onPoll,
   onInvite,
+  onChat,
+  chatOpen = false,
   onReact,
   onQa,
   onCopyLink,
@@ -93,6 +96,8 @@ function ControlDockImpl({
   onRecord: () => void;
   onPoll?: () => void;
   onInvite: () => void;
+  onChat?: () => void;
+  chatOpen?: boolean;
   onReact?: () => void;
   onQa?: () => void;
   onCopyLink?: () => void;
@@ -175,6 +180,15 @@ function ControlDockImpl({
             <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex">
               <UsersRound className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
+            {onChat ? (
+              <DockBtn
+                pressed={chatOpen}
+                onClick={onChat}
+                label={chatOpen ? "Close chat" : "Chat"}
+              >
+                <MessageSquare className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            ) : null}
             <DockBtn
               pressed={recording}
               recording={recording}
@@ -185,7 +199,7 @@ function ControlDockImpl({
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             {onReact ? (
-              <DockBtn onClick={onReact} label="React" className="hidden sm:flex">
+              <DockBtn onClick={onReact} label="React" className="hidden md:flex">
                 <Smile className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}

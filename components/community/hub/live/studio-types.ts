@@ -31,7 +31,7 @@ export type RightTab =
 export const MODE_KEY = "jimvio-live-studio-mode";
 export const DRAWER_KEY = "jimvio-live-drawer-state";
 /** Bump when DrawerState shape changes — invalid/old persisted state resets safely. */
-export const DRAWER_STATE_VERSION = 2;
+export const DRAWER_STATE_VERSION = 3;
 export const LAYOUTS = ["Presentation", "Grid", "Screen Share", "Classroom"] as const;
 
 export const VALID_RIGHT_TABS: readonly RightTab[] = [
@@ -101,7 +101,7 @@ export type DrawerState = {
 
 export const DEFAULT_DRAWER: DrawerState = {
   rightTab: "chat",
-  rightOpen: true,
+  rightOpen: false,
   rightWidth: 320,
   leftPanel: "none",
   chatScroll: 0,

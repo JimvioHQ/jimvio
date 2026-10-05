@@ -1787,19 +1787,20 @@ function PostDetailPanel({
                 if (cancelled) return;
                 if (!res.ok) {
                     setSendError(
-                        typeof data.error === "string"
-                            ? data.error
-                            : "Couldn't load comments. Please try again."
+                        "Couldn't refresh comments. Your comments are still here. Try again."
                     );
                     return;
                 }
                 if (!Array.isArray(data.comments)) {
-                    setSendError("Invalid comments response");
+                    setSendError(
+                        "Couldn't refresh comments. Your comments are still here. Try again."
+                    );
                     return;
                 }
                 setComments((prev) => {
                     const server = data.comments as Comment[];
-                    // Keep any rows not yet in the server payload (race with POST).
+                    // Keep local/optimistic rows missing from this response
+                    // (stale empty GET after POST must never wipe).
                     const serverIds = new Set(server.map((c) => c.id));
                     const extras = prev.filter((c) => !serverIds.has(c.id));
                     return extras.length ? [...extras, ...server] : server;
@@ -1808,10 +1809,14 @@ function PostDetailPanel({
             } catch (err) {
                 if (cancelled) return;
                 if (err instanceof DOMException && err.name === "AbortError") {
-                    setSendError("Comments took too long to load. Please try again.");
+                    setSendError(
+                        "Couldn't refresh comments. Your comments are still here. Try again."
+                    );
                     return;
                 }
-                setSendError("Couldn't load comments. Please try again.");
+                setSendError(
+                    "Couldn't refresh comments. Your comments are still here. Try again."
+                );
             } finally {
                 if (!cancelled) setLoadingComments(false);
             }

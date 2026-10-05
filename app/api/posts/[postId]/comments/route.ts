@@ -12,10 +12,81 @@ import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
+/** Narrow comment columns — no nested embeds (profiles join was timing out). */
+const COMMENT_COLUMNS =
+  "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published";
+
+type CommentProfile = {
+  full_name: string | null;
+  avatar_url: string | null;
+  username: string | null;
+};
+
+type CommentRow = {
+  id: string;
+  post_id: string;
+  author_id: string;
+  parent_id: string | null;
+  body: string;
+  created_at: string;
+  is_pinned?: boolean | null;
+  like_count?: number | null;
+  is_published?: boolean | null;
+  profiles?: CommentProfile | null;
+};
+
+async function attachProfiles(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  rows: CommentRow[]
+): Promise<CommentRow[]> {
+  if (!rows.length) return rows;
+  const authorIds = [...new Set(rows.map((r) => r.author_id).filter(Boolean))];
+  if (!authorIds.length) {
+    return rows.map((r) => ({ ...r, profiles: null }));
+  }
+
+  const { data: profiles, error } = await admin
+    .from("profiles")
+    .select("id, full_name, avatar_url, username")
+    .in("id", authorIds);
+
+  if (error) {
+    console.error("[posts/comments] profile hydrate failed", {
+      message: error.message,
+      authorCount: authorIds.length,
+    });
+    return rows.map((r) => ({ ...r, profiles: null }));
+  }
+
+  const map = new Map<string, CommentProfile>();
+  for (const p of profiles ?? []) {
+    map.set(String(p.id), {
+      full_name: p.full_name ?? null,
+      avatar_url: p.avatar_url ?? null,
+      username: p.username ?? null,
+    });
+  }
+
+  return rows.map((r) => ({
+    ...r,
+    profiles: map.get(r.author_id) ?? null,
+  }));
+}
+
+function userFacingDbError(message: string | undefined, fallback: string): string {
+  const msg = message || fallback;
+  if (/statement timeout|canceling statement/i.test(msg)) {
+    return fallback;
+  }
+  return msg;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
 ) {
+  const started = Date.now();
   const { postId } = await params;
   const supabase = await createClient();
   const {
@@ -53,9 +124,7 @@ export async function GET(
   const admin = createServiceRoleClient() as any;
   let query = admin
     .from("community_post_comments")
-    .select(
-      "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
-    )
+    .select(COMMENT_COLUMNS)
     .eq("post_id", postId)
     .eq("is_published", true);
 
@@ -67,20 +136,24 @@ export async function GET(
     .limit(Math.min(200, limit * 2));
 
   if (error) {
+    console.error("[posts/comments] GET failed", {
+      postId,
+      userId: user?.id ?? null,
+      ms: Date.now() - started,
+      message: error.message,
+    });
     return NextResponse.json(
-      { error: error.message || "Failed to load comments" },
+      {
+        error: userFacingDbError(
+          error.message,
+          "Couldn't refresh comments. Please try again."
+        ),
+      },
       { status: 500 }
     );
   }
 
-  type CommentRow = {
-    created_at: string;
-    is_pinned?: boolean | null;
-    like_count?: number | null;
-    parent_id?: string | null;
-  };
-
-  let comments = (data ?? []) as CommentRow[];
+  let comments = await attachProfiles(admin, (data ?? []) as CommentRow[]);
 
   if (sort === "oldest") {
     comments = comments.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
@@ -105,6 +178,11 @@ export async function GET(
   const nextCursor =
     comments.length === limit ? comments[comments.length - 1]?.created_at ?? null : null;
 
+  const ms = Date.now() - started;
+  if (ms > 2500) {
+    console.warn("[posts/comments] GET slow", { postId, userId: user?.id ?? null, ms, count: comments.length });
+  }
+
   return NextResponse.json({ comments, nextCursor, sort });
 }
 
@@ -112,6 +190,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
 ) {
+  const started = Date.now();
   const { postId } = await params;
   const supabase = await createClient();
   const {
@@ -161,12 +240,13 @@ export async function POST(
   const text = body?.trim();
   if (!text) return NextResponse.json({ error: "body required" }, { status: 400 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = createServiceRoleClient() as any;
+
   let parentId: string | null = null;
   if (typeof parent_id === "string" && parent_id) {
     // Parent lookup via service role after post-level authz (avoids nested comment RLS).
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const adminCheck = createServiceRoleClient() as any;
-    const { data: parent } = await adminCheck
+    const { data: parent } = await admin
       .from("community_post_comments")
       .select("id, post_id")
       .eq("id", parent_id)
@@ -178,10 +258,7 @@ export async function POST(
     parentId = parent.id;
   }
 
-  // Authz already verified above. Insert + hydrate via service role so nested
-  // comment RLS WITH CHECK / RETURNING policies cannot statement-timeout.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const admin = createServiceRoleClient() as any;
+  // Authz already verified. Flat insert (no profile embed) then hydrate profiles.
   const { data, error } = await admin
     .from("community_post_comments")
     .insert({
@@ -191,14 +268,23 @@ export async function POST(
       body: text,
       is_published: true,
     })
-    .select(
-      "id, post_id, author_id, parent_id, body, created_at, is_pinned, like_count, is_published, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)"
-    )
+    .select(COMMENT_COLUMNS)
     .single();
 
   if (error) {
+    console.error("[posts/comments] POST failed", {
+      postId,
+      userId: user.id,
+      ms: Date.now() - started,
+      message: error.message,
+    });
     return NextResponse.json(
-      { error: error.message || "Failed to post comment" },
+      {
+        error: userFacingDbError(
+          error.message,
+          "Couldn't post your comment. Please try again."
+        ),
+      },
       { status: 400 }
     );
   }
@@ -209,11 +295,12 @@ export async function POST(
     );
   }
 
+  const [hydrated] = await attachProfiles(admin, [data as CommentRow]);
   await admin.rpc("increment_post_comment_count", { p_post_id: postId });
 
-  void notifyPostAuthorOfComment(supabase, post, postId, user.id, data);
+  void notifyPostAuthorOfComment(supabase, post, postId, user.id, hydrated);
 
-  return NextResponse.json({ comment: data });
+  return NextResponse.json({ comment: hydrated });
 }
 
 async function notifyPostAuthorOfComment(

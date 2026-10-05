@@ -40,9 +40,10 @@ describe("screen share preserving audio/video controls", () => {
 describe("desktop control visibility", () => {
   it("exposes primary live controls for publishers", () => {
     const live = desktopDockControls("live", { canEnd: true });
-    for (const id of ["mic", "cam", "share", "invite", "record", "react", "end"] as const) {
+    for (const id of ["mic", "cam", "chat", "share", "invite", "record", "end"] as const) {
       assert.ok(live.includes(id), `expected ${id}`);
     }
+    assert.ok(!live.includes("react"), "Chat is primary; React is secondary");
     assert.ok(!live.includes("polls"));
     assert.ok(!live.includes("qa"));
     assert.ok(!live.includes("more"));
@@ -56,7 +57,7 @@ describe("desktop control visibility", () => {
 });
 
 describe("mobile control visibility", () => {
-  it("uses Audio → Video → Chat → React → Share → More → Leave order", () => {
+  it("uses Audio → Video → Chat → Share → More → Leave order", () => {
     const controls = mobileDockControls({
       canPublish: true,
       isHost: false,
@@ -66,7 +67,6 @@ describe("mobile control visibility", () => {
       "mic",
       "cam",
       "chat",
-      "react",
       "share",
       "more",
       "leave",
@@ -80,7 +80,7 @@ describe("mobile control visibility", () => {
     });
     assert.ok(mobileDockAvFirst(controls));
     assert.ok(controls.includes("chat"));
-    assert.ok(controls.includes("react"));
+    assert.ok(!controls.includes("react"), "Chat is primary bottom action");
     assert.ok(controls.includes("copyLink"));
     assert.ok(controls.includes("more"));
     assert.ok(controls.includes("leave"));

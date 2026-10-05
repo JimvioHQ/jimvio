@@ -276,7 +276,7 @@ function ChatWorkspaceImpl({
           </h2>
           {onlineCount != null && onlineCount > 0 && (
             <p className="mt-0.5 text-[11px] text-neutral-400">
-              {onlineCount.toLocaleString()} online
+              {onlineCount.toLocaleString()} watching
             </p>
           )}
         </div>

@@ -216,6 +216,18 @@ export function AnalyticsPanel({ analytics }: { analytics: LiveDashboard["analyt
   );
 }
 
+type PeopleRoleFilter = "all" | "speaker" | "cohost" | "moderator" | "viewer" | "host";
+
+function normalizePeopleRole(role: string | undefined | null): PeopleRoleFilter | "member" {
+  const key = String(role || "").toLowerCase();
+  if (key === "host") return "host";
+  if (key === "cohost" || key === "co-host") return "cohost";
+  if (key === "speaker") return "speaker";
+  if (key === "moderator") return "moderator";
+  if (key === "viewer") return "viewer";
+  return "member";
+}
+
 export function PeoplePanel({
   speakers,
   viewers,
@@ -267,14 +279,28 @@ export function PeoplePanel({
   onRemove?: (id: string) => void;
   ui?: Record<string, SpeakerUi>;
 }) {
+  const [roleFilter, setRoleFilter] = useState<PeopleRoleFilter>("all");
   const q = query.trim().toLowerCase();
-  const filtered = speakers.filter((s) => s.name.toLowerCase().includes(q));
+  const filtered = speakers.filter((s) => {
+    if (!s.name.toLowerCase().includes(q)) return false;
+    if (roleFilter === "all") return true;
+    const role = normalizePeopleRole(ui?.[s.id]?.role || s.role);
+    if (roleFilter === "speaker") return role === "speaker" || role === "host";
+    return role === roleFilter;
+  });
   const filteredRequests = (pendingRequests ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
   const filteredWaiting = (waitingRoom ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
+  const ROLE_FILTERS: { id: PeopleRoleFilter; label: string }[] = [
+    { id: "all", label: "All" },
+    { id: "speaker", label: "Speaker" },
+    { id: "cohost", label: "Co-host" },
+    { id: "moderator", label: "Moderator" },
+    { id: "viewer", label: "Viewer" },
+  ];
   return (
     <div className="space-y-3">
       <input
@@ -329,8 +355,32 @@ export function PeoplePanel({
           )}
         </div>
       )}
+      <div
+        role="tablist"
+        aria-label="Participant role filter"
+        className="flex flex-wrap gap-1 px-0.5"
+      >
+        {ROLE_FILTERS.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            role="tab"
+            aria-selected={roleFilter === f.id}
+            onClick={() => setRoleFilter(f.id)}
+            className={cn(
+              "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+              FOCUS_RING,
+              roleFilter === f.id
+                ? "bg-neutral-900 text-white"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
       <p className="px-1 text-[12px] text-neutral-400">
-        {speakers.length} in live · {formatCount(viewers)} watching
+        {formatCount(viewers)} watching
       </p>
       {filteredWaiting.length > 0 && (
         <div className="space-y-0.5">
@@ -460,9 +510,11 @@ export function PeoplePanel({
               ? "Weak connection"
               : connection === "warn"
                 ? "Reconnecting"
-                : online
-                  ? "Connected"
-                  : "Offline";
+                : roleKey === "viewer"
+                  ? "Watching"
+                  : online
+                    ? "Connected"
+                    : "Offline";
           const openProfile = () => {
             onSelect(s.id);
             onOpenProfile?.(s.id);
