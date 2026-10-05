@@ -163,8 +163,6 @@ async function unsubscribeAllCJProducts(
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
-export const MAX_BULK_PRODUCT_DELETE_ROUTE = MAX_BULK_PRODUCT_DELETE;
-
 export async function DELETE(req: NextRequest) {
     try {
         const gate = await requirePlatformAdmin();
