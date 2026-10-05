@@ -66,22 +66,25 @@ export async function GET(req: NextRequest) {
     .order("member_count", { ascending: false })
     .limit(80);
 
-  const communityIds = (communities ?? []).map((c: { id: string }) => c.id);
+  type PublicCommunityRow = {
+    id: string;
+    name: string;
+    slug: string;
+    avatar_url: string | null;
+    cover_image: string | null;
+    member_count: number | null;
+    settings: unknown;
+  };
+
+  const communityById = new Map<string, PublicCommunityRow>();
+  for (const row of (communities ?? []) as PublicCommunityRow[]) {
+    if (row?.id) communityById.set(row.id, row);
+  }
+
+  const communityIds = [...communityById.keys()];
   if (!communityIds.length) {
     return NextResponse.json({ spaces: [], nextOffset: null, total: 0 });
   }
-
-  const communityById = new Map(
-    (communities ?? []).map((c: {
-      id: string;
-      name: string;
-      slug: string;
-      avatar_url: string | null;
-      cover_image: string | null;
-      member_count: number | null;
-      settings: unknown;
-    }) => [c.id, c])
-  );
 
   const { data: spaces } = await admin
     .from("spaces")
