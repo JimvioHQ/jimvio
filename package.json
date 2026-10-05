@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--use-system-ca next dev",
-    "build": "cross-env NODE_OPTIONS=\"--use-system-ca --max-old-space-size=4096\" next build",
+    "build": "cross-env NODE_OPTIONS=\"--use-system-ca --max-old-space-size=4096\" next build --webpack",
     "start": "cross-env NODE_OPTIONS=--use-system-ca next start",
     "lint": "eslint . --cache --cache-location .eslintcache",
     "lint:app": "eslint app components lib hooks services types proxy.ts instrumentation.ts --cache --cache-location .eslintcache",

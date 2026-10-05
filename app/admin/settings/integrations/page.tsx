@@ -2,6 +2,8 @@ import { IntegrationsForm } from "@/components/settings/integrations-form";
 import { getAdminDB } from "@/services/db";
 import { loadSupplierSourcesSettings } from "@/lib/sources/supplier-settings";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Integrations · Platform settings" };
 
 export default async function IntegrationsPage() {

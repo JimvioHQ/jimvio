@@ -2,6 +2,8 @@ import { getAdminDB } from "@/services/db";
 import { loadSupplierSourcesSettings } from "@/lib/sources/supplier-settings";
 import { SuppliersForm } from "@/components/settings/suppliers-form";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Suppliers · Platform settings" };
 
 export default async function SuppliersPage() {

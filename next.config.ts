@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     "sharp",
   ],
 
+  // Prevent flaky SSG timeouts on DB-backed pages during Vercel builds
+  // (4-core / 8GB machines with concurrent workers).
+  staticPageGenerationTimeout: 180,
+
   productionBrowserSourceMaps: false,
 
   typescript: {
