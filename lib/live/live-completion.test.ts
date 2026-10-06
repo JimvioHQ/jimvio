@@ -191,7 +191,10 @@ describe("Jimvio Live completion — recording egress output", () => {
     const egress = read("lib/live/egress.ts");
     assert.match(route, /startSessionEgress/);
     assert.match(route, /canRecord/);
+    assert.match(route, /reconcileSessionRecordings/);
     assert.match(egress, /\{\s*file:\s*fileOut\.file\s*\}/);
     assert.match(egress, /LIVEKIT_EGRESS_S3_BUCKET/);
+    assert.match(egress, /reconcileSessionRecordings/);
+    assert.match(egress, /EgressStatus/);
   });
 });

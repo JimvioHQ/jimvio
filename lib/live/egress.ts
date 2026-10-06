@@ -11,6 +11,7 @@ import {
   EgressClient,
   EncodedFileOutput,
   EncodedFileType,
+  EgressStatus,
   S3Upload,
   type EgressInfo,
 } from "livekit-server-sdk";
@@ -21,6 +22,7 @@ import {
   liveKitRoomName,
 } from "@/lib/live/livekit-config";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { liveStudioLog } from "@/lib/live/observability";
 
 function hostUrlFromWs(wsUrl: string): string {
   // wss://xxx.livekit.cloud → https://xxx.livekit.cloud
@@ -225,4 +227,89 @@ export async function markRecordingReady(input: {
       updated_at: new Date().toISOString(),
     })
     .eq("egress_id", input.egressId);
+}
+
+/**
+ * When LiveKit webhooks are delayed/missing, reconcile "ending"/stale rows from
+ * LiveKit egress status so Ready/playback can complete without a page refresh.
+ */
+export async function reconcileSessionRecordings(sessionId: string): Promise<void> {
+  const client = createEgressClient();
+  if (!client) return;
+
+  const db = createServiceRoleClient();
+  const { data: rows } = await db
+    .from("live_recordings")
+    .select("id, egress_id, status")
+    .eq("session_id", sessionId)
+    .in("status", ["starting", "active", "ending"])
+    .not("egress_id", "is", null)
+    .limit(10);
+
+  if (!rows?.length) return;
+
+  for (const row of rows) {
+    const egressId = row.egress_id as string | null;
+    if (!egressId) continue;
+    try {
+      const list = await client.listEgress({ egressId });
+      const info = list[0];
+      if (!info) continue;
+
+      const status = info.status;
+      const failed =
+        Boolean(info.error) ||
+        status === EgressStatus.EGRESS_FAILED ||
+        status === EgressStatus.EGRESS_ABORTED ||
+        status === EgressStatus.EGRESS_LIMIT_REACHED;
+      const complete = status === EgressStatus.EGRESS_COMPLETE;
+      const fileResult = info.fileResults?.[0];
+      const location = fileResult?.location || fileResult?.filename || null;
+
+      if (complete || failed) {
+        const error =
+          failed
+            ? info.error || "Egress failed"
+            : !location
+              ? "Egress completed without a storage location"
+              : null;
+        await markRecordingReady({
+          egressId,
+          cloudinaryUrl: location,
+          durationSeconds: fileResult?.duration
+            ? Math.round(Number(fileResult.duration) / 1e9)
+            : null,
+          byteSize: fileResult?.size ? Number(fileResult.size) : null,
+          error,
+        });
+        liveStudioLog(error ? "error" : "info", "egress_webhook", {
+          egressId,
+          sessionId,
+          source: "reconcile",
+          failed: Boolean(error),
+          hasLocation: Boolean(location),
+          status: String(status),
+        });
+      } else if (
+        (status === EgressStatus.EGRESS_ACTIVE ||
+          status === EgressStatus.EGRESS_STARTING) &&
+        row.status !== "active"
+      ) {
+        await db
+          .from("live_recordings")
+          .update({
+            status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+      }
+    } catch (e) {
+      liveStudioLog("error", "egress_webhook_failed", {
+        sessionId,
+        egressId,
+        source: "reconcile",
+        error: e instanceof Error ? e.message : "reconcile_failed",
+      });
+    }
+  }
 }

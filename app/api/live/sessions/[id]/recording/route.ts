@@ -5,7 +5,7 @@ import { parseParticipantPermissions } from "@/lib/live/participant-permissions"
 import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
 import { getParticipant, getSession, canViewLiveSession, listSessionRecordings } from "@/services/live/session-service";
-import { startSessionEgress, stopSessionEgress } from "@/lib/live/egress";
+import { startSessionEgress, stopSessionEgress, reconcileSessionRecordings } from "@/lib/live/egress";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +133,8 @@ export async function GET(
   const allowed = await canViewLiveSession(user.id, session);
   if (!allowed) return NextResponse.json({ error: "No access" }, { status: 403 });
 
+  await reconcileSessionRecordings(sessionId).catch(() => undefined);
+
   const recordings = await listSessionRecordings(sessionId);
   const ready = recordings.find((r) => r.status === "ready" && r.cloudinary_url);
   return NextResponse.json({
@@ -143,9 +145,13 @@ export async function GET(
       ? "recording"
       : ready
         ? "ready"
-        : recordings.length > 0
-          ? "processing"
-          : "none",
+        : recordings.some((r) => r.status === "ending" || r.status === "failed")
+          ? recordings.some((r) => r.status === "failed")
+            ? "failed"
+            : "processing"
+          : recordings.length > 0
+            ? "processing"
+            : "none",
     replayUrl: ready?.cloudinary_url ?? session.recording_url ?? null,
   });
 }
