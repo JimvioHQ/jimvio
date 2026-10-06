@@ -825,9 +825,10 @@ export function HubLivePage({
   }, [updateDrawer]);
 
   const openRight = useCallback(
-    (_tab?: RightTab) => {
-      // Live Studio right rail is Chat-only — ignore secondary tab requests.
-      updateDrawer({ rightOpen: true, rightTab: "chat", leftPanel: "none" });
+    (tab?: RightTab) => {
+      // Chat is the default right rail. Analytics is the only other allowed workspace.
+      const rightTab: RightTab = tab === "analytics" ? "analytics" : "chat";
+      updateDrawer({ rightOpen: true, rightTab, leftPanel: "none" });
       setShareOpen(false);
       setChatIdle(false);
       setFocusMode(false);
@@ -3262,7 +3263,15 @@ export function HubLivePage({
                 />
               )}
               {drawer.rightTab === "analytics" && (
-                <AnalyticsPanel analytics={analytics} liveMetrics={liveMetrics} />
+                <>
+                  <DrawerHeader
+                    title="Live Analytics"
+                    onClose={() => updateDrawer({ rightOpen: false })}
+                  />
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
+                    <AnalyticsPanel analytics={analytics} liveMetrics={liveMetrics} />
+                  </div>
+                </>
               )}
             </div>
             </div>

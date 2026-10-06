@@ -82,6 +82,15 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.match(page, /Reconnecting…/);
   });
 
+  it("Live Analytics opens as a right workspace (not forced to chat)", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const more = read("components/community/hub/live/LiveMorePanel.tsx");
+    assert.match(page, /tab === \"analytics\" \? \"analytics\" : \"chat\"/);
+    assert.match(page, /case \"analytics\":/);
+    assert.match(page, /Live Analytics/);
+    assert.match(more, /id: \"analytics\"/);
+  });
+
   it("People panel shows \(You\) from authenticated user id", () => {
     const panels = read("components/community/hub/live/panels.tsx");
     assert.match(panels, /currentUserId/);

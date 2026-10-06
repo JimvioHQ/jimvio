@@ -59,6 +59,7 @@ const MOBILE_ITEMS: MoreItem[] = [
   { id: "share", label: "Share Screen", icon: MonitorUp, iconClass: "text-[#111827]" },
   { id: "settings", label: "Settings", icon: Settings, iconClass: "text-[#111827]" },
   { id: "reactions", label: "Reactions", icon: Smile, iconClass: "text-[#111827]" },
+  { id: "analytics", label: "Live Analytics", icon: BarChart3, iconClass: "text-[#111827]" },
   { id: "report", label: "Report", icon: ShieldAlert, iconClass: "text-[#111827]" },
 ];
 
