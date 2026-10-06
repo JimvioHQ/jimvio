@@ -10,7 +10,9 @@ export type LiveDockControlId =
   | "share"
   | "stopShare"
   | "invite"
+  | "people"
   | "record"
+  | "streamTo"
   | "react"
   | "polls"
   | "qa"
@@ -22,10 +24,14 @@ export type LiveDockControlId =
   | "end"
   | "leave";
 
-/** Primary controls always visible for publishers on desktop during live or share. */
+/**
+ * Desktop live dock order (reference):
+ * Mute → Start Video → Share Screen → Invite → Participants →
+ * Record → Chat → Stream To → More → End
+ */
 export function desktopDockControls(
   activity: LiveDockActivity,
-  opts?: { canEnd?: boolean }
+  opts?: { canEnd?: boolean; canPublish?: boolean }
 ): LiveDockControlId[] {
   const canEnd = opts?.canEnd !== false;
   const endOrLeave: LiveDockControlId = canEnd ? "end" : "leave";
@@ -46,25 +52,29 @@ export function desktopDockControls(
     return ["mic", "cam", "record", endOrLeave];
   }
 
-  return [
+  const base: LiveDockControlId[] = [
     "mic",
     "cam",
-    "chat",
     "share",
-    "copyLink",
     "invite",
+    "people",
     "record",
+    "chat",
+    "streamTo",
+    "more",
     endOrLeave,
   ];
+
+  if (opts?.canPublish === false) {
+    return base.filter((id) => id !== "share").concat([]);
+  }
+  return base;
 }
 
 /**
- * Mobile dock control order (product contract):
- * Audio → Video → Chat → Share → More → Leave/End
- *
- * Mic/Cam stay first and visible for everyone on mobile (disabled when the
- * role cannot publish). Screen-share never hides A/V. Chat is the primary
- * bottom action (reactions remain available via secondary controls).
+ * Mobile dock control order (reference two-row dock):
+ * Mute → Start Video → Share Screen → Invite → Participants →
+ * Record → Chat → Stream To → More → End
  */
 export function mobileDockControls(opts: {
   canPublish: boolean;
@@ -78,7 +88,18 @@ export function mobileDockControls(opts: {
     : "copyLink";
   const endOrLeave: LiveDockControlId = opts.isHost ? "end" : "leave";
 
-  return ["mic", "cam", "chat", share, "more", endOrLeave];
+  return [
+    "mic",
+    "cam",
+    share,
+    "invite",
+    "people",
+    "record",
+    "chat",
+    "streamTo",
+    "more",
+    endOrLeave,
+  ];
 }
 
 export function dockKeepsAvDuringShare(activity: LiveDockActivity): boolean {

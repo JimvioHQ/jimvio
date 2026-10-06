@@ -38,15 +38,25 @@ describe("screen share preserving audio/video controls", () => {
 });
 
 describe("desktop control visibility", () => {
-  it("exposes primary live controls for publishers", () => {
+  it("exposes primary live controls matching reference dock", () => {
     const live = desktopDockControls("live", { canEnd: true });
-    for (const id of ["mic", "cam", "chat", "share", "invite", "record", "end"] as const) {
+    for (const id of [
+      "mic",
+      "cam",
+      "share",
+      "invite",
+      "people",
+      "record",
+      "chat",
+      "streamTo",
+      "more",
+      "end",
+    ] as const) {
       assert.ok(live.includes(id), `expected ${id}`);
     }
     assert.ok(!live.includes("react"), "Chat is primary; React is secondary");
     assert.ok(!live.includes("polls"));
     assert.ok(!live.includes("qa"));
-    assert.ok(!live.includes("more"));
   });
 
   it("uses leave instead of end when cannot end", () => {
@@ -57,7 +67,7 @@ describe("desktop control visibility", () => {
 });
 
 describe("mobile control visibility", () => {
-  it("uses Audio → Video → Chat → Share → More → Leave order", () => {
+  it("uses reference two-row dock order", () => {
     const controls = mobileDockControls({
       canPublish: true,
       isHost: false,
@@ -66,8 +76,12 @@ describe("mobile control visibility", () => {
     assert.deepEqual(controls, [
       "mic",
       "cam",
-      "chat",
       "share",
+      "invite",
+      "people",
+      "record",
+      "chat",
+      "streamTo",
       "more",
       "leave",
     ]);
@@ -80,11 +94,11 @@ describe("mobile control visibility", () => {
     });
     assert.ok(mobileDockAvFirst(controls));
     assert.ok(controls.includes("chat"));
-    assert.ok(!controls.includes("react"), "Chat is primary bottom action");
     assert.ok(controls.includes("copyLink"));
+    assert.ok(controls.includes("invite"));
+    assert.ok(controls.includes("people"));
     assert.ok(controls.includes("more"));
     assert.ok(controls.includes("leave"));
-    assert.ok(!controls.includes("share") || controls.includes("copyLink"));
   });
 
   it("exposes end for hosts and leave for speakers", () => {

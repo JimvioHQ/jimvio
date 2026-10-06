@@ -1,22 +1,25 @@
 "use client";
 
 import {
-  Heart,
+  Circle,
   MessageSquare,
   Mic,
   MicOff,
   MoreHorizontal,
   PhoneOff,
+  Radio,
   ScreenShare,
+  ScreenShareOff,
   Share2,
-  Square,
+  UserPlus,
+  Users,
   Video,
   VideoOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mobileDockControls } from "@/lib/live/control-dock-visibility";
 import type { MediaAccessKind } from "@/lib/live/media-errors";
-import { FOCUS_RING, MOTION } from "./studio-ui";
+import { FOCUS_RING_DARK, LIVE_DOCK_BG, MOTION } from "./studio-ui";
 
 function DockAction({
   label,
@@ -25,6 +28,7 @@ function DockAction({
   danger,
   disabled,
   title,
+  badge,
   children,
 }: {
   label: string;
@@ -33,6 +37,7 @@ function DockAction({
   danger?: boolean;
   disabled?: boolean;
   title?: string;
+  badge?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -43,22 +48,27 @@ function DockAction({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex min-h-[44px] min-w-[44px] flex-col items-center justify-center gap-1 rounded-2xl px-1.5 py-1.5 sm:min-h-[52px] sm:min-w-[56px] sm:px-2",
+        "relative flex min-h-[48px] min-w-[56px] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5",
         MOTION,
-        FOCUS_RING,
+        FOCUS_RING_DARK,
         disabled
-          ? "cursor-not-allowed text-[#94A3B8]"
+          ? "cursor-not-allowed text-white/30"
           : danger
-            ? "text-red-600"
+            ? "text-red-300"
             : active
-              ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
-              : "text-[#111827] hover:bg-[#F1F5F9]"
+              ? "bg-white/12 text-white ring-1 ring-[#FF5A1F]/70"
+              : "text-white/75 hover:bg-white/10 hover:text-white"
       )}
     >
       {children}
-      <span className="max-w-[4.5rem] truncate text-[10px] font-medium leading-none">
+      <span className="max-w-[4.75rem] truncate text-[10px] font-medium leading-none">
         {label}
       </span>
+      {typeof badge === "number" ? (
+        <span className="absolute right-1 top-0.5 min-w-[16px] rounded-full bg-black px-1 text-center text-[9px] font-semibold leading-4 text-white ring-1 ring-white/15">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -66,9 +76,7 @@ function DockAction({
 type AvAccess = MediaAccessKind;
 
 /**
- * Mobile Live control bar.
- * Order: Audio → Video → Chat → React → Share → More → Leave/End
- * Mic/Cam remain visible (disabled with explanation when the role cannot publish).
+ * Mobile Live control dock — two-row cinematic bar matching reference.
  */
 export function LiveMobileDock({
   isHost,
@@ -77,9 +85,15 @@ export function LiveMobileDock({
   micOn,
   camOn,
   sharing,
+  recording,
   audioAccess,
   videoAccess,
   permissionDenied,
+  participantCount,
+  chatOpen,
+  inviteOpen,
+  peopleOpen,
+  streamToOpen,
   onMic,
   onCam,
   onShare,
@@ -87,7 +101,10 @@ export function LiveMobileDock({
   screenShareSupported = true,
   screenShareReason = null,
   onChat,
-  onReact,
+  onInvite,
+  onPeople,
+  onRecord,
+  onStreamTo,
   onShareLink,
   onMore,
   onEndLive,
@@ -99,9 +116,15 @@ export function LiveMobileDock({
   micOn?: boolean;
   camOn?: boolean;
   sharing?: boolean;
+  recording?: boolean;
   audioAccess?: AvAccess;
   videoAccess?: AvAccess;
   permissionDenied?: { audio?: boolean; video?: boolean };
+  participantCount?: number;
+  chatOpen?: boolean;
+  inviteOpen?: boolean;
+  peopleOpen?: boolean;
+  streamToOpen?: boolean;
   onMic?: () => void;
   onCam?: () => void;
   onShare?: () => void;
@@ -109,7 +132,10 @@ export function LiveMobileDock({
   screenShareSupported?: boolean;
   screenShareReason?: string | null;
   onChat?: () => void;
-  onReact?: () => void;
+  onInvite?: () => void;
+  onPeople?: () => void;
+  onRecord?: () => void;
+  onStreamTo?: () => void;
   onShareLink?: () => void;
   onMore?: () => void;
   onEndLive?: () => void;
@@ -135,33 +161,17 @@ export function LiveMobileDock({
     ? "Mic"
     : audioDenied
       ? "Enable mic"
-      : audioAccess === "requesting" || audioAccess === "idle"
-        ? "Enable mic"
-        : micOn
-          ? "Mute"
-          : "Unmute";
+      : micOn
+        ? "Mute"
+        : "Unmute";
 
   const camLabel = !publish
     ? "Camera"
     : videoDenied
       ? "Enable cam"
-      : videoAccess === "requesting" || videoAccess === "idle"
-        ? "Enable cam"
-        : camOn
-          ? "Camera"
-          : "Cam off";
-
-  const micTitle = !publish
-    ? "Microphone unavailable for viewers"
-    : audioDenied
-      ? "Allow microphone access in your browser settings"
-      : micLabel;
-
-  const camTitle = !publish
-    ? "Camera unavailable for viewers"
-    : videoDenied
-      ? "Allow camera access in your browser settings"
-      : camLabel;
+      : camOn
+        ? "Stop Video"
+        : "Start Video";
 
   const handleShare = () => {
     if (sharing) {
@@ -172,134 +182,196 @@ export function LiveMobileDock({
     onShare?.();
   };
 
+  const renderControl = (id: (typeof controls)[number]) => {
+    switch (id) {
+      case "mic":
+        return (
+          <DockAction
+            key={id}
+            label={micLabel}
+            onClick={publish ? onMic : undefined}
+            disabled={!publish}
+            active={publish && Boolean(micOn) && !audioDenied}
+            danger={publish && (!micOn || audioDenied)}
+          >
+            {micOn && publish && !audioDenied ? (
+              <Mic className="h-5 w-5" aria-hidden />
+            ) : (
+              <MicOff className="h-5 w-5" aria-hidden />
+            )}
+          </DockAction>
+        );
+      case "cam":
+        return (
+          <DockAction
+            key={id}
+            label={camLabel}
+            onClick={publish ? onCam : undefined}
+            disabled={!publish}
+            active={publish && Boolean(camOn) && !videoDenied}
+            danger={publish && (!camOn || videoDenied)}
+          >
+            {camOn && publish && !videoDenied ? (
+              <Video className="h-5 w-5" aria-hidden />
+            ) : (
+              <VideoOff className="h-5 w-5" aria-hidden />
+            )}
+          </DockAction>
+        );
+      case "share":
+      case "stopShare":
+        return (
+          <DockAction
+            key={id}
+            label={sharing ? "Stop Share" : screenShareSupported ? "Share Screen" : "No share"}
+            title={
+              sharing
+                ? "Stop sharing"
+                : screenShareSupported
+                  ? "Share screen"
+                  : (screenShareReason ??
+                    "Screen sharing isn't supported by this browser.")
+            }
+            onClick={sharing || screenShareSupported ? handleShare : undefined}
+            disabled={!sharing && !screenShareSupported}
+            active={Boolean(sharing)}
+          >
+            {sharing ? (
+              <ScreenShareOff className="h-5 w-5" aria-hidden />
+            ) : (
+              <ScreenShare className="h-5 w-5" aria-hidden />
+            )}
+          </DockAction>
+        );
+      case "invite":
+        return (
+          <DockAction
+            key={id}
+            label="Invite"
+            onClick={onInvite ?? onShareLink}
+            active={inviteOpen}
+          >
+            <UserPlus className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "people":
+        return (
+          <DockAction
+            key={id}
+            label="Participants"
+            onClick={onPeople}
+            active={peopleOpen}
+            badge={
+              typeof participantCount === "number" && participantCount > 0
+                ? participantCount
+                : undefined
+            }
+          >
+            <Users className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "record":
+        return (
+          <DockAction
+            key={id}
+            label="Record"
+            onClick={onRecord}
+            active={Boolean(recording)}
+            danger={Boolean(recording)}
+          >
+            <Circle
+              className={cn("h-5 w-5", recording && "fill-current text-red-400")}
+              aria-hidden
+            />
+          </DockAction>
+        );
+      case "chat":
+        return (
+          <DockAction key={id} label="Chat" onClick={onChat} active={chatOpen}>
+            <MessageSquare className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "streamTo":
+        return (
+          <DockAction
+            key={id}
+            label="Stream To"
+            onClick={onStreamTo}
+            active={streamToOpen}
+          >
+            <Radio className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "copyLink":
+        return (
+          <DockAction key={id} label="Share" onClick={onShareLink}>
+            <Share2 className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "more":
+        return (
+          <DockAction key={id} label="More" onClick={onMore}>
+            <MoreHorizontal className="h-5 w-5" aria-hidden />
+          </DockAction>
+        );
+      case "end":
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-label="End Live"
+            onClick={onEndLive}
+            className={cn(
+              "col-span-1 flex min-h-[48px] min-w-[88px] flex-1 items-center justify-center gap-2 rounded-2xl bg-[#FF5A1F] px-3 text-[13px] font-semibold text-white",
+              MOTION,
+              FOCUS_RING_DARK,
+              "active:scale-[0.98]"
+            )}
+          >
+            <PhoneOff className="h-4 w-4" aria-hidden />
+            End
+          </button>
+        );
+      case "leave":
+        return (
+          <button
+            key={id}
+            type="button"
+            aria-label="Leave Live"
+            onClick={onLeave}
+            className={cn(
+              "col-span-1 flex min-h-[48px] min-w-[88px] flex-1 items-center justify-center gap-2 rounded-2xl bg-white/12 px-3 text-[13px] font-semibold text-white",
+              MOTION,
+              FOCUS_RING_DARK,
+              "active:scale-[0.98]"
+            )}
+          >
+            <PhoneOff className="h-4 w-4" aria-hidden />
+            Leave
+          </button>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const row1 = controls.slice(0, 5);
+  const row2 = controls.slice(5);
+
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-3 lg:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
       role="toolbar"
       aria-label="Live controls"
     >
-      <div className="pointer-events-auto inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[20px] border border-[#E5E7EB] bg-white/95 px-1.5 py-1.5 shadow-[0_12px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl scrollbar-hide sm:gap-1 sm:px-2 sm:py-2">
-        {controls.map((id) => {
-          switch (id) {
-            case "mic":
-              return (
-                <DockAction
-                  key={id}
-                  label={micLabel}
-                  title={micTitle}
-                  onClick={publish ? onMic : undefined}
-                  disabled={!publish}
-                  active={publish && Boolean(micOn) && !audioDenied}
-                  danger={publish && (!micOn || audioDenied)}
-                >
-                  {micOn && publish && !audioDenied ? (
-                    <Mic className="h-5 w-5" aria-hidden />
-                  ) : (
-                    <MicOff className="h-5 w-5" aria-hidden />
-                  )}
-                </DockAction>
-              );
-            case "cam":
-              return (
-                <DockAction
-                  key={id}
-                  label={camLabel}
-                  title={camTitle}
-                  onClick={publish ? onCam : undefined}
-                  disabled={!publish}
-                  active={publish && Boolean(camOn) && !videoDenied}
-                  danger={publish && (!camOn || videoDenied)}
-                >
-                  {camOn && publish && !videoDenied ? (
-                    <Video className="h-5 w-5" aria-hidden />
-                  ) : (
-                    <VideoOff className="h-5 w-5" aria-hidden />
-                  )}
-                </DockAction>
-              );
-            case "chat":
-              return (
-                <DockAction key={id} label="Chat" onClick={onChat}>
-                  <MessageSquare className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "react":
-              return (
-                <DockAction key={id} label="React" onClick={onReact}>
-                  <Heart className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "share":
-              return (
-                <DockAction
-                  key={id}
-                  label={
-                    sharing
-                      ? "Stop"
-                      : screenShareSupported
-                        ? "Share"
-                        : "No share"
-                  }
-                  title={
-                    sharing
-                      ? "Stop sharing"
-                      : screenShareSupported
-                        ? "Share screen"
-                        : (screenShareReason ??
-                          "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device.")
-                  }
-                  onClick={
-                    sharing || screenShareSupported ? handleShare : undefined
-                  }
-                  disabled={!sharing && !screenShareSupported}
-                  active={Boolean(sharing)}
-                >
-                  {sharing ? (
-                    <Square className="h-5 w-5" aria-hidden />
-                  ) : (
-                    <ScreenShare className="h-5 w-5" aria-hidden />
-                  )}
-                </DockAction>
-              );
-            case "stopShare":
-              return (
-                <DockAction
-                  key={id}
-                  label="Stop"
-                  onClick={onStopShare}
-                  active
-                >
-                  <Square className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "copyLink":
-              return (
-                <DockAction key={id} label="Share" onClick={onShareLink}>
-                  <Share2 className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "more":
-              return (
-                <DockAction key={id} label="More" onClick={onMore}>
-                  <MoreHorizontal className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "end":
-              return (
-                <DockAction key={id} label="End" onClick={onEndLive} danger>
-                  <PhoneOff className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            case "leave":
-              return (
-                <DockAction key={id} label="Leave" onClick={onLeave} danger>
-                  <PhoneOff className="h-5 w-5" aria-hidden />
-                </DockAction>
-              );
-            default:
-              return null;
-          }
-        })}
+      <div
+        className={cn(
+          "pointer-events-auto w-full max-w-md rounded-[22px] px-2 py-2",
+          LIVE_DOCK_BG
+        )}
+      >
+        <div className="flex items-stretch gap-0.5">{row1.map(renderControl)}</div>
+        <div className="mt-1 flex items-stretch gap-0.5">{row2.map(renderControl)}</div>
       </div>
     </div>
   );

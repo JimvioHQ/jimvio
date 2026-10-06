@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Mic, MicOff, Monitor, VideoOff } from "lucide-react";
+import { Mic, MicOff, Monitor, VideoOff } from "lucide-react";
 import { HubAvatar } from "../hub-ui";
 import { cn } from "@/lib/utils";
 import { LIVE_STAGE_FALLBACK_BG } from "./studio-ui";
@@ -12,7 +12,8 @@ export function LiveStageFallback({
   micOff = false,
   screenSharing = false,
   reconnecting = false,
-  showHostBadge = true,
+  /** @deprecated Host badge removed — identity is the centered name only. */
+  showHostBadge: _showHostBadge = false,
 }: {
   hostName: string;
   avatarUrl?: string | null;
@@ -28,9 +29,7 @@ export function LiveStageFallback({
     : screenSharing
       ? "Sharing screen"
       : audioOnly
-        ? micOff
-          ? "Camera off · Muted"
-          : "Audio active"
+        ? "Camera off"
         : "Starting stream…";
 
   const StatusIcon = screenSharing
@@ -38,7 +37,7 @@ export function LiveStageFallback({
     : audioOnly
       ? micOff
         ? MicOff
-        : Mic
+        : VideoOff
       : VideoOff;
 
   return (
@@ -48,38 +47,34 @@ export function LiveStageFallback({
         LIVE_STAGE_FALLBACK_BG
       )}
     >
-      <div className="relative mb-4">
+      <div className="relative mb-5">
         <div
           className={cn(
             "rounded-full",
-            audioOnly && !micOff && "animate-pulse ring-4 ring-[#FF5A1F]/30"
+            audioOnly && !micOff && "animate-pulse ring-4 ring-[#FF5A1F]/25"
           )}
         >
           <HubAvatar
             name={hostName}
             src={avatarUrl}
-            size={112}
-            className="!ring-4 !ring-white shadow-sm"
+            size={120}
+            className="!ring-4 !ring-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
           />
         </div>
-        {micOff ? (
-          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-2 ring-[#E5E7EB]">
+        {micOff && audioOnly ? (
+          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0B1220] text-white shadow-sm ring-2 ring-white/20">
             <MicOff className="h-3.5 w-3.5" aria-hidden />
           </span>
-        ) : audioOnly ? (
-          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#FF5A1F] text-white shadow-sm ring-2 ring-white">
+        ) : audioOnly && !micOff ? (
+          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#FF5A1F] text-white shadow-sm ring-2 ring-white/20">
             <Mic className="h-3.5 w-3.5" aria-hidden />
           </span>
         ) : null}
       </div>
-      {showHostBadge ? (
-        <span className="mb-2 inline-flex items-center gap-1 rounded-full bg-[#FF5A1F]/10 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">
-          <Crown className="h-3 w-3" aria-hidden />
-          Host
-        </span>
-      ) : null}
-      <p className="text-[16px] font-semibold text-[#111827]">{hostName}</p>
-      <p className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-[#64748B]">
+      <p className="max-w-[280px] truncate text-[17px] font-semibold tracking-[-0.02em] text-white">
+        {hostName}
+      </p>
+      <p className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] text-white/55">
         <StatusIcon className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
         {statusLabel}
       </p>

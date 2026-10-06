@@ -2,14 +2,32 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Activity, Calendar, Check, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Calendar,
+  Camera,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Mic,
+  MicOff,
+  Radio,
+  Settings2,
+  Shield,
+  SlidersHorizontal,
+  Users,
+  Video,
+  VideoOff,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
 import type { LeftPanel, RightTab, SpeakerUi, StudioMode } from "./studio-types";
 import { LAYOUTS } from "./studio-types";
 import { formatCount, formatMoney, formatTime } from "./studio-utils";
-import { FOCUS_RING, MOTION_COLORS } from "./studio-ui";
+import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
 
 function Empty({ hint }: { hint: string }) {
   return (
@@ -276,68 +294,48 @@ export function PeoplePanel({
   const filteredWaiting = (waitingRoom ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
+  void inviteRole;
+  void onInviteRole;
+
   return (
     <div className="space-y-3">
       <input
         value={query}
         onChange={(e) => onQuery(e.target.value)}
-        placeholder="Search participants…"
+        placeholder="Search participants..."
         className={cn(
-          "w-full rounded-xl bg-neutral-50 px-3 py-2 text-[13px] outline-none ring-1 ring-black/[0.04] placeholder:text-neutral-400 focus:ring-black/[0.08]",
+          "w-full rounded-xl bg-neutral-50 px-3 py-2.5 text-[13px] outline-none ring-1 ring-black/[0.06] placeholder:text-neutral-400 focus:ring-black/[0.1]",
           FOCUS_RING
         )}
         aria-label="Search participants"
       />
       {canManage && onInvite && onInviteValue && (
-        <div className="space-y-1.5">
-          <div className="flex gap-1.5">
-            <input
-              value={inviteValue ?? ""}
-              onChange={(e) => onInviteValue(e.target.value)}
-              placeholder="Invite by user id…"
-              className={cn(
-                "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
-                FOCUS_RING
-              )}
-              aria-label="Invite user id"
-            />
-            <button
-              type="button"
-              onClick={onInvite}
-              className={cn(
-                "rounded-xl bg-neutral-900 px-3 py-2 text-[11px] font-semibold text-white",
-                FOCUS_RING
-              )}
-            >
-              Invite
-            </button>
-          </div>
-          {onInviteRole && (
-            <select
-              value={inviteRole ?? "speaker"}
-              onChange={(e) => onInviteRole(e.target.value)}
-              className={cn(
-                "w-full rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
-                FOCUS_RING
-              )}
-              aria-label="Invite role"
-            >
-              <option value="speaker">Speaker</option>
-              <option value="cohost">Co-host</option>
-              <option value="moderator">Moderator</option>
-              <option value="viewer">Viewer</option>
-            </select>
-          )}
+        <div className="flex gap-1.5">
+          <input
+            value={inviteValue ?? ""}
+            onChange={(e) => onInviteValue(e.target.value)}
+            placeholder="Invite by user id…"
+            className={cn(
+              "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
+              FOCUS_RING
+            )}
+            aria-label="Invite user id"
+          />
+          <button
+            type="button"
+            onClick={onInvite}
+            className={cn(
+              "shrink-0 rounded-xl bg-[#FF5A1F] px-3 py-2 text-[11px] font-semibold text-white",
+              FOCUS_RING
+            )}
+          >
+            Invite
+          </button>
         </div>
       )}
-      <div className="flex items-center justify-between gap-2 px-0.5">
-        <span className="rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-white">
-          All
-        </span>
-        <p className="text-[12px] tabular-nums text-neutral-400">
-          {formatCount(viewers)} watching
-        </p>
-      </div>
+      <p className="px-0.5 text-[12px] tabular-nums text-neutral-400">
+        {formatCount(viewers)} watching
+      </p>
       {filteredWaiting.length > 0 && (
         <div className="space-y-0.5">
           <div className="flex items-center justify-between px-1">
@@ -479,7 +477,7 @@ export function PeoplePanel({
           <div
             key={s.id}
             className={cn(
-              "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors duration-150",
+              "flex w-full min-w-0 items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors duration-150",
               activeSpeakerId === s.id ? "bg-neutral-100" : "hover:bg-neutral-50"
             )}
           >
@@ -498,89 +496,74 @@ export function PeoplePanel({
               )}
               aria-label={`Open profile for ${s.name}, ${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
             >
-              <HubAvatar name={s.name} src={s.avatar_url} size={32} />
+              <HubAvatar name={s.name} src={s.avatar_url} size={36} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium underline-offset-2 group-hover:underline">
+                <p className="truncate whitespace-nowrap text-[13px] font-semibold text-neutral-900">
                   {s.name}
                 </p>
-                <p className="text-[11px] text-neutral-400">
-                  {roleLabel}
-                  <span className="text-neutral-300"> · </span>
-                  {presenceLabel}
-                </p>
               </div>
-              <span className="flex shrink-0 items-center gap-1" aria-hidden>
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
-                    micOn ? "bg-emerald-500/15 text-emerald-600" : "bg-red-500/10 text-red-500"
-                  )}
-                  title={micOn ? "Mic on" : "Muted"}
-                >
-                  {micOn ? (
-                    <Mic className="h-2.5 w-2.5" strokeWidth={2.2} />
-                  ) : (
-                    <MicOff className="h-2.5 w-2.5" strokeWidth={2.2} />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 items-center justify-center rounded-full",
-                    camOn ? "bg-emerald-500/15 text-emerald-600" : "bg-neutral-100 text-neutral-400"
-                  )}
-                  title={camOn ? "Camera on" : "Camera off"}
-                >
-                  {camOn ? (
-                    <Video className="h-2.5 w-2.5" strokeWidth={2.2} />
-                  ) : (
-                    <VideoOff className="h-2.5 w-2.5" strokeWidth={2.2} />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "ml-0.5 h-1.5 w-1.5 rounded-full",
-                    connection === "poor"
-                      ? "bg-red-400"
-                      : connection === "warn"
-                        ? "bg-amber-400"
-                        : isHost
-                          ? "bg-accent"
-                          : "bg-emerald-500"
-                  )}
-                  title={presenceLabel}
-                />
-              </span>
             </button>
-            {canManage && !isHost && (
-              <div className="flex shrink-0 gap-1">
-                {onMute && (
-                  <button
-                    type="button"
-                    onClick={() => onMute(s.id)}
-                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-neutral-500 hover:bg-neutral-200"
+            <span
+              className={cn(
+                "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                micOn ? "bg-emerald-500/15 text-emerald-600" : "bg-red-500/10 text-red-500"
+              )}
+              title={micOn ? "Mic on" : "Muted"}
+              aria-hidden
+            >
+              {micOn ? (
+                <Mic className="h-3.5 w-3.5" strokeWidth={2} />
+              ) : (
+                <MicOff className="h-3.5 w-3.5" strokeWidth={2} />
+              )}
+            </span>
+            {canManage && !isHost ? (
+              <div className="relative shrink-0">
+                <details className="group">
+                  <summary
+                    className={cn(
+                      "flex h-7 w-7 cursor-pointer list-none items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 [&::-webkit-details-marker]:hidden",
+                      FOCUS_RING
+                    )}
+                    aria-label={`More actions for ${s.name}`}
                   >
-                    Mute
-                  </button>
-                )}
-                {onPromote && (
-                  <button
-                    type="button"
-                    onClick={() => onPromote(s.id)}
-                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-neutral-500 hover:bg-neutral-200"
-                  >
-                    Promote
-                  </button>
-                )}
-                {onRemove && (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(s.id)}
-                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50"
-                  >
-                    Remove
-                  </button>
-                )}
+                    <MoreHorizontal className="h-4 w-4" aria-hidden />
+                  </summary>
+                  <div className="absolute right-0 z-20 mt-1 min-w-[120px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+                    {onMute && (
+                      <button
+                        type="button"
+                        onClick={() => onMute(s.id)}
+                        className="block w-full px-3 py-2 text-left text-[12px] text-neutral-700 hover:bg-neutral-50"
+                      >
+                        Mute
+                      </button>
+                    )}
+                    {onPromote && (
+                      <button
+                        type="button"
+                        onClick={() => onPromote(s.id)}
+                        className="block w-full px-3 py-2 text-left text-[12px] text-neutral-700 hover:bg-neutral-50"
+                      >
+                        Promote
+                      </button>
+                    )}
+                    {onRemove && (
+                      <button
+                        type="button"
+                        onClick={() => onRemove(s.id)}
+                        className="block w-full px-3 py-2 text-left text-[12px] text-red-600 hover:bg-red-50"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </details>
               </div>
+            ) : (
+              <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-neutral-300" aria-hidden>
+                <MoreHorizontal className="h-4 w-4" />
+              </span>
             )}
           </div>
           );
@@ -692,6 +675,65 @@ function SettingsSection({
   );
 }
 
+export type SettingsCategory =
+  | "general"
+  | "stream"
+  | "audio"
+  | "engagement"
+  | "moderation"
+  | "analytics"
+  | "advanced";
+
+const SETTINGS_CATEGORIES: {
+  id: SettingsCategory;
+  label: string;
+  description: string;
+  icon: typeof Settings2;
+}[] = [
+  {
+    id: "general",
+    label: "General",
+    description: "Live details, info and preferences",
+    icon: Settings2,
+  },
+  {
+    id: "stream",
+    label: "Stream & Video",
+    description: "Camera, quality and layout",
+    icon: Camera,
+  },
+  {
+    id: "audio",
+    label: "Audio",
+    description: "Microphone, sound and noise control",
+    icon: Mic,
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    description: "Chat, reactions, Q&A and polls",
+    icon: Users,
+  },
+  {
+    id: "moderation",
+    label: "Moderation",
+    description: "Blocked words, approval and safety",
+    icon: Shield,
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    description: "Live performance and insights",
+    icon: BarChart3,
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    description: "Stream key, RTMP and advanced options",
+    icon: SlidersHorizontal,
+  },
+];
+
 export function SettingsPanel({
   title,
   onSaveTitle,
@@ -716,6 +758,9 @@ export function SettingsPanel({
   chatEnabled = true,
   onChatEnabled,
   canManageChat = false,
+  analytics,
+  advancedSlot,
+  dark = false,
 }: {
   /** @deprecated unused */
   mode?: StudioMode;
@@ -762,7 +807,11 @@ export function SettingsPanel({
   chatEnabled?: boolean;
   onChatEnabled?: (enabled: boolean) => void;
   canManageChat?: boolean;
+  analytics?: LiveDashboard["analytics"];
+  advancedSlot?: React.ReactNode;
+  dark?: boolean;
 }) {
+  const [category, setCategory] = useState<SettingsCategory | null>(null);
   const [draftTitle, setDraftTitle] = useState(title ?? "");
   const [titleBusy, setTitleBusy] = useState(false);
   const [titleMsg, setTitleMsg] = useState<string | null>(null);
@@ -771,256 +820,378 @@ export function SettingsPanel({
     setDraftTitle(title ?? "");
   }, [title]);
 
-  return (
-    <div className="space-y-5 px-1 pb-4">
-      {canEditTitle && onSaveTitle ? (
-        <SettingsSection label="Live">
-          <div className="flex gap-2">
-            <input
-              value={draftTitle}
-              maxLength={120}
-              onChange={(e) => setDraftTitle(e.target.value)}
-              className={cn(
-                "min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-[13px] outline-none focus:border-accent",
-                FOCUS_RING
-              )}
-              aria-label="Live title"
-            />
+  const rowClass = dark
+    ? "hover:bg-white/5 text-white"
+    : "hover:bg-neutral-50 text-neutral-900";
+  const muted = dark ? "text-white/45" : "text-neutral-400";
+  const surface = dark ? "bg-white/5" : "bg-neutral-50";
+  const ring = dark ? FOCUS_RING_DARK : FOCUS_RING;
+
+  if (!category) {
+    return (
+      <div className="space-y-1 px-1 pb-4">
+        {SETTINGS_CATEGORIES.map((item) => {
+          const Icon = item.icon;
+          return (
             <button
+              key={item.id}
               type="button"
-              disabled={titleBusy}
-              onClick={() => {
-                void (async () => {
-                  setTitleBusy(true);
-                  setTitleMsg(null);
-                  try {
-                    await onSaveTitle(draftTitle);
-                    setTitleMsg("Saved");
-                  } catch (e) {
-                    setDraftTitle(title ?? "");
-                    setTitleMsg(e instanceof Error ? e.message : "Save failed");
-                  } finally {
-                    setTitleBusy(false);
-                  }
-                })();
-              }}
+              onClick={() => setCategory(item.id)}
               className={cn(
-                "rounded-xl bg-neutral-900 px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
-                FOCUS_RING
+                "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left",
+                MOTION_COLORS,
+                ring,
+                rowClass
               )}
             >
-              {titleBusy ? "…" : "Save"}
-            </button>
-          </div>
-          {titleMsg ? (
-            <p className="text-[11px] text-neutral-500" role="status">
-              {titleMsg}
-            </p>
-          ) : null}
-        </SettingsSection>
-      ) : null}
-
-      <SettingsSection label="Audio">
-        {onToggleMic ? (
-          <button
-            type="button"
-            onClick={onToggleMic}
-            className={cn(
-              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-              FOCUS_RING
-            )}
-          >
-            Microphone
-            <span className="text-[11px] font-semibold text-neutral-500">
-              {micOn ? "On" : "Off"}
-            </span>
-          </button>
-        ) : null}
-        <p className="px-1 text-[11px] text-neutral-400">
-          Permission: {permissionLabel(audioAccess)}
-        </p>
-        {audioDevices.length > 0 && onSwitchMic ? (
-          <div className="space-y-1" role="radiogroup" aria-label="Microphone">
-            {audioDevices.map((d) => {
-              const selected = (activeAudioId ?? audioDevices[0]?.deviceId) === d.deviceId;
-              return (
-                <button
-                  key={d.deviceId}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => onSwitchMic(d.deviceId)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px] hover:bg-neutral-50",
-                    FOCUS_RING,
-                    selected && "bg-neutral-100 font-semibold"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-3.5 w-3.5 shrink-0 rounded-full border",
-                      selected
-                        ? "border-neutral-900 bg-neutral-900"
-                        : "border-neutral-300"
-                    )}
-                    aria-hidden
-                  />
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="px-1 text-[12px] text-neutral-400">
-            Turn on the microphone to list input devices.
-          </p>
-        )}
-      </SettingsSection>
-
-      <SettingsSection label="Video">
-        {onToggleCam ? (
-          <button
-            type="button"
-            onClick={onToggleCam}
-            className={cn(
-              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-              FOCUS_RING
-            )}
-          >
-            Camera
-            <span className="text-[11px] font-semibold text-neutral-500">
-              {camOn ? "On" : "Off"}
-            </span>
-          </button>
-        ) : null}
-        <p className="px-1 text-[11px] text-neutral-400">
-          Permission: {permissionLabel(videoAccess)}
-        </p>
-        {videoDevices.length > 0 && onSwitchCam ? (
-          <div className="space-y-1" role="radiogroup" aria-label="Camera">
-            {videoDevices.map((d) => {
-              const selected = (activeVideoId ?? videoDevices[0]?.deviceId) === d.deviceId;
-              return (
-                <button
-                  key={d.deviceId}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => onSwitchCam(d.deviceId)}
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px] hover:bg-neutral-50",
-                    FOCUS_RING,
-                    selected && "bg-neutral-100 font-semibold"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-3.5 w-3.5 shrink-0 rounded-full border",
-                      selected
-                        ? "border-neutral-900 bg-neutral-900"
-                        : "border-neutral-300"
-                    )}
-                    aria-hidden
-                  />
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="px-1 text-[12px] text-neutral-400">
-            Turn on the camera to list video devices.
-          </p>
-        )}
-      </SettingsSection>
-
-      {(onStartShare || onStopShare) && (
-        <SettingsSection label="Screen share">
-          <p className="px-1 text-[11px] text-neutral-400">
-            Status:{" "}
-            {sharing
-              ? "Sharing"
-              : screenShareSupported
-                ? "Supported"
-                : "Unsupported"}
-          </p>
-          {!screenShareSupported && screenShareReason ? (
-            <p className="rounded-xl bg-neutral-50 px-3 py-2 text-[12px] text-neutral-600">
-              {screenShareReason}
-            </p>
-          ) : null}
-          {screenShareSupported ? (
-            <button
-              type="button"
-              onClick={sharing ? onStopShare : onStartShare}
-              className={cn(
-                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-                FOCUS_RING
-              )}
-            >
-              {sharing ? "Stop sharing" : "Share screen"}
-              <span className="text-[11px] font-semibold text-neutral-500">
-                {sharing ? "Active" : "Off"}
+              <span
+                className={cn(
+                  "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                  item.id === "general"
+                    ? "bg-[#FF5A1F]/15 text-[#FF5A1F] ring-1 ring-[#FF5A1F]/40"
+                    : dark
+                      ? "bg-white/8 text-white/80"
+                      : "bg-neutral-100 text-neutral-600"
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
               </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold">{item.label}</span>
+                <span className={cn("block text-[11px]", muted)}>{item.description}</span>
+              </span>
+              <ChevronRight className={cn("h-4 w-4 shrink-0", muted)} aria-hidden />
             </button>
-          ) : null}
-          <p className="px-1 text-[11px] text-neutral-400">
-            Uses your browser’s source picker (tab, window, or entire screen when
-            available). Tab audio is included only when the browser offers it.
-          </p>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const activeMeta = SETTINGS_CATEGORIES.find((c) => c.id === category);
+
+  return (
+    <div className="space-y-4 px-1 pb-4">
+      <button
+        type="button"
+        onClick={() => setCategory(null)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-[12px] font-medium",
+          muted,
+          ring,
+          dark ? "hover:text-white" : "hover:text-neutral-700"
+        )}
+      >
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+        {activeMeta?.label ?? "Back"}
+      </button>
+
+      {category === "general" && (
+        <SettingsSection label="Live details">
+          {canEditTitle && onSaveTitle ? (
+            <>
+              <div className="flex gap-2">
+                <input
+                  value={draftTitle}
+                  maxLength={120}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
+                    dark
+                      ? "border-white/15 bg-white/5 text-white"
+                      : "border-neutral-200 bg-white",
+                    ring
+                  )}
+                  aria-label="Live title"
+                />
+                <button
+                  type="button"
+                  disabled={titleBusy}
+                  onClick={() => {
+                    void (async () => {
+                      setTitleBusy(true);
+                      setTitleMsg(null);
+                      try {
+                        await onSaveTitle(draftTitle);
+                        setTitleMsg("Saved");
+                      } catch (e) {
+                        setDraftTitle(title ?? "");
+                        setTitleMsg(e instanceof Error ? e.message : "Save failed");
+                      } finally {
+                        setTitleBusy(false);
+                      }
+                    })();
+                  }}
+                  className={cn(
+                    "rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                    ring
+                  )}
+                >
+                  {titleBusy ? "…" : "Save"}
+                </button>
+              </div>
+              {titleMsg ? (
+                <p className={cn("text-[11px]", muted)} role="status">
+                  {titleMsg}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className={cn("rounded-xl px-3 py-2 text-[13px]", surface)}>
+              {title || "Untitled Live"}
+            </p>
+          )}
         </SettingsSection>
       )}
 
-      {canManageChat && onChatEnabled ? (
-        <SettingsSection label="Chat">
-          <button
-            type="button"
-            onClick={() => onChatEnabled(!chatEnabled)}
-            className={cn(
-              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
-              FOCUS_RING
+      {category === "stream" && (
+        <>
+          <SettingsSection label="Camera">
+            {onToggleCam ? (
+              <button
+                type="button"
+                onClick={onToggleCam}
+                className={cn(
+                  "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                  rowClass,
+                  ring
+                )}
+              >
+                Camera
+                <span className={cn("text-[11px] font-semibold", muted)}>
+                  {camOn ? "On" : "Off"}
+                </span>
+              </button>
+            ) : null}
+            <p className={cn("px-1 text-[11px]", muted)}>
+              Permission: {permissionLabel(videoAccess)}
+            </p>
+            {videoDevices.length > 0 && onSwitchCam ? (
+              <div className="space-y-1" role="radiogroup" aria-label="Camera">
+                {videoDevices.map((d) => {
+                  const selected =
+                    (activeVideoId ?? videoDevices[0]?.deviceId) === d.deviceId;
+                  return (
+                    <button
+                      key={d.deviceId}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => onSwitchCam(d.deviceId)}
+                      className={cn(
+                        "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px]",
+                        rowClass,
+                        ring,
+                        selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={cn("px-1 text-[12px]", muted)}>
+                Turn on the camera to list video devices.
+              </p>
             )}
-          >
-            Allow chat
-            <span className="text-[11px] font-semibold text-neutral-500">
-              {chatEnabled ? "On" : "Off"}
-            </span>
-          </button>
-        </SettingsSection>
-      ) : null}
+          </SettingsSection>
+          {(onStartShare || onStopShare) && (
+            <SettingsSection label="Screen share">
+              <p className={cn("px-1 text-[11px]", muted)}>
+                Status:{" "}
+                {sharing
+                  ? "Sharing"
+                  : screenShareSupported
+                    ? "Supported"
+                    : "Unsupported"}
+              </p>
+              {!screenShareSupported && screenShareReason ? (
+                <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
+                  {screenShareReason}
+                </p>
+              ) : null}
+              {screenShareSupported ? (
+                <button
+                  type="button"
+                  onClick={sharing ? onStopShare : onStartShare}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                    rowClass,
+                    ring
+                  )}
+                >
+                  {sharing ? "Stop sharing" : "Share screen"}
+                  <span className={cn("text-[11px] font-semibold", muted)}>
+                    {sharing ? "Active" : "Off"}
+                  </span>
+                </button>
+              ) : null}
+            </SettingsSection>
+          )}
+        </>
+      )}
 
-      <SettingsSection label="Permissions">
-        <div className="space-y-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] text-neutral-600">
-          <p>Microphone — {permissionLabel(audioAccess)}</p>
-          <p>Camera — {permissionLabel(videoAccess)}</p>
-          <p>
-            Screen share —{" "}
-            {sharing
-              ? "Active"
-              : screenShareSupported
-                ? "Supported"
-                : "Unsupported"}
+      {category === "audio" && (
+        <SettingsSection label="Microphone">
+          {onToggleMic ? (
+            <button
+              type="button"
+              onClick={onToggleMic}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                rowClass,
+                ring
+              )}
+            >
+              Microphone
+              <span className={cn("text-[11px] font-semibold", muted)}>
+                {micOn ? "On" : "Off"}
+              </span>
+            </button>
+          ) : null}
+          <p className={cn("px-1 text-[11px]", muted)}>
+            Permission: {permissionLabel(audioAccess)}
           </p>
-        </div>
-      </SettingsSection>
+          {audioDevices.length > 0 && onSwitchMic ? (
+            <div className="space-y-1" role="radiogroup" aria-label="Microphone">
+              {audioDevices.map((d) => {
+                const selected =
+                  (activeAudioId ?? audioDevices[0]?.deviceId) === d.deviceId;
+                return (
+                  <button
+                    key={d.deviceId}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => onSwitchMic(d.deviceId)}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px]",
+                      rowClass,
+                      ring,
+                      selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={cn("px-1 text-[12px]", muted)}>
+              Turn on the microphone to list input devices.
+            </p>
+          )}
+        </SettingsSection>
+      )}
+
+      {category === "engagement" && (
+        <SettingsSection label="Chat & reactions">
+          {canManageChat && onChatEnabled ? (
+            <button
+              type="button"
+              onClick={() => onChatEnabled(!chatEnabled)}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                rowClass,
+                ring
+              )}
+            >
+              Allow chat
+              <span className={cn("text-[11px] font-semibold", muted)}>
+                {chatEnabled ? "On" : "Off"}
+              </span>
+            </button>
+          ) : (
+            <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
+              Chat and reactions stay available from the control dock during Live.
+            </p>
+          )}
+        </SettingsSection>
+      )}
+
+      {category === "moderation" && (
+        <SettingsSection label="Safety">
+          <div className={cn("space-y-1 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
+            <p>Microphone — {permissionLabel(audioAccess)}</p>
+            <p>Camera — {permissionLabel(videoAccess)}</p>
+            <p>
+              Screen share —{" "}
+              {sharing
+                ? "Active"
+                : screenShareSupported
+                  ? "Supported"
+                  : "Unsupported"}
+            </p>
+            <p className="pt-1">
+              Participant moderation actions are available from the Participants panel.
+            </p>
+          </div>
+        </SettingsSection>
+      )}
+
+      {category === "analytics" && <AnalyticsPanel analytics={analytics} />}
+
+      {category === "advanced" && (
+        <SettingsSection label="Destinations & RTMP">
+          {advancedSlot ? (
+            advancedSlot
+          ) : (
+            <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
+              <Radio className="mr-1 inline h-3.5 w-3.5" aria-hidden />
+              Stream destinations open from Stream To on the control dock.
+            </p>
+          )}
+        </SettingsSection>
+      )}
     </div>
   );
 }
 
-export function DrawerHeader({ title, onClose }: { title: string; onClose: () => void }) {
+export function DrawerHeader({
+  title,
+  onClose,
+  dark = false,
+  count,
+}: {
+  title: string;
+  onClose: () => void;
+  dark?: boolean;
+  count?: number;
+}) {
   return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <p className="text-[13px] font-medium tracking-[-0.01em]">{title}</p>
+    <div
+      className={cn(
+        "flex items-center justify-between px-4 py-3.5",
+        dark ? "border-b border-white/10" : "border-b border-neutral-100"
+      )}
+    >
+      <p
+        className={cn(
+          "text-[15px] font-semibold tracking-[-0.01em]",
+          dark ? "text-white" : "text-neutral-900"
+        )}
+      >
+        {title}
+        {typeof count === "number" ? (
+          <span className={cn("ml-1 font-medium", dark ? "text-white/55" : "text-neutral-400")}>
+            ({count})
+          </span>
+        ) : null}
+      </p>
       <button
         type="button"
         onClick={onClose}
+        aria-label="Close"
         className={cn(
-          "rounded-lg px-2 py-1 text-[11px] font-medium text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700",
+          "inline-flex h-8 w-8 items-center justify-center rounded-full text-[18px] leading-none",
           MOTION_COLORS,
-          FOCUS_RING
+          dark
+            ? cn("text-white/55 hover:bg-white/10 hover:text-white", FOCUS_RING_DARK)
+            : cn("text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700", FOCUS_RING)
         )}
       >
-        Close
+        ×
       </button>
     </div>
   );

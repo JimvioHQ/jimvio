@@ -4,31 +4,28 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  CircleDot,
-  ClipboardList,
+  Circle,
   Fullscreen,
-  HelpCircle,
-  LogOut,
   MessageSquare,
   Mic,
   MicOff,
   MoreHorizontal,
   MousePointer2,
   PenLine,
+  PhoneOff,
   Presentation,
+  Radio,
   ScreenShare,
   ScreenShareOff,
-  Share2,
-  Smile,
   Timer,
+  UserPlus,
   Users,
-  UsersRound,
   Video,
   VideoOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActivityMode } from "./studio-types";
-import { FOCUS_RING, MOTION } from "./studio-ui";
+import { FOCUS_RING_DARK, LIVE_DOCK_BG, MOTION } from "./studio-ui";
 
 export function useEphemeralToast() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -39,8 +36,6 @@ export function useEphemeralToast() {
     },
     []
   );
-  // Stable identity — callers put `show` in effect deps; a new function each
-  // render + sticky error string caused React #185 (maximum update depth).
   const show = useCallback((text: string) => {
     setMsg(text);
     if (timer.current) clearTimeout(timer.current);
@@ -57,21 +52,22 @@ function ControlDockImpl({
   sharing,
   focusMode,
   canPublish = true,
-  dark = false,
+  dark = true,
   onMic,
   onCam,
   onShare,
   onStopShare,
   onPresent,
   onRecord,
-  onPoll,
   onInvite,
   onChat,
   chatOpen = false,
   onPeople,
+  peopleOpen = false,
   participantCount,
+  onStreamTo,
+  streamToOpen = false,
   onReact,
-  onQa,
   onCopyLink,
   onAnnotate,
   onLaser,
@@ -81,9 +77,11 @@ function ControlDockImpl({
   onTimer,
   onSlides,
   onMore,
+  moreOpen = false,
   onEnd,
   onLeave,
   canEnd = true,
+  inviteOpen = false,
 }: {
   activity: ActivityMode;
   micOn: boolean;
@@ -99,14 +97,15 @@ function ControlDockImpl({
   onStopShare: () => void;
   onPresent: () => void;
   onRecord: () => void;
-  onPoll?: () => void;
   onInvite: () => void;
   onChat?: () => void;
   chatOpen?: boolean;
   onPeople?: () => void;
+  peopleOpen?: boolean;
   participantCount?: number;
+  onStreamTo?: () => void;
+  streamToOpen?: boolean;
   onReact?: () => void;
-  onQa?: () => void;
   onCopyLink?: () => void;
   onAnnotate?: () => void;
   onLaser?: () => void;
@@ -116,13 +115,18 @@ function ControlDockImpl({
   onTimer?: () => void;
   onSlides?: () => void;
   onMore?: () => void;
+  moreOpen?: boolean;
   onEnd?: () => void;
   onLeave?: () => void;
   canEnd?: boolean;
+  inviteOpen?: boolean;
 }) {
-  const icon = "h-[17px] w-[17px]";
+  const icon = "h-[18px] w-[18px]";
   const sw = 1.65;
   const showAv = canPublish;
+  void dark;
+  void onCopyLink;
+  void onReact;
 
   return (
     <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-1")}>
@@ -130,12 +134,10 @@ function ControlDockImpl({
         role="toolbar"
         aria-label="Live session controls"
         className={cn(
-          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-2xl px-2 py-1.5 sm:gap-1 sm:px-2.5 sm:py-2",
+          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[22px] px-2.5 py-2 sm:gap-1 sm:px-3 sm:py-2.5",
           MOTION,
           "scrollbar-hide",
-          dark
-            ? "bg-[#0b1220]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/10"
-            : "bg-white shadow-[0_8px_30px_rgba(15,23,42,0.10)]"
+          LIVE_DOCK_BG
         )}
       >
         {(activity === "live" || activity === "share" || activity === "present") && showAv && (
@@ -146,7 +148,6 @@ function ControlDockImpl({
               onClick={onMic}
               label={micOn ? "Mute" : "Unmute"}
               hint="M"
-              dark={dark}
             >
               {micOn ? (
                 <Mic className={icon} strokeWidth={sw} aria-hidden />
@@ -160,7 +161,6 @@ function ControlDockImpl({
               onClick={onCam}
               label={camOn ? "Stop Video" : "Start Video"}
               hint="V"
-              dark={dark}
             >
               {camOn ? (
                 <Video className={icon} strokeWidth={sw} aria-hidden />
@@ -180,7 +180,6 @@ function ControlDockImpl({
                 onClick={sharing ? onStopShare : onShare}
                 label={sharing ? "Stop Share" : "Share Screen"}
                 hint="S"
-                dark={dark}
               >
                 {sharing ? (
                   <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
@@ -189,20 +188,20 @@ function ControlDockImpl({
                 )}
               </DockBtn>
             ) : null}
-            {onCopyLink && (
-              <DockBtn onClick={onCopyLink} label="Share" dark={dark}>
-                <Share2 className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            )}
-            <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex" dark={dark}>
-              <UsersRound className={icon} strokeWidth={sw} aria-hidden />
+            <DockBtn
+              pressed={inviteOpen}
+              onClick={onInvite}
+              label="Invite"
+              activeRing={inviteOpen}
+            >
+              <UserPlus className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             {onPeople ? (
               <DockBtn
+                pressed={peopleOpen}
                 onClick={onPeople}
                 label="Participants"
-                className="hidden sm:flex"
-                dark={dark}
+                activeRing={peopleOpen}
                 badge={
                   typeof participantCount === "number" && participantCount > 0
                     ? participantCount
@@ -212,43 +211,41 @@ function ControlDockImpl({
                 <Users className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
-            {onChat ? (
-              <DockBtn
-                pressed={chatOpen}
-                onClick={onChat}
-                label={chatOpen ? "Close chat" : "Chat"}
-                dark={dark}
-              >
-                <MessageSquare className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            ) : null}
             <DockBtn
               pressed={recording}
               recording={recording}
               onClick={onRecord}
               label="Record"
               hint="R"
-              dark={dark}
             >
-              <CircleDot className={icon} strokeWidth={sw} aria-hidden />
+              <Circle
+                className={cn(icon, recording && "fill-current")}
+                strokeWidth={sw}
+                aria-hidden
+              />
             </DockBtn>
-            {onReact ? (
-              <DockBtn onClick={onReact} label="Reactions" className="hidden md:flex" dark={dark}>
-                <Smile className={icon} strokeWidth={sw} aria-hidden />
+            {onChat ? (
+              <DockBtn
+                pressed={chatOpen}
+                onClick={onChat}
+                label="Chat"
+                activeRing={chatOpen}
+              >
+                <MessageSquare className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
-            {onPoll ? (
-              <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex" dark={dark}>
-                <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            ) : null}
-            {onQa ? (
-              <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex" dark={dark}>
-                <HelpCircle className={icon} strokeWidth={sw} aria-hidden />
+            {onStreamTo ? (
+              <DockBtn
+                pressed={streamToOpen}
+                onClick={onStreamTo}
+                label="Stream To"
+                activeRing={streamToOpen}
+              >
+                <Radio className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
             {onMore ? (
-              <DockBtn onClick={onMore} label="More" className="hidden lg:flex" dark={dark}>
+              <DockBtn pressed={moreOpen} onClick={onMore} label="More" activeRing={moreOpen}>
                 <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
@@ -280,18 +277,12 @@ function ControlDockImpl({
               label="Record"
               hint="R"
             >
-              <CircleDot className={icon} strokeWidth={sw} aria-hidden />
+              <Circle
+                className={cn(icon, recording && "fill-current")}
+                strokeWidth={sw}
+                aria-hidden
+              />
             </DockBtn>
-            {onCopyLink && (
-              <DockBtn onClick={onCopyLink} label="Share">
-                <Share2 className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            )}
-            {onMore ? (
-              <DockBtn onClick={onMore} label="More" className="hidden md:flex">
-                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            ) : null}
           </>
         )}
 
@@ -317,26 +308,20 @@ function ControlDockImpl({
                 <Timer className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             )}
-            {onPoll ? (
-              <DockBtn onClick={onPoll} label="Polls" hint="P">
-                <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            ) : null}
             <DockBtn
               pressed={recording}
               recording={recording}
               onClick={onRecord}
               label="Record"
               hint="R"
-              className="hidden md:flex"
             >
-              <CircleDot className={icon} strokeWidth={sw} aria-hidden />
+              <Circle
+                className={cn(icon, recording && "fill-current")}
+                strokeWidth={sw}
+                aria-hidden
+              />
             </DockBtn>
-            {onMore ? (
-              <DockBtn onClick={onMore} label="More" className="hidden md:flex">
-                <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            ) : onPresent ? (
+            {onPresent ? (
               <DockBtn onClick={onPresent} label="More" className="hidden md:flex">
                 <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
@@ -344,13 +329,7 @@ function ControlDockImpl({
           </>
         )}
 
-        <span
-          className={cn(
-            "mx-1 hidden h-8 w-px sm:block",
-            dark ? "bg-white/10" : "bg-neutral-200/80"
-          )}
-          aria-hidden
-        />
+        <span className="mx-1.5 hidden h-8 w-px bg-white/10 sm:block" aria-hidden />
 
         {canEnd ? (
           <button
@@ -359,15 +338,14 @@ function ControlDockImpl({
             aria-label="End live session"
             onClick={onEnd}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#FF5A1F] px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#FF5A1F] px-5 text-[13px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
-              FOCUS_RING,
-              "hover:bg-[#e04e1a] active:scale-[0.98] sm:h-11 sm:px-5"
+              FOCUS_RING_DARK,
+              "hover:bg-[#e04e1a] active:scale-[0.98]"
             )}
           >
-            <LogOut className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden sm:inline">End Live</span>
-            <span className="sm:hidden">End</span>
+            <PhoneOff className="h-4 w-4" aria-hidden />
+            <span>End</span>
           </button>
         ) : (
           <button
@@ -376,17 +354,14 @@ function ControlDockImpl({
             aria-label="Leave live session"
             onClick={onLeave}
             className={cn(
-              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-[12px] font-semibold tracking-[-0.01em]",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-white/10 px-5 text-[13px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
-              FOCUS_RING,
-              "active:scale-[0.98] sm:h-11 sm:px-5",
-              dark
-                ? "bg-white/10 text-white hover:bg-white/15"
-                : "bg-neutral-900 text-white hover:bg-neutral-800"
+              FOCUS_RING_DARK,
+              "hover:bg-white/15 active:scale-[0.98]"
             )}
           >
-            <LogOut className="h-3.5 w-3.5" aria-hidden />
-            <span>Leave Live</span>
+            <PhoneOff className="h-4 w-4" aria-hidden />
+            <span>Leave</span>
           </button>
         )}
       </div>
@@ -405,8 +380,8 @@ function DockBtn({
   success,
   onClick,
   className,
-  dark,
   badge,
+  activeRing,
 }: {
   children: React.ReactNode;
   label: string;
@@ -418,8 +393,8 @@ function DockBtn({
   success?: boolean;
   onClick?: () => void;
   className?: string;
-  dark?: boolean;
   badge?: number;
+  activeRing?: boolean;
 }) {
   return (
     <button
@@ -429,36 +404,31 @@ function DockBtn({
       aria-pressed={typeof pressed === "boolean" ? pressed : undefined}
       onClick={onClick}
       className={cn(
-        "relative inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 sm:min-w-[56px]",
+        "relative inline-flex min-w-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5",
         MOTION,
-        FOCUS_RING,
+        FOCUS_RING_DARK,
         "hover:scale-[1.01] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
         off
-          ? dark
-            ? "bg-red-500/20 text-red-300"
-            : "bg-red-500/10 text-red-600"
+          ? "bg-red-500/20 text-red-300"
           : accent
-            ? "bg-neutral-900 text-white"
+            ? "bg-white text-[#0B1220]"
             : recording
               ? "bg-red-500 text-white"
               : success
-                ? dark
-                  ? "bg-emerald-500/20 text-emerald-300"
-                  : "bg-emerald-500/10 text-emerald-600"
-                : dark
-                  ? pressed
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+                ? "bg-emerald-500/20 text-emerald-300"
+                : pressed
+                  ? "bg-white/15 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white",
+        activeRing && "ring-1 ring-[#FF5A1F]/80",
         className
       )}
     >
       {children}
-      <span className="max-w-[64px] truncate text-[9px] font-medium leading-none sm:text-[10px]">
+      <span className="max-w-[72px] truncate text-[10px] font-medium leading-none">
         {label}
       </span>
       {typeof badge === "number" ? (
-        <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-[#FF5A1F] px-1 text-center text-[9px] font-semibold leading-4 text-white">
+        <span className="absolute -right-0.5 -top-0.5 min-w-[18px] rounded-full bg-black px-1 text-center text-[9px] font-semibold leading-[18px] text-white ring-1 ring-white/20">
           {badge > 99 ? "99+" : badge}
         </span>
       ) : null}

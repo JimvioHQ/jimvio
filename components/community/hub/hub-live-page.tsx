@@ -5,15 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
-  Check,
-  Crown,
   Fullscreen,
   Loader2,
-  Menu,
-  MessageSquare,
   MoreHorizontal,
-  Settings,
-  Share2,
   Wifi,
   WifiOff,
   X,
@@ -581,9 +575,18 @@ export function HubLivePage({
 
   const toggleLeft = useCallback(
     (id: Exclude<LeftPanel, "none">) => {
-      updateDrawer({ leftPanel: drawer.leftPanel === id ? "none" : id });
+      const closing = drawer.leftPanel === id;
+      updateDrawer({
+        leftPanel: closing ? "none" : id,
+        // One contextual right panel at a time (reference layout).
+        rightOpen: closing ? drawer.rightOpen : false,
+      });
+      if (!closing) {
+        setShareOpen(false);
+        setFocusMode(false);
+      }
     },
-    [drawer.leftPanel, updateDrawer]
+    [drawer.leftPanel, drawer.rightOpen, updateDrawer]
   );
 
   const closeDrawers = useCallback(() => {
@@ -593,7 +596,8 @@ export function HubLivePage({
   const openRight = useCallback(
     (_tab?: RightTab) => {
       // Live Studio right rail is Chat-only — ignore secondary tab requests.
-      updateDrawer({ rightOpen: true, rightTab: "chat" });
+      updateDrawer({ rightOpen: true, rightTab: "chat", leftPanel: "none" });
+      setShareOpen(false);
       setChatIdle(false);
       setFocusMode(false);
     },
@@ -605,10 +609,16 @@ export function HubLivePage({
       updateDrawer({ rightOpen: false });
       return;
     }
-    updateDrawer({ rightOpen: true, rightTab: "chat" });
+    updateDrawer({ rightOpen: true, rightTab: "chat", leftPanel: "none" });
+    setShareOpen(false);
     setChatIdle(false);
     setFocusMode(false);
   }, [drawer.rightOpen, drawer.rightTab, updateDrawer]);
+
+  const openStreamTo = useCallback(() => {
+    // Stream To opens Advanced destinations via Settings category — host destinations panel.
+    toggleLeft("settings");
+  }, [toggleLeft]);
 
   useEffect(() => {
     if (drawer.rightTab !== "chat") {
@@ -1006,11 +1016,16 @@ export function HubLivePage({
     return null;
   }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
 
-  /** Full People list — every joined participant (host → viewers), hydrated. */
+  /**
+   * Full People list — every joined participant, hydrated.
+   * Merge LiveKit remotes so join/leave appears immediately even before
+   * the Postgres participant row finishes round-tripping.
+   */
   const peopleFromLive = useMemo(() => {
     const joined = live.participants.filter((p) => p.status === "joined");
-    if (!joined.length) return null;
-    return joined.map((p) => {
+    const byId = new Map<string, Speaker>();
+
+    for (const p of joined) {
       const dash = data?.speakers.find((s) => s.id === p.user_id);
       const remote = livekit.remotes.find((r) => r.identity === p.user_id);
       const name =
@@ -1018,14 +1033,40 @@ export function HubLivePage({
         dash?.name ||
         remote?.name ||
         (p.user_id === live.userId ? "You" : null);
-      return {
+      byId.set(p.user_id, {
         id: p.user_id,
         name: name || "Member",
         avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
         role: p.role || "viewer",
         username: p.username ?? null,
-      };
-    });
+      });
+    }
+
+    for (const r of livekit.remotes) {
+      if (!r.identity || byId.has(r.identity)) continue;
+      if (r.identity === live.userId) continue;
+      byId.set(r.identity, {
+        id: r.identity,
+        name: r.name || "Member",
+        avatar_url: null,
+        role: r.role === "unknown" ? "viewer" : r.role,
+        username: null,
+      });
+    }
+
+    // Drop anyone who left in DB even if a stale LiveKit remote briefly remains.
+    for (const p of live.participants) {
+      if (
+        (p.status === "left" || p.status === "removed") &&
+        byId.has(p.user_id) &&
+        !livekit.remotes.some((r) => r.identity === p.user_id)
+      ) {
+        byId.delete(p.user_id);
+      }
+    }
+
+    if (!byId.size) return null;
+    return Array.from(byId.values());
   }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
 
   const analytics = data?.analytics;
@@ -1364,7 +1405,9 @@ export function HubLivePage({
       return;
     }
     setShareOpen(true);
-  }, [live.session?.id, showToast]);
+    updateDrawer({ leftPanel: "none", rightOpen: false });
+    setFocusMode(false);
+  }, [live.session?.id, showToast, updateDrawer]);
 
   const toggleFollowHost = useCallback(async () => {
     if (!hostUserId || hostUserId === live.userId) {
@@ -1415,7 +1458,8 @@ export function HubLivePage({
     return "Poor";
   }, [online, livekit.connectionState, connection, hasSession]);
 
-  const showLeftRail = !focusMode;
+  // Reference layout: stage + right contextual panel — hide left icon rail during Live.
+  const showLeftRail = !focusMode && !hasSession;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
   const showRight = !focusMode;
   const displayTitle =
@@ -1483,15 +1527,10 @@ export function HubLivePage({
     : null;
 
   const liveSettingsPanel = (
-    <div className="space-y-5">
-      <div>
-        <p className="mb-1 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-          Settings
-        </p>
-      </div>
-      <SettingsPanel
+    <SettingsPanel
       title={displayTitle}
       canEditTitle={canEditLiveTitle}
+      analytics={analytics}
       onSaveTitle={
         canEditLiveTitle
           ? async (next) => {
@@ -1545,21 +1584,17 @@ export function HubLivePage({
           }
         });
       }}
-    />
-      {isLiveHost || canStartLive ? (
-        <div className="space-y-2 px-1">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-neutral-400">
-            Live destinations
-          </p>
+      advancedSlot={
+        isLiveHost || canStartLive ? (
           <LiveDestinationsPanel
             dest={destinations}
             variant="settings"
             compact
             isLive={live.session?.status === "live"}
           />
-        </div>
-      ) : null}
-    </div>
+        ) : null
+      }
+    />
   );
 
   const showGuestJoin =
@@ -1610,8 +1645,8 @@ export function HubLivePage({
   return (
     <div
       className={cn(
-        "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col text-[#111827] motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        LIVE_PAGE_BG
+        "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        hasSession ? "bg-[#070B14] text-white" : "bg-[#F8FAFC] text-[#111827]"
       )}
     >
       {/* Status banners — offline / load errors / session errors */}
@@ -1682,11 +1717,13 @@ export function HubLivePage({
       {!focusMode && (
         <LiveExperienceHeader
           title={displayTitle}
-          immersive={immersive}
+          immersive={hasSession || immersive}
+          brandMobile={hasSession}
           follow={follow}
           onFollow={() => void toggleFollowHost()}
           onShare={openShareSheet}
-          onMore={() => toggleLeft("settings")}
+          onMore={() => setLiveNavOpen(true)}
+          onSettings={() => toggleLeft("settings")}
           onOpenChat={toggleChat}
           copied={copied}
           showFollow={Boolean(hostUserId && hostUserId !== live.userId && hasSession)}
@@ -1722,134 +1759,83 @@ export function HubLivePage({
       {/* Body — three columns: LIVE NOW | Stage | Chat */}
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {showLeftRail && (
-          <>
-            <LiveContextNav
-              leftPanel={drawer.leftPanel}
-              rightTab={drawer.rightTab}
-              rightOpen={drawer.rightOpen}
-              viewerCount={live.viewerCount || analytics?.viewers || 0}
-              onOverview={() => {
-                updateDrawer({ leftPanel: "none", rightOpen: false });
-                setLiveNavOpen(false);
-              }}
-              onOpenLeft={(panel) => {
-                toggleLeft(panel);
-                setLiveNavOpen(false);
-              }}
-              onToggleChat={() => {
-                toggleChat();
-                setLiveNavOpen(false);
-              }}
-              onShare={openShareSheet}
+          <LiveContextNav
+            leftPanel={drawer.leftPanel}
+            rightTab={drawer.rightTab}
+            rightOpen={drawer.rightOpen}
+            viewerCount={live.viewerCount || analytics?.viewers || 0}
+            onOverview={() => {
+              updateDrawer({ leftPanel: "none", rightOpen: false });
+              setLiveNavOpen(false);
+            }}
+            onOpenLeft={(panel) => {
+              toggleLeft(panel);
+              setLiveNavOpen(false);
+            }}
+            onToggleChat={() => {
+              toggleChat();
+              setLiveNavOpen(false);
+            }}
+            onShare={openShareSheet}
+          />
+        )}
+
+        {/* More menu — available on mobile/desktop during Live */}
+        {liveNavOpen && (
+          <div className="fixed inset-0 z-50">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/45"
+              aria-label="Close live menu"
+              onClick={() => setLiveNavOpen(false)}
             />
-            {liveNavOpen && (
-              <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-x-0 bottom-0 flex max-h-[min(72vh,560px)] flex-col rounded-t-[20px] bg-white shadow-2xl pb-[env(safe-area-inset-bottom)] sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[min(300px,88vw)] sm:rounded-none">
+              <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-200 sm:hidden" aria-hidden />
+              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
+                <p className="text-[15px] font-semibold text-neutral-900">More</p>
                 <button
                   type="button"
-                  className="absolute inset-0 bg-black/30"
-                  aria-label="Close live menu"
                   onClick={() => setLiveNavOpen(false)}
-                />
-                <div className="absolute inset-y-0 left-0 flex w-[min(280px,88vw)] flex-col bg-white shadow-2xl">
-                  <div className="flex items-center justify-end border-b border-neutral-100 px-2 py-1">
-                    <button
-                      type="button"
-                      onClick={() => setLiveNavOpen(false)}
-                      className={cn("rounded-lg p-2 text-neutral-400 hover:text-neutral-700", FOCUS_RING)}
-                      aria-label="Close"
-                    >
-                      <X className="h-4 w-4" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    <LiveContextNav
-                      variant="drawer"
-                      leftPanel={drawer.leftPanel}
-                      rightTab={drawer.rightTab}
-                      rightOpen={drawer.rightOpen}
-                      viewerCount={live.viewerCount || analytics?.viewers || 0}
-                      onOverview={() => {
-                        updateDrawer({ leftPanel: "none", rightOpen: false });
-                        setLiveNavOpen(false);
-                      }}
-                      onOpenLeft={(panel) => {
-                        toggleLeft(panel);
-                        setLiveNavOpen(false);
-                      }}
-                      onToggleChat={() => {
-                        toggleChat();
-                        setLiveNavOpen(false);
-                      }}
-                      onShare={openShareSheet}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Left drawer — flex column on desktop; overlay on mobile only */}
-        {!focusMode && drawer.leftPanel !== "none" && (
-          <>
-            <aside
-              className={cn(
-                "hidden w-[280px] shrink-0 flex-col border-r border-neutral-100 bg-white md:flex",
-                "animate-in fade-in slide-in-from-left-1 duration-[180ms]"
-              )}
-            >
-              <DrawerHeader
-                title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
-                onClose={() => updateDrawer({ leftPanel: "none" })}
-              />
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
-                {drawer.leftPanel === "people" && (
-                  <PeoplePanel {...peoplePanelProps} ui={speakerUi} />
-                )}
-                {drawer.leftPanel === "rooms" && (
-                  <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
-                )}
-                {drawer.leftPanel === "layout" && (
-                  <LayoutPanel layout={layout} onChange={setLayout} />
-                )}
-                {drawer.leftPanel === "settings" && liveSettingsPanel}
-              </div>
-            </aside>
-
-            <div className="fixed inset-0 z-50 md:hidden">
-              <button
-                type="button"
-                className="absolute inset-0 bg-black/25"
-                aria-label="Close"
-                onClick={() => updateDrawer({ leftPanel: "none" })}
-              />
-              <div className="absolute inset-y-0 left-0 flex w-[min(300px,88vw)] flex-col bg-white shadow-2xl animate-in fade-in slide-in-from-left-2 duration-200">
-                <DrawerHeader
-                  title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
-                  onClose={() => updateDrawer({ leftPanel: "none" })}
-                />
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
-                  {drawer.leftPanel === "people" && (
-                  <PeoplePanel {...peoplePanelProps} ui={speakerUi} />
-                )}
-                  {drawer.leftPanel === "rooms" && (
-                    <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
+                  className={cn(
+                    "rounded-lg p-2 text-neutral-400 hover:text-neutral-700",
+                    FOCUS_RING
                   )}
-                  {drawer.leftPanel === "layout" && (
-                    <LayoutPanel layout={layout} onChange={setLayout} />
-                  )}
-                  {drawer.leftPanel === "settings" && liveSettingsPanel}
-                </div>
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <LiveContextNav
+                  variant="drawer"
+                  leftPanel={drawer.leftPanel}
+                  rightTab={drawer.rightTab}
+                  rightOpen={drawer.rightOpen}
+                  viewerCount={live.viewerCount || analytics?.viewers || 0}
+                  onOverview={() => {
+                    updateDrawer({ leftPanel: "none", rightOpen: false });
+                    setLiveNavOpen(false);
+                  }}
+                  onOpenLeft={(panel) => {
+                    toggleLeft(panel);
+                    setLiveNavOpen(false);
+                  }}
+                  onToggleChat={() => {
+                    toggleChat();
+                    setLiveNavOpen(false);
+                  }}
+                  onShare={openShareSheet}
+                />
               </div>
             </div>
-          </>
+          </div>
         )}
 
-        {/* Stage — host-dominant Meet/Zoom canvas + real participant gallery */}
+        {/* Stage — cinematic dark Live canvas */}
         <main
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden",
-            hasSession ? "bg-[#111827]" : "bg-[#f7f7f8]"
+            hasSession ? "bg-[#070B14]" : "bg-[#f7f7f8]"
           )}
         >
           <div
@@ -1858,7 +1844,7 @@ export function HubLivePage({
               immersive
                 ? "overflow-hidden p-0"
                 : hasSession
-                  ? "gap-3 overflow-y-auto px-3 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 sm:pb-4"
+                  ? "gap-3 overflow-y-auto px-3 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 sm:pb-5 lg:pb-4"
                   : "overflow-y-auto px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
             )}
           >
@@ -1866,17 +1852,24 @@ export function HubLivePage({
               role="presentation"
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
-                "relative w-full cursor-default overflow-hidden border border-[#E5E7EB] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]",
+                "relative w-full cursor-default overflow-hidden",
                 immersive
                   ? "min-h-0 flex-1 rounded-none border-0"
                   : hasSession
-                    ? "aspect-video min-h-0 shrink-0 rounded-[20px] sm:aspect-auto sm:flex-1"
-                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none sm:rounded-[20px]",
+                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-[20px] border border-white/10 bg-[#0B1220] shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:aspect-video sm:flex-1"
+                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none border border-[#E5E7EB] bg-white sm:rounded-[20px]",
                 activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]" />
+              <div
+                className={cn(
+                  "absolute inset-0",
+                  hasSession
+                    ? "bg-[radial-gradient(ellipse_at_50%_38%,#152238_0%,#0B1220_55%,#05080F_100%)]"
+                    : "bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]"
+                )}
+              />
               <StageMediaPreview
                 stream={stageStream}
                 cover={
@@ -1886,14 +1879,14 @@ export function HubLivePage({
               />
               {media.sharing ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[3] flex justify-center px-3 sm:bottom-24">
-                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white/95 px-3 py-1.5 text-[12px] font-medium text-[#111827] shadow-lg backdrop-blur-md">
+                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md">
                     <span>You&apos;re sharing your screen</span>
                     <button
                       type="button"
                       onClick={stopShare}
                       className={cn(
                         "rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
-                        FOCUS_RING
+                        FOCUS_RING_DARK
                       )}
                     >
                       Stop sharing
@@ -1910,23 +1903,6 @@ export function HubLivePage({
                 <div className="relative z-[2] h-full w-full">
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-3">
                     <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                        LIVE
-                      </span>
-                      <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#111827] shadow-sm backdrop-blur-md">
-                        {watchingCountLabel === 1
-                          ? "1 watching"
-                          : `${formatCount(watchingCountLabel)} watching`}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => toggleLeft("people")}
-                        className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#111827] shadow-sm backdrop-blur-md hover:bg-white"
-                        aria-label="Open participants"
-                      >
-                        People
-                      </button>
                       {recordingActive && (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-1 text-[10px] font-semibold text-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-white" />
@@ -1935,66 +1911,17 @@ export function HubLivePage({
                       )}
                     </div>
                     <div className="pointer-events-auto flex items-center gap-1.5">
-                      <span className="rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#64748B] shadow-sm backdrop-blur-md">
-                        {formatElapsed(elapsed)}
-                      </span>
-                      <span
-                        className={cn(
-                          "rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-md",
-                          connectionLabel === "Poor" || connectionLabel === "Disconnected"
-                            ? "text-red-600"
-                            : connectionLabel === "Reconnecting"
-                              ? "text-amber-600"
-                              : "text-emerald-600"
-                        )}
-                        aria-label={`Connection ${connectionLabel}`}
-                      >
-                        {connectionLabel}
-                      </span>
                       <button
                         type="button"
                         onClick={() => setFocusMode(true)}
                         className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#64748B] shadow-sm backdrop-blur-md hover:bg-white hover:text-[#111827]",
-                          FOCUS_RING
+                          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-black/35 text-white/75 shadow-sm backdrop-blur-md hover:bg-black/50 hover:text-white",
+                          FOCUS_RING_DARK
                         )}
                         aria-label="Enter fullscreen"
                       >
                         <Fullscreen className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => toggleLeft("settings")}
-                        className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#64748B] shadow-sm backdrop-blur-md hover:bg-white hover:text-[#111827]",
-                          FOCUS_RING
-                        )}
-                        aria-label="Open settings"
-                      >
-                        <Settings className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Host identity badge — always dominant stage */}
-                  <div className="pointer-events-none absolute left-3 top-14 z-10 sm:top-16">
-                    <div className="inline-flex items-start gap-2 rounded-xl border border-[#E5E7EB] bg-white/95 px-2.5 py-2 shadow-sm backdrop-blur-md">
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">
-                        <Crown className="h-3.5 w-3.5" aria-hidden />
-                        Host
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-[#111827]">{stageHostName}</p>
-                        <p className="text-[10px] text-[#64748B]">
-                          {media.camOn || hostRemote?.camOn
-                            ? micOn || hostRemote?.micOn
-                              ? "On stage"
-                              : "Muted"
-                            : micOn || hostRemote?.micOn
-                              ? "Audio active"
-                              : "Camera off"}
-                        </p>
-                      </div>
                     </div>
                   </div>
 
@@ -2002,22 +1929,22 @@ export function HubLivePage({
                     <>
                       {livekit.connecting ? (
                         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center">
-                          <p className="inline-flex items-center gap-2 text-[13px] text-[#64748B]">
+                          <p className="inline-flex items-center gap-2 text-[13px] text-white/55">
                             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                             Connecting…
                           </p>
                         </div>
                       ) : livekit.error ? (
                         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center">
-                          <div className="max-w-sm rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
+                          <div className="max-w-sm rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
                             <p className="font-medium">Connection issue</p>
-                            <p className="mt-1 text-red-600/90">{livekit.error}</p>
+                            <p className="mt-1 text-red-200/90">{livekit.error}</p>
                             <button
                               type="button"
                               onClick={() => void livekit.reconnect()}
                               className={cn(
-                                "mt-2 rounded-full bg-[#111827] px-3 py-1 font-medium text-white hover:bg-neutral-800",
-                                FOCUS_RING
+                                "mt-2 rounded-full bg-white px-3 py-1 font-medium text-[#0B1220] hover:bg-white/90",
+                                FOCUS_RING_DARK
                               )}
                             >
                               Reconnect
@@ -2032,6 +1959,7 @@ export function HubLivePage({
                           micOff={hostRemote ? !hostRemote.micOn : !micOn}
                           screenSharing={Boolean(hostRemote?.sharing || media.sharing)}
                           reconnecting={connectionLabel === "Reconnecting"}
+                          showHostBadge={false}
                         />
                       )}
                     </>
@@ -2042,9 +1970,9 @@ export function HubLivePage({
                       type="button"
                       onClick={() => setFocusMode(false)}
                       className={cn(
-                        "absolute right-4 top-4 z-20 rounded-full border border-[#E5E7EB] bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#111827] shadow-sm backdrop-blur-md hover:bg-white",
+                        "absolute right-4 top-4 z-20 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm backdrop-blur-md hover:bg-black/70",
                         MOTION_COLORS,
-                        FOCUS_RING
+                        FOCUS_RING_DARK
                       )}
                     >
                       Exit Focus
@@ -2106,6 +2034,7 @@ export function HubLivePage({
                   sharing={media.sharing}
                   focusMode={focusMode}
                   canPublish={canPublishAv(live.myRole)}
+                  dark
                   onMic={() => void toggleMic()}
                   onCam={() => void toggleCam()}
                   onShare={() => void startShare()}
@@ -2113,10 +2042,16 @@ export function HubLivePage({
                   onPresent={() => setActivity((a) => (a === "present" ? "live" : "present"))}
                   onRecord={() => void toggleRecord()}
                   onInvite={openShareSheet}
+                  inviteOpen={shareOpen}
                   onChat={toggleChat}
                   chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
                   onPeople={() => toggleLeft("people")}
+                  peopleOpen={drawer.leftPanel === "people"}
                   participantCount={participantCountLabel}
+                  onStreamTo={openStreamTo}
+                  streamToOpen={drawer.leftPanel === "settings"}
+                  onMore={() => setLiveNavOpen(true)}
+                  moreOpen={liveNavOpen}
                   onReact={() => {
                     if (live.session?.id) void live.react("❤️");
                   }}
@@ -2131,13 +2066,64 @@ export function HubLivePage({
           </div>
         </main>
 
-        {/* Right workspace — Live Chat column */}
+        {/* Right contextual panel — Settings / Participants / Rooms / Layout */}
+        {!focusMode && drawer.leftPanel !== "none" && (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-30 bg-black/45 lg:hidden"
+              aria-label="Close panel"
+              onClick={() => updateDrawer({ leftPanel: "none" })}
+            />
+            <aside
+              className={cn(
+                "flex w-full shrink-0 flex-col bg-white",
+                "fixed inset-x-0 bottom-0 z-40 max-h-[min(85vh,720px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.25)]",
+                "pb-[env(safe-area-inset-bottom)]",
+                "animate-in fade-in slide-in-from-bottom-2 duration-200",
+                "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:animate-in lg:slide-in-from-right-2 lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none"
+              )}
+            >
+              <div
+                className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-200 lg:hidden"
+                aria-hidden
+              />
+              <DrawerHeader
+                title={
+                  drawer.leftPanel === "people"
+                    ? "Participants"
+                    : drawer.leftPanel === "settings"
+                      ? "Settings"
+                      : LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""
+                }
+                count={
+                  drawer.leftPanel === "people" ? participantCountLabel : undefined
+                }
+                onClose={() => updateDrawer({ leftPanel: "none" })}
+              />
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
+                {drawer.leftPanel === "people" && (
+                  <PeoplePanel {...peoplePanelProps} ui={speakerUi} />
+                )}
+                {drawer.leftPanel === "rooms" && (
+                  <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
+                )}
+                {drawer.leftPanel === "layout" && (
+                  <LayoutPanel layout={layout} onChange={setLayout} />
+                )}
+                {drawer.leftPanel === "settings" && liveSettingsPanel}
+              </div>
+            </aside>
+          </>
+        )}
+
+        {/* Right workspace — Live Chat column / sheet */}
         {showRight && (
           <>
             {drawer.rightOpen && (
               <button
                 type="button"
-                className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+                className="fixed inset-0 z-30 bg-black/45 lg:hidden"
                 aria-label="Close live chat"
                 onClick={() => updateDrawer({ rightOpen: false })}
               />
@@ -2145,7 +2131,7 @@ export function HubLivePage({
           <aside
             className={cn(
               "flex w-full shrink-0 flex-col bg-white",
-              "fixed inset-x-0 bottom-0 z-40 max-h-[min(72vh,620px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
+              "fixed inset-x-0 bottom-0 z-40 max-h-[min(80vh,680px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
               "pb-[env(safe-area-inset-bottom)]",
               "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none",
               "transition-[transform,width,opacity] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
@@ -2473,9 +2459,15 @@ export function HubLivePage({
         micOn={micOn}
         camOn={camOn}
         sharing={media.sharing}
+        recording={recordingActive}
         audioAccess={media.audioAccess}
         videoAccess={media.videoAccess}
         permissionDenied={media.permissionDenied}
+        participantCount={participantCountLabel}
+        chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
+        inviteOpen={shareOpen}
+        peopleOpen={drawer.leftPanel === "people"}
+        streamToOpen={drawer.leftPanel === "settings"}
         screenShareSupported={screenShareCapability.canAttempt}
         screenShareReason={screenShareCapability.reason}
         onMic={() => void toggleMic()}
@@ -2483,6 +2475,10 @@ export function HubLivePage({
         onShare={() => void startShare()}
         onStopShare={stopShare}
         onChat={toggleChat}
+        onInvite={openShareSheet}
+        onPeople={() => toggleLeft("people")}
+        onRecord={() => void toggleRecord()}
+        onStreamTo={openStreamTo}
         onShareLink={openShareSheet}
         onMore={() => setLiveNavOpen(true)}
         onEndLive={() => setConfirmDialog("end")}

@@ -6,15 +6,13 @@ import {
   ArrowLeft,
   Check,
   Loader2,
-  MessageSquare,
   MoreHorizontal,
   Pencil,
-  Share2,
+  Settings,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCount } from "./studio-utils";
-import { FOCUS_RING, MOTION_COLORS } from "./studio-ui";
+import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
 
 export function LiveExperienceHeader({
   title,
@@ -24,6 +22,7 @@ export function LiveExperienceHeader({
   onShare,
   onMore,
   onOpenChat,
+  onSettings,
   copied,
   showFollow = true,
   showGoLive,
@@ -35,6 +34,7 @@ export function LiveExperienceHeader({
   liveActive = false,
   watchingCount,
   elapsedLabel,
+  brandMobile = false,
 }: {
   title: string;
   immersive?: boolean;
@@ -49,6 +49,7 @@ export function LiveExperienceHeader({
   canEditTitle?: boolean;
   onSaveTitle?: (next: string) => Promise<void> | void;
   onOpenChat?: () => void;
+  onSettings?: () => void;
   backHref?: string;
   /** When set, back uses this handler instead of navigation link (e.g. confirm before leaving live). */
   onBack?: () => void;
@@ -56,6 +57,8 @@ export function LiveExperienceHeader({
   /** Authoritative watching / viewer count — not participant count. */
   watchingCount?: number;
   elapsedLabel?: string;
+  /** Mobile reference: show Jimvio brand row above title. */
+  brandMobile?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -65,6 +68,15 @@ export function LiveExperienceHeader({
   useEffect(() => {
     if (!editing) setDraft(title);
   }, [title, editing]);
+
+  void onShare;
+  void onOpenChat;
+  void copied;
+  void watchingCount;
+  void elapsedLabel;
+  void showFollow;
+  void onFollow;
+  void follow;
 
   const save = async () => {
     const next = draft.trim();
@@ -91,46 +103,80 @@ export function LiveExperienceHeader({
     }
   };
 
+  const dark = immersive || liveActive;
+  const focus = dark ? FOCUS_RING_DARK : FOCUS_RING;
+
+  const backBtn = onBack ? (
+    <button
+      type="button"
+      onClick={onBack}
+      className={cn(
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+        MOTION_COLORS,
+        dark
+          ? "text-white/70 hover:bg-white/10 hover:text-white"
+          : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+        focus
+      )}
+      aria-label="Back"
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+    </button>
+  ) : (
+    <Link
+      href={backHref}
+      className={cn(
+        "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+        MOTION_COLORS,
+        dark
+          ? "text-white/70 hover:bg-white/10 hover:text-white"
+          : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+        focus
+      )}
+      aria-label="Back"
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+    </Link>
+  );
+
   return (
     <header
       className={cn(
-        "shrink-0 border-b border-transparent px-3 py-2 sm:px-4 sm:py-2.5",
-        immersive ? "bg-black/40 text-white backdrop-blur-md" : "border-neutral-200/80 bg-white"
+        "shrink-0 px-3 py-2.5 sm:px-4",
+        dark
+          ? "border-b border-white/5 bg-[#070B14] text-white"
+          : "border-b border-neutral-200/80 bg-white"
       )}
     >
-      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        {onBack ? (
+      {brandMobile && liveActive ? (
+        <div className="mb-2 flex items-center justify-between lg:hidden">
+          <div className="flex min-w-0 items-center gap-2">
+            {backBtn}
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#FF5A1F] text-[13px] font-black text-white">
+              J
+            </span>
+            <span className="text-[15px] font-semibold tracking-[-0.02em] text-white">
+              Jimvio.
+            </span>
+          </div>
           <button
             type="button"
-            onClick={onBack}
+            onClick={onMore}
+            title="More"
+            aria-label="More options"
             className={cn(
-              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              "inline-flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
               MOTION_COLORS,
-              immersive
-                ? "text-white/70 hover:bg-white/10 hover:text-white"
-                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
-              FOCUS_RING
+              FOCUS_RING_DARK
             )}
-            aria-label="Back"
           >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
           </button>
-        ) : (
-          <Link
-            href={backHref}
-            className={cn(
-              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-              MOTION_COLORS,
-              immersive
-                ? "text-white/70 hover:bg-white/10 hover:text-white"
-                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
-              FOCUS_RING
-            )}
-            aria-label="Back"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-          </Link>
-        )}
+        </div>
+      ) : null}
+
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        {!brandMobile || !liveActive ? backBtn : null}
 
         {editing ? (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -150,10 +196,10 @@ export function LiveExperienceHeader({
               aria-label="Live title"
               className={cn(
                 "min-w-0 flex-1 rounded-lg border px-2.5 py-1.5 text-[14px] font-semibold tracking-[-0.02em] outline-none",
-                immersive
+                dark
                   ? "border-white/20 bg-white/10 text-white placeholder:text-white/40"
                   : "border-neutral-200 bg-white text-[#111827]",
-                FOCUS_RING
+                focus
               )}
               placeholder="Live title"
             />
@@ -164,7 +210,7 @@ export function LiveExperienceHeader({
               aria-label="Save title"
               className={cn(
                 "inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#FF5A1F] text-white disabled:opacity-60",
-                FOCUS_RING
+                focus
               )}
             >
               {saving ? (
@@ -183,19 +229,19 @@ export function LiveExperienceHeader({
               aria-label="Cancel title edit"
               className={cn(
                 "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                immersive ? "text-white/70 hover:bg-white/10" : "text-neutral-500 hover:bg-neutral-50",
-                FOCUS_RING
+                dark ? "text-white/70 hover:bg-white/10" : "text-neutral-500 hover:bg-neutral-50",
+                focus
               )}
             >
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
         ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <h1
               className={cn(
                 "min-w-0 truncate text-[15px] font-bold tracking-[-0.02em] sm:text-[17px]",
-                immersive ? "text-white" : "text-[#111827]"
+                dark ? "text-white" : "text-[#111827]"
               )}
             >
               {title}
@@ -209,8 +255,8 @@ export function LiveExperienceHeader({
                 className={cn(
                   "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
                   MOTION_COLORS,
-                  FOCUS_RING,
-                  immersive
+                  focus,
+                  dark
                     ? "text-white/50 hover:bg-white/10 hover:text-white"
                     : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
                 )}
@@ -219,33 +265,9 @@ export function LiveExperienceHeader({
               </button>
             ) : null}
             {liveActive ? (
-              <span className="ml-1 hidden items-center gap-2 sm:inline-flex">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-[0.04em] text-white">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                  LIVE
-                </span>
-                {typeof watchingCount === "number" ? (
-                  <span
-                    className={cn(
-                      "text-[12px] font-medium tabular-nums",
-                      immersive ? "text-white/70" : "text-neutral-500"
-                    )}
-                  >
-                    {watchingCount === 1
-                      ? "1 watching"
-                      : `${formatCount(watchingCount)} watching`}
-                  </span>
-                ) : null}
-                {elapsedLabel ? (
-                  <span
-                    className={cn(
-                      "text-[12px] font-medium tabular-nums",
-                      immersive ? "text-white/55" : "text-neutral-400"
-                    )}
-                  >
-                    {elapsedLabel}
-                  </span>
-                ) : null}
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                LIVE
               </span>
             ) : null}
           </div>
@@ -258,80 +280,29 @@ export function LiveExperienceHeader({
               onClick={onGoLive}
               className={cn(
                 "inline-flex h-9 items-center rounded-full bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white hover:bg-[#e54e1a]",
-                FOCUS_RING
+                focus
               )}
             >
               Go Live
             </button>
           ) : null}
 
-          {showFollow ? (
+          {onSettings ? (
             <button
               type="button"
-              onClick={onFollow}
-              disabled={follow.busy}
+              onClick={onSettings}
+              title="Settings"
+              aria-label="Open settings"
               className={cn(
-                "inline-flex h-9 min-w-[88px] items-center justify-center gap-1 rounded-full border px-3.5 text-[12px] font-semibold",
+                "hidden h-9 w-9 items-center justify-center rounded-full lg:inline-flex",
                 MOTION_COLORS,
-                FOCUS_RING,
-                follow.following
-                  ? immersive
-                    ? "border-white/30 bg-white/10 text-white"
-                    : "border-neutral-200 bg-neutral-50 text-neutral-700"
-                  : immersive
-                    ? "border-white/25 bg-white/5 text-white hover:bg-white/10"
-                    : "border-neutral-200 bg-white text-[#111827] hover:bg-neutral-50"
-              )}
-            >
-              {follow.busy ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-              ) : follow.following ? (
-                <>
-                  <Check className="h-3.5 w-3.5" aria-hidden />
-                  Following
-                </>
-              ) : (
-                "Follow"
-              )}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={onShare}
-            title="Share"
-            aria-label="Share live"
-            className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-full",
-              MOTION_COLORS,
-              FOCUS_RING,
-              immersive
-                ? "text-white/60 hover:bg-white/10 hover:text-white"
-                : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
-            )}
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-emerald-500" aria-hidden />
-            ) : (
-              <Share2 className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-            )}
-          </button>
-
-          {onOpenChat ? (
-            <button
-              type="button"
-              onClick={onOpenChat}
-              aria-label="Open live chat"
-              className={cn(
-                "inline-flex h-9 w-9 items-center justify-center rounded-full lg:hidden",
-                MOTION_COLORS,
-                FOCUS_RING,
-                immersive
-                  ? "text-white/60 hover:bg-white/10 hover:text-white"
+                focus,
+                dark
+                  ? "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
                   : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
               )}
             >
-              <MessageSquare className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+              <Settings className="h-4 w-4" strokeWidth={1.6} aria-hidden />
             </button>
           ) : null}
 
@@ -342,9 +313,10 @@ export function LiveExperienceHeader({
             aria-label="More options"
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-full",
+              brandMobile && liveActive && "lg:inline-flex hidden",
               MOTION_COLORS,
-              FOCUS_RING,
-              immersive
+              focus,
+              dark
                 ? "text-white/60 hover:bg-white/10 hover:text-white"
                 : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
             )}
