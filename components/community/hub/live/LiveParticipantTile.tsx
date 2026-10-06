@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Mic, MicOff, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
-import { FOCUS_RING_DARK, LIVE_STAGE_FALLBACK_BG } from "./studio-ui";
+import { FOCUS_RING_DARK } from "./studio-ui";
 
 /**
  * Compact circular participant tile.
@@ -55,20 +55,19 @@ export function LiveParticipantTile({
       aria-label={`${name}${isHost ? ", Host" : ""}${!micOn ? ", muted" : ""}${!camOn ? ", camera off" : ""}${speaking ? ", speaking" : ""}`}
       aria-current={selected || speaking ? "true" : undefined}
       className={cn(
-        "group flex w-[88px] flex-col items-center gap-1.5 text-center sm:w-[104px]",
+        "group flex w-[88px] flex-col items-center gap-1.5 bg-transparent text-center sm:w-[104px]",
         FOCUS_RING_DARK,
-        "rounded-2xl p-1"
+        "rounded-full p-0"
       )}
     >
       <span
         className={cn(
-          "relative shrink-0 overflow-hidden rounded-full aspect-square",
+          "relative isolate overflow-hidden rounded-full aspect-square bg-transparent",
           sizeClass,
-          LIVE_STAGE_FALLBACK_BG,
-          "ring-2 ring-white/20 shadow-[0_8px_24px_rgba(0,0,0,0.28)]",
-          (speaking || selected) && "ring-[#FF5A1F] ring-offset-2 ring-offset-[#0B1220]",
-          isHost && "ring-[#FF5A1F]/80"
+          (speaking || selected) && "ring-2 ring-[#FF5A1F]",
+          isHost && !speaking && !selected && "ring-2 ring-[#FF5A1F]/70"
         )}
+        style={{ borderRadius: 9999 }}
       >
         {showVideo ? (
           <video
@@ -85,7 +84,7 @@ export function LiveParticipantTile({
               name={name}
               src={avatarUrl}
               size={compact ? 56 : 80}
-              className="!ring-0 [&>img]:!ring-0 [&>div]:!ring-0"
+              className="!bg-transparent !ring-0 !shadow-none"
             />
           </span>
         )}

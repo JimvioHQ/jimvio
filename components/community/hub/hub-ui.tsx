@@ -105,23 +105,34 @@ export function HubAvatar({
   return (
     <div
       className={cn(
-        "relative shrink-0 overflow-hidden rounded-full aspect-square",
+        "relative isolate shrink-0 overflow-hidden rounded-full aspect-square bg-transparent",
         className
       )}
-      style={{ width: size, height: size }}
+      style={{ width: size, height: size, borderRadius: 9999 }}
     >
       {showImage ? (
         <img
           src={src!}
           alt={name}
-          className="h-full w-full rounded-full object-cover aspect-square ring-2 ring-white"
-          style={{ width: size, height: size }}
+          className="block h-full w-full rounded-full object-cover"
+          style={{
+            width: "100%",
+            height: "100%",
+            aspectRatio: "1 / 1",
+            borderRadius: 9999,
+            objectFit: "cover",
+          }}
           onError={() => setFailed(true)}
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-full aspect-square bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-[11px] font-bold text-white"
-          style={{ width: size, height: size }}
+          className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-[11px] font-bold text-white"
+          style={{
+            width: "100%",
+            height: "100%",
+            aspectRatio: "1 / 1",
+            borderRadius: 9999,
+          }}
         >
           {initials || "?"}
         </div>

@@ -89,8 +89,7 @@ export function readDrawerState(): DrawerState {
       parsed.rightWidth <= 560
         ? parsed.rightWidth
         : DEFAULT_DRAWER.rightWidth;
-    const rightOpen =
-      typeof parsed.rightOpen === "boolean" ? parsed.rightOpen : DEFAULT_DRAWER.rightOpen;
+    const rightOpen = false;
     const chatScroll =
       typeof parsed.chatScroll === "number" && Number.isFinite(parsed.chatScroll)
         ? Math.max(0, parsed.chatScroll)

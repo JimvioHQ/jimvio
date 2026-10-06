@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canStartCloudEgress } from "@/lib/live/roles";
+import { canRecord } from "@/lib/live/roles";
+import { parseParticipantPermissions } from "@/lib/live/participant-permissions";
 import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
 import { getParticipant, getSession, canViewLiveSession, listSessionRecordings } from "@/services/live/session-service";
@@ -11,8 +12,8 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/live/sessions/[id]/recording
  * Body: { action: "start" | "stop" }
- * Host/cohost only — LiveKit Egress room composition (survives browser close).
- * Local MediaRecorder for Everyone/Guest is handled client-side when session allows.
+ * Any joined participant may start/stop LiveKit room-composite Egress when
+ * session recording permission allows it. Host/co-host always may.
  */
 export async function POST(
   req: Request,
@@ -52,7 +53,10 @@ export async function POST(
 
   const me = await getParticipant(sessionId, user.id);
   const role = me?.role ?? (session.host_id === user.id ? "host" : "viewer");
-  if (!canStartCloudEgress(role)) {
+  const perms = parseParticipantPermissions(
+    (session.settings ?? {}) as Record<string, unknown>
+  );
+  if (!canRecord(role, { allowParticipantRecording: perms.allowRecording })) {
     liveStudioLog("warn", "security_denied", {
       action: "recording_egress",
       sessionId,
@@ -60,7 +64,7 @@ export async function POST(
       role,
     });
     return NextResponse.json(
-      { error: "Cloud recording (Egress) is available to host/co-host. Use local Record from the dock." },
+      { error: "Recording is disabled by the host." },
       { status: 403 }
     );
   }
@@ -133,7 +137,9 @@ export async function GET(
   const ready = recordings.find((r) => r.status === "ready" && r.cloudinary_url);
   return NextResponse.json({
     recordings,
-    recordingStatus: recordings.some((r) => r.status === "recording")
+    recordingStatus: recordings.some((r) =>
+      r.status === "recording" || r.status === "active" || r.status === "starting"
+    )
       ? "recording"
       : ready
         ? "ready"

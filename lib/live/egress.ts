@@ -68,13 +68,29 @@ export async function startSessionEgress(input: {
   sessionId: string;
   communityId: string | null;
   userId: string;
-}): Promise<{ recordingId: string; egressId: string } | { error: string; status: number }> {
+}): Promise<{ recordingId: string; egressId: string; alreadyActive?: boolean } | { error: string; status: number }> {
   const client = createEgressClient();
   if (!client) {
     return { error: "LiveKit Egress is not configured", status: 503 };
   }
 
   const db = createServiceRoleClient();
+  const { data: existing } = await db
+    .from("live_recordings")
+    .select("id, egress_id")
+    .eq("session_id", input.sessionId)
+    .in("status", ["starting", "active"])
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id && existing.egress_id) {
+    return {
+      recordingId: existing.id as string,
+      egressId: existing.egress_id as string,
+      alreadyActive: true,
+    };
+  }
+
   const { data: recording, error: insertErr } = await db
     .from("live_recordings")
     .insert({

@@ -58,7 +58,7 @@ function pickVideoMime(): string {
 export class LiveMediaPlane {
   private camStream: MediaStream | null = null;
   private shareStream: MediaStream | null = null;
-  private micEnabled = true;
+  private micEnabled = false;
   private camEnabled = false;
   private recordingState: RecordingState = "idle";
   private recorder: MediaRecorder | null = null;

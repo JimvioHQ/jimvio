@@ -10,16 +10,18 @@ describe("recording roles", () => {
     assert.equal(canRecord("host"), true);
   });
 
-  it("honors host session deny for participants", () => {
+  it("honors host session deny for participants but not host", () => {
     assert.equal(canRecord("viewer", { allowParticipantRecording: false }), false);
     assert.equal(canRecord("speaker", { allowParticipantRecording: false }), false);
-    assert.equal(canRecord("host", { allowParticipantRecording: false }), false);
+    assert.equal(canRecord("host", { allowParticipantRecording: false }), true);
+    assert.equal(canStartCloudEgress("speaker", { allowParticipantRecording: true }), true);
+    assert.equal(canStartCloudEgress("viewer", { allowParticipantRecording: false }), false);
   });
 
-  it("keeps cloud egress host/cohost only", () => {
+  it("uses room composite egress for any allowed recorder", () => {
     assert.equal(canStartCloudEgress("host"), true);
     assert.equal(canStartCloudEgress("cohost"), true);
-    assert.equal(canStartCloudEgress("speaker"), false);
-    assert.equal(canStartCloudEgress("viewer"), false);
+    assert.equal(canStartCloudEgress("speaker"), true);
+    assert.equal(canStartCloudEgress("viewer"), true);
   });
 });

@@ -20,9 +20,10 @@ describe("Live settings closed by default", () => {
       join(root, "components/community/hub/hub-live-page.tsx"),
       "utf8"
     );
-    assert.match(types, /DRAWER_STATE_VERSION = 5/);
+    assert.match(types, /DRAWER_STATE_VERSION = 6/);
     assert.match(types, /leftPanel: "none"/);
     assert.match(utils, /leftPanelRaw === "settings" \? "none"/);
+    assert.match(utils, /const rightOpen = false/);
     assert.match(page, /rightOpen: true,\s*rightTab: "chat"/);
     assert.doesNotMatch(
       page,

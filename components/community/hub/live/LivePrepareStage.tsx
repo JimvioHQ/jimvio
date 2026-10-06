@@ -64,22 +64,11 @@ export function LivePrepareStage({
   const camReady = Boolean(
     camOn && previewStream?.getVideoTracks().some((t) => t.readyState === "live")
   );
-  const micReady = Boolean(micOn);
   const blocked =
     audioAccess === "denied" ||
     videoAccess === "denied" ||
     permissionDenied?.audio ||
     permissionDenied?.video;
-  const needsPermission =
-    !permissionRequested ||
-    audioAccess === "idle" ||
-    videoAccess === "idle" ||
-    (!camReady &&
-      !micReady &&
-      !blocked &&
-      audioAccess !== "granted" &&
-      videoAccess !== "granted");
-
   const showRecovery =
     permissionRequested &&
     (blocked ||
@@ -95,48 +84,45 @@ export function LivePrepareStage({
   const micBlocked = audioAccess === "denied" || permissionDenied?.audio;
   const displayName = hostName?.trim() || "You";
 
-  function handleStreamDestinations() {
-    if (needsPermission && onEnableMedia && !showRecovery) {
-      onEnableMedia();
-    }
-    onStreamDestinations?.();
-  }
-
   return (
-    <div className="relative flex h-full min-h-[min(72vh,680px)] w-full flex-col">
-      {/* Immersive stage canvas — no white card wrapper */}
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-4 py-8 sm:px-8">
+    <div className="relative flex h-full min-h-[min(72vh,680px)] w-full flex-col bg-transparent">
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center bg-transparent px-4 py-8 sm:px-8">
         {camReady && previewStream ? (
-          <div className="absolute inset-0 overflow-hidden">
-            <video
-              autoPlay
-              muted
-              playsInline
-              ref={(el) => {
-                if (!el) return;
-                if (el.srcObject !== previewStream) el.srcObject = previewStream;
-                void el.play().catch(() => undefined);
-              }}
-              className="h-full w-full object-cover"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+          <div className="flex flex-col items-center">
+            <div
+              className="relative overflow-hidden rounded-full"
+              style={{ width: 168, height: 168, borderRadius: 9999 }}
+            >
+              <video
+                autoPlay
+                muted
+                playsInline
+                ref={(el) => {
+                  if (!el) return;
+                  if (el.srcObject !== previewStream) el.srcObject = previewStream;
+                  void el.play().catch(() => undefined);
+                }}
+                className="h-full w-full rounded-full object-cover"
+                style={{ borderRadius: 9999, objectFit: "cover" }}
+              />
+            </div>
+            <p className="mt-4 max-w-[280px] truncate text-[20px] font-semibold tracking-[-0.03em] text-[#111827]">
+              {displayName}
+            </p>
+            <p className="mt-1.5 text-[13px] font-medium text-[#64748B]">Camera on</p>
           </div>
         ) : (
-          <div className="relative z-[1] flex flex-col items-center text-center">
-            <div className="relative mb-5">
-              <div
-                className="absolute -inset-6 rounded-full bg-[radial-gradient(circle,rgba(255,90,31,0.22)_0%,transparent_68%)]"
-                aria-hidden
-              />
+          <div className="relative z-[1] flex flex-col items-center bg-transparent text-center">
+            <div
+              className="relative mb-5 overflow-hidden rounded-full bg-transparent"
+              style={{ width: 148, height: 148, borderRadius: 9999 }}
+            >
               <HubAvatar
                 name={displayName}
                 src={hostAvatarUrl}
                 size={148}
-                className="relative !ring-0 shadow-[0_12px_40px_rgba(15,23,42,0.18)]"
+                className="!bg-transparent !shadow-none !ring-0"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#64748B] shadow-md ring-1 ring-[#E5E7EB]">
-                <VideoOff className="h-4 w-4" aria-hidden />
-              </span>
             </div>
             <p className="max-w-[280px] truncate text-[20px] font-semibold tracking-[-0.03em] text-[#111827]">
               {displayName}
@@ -207,7 +193,7 @@ export function LivePrepareStage({
                     : "Unmute microphone"
               }
               onClick={() => {
-                if ((micBlocked || needsPermission) && onEnableMedia) onEnableMedia();
+                if (micBlocked && onEnableMedia) onEnableMedia();
                 else onToggleMic?.();
               }}
               className={cn(
@@ -239,7 +225,7 @@ export function LivePrepareStage({
                 camBlocked ? "Camera blocked" : camOn ? "Turn camera off" : "Turn camera on"
               }
               onClick={() => {
-                if ((camBlocked || needsPermission) && onEnableMedia) onEnableMedia();
+                if (camBlocked && onEnableMedia) onEnableMedia();
                 else onToggleCam?.();
               }}
               className={cn(
@@ -265,12 +251,7 @@ export function LivePrepareStage({
               {onGoLive ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (needsPermission && onEnableMedia && !showRecovery) {
-                      onEnableMedia();
-                    }
-                    onGoLive();
-                  }}
+                  onClick={() => onGoLive()}
                   disabled={busy}
                   className={cn(
                     "inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-[#FF5A1F] px-6 text-[14px] font-semibold text-white shadow-[0_8px_24px_rgba(255,90,31,0.28)] transition-colors hover:bg-[#e54e1a] disabled:opacity-60",
@@ -291,24 +272,17 @@ export function LivePrepareStage({
               {onStreamDestinations ? (
                 <button
                   type="button"
-                  onClick={handleStreamDestinations}
-                  disabled={busy || mediaBusy}
+                  onClick={() => onStreamDestinations()}
+                  disabled={busy}
                   className={cn(
                     "inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E7EB] bg-white/95 px-5 text-[14px] font-semibold text-[#111827] backdrop-blur-sm hover:bg-white disabled:opacity-60",
                     FOCUS_RING
                   )}
                 >
-                  {mediaBusy && needsPermission ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                      Requesting access…
-                    </>
-                  ) : (
-                    <>
-                      <Radio className="h-4 w-4 text-[#FF5A1F]" aria-hidden />
-                      Destinations & RTMP
-                    </>
-                  )}
+                  <>
+                    <Radio className="h-4 w-4 text-[#FF5A1F]" aria-hidden />
+                    Destinations & RTMP
+                  </>
                 </button>
               ) : null}
             </div>

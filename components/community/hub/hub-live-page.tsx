@@ -30,7 +30,6 @@ import {
   canRecord,
   canRejectSpeaker,
   canShareScreen,
-  canStartCloudEgress,
 } from "@/lib/live/roles";
 import {
   parseParticipantPermissions,
@@ -38,7 +37,6 @@ import {
 } from "@/lib/live/participant-permissions";
 import { presenceToChatMessages } from "@/lib/live/presence-events";
 import { sortMessagesChronologically } from "@/lib/live/chat-message-state";
-import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
@@ -154,6 +152,7 @@ export function HubLivePage({
   const [chatIdle, setChatIdle] = useState(false);
   const [hasPolls, setHasPolls] = useState(false);
   const [egressRecording, setEgressRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
   const [guestPreview, setGuestPreview] = useState<LiveGuestPreview | null>(null);
   const [guestPreviewLoading, setGuestPreviewLoading] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
@@ -180,8 +179,8 @@ export function HubLivePage({
   );
   const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
   const liveChat = useLiveChat(
-    chatRoomId,
-    live.session?.id ?? null,
+    live.session?.status === "live" ? chatRoomId : null,
+    live.session?.status === "live" ? live.session.id : null,
     {
       userId: live.userId,
       displayName: "You",
@@ -339,6 +338,7 @@ export function HubLivePage({
     const sid = live.session?.status === "live" ? live.session.id : null;
     if (!sid) {
       chatOpenedForSession.current = null;
+      setDrawer((prev) => (prev.rightOpen ? { ...prev, rightOpen: false } : prev));
       return;
     }
     if (chatOpenedForSession.current === sid) return;
@@ -878,12 +878,16 @@ export function HubLivePage({
   }, [gate, live, media, showToast, isHostControlRole, participantPerms]);
 
   const toggleRecord = useCallback(async () => {
+    if (recordingBusy) return;
     if (!online) {
       showToast("Recording unavailable offline");
       return;
     }
+    if (!live.session || live.session.status !== "live") {
+      showToast("Start the Live before recording");
+      return;
+    }
     if (
-      live.session &&
       !gate(
         canRecord(live.myRole, {
           allowParticipantRecording: participantPerms.allowRecording,
@@ -895,90 +899,87 @@ export function HubLivePage({
       return;
     }
 
-    /* Cloud Egress: host/cohost only. Everyone else uses local MediaRecorder. */
-    if (
-      live.session?.status === "live" &&
-      canStartCloudEgress(live.myRole)
-    ) {
-      try {
-        if (egressRecording || recording) {
-          const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "stop" }),
-          });
-          const json = (await res.json().catch(() => ({}))) as { error?: string };
-          if (!res.ok) throw new Error(json.error ?? "Stop recording failed");
-          setEgressRecording(false);
-          if (media.recordingState !== "idle") await media.stopRecording({ download: false });
-          showToast("Recording stopping — replay will appear when ready");
-          return;
-        }
+    setRecordingBusy(true);
+    try {
+      if (egressRecording || recording) {
         const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "start" }),
+          body: JSON.stringify({ action: "stop" }),
         });
         const json = (await res.json().catch(() => ({}))) as { error?: string };
-        if (!res.ok) throw new Error(json.error ?? "Start recording failed");
-        setEgressRecording(true);
-        showToast("Recording started (LiveKit Egress)");
-        return;
-      } catch (e) {
-        showToast(e instanceof Error ? e.message : "Recording failed");
-        /* fall through to local MediaRecorder only if egress unavailable */
-        if (!(e instanceof Error && /not configured|503/i.test(e.message))) return;
-      }
-    }
-
-    if (recording || egressRecording) {
-      if (egressRecording && live.session) {
-        try {
-          await fetch(`/api/live/sessions/${live.session.id}/recording`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "stop" }),
-          });
-        } catch {
-          /* ignore */
+        if (!res.ok) {
+          showToast(json.error ?? "Recording failed — could not stop");
+          return;
         }
         setEgressRecording(false);
-      }
-      if (media.recordingState === "paused") {
-        media.resumeRecording();
-        showToast("Recording resumed");
+        if (media.recordingState !== "idle") {
+          await media.stopRecording({ download: false });
+        }
+        showToast("Recording stopped — it will appear in saved recordings when ready");
         return;
       }
-      if (media.recordingState !== "idle") {
-        const blob = await media.stopRecording({ download: true });
-        showToast("Recording saved");
-        if (blob && data?.session.communityId && chatRoomId) {
-          const up = await uploadLiveRecording(blob, {
-            communityId: data.session.communityId,
-            roomId: chatRoomId,
-          });
-          if (up.ok && "url" in up && up.url) showToast("Recording uploaded");
-          else if (!up.ok) showToast(up.error);
-        }
+
+      const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        recordingId?: string;
+        alreadyActive?: boolean;
+      };
+      if (!res.ok) {
+        showToast(json.error ?? "Recording failed");
+        return;
       }
-      return;
+      setEgressRecording(true);
+      showToast(
+        json.alreadyActive
+          ? "This Live is already being recorded"
+          : "Recording started — capturing this Live"
+      );
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Recording failed");
+    } finally {
+      setRecordingBusy(false);
     }
-    const ok = await media.startRecording();
-    showToast(ok ? "Recording started" : media.lastError ?? "Recording failed");
   }, [
     online,
     gate,
     live,
     recording,
     egressRecording,
+    recordingBusy,
     media,
     showToast,
-    data,
-    chatRoomId,
     participantPerms,
   ]);
 
   const recordingActive = recording || egressRecording;
+
+  useEffect(() => {
+    if (live.session?.status !== "live" || !live.session.id) {
+      setEgressRecording(false);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/live/sessions/${live.session.id}/recording`)
+      .then(async (res) => {
+        const json = (await res.json().catch(() => ({}))) as {
+          recordingStatus?: string;
+        };
+        if (cancelled || !res.ok) return;
+        if (json.recordingStatus === "recording") {
+          setEgressRecording(true);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [live.session?.id, live.session?.status]);
 
   const [screenShareCapability, setScreenShareCapability] = useState(() =>
     detectScreenShareCapability()
@@ -1881,7 +1882,7 @@ export function HubLivePage({
   // Reference layout: stage + right contextual panel — hide left icon rail during Live.
   const showLeftRail = !focusMode && !hasSession;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
-  const showRight = !focusMode;
+  const showRight = !focusMode && hasSession;
   const displayTitle =
     live.session?.title ??
     (hasSession ? session.title : draftTitle);
@@ -2316,10 +2317,10 @@ export function HubLivePage({
               className={cn(
                 "relative w-full cursor-default overflow-hidden",
                 immersive
-                  ? "min-h-0 flex-1 rounded-none border-0"
+                  ? "min-h-0 flex-1 rounded-none border-0 bg-transparent"
                   : hasSession
                     ? "aspect-[4/5] min-h-0 shrink-0 rounded-2xl sm:aspect-video sm:flex-1"
-                    : "min-h-[min(78vh,700px)] shrink-0 rounded-none sm:rounded-2xl",
+                    : "min-h-[min(78vh,700px)] shrink-0 rounded-none bg-transparent",
                 activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
@@ -2327,7 +2328,9 @@ export function HubLivePage({
               <div
                 className={cn(
                   "absolute inset-0",
-                  "bg-[radial-gradient(ellipse_at_50%_36%,rgba(255,90,31,0.12)_0%,#EEF2F7_42%,#E2E8F0_100%)]"
+                  hasSession
+                    ? "bg-[radial-gradient(ellipse_at_50%_36%,rgba(255,90,31,0.12)_0%,#EEF2F7_42%,#E2E8F0_100%)]"
+                    : "bg-transparent"
                 )}
               />
               <StageMediaPreview
@@ -2896,7 +2899,9 @@ export function HubLivePage({
               {drawer.rightTab === "recording" && live.session?.id && (
                 <LiveRecordingPanel
                   sessionId={live.session.id}
-                  canManage={canRecord(live.myRole)}
+                  canManage={canRecord(live.myRole, {
+                    allowParticipantRecording: participantPerms.allowRecording,
+                  })}
                 />
               )}
               {drawer.rightTab === "tools" && live.session?.id && (
