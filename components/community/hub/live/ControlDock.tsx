@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActivityMode } from "./studio-types";
-import { FOCUS_RING_DARK, LIVE_DOCK_BG, MOTION } from "./studio-ui";
+import { FOCUS_RING, LIVE_DOCK_BG, MOTION } from "./studio-ui";
 
 export function useEphemeralToast() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -52,7 +52,7 @@ function ControlDockImpl({
   sharing,
   focusMode,
   canPublish = true,
-  dark = true,
+  dark = false,
   onMic,
   onCam,
   onShare,
@@ -238,7 +238,7 @@ function ControlDockImpl({
               <DockBtn
                 pressed={streamToOpen}
                 onClick={onStreamTo}
-                label="Stream To"
+                label="Destinations & RTMP"
                 activeRing={streamToOpen}
               >
                 <Radio className={icon} strokeWidth={sw} aria-hidden />
@@ -329,7 +329,7 @@ function ControlDockImpl({
           </>
         )}
 
-        <span className="mx-1.5 hidden h-8 w-px bg-white/10 sm:block" aria-hidden />
+        <span className="mx-1.5 hidden h-8 w-px bg-[#E5E7EB] sm:block" aria-hidden />
 
         {canEnd ? (
           <button
@@ -340,7 +340,7 @@ function ControlDockImpl({
             className={cn(
               "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#FF5A1F] px-5 text-[13px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
-              FOCUS_RING_DARK,
+              FOCUS_RING,
               "hover:bg-[#e04e1a] active:scale-[0.98]"
             )}
           >
@@ -354,10 +354,10 @@ function ControlDockImpl({
             aria-label="Leave live session"
             onClick={onLeave}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-white/10 px-5 text-[13px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#F3F4F6] px-5 text-[13px] font-semibold tracking-[-0.01em] text-[#111827]",
               MOTION,
-              FOCUS_RING_DARK,
-              "hover:bg-white/15 active:scale-[0.98]"
+              FOCUS_RING,
+              "hover:bg-[#E5E7EB] active:scale-[0.98]"
             )}
           >
             <PhoneOff className="h-4 w-4" aria-hidden />
@@ -406,19 +406,19 @@ function DockBtn({
       className={cn(
         "relative inline-flex min-w-[58px] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-1.5",
         MOTION,
-        FOCUS_RING_DARK,
+        FOCUS_RING,
         "hover:scale-[1.01] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
         off
-          ? "bg-red-500/20 text-red-300"
+          ? "bg-red-50 text-red-600"
           : accent
-            ? "bg-white text-[#0B1220]"
+            ? "bg-[#111827] text-white"
             : recording
               ? "bg-red-500 text-white"
               : success
-                ? "bg-emerald-500/20 text-emerald-300"
+                ? "bg-emerald-50 text-emerald-700"
                 : pressed
-                  ? "bg-white/15 text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white",
+                  ? "bg-[#F3F4F6] text-[#111827]"
+                  : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]",
         activeRing && "ring-1 ring-[#FF5A1F]/80",
         className
       )}

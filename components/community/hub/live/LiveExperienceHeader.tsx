@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
+import { FOCUS_RING, MOTION_COLORS } from "./studio-ui";
 
 export function LiveExperienceHeader({
   title,
@@ -111,8 +111,8 @@ export function LiveExperienceHeader({
     }
   };
 
-  const dark = immersive || liveActive;
-  const focus = dark ? FOCUS_RING_DARK : FOCUS_RING;
+  const dark = false;
+  const focus = FOCUS_RING;
 
   const backBtn = onBack ? (
     <button
@@ -163,7 +163,7 @@ export function LiveExperienceHeader({
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-black text-white">
               J
             </span>
-            <span className="text-[15px] font-semibold tracking-[-0.02em] text-white">
+            <span className="text-[15px] font-semibold tracking-[-0.02em] text-[#111827]">
               Jimvio
             </span>
           </div>
@@ -174,9 +174,9 @@ export function LiveExperienceHeader({
               title="More"
               aria-label="More options"
               className={cn(
-                "inline-flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
+                "inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
                 MOTION_COLORS,
-                FOCUS_RING_DARK
+                FOCUS_RING
               )}
             >
               <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
@@ -186,10 +186,10 @@ export function LiveExperienceHeader({
               <img
                 src={profileAvatarUrl}
                 alt=""
-                className="h-8 w-8 rounded-full object-cover ring-1 ring-white/20"
+                className="h-8 w-8 rounded-full object-cover ring-1 ring-neutral-200"
               />
             ) : (
-              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold text-white/70 ring-1 ring-white/15">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-[11px] font-semibold text-neutral-500 ring-1 ring-neutral-200">
                 You
               </span>
             )}
@@ -317,7 +317,7 @@ export function LiveExperienceHeader({
               title="End Live"
               className={cn(
                 "inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5A1F] text-white hover:bg-[#e04e1a] lg:hidden",
-                FOCUS_RING_DARK,
+                FOCUS_RING,
                 MOTION_COLORS
               )}
             >

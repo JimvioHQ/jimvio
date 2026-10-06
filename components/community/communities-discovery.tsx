@@ -3,6 +3,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import {
+  subscribePostgresChanges,
+  unsubscribeRealtime,
+} from "@/lib/supabase/realtime-subscribe";
 import { CommunityCoverImage } from "@/components/community/community-media";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
@@ -441,9 +445,13 @@ function LeaderboardPreview({
 function MyCommunitiesPreview({
   communities,
   loading,
+  error,
+  onRetry,
 }: {
   communities: CommunityRow[];
   loading: boolean;
+  error?: string | null;
+  onRetry?: () => void;
 }) {
   return (
     <section className="mt-10 space-y-3">
@@ -469,6 +477,25 @@ function MyCommunitiesPreview({
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
+        </div>
+      ) : error ? (
+        <div
+          className="rounded-2xl border border-red-200 bg-red-50 py-10 text-center"
+          role="alert"
+        >
+          <p className="text-[13px] font-medium text-red-800">
+            Couldn&apos;t load your communities.
+          </p>
+          <p className="mt-1 text-[12px] text-red-700">{error}</p>
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-white px-3.5 text-[13px] font-semibold text-red-800 ring-1 ring-red-200"
+            >
+              Retry
+            </button>
+          ) : null}
         </div>
       ) : communities.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-10 text-center text-[13px] text-[var(--color-text-muted)]">
@@ -513,6 +540,8 @@ export function CommunitiesDiscovery({
 
   const [myCommunities, setMyCommunities] = useState<CommunityRow[]>([]);
   const [myCommunitiesLoading, setMyCommunitiesLoading] = useState(false);
+  const [myCommunitiesError, setMyCommunitiesError] = useState<string | null>(null);
+  const [myCommunitiesTick, setMyCommunitiesTick] = useState(0);
   const [trendingItems, setTrendingItems] = useState<CommunityRow[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [trendingError, setTrendingError] = useState<string | null>(null);
@@ -615,16 +644,19 @@ export function CommunitiesDiscovery({
 
   useEffect(() => {
     let cancelled = false;
-    const lastGood = { current: [] as CommunityRow[] };
     (async () => {
       setMyCommunitiesLoading(true);
+      setMyCommunitiesError(null);
       try {
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          // Auth may still hydrate — do not flash empty membership.
+          if (!cancelled) {
+            setMyCommunities([]);
+            setMyCommunitiesError(null);
+          }
           return;
         }
 
@@ -645,12 +677,11 @@ export function CommunitiesDiscovery({
 
         if (cancelled) return;
         if (error) {
-          // Preserve last known-good; never map failure → [].
-          if (lastGood.current.length === 0) {
-            /* keep empty + stop loading below */
-          } else {
-            setMyCommunities(lastGood.current);
-          }
+          setMyCommunitiesError(
+            error.message.includes("infinite recursion")
+              ? "Membership permissions are recovering. Please retry."
+              : error.message
+          );
           return;
         }
 
@@ -689,12 +720,12 @@ export function CommunitiesDiscovery({
           });
         }
 
-        const next = [...byId.values()];
-        lastGood.current = next;
-        setMyCommunities(next);
-      } catch {
-        if (!cancelled && lastGood.current.length > 0) {
-          setMyCommunities(lastGood.current);
+        setMyCommunities([...byId.values()]);
+      } catch (e) {
+        if (!cancelled) {
+          setMyCommunitiesError(
+            e instanceof Error ? e.message : "Couldn't load your communities."
+          );
         }
       } finally {
         if (!cancelled) setMyCommunitiesLoading(false);
@@ -702,6 +733,49 @@ export function CommunitiesDiscovery({
     })();
     return () => {
       cancelled = true;
+    };
+  }, [myCommunitiesTick]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    const supabase = createClient();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!cancelled) setMyCommunitiesTick((n) => n + 1);
+      }, 200);
+    };
+
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = await subscribePostgresChanges(
+        supabase,
+        `my_community_memberships:${user.id}`,
+        {
+          event: "*",
+          schema: "public",
+          table: "community_memberships",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => schedule(),
+        () => cancelled
+      );
+    })();
+
+    const { data: authSub } = supabase.auth.onAuthStateChange(() => {
+      schedule();
+    });
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      authSub.subscription.unsubscribe();
+      unsubscribeRealtime(supabase, channel, "my_community_memberships");
     };
   }, []);
 
@@ -1118,6 +1192,8 @@ export function CommunitiesDiscovery({
             <MyCommunitiesPreview
               communities={myCommunities}
               loading={myCommunitiesLoading}
+              error={myCommunitiesError}
+              onRetry={() => setMyCommunitiesTick((n) => n + 1)}
             />
             <aside className="mt-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
               <h2 className="text-[14px] font-semibold text-[var(--color-text-primary)]">

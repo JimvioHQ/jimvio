@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { mobileDockControls } from "@/lib/live/control-dock-visibility";
 import type { MediaAccessKind } from "@/lib/live/media-errors";
-import { FOCUS_RING_DARK, LIVE_DOCK_BG, MOTION } from "./studio-ui";
+import { FOCUS_RING, LIVE_DOCK_BG, MOTION } from "./studio-ui";
 
 function DockIcon({
   label,
@@ -47,14 +47,14 @@ function DockIcon({
       className={cn(
         "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
         MOTION,
-        FOCUS_RING_DARK,
+        FOCUS_RING,
         disabled
-          ? "cursor-not-allowed text-white/30"
+          ? "cursor-not-allowed text-neutral-300"
           : danger
             ? "bg-red-500 text-white"
             : active
-              ? "bg-white/15 text-white ring-1 ring-[#FF5A1F]/80"
-              : "text-white/85 hover:bg-white/10 hover:text-white"
+              ? "bg-[#F3F4F6] text-[#111827] ring-1 ring-[#FF5A1F]/80"
+              : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]"
       )}
     >
       {children}
@@ -256,7 +256,7 @@ export function LiveMobileDock({
               return (
                 <DockIcon
                   key={id}
-                  label="Stream To"
+                  label="Destinations & RTMP"
                   onClick={onStreamTo}
                   active={streamToOpen}
                 >

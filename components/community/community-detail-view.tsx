@@ -399,7 +399,6 @@ export function CommunityDetailView({
       }
       setLocalMembership(data.membership);
       toast.success(`Welcome to ${community.name}`);
-      router.refresh();
     } catch (e: any) {
       toast.error(e.message || "Couldn't join — please try again");
     } finally {

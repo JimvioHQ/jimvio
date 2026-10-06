@@ -73,7 +73,7 @@ export const LEFT_TOOLS: { id: Exclude<LeftPanel, "none">; label: string; icon: 
   { id: "rooms", label: "Rooms", icon: Radio },
   { id: "layout", label: "Layout", icon: LayoutGrid },
   { id: "settings", label: "Settings", icon: Settings },
-  { id: "destinations", label: "Live Destinations", icon: Signal },
+  { id: "destinations", label: "Destinations & RTMP", icon: Signal },
 ];
 
 /** Primary Live Studio right rail — Chat only. Other tools stay available via dock/More. */

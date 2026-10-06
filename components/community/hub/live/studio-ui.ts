@@ -1,4 +1,4 @@
-/** Shared Live Studio design tokens — cinematic dark Live experience. */
+/** Shared Live Studio design tokens — light Jimvio chrome around the video stage. */
 
 export const MOTION =
   "motion-safe:transition-all motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none";
@@ -23,21 +23,21 @@ export const LIVE_ACCENT = "text-[#FF5A1F]";
 export const LIVE_ACCENT_BG = "bg-[#FF5A1F]";
 
 /**
- * Cinematic Live shell — deep navy/black stage environment.
- * Sheets/panels that float over the stage may still use light surfaces.
+ * Light application chrome; video canvas may still use a controlled dark treatment.
  */
-export const LIVE_PAGE_BG = "bg-[#070B14]";
-export const LIVE_SURFACE = "bg-[#0B1220]";
-export const LIVE_STAGE_BG = "bg-[#0B1220]";
+export const LIVE_PAGE_BG = "bg-[#F8FAFC]";
+export const LIVE_SURFACE = "bg-white";
+export const LIVE_STAGE_BG =
+  "bg-[radial-gradient(ellipse_at_50%_38%,#F4F6FA_0%,#EEF2F7_55%,#E8EDF5_100%)]";
 export const LIVE_STAGE_FALLBACK_BG =
-  "bg-[radial-gradient(ellipse_at_50%_38%,#152238_0%,#0B1220_55%,#05080F_100%)]";
-export const LIVE_BORDER = "border border-white/10";
-export const LIVE_SHADOW = "shadow-[0_12px_40px_rgba(0,0,0,0.45)]";
-export const LIVE_SHADOW_LG = "shadow-[0_20px_60px_rgba(0,0,0,0.55)]";
+  "bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,90,31,0.10)_0%,#F4F6FA_48%,#E8EDF5_100%)]";
+export const LIVE_BORDER = "border border-[#E5E7EB]";
+export const LIVE_SHADOW = "shadow-[0_12px_40px_rgba(15,23,42,0.08)]";
+export const LIVE_SHADOW_LG = "shadow-[0_20px_60px_rgba(15,23,42,0.12)]";
 export const LIVE_RADIUS = "rounded-2xl";
 export const LIVE_RADIUS_LG = "rounded-[20px]";
-export const LIVE_TEXT = "text-white";
-export const LIVE_TEXT_MUTED = "text-white/65";
+export const LIVE_TEXT = "text-[#111827]";
+export const LIVE_TEXT_MUTED = "text-[#64748B]";
 
 /** Light sheet / panel surfaces (mobile chat, invite, desktop side panels). */
 export const LIVE_SHEET_BG = "bg-white";
@@ -47,4 +47,4 @@ export const LIVE_SHEET_BORDER = "border border-[#E5E7EB]";
 
 /** Floating control dock chrome */
 export const LIVE_DOCK_BG =
-  "bg-[#0b1220]/95 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/10";
+  "bg-white shadow-[0_12px_40px_rgba(15,23,42,0.10)] ring-1 ring-[#E5E7EB]";

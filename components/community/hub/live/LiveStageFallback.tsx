@@ -62,7 +62,7 @@ export function LiveStageFallback({
           />
         </div>
         {micOff && audioOnly ? (
-          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#0B1220] text-white shadow-sm ring-2 ring-white/20">
+          <span className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#111827] shadow-sm ring-2 ring-white">
             <MicOff className="h-3.5 w-3.5" aria-hidden />
           </span>
         ) : audioOnly && !micOff ? (
@@ -71,10 +71,10 @@ export function LiveStageFallback({
           </span>
         ) : null}
       </div>
-      <p className="max-w-[280px] truncate text-[17px] font-semibold tracking-[-0.02em] text-white">
+      <p className="max-w-[280px] truncate text-[17px] font-semibold tracking-[-0.02em] text-[#111827]">
         {hostName}
       </p>
-      <p className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] text-white/55">
+      <p className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] text-[#64748B]">
         <StatusIcon className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
         {statusLabel}
       </p>

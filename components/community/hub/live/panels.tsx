@@ -1141,7 +1141,7 @@ export function SettingsPanel({
           ) : (
             <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
               <Radio className="mr-1 inline h-3.5 w-3.5" aria-hidden />
-              Stream destinations open from Stream To on the control dock.
+              Stream destinations open from Destinations & RTMP on the control dock.
             </p>
           )}
         </SettingsSection>

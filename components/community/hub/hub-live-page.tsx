@@ -1778,7 +1778,7 @@ export function HubLivePage({
         aria-live="polite"
         aria-busy="true"
       >
-        <Loader2 className="h-5 w-5 animate-spin text-white/40" aria-hidden />
+        <Loader2 className="h-5 w-5 animate-spin text-neutral-400" aria-hidden />
         <span className="sr-only">Checking session</span>
       </div>
     );
@@ -1805,7 +1805,7 @@ export function HubLivePage({
     <div
       className={cn(
         "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        hasSession ? "bg-[#070B14] text-white" : "bg-[#F8FAFC] text-[#111827]"
+        hasSession ? "bg-[#F8FAFC] text-[#111827]" : "bg-[#F8FAFC] text-[#111827]"
       )}
     >
       {/* Status banners — offline / load errors / session errors */}
@@ -1978,11 +1978,11 @@ export function HubLivePage({
           </>
         )}
 
-        {/* Stage — cinematic dark Live canvas */}
+        {/* Stage — light chrome; video occupies the canvas */}
         <main
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden",
-            hasSession ? "bg-[#070B14]" : "bg-[#f7f7f8]"
+            "bg-[#F8FAFC]"
           )}
         >
           <div
@@ -2003,7 +2003,7 @@ export function HubLivePage({
                 immersive
                   ? "min-h-0 flex-1 rounded-none border-0"
                   : hasSession
-                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-[20px] border border-white/10 bg-[#0B1220] shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:aspect-video sm:flex-1"
+                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-[20px] border border-[#E5E7EB] bg-[#EEF2F7] shadow-[0_16px_40px_rgba(15,23,42,0.08)] sm:aspect-video sm:flex-1"
                     : "min-h-[min(72vh,640px)] shrink-0 rounded-none border border-[#E5E7EB] bg-white sm:rounded-[20px]",
                 activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
@@ -2013,7 +2013,7 @@ export function HubLivePage({
                 className={cn(
                   "absolute inset-0",
                   hasSession
-                    ? "bg-[radial-gradient(ellipse_at_50%_38%,#152238_0%,#0B1220_55%,#05080F_100%)]"
+                    ? "bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,90,31,0.10)_0%,#F4F6FA_48%,#E8EDF5_100%)]"
                     : "bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]"
                 )}
               />
@@ -2131,6 +2131,8 @@ export function HubLivePage({
                   <LivePrepareStage
                     previewStream={media.previewStream}
                     title={displayTitle}
+                    hostName={live.userId ? "You" : stageHostName}
+                    hostAvatarUrl={hostAvatar}
                     busy={live.busy}
                     micOn={micOn}
                     camOn={camOn}
@@ -2146,11 +2148,7 @@ export function HubLivePage({
                       live.userId ? () => void enableStudioMedia() : undefined
                     }
                     onStreamDestinations={
-                      live.userId
-                        ? () => {
-                            toggleLeft("settings");
-                          }
-                        : undefined
+                      live.userId ? openStreamTo : undefined
                     }
                     onToggleMic={() => void toggleMic()}
                     onToggleCam={() => void toggleCam()}
@@ -2181,7 +2179,7 @@ export function HubLivePage({
                   sharing={media.sharing}
                   focusMode={focusMode}
                   canPublish={canPublishAv(live.myRole)}
-                  dark
+                  dark={false}
                   onMic={() => void toggleMic()}
                   onCam={() => void toggleCam()}
                   onShare={() => void startShare()}
@@ -2242,7 +2240,7 @@ export function HubLivePage({
                     : drawer.leftPanel === "settings"
                       ? "Settings"
                       : drawer.leftPanel === "destinations"
-                        ? "Live Destinations"
+                        ? "Destinations & RTMP"
                         : LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""
                 }
                 count={

@@ -213,7 +213,6 @@ export function HubCommunityOverview() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Couldn't join community");
       toast.success(`Welcome to ${communityName}`);
-      router.refresh();
     } catch (e) {
       setLocalJoined(false);
       setLocalMemberCount(prevCount);
@@ -238,7 +237,6 @@ export function HubCommunityOverview() {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Couldn't leave community");
       toast.success("You left the community");
-      router.refresh();
     } catch (e) {
       setLocalJoined(true);
       setLocalMemberCount(prevCount);
