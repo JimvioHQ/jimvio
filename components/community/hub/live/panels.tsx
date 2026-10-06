@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Activity,
   Calendar,
@@ -15,15 +15,13 @@ import {
   Monitor,
   Radio,
   Settings2,
-  Video,
-  VideoOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
 import type { LeftPanel, RightTab, SpeakerUi, StudioMode } from "./studio-types";
 import { LAYOUTS } from "./studio-types";
-import { formatCount, formatMoney, formatTime } from "./studio-utils";
+import { formatCount, formatTime } from "./studio-utils";
 import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
 
 function Empty({ hint }: { hint: string }) {
@@ -199,34 +197,197 @@ export function EventsPanel({
   );
 }
 
-export function AnalyticsPanel({ analytics }: { analytics: LiveDashboard["analytics"] | undefined }) {
-  const rows = [
-    { label: "Viewers", value: formatCount(analytics?.viewers ?? 0) },
-    { label: "Peak", value: formatCount(analytics?.peakViewers ?? 0) },
-    { label: "New joins", value: formatCount(analytics?.newJoins ?? 0) },
-    { label: "Likes", value: formatCount(analytics?.likes ?? 0) },
-    { label: "Messages", value: formatCount(analytics?.messages ?? 0) },
-    { label: "Watch time", value: `${formatCount(analytics?.watchTimeMinutes ?? 0)}m` },
-    {
-      label: "Revenue",
-      value: (analytics?.revenue ?? 0) > 0 ? formatMoney(analytics!.revenue) : "—",
-    },
-    { label: "Retention", value: `${analytics?.reactionsPct ?? 0}%` },
-  ];
+export type LiveAnalyticsSnapshot = {
+  currentViewers: number;
+  peakViewers: number;
+  sessionDurationSeconds: number;
+  participants: number;
+  messages: number;
+  reactions: number;
+  raisedHands: number;
+  cameraOnCount: number;
+  microphoneOnCount: number;
+  screenSharing: boolean;
+  destinationsLive: number;
+  destinationsConnected: number;
+  recordingStatus: "none" | "recording" | "ending" | "ready" | "failed" | "unavailable";
+  joinEvents?: number;
+  leaveEvents?: number;
+  watchTimeMinutes?: number | null;
+};
+
+function formatDuration(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  return `${m}:${String(sec).padStart(2, "0")}`;
+}
+
+function MetricRow({
+  label,
+  value,
+  unavailable,
+}: {
+  label: string;
+  value: string;
+  unavailable?: boolean;
+}) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-      <div className="mb-5 flex items-center gap-2 rounded-xl bg-emerald-50/70 px-3 py-2.5">
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[12px] text-neutral-400">{label}</dt>
+      <dd
+        className={cn(
+          "text-[13px] font-medium tabular-nums",
+          unavailable ? "text-neutral-400" : "text-neutral-900"
+        )}
+      >
+        {unavailable ? "Unavailable" : value}
+      </dd>
+    </div>
+  );
+}
+
+function MetricSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2.5">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-400">
+        {title}
+      </h3>
+      <dl className="space-y-2.5">{children}</dl>
+    </section>
+  );
+}
+
+export function AnalyticsPanel({
+  analytics,
+  liveMetrics,
+}: {
+  analytics?: LiveDashboard["analytics"] | undefined;
+  /** Prefer real session-derived metrics when provided. */
+  liveMetrics?: LiveAnalyticsSnapshot | null;
+}) {
+  const m = liveMetrics;
+  const currentViewers = m?.currentViewers ?? analytics?.liveViewers ?? analytics?.viewers ?? 0;
+  const peakViewers = m?.peakViewers ?? analytics?.peakViewers ?? 0;
+  const messages = m?.messages ?? analytics?.messages ?? 0;
+  const reactions = m?.reactions ?? analytics?.likes ?? 0;
+  const watchMins =
+    typeof m?.watchTimeMinutes === "number"
+      ? m.watchTimeMinutes
+      : typeof analytics?.watchTimeMinutes === "number"
+        ? analytics.watchTimeMinutes
+        : null;
+
+  return (
+    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
+      <div className="flex items-center gap-2 rounded-xl bg-emerald-50/70 px-3 py-2.5">
         <Activity className="h-3.5 w-3.5 text-emerald-600" strokeWidth={1.75} />
-        <span className="text-[12px] font-medium text-emerald-700">Stream healthy</span>
+        <span className="text-[12px] font-medium text-emerald-700">
+          Live session metrics
+        </span>
       </div>
-      <dl className="space-y-3.5">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-baseline justify-between gap-3">
-            <dt className="text-[12px] text-neutral-400">{row.label}</dt>
-            <dd className="text-[13px] font-medium tabular-nums text-neutral-900">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+
+      <MetricSection title="Overview">
+        <MetricRow label="Current viewers" value={formatCount(currentViewers)} />
+        <MetricRow label="Peak viewers" value={formatCount(peakViewers)} />
+        <MetricRow
+          label="Session duration"
+          value={m ? formatDuration(m.sessionDurationSeconds) : "—"}
+          unavailable={!m}
+        />
+      </MetricSection>
+
+      <MetricSection title="Audience">
+        <MetricRow
+          label="Participants"
+          value={formatCount(m?.participants ?? 0)}
+          unavailable={!m}
+        />
+        <MetricRow
+          label="Join events"
+          value={formatCount(m?.joinEvents ?? 0)}
+          unavailable={!m || m.joinEvents == null}
+        />
+        <MetricRow
+          label="Leave events"
+          value={formatCount(m?.leaveEvents ?? 0)}
+          unavailable={!m || m.leaveEvents == null}
+        />
+      </MetricSection>
+
+      <MetricSection title="Engagement">
+        <MetricRow label="Messages" value={formatCount(messages)} />
+        <MetricRow label="Reactions" value={formatCount(reactions)} />
+        <MetricRow
+          label="Raised hands"
+          value={formatCount(m?.raisedHands ?? 0)}
+          unavailable={!m}
+        />
+      </MetricSection>
+
+      <MetricSection title="Session">
+        <MetricRow
+          label="Camera on"
+          value={formatCount(m?.cameraOnCount ?? 0)}
+          unavailable={!m}
+        />
+        <MetricRow
+          label="Microphone on"
+          value={formatCount(m?.microphoneOnCount ?? 0)}
+          unavailable={!m}
+        />
+        <MetricRow
+          label="Screen share"
+          value={m?.screenSharing ? "Active" : "Off"}
+          unavailable={!m}
+        />
+        <MetricRow
+          label="Watch time"
+          value={watchMins != null ? `${formatCount(watchMins)}m` : "—"}
+          unavailable={watchMins == null}
+        />
+      </MetricSection>
+
+      <MetricSection title="Destinations">
+        <MetricRow
+          label="Live destinations"
+          value={formatCount(m?.destinationsLive ?? 0)}
+          unavailable={!m}
+        />
+        <MetricRow
+          label="Connected"
+          value={formatCount(m?.destinationsConnected ?? 0)}
+          unavailable={!m}
+        />
+      </MetricSection>
+
+      <MetricSection title="Recording">
+        <MetricRow
+          label="Status"
+          value={
+            m?.recordingStatus === "recording"
+              ? "Recording"
+              : m?.recordingStatus === "ending"
+                ? "Finalizing"
+                : m?.recordingStatus === "ready"
+                  ? "Saved"
+                  : m?.recordingStatus === "failed"
+                    ? "Failed"
+                    : m?.recordingStatus === "unavailable"
+                      ? "Unavailable"
+                      : "Idle"
+          }
+          unavailable={!m}
+        />
+      </MetricSection>
     </div>
   );
 }
@@ -234,6 +395,7 @@ export function AnalyticsPanel({ analytics }: { analytics: LiveDashboard["analyt
 export function PeoplePanel({
   speakers,
   viewers,
+  participantCount,
   activeSpeakerId,
   onSelect,
   onOpenProfile,
@@ -246,10 +408,6 @@ export function PeoplePanel({
   onAdmitWaiting,
   onRejectWaiting,
   onAdmitAllWaiting,
-  inviteValue,
-  onInviteValue,
-  inviteRole,
-  onInviteRole,
   onInvite,
   canManage,
   onMute,
@@ -259,6 +417,8 @@ export function PeoplePanel({
 }: {
   speakers: Speaker[];
   viewers: number;
+  /** Joined participants — independent from watching/viewer count. */
+  participantCount?: number;
   activeSpeakerId: string | null;
   onSelect: (id: string) => void;
   onOpenProfile?: (id: string) => void;
@@ -271,10 +431,6 @@ export function PeoplePanel({
   onAdmitWaiting?: (id: string) => void;
   onRejectWaiting?: (id: string) => void;
   onAdmitAllWaiting?: () => void;
-  inviteValue?: string;
-  onInviteValue?: (v: string) => void;
-  inviteRole?: string;
-  onInviteRole?: (v: string) => void;
   onInvite?: () => void;
   canManage?: boolean;
   onMute?: (id: string) => void;
@@ -291,11 +447,28 @@ export function PeoplePanel({
   const filteredWaiting = (waitingRoom ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
-  void inviteRole;
-  void onInviteRole;
+  const peopleCount =
+    typeof participantCount === "number" ? participantCount : filtered.length;
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 px-0.5">
+        <p className="text-[12px] font-semibold tabular-nums text-neutral-700">
+          Participants ({formatCount(peopleCount)})
+        </p>
+        {onInvite ? (
+          <button
+            type="button"
+            onClick={onInvite}
+            className={cn(
+              "rounded-xl bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white",
+              FOCUS_RING
+            )}
+          >
+            Invite
+          </button>
+        ) : null}
+      </div>
       <input
         value={query}
         onChange={(e) => onQuery(e.target.value)}
@@ -306,30 +479,6 @@ export function PeoplePanel({
         )}
         aria-label="Search participants"
       />
-      {canManage && onInvite && onInviteValue && (
-        <div className="flex gap-1.5">
-          <input
-            value={inviteValue ?? ""}
-            onChange={(e) => onInviteValue(e.target.value)}
-            placeholder="Invite by user id…"
-            className={cn(
-              "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
-              FOCUS_RING
-            )}
-            aria-label="Invite user id"
-          />
-          <button
-            type="button"
-            onClick={onInvite}
-            className={cn(
-              "shrink-0 rounded-xl bg-[#FF5A1F] px-3 py-2 text-[11px] font-semibold text-white",
-              FOCUS_RING
-            )}
-          >
-            Invite
-          </button>
-        </div>
-      )}
       <p className="px-0.5 text-[12px] tabular-nums text-neutral-400">
         {formatCount(viewers)} watching
       </p>
@@ -748,7 +897,7 @@ export function SettingsPanel({
   chatEnabled = true,
   onChatEnabled,
   canManageChat = false,
-  analytics,
+  analytics: _analytics,
   advancedSlot,
   dark = false,
   initialCategory = null,
@@ -759,6 +908,9 @@ export function SettingsPanel({
   participantPermissions,
   onParticipantPermissions,
   recordingDeniedReason = null,
+  profileName,
+  profileAvatarUrl,
+  onSaveProfile,
 }: {
   /** @deprecated unused */
   mode?: StudioMode;
@@ -828,15 +980,33 @@ export function SettingsPanel({
     }>
   ) => void;
   recordingDeniedReason?: string | null;
+  profileName?: string;
+  profileAvatarUrl?: string | null;
+  onSaveProfile?: (input: {
+    displayName: string;
+    avatarUrl?: string | null;
+  }) => Promise<void>;
 }) {
   const [category, setCategory] = useState<SettingsCategory | null>(initialCategory);
   const [draftTitle, setDraftTitle] = useState(title ?? "");
   const [titleBusy, setTitleBusy] = useState(false);
   const [titleMsg, setTitleMsg] = useState<string | null>(null);
+  const [draftName, setDraftName] = useState(profileName ?? "");
+  const [draftAvatar, setDraftAvatar] = useState<string | null>(profileAvatarUrl ?? null);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  const [openPermKey, setOpenPermKey] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  void _analytics;
 
   useEffect(() => {
     setDraftTitle(title ?? "");
   }, [title]);
+
+  useEffect(() => {
+    setDraftName(profileName ?? "");
+    setDraftAvatar(profileAvatarUrl ?? null);
+  }, [profileName, profileAvatarUrl]);
 
   const rowClass = dark
     ? "hover:bg-white/5 text-white"
@@ -919,61 +1089,203 @@ export function SettingsPanel({
 
       {category === "general" && (
         <>
-          <SettingsSection label="Live details">
-            {canEditTitle && onSaveTitle ? (
-              <>
-                <div className="flex gap-2">
-                  <input
-                    value={draftTitle}
-                    maxLength={120}
-                    onChange={(e) => setDraftTitle(e.target.value)}
-                    className={cn(
-                      "min-w-0 flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
-                      dark
-                        ? "border-white/15 bg-white/5 text-white"
-                        : "border-neutral-200 bg-white",
-                      ring
-                    )}
-                    aria-label="Live title"
-                  />
-                  <button
-                    type="button"
-                    disabled={titleBusy}
-                    onClick={() => {
-                      void (async () => {
-                        setTitleBusy(true);
-                        setTitleMsg(null);
-                        try {
-                          await onSaveTitle(draftTitle);
-                          setTitleMsg("Saved");
-                        } catch (e) {
-                          setDraftTitle(title ?? "");
-                          setTitleMsg(e instanceof Error ? e.message : "Save failed");
-                        } finally {
-                          setTitleBusy(false);
+          {canEditTitle && onSaveTitle ? (
+            <SettingsSection label="Live details">
+              <div className="flex gap-2">
+                <input
+                  value={draftTitle}
+                  maxLength={120}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
+                    dark
+                      ? "border-white/15 bg-white/5 text-white"
+                      : "border-neutral-200 bg-white",
+                    ring
+                  )}
+                  aria-label="Live title"
+                  placeholder="Start your Live"
+                />
+                <button
+                  type="button"
+                  disabled={titleBusy}
+                  onClick={() => {
+                    void (async () => {
+                      setTitleBusy(true);
+                      setTitleMsg(null);
+                      try {
+                        await onSaveTitle(draftTitle);
+                        setTitleMsg("Saved");
+                      } catch (e) {
+                        setDraftTitle(title ?? "");
+                        setTitleMsg(e instanceof Error ? e.message : "Save failed");
+                      } finally {
+                        setTitleBusy(false);
+                      }
+                    })();
+                  }}
+                  className={cn(
+                    "rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                    ring
+                  )}
+                >
+                  {titleBusy ? "…" : "Save"}
+                </button>
+              </div>
+              {titleMsg ? (
+                <p className={cn("text-[11px]", muted)} role="status">
+                  {titleMsg}
+                </p>
+              ) : null}
+            </SettingsSection>
+          ) : null}
+
+          {onSaveProfile ? (
+            <SettingsSection label="Profile details">
+              <label className={cn("block text-[11px] font-medium", muted)}>Name</label>
+              <input
+                value={draftName}
+                maxLength={80}
+                onChange={(e) => setDraftName(e.target.value)}
+                className={cn(
+                  "w-full rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
+                  dark
+                    ? "border-white/15 bg-white/5 text-white"
+                    : "border-neutral-200 bg-white",
+                  ring
+                )}
+                aria-label="Display name"
+              />
+              <label className={cn("mt-2 block text-[11px] font-medium", muted)}>
+                Profile picture
+              </label>
+              <div className="flex items-center gap-3">
+                <HubAvatar name={draftName || "You"} src={draftAvatar} size={48} />
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    if (!file.type.startsWith("image/")) {
+                      setProfileMsg("Choose an image file");
+                      return;
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                      setProfileMsg("Image must be under 5 MB");
+                      return;
+                    }
+                    void (async () => {
+                      setProfileBusy(true);
+                      setProfileMsg(null);
+                      try {
+                        const sigRes = await fetch("/api/uploads/signature", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            folder: "jimvio/avatars",
+                            accessType: "public",
+                          }),
+                        });
+                        const sigJson = (await sigRes.json()) as {
+                          data?: {
+                            cloudName?: string;
+                            apiKey?: string;
+                            timestamp?: number;
+                            signature?: string;
+                            folder?: string;
+                            type?: string;
+                          };
+                          error?: string;
+                        };
+                        const sig = sigJson.data;
+                        if (
+                          !sigRes.ok ||
+                          !sig?.cloudName ||
+                          !sig.apiKey ||
+                          !sig.signature
+                        ) {
+                          throw new Error(sigJson.error ?? "Upload signature failed");
                         }
-                      })();
-                    }}
-                    className={cn(
-                      "rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
-                      ring
-                    )}
-                  >
-                    {titleBusy ? "…" : "Save"}
-                  </button>
-                </div>
-                {titleMsg ? (
-                  <p className={cn("text-[11px]", muted)} role="status">
-                    {titleMsg}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className={cn("rounded-xl px-3 py-2 text-[13px]", surface)}>
-                {title || "Untitled Live"}
-              </p>
-            )}
-          </SettingsSection>
+                        const form = new FormData();
+                        form.append("file", file);
+                        form.append("api_key", sig.apiKey);
+                        form.append("timestamp", String(sig.timestamp));
+                        form.append("signature", sig.signature);
+                        if (sig.folder) form.append("folder", sig.folder);
+                        form.append("type", sig.type ?? "upload");
+                        const up = await fetch(
+                          `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+                          { method: "POST", body: form }
+                        );
+                        const upJson = (await up.json()) as {
+                          secure_url?: string;
+                          error?: { message?: string };
+                        };
+                        if (!up.ok || !upJson.secure_url) {
+                          throw new Error(upJson.error?.message ?? "Upload failed");
+                        }
+                        setDraftAvatar(upJson.secure_url);
+                        setProfileMsg("Photo ready — Save to apply");
+                      } catch (err) {
+                        setProfileMsg(err instanceof Error ? err.message : "Upload failed");
+                      } finally {
+                        setProfileBusy(false);
+                      }
+                    })();
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={profileBusy}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-[12px] font-semibold",
+                    dark ? "bg-white/10 text-white" : "bg-neutral-100 text-neutral-800",
+                    ring
+                  )}
+                >
+                  Change photo
+                </button>
+              </div>
+              <button
+                type="button"
+                disabled={profileBusy || !draftName.trim()}
+                onClick={() => {
+                  void (async () => {
+                    setProfileBusy(true);
+                    setProfileMsg(null);
+                    try {
+                      await onSaveProfile({
+                        displayName: draftName.trim(),
+                        avatarUrl: draftAvatar,
+                      });
+                      setProfileMsg("Saved");
+                    } catch (e) {
+                      setProfileMsg(e instanceof Error ? e.message : "Save failed");
+                    } finally {
+                      setProfileBusy(false);
+                    }
+                  })();
+                }}
+                className={cn(
+                  "mt-1 rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                  ring
+                )}
+              >
+                {profileBusy ? "…" : "Save"}
+              </button>
+              {profileMsg ? (
+                <p className={cn("text-[11px]", muted)} role="status">
+                  {profileMsg}
+                </p>
+              ) : null}
+            </SettingsSection>
+          ) : null}
+
           {canManageParticipantPermissions &&
           participantPermissions &&
           onParticipantPermissions ? (
@@ -994,30 +1306,76 @@ export function SettingsPanel({
                   ],
                 ] as const
               ).map(([key, label, allowed]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => onParticipantPermissions({ [key]: !allowed })}
-                  className={cn(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
-                    rowClass,
-                    ring
-                  )}
-                >
-                  {label}
-                  <span
+                <div key={key} className="relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenPermKey((prev) => (prev === key ? null : key))
+                    }
                     className={cn(
-                      "text-[11px] font-semibold",
-                      allowed
-                        ? dark
-                          ? "text-emerald-300"
-                          : "text-emerald-700"
-                        : muted
+                      "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                      rowClass,
+                      ring
                     )}
+                    aria-expanded={openPermKey === key}
+                    aria-haspopup="listbox"
                   >
-                    {allowed ? "Allowed" : "Blocked"}
-                  </span>
-                </button>
+                    {label}
+                    <span
+                      className={cn(
+                        "rounded-lg px-2 py-0.5 text-[11px] font-semibold",
+                        allowed
+                          ? dark
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-emerald-50 text-emerald-700"
+                          : dark
+                            ? "bg-white/10 text-white/55"
+                            : "bg-neutral-100 text-neutral-500"
+                      )}
+                    >
+                      {allowed ? "Allowed" : "Not allowed"}
+                    </span>
+                  </button>
+                  {openPermKey === key ? (
+                    <div
+                      role="listbox"
+                      className={cn(
+                        "absolute right-0 z-20 mt-1 min-w-[140px] overflow-hidden rounded-xl border shadow-lg",
+                        dark
+                          ? "border-white/10 bg-neutral-900"
+                          : "border-neutral-200 bg-white"
+                      )}
+                    >
+                      {(
+                        [
+                          [true, "Allowed"],
+                          [false, "Not allowed"],
+                        ] as const
+                      ).map(([value, optLabel]) => (
+                        <button
+                          key={optLabel}
+                          type="button"
+                          role="option"
+                          aria-selected={allowed === value}
+                          onClick={() => {
+                            onParticipantPermissions({ [key]: value });
+                            setOpenPermKey(null);
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between px-3 py-2 text-left text-[12px]",
+                            dark ? "hover:bg-white/10" : "hover:bg-neutral-50",
+                            allowed === value && "font-semibold"
+                          )}
+                        >
+                          {optLabel}
+                          {allowed === value ? (
+                            <Check className="h-3.5 w-3.5" aria-hidden />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               ))}
               <p className={cn("px-1 text-[11px]", muted)}>
                 Changes apply to participants immediately — no refresh required.
@@ -1238,7 +1596,7 @@ export function SettingsPanel({
             >
               Allow Everyone / Guest to record
               <span className={cn("text-[11px] font-semibold", muted)}>
-                {participantPermissions.allowRecording ? "Allowed" : "Blocked"}
+                {participantPermissions.allowRecording ? "Allowed" : "Not allowed"}
               </span>
             </button>
           ) : null}

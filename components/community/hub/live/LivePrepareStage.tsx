@@ -109,7 +109,6 @@ export function LivePrepareStage({
             <p className="mt-4 max-w-[280px] truncate text-[20px] font-semibold tracking-[-0.03em] text-[#111827]">
               {displayName}
             </p>
-            <p className="mt-1.5 text-[13px] font-medium text-[#64748B]">Camera on</p>
           </div>
         ) : (
           <div className="relative z-[1] flex flex-col items-center bg-transparent text-center">
@@ -127,7 +126,6 @@ export function LivePrepareStage({
             <p className="max-w-[280px] truncate text-[20px] font-semibold tracking-[-0.03em] text-[#111827]">
               {displayName}
             </p>
-            <p className="mt-1.5 text-[13px] font-medium text-[#64748B]">Camera off</p>
             {title?.trim() ? (
               <p className="mt-3 max-w-sm truncate text-[12px] text-[#94A3B8]">
                 {title.trim()}

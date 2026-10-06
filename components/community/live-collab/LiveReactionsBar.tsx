@@ -10,7 +10,7 @@ import {
 } from "@/lib/supabase/realtime-subscribe";
 import { useLiveCollabStore } from "@/lib/community/live-collab";
 
-const EMOJIS = ["👍", "❤️", "🔥", "👏", "😂", "🙌"];
+const EMOJIS = ["👍", "❤️", "🔥", "👏", "😂", "🙌", "🎉", "😍", "😮", "😢", "💯"];
 
 export function LiveReactionsBar({
   sessionId,
@@ -126,9 +126,9 @@ export function LiveReactionsBar({
         {userId && (
           <button
             type="button"
-            disabled={!onRaiseHand || raised}
+            disabled={!onRaiseHand}
             onClick={() => {
-              if (!onRaiseHand || raised) return;
+              if (!onRaiseHand) return;
               void onRaiseHand();
             }}
             className={cn(
@@ -140,7 +140,7 @@ export function LiveReactionsBar({
             )}
           >
             <Hand className="h-3.5 w-3.5" />
-            {raised ? "Hand raised" : "Raise hand"}
+            {raised ? "Lower hand" : "Raise hand"}
           </button>
         )}
       </div>

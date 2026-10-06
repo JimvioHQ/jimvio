@@ -14,7 +14,7 @@ describe("Live runtime defaults", () => {
   it("pre-live chat stays closed and does not subscribe", () => {
     const page = read("components/community/hub/hub-live-page.tsx");
     const utils = read("components/community/hub/live/studio-utils.ts");
-    assert.match(utils, /const rightOpen = false/);
+    assert.match(utils, /Boolean\(parsed\.rightOpen\)/);
     assert.match(page, /showRight = !focusMode && hasSession/);
     assert.match(
       page,

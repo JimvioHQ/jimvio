@@ -662,6 +662,12 @@ export function useLiveSession(initialSessionId?: string | null) {
     await refresh(session.id);
   }, [session, refresh]);
 
+  const lowerHand = useCallback(async () => {
+    if (!session) return;
+    await sessionAction(session.id, { action: "lower-hand" });
+    await refresh(session.id);
+  }, [session, refresh]);
+
   const launchPoll = useCallback(
     async (question: string, options: string[]) => {
       if (!session) return;
@@ -771,6 +777,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     react,
     syncMedia,
     requestSpeak,
+    lowerHand,
     launchPoll,
     refresh,
     setSession,

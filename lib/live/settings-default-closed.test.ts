@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 describe("Live settings closed by default", () => {
-  it("never restores settings as the landing left panel", () => {
+  it("defaults left panel to none and restores panels safely after refresh", () => {
     const utils = readFileSync(
       join(root, "components/community/hub/live/studio-utils.ts"),
       "utf8"
@@ -20,11 +20,11 @@ describe("Live settings closed by default", () => {
       join(root, "components/community/hub/hub-live-page.tsx"),
       "utf8"
     );
-    assert.match(types, /DRAWER_STATE_VERSION = 6/);
+    assert.match(types, /DRAWER_STATE_VERSION = 7/);
     assert.match(types, /leftPanel: "none"/);
-    assert.match(utils, /leftPanelRaw === "settings" \? "none"/);
-    assert.match(utils, /const rightOpen = false/);
-    assert.match(page, /rightOpen: true,\s*rightTab: "chat"/);
+    assert.match(utils, /Boolean\(parsed\.rightOpen\)/);
+    assert.match(page, /rightOpen: true/);
+    assert.match(page, /rightTab: "chat"/);
     assert.doesNotMatch(
       page,
       /if \(openSettings\) \{\s*updateDrawer\(\{ leftPanel: "settings" \}\)/

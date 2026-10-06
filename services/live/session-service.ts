@@ -1173,6 +1173,44 @@ export async function requestSpeak(
   return { participant: data as LiveParticipantRow };
 }
 
+export async function lowerHand(
+  sessionId: string,
+  userId: string
+): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+
+  const existing = await getParticipant(sessionId, userId);
+  if (!existing || existing.status === "left" || existing.status === "removed") {
+    return { error: "Join the live session first", status: 403 };
+  }
+  if (!existing.hand_raised && existing.status !== "requested") {
+    return { participant: existing };
+  }
+
+  const nextStatus =
+    existing.status === "requested" &&
+    existing.role !== "host" &&
+    existing.role !== "cohost" &&
+    existing.role !== "speaker"
+      ? "joined"
+      : existing.status;
+
+  const { data, error } = await db()
+    .from("live_session_participants")
+    .update({
+      status: nextStatus,
+      hand_raised: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .select("*")
+    .single();
+  if (error || !data) return { error: error?.message ?? "Could not lower hand", status: 400 };
+  return { participant: data as LiveParticipantRow };
+}
+
 export async function acceptInvite(
   sessionId: string,
   userId: string

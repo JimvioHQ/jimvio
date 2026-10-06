@@ -38,8 +38,8 @@ export type RightTab =
 export const MODE_KEY = "jimvio-live-studio-mode";
 export const DRAWER_KEY = "jimvio-live-drawer-state";
 /** Bump when DrawerState shape changes — invalid/old persisted state resets safely.
- * v6: never restore Chat as open before Go Live. */
-export const DRAWER_STATE_VERSION = 6;
+ * v7: restore left/right panels after refresh when session is live (client gates pre-live). */
+export const DRAWER_STATE_VERSION = 7;
 export const LAYOUTS = ["Presentation", "Grid", "Screen Share", "Classroom"] as const;
 
 export const VALID_RIGHT_TABS: readonly RightTab[] = [

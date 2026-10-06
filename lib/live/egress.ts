@@ -1,6 +1,10 @@
 /**
  * LiveKit Egress → file/S3 → Cloudinary replay pipeline.
  * Survives browser close (server-side egress). Media transport only — roles verified by callers.
+ *
+ * LiveKit Cloud requires a cloud storage destination on EncodedFileOutput.output
+ * (S3 / Azure / GCP). A filepath-only EncodedFileOutput yields:
+ *   "request has missing or invalid field: output"
  */
 
 import {
@@ -31,7 +35,12 @@ export function createEgressClient(): EgressClient | null {
   return new EgressClient(hostUrlFromWs(url), key, secret);
 }
 
-function buildFileOutput(sessionId: string): EncodedFileOutput {
+export type EgressFileOutputResult =
+  | { ok: true; file: EncodedFileOutput; filepath: string }
+  | { ok: false; error: string };
+
+/** Build a valid LiveKit Cloud file output (S3-compatible storage required). */
+export function buildEgressFileOutput(sessionId: string): EgressFileOutputResult {
   const filepath = `jimvio/live/${sessionId}/${Date.now()}.mp4`;
   const bucket = process.env.LIVEKIT_EGRESS_S3_BUCKET?.trim();
   const accessKey = process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY?.trim();
@@ -39,29 +48,31 @@ function buildFileOutput(sessionId: string): EncodedFileOutput {
   const region = process.env.LIVEKIT_EGRESS_S3_REGION?.trim() || "auto";
   const endpoint = process.env.LIVEKIT_EGRESS_S3_ENDPOINT?.trim();
 
-  if (bucket && accessKey && secret) {
-    return new EncodedFileOutput({
-      fileType: EncodedFileType.MP4,
-      filepath,
-      output: {
-        case: "s3",
-        value: new S3Upload({
-          accessKey,
-          secret,
-          bucket,
-          region,
-          endpoint: endpoint || undefined,
-          forcePathStyle: Boolean(endpoint),
-        }),
-      },
-    });
+  if (!bucket || !accessKey || !secret) {
+    return {
+      ok: false,
+      error:
+        "Recording storage is not configured. Set LIVEKIT_EGRESS_S3_BUCKET, LIVEKIT_EGRESS_S3_ACCESS_KEY, and LIVEKIT_EGRESS_S3_SECRET.",
+    };
   }
 
-  // LiveKit Cloud default storage (when project egress storage is configured in dashboard)
-  return new EncodedFileOutput({
+  const file = new EncodedFileOutput({
     fileType: EncodedFileType.MP4,
     filepath,
+    output: {
+      case: "s3",
+      value: new S3Upload({
+        accessKey,
+        secret,
+        bucket,
+        region,
+        endpoint: endpoint || undefined,
+        forcePathStyle: Boolean(endpoint),
+      }),
+    },
   });
+
+  return { ok: true, file, filepath };
 }
 
 export async function startSessionEgress(input: {
@@ -72,6 +83,11 @@ export async function startSessionEgress(input: {
   const client = createEgressClient();
   if (!client) {
     return { error: "LiveKit Egress is not configured", status: 503 };
+  }
+
+  const fileOut = buildEgressFileOutput(input.sessionId);
+  if (!fileOut.ok) {
+    return { error: fileOut.error, status: 503 };
   }
 
   const db = createServiceRoleClient();
@@ -108,9 +124,10 @@ export async function startSessionEgress(input: {
 
   try {
     const roomName = liveKitRoomName(input.sessionId);
+    // EncodedOutputs.file form → fileOutputs[] + valid EncodedFileOutput.output (S3).
     const info: EgressInfo = await client.startRoomCompositeEgress(
       roomName,
-      buildFileOutput(input.sessionId),
+      { file: fileOut.file },
       { layout: "speaker" }
     );
 

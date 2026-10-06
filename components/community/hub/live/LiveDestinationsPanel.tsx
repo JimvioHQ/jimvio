@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
+import Image from "next/image";
 import { UGCPlatformIcon } from "@/components/ugc/workspace/UGCPlatformMarks";
 import {
   isUserVisibleLiveDestination,
@@ -185,10 +186,24 @@ function PlatformGlyph({
   theme: Theme;
 }) {
   if (platform === "jimvio") {
-    return <span className={theme.iconJimvio}>JV</span>;
+    return (
+      <span
+        className={theme.iconJimvio}
+        aria-label="Jimvio"
+        title="Jimvio"
+      >
+        <Image
+          src="/jimvio-logo-mark.png"
+          alt=""
+          width={18}
+          height={18}
+          className="h-[18px] w-[18px] rounded-[4px] object-cover"
+        />
+      </span>
+    );
   }
   return (
-    <span className={theme.iconShell} aria-hidden>
+    <span className={theme.iconShell} aria-label={platform} title={platform}>
       <UGCPlatformIcon platform={platform} className="h-4 w-4" />
     </span>
   );

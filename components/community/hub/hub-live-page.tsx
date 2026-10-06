@@ -332,23 +332,47 @@ export function HubLivePage({
     );
   }, []);
 
-  /* After Go Live: Chat is the default side panel (Settings stay closed). */
+  /* Pre-live: never keep Chat / post-live panels open. After Go Live, open Chat once
+   * unless a restored panel (people/destinations/settings/analytics) was already open. */
   const chatOpenedForSession = useRef<string | null>(null);
   useEffect(() => {
     const sid = live.session?.status === "live" ? live.session.id : null;
     if (!sid) {
       chatOpenedForSession.current = null;
-      setDrawer((prev) => (prev.rightOpen ? { ...prev, rightOpen: false } : prev));
+      setDrawer((prev) => {
+        if (!prev.rightOpen && prev.leftPanel === "none") return prev;
+        const next: DrawerState = {
+          ...prev,
+          rightOpen: false,
+          leftPanel:
+            prev.leftPanel === "destinations" || prev.leftPanel === "settings"
+              ? prev.leftPanel
+              : "none",
+        };
+        writeDrawerState(next);
+        return next;
+      });
       return;
     }
     if (chatOpenedForSession.current === sid) return;
     chatOpenedForSession.current = sid;
-    updateDrawer({
-      leftPanel: "none",
-      rightOpen: true,
-      rightTab: "chat",
+    setDrawer((prev) => {
+      const hasRestoredPanel =
+        prev.leftPanel === "people" ||
+        prev.leftPanel === "destinations" ||
+        prev.leftPanel === "settings" ||
+        (prev.rightOpen && prev.rightTab === "analytics");
+      if (hasRestoredPanel) return prev;
+      const next: DrawerState = {
+        ...prev,
+        leftPanel: "none",
+        rightOpen: true,
+        rightTab: "chat",
+      };
+      writeDrawerState(next);
+      return next;
     });
-  }, [live.session?.id, live.session?.status, updateDrawer]);
+  }, [live.session?.id, live.session?.status]);
 
   /* Prefetch host/self profile so prepare stage shows the real avatar. */
   useEffect(() => {
@@ -531,10 +555,7 @@ export function HubLivePage({
   }, [media.sharing]);
 
   const [pendingInvite, setPendingInvite] = useState(false);
-  const [inviteUserId, setInviteUserId] = useState("");
-  const [inviteRole, setInviteRole] = useState<"speaker" | "cohost" | "moderator" | "viewer">(
-    "speaker"
-  );
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const invitePromptedRef = useRef(false);
   const wasPublishableRef = useRef<boolean | null>(null);
   useEffect(() => {
@@ -813,12 +834,6 @@ export function HubLivePage({
     setShareOpen(false);
     setFocusMode(false);
   }, [updateDrawer]);
-
-  useEffect(() => {
-    if (drawer.rightTab !== "chat") {
-      updateDrawer({ rightTab: "chat" });
-    }
-  }, [drawer.rightTab, updateDrawer]);
 
   const gate = useCallback(
     (allowed: boolean, message: string) => {
@@ -1423,6 +1438,57 @@ export function HubLivePage({
   ]);
 
   const analytics = data?.analytics;
+
+  const liveMetrics = useMemo(() => {
+    const joined = live.participants.filter((p) => p.status === "joined");
+    const destStatuses = destinations.sessionStatuses ?? [];
+    return {
+      currentViewers: live.viewerCount || analytics?.liveViewers || analytics?.viewers || 0,
+      peakViewers: live.session?.peak_viewers ?? analytics?.peakViewers ?? 0,
+      sessionDurationSeconds: elapsed,
+      participants: joined.length,
+      messages: liveChat.messages.length,
+      reactions:
+        typeof live.session?.engagement_events === "number"
+          ? live.session.engagement_events
+          : analytics?.likes ?? 0,
+      raisedHands: live.participants.filter(
+        (p) => p.hand_raised || p.status === "requested"
+      ).length,
+      cameraOnCount: joined.filter((p) => p.cam_on).length,
+      microphoneOnCount: joined.filter((p) => p.mic_on).length,
+      screenSharing: media.sharing || joined.some((p) => p.sharing),
+      destinationsLive: destStatuses.filter((s) => s.status === "live").length,
+      destinationsConnected: destStatuses.filter(
+        (s) => s.status === "live" || s.status === "ready"
+      ).length,
+      recordingStatus: egressRecording
+        ? ("recording" as const)
+        : recordingBusy
+          ? ("ending" as const)
+          : ("none" as const),
+      joinEvents: live.presenceEvents.filter((e) => e.kind === "join").length,
+      leaveEvents: live.presenceEvents.filter((e) => e.kind === "leave").length,
+      watchTimeMinutes:
+        typeof live.session?.total_watch_seconds === "number"
+          ? Math.round(live.session.total_watch_seconds / 60)
+          : analytics?.watchTimeMinutes ?? null,
+    };
+  }, [
+    live.participants,
+    live.viewerCount,
+    live.session?.peak_viewers,
+    live.session?.total_watch_seconds,
+    live.session?.engagement_events,
+    live.presenceEvents,
+    liveChat.messages.length,
+    destinations.sessionStatuses,
+    elapsed,
+    analytics,
+    egressRecording,
+    recordingBusy,
+    media.sharing,
+  ]);
   const session = data?.session ?? {
     title: "Start your Live",
     host: "Jimvio",
@@ -1595,32 +1661,16 @@ export function HubLivePage({
           }
         : undefined,
       canManage: canManagePeople,
-      inviteValue: inviteUserId,
-      onInviteValue: setInviteUserId,
-      inviteRole,
-      onInviteRole: (v: string) => {
-        if (v === "speaker" || v === "cohost" || v === "moderator" || v === "viewer") {
-          setInviteRole(v);
+      participantCount: peopleList.length,
+      onInvite: () => {
+        if (!live.session?.id) {
+          showToast("No live session to share");
+          return;
         }
+        setShareOpen(true);
+        updateDrawer({ leftPanel: "none", rightOpen: false });
+        setFocusMode(false);
       },
-      onInvite: canManagePeople
-        ? () => {
-            const id = inviteUserId.trim();
-            if (!id) {
-              showToast("Enter a user id to invite");
-              return;
-            }
-            void live
-              .invite(id, inviteRole)
-              .then(() => {
-                setInviteUserId("");
-                showToast(`Invite sent (${inviteRole})`);
-              })
-              .catch((e) =>
-                showToast(e instanceof Error ? e.message : "Invite failed")
-              );
-          }
-        : undefined,
       onAdmitAllWaiting: canAcceptSpeaker(live.myRole)
         ? () => {
             void live
@@ -1680,9 +1730,9 @@ export function HubLivePage({
     peopleQuery,
     pendingHandRaises,
     waitingRoomList,
-    inviteUserId,
-    inviteRole,
+    live.session?.id,
     showToast,
+    updateDrawer,
     router,
   ]);
   const discussionHref =
@@ -1830,8 +1880,8 @@ export function HubLivePage({
           toggleLeft("settings");
           break;
         case "reactions":
-          if (live.session?.id) void live.react("❤️");
-          showToast("Reaction sent");
+          setReactionPickerOpen(true);
+          setLiveNavOpen(false);
           break;
         case "analytics":
           openRight("analytics");
@@ -1880,7 +1930,8 @@ export function HubLivePage({
   }, [online, livekit.connectionState, connection, hasSession]);
 
   // Reference layout: stage + right contextual panel — hide left icon rail during Live.
-  const showLeftRail = !focusMode && !hasSession;
+  /* Left context rail removed — dock + More own Participants/Chat/Settings. */
+  const showLeftRail = false;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
   const showRight = !focusMode && hasSession;
   const displayTitle =
@@ -2060,6 +2111,45 @@ export function HubLivePage({
             "Recording is not available for your role."
           : null
       }
+      profileName={
+        selfProfile?.name ||
+        live.participants.find((p) => p.user_id === live.userId)?.display_name ||
+        "You"
+      }
+      profileAvatarUrl={
+        selfProfile?.avatar_url ??
+        live.participants.find((p) => p.user_id === live.userId)?.avatar_url ??
+        null
+      }
+      onSaveProfile={
+        live.userId
+          ? async ({ displayName, avatarUrl }) => {
+              const res = await fetch("/api/identity/update", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  fullName: displayName,
+                  ...(avatarUrl ? { avatarUrl } : {}),
+                }),
+              });
+              const json = (await res.json().catch(() => ({}))) as {
+                error?: string;
+                saved?: boolean;
+              };
+              if (!res.ok || json.saved === false) {
+                throw new Error(json.error ?? "Could not save profile");
+              }
+              setSelfProfile({
+                name: displayName,
+                avatar_url: avatarUrl ?? selfProfile?.avatar_url ?? null,
+              });
+              if (live.session?.id) {
+                await live.refresh(live.session.id);
+              }
+              showToast("Profile updated");
+            }
+          : undefined
+      }
     />
   );
 
@@ -2077,33 +2167,46 @@ export function HubLivePage({
     );
   }
 
-  if (!live.authReady && sessionIdProp) {
+  if ((!live.authReady && sessionIdProp) || loading) {
     return (
       <div
-        className={cn("flex min-h-[100dvh] items-center justify-center bg-[#F8FAFC]")}
+        className={cn(
+          "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col bg-[#F8FAFC]",
+          LIVE_PAGE_BG
+        )}
         role="status"
         aria-live="polite"
         aria-busy="true"
       >
-        <Loader2 className="h-5 w-5 animate-spin text-neutral-400" aria-hidden />
-        <span className="sr-only">Checking session</span>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div
-        className={cn("flex min-h-[calc(100vh-56px)] items-center justify-center", LIVE_PAGE_BG)}
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-      >
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-40 w-full max-w-md animate-pulse rounded-2xl bg-neutral-200/70" />
-          <Loader2 className="h-4 w-4 animate-spin text-neutral-300" aria-hidden />
-          <span className="sr-only">Loading live studio</span>
+        <div className="flex shrink-0 items-center gap-3 border-b border-neutral-200/80 bg-white px-4 py-3">
+          <div className="h-9 w-9 animate-pulse rounded-full bg-neutral-200" />
+          <div className="h-4 w-40 animate-pulse rounded bg-neutral-200" />
+          <div className="ml-auto h-9 w-24 animate-pulse rounded-full bg-neutral-200" />
         </div>
+        <div className="flex min-h-0 flex-1 gap-0">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="relative m-3 flex-1 animate-pulse rounded-2xl bg-neutral-200/70" />
+            <div className="flex items-center justify-center gap-3 px-4 pb-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-12 w-12 animate-pulse rounded-full bg-neutral-200"
+                />
+              ))}
+            </div>
+          </div>
+          {drawer.rightOpen || drawer.leftPanel !== "none" ? (
+            <div className="hidden w-[320px] shrink-0 border-l border-neutral-200 bg-white p-4 md:block">
+              <div className="mb-4 h-4 w-28 animate-pulse rounded bg-neutral-200" />
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-10 animate-pulse rounded-xl bg-neutral-100" />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <span className="sr-only">Loading live studio</span>
       </div>
     );
   }
@@ -2546,7 +2649,7 @@ export function HubLivePage({
                   onMore={openMore}
                   moreOpen={liveNavOpen}
                   onReact={() => {
-                    if (live.session?.id) void live.react("❤️");
+                    setReactionPickerOpen(true);
                   }}
                   onCopyLink={openShareSheet}
                   onFullscreen={() => setFocusMode(true)}
@@ -2824,11 +2927,21 @@ export function HubLivePage({
                       }}
                       onRaiseHand={async () => {
                         try {
-                          await live.requestSpeak();
-                          showToast("Hand raised — waiting for host");
+                          const me = live.participants.find(
+                            (p) => p.user_id === live.userId
+                          );
+                          const raised =
+                            me?.hand_raised === true || me?.status === "requested";
+                          if (raised) {
+                            await live.lowerHand();
+                            showToast("Hand lowered");
+                          } else {
+                            await live.requestSpeak();
+                            showToast("Hand raised — waiting for host");
+                          }
                         } catch (e) {
                           showToast(
-                            e instanceof Error ? e.message : "Could not raise hand"
+                            e instanceof Error ? e.message : "Could not update hand"
                           );
                         }
                       }}
@@ -2946,7 +3059,9 @@ export function HubLivePage({
                   related={data?.relatedRooms ?? []}
                 />
               )}
-              {drawer.rightTab === "analytics" && <AnalyticsPanel analytics={analytics} />}
+              {drawer.rightTab === "analytics" && (
+                <AnalyticsPanel analytics={analytics} liveMetrics={liveMetrics} />
+              )}
             </div>
             </div>
           </aside>
@@ -2987,6 +3102,61 @@ export function HubLivePage({
         onEndLive={() => setConfirmDialog("end")}
         onLeave={() => setConfirmDialog("leave")}
       />
+
+      {reactionPickerOpen ? (
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/30 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Reactions"
+          onClick={() => setReactionPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="mb-3 text-[13px] font-semibold text-[#111827]">Reactions</p>
+            <div className="flex flex-wrap gap-2">
+              {["👍", "❤️", "🔥", "👏", "😂", "🙌", "🎉", "😍", "😮", "😢", "💯"].map(
+                (emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="rounded-xl bg-[#F3F4F6] px-3 py-2 text-xl hover:bg-[#EBEDEF]"
+                    aria-label={`React ${emoji}`}
+                    onClick={() => {
+                      if (!live.session?.id) {
+                        showToast("Start Live to react");
+                        return;
+                      }
+                      void live
+                        .react(emoji)
+                        .then(() => {
+                          showToast(`${emoji} sent`);
+                          setReactionPickerOpen(false);
+                        })
+                        .catch((e) =>
+                          showToast(
+                            e instanceof Error ? e.message : "Reaction failed"
+                          )
+                        );
+                    }}
+                  >
+                    {emoji}
+                  </button>
+                )
+              )}
+            </div>
+            <button
+              type="button"
+              className="mt-4 w-full rounded-xl px-3 py-2 text-[12px] font-semibold text-neutral-600 hover:bg-neutral-50"
+              onClick={() => setReactionPickerOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <LiveConfirmDialog
         open={confirmDialog === "end"}

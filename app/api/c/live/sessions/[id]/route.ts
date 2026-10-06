@@ -20,6 +20,7 @@ import {
   listLivePolls,
   listParticipants,
   listSessionRecordings,
+  lowerHand,
   muteParticipant,
   rejectSpeaker,
   removeSpeaker,
@@ -182,6 +183,11 @@ export async function POST(
     }
     case "request": {
       const result = await requestSpeak(id, user.id);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "lower-hand": {
+      const result = await lowerHand(id, user.id);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

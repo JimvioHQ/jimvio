@@ -80,16 +80,16 @@ export function readDrawerState(): DrawerState {
     const leftPanelRaw: LeftPanel = isLeftPanel(parsed.leftPanel)
       ? parsed.leftPanel
       : DEFAULT_DRAWER.leftPanel;
-    // Never restore Settings as the default landing panel.
-    const leftPanel: LeftPanel =
-      leftPanelRaw === "settings" ? "none" : leftPanelRaw;
+    // Settings is host-managed; restoring it after refresh is allowed when user had it open.
+    const leftPanel: LeftPanel = leftPanelRaw;
     const rightWidth =
       typeof parsed.rightWidth === "number" &&
       parsed.rightWidth >= 240 &&
       parsed.rightWidth <= 560
         ? parsed.rightWidth
         : DEFAULT_DRAWER.rightWidth;
-    const rightOpen = false;
+    // Persist open state; HubLivePage forces closed when session is not live.
+    const rightOpen = Boolean(parsed.rightOpen);
     const chatScroll =
       typeof parsed.chatScroll === "number" && Number.isFinite(parsed.chatScroll)
         ? Math.max(0, parsed.chatScroll)
