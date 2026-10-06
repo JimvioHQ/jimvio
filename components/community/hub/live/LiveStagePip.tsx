@@ -43,7 +43,8 @@ export function LiveStagePipTile({
   onStopShare?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const showVideo = Boolean(stream && (camOn || sharing));
+  // PIP shows the participant camera only. Screen share always lives on the main stage.
+  const showVideo = Boolean(stream && camOn);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -55,7 +56,7 @@ export function LiveStagePipTile({
   return (
     <div
       className={cn(
-        "group relative w-[104px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] sm:w-[124px]",
+        "group relative w-[96px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] transition-[box-shadow,transform] duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200 sm:w-[120px]",
         (speaking || selected) && "ring-2 ring-[#FF5A1F]",
         sharing && "ring-2 ring-[#7C3AED]/70"
       )}
@@ -76,8 +77,7 @@ export function LiveStagePipTile({
             playsInline
             muted
             className={cn(
-              "absolute inset-0 h-full w-full",
-              sharing ? "object-contain bg-[#0B1220]" : "object-cover"
+              "absolute inset-0 h-full w-full object-cover"
             )}
             aria-hidden
           />
@@ -192,7 +192,7 @@ export function LiveStagePipStack({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-3 right-3 z-[5] flex max-h-[78%] flex-col-reverse items-end gap-2 overflow-y-auto sm:bottom-4 sm:right-4",
+        "pointer-events-none absolute bottom-[4.75rem] right-2 z-[5] flex max-h-[62%] flex-col-reverse items-end gap-2 overflow-y-auto sm:bottom-4 sm:right-4 sm:max-h-[78%]",
         "pb-[env(safe-area-inset-bottom)]",
         className
       )}

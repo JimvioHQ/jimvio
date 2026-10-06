@@ -55,6 +55,30 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.doesNotMatch(page, /LiveParticipantGallery/);
   });
 
+  it("screen share becomes main stage while sharer camera stays in PIP", () => {
+    const room = read("lib/live/livekit-room.ts");
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const pip = read("components/community/hub/live/LiveStagePip.tsx");
+    const layout = read("lib/live/stage-share-layout.ts");
+    assert.match(room, /activeScreenShareIdentity/);
+    assert.match(room, /lastRemoteScreenIdentity/);
+    assert.match(room, /selectStageShareLayout/);
+    assert.match(layout, /SCREEN SHARE > CAMERA/);
+    assert.match(page, /activeScreenShareIdentity/);
+    assert.match(page, /Never put the screen track in PIP/);
+    assert.match(pip, /stream && camOn/);
+    assert.doesNotMatch(pip, /camOn \|\| sharing/);
+  });
+
+  it("livekit stage promotes active screen share over host camera", () => {
+    const room = read("lib/live/livekit-room.ts");
+    const layout = read("lib/live/stage-share-layout.ts");
+    assert.match(room, /selectStageShareLayout/);
+    assert.match(room, /localSharing/);
+    assert.match(layout, /SCREEN SHARE > CAMERA/);
+    assert.match(layout, /activeScreenShareIdentity/);
+  });
+
   it("screen share capability uses getDisplayMedia without UA blacklist", () => {
     const cap = read("lib/live/screen-share-capability.ts");
     assert.match(cap, /getDisplayMedia/);
@@ -63,15 +87,6 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.doesNotMatch(cap, /if\s*\(.*Android/);
     assert.doesNotMatch(cap, /userAgent.*Safari/);
     assert.match(cap, /does not provide screen capture/);
-  });
-
-  it("livekit stage does not auto-promote guest screen share", () => {
-    const room = read("lib/live/livekit-room.ts");
-    assert.match(room, /stagePinIdentity/);
-    assert.doesNotMatch(
-      room,
-      /remotes\.find\(\(r\) => r\.screenStream\)\?\.screenStream/
-    );
   });
 
   it("sticky Not found banner is suppressed while session is live", () => {

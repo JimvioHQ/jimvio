@@ -60,3 +60,5 @@ scripts/tmp/*-results.*
 scripts/tmp/smoke-auth*
 
 /lib/generated/prisma
+
+.env.livekit.local

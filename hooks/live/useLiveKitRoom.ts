@@ -15,6 +15,7 @@ const INITIAL: LiveKitRoomSnapshot = {
   error: null,
   remotes: [],
   stageStream: null,
+  activeScreenShareIdentity: null,
   activeSpeakerId: null,
   resyncGeneration: 0,
 };
@@ -127,15 +128,18 @@ export function useLiveKitRoom(opts: {
     void transportRef.current?.syncScreenShare(shareStream, sharing);
   }, [shareStream, sharing, snap.connected, snap.resyncGeneration]);
 
-  /* Stage composition: local preview preferred for host; remotes for viewers.
-     Mic-only must NOT attach an audio MediaStream to the video stage (black tile). */
+  /* Stage composition: local screen/camera preferred when hosting or while sharing.
+     Mic-only must NOT attach an audio MediaStream to the video stage (black tile).
+     Screen share always becomes the local stage preview so the shared screen stays
+     main even if the sharer later enables their camera. */
   useEffect(() => {
     let localStage: MediaStream | null = null;
-    if (preferLocalStage) {
+    const wantLocal = preferLocalStage || sharing;
+    if (wantLocal) {
       if (sharing) localStage = shareStream ?? null;
       else if (camOn && localAvStream) localStage = localAvStream;
     }
-    transportRef.current?.setPreferLocalStage(preferLocalStage);
+    transportRef.current?.setPreferLocalStage(wantLocal);
     transportRef.current?.setLocalPreview(localStage);
   }, [preferLocalStage, sharing, shareStream, localAvStream, camOn]);
 

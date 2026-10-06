@@ -241,22 +241,30 @@ export function HubLivePage({
   const camOn = media.camOn;
   const recording = media.recordingState === "recording" || media.recordingState === "paused";
   // Never feed mic-only MediaStreams into the video stage (black rectangle).
-  // Host/cohost own the main stage; guests stay in PIP even when cam/share is on.
-  const canPublishLocal =
-    live.myRole === "host" || live.myRole === "cohost";
+  // Active screen share always owns the main stage; cameras stay in PIP.
   const stageStream = (() => {
-    if (canPublishLocal && media.sharing) {
-      return livekit.stageStream ?? media.shareStream ?? null;
+    if (media.sharing && media.shareStream) {
+      return livekit.stageStream ?? media.shareStream;
     }
     const candidate =
       livekit.stageStream ??
-      (canPublishLocal && camOn ? media.previewStream : null);
+      ((live.myRole === "host" || live.myRole === "cohost") && camOn
+        ? media.previewStream
+        : null);
     if (!candidate) return null;
     const hasLiveVideo = candidate
       .getVideoTracks()
       .some((t) => t.readyState === "live" && t.enabled && !t.muted);
     return hasLiveVideo ? candidate : null;
   })();
+
+  const activeScreenShareIdentity = (() => {
+    if (media.sharing && live.userId) return live.userId;
+    if (livekit.activeScreenShareIdentity) return livekit.activeScreenShareIdentity;
+    const remoteSharer = livekit.remotes.find((r) => r.sharing);
+    return remoteSharer?.identity ?? null;
+  })();
+  const screenShareActive = Boolean(activeScreenShareIdentity);
 
   const loadDashboard = useCallback(async (opts?: { soft?: boolean }) => {
     const soft = Boolean(opts?.soft);
@@ -1999,21 +2007,25 @@ export function HubLivePage({
     session.host;
   const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
 
-  /** Camera/share streams for PIP tiles — remotes + local guest. */
+  /** Camera streams for PIP tiles — screen share stays on the main stage. */
   const participantStreams = useMemo(() => {
     const map: Record<string, MediaStream | null> = {};
     for (const r of livekit.remotes) {
-      map[r.identity] = r.sharing && r.screenStream ? r.screenStream : r.cameraStream;
+      // Never put the screen track in PIP; sharer's camera (or avatar) belongs there.
+      map[r.identity] = r.cameraStream;
     }
     if (live.userId) {
-      const isHostSelf = live.userId === hostUserId;
-      if (media.sharing && media.shareStream) {
-        map[live.userId] = media.shareStream;
-      } else if (media.camOn && media.cameraStream) {
+      if (media.camOn && media.cameraStream) {
         map[live.userId] = media.cameraStream;
-      } else if (isHostSelf && media.previewStream) {
-        // Host may appear in PIP when a guest is promoted to stage.
+      } else if (
+        live.userId === hostUserId &&
+        media.previewStream &&
+        !media.sharing
+      ) {
+        // Host may appear in PIP when a guest is promoted to stage (no local share).
         map[live.userId] = media.previewStream;
+      } else {
+        map[live.userId] = null;
       }
     }
     return map;
@@ -2024,7 +2036,6 @@ export function HubLivePage({
     media.camOn,
     media.cameraStream,
     media.sharing,
-    media.shareStream,
     media.previewStream,
   ]);
 
@@ -2037,16 +2048,63 @@ export function HubLivePage({
     ).stage_focus;
     const pinnedId =
       typeof stageFocus?.identity === "string" ? stageFocus.identity : null;
-    // When a guest is on stage, host appears in the PIP stack.
-    if (pinnedId && pinnedId !== hostUserId && hostUserId) {
+    const sharerId = activeScreenShareIdentity;
+
+    // When a guest is Move-to-Stage pinned and nobody is screen-sharing, host enters PIP.
+    if (pinnedId && pinnedId !== hostUserId && hostUserId && !sharerId) {
       const hostPerson = source.find((p) => p.id === hostUserId);
       const guests = source.filter(
         (p) => p.id !== hostUserId && p.id !== pinnedId
       );
       return hostPerson ? [hostPerson, ...guests] : guests;
     }
-    return source.filter((p) => p.id !== hostUserId);
-  }, [peopleList, speakers, hostUserId, live.session?.settings]);
+
+    // Screen sharer always gets a PIP (camera/avatar) while their screen owns main.
+    const others = source.filter((p) => {
+      if (p.id === sharerId) return false;
+      if (p.id === hostUserId && !sharerId) return false;
+      return true;
+    });
+    if (sharerId) {
+      const sharerPerson = source.find((p) => p.id === sharerId);
+      if (sharerPerson) return [sharerPerson, ...others];
+      // Sharer may only exist in LiveKit remotes / self — synthesize minimal tile.
+      if (sharerId === live.userId) {
+        return [
+          {
+            id: sharerId,
+            name: selfProfile?.name ?? "You",
+            avatar_url: selfProfile?.avatar_url ?? null,
+            role: "speaker",
+          },
+          ...others,
+        ];
+      }
+      const remote = livekit.remotes.find((r) => r.identity === sharerId);
+      if (remote) {
+        return [
+          {
+            id: sharerId,
+            name: remote.name,
+            avatar_url: null,
+            role: "speaker",
+          },
+          ...others,
+        ];
+      }
+    }
+    return others;
+  }, [
+    peopleList,
+    speakers,
+    hostUserId,
+    live.session?.settings,
+    activeScreenShareIdentity,
+    live.userId,
+    selfProfile?.name,
+    selfProfile?.avatar_url,
+    livekit.remotes,
+  ]);
 
   const participantCountLabel = useMemo(() => {
     const joined = live.participants.filter((p) => p.status === "joined").length;
@@ -2540,10 +2598,17 @@ export function HubLivePage({
               <StageMediaPreview
                 stream={stageStream}
                 cover={
-                  !(media.sharing || livekit.remotes.some((r) => r.sharing)) &&
-                  Boolean(stageStream)
+                  !screenShareActive && Boolean(stageStream)
                 }
               />
+              {screenShareActive ? (
+                <div className="pointer-events-none absolute left-3 top-3 z-[4]">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/55 px-2 py-1 text-[10px] font-semibold text-white shadow-sm backdrop-blur-md">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#A78BFA]" aria-hidden />
+                    Screen
+                  </span>
+                </div>
+              ) : null}
               {media.sharing && !screenShareBannerHidden ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-[5.5rem] z-[3] flex justify-center px-3 sm:bottom-24">
                   <div
@@ -2714,15 +2779,25 @@ export function HubLivePage({
                             onMoveToStage={
                               canManageStage
                                 ? () => {
+                                    // While any screen share is active, keep screen as main stage.
+                                    // Camera "Move to Stage" would incorrectly replace the shared screen.
+                                    if (screenShareActive && !sharing) {
+                                      showToast(
+                                        "Screen share stays on stage — use View Full for their camera"
+                                      );
+                                      return;
+                                    }
                                     void live
                                       .setStageFocus({
                                         identity: p.id,
-                                        kind: sharing ? "screen" : "participant",
+                                        kind: sharing || screenShareActive
+                                          ? "screen"
+                                          : "participant",
                                       })
                                       .then(() =>
                                         showToast(
-                                          sharing
-                                            ? "Screen moved to stage"
+                                          sharing || screenShareActive
+                                            ? "Screen featured on stage"
                                             : "Moved to stage"
                                         )
                                       )

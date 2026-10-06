@@ -14,6 +14,7 @@ import {
   type Participant,
 } from "livekit-client";
 import type { LiveStageRole } from "@/lib/live/roles";
+import { selectStageShareLayout } from "@/lib/live/stage-share-layout";
 
 export type LiveKitRemoteMedia = {
   identity: string;
@@ -35,8 +36,13 @@ export type LiveKitRoomSnapshot = {
   roomName: string | null;
   error: string | null;
   remotes: LiveKitRemoteMedia[];
-  /** Prefer screen share, else first camera among remotes / local. */
+  /**
+   * Dominant stage media. Active screen share always wins over cameras so the
+   * shared screen stays main while the sharer's camera stays in PIP.
+   */
   stageStream: MediaStream | null;
+  /** Identity of the participant whose screen is currently on the main stage. */
+  activeScreenShareIdentity: string | null;
   activeSpeakerId: string | null;
   /** Bumps after LiveKit auto-reconnect so publishers re-sync tracks. */
   resyncGeneration: number;
@@ -136,10 +142,14 @@ export class LiveKitRoomTransport {
   private disposed = false;
   private localPreview: MediaStream | null = null;
   private preferLocalStage = false;
-  /** Session host user id — stage always prioritizes this participant for viewers. */
+  /** True while this client is publishing a live screen-share track. */
+  private localSharing = false;
+  /** Session host user id — stage prioritizes this participant for cameras. */
   private hostIdentity: string | null = null;
   /** Host-promoted participant identity (Move to Stage). Null = host owns stage. */
   private stagePinIdentity: string | null = null;
+  /** Most recently subscribed remote screen-share identity (handoff). */
+  private lastRemoteScreenIdentity: string | null = null;
   private resyncGeneration = 0;
   private remoteStreamCache = new Map<string, MediaStream>();
   private syncQueue: Promise<void> = Promise.resolve();
@@ -155,27 +165,22 @@ export class LiveKitRoomTransport {
     const hostRemote = this.hostIdentity
       ? remotes.find((r) => r.identity === this.hostIdentity)
       : null;
-    const stageFromRemote = (() => {
-      // Host (or explicitly pinned identity) owns the main stage by default.
-      // Guest camera / screen share must stay in PIP unless promoted.
-      const pinned =
-        this.stagePinIdentity
-          ? remotes.find((r) => r.identity === this.stagePinIdentity)
-          : null;
-      if (pinned?.screenStream) return pinned.screenStream;
-      if (pinned?.cameraStream) return pinned.cameraStream;
+    const localIdentity =
+      this.room?.localParticipant?.identity ?? this.hostIdentity;
 
-      return (
-        hostRemote?.screenStream ??
-        remotes.find((r) => r.role === "host" && r.screenStream)?.screenStream ??
-        remotes.find((r) => r.role === "cohost" && r.screenStream)?.screenStream ??
-        hostRemote?.cameraStream ??
-        remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
-        remotes.find((r) => r.role === "cohost" && r.cameraStream)?.cameraStream ??
-        null
-      );
-    })();
+    const layout = selectStageShareLayout({
+      remotes,
+      hostIdentity: this.hostIdentity,
+      stagePinIdentity: this.stagePinIdentity,
+      localSharing: this.localSharing,
+      localPreview: this.localPreview,
+      localIdentity,
+      preferLocalStage: this.preferLocalStage,
+      lastRemoteScreenIdentity: this.lastRemoteScreenIdentity,
+    });
+
     const active =
+      layout.activeScreenShareIdentity ??
       (this.hostIdentity && this.speakingIds.has(this.hostIdentity)
         ? this.hostIdentity
         : null) ??
@@ -185,14 +190,6 @@ export class LiveKitRoomTransport {
       remotes.find((r) => r.sharing || r.camOn)?.identity ??
       null;
 
-    // Pinned participant/screen wins over local host preview so Move to Stage works.
-    const stageStream =
-      this.stagePinIdentity && stageFromRemote
-        ? stageFromRemote
-        : this.preferLocalStage && this.localPreview
-          ? this.localPreview
-          : (stageFromRemote ?? this.localPreview);
-
     return {
       connected: this.room?.state === ConnectionState.Connected,
       connecting: this.connecting,
@@ -200,7 +197,8 @@ export class LiveKitRoomTransport {
       roomName: this.room?.name ?? null,
       error: this.error,
       remotes,
-      stageStream,
+      stageStream: layout.stageStream,
+      activeScreenShareIdentity: layout.activeScreenShareIdentity,
       activeSpeakerId: active,
       resyncGeneration: this.resyncGeneration,
     };
@@ -272,6 +270,8 @@ export class LiveKitRoomTransport {
     }
     this.speakingIds.clear();
     this.remoteStreamCache.clear();
+    this.localSharing = false;
+    this.lastRemoteScreenIdentity = null;
     this.emit();
   }
 
@@ -339,6 +339,7 @@ export class LiveKitRoomTransport {
       const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
       const audioTrack = stream?.getAudioTracks().find((t) => t.readyState === "live") ?? null;
       let changed = false;
+      const nextLocalSharing = Boolean(sharing && videoTrack);
 
       if (sharing && videoTrack) {
         if (!this.publishedScreen || this.publishedScreen.mediaStreamTrack !== videoTrack) {
@@ -377,6 +378,11 @@ export class LiveKitRoomTransport {
         changed = true;
       }
 
+      if (this.localSharing !== nextLocalSharing) {
+        this.localSharing = nextLocalSharing;
+        changed = true;
+      }
+
       if (changed) this.emit();
     });
   }
@@ -403,6 +409,7 @@ export class LiveKitRoomTransport {
       this.publishedMic = null;
       this.publishedScreen = null;
       this.publishedScreenAudio = null;
+      this.localSharing = false;
       return;
     }
     try {
@@ -417,6 +424,7 @@ export class LiveKitRoomTransport {
     this.publishedMic = null;
     this.publishedScreen = null;
     this.publishedScreenAudio = null;
+    this.localSharing = false;
   }
 
   private listRemotes(): LiveKitRemoteMedia[] {
@@ -430,14 +438,54 @@ export class LiveKitRoomTransport {
 
   private bindRoom(room: Room): void {
     const refresh = () => this.emit();
+    const pruneLastScreen = () => {
+      if (!this.lastRemoteScreenIdentity) return;
+      const still =
+        this.room?.remoteParticipants.get(this.lastRemoteScreenIdentity) ?? null;
+      if (!still) {
+        this.lastRemoteScreenIdentity = null;
+        return;
+      }
+      let hasScreen = false;
+      still.trackPublications.forEach((pub) => {
+        if (
+          pub.source === Track.Source.ScreenShare &&
+          pub.kind === Track.Kind.Video &&
+          pub.track &&
+          !pub.isMuted
+        ) {
+          hasScreen = true;
+        }
+      });
+      if (!hasScreen) this.lastRemoteScreenIdentity = null;
+    };
 
     room.on(RoomEvent.ConnectionStateChanged, refresh);
     room.on(RoomEvent.ParticipantConnected, refresh);
-    room.on(RoomEvent.ParticipantDisconnected, refresh);
-    room.on(RoomEvent.TrackSubscribed, () => {
+    room.on(RoomEvent.ParticipantDisconnected, (p) => {
+      if (p.identity === this.lastRemoteScreenIdentity) {
+        this.lastRemoteScreenIdentity = null;
+      }
       refresh();
     });
-    room.on(RoomEvent.TrackUnsubscribed, refresh);
+    room.on(RoomEvent.TrackSubscribed, (_track, pub, participant) => {
+      if (
+        pub.source === Track.Source.ScreenShare &&
+        pub.kind === Track.Kind.Video
+      ) {
+        this.lastRemoteScreenIdentity = participant.identity;
+      }
+      refresh();
+    });
+    room.on(RoomEvent.TrackUnsubscribed, (_track, pub, participant) => {
+      if (
+        pub.source === Track.Source.ScreenShare &&
+        participant.identity === this.lastRemoteScreenIdentity
+      ) {
+        pruneLastScreen();
+      }
+      refresh();
+    });
     room.on(RoomEvent.TrackPublished, refresh);
     room.on(RoomEvent.TrackMuted, refresh);
     room.on(RoomEvent.TrackUnmuted, refresh);
