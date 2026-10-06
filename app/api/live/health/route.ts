@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getLiveStudioEnvReport } from "@/lib/live/env";
+import { getEgressStorageReport, getLiveStudioEnvReport } from "@/lib/live/env";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +9,14 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const report = getLiveStudioEnvReport();
+  const egressStorage = getEgressStorageReport();
   return NextResponse.json(
     {
       ok: report.ok,
       service: "live_studio",
       missing: report.missing,
       present: report.present,
+      egressStorage,
       migrations: [
         "080_live_studio.sql (deprecated stub)",
         "081_live_recordings.sql (deprecated stub)",
@@ -22,7 +24,9 @@ export async function GET() {
         "083_live_recordings_repair.sql",
       ],
       hint: report.ok
-        ? "Infrastructure env present"
+        ? egressStorage.configured
+          ? "Infrastructure env present"
+          : "LiveKit ok; set LIVEKIT_EGRESS_S3_* for recording storage"
         : "Set missing secrets, apply migrations, configure LiveKit egress + webhook",
     },
     { status: report.ok ? 200 : 503 }

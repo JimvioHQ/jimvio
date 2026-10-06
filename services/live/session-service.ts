@@ -2036,6 +2036,7 @@ export function toPublicLiveRecording(row: Record<string, unknown>) {
     duration_seconds: typeof row.duration_seconds === "number" ? row.duration_seconds : null,
     created_at: typeof row.created_at === "string" ? row.created_at : null,
     failed: row.status === "failed",
+    error: typeof row.error === "string" ? row.error.slice(0, 300) : null,
   };
 }
 

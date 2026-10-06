@@ -289,6 +289,12 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
           failed: Boolean(error),
           hasLocation: Boolean(location),
           status: String(status),
+          error: error ? error.slice(0, 300) : null,
+          fileResults: info.fileResults?.length ?? 0,
+          hasFilename: Boolean(fileResult?.filename),
+          hasFileLocation: Boolean(fileResult?.location),
+          fileSize: fileResult?.size ? String(fileResult.size) : null,
+          egressError: info.error ? String(info.error).slice(0, 300) : null,
         });
       } else if (
         (status === EgressStatus.EGRESS_ACTIVE ||

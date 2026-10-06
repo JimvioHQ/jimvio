@@ -76,6 +76,48 @@ export function getLiveStudioEnvReport(): LiveStudioEnvReport {
   return { ok: missing.length === 0, missing, present, requireInfra };
 }
 
+/** Non-secret recording storage readiness (lengths only — never values). */
+export function getEgressStorageReport(): {
+  configured: boolean;
+  bucketPresent: boolean;
+  accessKeyPresent: boolean;
+  secretPresent: boolean;
+  regionPresent: boolean;
+  endpointPresent: boolean;
+  accessKeyLen: number;
+  secretLen: number;
+  region: string | null;
+  endpointHost: string | null;
+  forcePathStyle: boolean;
+} {
+  const bucket = trim(process.env.LIVEKIT_EGRESS_S3_BUCKET);
+  const accessKey = trim(process.env.LIVEKIT_EGRESS_S3_ACCESS_KEY);
+  const secret = trim(process.env.LIVEKIT_EGRESS_S3_SECRET);
+  const region = trim(process.env.LIVEKIT_EGRESS_S3_REGION);
+  const endpoint = trim(process.env.LIVEKIT_EGRESS_S3_ENDPOINT);
+  let endpointHost: string | null = null;
+  if (endpoint) {
+    try {
+      endpointHost = new URL(endpoint).host;
+    } catch {
+      endpointHost = "invalid_url";
+    }
+  }
+  return {
+    configured: Boolean(bucket && accessKey && secret),
+    bucketPresent: Boolean(bucket),
+    accessKeyPresent: Boolean(accessKey),
+    secretPresent: Boolean(secret),
+    regionPresent: Boolean(region),
+    endpointPresent: Boolean(endpoint),
+    accessKeyLen: accessKey.length,
+    secretLen: secret.length,
+    region: region || null,
+    endpointHost,
+    forcePathStyle: Boolean(endpoint),
+  };
+}
+
 export class LiveStudioEnvError extends Error {
   readonly missing: LiveStudioEnvKey[];
   constructor(missing: LiveStudioEnvKey[]) {
