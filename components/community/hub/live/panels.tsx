@@ -414,6 +414,7 @@ export function PeoplePanel({
   onPromote,
   onRemove,
   ui,
+  currentUserId,
 }: {
   speakers: Speaker[];
   viewers: number;
@@ -437,6 +438,7 @@ export function PeoplePanel({
   onPromote?: (id: string) => void;
   onRemove?: (id: string) => void;
   ui?: Record<string, SpeakerUi>;
+  currentUserId?: string | null;
 }) {
   const q = query.trim().toLowerCase();
   // People shows everyone — role filters stay internal for permissions only.
@@ -600,8 +602,10 @@ export function PeoplePanel({
                       ? "Viewer"
                       : s.role || "Member";
           const isHost = roleKey === "host";
+          const isYou = Boolean(currentUserId && s.id === currentUserId);
           const micOn = state?.micOn ?? false;
           const camOn = state?.camOn ?? false;
+          const sharing = Boolean(ui?.sharing);
           const connection = state?.connection ?? "good";
           const online =
             connection === "good" || connection === "warn" || Boolean(state);
@@ -640,12 +644,25 @@ export function PeoplePanel({
                 "flex min-w-0 flex-1 items-center gap-3 rounded-lg text-left",
                 FOCUS_RING
               )}
-              aria-label={`Open profile for ${s.name}, ${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
+              aria-label={`Open profile for ${s.name}, ${isYou ? "you, " : ""}${roleLabel}, ${presenceLabel}${micOn ? "" : ", muted"}${camOn ? "" : ", camera off"}`}
             >
               <HubAvatar name={s.name} src={s.avatar_url} size={36} />
               <div className="min-w-0 flex-1">
                 <p className="truncate whitespace-nowrap text-[13px] font-semibold text-neutral-900">
                   {s.name}
+                </p>
+                <p className="truncate text-[11px] text-neutral-400">
+                  {isYou ? (
+                    <span className="font-medium text-[#FF5A1F]">(You)</span>
+                  ) : (
+                    roleLabel
+                  )}
+                  {isYou ? (
+                    <span className="text-neutral-400"> · {roleLabel}</span>
+                  ) : null}
+                  {sharing ? (
+                    <span className="text-[#7C3AED]"> · Screen sharing</span>
+                  ) : null}
                 </p>
               </div>
             </button>

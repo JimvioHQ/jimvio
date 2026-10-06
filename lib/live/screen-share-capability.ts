@@ -88,7 +88,7 @@ export function detectScreenShareCapability(): ScreenShareCapability {
       hasDisplayMedia: false,
       secureContext: true,
       reason:
-        "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device.",
+        "This browser does not provide screen capture to web apps on this device.",
       supported: false,
     };
   }
@@ -156,14 +156,15 @@ export function classifyScreenShareError(err: unknown): ScreenShareStartError {
     // (or Permissions-Policy). Keep copy clear.
     return {
       code: "permission_denied",
-      message: "Screen sharing permission was denied.",
+      message:
+        "Screen sharing permission was denied. Allow screen capture and try again.",
       technical: `${name}: ${raw}`,
     };
   }
   if (name === "AbortError") {
     return {
       code: "aborted",
-      message: "Screen sharing was cancelled.",
+      message: "Screen sharing cancelled.",
       technical: `${name}: ${raw}`,
     };
   }
@@ -199,7 +200,7 @@ export function classifyScreenShareError(err: unknown): ScreenShareStartError {
     return {
       code: "unsupported",
       message:
-        "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device.",
+        "This browser does not provide screen capture to web apps on this device.",
       technical: `${name}: ${raw}`,
     };
   }

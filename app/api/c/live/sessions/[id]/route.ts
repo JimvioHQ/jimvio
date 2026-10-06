@@ -34,6 +34,8 @@ import {
   updateLiveTitle,
   updateParticipantPermissions,
   updateSelfMedia,
+  updateStageFocus,
+  forceParticipantMedia,
   voteLivePoll,
   type LiveChatSettings,
 } from "@/services/live/session-service";
@@ -61,6 +63,7 @@ type ActionBody = {
   enabled?: boolean;
   title?: string;
   permissions?: Partial<LiveParticipantPermissions>;
+  stageFocus?: { identity?: string | null; kind?: "default" | "participant" | "screen" };
 };
 
 export async function GET(
@@ -346,6 +349,33 @@ export async function POST(
         return NextResponse.json({ error: "permissions required" }, { status: 400 });
       }
       const result = await updateParticipantPermissions(id, user.id, body.permissions);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "stage-focus": {
+      const focus = body.stageFocus ?? {};
+      const identity =
+        focus.identity === null
+          ? null
+          : typeof focus.identity === "string"
+            ? focus.identity
+            : null;
+      const result = await updateStageFocus(id, user.id, {
+        identity,
+        kind: focus.kind,
+      });
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "force-media": {
+      if (!body.targetUserId) {
+        return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
+      }
+      const result = await forceParticipantMedia(id, user.id, body.targetUserId, {
+        ...(typeof body.micOn === "boolean" ? { mic_on: body.micOn } : {}),
+        ...(typeof body.camOn === "boolean" ? { cam_on: body.camOn } : {}),
+        ...(typeof body.sharing === "boolean" ? { sharing: body.sharing } : {}),
+      });
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

@@ -85,7 +85,7 @@ import {
   ScreenShareMenu,
 } from "@/components/community/live-collab";
 import { useLiveCollabStore } from "@/lib/community/live-collab";
-import { LiveParticipantGallery } from "./live/LiveParticipantGallery";
+import { LiveStagePipStack, LiveStagePipTile, LiveViewFullOverlay } from "./live/LiveStagePip";
 import {
   LEFT_TOOLS,
   RIGHT_TABS,
@@ -163,6 +163,10 @@ export function HubLivePage({
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
   const [screenShareBannerHidden, setScreenShareBannerHidden] = useState(false);
+  const [viewFull, setViewFull] = useState<{
+    name: string;
+    stream: MediaStream;
+  } | null>(null);
   const [hostSocial, setHostSocial] = useState<HostPublicSocial[]>([]);
   const [selfProfile, setSelfProfile] = useState<{
     name: string | null;
@@ -222,18 +226,26 @@ export function HubLivePage({
     shareStream: media.shareStream,
     sharing: media.sharing && canUseScreen,
     preferLocalStage:
-      live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker",
+      live.myRole === "host" || live.myRole === "cohost",
     hostIdentity: hostUserId,
+    stagePinIdentity: (() => {
+      const settings = (live.session?.settings ?? {}) as Record<string, unknown>;
+      const focus = settings.stage_focus as
+        | { identity?: string | null }
+        | undefined;
+      return typeof focus?.identity === "string" ? focus.identity : null;
+    })(),
   });
 
   const micOn = media.micOn;
   const camOn = media.camOn;
   const recording = media.recordingState === "recording" || media.recordingState === "paused";
   // Never feed mic-only MediaStreams into the video stage (black rectangle).
+  // Host/cohost own the main stage; guests stay in PIP even when cam/share is on.
   const canPublishLocal =
-    live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker";
+    live.myRole === "host" || live.myRole === "cohost";
   const stageStream = (() => {
-    if (media.sharing) {
+    if (canPublishLocal && media.sharing) {
       return livekit.stageStream ?? media.shareStream ?? null;
     }
     const candidate =
@@ -633,6 +645,19 @@ export function HubLivePage({
     participantPerms.allowScreenShare,
   ]);
 
+  /* Host force-stop share: remote participant.sharing flipped false while local still sharing. */
+  useEffect(() => {
+    if (!live.userId || !media.sharing) return;
+    const me = live.participants.find((p) => p.user_id === live.userId);
+    if (me && me.sharing === false) {
+      media.stopScreenShare();
+      setActivity("live");
+      setScreenShareBannerHidden(false);
+      showToast("Screen sharing was stopped.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to remote force-media
+  }, [live.participants, live.userId, media.sharing]);
+
   /* Host public social profiles for Destinations → Follow (no secrets). */
   useEffect(() => {
     if (!hostUserId) {
@@ -1016,7 +1041,7 @@ export function HubLivePage({
     if (!capability.canAttempt) {
       showToast(
         capability.reason ??
-          "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device."
+          "This browser does not provide screen capture to web apps on this device."
       );
       return;
     }
@@ -1597,6 +1622,7 @@ export function HubLivePage({
     return {
       speakers: peopleList,
       viewers: live.viewerCount || analytics?.liveViewers || 0,
+      currentUserId: live.userId,
       activeSpeakerId,
       onSelect: (id: string) => {
         setActiveSpeakerId(id);
@@ -1717,6 +1743,7 @@ export function HubLivePage({
     live.viewerCount,
     live.myRole,
     live.participants,
+    live.userId,
     live.accept,
     live.admit,
     live.admitAll,
@@ -1760,6 +1787,13 @@ export function HubLivePage({
       map[s.id] = {
         micOn: isSelf ? micOn : remote ? remote.micOn : liveP ? liveP.mic_on : false,
         camOn: isSelf ? camOn : remote ? remote.camOn : liveP ? liveP.cam_on : false,
+        sharing: isSelf
+          ? media.sharing
+          : remote
+            ? remote.sharing
+            : liveP
+              ? liveP.sharing
+              : false,
         handRaised: liveP?.hand_raised ?? false,
         connection: String(livekit.connectionState) === "reconnecting" ? "warn" : "good",
         role:
@@ -1781,6 +1815,7 @@ export function HubLivePage({
     peopleList,
     micOn,
     camOn,
+    media.sharing,
     activeSpeakerId,
     live.participants,
     live.userId,
@@ -1954,22 +1989,54 @@ export function HubLivePage({
     session.host;
   const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
 
-  /** Camera streams for gallery tiles — real LiveKit remotes + local if not host. */
+  /** Camera/share streams for PIP tiles — remotes + local guest. */
   const participantStreams = useMemo(() => {
     const map: Record<string, MediaStream | null> = {};
     for (const r of livekit.remotes) {
-      map[r.identity] = r.cameraStream;
+      map[r.identity] = r.sharing && r.screenStream ? r.screenStream : r.cameraStream;
     }
-    if (live.userId && live.userId !== hostUserId && media.camOn && media.cameraStream) {
-      map[live.userId] = media.cameraStream;
+    if (live.userId) {
+      const isHostSelf = live.userId === hostUserId;
+      if (media.sharing && media.shareStream) {
+        map[live.userId] = media.shareStream;
+      } else if (media.camOn && media.cameraStream) {
+        map[live.userId] = media.cameraStream;
+      } else if (isHostSelf && media.previewStream) {
+        // Host may appear in PIP when a guest is promoted to stage.
+        map[live.userId] = media.previewStream;
+      }
     }
     return map;
-  }, [livekit.remotes, live.userId, hostUserId, media.camOn, media.cameraStream]);
+  }, [
+    livekit.remotes,
+    live.userId,
+    hostUserId,
+    media.camOn,
+    media.cameraStream,
+    media.sharing,
+    media.shareStream,
+    media.previewStream,
+  ]);
 
   const galleryParticipants = useMemo(() => {
     const source = peopleList.length ? peopleList : speakers;
+    const stageFocus = (
+      (live.session?.settings ?? {}) as {
+        stage_focus?: { identity?: string | null };
+      }
+    ).stage_focus;
+    const pinnedId =
+      typeof stageFocus?.identity === "string" ? stageFocus.identity : null;
+    // When a guest is on stage, host appears in the PIP stack.
+    if (pinnedId && pinnedId !== hostUserId && hostUserId) {
+      const hostPerson = source.find((p) => p.id === hostUserId);
+      const guests = source.filter(
+        (p) => p.id !== hostUserId && p.id !== pinnedId
+      );
+      return hostPerson ? [hostPerson, ...guests] : guests;
+    }
     return source.filter((p) => p.id !== hostUserId);
-  }, [peopleList, speakers, hostUserId]);
+  }, [peopleList, speakers, hostUserId, live.session?.settings]);
 
   const participantCountLabel = useMemo(() => {
     const joined = live.participants.filter((p) => p.status === "joined").length;
@@ -2211,6 +2278,20 @@ export function HubLivePage({
     );
   }
 
+  // Status banners — only for true offline / unavailable-session cases.
+  // Sticky "Not found" must not cover a live session that is already mounted.
+  const showSessionBanner =
+    !focusMode &&
+    ((!online && !hasSession) ||
+      (Boolean(loadError) && !hasSession) ||
+      (Boolean(live.error) && !hasSession));
+  const showReconnectChip =
+    hasSession &&
+    !focusMode &&
+    (!online ||
+      String(livekit.connectionState) === "reconnecting" ||
+      connectionLabel === "Reconnecting");
+
   return (
     <div
       className={cn(
@@ -2218,8 +2299,7 @@ export function HubLivePage({
         hasSession ? "bg-[#F8FAFC] text-[#111827]" : "bg-[#F8FAFC] text-[#111827]"
       )}
     >
-      {/* Status banners — offline / load errors / session errors */}
-      {(!online || loadError || live.error) && !focusMode && (
+      {showSessionBanner && (
         <div
           role="alert"
           className="flex shrink-0 items-center justify-between gap-3 bg-neutral-900 px-4 py-2 text-[12px] text-white"
@@ -2228,7 +2308,9 @@ export function HubLivePage({
             {!online
               ? "You’re offline — reconnect to restore chat and controls."
               : live.error
-                ? live.error
+                ? live.error === "Not found"
+                  ? "Live session unavailable."
+                  : live.error
                 : loadError === "network"
                   ? "Couldn’t reach the live service."
                   : "Live data temporarily unavailable."}
@@ -2250,6 +2332,15 @@ export function HubLivePage({
           >
             Retry
           </button>
+        </div>
+      )}
+      {showReconnectChip && (
+        <div
+          role="status"
+          className="flex shrink-0 items-center justify-center gap-2 border-b border-amber-200/80 bg-amber-50 px-4 py-1.5 text-[12px] font-medium text-amber-900"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          Reconnecting…
         </div>
       )}
       {pendingInvite && hasSession && !focusMode && (
@@ -2568,6 +2659,129 @@ export function HubLivePage({
                       Exit Focus
                     </button>
                   )}
+
+                  {showSpeakers && galleryParticipants.length > 0 ? (
+                    <LiveStagePipStack>
+                      {galleryParticipants.map((p) => {
+                        const ui = speakerUi[p.id];
+                        const remote = livekit.remotes.find(
+                          (r) => r.identity === p.id
+                        );
+                        const isYou = p.id === live.userId;
+                        const sharing = Boolean(
+                          isYou ? media.sharing : ui?.sharing ?? remote?.sharing
+                        );
+                        const stream = participantStreams[p.id] ?? null;
+                        const canManageStage =
+                          live.myRole === "host" || live.myRole === "cohost";
+                        return (
+                          <LiveStagePipTile
+                            key={p.id}
+                            name={p.name}
+                            avatarUrl={p.avatar_url}
+                            stream={stream}
+                            camOn={Boolean(
+                              isYou ? camOn : ui?.camOn ?? remote?.camOn
+                            )}
+                            micOn={Boolean(
+                              isYou ? micOn : ui?.micOn ?? remote?.micOn
+                            )}
+                            sharing={sharing}
+                            isYou={isYou}
+                            speaking={Boolean(ui?.speaking)}
+                            selected={activeSpeakerId === p.id}
+                            canManage={canManageStage}
+                            onSelect={() => setActiveSpeakerId(p.id)}
+                            onViewFull={
+                              stream
+                                ? () =>
+                                    setViewFull({
+                                      name: p.name,
+                                      stream,
+                                    })
+                                : undefined
+                            }
+                            onMoveToStage={
+                              canManageStage
+                                ? () => {
+                                    void live
+                                      .setStageFocus({
+                                        identity: p.id,
+                                        kind: sharing ? "screen" : "participant",
+                                      })
+                                      .then(() =>
+                                        showToast(
+                                          sharing
+                                            ? "Screen moved to stage"
+                                            : "Moved to stage"
+                                        )
+                                      )
+                                      .catch((e) =>
+                                        showToast(
+                                          e instanceof Error
+                                            ? e.message
+                                            : "Could not move to stage"
+                                        )
+                                      );
+                                  }
+                                : undefined
+                            }
+                            onStopShare={
+                              canManageStage && sharing && !isYou
+                                ? () => {
+                                    void live
+                                      .forceMedia(p.id, { sharing: false })
+                                      .then(() =>
+                                        showToast("Asked to stop sharing")
+                                      )
+                                      .catch((e) =>
+                                        showToast(
+                                          e instanceof Error
+                                            ? e.message
+                                            : "Could not stop share"
+                                        )
+                                      );
+                                  }
+                                : canManageStage && sharing && isYou
+                                  ? () => stopShare()
+                                  : undefined
+                            }
+                          />
+                        );
+                      })}
+                    </LiveStagePipStack>
+                  ) : null}
+
+                  {viewFull ? (
+                    <LiveViewFullOverlay
+                      name={viewFull.name}
+                      stream={viewFull.stream}
+                      onClose={() => setViewFull(null)}
+                    />
+                  ) : null}
+
+                  {((live.session?.settings ?? {}) as {
+                    stage_focus?: { identity?: string | null };
+                  }).stage_focus?.identity &&
+                  (live.myRole === "host" || live.myRole === "cohost") ? (
+                    <div className="pointer-events-none absolute bottom-3 left-3 z-[6] sm:bottom-4 sm:left-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void live
+                            .setStageFocus({ identity: null, kind: "default" })
+                            .then(() => showToast("Host stage restored"))
+                            .catch(() => undefined);
+                        }}
+                        className={cn(
+                          "pointer-events-auto rounded-full border border-white/20 bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-md hover:bg-black/70",
+                          FOCUS_RING_DARK
+                        )}
+                      >
+                        Restore host stage
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="relative z-[1] h-full w-full">
@@ -2607,18 +2821,6 @@ export function HubLivePage({
                 </div>
               )}
             </div>
-
-            {hasSession && showSpeakers && (
-              <LiveParticipantGallery
-                participants={galleryParticipants}
-                ui={speakerUi}
-                streams={participantStreams}
-                activeId={activeSpeakerId}
-                hostId={hostUserId}
-                onSelect={setActiveSpeakerId}
-                onOpenPeople={() => toggleLeft("people")}
-              />
-            )}
 
             {hasSession ? (
               <div className="hidden lg:block">

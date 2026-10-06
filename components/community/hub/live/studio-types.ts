@@ -121,6 +121,7 @@ export const DEFAULT_DRAWER: DrawerState = {
 export type SpeakerUi = {
   micOn: boolean;
   camOn: boolean;
+  sharing?: boolean;
   handRaised: boolean;
   connection: "good" | "warn" | "poor";
   role: "host" | "cohost" | "speaker" | "moderator" | "viewer";

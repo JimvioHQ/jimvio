@@ -1860,6 +1860,95 @@ export async function updateParticipantPermissions(
   return { session: data as LiveSessionRow, permissions: nextPerms };
 }
 
+export type LiveStageFocus = {
+  identity: string | null;
+  kind: "default" | "participant" | "screen";
+};
+
+/** Host/cohost promotes a participant (or their screen) to the main stage. */
+export async function updateStageFocus(
+  sessionId: string,
+  userId: string,
+  focus: { identity: string | null; kind?: LiveStageFocus["kind"] }
+): Promise<{ session: LiveSessionRow; stageFocus: LiveStageFocus } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+  const me = await getParticipant(sessionId, userId);
+  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
+  if (role !== "host" && role !== "cohost") {
+    return { error: "Not allowed", status: 403 };
+  }
+
+  const identity =
+    typeof focus.identity === "string" && focus.identity.trim()
+      ? focus.identity.trim()
+      : null;
+  if (identity) {
+    const target = await getParticipant(sessionId, identity);
+    if (!target || target.status !== "joined") {
+      return { error: "Participant not in session", status: 400 };
+    }
+  }
+
+  const stageFocus: LiveStageFocus = {
+    identity,
+    kind: identity
+      ? focus.kind === "screen"
+        ? "screen"
+        : "participant"
+      : "default",
+  };
+
+  const prev = (session.settings ?? {}) as Record<string, unknown>;
+  const next = {
+    ...prev,
+    stage_focus: stageFocus,
+  };
+
+  const { data, error } = await db()
+    .from("live_sessions")
+    .update({ settings: next, updated_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .select("*")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
+  return { session: data as LiveSessionRow, stageFocus };
+}
+
+/** Host/cohost forces a participant's media flags (e.g. stop screen share). */
+export async function forceParticipantMedia(
+  sessionId: string,
+  actorId: string,
+  targetUserId: string,
+  patch: Partial<Pick<LiveParticipantRow, "mic_on" | "cam_on" | "sharing">>
+): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
+  const actor = await getParticipant(sessionId, actorId);
+  if (!actor || (actor.role !== "host" && actor.role !== "cohost")) {
+    return { error: "Not allowed", status: 403 };
+  }
+  const session = await getSession(sessionId);
+  if (session?.host_id === targetUserId && actorId !== targetUserId) {
+    return { error: "Cannot force host media", status: 400 };
+  }
+
+  const safe: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof patch.mic_on === "boolean") safe.mic_on = patch.mic_on;
+  if (typeof patch.cam_on === "boolean") safe.cam_on = patch.cam_on;
+  if (typeof patch.sharing === "boolean") safe.sharing = patch.sharing;
+
+  const { data, error } = await db()
+    .from("live_session_participants")
+    .update(safe)
+    .eq("session_id", sessionId)
+    .eq("user_id", targetUserId)
+    .select("*")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
+  return { participant: data as LiveParticipantRow };
+}
+
 export async function updateLiveTitle(
   sessionId: string,
   userId: string,

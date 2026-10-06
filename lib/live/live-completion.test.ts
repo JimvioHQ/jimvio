@@ -43,6 +43,51 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.doesNotMatch(fallback, /Camera off/);
   });
 
+  it("guest PIP tiles render inside the host stage", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const pip = read("components/community/hub/live/LiveStagePip.tsx");
+    assert.match(page, /LiveStagePipStack/);
+    assert.match(page, /LiveStagePipTile/);
+    assert.match(pip, /\(You\)/);
+    assert.match(pip, /Screen sharing/);
+    assert.match(page, /setStageFocus/);
+    assert.match(page, /onViewFull/);
+    assert.doesNotMatch(page, /LiveParticipantGallery/);
+  });
+
+  it("screen share capability uses getDisplayMedia without UA blacklist", () => {
+    const cap = read("lib/live/screen-share-capability.ts");
+    assert.match(cap, /getDisplayMedia/);
+    assert.doesNotMatch(cap, /Update your browser/);
+    assert.doesNotMatch(cap, /if\s*\(.*iPhone/);
+    assert.doesNotMatch(cap, /if\s*\(.*Android/);
+    assert.doesNotMatch(cap, /userAgent.*Safari/);
+    assert.match(cap, /does not provide screen capture/);
+  });
+
+  it("livekit stage does not auto-promote guest screen share", () => {
+    const room = read("lib/live/livekit-room.ts");
+    assert.match(room, /stagePinIdentity/);
+    assert.doesNotMatch(
+      room,
+      /remotes\.find\(\(r\) => r\.screenStream\)\?\.screenStream/
+    );
+  });
+
+  it("sticky Not found banner is suppressed while session is live", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    assert.match(page, /showSessionBanner/);
+    assert.match(page, /!hasSession/);
+    assert.match(page, /showReconnectChip/);
+    assert.match(page, /Reconnecting…/);
+  });
+
+  it("People panel shows \(You\) from authenticated user id", () => {
+    const panels = read("components/community/hub/live/panels.tsx");
+    assert.match(panels, /currentUserId/);
+    assert.match(panels, /\(You\)/);
+  });
+
   it("destinations use real Jimvio mark and brand icons", () => {
     const dest = read("components/community/hub/live/LiveDestinationsPanel.tsx");
     assert.doesNotMatch(dest, />JV</);

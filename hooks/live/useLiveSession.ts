@@ -238,6 +238,7 @@ export function useLiveSession(initialSessionId?: string | null) {
       error?: string;
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load session");
+    setError(null);
     setSession(json.session ?? null);
     const now = Date.now();
     for (const [uid, ts] of leftTombstones.current) {
@@ -668,6 +669,39 @@ export function useLiveSession(initialSessionId?: string | null) {
     await refresh(session.id);
   }, [session, refresh]);
 
+  const setStageFocus = useCallback(
+    async (focus: {
+      identity: string | null;
+      kind?: "default" | "participant" | "screen";
+    }) => {
+      if (!session) return;
+      const json = await sessionAction(session.id, {
+        action: "stage-focus",
+        stageFocus: focus,
+      });
+      const next = (json as { session?: LiveSessionRow }).session;
+      if (next) setSession(next);
+      return next;
+    },
+    [session]
+  );
+
+  const forceMedia = useCallback(
+    async (
+      targetUserId: string,
+      patch: { micOn?: boolean; camOn?: boolean; sharing?: boolean }
+    ) => {
+      if (!session) return;
+      await sessionAction(session.id, {
+        action: "force-media",
+        targetUserId,
+        ...patch,
+      });
+      await refresh(session.id);
+    },
+    [session, refresh]
+  );
+
   const launchPoll = useCallback(
     async (question: string, options: string[]) => {
       if (!session) return;
@@ -778,6 +812,8 @@ export function useLiveSession(initialSessionId?: string | null) {
     syncMedia,
     requestSpeak,
     lowerHand,
+    setStageFocus,
+    forceMedia,
     launchPoll,
     refresh,
     setSession,

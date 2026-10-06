@@ -138,6 +138,8 @@ export class LiveKitRoomTransport {
   private preferLocalStage = false;
   /** Session host user id — stage always prioritizes this participant for viewers. */
   private hostIdentity: string | null = null;
+  /** Host-promoted participant identity (Move to Stage). Null = host owns stage. */
+  private stagePinIdentity: string | null = null;
   private resyncGeneration = 0;
   private remoteStreamCache = new Map<string, MediaStream>();
   private syncQueue: Promise<void> = Promise.resolve();
@@ -153,15 +155,26 @@ export class LiveKitRoomTransport {
     const hostRemote = this.hostIdentity
       ? remotes.find((r) => r.identity === this.hostIdentity)
       : null;
-    const stageFromRemote =
-      hostRemote?.screenStream ??
-      remotes.find((r) => r.role === "host" && r.screenStream)?.screenStream ??
-      remotes.find((r) => r.role === "cohost" && r.screenStream)?.screenStream ??
-      remotes.find((r) => r.screenStream)?.screenStream ??
-      hostRemote?.cameraStream ??
-      remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
-      remotes.find((r) => r.cameraStream)?.cameraStream ??
-      null;
+    const stageFromRemote = (() => {
+      // Host (or explicitly pinned identity) owns the main stage by default.
+      // Guest camera / screen share must stay in PIP unless promoted.
+      const pinned =
+        this.stagePinIdentity
+          ? remotes.find((r) => r.identity === this.stagePinIdentity)
+          : null;
+      if (pinned?.screenStream) return pinned.screenStream;
+      if (pinned?.cameraStream) return pinned.cameraStream;
+
+      return (
+        hostRemote?.screenStream ??
+        remotes.find((r) => r.role === "host" && r.screenStream)?.screenStream ??
+        remotes.find((r) => r.role === "cohost" && r.screenStream)?.screenStream ??
+        hostRemote?.cameraStream ??
+        remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
+        remotes.find((r) => r.role === "cohost" && r.cameraStream)?.cameraStream ??
+        null
+      );
+    })();
     const active =
       (this.hostIdentity && this.speakingIds.has(this.hostIdentity)
         ? this.hostIdentity
@@ -172,10 +185,13 @@ export class LiveKitRoomTransport {
       remotes.find((r) => r.sharing || r.camOn)?.identity ??
       null;
 
+    // Pinned participant/screen wins over local host preview so Move to Stage works.
     const stageStream =
-      this.preferLocalStage && this.localPreview
-        ? this.localPreview
-        : (stageFromRemote ?? this.localPreview);
+      this.stagePinIdentity && stageFromRemote
+        ? stageFromRemote
+        : this.preferLocalStage && this.localPreview
+          ? this.localPreview
+          : (stageFromRemote ?? this.localPreview);
 
     return {
       connected: this.room?.state === ConnectionState.Connected,
@@ -205,6 +221,12 @@ export class LiveKitRoomTransport {
   setHostIdentity(identity: string | null): void {
     if (this.hostIdentity === identity) return;
     this.hostIdentity = identity;
+    this.emit();
+  }
+
+  setStagePinIdentity(identity: string | null): void {
+    if (this.stagePinIdentity === identity) return;
+    this.stagePinIdentity = identity;
     this.emit();
   }
 
