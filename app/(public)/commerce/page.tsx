@@ -13,23 +13,12 @@ import { CreateStoreForm } from "@/components/commerce-os/create-store-form";
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
+import { formatCommerceMoney } from "@/lib/commerce-os/money";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
 type Props = { searchParams: Promise<{ storeId?: string; range?: string }> };
-
-function money(amount: number, currency = "USD") {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
 
 function paymentBadge(payment: string | null | undefined) {
   const p = (payment || "").toLowerCase();
@@ -85,7 +74,6 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
   );
 
   const wallet = await ensureWallet(auth.userId);
-  const currency = active.default_currency || PLATFORM_CURRENCY;
   const available = Number(wallet.available_balance ?? 0);
   const pending = Number(wallet.pending_balance ?? 0);
   const pipeline = dash.analytics.pipeline;
@@ -103,8 +91,8 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
   const kpis = [
     {
       label: "Gross Sales",
-      value: money(dash.analytics.revenue, currency),
-      hint: `${dash.analytics.paidOrders} paid orders`,
+      value: formatCommerceMoney(dash.analytics.revenue, PLATFORM_CURRENCY),
+      hint: `${dash.analytics.paidOrders} paid orders · Last ${days} days`,
     },
     {
       label: "Paid Orders",
@@ -123,7 +111,7 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
     },
     {
       label: "Available Balance",
-      value: money(available, PLATFORM_CURRENCY),
+      value: formatCommerceMoney(available, PLATFORM_CURRENCY),
       hint: "Ready for payout",
     },
   ];
@@ -165,11 +153,28 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
     {
       label: "Awaiting",
       value: dash.analytics.pendingFulfillment ?? 0,
+      href: `/commerce/orders?storeId=${active.id}&status=processing`,
     },
-    { label: "Processing", value: fulfillment?.processing ?? 0 },
-    { label: "Shipped", value: fulfillment?.shipped ?? 0 },
-    { label: "Tracking", value: fulfillment?.trackingAvailable ?? 0 },
-    { label: "Exceptions", value: fulfillment?.fulfillmentExceptions ?? 0 },
+    {
+      label: "Processing",
+      value: fulfillment?.processing ?? 0,
+      href: `/commerce/orders?storeId=${active.id}&status=processing`,
+    },
+    {
+      label: "Shipped",
+      value: fulfillment?.shipped ?? 0,
+      href: `/commerce/orders?storeId=${active.id}&status=shipped`,
+    },
+    {
+      label: "Tracking",
+      value: fulfillment?.trackingAvailable ?? 0,
+      href: `/commerce/fulfillment?storeId=${active.id}`,
+    },
+    {
+      label: "Exceptions",
+      value: fulfillment?.fulfillmentExceptions ?? 0,
+      href: `/commerce/fulfillment?storeId=${active.id}`,
+    },
   ];
 
   const setupIncomplete = dash.checklist.some((c) => !c.done);
@@ -260,11 +265,14 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
           {dash.analytics.revenue > 0 ? (
             <div className="mt-4">
               <p className="text-2xl font-semibold tabular-nums text-[#111827]">
-                {money(dash.analytics.revenue, currency)}
+                {formatCommerceMoney(dash.analytics.revenue, PLATFORM_CURRENCY)}
               </p>
               <p className="mt-1 text-sm text-[#6B7280]">
                 {dash.analytics.paidOrders} paid · AOV{" "}
-                {money(dash.analytics.averageOrderValue, currency)}
+                {formatCommerceMoney(
+                  dash.analytics.averageOrderValue,
+                  PLATFORM_CURRENCY,
+                )}
               </p>
             </div>
           ) : (
@@ -273,8 +281,15 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
               <div>
                 <p className="text-sm font-medium text-[#111827]">No sales yet</p>
                 <p className="mt-0.5 text-[12px] text-[#6B7280]">
-                  Start selling to see revenue performance.
+                  Your sales performance will appear here once customers complete
+                  orders.
                 </p>
+                <Link
+                  href={`/commerce/products?storeId=${active.id}`}
+                  className="mt-2 inline-block text-xs font-semibold text-[#FF5A1F]"
+                >
+                  View products
+                </Link>
               </div>
             </div>
           )}
@@ -294,25 +309,28 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Gross sales</dt>
               <dd className="tabular-nums font-medium">
-                {money(dash.analytics.revenue, currency)}
+                {formatCommerceMoney(dash.analytics.revenue, PLATFORM_CURRENCY)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Pending</dt>
               <dd className="tabular-nums font-medium">
-                {money(pending, PLATFORM_CURRENCY)}
+                {formatCommerceMoney(pending, PLATFORM_CURRENCY)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Available</dt>
               <dd className="tabular-nums font-semibold">
-                {money(available, PLATFORM_CURRENCY)}
+                {formatCommerceMoney(available, PLATFORM_CURRENCY)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Lifetime earned</dt>
               <dd className="tabular-nums font-medium">
-                {money(Number(wallet.total_earned ?? 0), PLATFORM_CURRENCY)}
+                {formatCommerceMoney(
+                  Number(wallet.total_earned ?? 0),
+                  PLATFORM_CURRENCY,
+                )}
               </dd>
             </div>
           </dl>
@@ -349,15 +367,16 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
         </div>
         <div className="mt-3 grid gap-2 grid-cols-2 sm:grid-cols-5">
           {fulfillmentItems.map((item) => (
-            <div
+            <Link
               key={item.label}
-              className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2.5"
+              href={item.href}
+              className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2.5 transition hover:border-[#FF5A1F]/35 hover:bg-white"
             >
               <p className="text-[11px] text-[#6B7280]">{item.label}</p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-[#111827]">
                 {item.value}
               </p>
-            </div>
+            </Link>
           ))}
         </div>
         {(dash.analytics.paidOrders ?? 0) === 0 ? (
@@ -412,9 +431,9 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                         {paymentBadge(o.payment_status)}
                       </td>
                       <td className="py-2 text-right tabular-nums font-medium">
-                        {money(
+                        {formatCommerceMoney(
                           Number(o.total_amount || 0),
-                          o.currency || currency
+                          o.currency,
                         )}
                       </td>
                     </tr>
@@ -461,9 +480,9 @@ export default async function CommerceOverviewPage({ searchParams }: Props) {
                       </td>
                       <td className="py-2 text-[#6B7280]">{tx.status}</td>
                       <td className="py-2 text-right tabular-nums font-medium">
-                        {money(
+                        {formatCommerceMoney(
                           Number(tx.amount || 0),
-                          tx.currency || PLATFORM_CURRENCY
+                          tx.currency || PLATFORM_CURRENCY,
                         )}
                       </td>
                     </tr>

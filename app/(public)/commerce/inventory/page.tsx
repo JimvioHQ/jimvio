@@ -7,6 +7,10 @@ import {
   pickActiveStore,
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
+import {
+  InventoryControl,
+  type InventoryRow,
+} from "@/components/commerce-os/inventory-control";
 import { cosTable } from "@/lib/commerce-os/db";
 
 export const dynamic = "force-dynamic";
@@ -38,17 +42,44 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
 
   const { data: links } = await cosTable(db, "jimvio_store_products")
     .select(
-      "id, status, products(id, name, slug, track_inventory, inventory_quantity, allow_backorder)"
+      "id, status, products(id, name, sku, track_inventory, inventory_quantity, allow_backorder, low_stock_threshold, updated_at)",
     )
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId);
+
+  const rows: InventoryRow[] = (links ?? []).flatMap((row) => {
+    const p = row.products as unknown as {
+      id: string;
+      name: string;
+      sku: string | null;
+      track_inventory: boolean | null;
+      inventory_quantity: number | null;
+      allow_backorder: boolean | null;
+      low_stock_threshold: number | null;
+      updated_at: string | null;
+    } | null;
+    if (!p?.id) return [];
+    return [
+      {
+        linkId: row.id,
+        productId: p.id,
+        name: p.name,
+        sku: p.sku,
+        trackInventory: Boolean(p.track_inventory),
+        quantity: p.inventory_quantity,
+        lowStockThreshold: Number(p.low_stock_threshold ?? 5),
+        updatedAt: p.updated_at,
+        allowBackorder: Boolean(p.allow_backorder),
+      },
+    ];
+  });
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Inventory</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Stock levels from the shared Jimvio catalog (not duplicated per store).
+          Control stock levels for products published to {active.name}.
         </p>
       </div>
       <StoreSelector
@@ -56,47 +87,7 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
         activeId={active.id}
         basePath="/commerce/inventory"
       />
-      {!links?.length ? (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
-          No store products to show inventory for.
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-[#E5E7EB] bg-[#F8FAFC] text-xs uppercase text-[#6B7280]">
-              <tr>
-                <th className="px-4 py-2 font-medium">Product</th>
-                <th className="px-4 py-2 font-medium">Tracking</th>
-                <th className="px-4 py-2 font-medium">Qty</th>
-              </tr>
-            </thead>
-            <tbody>
-              {links.map((row) => {
-                const p = row.products as unknown as {
-                  name: string;
-                  track_inventory: boolean;
-                  inventory_quantity: number | null;
-                } | null;
-                return (
-                  <tr key={row.id} className="border-b border-[#F3F4F6]">
-                    <td className="px-4 py-3 font-medium text-[#111827]">
-                      {p?.name || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-[#6B7280]">
-                      {p?.track_inventory ? "Tracked" : "Not tracked"}
-                    </td>
-                    <td className="px-4 py-3 tabular-nums">
-                      {p?.track_inventory
-                        ? p.inventory_quantity ?? 0
-                        : "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <InventoryControl storeId={active.id} rows={rows} />
     </div>
   );
 }

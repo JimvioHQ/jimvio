@@ -7,7 +7,7 @@ import {
 } from "@/lib/commerce-os";
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 import { CommerceOrderFulfillmentPanel } from "@/components/commerce-os/commerce-order-fulfillment-panel";
-import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import { formatCommerceMoney } from "@/lib/commerce-os/money";
 
 export const dynamic = "force-dynamic";
 
@@ -237,7 +237,7 @@ export default async function CommerceOrderDetailPage({
                   </p>
                 </div>
                 <p className="tabular-nums font-semibold">
-                  {formatStoreMoney(Number(row.total_price || 0), currency)}
+                  {formatCommerceMoney(Number(row.total_price || 0), currency)}
                 </p>
               </li>
             );
@@ -247,19 +247,19 @@ export default async function CommerceOrderDetailPage({
           <div className="flex justify-between text-[#6B7280]">
             <span>Subtotal</span>
             <span className="tabular-nums">
-              {formatStoreMoney(Number(order.subtotal || 0), currency)}
+              {formatCommerceMoney(Number(order.subtotal || 0), currency)}
             </span>
           </div>
           <div className="flex justify-between text-[#6B7280]">
             <span>Shipping</span>
             <span className="tabular-nums">
-              {formatStoreMoney(Number(order.shipping_amount || 0), currency)}
+              {formatCommerceMoney(Number(order.shipping_amount || 0), currency)}
             </span>
           </div>
           <div className="flex justify-between font-semibold text-[#111827]">
             <span>Total</span>
             <span className="tabular-nums">
-              {formatStoreMoney(Number(order.total_amount || 0), currency)}
+              {formatCommerceMoney(Number(order.total_amount || 0), currency)}
             </span>
           </div>
         </div>
@@ -284,7 +284,7 @@ export default async function CommerceOrderDetailPage({
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Paid amount</dt>
               <dd className="tabular-nums font-semibold">
-                {formatStoreMoney(
+                {formatCommerceMoney(
                   Number(tx?.amount ?? order.total_amount ?? 0),
                   tx?.currency || currency
                 )}
@@ -299,20 +299,20 @@ export default async function CommerceOrderDetailPage({
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Customer total</dt>
               <dd className="tabular-nums">
-                {formatStoreMoney(Number(order.total_amount || 0), currency)}
+                {formatCommerceMoney(Number(order.total_amount || 0), currency)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Shipping</dt>
               <dd className="tabular-nums">
-                {formatStoreMoney(Number(order.shipping_amount || 0), currency)}
+                {formatCommerceMoney(Number(order.shipping_amount || 0), currency)}
               </dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[#6B7280]">Merchant earning</dt>
               <dd className="tabular-nums font-semibold">
                 {earning
-                  ? formatStoreMoney(
+                  ? formatCommerceMoney(
                       Number(earning.amount || 0),
                       earning.currency || currency
                     )

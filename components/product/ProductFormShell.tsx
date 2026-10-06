@@ -44,6 +44,7 @@ import {
     isHtmlContent,
     mergeUniqueUrls,
 } from "@/lib/product-description";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 
 /* ── helpers ── */
 function slugify(text: string) {
@@ -1600,7 +1601,14 @@ function StepPublish({
         { label: "Product name", hint: "What buyers will see first", done: !!form.name.trim() },
         { label: "Headline", hint: "One-line value proposition", done: !!form.short_description.trim() },
         { label: "Category", hint: "Helps buyers discover you", done: !!form.category_id },
-        { label: "Pricing", hint: price === 0 ? "Free to access" : `$${price.toFixed(2)} ${form.currency}`, done: true },
+        {
+            label: "Pricing",
+            hint:
+                price === 0
+                    ? "Free to access"
+                    : formatMoneyAsUSD(price, form.currency),
+            done: true,
+        },
         {
             label: "Fulfilment",
             hint: isDigital ? (form.digital_file_url ? "Digital file attached" : "Upload a file to deliver") : "Physical shipping",
@@ -1740,7 +1748,10 @@ function StepPublish({
                         { k: "Name", v: form.name || "—" },
                         { k: "Status", v: isEdit ? form.status : "Active on publish" },
                         { k: "Type", v: form.product_type },
-                        { k: "Price", v: price === 0 ? "Free" : `$${price.toFixed(2)} ${form.currency}` },
+                        {
+                            k: "Price",
+                            v: price === 0 ? "Free" : formatMoneyAsUSD(price, form.currency),
+                        },
                         {
                             k: "Billing",
                             v: price === 0 ? "—"

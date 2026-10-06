@@ -8,6 +8,7 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { cosTable } from "@/lib/commerce-os/db";
+import { formatCommerceMoney } from "@/lib/commerce-os/money";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +88,8 @@ export default async function CommerceShippingPage({ searchParams }: Props) {
                   <ul className="mt-2 space-y-1 text-xs text-[#4B5563]">
                     {rates.map((r) => (
                       <li key={r.id}>
-                        {r.name} · {r.rate_type} · {r.currency} {Number(r.price).toFixed(2)}
+                        {r.name} · {r.rate_type} ·{" "}
+                        {formatCommerceMoney(r.price, r.currency)}
                       </li>
                     ))}
                   </ul>

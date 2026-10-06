@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cosTable } from "../db";
+import { toCommerceUsd } from "../money";
 
 export type OrderPipelineCounts = {
   pendingPayment: number;
@@ -36,14 +37,17 @@ export async function getStoreAnalytics(
   const { data: orders } = await db
     .from("orders")
     .select(
-      "id, total_amount, payment_status, status, created_at, cj_order_id, tracking_number"
+      "id, total_amount, currency, payment_status, status, created_at, cj_order_id, tracking_number"
     )
     .eq("jimvio_store_id", storeId)
     .gte("created_at", since);
 
   const list = orders ?? [];
   const paid = list.filter((o) => isPaidStatus(o.payment_status));
-  const revenue = paid.reduce((s, o) => s + Number(o.total_amount || 0), 0);
+  const revenue = paid.reduce(
+    (s, o) => s + toCommerceUsd(o.total_amount, o.currency),
+    0,
+  );
 
   const pipeline: OrderPipelineCounts = {
     pendingPayment: 0,

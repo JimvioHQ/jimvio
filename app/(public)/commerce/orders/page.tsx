@@ -11,11 +11,13 @@ import {
   CommerceCard,
   CommerceEmptyState,
 } from "@/components/commerce-os/commerce-shell";
-import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import { formatCommerceMoney } from "@/lib/commerce-os/money";
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams: Promise<{ storeId?: string; status?: string }> };
+type Props = {
+  searchParams: Promise<{ storeId?: string; status?: string; q?: string }>;
+};
 
 function paymentLabel(payment: string | null | undefined) {
   const p = (payment || "").toLowerCase();
@@ -76,7 +78,7 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
     return <p className="text-sm text-[#4B5563]">{auth.error}</p>;
   }
 
-  const { storeId, status } = await searchParams;
+  const { storeId, status, q } = await searchParams;
   const db = cosAdminDb();
   const stores = await listVendorJimvioStores(db, auth.vendorId);
   const active = pickActiveStore(stores, storeId);
@@ -129,7 +131,7 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
   }
 
   const { data: rawOrders } = await query;
-  const orders = rawOrders ?? [];
+  let orders = rawOrders ?? [];
 
   const buyerIds = [
     ...new Set(
@@ -152,6 +154,23 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
     }
   }
 
+  const needle = (q || "").trim().toLowerCase();
+  if (needle) {
+    orders = orders.filter((o) => {
+      const profile = o.buyer_id ? buyerMap.get(o.buyer_id) : undefined;
+      const hay = [
+        o.order_number,
+        o.id,
+        profile?.full_name,
+        profile?.email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+  }
+
   const filters = [
     { key: "all", label: "All" },
     { key: "pending", label: "Pending payment" },
@@ -164,7 +183,6 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
   ] as const;
 
   const activeFilter = status || "all";
-  const currency = active.default_currency || "USD";
 
   return (
     <div className="space-y-5">
@@ -173,6 +191,9 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">
             Orders
           </h1>
+          <p className="mt-1 text-sm text-[#6B7280]">
+            Operational source of truth for what customers bought and paid.
+          </p>
         </div>
         <StoreSelector
           stores={stores}
@@ -180,6 +201,24 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
           basePath="/commerce/orders"
         />
       </div>
+
+      <form className="flex flex-wrap gap-2" action="/commerce/orders" method="get">
+        <input type="hidden" name="storeId" value={active.id} />
+        {status ? <input type="hidden" name="status" value={status} /> : null}
+        <input
+          name="q"
+          defaultValue={q || ""}
+          placeholder="Search orders..."
+          className="h-10 min-w-[220px] flex-1 rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm"
+          aria-label="Search orders"
+        />
+        <button
+          type="submit"
+          className="h-10 rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm font-semibold text-[#374151]"
+        >
+          Search
+        </button>
+      </form>
 
       <div className="flex gap-1 overflow-x-auto pb-1">
         {filters.map((f) => {
@@ -271,9 +310,9 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
                         </p>
                       </div>
                       <p className="shrink-0 text-sm font-semibold tabular-nums">
-                        {formatStoreMoney(
+                        {formatCommerceMoney(
                           Number(o.total_amount || 0),
-                          o.currency || currency
+                          o.currency,
                         )}
                       </p>
                     </div>
@@ -366,9 +405,9 @@ export default async function CommerceOrdersPage({ searchParams }: Props) {
                         </span>
                       </td>
                       <td className="px-4 py-3 tabular-nums font-medium">
-                        {formatStoreMoney(
+                        {formatCommerceMoney(
                           Number(o.total_amount || 0),
-                          o.currency || currency
+                          o.currency,
                         )}
                       </td>
                       <td className="px-4 py-3 text-[#6B7280]">

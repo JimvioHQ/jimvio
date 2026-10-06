@@ -11,24 +11,13 @@ import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
+import { formatCommerceMoney, sumCommerceUsd } from "@/lib/commerce-os/money";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   searchParams: Promise<{ storeId?: string; tab?: string }>;
 };
-
-function money(amount: number, currency: string = PLATFORM_CURRENCY) {
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || PLATFORM_CURRENCY,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
-}
 
 export default async function CommerceFinancePage({ searchParams }: Props) {
   const auth = await requireCommerceMerchant();
@@ -83,10 +72,7 @@ export default async function CommerceFinancePage({ searchParams }: Props) {
         .in("payment_status", ["paid", "completed"]),
     ]);
 
-  const grossSales = (paidOrders ?? []).reduce(
-    (s, o) => s + Number(o.total_amount || 0),
-    0
-  );
+  const grossSales = sumCommerceUsd(paidOrders ?? []);
   const available = Number(wallet.available_balance ?? 0);
   const pending = Number(wallet.pending_balance ?? 0);
   const paidOut = Number(wallet.total_paid ?? 0);
@@ -135,11 +121,11 @@ export default async function CommerceFinancePage({ searchParams }: Props) {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: "Gross sales", value: money(grossSales, active.default_currency || PLATFORM_CURRENCY) },
-          { label: "Pending", value: money(pending) },
-          { label: "Available", value: money(available) },
-          { label: "Paid out", value: money(paidOut) },
-          { label: "Lifetime earnings", value: money(lifetime) },
+          { label: "Gross sales", value: formatCommerceMoney(grossSales, PLATFORM_CURRENCY) },
+          { label: "Pending", value: formatCommerceMoney(pending, PLATFORM_CURRENCY) },
+          { label: "Available", value: formatCommerceMoney(available, PLATFORM_CURRENCY) },
+          { label: "Paid out", value: formatCommerceMoney(paidOut, PLATFORM_CURRENCY) },
+          { label: "Lifetime earnings", value: formatCommerceMoney(lifetime, PLATFORM_CURRENCY) },
         ].map((card) => (
           <CommerceCard key={card.label} className="p-4">
             <p className="text-xs text-[#6B7280]">{card.label}</p>
@@ -181,7 +167,7 @@ export default async function CommerceFinancePage({ searchParams }: Props) {
                       </td>
                       <td className="py-2.5 text-[#6B7280]">{tx.status}</td>
                       <td className="py-2.5 text-right tabular-nums font-semibold">
-                        {money(Number(tx.amount || 0), tx.currency || PLATFORM_CURRENCY)}
+                        {formatCommerceMoney(Number(tx.amount || 0), tx.currency || PLATFORM_CURRENCY)}
                       </td>
                     </tr>
                   ))}
@@ -242,7 +228,7 @@ export default async function CommerceFinancePage({ searchParams }: Props) {
                       <td className="py-2.5 text-[#111827]">{p.method || "—"}</td>
                       <td className="py-2.5 text-[#6B7280]">{p.status}</td>
                       <td className="py-2.5 text-right tabular-nums font-semibold">
-                        {money(Number(p.amount || 0), p.currency || PLATFORM_CURRENCY)}
+                        {formatCommerceMoney(Number(p.amount || 0), p.currency || PLATFORM_CURRENCY)}
                       </td>
                     </tr>
                   ))}

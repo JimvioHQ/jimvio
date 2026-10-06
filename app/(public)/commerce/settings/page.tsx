@@ -39,7 +39,7 @@ export default async function CommerceSettingsPage({ searchParams }: Props) {
 
   const { data: store } = await cosTable(db, "jimvio_stores")
     .select(
-      "id, name, handle, description, logo_url, favicon_url, contact_email, contact_phone, announcement_bar, default_currency, default_country, status, industry"
+      "id, name, handle, description, logo_url, favicon_url, contact_email, contact_phone, announcement_bar, default_currency, default_country, status, industry, theme_settings, seo, social",
     )
     .eq("id", active.id)
     .eq("vendor_id", auth.vendorId)
@@ -54,7 +54,7 @@ export default async function CommerceSettingsPage({ searchParams }: Props) {
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Settings</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Branding and contact details for {store.name}.
+          Configure how {store.name} operates and appears to customers.
         </p>
       </div>
       <StoreSelector
@@ -62,7 +62,27 @@ export default async function CommerceSettingsPage({ searchParams }: Props) {
         activeId={active.id}
         basePath="/commerce/settings"
       />
-      <StoreSettingsForm store={store} />
+      <StoreSettingsForm
+        store={{
+          ...store,
+          theme_settings:
+            store.theme_settings &&
+            typeof store.theme_settings === "object" &&
+            !Array.isArray(store.theme_settings)
+              ? (store.theme_settings as Record<string, unknown>)
+              : null,
+          seo:
+            store.seo && typeof store.seo === "object" && !Array.isArray(store.seo)
+              ? (store.seo as Record<string, unknown>)
+              : null,
+          social:
+            store.social &&
+            typeof store.social === "object" &&
+            !Array.isArray(store.social)
+              ? (store.social as Record<string, unknown>)
+              : null,
+        }}
+      />
     </div>
   );
 }
