@@ -106,6 +106,7 @@ export function getEgressStorageReport(): {
   return {
     configured: Boolean(bucket && accessKey && secret),
     bucketPresent: Boolean(bucket),
+    bucketName: bucket || null,
     accessKeyPresent: Boolean(accessKey),
     secretPresent: Boolean(secret),
     regionPresent: Boolean(region),
