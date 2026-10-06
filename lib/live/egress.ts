@@ -23,6 +23,7 @@ import {
 } from "@/lib/live/livekit-config";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { liveStudioLog } from "@/lib/live/observability";
+import { extractEgressFileResult } from "@/lib/live/egress-file-result";
 
 function hostUrlFromWs(wsUrl: string): string {
   // wss://xxx.livekit.cloud → https://xxx.livekit.cloud
@@ -232,21 +233,34 @@ export async function markRecordingReady(input: {
 /**
  * When LiveKit webhooks are delayed/missing, reconcile "ending"/stale rows from
  * LiveKit egress status so Ready/playback can complete without a page refresh.
+ *
+ * Also recovers rows incorrectly marked failed when fileResults was empty but
+ * the deprecated result.file location was present (LiveKit node-sdks#625).
  */
 export async function reconcileSessionRecordings(sessionId: string): Promise<void> {
   const client = createEgressClient();
   if (!client) return;
 
   const db = createServiceRoleClient();
-  const { data: rows } = await db
+  const { data: openRows } = await db
     .from("live_recordings")
-    .select("id, egress_id, status")
+    .select("id, egress_id, status, error")
     .eq("session_id", sessionId)
     .in("status", ["starting", "active", "ending"])
     .not("egress_id", "is", null)
     .limit(10);
 
-  if (!rows?.length) return;
+  const { data: recoverable } = await db
+    .from("live_recordings")
+    .select("id, egress_id, status, error")
+    .eq("session_id", sessionId)
+    .eq("status", "failed")
+    .eq("error", "Egress completed without a storage location")
+    .not("egress_id", "is", null)
+    .limit(10);
+
+  const rows = [...(openRows ?? []), ...(recoverable ?? [])];
+  if (!rows.length) return;
 
   for (const row of rows) {
     const egressId = row.egress_id as string | null;
@@ -263,8 +277,8 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
         status === EgressStatus.EGRESS_ABORTED ||
         status === EgressStatus.EGRESS_LIMIT_REACHED;
       const complete = status === EgressStatus.EGRESS_COMPLETE;
-      const fileResult = info.fileResults?.[0];
-      const location = fileResult?.location || fileResult?.filename || null;
+      const file = extractEgressFileResult(info);
+      const location = file.location;
 
       if (complete || failed) {
         const error =
@@ -276,10 +290,10 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
         await markRecordingReady({
           egressId,
           cloudinaryUrl: location,
-          durationSeconds: fileResult?.duration
-            ? Math.round(Number(fileResult.duration) / 1e9)
+          durationSeconds: file.durationNs
+            ? Math.round(file.durationNs / 1e9)
             : null,
-          byteSize: fileResult?.size ? Number(fileResult.size) : null,
+          byteSize: file.sizeBytes,
           error,
         });
         liveStudioLog(error ? "error" : "info", "egress_webhook", {
@@ -291,9 +305,10 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
           status: String(status),
           error: error ? error.slice(0, 300) : null,
           fileResults: info.fileResults?.length ?? 0,
-          hasFilename: Boolean(fileResult?.filename),
-          hasFileLocation: Boolean(fileResult?.location),
-          fileSize: fileResult?.size ? String(fileResult.size) : null,
+          fileSource: file.source,
+          hasFilename: Boolean(file.filename),
+          hasFileLocation: Boolean(location),
+          fileSize: file.sizeBytes != null ? String(file.sizeBytes) : null,
           egressError: info.error ? String(info.error).slice(0, 300) : null,
         });
       } else if (

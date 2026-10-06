@@ -80,6 +80,7 @@ export function getLiveStudioEnvReport(): LiveStudioEnvReport {
 export function getEgressStorageReport(): {
   configured: boolean;
   bucketPresent: boolean;
+  bucketName: string | null;
   accessKeyPresent: boolean;
   secretPresent: boolean;
   regionPresent: boolean;

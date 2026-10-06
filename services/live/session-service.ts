@@ -2028,15 +2028,23 @@ export async function listLiveHistoryForSpace(spaceId: string, limit = 12) {
 }
 
 export function toPublicLiveRecording(row: Record<string, unknown>) {
+  const status = typeof row.status === "string" ? row.status : "unknown";
+  const storageUrl =
+    typeof row.cloudinary_url === "string" ? row.cloudinary_url : null;
+  const ready = status === "ready" && Boolean(storageUrl);
   return {
     id: String(row.id ?? ""),
-    status: typeof row.status === "string" ? row.status : "unknown",
-    cloudinary_url: typeof row.cloudinary_url === "string" ? row.cloudinary_url : null,
+    status,
+    cloudinary_url: storageUrl,
     thumbnail_url: typeof row.thumbnail_url === "string" ? row.thumbnail_url : null,
     duration_seconds: typeof row.duration_seconds === "number" ? row.duration_seconds : null,
+    byte_size: typeof row.byte_size === "number" ? row.byte_size : null,
     created_at: typeof row.created_at === "string" ? row.created_at : null,
-    failed: row.status === "failed",
+    ended_at: typeof row.ended_at === "string" ? row.ended_at : null,
+    failed: status === "failed",
     error: typeof row.error === "string" ? row.error.slice(0, 300) : null,
+    ready,
+    file_type: ready ? "MP4" : null,
   };
 }
 
@@ -2047,6 +2055,83 @@ export async function listSessionRecordings(sessionId: string) {
     .eq("session_id", sessionId)
     .order("created_at", { ascending: false });
   return (data ?? []).map((row) => toPublicLiveRecording(row as Record<string, unknown>));
+}
+
+export async function listUserLiveRecordings(userId: string, limit = 40) {
+  const { data } = await db()
+    .from("live_recordings")
+    .select("*, live_sessions(title)")
+    .eq("started_by", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((row) => {
+    const base = toPublicLiveRecording(row as Record<string, unknown>);
+    const session = (row as { live_sessions?: { title?: string | null } | null })
+      .live_sessions;
+    return {
+      ...base,
+      session_id: String((row as { session_id?: string }).session_id ?? ""),
+      title:
+        (typeof session?.title === "string" && session.title.trim()) ||
+        "Live recording",
+    };
+  });
+}
+
+export async function getLiveRecordingForUser(recordingId: string, userId: string) {
+  const { data } = await db()
+    .from("live_recordings")
+    .select("*, live_sessions(id, title, host_id, privacy)")
+    .eq("id", recordingId)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as Record<string, unknown> & {
+    started_by?: string;
+    session_id?: string;
+    live_sessions?: {
+      id?: string;
+      title?: string | null;
+      host_id?: string;
+      privacy?: string;
+    } | null;
+  };
+  const session = row.live_sessions;
+  const isOwner = row.started_by === userId;
+  const isHost = session?.host_id === userId;
+  if (!isOwner && !isHost) {
+    const sessionRow = await getSession(String(row.session_id ?? ""));
+    if (!sessionRow) return null;
+    const allowed = await canViewLiveSession(userId, sessionRow);
+    if (!allowed) return null;
+  }
+  return {
+    ...toPublicLiveRecording(row),
+    session_id: String(row.session_id ?? ""),
+    title:
+      (typeof session?.title === "string" && session.title.trim()) ||
+      "Live recording",
+  };
+}
+
+export async function deleteLiveRecordingForUser(
+  recordingId: string,
+  userId: string
+): Promise<{ ok: true } | { error: string; status: number }> {
+  const { data } = await db()
+    .from("live_recordings")
+    .select("id, started_by, session_id")
+    .eq("id", recordingId)
+    .maybeSingle();
+  if (!data) return { error: "Not found", status: 404 };
+  const session = await getSession(String(data.session_id));
+  const isOwner = data.started_by === userId;
+  const isHost = session?.host_id === userId;
+  if (!isOwner && !isHost) {
+    return { error: "Not allowed", status: 403 };
+  }
+  const { error } = await db().from("live_recordings").delete().eq("id", recordingId);
+  if (error) return { error: error.message, status: 400 };
+  return { ok: true };
 }
 
 export type LiveSessionChatMessage = {

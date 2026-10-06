@@ -373,7 +373,8 @@ export function HubLivePage({
         prev.leftPanel === "people" ||
         prev.leftPanel === "destinations" ||
         prev.leftPanel === "settings" ||
-        (prev.rightOpen && prev.rightTab === "analytics");
+        (prev.rightOpen &&
+          (prev.rightTab === "analytics" || prev.rightTab === "recording"));
       if (hasRestoredPanel) return prev;
       const next: DrawerState = {
         ...prev,
@@ -826,8 +827,13 @@ export function HubLivePage({
 
   const openRight = useCallback(
     (tab?: RightTab) => {
-      // Chat is the default right rail. Analytics is the only other allowed workspace.
-      const rightTab: RightTab = tab === "analytics" ? "analytics" : "chat";
+      // Chat is the default right rail. Analytics + Saved Recordings are allowed workspaces.
+      const rightTab: RightTab =
+        tab === "analytics"
+          ? "analytics"
+          : tab === "recording"
+            ? "recording"
+            : "chat";
       updateDrawer({ rightOpen: true, rightTab, leftPanel: "none" });
       setShareOpen(false);
       setChatIdle(false);
@@ -1904,6 +1910,9 @@ export function HubLivePage({
           break;
         case "record":
           void toggleRecord();
+          break;
+        case "recordings":
+          openRight("recording");
           break;
         case "share":
           void startShare();
@@ -3213,12 +3222,18 @@ export function HubLivePage({
                 />
               )}
               {drawer.rightTab === "recording" && live.session?.id && (
-                <LiveRecordingPanel
-                  sessionId={live.session.id}
-                  canManage={canRecord(live.myRole, {
-                    allowParticipantRecording: participantPerms.allowRecording,
-                  })}
-                />
+                <>
+                  <DrawerHeader
+                    title="Saved Recordings"
+                    onClose={() => updateDrawer({ rightOpen: false })}
+                  />
+                  <LiveRecordingPanel
+                    sessionId={live.session.id}
+                    canManage={canRecord(live.myRole, {
+                      allowParticipantRecording: participantPerms.allowRecording,
+                    })}
+                  />
+                </>
               )}
               {drawer.rightTab === "tools" && live.session?.id && (
                 <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">

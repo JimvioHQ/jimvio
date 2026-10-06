@@ -3,6 +3,7 @@
 import {
   BarChart3,
   Circle,
+  Film,
   MessageSquare,
   MonitorUp,
   PhoneOff,
@@ -21,6 +22,7 @@ export type LiveMoreActionId =
   | "people"
   | "invite"
   | "record"
+  | "recordings"
   | "share"
   | "streamTo"
   | "settings"
@@ -42,6 +44,7 @@ const DESKTOP_ITEMS: MoreItem[] = [
   { id: "people", label: "Participants", icon: Users, iconClass: "text-[#2563EB]" },
   { id: "invite", label: "Invite", icon: UserPlus, iconClass: "text-[#16A34A]" },
   { id: "record", label: "Record", icon: Circle, iconClass: "text-[#EF4444]" },
+  { id: "recordings", label: "Saved Recordings", icon: Film, iconClass: "text-[#0EA5E9]" },
   { id: "share", label: "Share Screen", icon: MonitorUp, iconClass: "text-[#7C3AED]" },
   { id: "streamTo", label: "Destinations & RTMP", icon: Signal, iconClass: "text-[#9333EA]" },
   { id: "settings", label: "Settings", icon: Settings, iconClass: "text-[#4B5563]" },
@@ -55,6 +58,7 @@ const MOBILE_ITEMS: MoreItem[] = [
   { id: "people", label: "Participants", icon: Users, iconClass: "text-[#111827]" },
   { id: "invite", label: "Invite", icon: UserPlus, iconClass: "text-[#111827]" },
   { id: "record", label: "Record", icon: Circle, iconClass: "text-[#111827]" },
+  { id: "recordings", label: "Saved Recordings", icon: Film, iconClass: "text-[#111827]" },
   { id: "streamTo", label: "Destinations & RTMP", icon: Signal, iconClass: "text-[#111827]" },
   { id: "share", label: "Share Screen", icon: MonitorUp, iconClass: "text-[#111827]" },
   { id: "settings", label: "Settings", icon: Settings, iconClass: "text-[#111827]" },

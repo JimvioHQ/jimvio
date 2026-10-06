@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { WebhookReceiver } from "livekit-server-sdk";
 import { getLiveKitApiKey, getLiveKitApiSecret } from "@/lib/live/livekit-config";
 import { markRecordingReady } from "@/lib/live/egress";
+import { extractEgressFileResult } from "@/lib/live/egress-file-result";
 import { handleStreamEgressWebhook } from "@/lib/live/destinations/destination-manager";
 import { liveStudioLog } from "@/lib/live/observability";
 
@@ -33,19 +34,24 @@ export async function POST(req: Request) {
       const info = event.egressInfo;
       const egressId = info.egressId;
       const failed = Boolean(info.error);
-      const fileResult = info.fileResults?.[0];
-      const location = fileResult?.location || fileResult?.filename || null;
+      const file = extractEgressFileResult(info);
+      const location = file.location;
       const hasStream = (info.streamResults?.length ?? 0) > 0;
+      const hasFile = Boolean(location);
 
-      if (event.event === "egress_ended" && (fileResult || !hasStream)) {
+      if (event.event === "egress_ended" && (hasFile || !hasStream)) {
         await markRecordingReady({
           egressId,
           cloudinaryUrl: location,
-          durationSeconds: fileResult?.duration
-            ? Math.round(Number(fileResult.duration) / 1e9)
+          durationSeconds: file.durationNs
+            ? Math.round(file.durationNs / 1e9)
             : null,
-          byteSize: fileResult?.size ? Number(fileResult.size) : null,
-          error: failed ? info.error || "Egress failed" : null,
+          byteSize: file.sizeBytes,
+          error: failed
+            ? info.error || "Egress failed"
+            : !location
+              ? "Egress completed without a storage location"
+              : null,
         });
       }
 
@@ -60,11 +66,12 @@ export async function POST(req: Request) {
         });
       }
 
-      liveStudioLog(failed ? "error" : "info", "egress_webhook", {
+      liveStudioLog(failed || (!hasFile && !hasStream) ? "error" : "info", "egress_webhook", {
         egressId,
         failed,
-        hasLocation: Boolean(location),
+        hasLocation: hasFile,
         hasStream,
+        fileSource: file.source,
         event: event.event,
       });
     }

@@ -6,6 +6,10 @@ import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
 import { getParticipant, getSession, canViewLiveSession, listSessionRecordings } from "@/services/live/session-service";
 import { startSessionEgress, stopSessionEgress, reconcileSessionRecordings } from "@/lib/live/egress";
+import {
+  buildDownloadUrlForLocation,
+  buildPlaybackUrlForLocation,
+} from "@/lib/live/recording-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -136,22 +140,34 @@ export async function GET(
   await reconcileSessionRecordings(sessionId).catch(() => undefined);
 
   const recordings = await listSessionRecordings(sessionId);
-  const ready = recordings.find((r) => r.status === "ready" && r.cloudinary_url);
+  const withUrls = recordings.map((r) => {
+    const storage = r.cloudinary_url;
+    if (!storage || r.status !== "ready") {
+      return { ...r, playUrl: null, downloadUrl: null };
+    }
+    const playUrl = buildPlaybackUrlForLocation(storage);
+    const downloadUrl = buildDownloadUrlForLocation(
+      storage,
+      `jimvio-live-${sessionId.slice(0, 8)}.mp4`
+    );
+    return { ...r, playUrl, downloadUrl };
+  });
+  const ready = withUrls.find((r) => r.status === "ready" && (r.playUrl || r.cloudinary_url));
   return NextResponse.json({
-    recordings,
-    recordingStatus: recordings.some((r) =>
+    recordings: withUrls,
+    recordingStatus: withUrls.some((r) =>
       r.status === "recording" || r.status === "active" || r.status === "starting"
     )
       ? "recording"
       : ready
         ? "ready"
-        : recordings.some((r) => r.status === "ending" || r.status === "failed")
-          ? recordings.some((r) => r.status === "failed")
+        : withUrls.some((r) => r.status === "ending" || r.status === "failed")
+          ? withUrls.some((r) => r.status === "failed")
             ? "failed"
             : "processing"
-          : recordings.length > 0
+          : withUrls.length > 0
             ? "processing"
             : "none",
-    replayUrl: ready?.cloudinary_url ?? session.recording_url ?? null,
+    replayUrl: ready?.playUrl ?? ready?.cloudinary_url ?? session.recording_url ?? null,
   });
 }

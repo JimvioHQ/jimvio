@@ -85,10 +85,33 @@ describe("Jimvio Live completion — invite & share", () => {
   it("Live Analytics opens as a right workspace (not forced to chat)", () => {
     const page = read("components/community/hub/hub-live-page.tsx");
     const more = read("components/community/hub/live/LiveMorePanel.tsx");
-    assert.match(page, /tab === \"analytics\" \? \"analytics\" : \"chat\"/);
+    assert.match(page, /tab === \"analytics\"/);
     assert.match(page, /case \"analytics\":/);
+    assert.match(page, /openRight\(\"analytics\"\)/);
     assert.match(page, /Live Analytics/);
     assert.match(more, /id: \"analytics\"/);
+  });
+
+  it("Saved Recordings opens from More near Record", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const more = read("components/community/hub/live/LiveMorePanel.tsx");
+    const panel = read("components/community/live-collab/LiveRecordingPanel.tsx");
+    assert.match(more, /id: \"recordings\"/);
+    assert.match(more, /Saved Recordings/);
+    assert.match(page, /case \"recordings\":/);
+    assert.match(page, /openRight\(\"recording\"\)/);
+    assert.match(panel, /Saved Recordings/);
+    assert.match(panel, /No saved recordings yet/);
+    assert.match(panel, /Processing recording/);
+  });
+
+  it("guest Join Live is Google-first without email continuation", () => {
+    const guest = read("components/community/hub/live/LiveGuestJoinCard.tsx");
+    assert.match(guest, /Continue with Google/);
+    assert.match(guest, /Login to your account/);
+    assert.match(guest, /\/login\?next=/);
+    assert.doesNotMatch(guest, /Continue with Email/);
+    assert.doesNotMatch(guest, /signInWithMagicLink/);
   });
 
   it("People panel shows \(You\) from authenticated user id", () => {
@@ -189,6 +212,7 @@ describe("Jimvio Live completion — recording egress output", () => {
   it("recording route uses room-composite egress with permission enforcement", () => {
     const route = read("app/api/live/sessions/[id]/recording/route.ts");
     const egress = read("lib/live/egress.ts");
+    const fileResult = read("lib/live/egress-file-result.ts");
     assert.match(route, /startSessionEgress/);
     assert.match(route, /canRecord/);
     assert.match(route, /reconcileSessionRecordings/);
@@ -196,5 +220,8 @@ describe("Jimvio Live completion — recording egress output", () => {
     assert.match(egress, /LIVEKIT_EGRESS_S3_BUCKET/);
     assert.match(egress, /reconcileSessionRecordings/);
     assert.match(egress, /EgressStatus/);
+    assert.match(egress, /extractEgressFileResult/);
+    assert.match(fileResult, /result\.file/);
+    assert.match(fileResult, /fileResults/);
   });
 });
