@@ -4,23 +4,17 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   Activity,
-  Accessibility,
-  BarChart3,
   Calendar,
   Camera,
   Check,
   ChevronLeft,
   ChevronRight,
-  Info,
-  LayoutGrid,
   MoreHorizontal,
   Mic,
   MicOff,
   Monitor,
   Radio,
   Settings2,
-  Shield,
-  SlidersHorizontal,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -680,19 +674,11 @@ function SettingsSection({
 
 export type SettingsCategory =
   | "general"
-  | "stream"
+  | "video"
   | "audio"
-  | "devices"
-  | "layout"
-  | "engagement"
-  | "privacy"
-  | "moderation"
-  | "recording"
+  | "chat"
   | "destinations"
-  | "analytics"
-  | "accessibility"
-  | "advanced"
-  | "about";
+  | "recording";
 
 const SETTINGS_CATEGORIES: {
   id: SettingsCategory;
@@ -703,86 +689,38 @@ const SETTINGS_CATEGORIES: {
   {
     id: "general",
     label: "General",
-    description: "Live title and session details",
+    description: "Live title",
     icon: Settings2,
   },
   {
-    id: "stream",
-    label: "Stream & Video",
-    description: "Camera, quality and screen share",
+    id: "video",
+    label: "Video",
+    description: "Camera and screen share",
     icon: Camera,
   },
   {
     id: "audio",
     label: "Audio",
-    description: "Microphone and input devices",
+    description: "Microphone and input",
     icon: Mic,
   },
   {
-    id: "devices",
-    label: "Devices",
-    description: "Camera and microphone selection",
-    icon: Monitor,
-  },
-  {
-    id: "layout",
-    label: "Layout",
-    description: "Stage layout and panel visibility",
-    icon: LayoutGrid,
-  },
-  {
-    id: "engagement",
-    label: "Engagement",
-    description: "Chat and reactions",
+    id: "chat",
+    label: "Chat",
+    description: "Live chat controls",
     icon: Activity,
-  },
-  {
-    id: "privacy",
-    label: "Privacy",
-    description: "Who can join, speak, and share",
-    icon: Shield,
-  },
-  {
-    id: "moderation",
-    label: "Moderation",
-    description: "Safety and participant controls",
-    icon: Shield,
   },
   {
     id: "recording",
     label: "Recording",
-    description: "Local recording controls",
+    description: "Local recording",
     icon: Radio,
   },
   {
     id: "destinations",
-    label: "Live Destinations",
-    description: "Jimvio, YouTube, Twitch, RTMP",
-    icon: Radio,
-  },
-  {
-    id: "analytics",
-    label: "Analytics",
-    description: "Live performance and insights",
-    icon: BarChart3,
-  },
-  {
-    id: "accessibility",
-    label: "Accessibility",
-    description: "Motion and control preferences",
-    icon: Accessibility,
-  },
-  {
-    id: "advanced",
-    label: "Advanced",
-    description: "Diagnostics and connection info",
-    icon: SlidersHorizontal,
-  },
-  {
-    id: "about",
-    label: "About Live",
-    description: "Session info and support",
-    icon: Info,
+    label: "Destinations",
+    description: "Stream destinations & RTMP",
+    icon: Monitor,
   },
 ];
 
@@ -814,6 +752,9 @@ export function SettingsPanel({
   advancedSlot,
   dark = false,
   initialCategory = null,
+  recording = false,
+  onToggleRecord,
+  canRecord = false,
 }: {
   /** @deprecated unused */
   mode?: StudioMode;
@@ -864,6 +805,9 @@ export function SettingsPanel({
   advancedSlot?: React.ReactNode;
   dark?: boolean;
   initialCategory?: SettingsCategory | null;
+  recording?: boolean;
+  onToggleRecord?: () => void;
+  canRecord?: boolean;
 }) {
   const [category, setCategory] = useState<SettingsCategory | null>(initialCategory);
   const [draftTitle, setDraftTitle] = useState(title ?? "");
@@ -881,10 +825,17 @@ export function SettingsPanel({
   const surface = dark ? "bg-white/5" : "bg-neutral-50";
   const ring = dark ? FOCUS_RING_DARK : FOCUS_RING;
 
+  const visibleCategories = SETTINGS_CATEGORIES.filter((item) => {
+    if (item.id === "chat") return Boolean(canManageChat && onChatEnabled);
+    if (item.id === "recording") return Boolean(canRecord && onToggleRecord);
+    if (item.id === "destinations") return Boolean(advancedSlot);
+    return true;
+  });
+
   if (!category) {
     return (
       <div className="space-y-1 px-1 pb-4">
-        {SETTINGS_CATEGORIES.map((item) => {
+        {visibleCategories.map((item) => {
           const Icon = item.icon;
           return (
             <button
@@ -998,7 +949,7 @@ export function SettingsPanel({
         </SettingsSection>
       )}
 
-      {category === "stream" && (
+      {category === "video" && (
         <>
           <SettingsSection label="Camera">
             {onToggleCam ? (
@@ -1039,50 +990,53 @@ export function SettingsPanel({
                         selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
                       )}
                     >
-                      {d.label}
+                      {d.label || "Camera"}
                     </button>
                   );
                 })}
               </div>
             ) : (
               <p className={cn("px-1 text-[12px]", muted)}>
-                Turn on the camera to list video devices.
+                Turn on the camera to list devices.
               </p>
             )}
           </SettingsSection>
-          {(onStartShare || onStopShare) && (
-            <SettingsSection label="Screen share">
-              <p className={cn("px-1 text-[11px]", muted)}>
-                Status:{" "}
-                {sharing
-                  ? "Sharing"
-                  : screenShareSupported
-                    ? "Supported"
-                    : "Unsupported"}
-              </p>
-              {!screenShareSupported && screenShareReason ? (
-                <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-                  {screenShareReason}
-                </p>
-              ) : null}
-              {screenShareSupported ? (
+          <SettingsSection label="Screen share">
+            {(onStartShare || onStopShare) && (
+              <>
                 <button
                   type="button"
+                  disabled={!sharing && !screenShareSupported}
+                  title={
+                    sharing
+                      ? "Stop sharing"
+                      : screenShareSupported
+                        ? "Share screen"
+                        : screenShareReason || "Screen share unavailable"
+                  }
                   onClick={sharing ? onStopShare : onStartShare}
                   className={cn(
                     "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
                     rowClass,
-                    ring
+                    ring,
+                    !sharing && !screenShareSupported && "opacity-50"
                   )}
                 >
-                  {sharing ? "Stop sharing" : "Share screen"}
+                  Screen share
                   <span className={cn("text-[11px] font-semibold", muted)}>
-                    {sharing ? "Active" : "Off"}
+                    {sharing
+                      ? "Sharing"
+                      : screenShareSupported
+                        ? "Start"
+                        : "Unsupported"}
                   </span>
                 </button>
-              ) : null}
-            </SettingsSection>
-          )}
+                {!screenShareSupported && screenShareReason ? (
+                  <p className={cn("px-1 text-[11px]", muted)}>{screenShareReason}</p>
+                ) : null}
+              </>
+            )}
+          </SettingsSection>
         </>
       )}
 
@@ -1126,21 +1080,21 @@ export function SettingsPanel({
                       selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
                     )}
                   >
-                    {d.label}
+                    {d.label || "Microphone"}
                   </button>
                 );
               })}
             </div>
           ) : (
             <p className={cn("px-1 text-[12px]", muted)}>
-              Turn on the microphone to list input devices.
+              Turn on the microphone to list devices.
             </p>
           )}
         </SettingsSection>
       )}
 
-      {category === "engagement" && (
-        <SettingsSection label="Chat & reactions">
+      {category === "chat" && (
+        <SettingsSection label="Live chat">
           {canManageChat && onChatEnabled ? (
             <button
               type="button"
@@ -1158,125 +1112,34 @@ export function SettingsPanel({
             </button>
           ) : (
             <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-              Chat and reactions stay available from the control dock during Live.
+              Chat stays available from the control dock. Hosts can enable or disable chat here.
             </p>
           )}
         </SettingsSection>
       )}
 
-      {category === "devices" && (
-        <>
-          <SettingsSection label="Camera">
-            {videoDevices.length > 0 && onSwitchCam ? (
-              <div className="space-y-1" role="radiogroup" aria-label="Camera device">
-                {videoDevices.map((d) => {
-                  const selected =
-                    (activeVideoId ?? videoDevices[0]?.deviceId) === d.deviceId;
-                  return (
-                    <button
-                      key={d.deviceId}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => onSwitchCam(d.deviceId)}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px]",
-                        rowClass,
-                        ring,
-                        selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
-                      )}
-                    >
-                      {d.label || "Camera"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={cn("px-1 text-[12px]", muted)}>
-                Turn on the camera to list video devices.
-              </p>
-            )}
-          </SettingsSection>
-          <SettingsSection label="Microphone">
-            {audioDevices.length > 0 && onSwitchMic ? (
-              <div className="space-y-1" role="radiogroup" aria-label="Microphone device">
-                {audioDevices.map((d) => {
-                  const selected =
-                    (activeAudioId ?? audioDevices[0]?.deviceId) === d.deviceId;
-                  return (
-                    <button
-                      key={d.deviceId}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => onSwitchMic(d.deviceId)}
-                      className={cn(
-                        "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px]",
-                        rowClass,
-                        ring,
-                        selected && (dark ? "bg-white/10 font-semibold" : "bg-neutral-100 font-semibold")
-                      )}
-                    >
-                      {d.label || "Microphone"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={cn("px-1 text-[12px]", muted)}>
-                Turn on the microphone to list audio devices.
-              </p>
-            )}
-          </SettingsSection>
-        </>
-      )}
-
-      {category === "layout" && (
-        <SettingsSection label="Stage">
-          <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            Layout controls stay available from the Layout panel. Use Participants and Chat
-            from the control dock to show or hide side panels during Live.
-          </p>
-        </SettingsSection>
-      )}
-
-      {category === "privacy" && (
-        <SettingsSection label="Access">
-          <div className={cn("space-y-1.5 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            <p>Who can join — controlled by Live session privacy and invites.</p>
-            <p>Who can speak — host, cohost, and invited speakers.</p>
-            <p>Who can share screen — participants with publish permission.</p>
-            <p>Who can chat — controlled in Engagement when you host.</p>
-          </div>
-        </SettingsSection>
-      )}
-
-      {category === "moderation" && (
-        <SettingsSection label="Safety">
-          <div className={cn("space-y-1 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            <p>Microphone — {permissionLabel(audioAccess)}</p>
-            <p>Camera — {permissionLabel(videoAccess)}</p>
-            <p>
-              Screen share —{" "}
-              {sharing
-                ? "Active"
-                : screenShareSupported
-                  ? "Supported"
-                  : "Unsupported"}
-            </p>
-            <p className="pt-1">
-              Mute, remove, and invite actions are available from the Participants panel.
-            </p>
-          </div>
-        </SettingsSection>
-      )}
-
       {category === "recording" && (
         <SettingsSection label="Local recording">
-          <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            Start and stop recording from the Record control on the dock. Recordings stay on
-            this device unless cloud recording is enabled for the session.
-          </p>
+          {canRecord && onToggleRecord ? (
+            <button
+              type="button"
+              onClick={onToggleRecord}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                rowClass,
+                ring
+              )}
+            >
+              Recording
+              <span className={cn("text-[11px] font-semibold", muted)}>
+                {recording ? "Stop" : "Start"}
+              </span>
+            </button>
+          ) : (
+            <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
+              Recording is available from the Record control on the dock when you can publish.
+            </p>
+          )}
         </SettingsSection>
       )}
 
@@ -1286,58 +1149,9 @@ export function SettingsPanel({
             advancedSlot
           ) : (
             <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-              <Radio className="mr-1 inline h-3.5 w-3.5" aria-hidden />
               Open Destinations & RTMP from the control dock to manage stream targets.
             </p>
           )}
-        </SettingsSection>
-      )}
-
-      {category === "analytics" && <AnalyticsPanel analytics={analytics} />}
-
-      {category === "accessibility" && (
-        <SettingsSection label="Preferences">
-          <div className={cn("space-y-1.5 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            <p>
-              Reduced motion follows your system preference (
-              <code className="text-[11px]">prefers-reduced-motion</code>).
-            </p>
-            <p>Live controls use large touch targets on mobile (about 44×44px).</p>
-            <p>Keyboard focus rings are enabled on all interactive controls.</p>
-          </div>
-        </SettingsSection>
-      )}
-
-      {category === "advanced" && (
-        <SettingsSection label="Diagnostics">
-          <div className={cn("space-y-1 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            <p>Microphone — {permissionLabel(audioAccess)}</p>
-            <p>Camera — {permissionLabel(videoAccess)}</p>
-            <p>
-              Screen share —{" "}
-              {sharing
-                ? "Active"
-                : screenShareSupported
-                  ? screenShareReason || "Ready"
-                  : screenShareReason || "Unsupported"}
-            </p>
-            <p className="pt-1">
-              Stream destinations and RTMP credentials are managed under Live Destinations.
-              Secrets and encrypted keys are never shown here.
-            </p>
-          </div>
-        </SettingsSection>
-      )}
-
-      {category === "about" && (
-        <SettingsSection label="Jimvio Live">
-          <div className={cn("space-y-1.5 rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-            <p className={dark ? "text-white" : "text-neutral-900"}>
-              {title || "Untitled Live"}
-            </p>
-            <p>Powered by Jimvio Live with LiveKit media and realtime chat.</p>
-            <p>Use Report from More if you need to flag this session.</p>
-          </div>
         </SettingsSection>
       )}
     </div>

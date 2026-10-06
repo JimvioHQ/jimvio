@@ -102,6 +102,7 @@ import {
 } from "./live/studio-utils";
 import { LiveGuestJoinCard } from "./live/LiveGuestJoinCard";
 import type { LiveGuestPreview } from "@/lib/live/guest-join";
+import { createClient } from "@/lib/supabase/client";
 import {
   FOCUS_RING,
   FOCUS_RING_DARK,
@@ -150,10 +151,14 @@ export function HubLivePage({
   const [guestError, setGuestError] = useState<string | null>(null);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
   const [settingsCategory, setSettingsCategory] = useState<
-    null | "general" | "stream" | "audio" | "engagement" | "moderation" | "analytics" | "advanced"
+    null | "general" | "video" | "audio" | "chat" | "destinations" | "recording"
   >(null);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [selfProfile, setSelfProfile] = useState<{
+    name: string | null;
+    avatar_url: string | null;
+  } | null>(null);
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { msg: toast, show: showToast } = useEphemeralToast();
@@ -263,6 +268,8 @@ export function HubLivePage({
     const connected = params.get("dest_connected");
     const destError = params.get("dest_error");
     const openSettings = params.get("open") === "settings";
+    const openDestinations =
+      params.get("open") === "destinations" || Boolean(connected);
     if (connected) {
       showToast(`${connected} connected`);
       void destinations.refreshList();
@@ -270,10 +277,14 @@ export function HubLivePage({
     if (destError) {
       showToast(destError);
     }
-    if (openSettings) {
-      updateDrawer({ leftPanel: "settings" });
+    // OAuth return may request destinations — never auto-open Settings on entry.
+    if (openDestinations) {
+      updateDrawer({ leftPanel: "destinations", rightOpen: false });
+    } else if (openSettings) {
+      // Legacy ?open=settings → Destinations when returning from OAuth; otherwise ignore.
+      updateDrawer({ leftPanel: "none" });
     }
-    if (connected || destError || openSettings) {
+    if (connected || destError || openSettings || openDestinations) {
       params.delete("dest_connected");
       params.delete("dest_error");
       params.delete("open");
@@ -282,6 +293,62 @@ export function HubLivePage({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot URL flash
   }, []);
+
+  /* Settings must never be the default landing panel. */
+  useEffect(() => {
+    setDrawer((prev) =>
+      prev.leftPanel === "settings" ? { ...prev, leftPanel: "none" } : prev
+    );
+  }, []);
+
+  /* After Go Live: Chat is the default side panel (Settings stay closed). */
+  const chatOpenedForSession = useRef<string | null>(null);
+  useEffect(() => {
+    const sid = live.session?.status === "live" ? live.session.id : null;
+    if (!sid) {
+      chatOpenedForSession.current = null;
+      return;
+    }
+    if (chatOpenedForSession.current === sid) return;
+    chatOpenedForSession.current = sid;
+    updateDrawer({
+      leftPanel: "none",
+      rightOpen: true,
+      rightTab: "chat",
+    });
+  }, [live.session?.id, live.session?.status, updateDrawer]);
+
+  /* Prefetch host/self profile so prepare stage shows the real avatar. */
+  useEffect(() => {
+    if (!live.userId) {
+      setSelfProfile(null);
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    void supabase
+      .from("profiles")
+      .select("full_name, username, avatar_url")
+      .eq("id", live.userId)
+      .maybeSingle()
+      .then(({ data: profile }: { data: {
+        full_name: string | null;
+        username: string | null;
+        avatar_url: string | null;
+      } | null }) => {
+        if (cancelled || !profile) return;
+        setSelfProfile({
+          name:
+            profile.full_name?.trim() ||
+            profile.username?.trim() ||
+            null,
+          avatar_url: profile.avatar_url ?? null,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [live.userId]);
 
   /* Resume active live session, or join viewer sessionId from route */
   const autoJoinedRef = useRef<string | null>(null);
@@ -1595,8 +1662,7 @@ export function HubLivePage({
           showToast("Reaction sent");
           break;
         case "analytics":
-          setSettingsCategory("analytics");
-          updateDrawer({ leftPanel: "settings", rightOpen: false });
+          openRight("analytics");
           break;
         case "report":
           reportLive();
@@ -1618,6 +1684,7 @@ export function HubLivePage({
       toggleRecord,
       startShare,
       openStreamTo,
+      openRight,
       live,
       showToast,
       updateDrawer,
@@ -1650,11 +1717,18 @@ export function HubLivePage({
   const hostSpeaker = speakers.find(
     (s) => s.role === "host" || s.role === "Host" || s.id === hostUserId
   );
-  const hostAvatar = hostSpeaker?.avatar_url ?? speakers[0]?.avatar_url ?? null;
+  const hostAvatar =
+    hostSpeaker?.avatar_url ??
+    speakers[0]?.avatar_url ??
+    selfProfile?.avatar_url ??
+    null;
   const hostRemote = hostUserId
     ? livekit.remotes.find((r) => r.identity === hostUserId)
     : null;
-  const stageHostName = hostSpeaker?.name ?? session.host;
+  const stageHostName =
+    hostSpeaker?.name ??
+    selfProfile?.name ??
+    session.host;
   const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
 
   /** Camera streams for gallery tiles — real LiveKit remotes + local if not host. */
@@ -1778,6 +1852,9 @@ export function HubLivePage({
           />
         ) : null
       }
+      recording={recordingActive}
+      canRecord={canRecord(live.myRole) || isLiveHost}
+      onToggleRecord={() => void toggleRecord()}
     />
   );
 
@@ -2037,8 +2114,8 @@ export function HubLivePage({
                 immersive
                   ? "min-h-0 flex-1 rounded-none border-0"
                   : hasSession
-                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-[20px] border border-[#E5E7EB] bg-[#EEF2F7] shadow-[0_16px_40px_rgba(15,23,42,0.08)] sm:aspect-video sm:flex-1"
-                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none border border-[#E5E7EB] bg-white sm:rounded-[20px]",
+                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-2xl sm:aspect-video sm:flex-1"
+                    : "min-h-[min(78vh,700px)] shrink-0 rounded-none sm:rounded-2xl",
                 activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
@@ -2046,9 +2123,7 @@ export function HubLivePage({
               <div
                 className={cn(
                   "absolute inset-0",
-                  hasSession
-                    ? "bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,90,31,0.10)_0%,#F4F6FA_48%,#E8EDF5_100%)]"
-                    : "bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]"
+                  "bg-[radial-gradient(ellipse_at_50%_36%,rgba(255,90,31,0.12)_0%,#EEF2F7_42%,#E2E8F0_100%)]"
                 )}
               />
               <StageMediaPreview
@@ -2133,7 +2208,7 @@ export function HubLivePage({
                           </div>
                         </div>
                       ) : (
-                        <LiveStageFallback
+          <LiveStageFallback
                           hostName={stageHostName}
                           avatarUrl={hostAvatar}
                           cameraOff={!hostRemote?.camOn && !media.camOn}
@@ -2165,8 +2240,16 @@ export function HubLivePage({
                   <LivePrepareStage
                     previewStream={media.previewStream}
                     title={displayTitle}
-                    hostName={live.userId ? "You" : stageHostName}
-                    hostAvatarUrl={hostAvatar}
+                    hostName={
+                      live.userId
+                        ? selfProfile?.name || "You"
+                        : stageHostName
+                    }
+                    hostAvatarUrl={
+                      live.userId
+                        ? selfProfile?.avatar_url ?? hostAvatar
+                        : hostAvatar
+                    }
                     busy={live.busy}
                     micOn={micOn}
                     camOn={camOn}

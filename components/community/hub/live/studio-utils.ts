@@ -77,9 +77,12 @@ export function readDrawerState(): DrawerState {
         : isRightTab(parsed.rightTab)
           ? parsed.rightTab
           : DEFAULT_DRAWER.rightTab;
-    const leftPanel: LeftPanel = isLeftPanel(parsed.leftPanel)
+    const leftPanelRaw: LeftPanel = isLeftPanel(parsed.leftPanel)
       ? parsed.leftPanel
       : DEFAULT_DRAWER.leftPanel;
+    // Never restore Settings as the default landing panel.
+    const leftPanel: LeftPanel =
+      leftPanelRaw === "settings" ? "none" : leftPanelRaw;
     const rightWidth =
       typeof parsed.rightWidth === "number" &&
       parsed.rightWidth >= 240 &&

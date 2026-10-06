@@ -57,8 +57,8 @@ export function LiveStageFallback({
           <HubAvatar
             name={hostName}
             src={avatarUrl}
-            size={120}
-            className="!ring-4 !ring-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
+            size={140}
+            className="!ring-0 shadow-[0_12px_40px_rgba(15,23,42,0.22)]"
           />
         </div>
         {micOff && audioOnly ? (
