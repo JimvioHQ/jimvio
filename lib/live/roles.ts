@@ -27,7 +27,28 @@ export function canShareScreen(role: LiveStageRole): boolean {
   return HOST_CONTROLS.has(role) || role === "speaker";
 }
 
-export function canRecord(role: LiveStageRole): boolean {
+/**
+ * Local recording policy.
+ * Default: Everyone / Guest (any joined stage role) may record when the session allows it.
+ * Host may disable via session participant permissions (allowRecording=false).
+ */
+export function canRecord(
+  role: LiveStageRole,
+  opts?: { allowParticipantRecording?: boolean }
+): boolean {
+  if (opts?.allowParticipantRecording === false) return false;
+  // Host/cohost always may record when session allows (or no session policy).
+  if (HOST_CONTROLS.has(role)) return true;
+  // Speakers, moderators, and joined participants (viewer role in DB = watching participant).
+  return (
+    role === "speaker" ||
+    role === "moderator" ||
+    role === "viewer"
+  );
+}
+
+/** LiveKit Egress (cloud room composition) remains host/co-host only. */
+export function canStartCloudEgress(role: LiveStageRole): boolean {
   return HOST_CONTROLS.has(role);
 }
 

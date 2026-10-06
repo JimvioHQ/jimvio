@@ -5,6 +5,11 @@ import {
   getLiveKitApiSecret,
   liveKitRoomName,
 } from "@/lib/live/livekit-config";
+import {
+  DEFAULT_PARTICIPANT_PERMISSIONS,
+  participantMediaPublishAllowed,
+  type LiveParticipantPermissions,
+} from "@/lib/live/participant-permissions";
 
 export type LiveKitTokenResult = {
   token: string;
@@ -17,13 +22,14 @@ export type LiveKitTokenResult = {
 
 /**
  * Issue a LiveKit JWT after Supabase auth + membership + role are already verified.
- * LiveKit carries media only — grants mirror Jimvio stage roles.
+ * LiveKit carries media only — grants mirror Jimvio stage roles + session policy.
  */
 export async function mintLiveKitToken(input: {
   userId: string;
   displayName?: string | null;
   sessionId: string;
   role: LiveStageRole;
+  participantPermissions?: LiveParticipantPermissions;
 }): Promise<LiveKitTokenResult> {
   const apiKey = getLiveKitApiKey();
   const apiSecret = getLiveKitApiSecret();
@@ -32,8 +38,11 @@ export async function mintLiveKitToken(input: {
   }
 
   const roomName = liveKitRoomName(input.sessionId);
-  const canPublish = canPublishAv(input.role);
-  const canPublishScreen = canShareScreen(input.role);
+  const perms = input.participantPermissions ?? DEFAULT_PARTICIPANT_PERMISSIONS;
+  const isHostControl = input.role === "host" || input.role === "cohost";
+  const roleCanPublish = canPublishAv(input.role) || canShareScreen(input.role);
+  const policyAllows = isHostControl || participantMediaPublishAllowed(perms);
+  const canPublish = roleCanPublish && policyAllows;
 
   const grant: VideoGrant = {
     roomJoin: true,
@@ -42,18 +51,18 @@ export async function mintLiveKitToken(input: {
     canPublish,
     canPublishData: true,
     canUpdateOwnMetadata: true,
-    // Screen share uses the same publish grant; role gate is enforced before mint.
   };
-
-  // Viewers / moderators subscribe only (unless cohost/host/speaker).
-  if (!canPublish && !canPublishScreen) {
-    grant.canPublish = false;
-  }
 
   const at = new AccessToken(apiKey, apiSecret, {
     identity: input.userId,
     name: input.displayName?.trim() || input.userId.slice(0, 8),
-    metadata: JSON.stringify({ role: input.role, sessionId: input.sessionId }),
+    metadata: JSON.stringify({
+      role: input.role,
+      sessionId: input.sessionId,
+      allowAudio: perms.allowAudio,
+      allowVideo: perms.allowVideo,
+      allowScreenShare: perms.allowScreenShare,
+    }),
     ttl: "2h",
   });
   at.addGrant(grant);

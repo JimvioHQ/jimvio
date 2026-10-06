@@ -198,12 +198,52 @@ export function useLiveChat(
     }
   }, []);
 
+  /** Debounced history reconcile — never blocks INSERT first paint. */
   const scheduleReload = useCallback(() => {
     if (reloadTimer.current) clearTimeout(reloadTimer.current);
     reloadTimer.current = setTimeout(() => {
       void load().catch(() => undefined);
-    }, 220);
+    }, 1800);
   }, [load]);
+
+  /** Patch sender name/avatar from already-visible messages (non-blocking). */
+  const enrichFromLocalCache = useCallback(
+    (row: ApiMessage & { user_id?: string | null }) => {
+      const uid = row.sender_id ?? row.user_id ?? null;
+      if (!uid || row.sender_name || row.profiles?.full_name) return;
+      setMessages((prev) => {
+        const known = prev.find(
+          (m) =>
+            m.id !== row.id &&
+            m.sender_name &&
+            m.sender_name !== "Member" &&
+            (m as ChatMessage & { sender_id?: string }).sender_id === uid
+        );
+        if (!known) {
+          // Self-sent: use local display name immediately.
+          if (uid === userId) {
+            return upsertChatMessage(
+              prev.map(asChatLike),
+              asChatLike({
+                ...realtimeRowToChatMessage(row),
+                sender_name: displayName,
+              })
+            ) as ChatMessage[];
+          }
+          return prev;
+        }
+        return upsertChatMessage(
+          prev.map(asChatLike),
+          asChatLike({
+            ...realtimeRowToChatMessage(row),
+            sender_name: known.sender_name,
+            sender_avatar: known.sender_avatar ?? null,
+          })
+        ) as ChatMessage[];
+      });
+    },
+    [userId, displayName]
+  );
 
   useEffect(() => {
     if (mode === "none") {
@@ -281,9 +321,10 @@ export function useLiveChat(
                     asChatLike(realtimeRowToChatMessage(row))
                   ) as ChatMessage[]
                 );
+                enrichFromLocalCache(row);
               }
-              // Enrich profiles / pins without blocking first paint of the body.
-              scheduleReload();
+              // Optional enrichment only — message already visible.
+              if (!row.sender_name && !row.profiles?.full_name) scheduleReload();
               return;
             }
             if (eventType === "UPDATE" || eventType === "DELETE") {
@@ -316,8 +357,9 @@ export function useLiveChat(
                     asChatLike(realtimeRowToChatMessage(row))
                   ) as ChatMessage[]
                 );
+                enrichFromLocalCache(row);
               }
-              scheduleReload();
+              if (!row.sender_name && !row.profiles?.full_name) scheduleReload();
               return;
             }
             if (eventType === "UPDATE" || eventType === "DELETE") {
@@ -339,7 +381,7 @@ export function useLiveChat(
         mode === "room" ? `live_chat:${chatKey}` : `live_session_chat:${chatKey}`
       );
     };
-  }, [mode, chatKey, supabase, scheduleReload, applyRealtimeStatus]);
+  }, [mode, chatKey, supabase, scheduleReload, applyRealtimeStatus, enrichFromLocalCache]);
 
   /* Typing broadcast (room or session topic) */
   useEffect(() => {

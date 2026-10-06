@@ -5,6 +5,7 @@ import { mintLiveKitToken } from "@/lib/live/livekit-token";
 import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
 import type { LiveStageRole } from "@/lib/live/roles";
+import { parseParticipantPermissions } from "@/lib/live/participant-permissions";
 import {
   getParticipant,
   getSession,
@@ -132,6 +133,9 @@ export async function POST(req: Request) {
       displayName: profile?.full_name || profile?.username || null,
       sessionId,
       role,
+      participantPermissions: parseParticipantPermissions(
+        (session.settings ?? {}) as Record<string, unknown>
+      ),
     });
 
     liveStudioLog("info", "token_mint", {

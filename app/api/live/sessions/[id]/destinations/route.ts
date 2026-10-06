@@ -11,7 +11,7 @@ import {
   listDestinationSessions,
 } from "@/lib/live/destinations/repository";
 import { platformReadiness } from "@/lib/live/destinations/capabilities";
-import { getSession } from "@/services/live/session-service";
+import { canViewLiveSession, getSession } from "@/services/live/session-service";
 import { liveStudioLog } from "@/lib/live/observability";
 import type { LiveMetadata } from "@/lib/live/destinations/types";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -35,12 +35,38 @@ export async function GET(
   if (!session) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
-  if (session.host_id !== user.id) {
-    return NextResponse.json({ error: "Only the host can view destination status" }, { status: 403 });
+
+  const isHost = session.host_id === user.id;
+  if (!isHost) {
+    const allowed = await canViewLiveSession(user.id, session);
+    if (!allowed) {
+      return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+    }
   }
 
   const destinations = await listDestinationSessions(sessionId);
-  return NextResponse.json({ destinations });
+
+  // Participants receive public LIVE status only — never credentials / secrets.
+  if (!isHost) {
+    return NextResponse.json({
+      readOnly: true,
+      destinations: destinations.map((d) => ({
+        id: d.id,
+        liveSessionId: d.liveSessionId,
+        destinationId: d.destinationId,
+        platform: d.platform,
+        displayName: d.displayName,
+        status: d.status,
+        health: d.health,
+        lastError: null,
+        reconnectCount: 0,
+        startedAt: d.startedAt,
+        endedAt: d.endedAt,
+      })),
+    });
+  }
+
+  return NextResponse.json({ destinations, readOnly: false });
 }
 
 export async function POST(

@@ -30,7 +30,12 @@ import {
   canRecord,
   canRejectSpeaker,
   canShareScreen,
+  canStartCloudEgress,
 } from "@/lib/live/roles";
+import {
+  parseParticipantPermissions,
+  permissionDeniedReason,
+} from "@/lib/live/participant-permissions";
 import { presenceToChatMessages } from "@/lib/live/presence-events";
 import { sortMessagesChronologically } from "@/lib/live/chat-message-state";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
@@ -38,7 +43,10 @@ import { liveStudioLog } from "@/lib/live/observability";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
-import { LiveDestinationsPanel } from "./live/LiveDestinationsPanel";
+import {
+  LiveDestinationsPanel,
+  type HostPublicSocial,
+} from "./live/LiveDestinationsPanel";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
 import { useLiveDestinations } from "@/hooks/live/useLiveDestinations";
 import { LiveMobileDock } from "./live/LiveMobileDock";
@@ -155,6 +163,8 @@ export function HubLivePage({
   >(null);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [screenShareBannerHidden, setScreenShareBannerHidden] = useState(false);
+  const [hostSocial, setHostSocial] = useState<HostPublicSocial[]>([]);
   const [selfProfile, setSelfProfile] = useState<{
     name: string | null;
     avatar_url: string | null;
@@ -182,14 +192,36 @@ export function HubLivePage({
     hostUserId && live.userId && hostUserId !== live.userId ? hostUserId : null
   );
 
+  const participantPerms = useMemo(
+    () =>
+      parseParticipantPermissions(
+        (live.session?.settings ?? null) as Record<string, unknown> | null
+      ),
+    [live.session?.settings]
+  );
+
+  const isHostControlRole =
+    live.myRole === "host" || live.myRole === "cohost";
+  const roleCanPublish = canPublishAv(live.myRole);
+  const canUseMic =
+    isHostControlRole || (roleCanPublish && participantPerms.allowAudio);
+  const canUseCam =
+    isHostControlRole || (roleCanPublish && participantPerms.allowVideo);
+  const canUseScreen =
+    isHostControlRole ||
+    (canShareScreen(live.myRole) && participantPerms.allowScreenShare);
+  const canUseRecord = canRecord(live.myRole, {
+    allowParticipantRecording: participantPerms.allowRecording,
+  });
+
   const livekit = useLiveKitRoom({
     sessionId: live.session?.status === "live" ? live.session.id : null,
     enabled: true,
     localAvStream: media.cameraStream,
-    camOn: media.camOn,
-    micOn: media.micOn,
+    camOn: media.camOn && canUseCam,
+    micOn: media.micOn && canUseMic,
     shareStream: media.shareStream,
-    sharing: media.sharing,
+    sharing: media.sharing && canUseScreen,
     preferLocalStage:
       live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker",
     hostIdentity: hostUserId,
@@ -520,20 +552,100 @@ export function HubLivePage({
     if (me?.status === "joined") invitePromptedRef.current = false;
   }, [live.participants, live.userId, live.session, showToast]);
 
-  /* Remint LiveKit token when role upgrades to publishable (e.g. host accepts hand raise). */
+  /* Remint LiveKit token when role/policy upgrades to publishable. */
   useEffect(() => {
     if (!live.session || live.session.status !== "live") {
       wasPublishableRef.current = null;
       return;
     }
-    const publishable = canPublishAv(live.myRole);
+    const publishable =
+      canPublishAv(live.myRole) &&
+      (isHostControlRole ||
+        participantPerms.allowAudio ||
+        participantPerms.allowVideo ||
+        participantPerms.allowScreenShare);
     const prev = wasPublishableRef.current;
     wasPublishableRef.current = publishable;
     if (prev === false && publishable) {
       void livekit.reconnect().catch(() => undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- remint on role upgrade only
-  }, [live.myRole, live.session?.id, live.session?.status, livekit.reconnect]);
+    if (prev === true && publishable === false) {
+      void livekit.reconnect().catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remint on role/policy change
+  }, [
+    live.myRole,
+    live.session?.id,
+    live.session?.status,
+    livekit.reconnect,
+    isHostControlRole,
+    participantPerms.allowAudio,
+    participantPerms.allowVideo,
+    participantPerms.allowScreenShare,
+  ]);
+
+  /* Enforce host permission policy immediately — stop local media when blocked. */
+  useEffect(() => {
+    if (!live.session || isHostControlRole) return;
+    if (!participantPerms.allowAudio && media.micOn) {
+      media.plane.current?.setMicEnabled(false);
+      void live.syncMedia({ micOn: false });
+      showToast("Microphone is disabled by the host.");
+    }
+    if (!participantPerms.allowVideo && media.camOn) {
+      void media.toggleCamera();
+      void live.syncMedia({ camOn: false });
+      showToast("Camera is disabled by the host.");
+    }
+    if (!participantPerms.allowScreenShare && media.sharing) {
+      media.stopScreenShare();
+      setActivity("live");
+      void live.syncMedia({ sharing: false });
+      showToast("Screen sharing is disabled by the host.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- policy enforcement only
+  }, [
+    live.session?.id,
+    isHostControlRole,
+    participantPerms.allowAudio,
+    participantPerms.allowVideo,
+    participantPerms.allowScreenShare,
+  ]);
+
+  /* Host public social profiles for Destinations → Follow (no secrets). */
+  useEffect(() => {
+    if (!hostUserId) {
+      setHostSocial([]);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/identity/social?userId=${encodeURIComponent(hostUserId)}`)
+      .then(async (res) => {
+        const json = (await res.json().catch(() => ({}))) as {
+          accounts?: Array<{
+            platform?: string;
+            handle?: string | null;
+            url?: string | null;
+          }>;
+        };
+        if (cancelled || !res.ok) return;
+        setHostSocial(
+          (json.accounts ?? [])
+            .filter((a) => a.platform)
+            .map((a) => ({
+              platform: String(a.platform),
+              handle: a.handle ?? null,
+              url: a.url ?? null,
+            }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setHostSocial([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hostUserId]);
 
   /* Host mute: force local mic off when server marks mic_on false. */
   useEffect(() => {
@@ -718,19 +830,41 @@ export function HubLivePage({
   );
 
   const toggleMic = useCallback(async () => {
-    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    if (live.session && !gate(canPublishAv(live.myRole), "Join as a participant to use the mic"))
+      return;
+    const denied = permissionDeniedReason("audio", participantPerms);
+    if (live.session && !isHostControlRole && denied) {
+      showToast(denied);
+      return;
+    }
     const on = await media.toggleMic();
     void live.syncMedia({ micOn: on });
-  }, [gate, live, media]);
+  }, [gate, live, media, participantPerms, isHostControlRole, showToast]);
 
   const toggleCam = useCallback(async () => {
-    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    if (live.session && !gate(canPublishAv(live.myRole), "Join as a participant to use the camera"))
+      return;
+    const denied = permissionDeniedReason("video", participantPerms);
+    if (live.session && !isHostControlRole && denied) {
+      showToast(denied);
+      return;
+    }
     const on = await media.toggleCamera();
     void live.syncMedia({ camOn: on });
-  }, [gate, live, media]);
+  }, [gate, live, media, participantPerms, isHostControlRole, showToast]);
 
   const enableStudioMedia = useCallback(async () => {
-    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    if (live.session && !gate(canPublishAv(live.myRole), "Join as a participant to use camera/mic"))
+      return;
+    if (
+      live.session &&
+      !isHostControlRole &&
+      !participantPerms.allowAudio &&
+      !participantPerms.allowVideo
+    ) {
+      showToast("Camera and microphone are disabled by the host.");
+      return;
+    }
     setMediaBusy(true);
     try {
       const result = await media.enableStudioMedia();
@@ -741,17 +875,31 @@ export function HubLivePage({
     } finally {
       setMediaBusy(false);
     }
-  }, [gate, live, media, showToast]);
+  }, [gate, live, media, showToast, isHostControlRole, participantPerms]);
 
   const toggleRecord = useCallback(async () => {
     if (!online) {
       showToast("Recording unavailable offline");
       return;
     }
-    if (live.session && !gate(canRecord(live.myRole), "Host controls only")) return;
+    if (
+      live.session &&
+      !gate(
+        canRecord(live.myRole, {
+          allowParticipantRecording: participantPerms.allowRecording,
+        }),
+        permissionDeniedReason("recording", participantPerms) ||
+          "Recording is not available"
+      )
+    ) {
+      return;
+    }
 
-    /* Prefer LiveKit Egress when a live session is active (survives browser close). */
-    if (live.session?.status === "live") {
+    /* Cloud Egress: host/cohost only. Everyone else uses local MediaRecorder. */
+    if (
+      live.session?.status === "live" &&
+      canStartCloudEgress(live.myRole)
+    ) {
       try {
         if (egressRecording || recording) {
           const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
@@ -783,21 +931,35 @@ export function HubLivePage({
       }
     }
 
-    if (recording) {
+    if (recording || egressRecording) {
+      if (egressRecording && live.session) {
+        try {
+          await fetch(`/api/live/sessions/${live.session.id}/recording`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "stop" }),
+          });
+        } catch {
+          /* ignore */
+        }
+        setEgressRecording(false);
+      }
       if (media.recordingState === "paused") {
         media.resumeRecording();
         showToast("Recording resumed");
         return;
       }
-      const blob = await media.stopRecording({ download: true });
-      showToast("Recording saved");
-      if (blob && data?.session.communityId && chatRoomId) {
-        const up = await uploadLiveRecording(blob, {
-          communityId: data.session.communityId,
-          roomId: chatRoomId,
-        });
-        if (up.ok && "url" in up && up.url) showToast("Recording uploaded");
-        else if (!up.ok) showToast(up.error);
+      if (media.recordingState !== "idle") {
+        const blob = await media.stopRecording({ download: true });
+        showToast("Recording saved");
+        if (blob && data?.session.communityId && chatRoomId) {
+          const up = await uploadLiveRecording(blob, {
+            communityId: data.session.communityId,
+            roomId: chatRoomId,
+          });
+          if (up.ok && "url" in up && up.url) showToast("Recording uploaded");
+          else if (!up.ok) showToast(up.error);
+        }
       }
       return;
     }
@@ -813,6 +975,7 @@ export function HubLivePage({
     showToast,
     data,
     chatRoomId,
+    participantPerms,
   ]);
 
   const recordingActive = recording || egressRecording;
@@ -825,7 +988,13 @@ export function HubLivePage({
   }, []);
 
   const startShare = useCallback(async () => {
-    if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
+    if (live.session && !gate(canShareScreen(live.myRole), "Join as a participant to share screen"))
+      return;
+    const denied = permissionDeniedReason("screen", participantPerms);
+    if (live.session && !isHostControlRole && denied) {
+      showToast(denied);
+      return;
+    }
     const capability = detectScreenShareCapability();
     setScreenShareCapability(capability);
     if (!capability.canAttempt) {
@@ -842,6 +1011,7 @@ export function HubLivePage({
     });
     if (ok) {
       setActivity("share");
+      setScreenShareBannerHidden(false);
       void live.syncMedia({ sharing: true });
       liveStudioLog("info", "media_publish", {
         kind: "screen_share",
@@ -856,11 +1026,12 @@ export function HubLivePage({
       });
       showToast(media.lastError);
     }
-  }, [gate, live, media, showToast]);
+  }, [gate, live, media, showToast, participantPerms, isHostControlRole]);
 
   const stopShare = useCallback(() => {
     media.stopScreenShare();
     setActivity("live");
+    setScreenShareBannerHidden(false);
     void live.syncMedia({ sharing: false });
     liveStudioLog("info", "media_publish", {
       kind: "screen_share_stop",
@@ -1815,8 +1986,15 @@ export function HubLivePage({
       sharing={media.sharing}
       onStartShare={() => void startShare()}
       onStopShare={stopShare}
-      screenShareSupported={screenShareCapability.canAttempt}
-      screenShareReason={screenShareCapability.reason}
+      screenShareSupported={
+        screenShareCapability.canAttempt && (canUseScreen || !live.session)
+      }
+      screenShareReason={
+        !canUseScreen && live.session
+          ? permissionDeniedReason("screen", participantPerms) ||
+            screenShareCapability.reason
+          : screenShareCapability.reason
+      }
       audioAccess={media.audioAccess}
       videoAccess={media.videoAccess}
       canManageChat={canModerateChat(live.myRole) || isLiveHost}
@@ -1850,11 +2028,37 @@ export function HubLivePage({
             compact
             isLive={live.session?.status === "live"}
           />
-        ) : null
+        ) : (
+          <LiveDestinationsPanel
+            dest={destinations}
+            variant="settings"
+            compact
+            isLive={live.session?.status === "live"}
+            audienceMode
+            hostSocial={hostSocial}
+            hostDisplayName={
+              peopleList.find((p) => p.id === hostUserId)?.name ?? null
+            }
+          />
+        )
       }
       recording={recordingActive}
-      canRecord={canRecord(live.myRole) || isLiveHost}
+      canRecord={canUseRecord || isLiveHost}
       onToggleRecord={() => void toggleRecord()}
+      canManageParticipantPermissions={isHostControlRole && Boolean(live.session)}
+      participantPermissions={participantPerms}
+      onParticipantPermissions={(patch) => {
+        void live
+          .updateParticipantPermissions(patch)
+          .then(() => showToast("Participant permissions updated"))
+          .catch(() => showToast("Could not update permissions"));
+      }}
+      recordingDeniedReason={
+        !canUseRecord
+          ? permissionDeniedReason("recording", participantPerms) ||
+            "Recording is not available for your role."
+          : null
+      }
     />
   );
 
@@ -2133,19 +2337,43 @@ export function HubLivePage({
                   Boolean(stageStream)
                 }
               />
-              {media.sharing ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[3] flex justify-center px-3 sm:bottom-24">
-                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md">
-                    <span>You&apos;re sharing your screen</span>
+              {media.sharing && !screenShareBannerHidden ? (
+                <div className="pointer-events-none absolute inset-x-0 bottom-[5.5rem] z-[3] flex justify-center px-3 sm:bottom-24">
+                  <div
+                    className="pointer-events-auto inline-flex max-w-[min(100%,360px)] items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md"
+                    role="status"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActivity("share")}
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-left hover:text-white/90",
+                        FOCUS_RING_DARK
+                      )}
+                    >
+                      Sharing your screen
+                    </button>
                     <button
                       type="button"
                       onClick={stopShare}
                       className={cn(
-                        "rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
+                        "shrink-0 rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
                         FOCUS_RING_DARK
                       )}
                     >
-                      Stop sharing
+                      Stop
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScreenShareBannerHidden(true)}
+                      aria-label="Hide screen share indicator"
+                      title="Hide indicator (keeps sharing)"
+                      className={cn(
+                        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
+                        FOCUS_RING_DARK
+                      )}
+                    >
+                      <X className="h-3.5 w-3.5" aria-hidden />
                     </button>
                   </div>
                 </div>
@@ -2295,7 +2523,7 @@ export function HubLivePage({
                   recording={recordingActive}
                   sharing={media.sharing}
                   focusMode={focusMode}
-                  canPublish={canPublishAv(live.myRole)}
+                  canPublish={canUseMic || canUseCam || canUseScreen}
                   dark={false}
                   onMic={() => void toggleMic()}
                   onCam={() => void toggleCam()}
@@ -2381,6 +2609,11 @@ export function HubLivePage({
                     dest={destinations}
                     variant="settings"
                     isLive={live.session?.status === "live"}
+                    audienceMode={!isLiveHost && !canStartLive}
+                    hostSocial={hostSocial}
+                    hostDisplayName={
+                      peopleList.find((p) => p.id === hostUserId)?.name ?? null
+                    }
                   />
                 )}
               </div>
@@ -2718,7 +2951,7 @@ export function HubLivePage({
 
       <LiveMobileDock
         isHost={isLiveHost && hasSession}
-        canPublish={hasSession && canPublishAv(live.myRole)}
+        canPublish={hasSession && (canUseMic || canUseCam || canUseScreen)}
         hasSession={hasSession}
         micOn={micOn}
         camOn={camOn}

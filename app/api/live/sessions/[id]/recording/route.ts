@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canRecord } from "@/lib/live/roles";
+import { canStartCloudEgress } from "@/lib/live/roles";
 import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
 import { getParticipant, getSession, canViewLiveSession, listSessionRecordings } from "@/services/live/session-service";
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/live/sessions/[id]/recording
  * Body: { action: "start" | "stop" }
- * Host/cohost only — starts/stops LiveKit Egress (survives browser close).
+ * Host/cohost only — LiveKit Egress room composition (survives browser close).
+ * Local MediaRecorder for Everyone/Guest is handled client-side when session allows.
  */
 export async function POST(
   req: Request,
@@ -51,14 +52,17 @@ export async function POST(
 
   const me = await getParticipant(sessionId, user.id);
   const role = me?.role ?? (session.host_id === user.id ? "host" : "viewer");
-  if (!canRecord(role)) {
+  if (!canStartCloudEgress(role)) {
     liveStudioLog("warn", "security_denied", {
-      action: "recording",
+      action: "recording_egress",
       sessionId,
       userId: user.id,
       role,
     });
-    return NextResponse.json({ error: "Only host/co-host may record" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Cloud recording (Egress) is available to host/co-host. Use local Record from the dock." },
+      { status: 403 }
+    );
   }
 
   if (body.action === "start") {

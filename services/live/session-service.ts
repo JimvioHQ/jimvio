@@ -18,6 +18,13 @@ import {
   type LiveSessionStatus,
   type LiveStageRole,
 } from "@/lib/live/roles";
+import {
+  mergeParticipantPermissions,
+  parseParticipantPermissions,
+  participantMediaPublishAllowed,
+  serializeParticipantPermissions,
+  type LiveParticipantPermissions,
+} from "@/lib/live/participant-permissions";
 
 export type LiveSessionPrivacy = "public" | "private" | "invite_only";
 
@@ -462,6 +469,12 @@ export async function createLiveSession(input: {
   const settings = {
     ...normalizeChatSettings(input.chatSettings),
     live_kind: isCreatorLive ? "creator" : "community",
+    participants: serializeParticipantPermissions({
+      allowAudio: true,
+      allowVideo: true,
+      allowScreenShare: true,
+      allowRecording: true,
+    }),
   };
 
   const { data: session, error } = await db()
@@ -767,13 +780,6 @@ export async function joinLiveSession(
     }
   }
 
-  const role: LiveStageRole =
-    existing?.role && existing.status !== "left" && existing.status !== "rejected"
-      ? existing.role
-      : session.host_id === userId
-        ? "host"
-        : "viewer";
-
   // Preserve pending speaker invites — accept-invite promotes them later.
   if (existing?.status === "invited") {
     return { participant: existing, session };
@@ -781,17 +787,52 @@ export async function joinLiveSession(
 
   const settings = (session.settings ?? {}) as Record<string, unknown>;
   const waitingRoom = Boolean(settings.waiting_room);
-  const isStage =
-    role === "host" || role === "cohost" || role === "speaker" || role === "moderator";
+  const participantPerms = parseParticipantPermissions(settings);
+  const mediaAllowed = participantMediaPublishAllowed(participantPerms);
+
+  /**
+   * Role assignment:
+   * - Preserve elevated roles (host/cohost/speaker/moderator) on rejoin.
+   * - New joiners become speakers when the Host allows participant media
+   *   so LiveKit canPublish is granted (participants ≠ passive viewers).
+   * - Waiting-room joiners stay viewers until admitted.
+   */
+  let role: LiveStageRole =
+    existing?.role &&
+    existing.status !== "left" &&
+    existing.status !== "rejected" &&
+    existing.status !== "requested"
+      ? existing.role
+      : session.host_id === userId
+        ? "host"
+        : mediaAllowed
+          ? "speaker"
+          : "viewer";
+
+  // Upgrade legacy joined viewers to speaker when Host allows participant media.
+  if (
+    existing?.status === "joined" &&
+    existing.role === "viewer" &&
+    session.host_id !== userId &&
+    mediaAllowed
+  ) {
+    role = "speaker";
+  }
+
   const alreadyJoined = existing?.status === "joined";
   let joinStatus: LiveParticipantStatus = "joined";
   if (
     waitingRoom &&
     session.host_id !== userId &&
     !alreadyJoined &&
-    !isStage
+    !(
+      existing?.role === "cohost" ||
+      existing?.role === "speaker" ||
+      existing?.role === "moderator"
+    )
   ) {
     joinStatus = "requested";
+    role = "viewer";
   }
 
   const now = new Date().toISOString();
@@ -1588,7 +1629,7 @@ export async function emitLiveReaction(
   return { ok: true };
 }
 
-/** Admit a waiting-room viewer (requested, not a hand-raise) as a joined viewer. */
+/** Admit a waiting-room viewer as a joined participant (speaker when media allowed). */
 export async function admitViewer(
   sessionId: string,
   actorId: string,
@@ -1602,10 +1643,18 @@ export async function admitViewer(
     return { error: "No one waiting", status: 400 };
   }
 
+  const session = await getSession(sessionId);
+  const perms = parseParticipantPermissions(
+    (session?.settings ?? {}) as Record<string, unknown>
+  );
+  const admitRole: LiveStageRole = participantMediaPublishAllowed(perms)
+    ? "speaker"
+    : "viewer";
+
   const { data, error } = await db()
     .from("live_session_participants")
     .update({
-      role: "viewer",
+      role: admitRole,
       status: "joined",
       hand_raised: false,
       updated_at: new Date().toISOString(),
@@ -1639,11 +1688,19 @@ export async function admitAllWaiting(
   const ids = (waiting ?? []).map((r) => r.user_id as string);
   if (ids.length === 0) return { admitted: 0 };
 
+  const session = await getSession(sessionId);
+  const perms = parseParticipantPermissions(
+    (session?.settings ?? {}) as Record<string, unknown>
+  );
+  const admitRole: LiveStageRole = participantMediaPublishAllowed(perms)
+    ? "speaker"
+    : "viewer";
+
   const now = new Date().toISOString();
   const { error } = await db()
     .from("live_session_participants")
     .update({
-      role: "viewer",
+      role: admitRole,
       status: "joined",
       hand_raised: false,
       joined_at: now,
@@ -1730,6 +1787,39 @@ export async function updateLiveChatSettings(
     .single();
   if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
   return { session: data as LiveSessionRow };
+}
+
+/** Host/cohost updates participant capability policy (realtime via live_sessions). */
+export async function updateParticipantPermissions(
+  sessionId: string,
+  userId: string,
+  patch: Partial<LiveParticipantPermissions>
+): Promise<{ session: LiveSessionRow; permissions: LiveParticipantPermissions } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+  const me = await getParticipant(sessionId, userId);
+  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
+  if (role !== "host" && role !== "cohost") {
+    return { error: "Not allowed", status: 403 };
+  }
+
+  const prev = (session.settings ?? {}) as Record<string, unknown>;
+  const current = parseParticipantPermissions(prev);
+  const nextPerms = mergeParticipantPermissions(current, patch);
+  const next = {
+    ...prev,
+    participants: serializeParticipantPermissions(nextPerms),
+  };
+
+  const { data, error } = await db()
+    .from("live_sessions")
+    .update({ settings: next, updated_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .select("*")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
+  return { session: data as LiveSessionRow, permissions: nextPerms };
 }
 
 export async function updateLiveTitle(

@@ -215,11 +215,12 @@ function ControlDockImpl({
               pressed={recording}
               recording={recording}
               onClick={onRecord}
-              label="Record"
+              label={recording ? "Recording" : "Record"}
               hint="R"
+              className={recording ? "!bg-[#EF4444] !text-white" : undefined}
             >
               <Circle
-                className={cn(icon, recording && "fill-current")}
+                className={cn(icon, recording && "fill-current text-white")}
                 strokeWidth={sw}
                 aria-hidden
               />
@@ -274,11 +275,12 @@ function ControlDockImpl({
               pressed={recording}
               recording={recording}
               onClick={onRecord}
-              label="Record"
+              label={recording ? "Recording" : "Record"}
               hint="R"
+              className={recording ? "!bg-[#EF4444] !text-white" : undefined}
             >
               <Circle
-                className={cn(icon, recording && "fill-current")}
+                className={cn(icon, recording && "fill-current text-white")}
                 strokeWidth={sw}
                 aria-hidden
               />
@@ -312,11 +314,12 @@ function ControlDockImpl({
               pressed={recording}
               recording={recording}
               onClick={onRecord}
-              label="Record"
+              label={recording ? "Recording" : "Record"}
               hint="R"
+              className={recording ? "!bg-[#EF4444] !text-white" : undefined}
             >
               <Circle
-                className={cn(icon, recording && "fill-current")}
+                className={cn(icon, recording && "fill-current text-white")}
                 strokeWidth={sw}
                 aria-hidden
               />
@@ -413,7 +416,7 @@ function DockBtn({
           : accent
             ? "bg-[#111827] text-white"
             : recording
-              ? "bg-red-500 text-white"
+              ? "bg-[#EF4444] text-white"
               : success
                 ? "bg-emerald-50 text-emerald-700"
                 : pressed

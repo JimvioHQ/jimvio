@@ -22,8 +22,15 @@ import type {
   DestinationPlatform,
   PublicDestinationSession,
 } from "@/lib/live/destinations/types";
+import { publicSocialProfileUrl } from "@/lib/live/social-profile-url";
 
 type DestHook = ReturnType<typeof useLiveDestinations>;
+
+export type HostPublicSocial = {
+  platform: string;
+  handle?: string | null;
+  url?: string | null;
+};
 
 function statusDot(status: string) {
   if (status === "live") return "bg-red-500 animate-pulse";
@@ -192,11 +199,18 @@ export function LiveDestinationsPanel({
   compact = false,
   isLive = false,
   variant = "studio",
+  audienceMode = false,
+  hostSocial = [],
+  hostDisplayName,
 }: {
   dest: DestHook;
   compact?: boolean;
   isLive?: boolean;
   variant?: "studio" | "settings";
+  /** Participants: show active LIVE destinations + host public social only. */
+  audienceMode?: boolean;
+  hostSocial?: HostPublicSocial[];
+  hostDisplayName?: string | null;
 }) {
   const t = variant === "settings" ? SETTINGS_THEME : STUDIO_THEME;
   const [showCustomForm, setShowCustomForm] = useState(false);
@@ -210,6 +224,21 @@ export function LiveDestinationsPanel({
     () => new Map(dest.sessionStatuses.map((s) => [s.destinationId, s])),
     [dest.sessionStatuses]
   );
+
+  const liveNow = useMemo(() => {
+    const active = dest.sessionStatuses.filter((s) => s.status === "live");
+    return active;
+  }, [dest.sessionStatuses]);
+
+  const followableSocial = useMemo(() => {
+    return hostSocial
+      .map((s) => {
+        const href = publicSocialProfileUrl(s);
+        if (!href) return null;
+        return { ...s, href };
+      })
+      .filter((s): s is HostPublicSocial & { href: string } => Boolean(s));
+  }, [hostSocial]);
 
   /** Ordered user-facing catalog: YouTube → Twitch → TikTok (Jimvio rendered separately). */
   const visibleCatalog = useMemo(() => {
@@ -237,6 +266,121 @@ export function LiveDestinationsPanel({
       }),
     [dest.destinations, dest.sessionStatuses]
   );
+
+  if (audienceMode) {
+    return (
+      <section
+        className={cn(
+          "w-full rounded-xl",
+          t.shell,
+          compact ? "p-3" : "p-3.5 sm:p-4",
+          variant === "studio" && MOTION_COLORS
+        )}
+        aria-label="Where this Live is streaming"
+      >
+        <div className="mb-2.5">
+          <h3 className={t.title}>LIVE ON</h3>
+          <p className={t.subtitle}>
+            Platforms where this Live is currently streaming.
+          </p>
+        </div>
+        <ul className={t.list}>
+          <li className={t.row}>
+            <PlatformGlyph platform="jimvio" theme={t} />
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={t.name}>Jimvio</span>
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 shrink-0 rounded-full",
+                    statusDot(isLive ? "live" : "ready")
+                  )}
+                />
+                <span className={t.meta}>{isLive ? "● LIVE" : "Active"}</span>
+              </div>
+            </div>
+          </li>
+          {liveNow.map((s) => (
+            <li key={s.id} className={t.row}>
+              <PlatformGlyph platform={s.platform} theme={t} />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={t.name}>{s.displayName || s.platform}</span>
+                  <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDot("live"))} />
+                  <span className={cn(t.meta, "text-red-500")}>● LIVE</span>
+                </div>
+              </div>
+            </li>
+          ))}
+          {liveNow.length === 0 ? (
+            <li className={cn(t.meta, "py-2")}>
+              No external destinations are live right now.
+            </li>
+          ) : null}
+        </ul>
+
+        {followableSocial.length > 0 ? (
+          <div className={t.divider}>
+            <h4 className={t.title}>
+              FOLLOW HOST{hostDisplayName ? ` · ${hostDisplayName}` : ""}
+            </h4>
+            <ul className={cn(t.list, "mt-2")}>
+              {followableSocial.map((s) => {
+                const platformKey = s.platform.toLowerCase();
+                const knownDest =
+                  platformKey === "youtube" ||
+                  platformKey === "twitch" ||
+                  platformKey === "tiktok" ||
+                  platformKey === "facebook" ||
+                  platformKey === "instagram" ||
+                  platformKey === "jimvio" ||
+                  platformKey === "custom_rtmp";
+                return (
+                  <li key={`${s.platform}-${s.handle ?? s.href}`} className={t.row}>
+                    {knownDest ? (
+                      <PlatformGlyph
+                        platform={platformKey as DestinationPlatform}
+                        theme={t}
+                      />
+                    ) : (
+                      <span className={t.iconShell} aria-hidden>
+                        <span className="text-[10px] font-bold uppercase">
+                          {s.platform.slice(0, 2)}
+                        </span>
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <span className={t.name}>
+                        {s.platform.charAt(0).toUpperCase() + s.platform.slice(1)}
+                      </span>
+                      <p className={t.message}>
+                        {s.handle
+                          ? s.handle.startsWith("@")
+                            ? s.handle
+                            : `@${s.handle}`
+                          : s.href}
+                      </p>
+                    </div>
+                    <a
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(t.connectBtn, t.focus)}
+                    >
+                      Follow
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className={cn(t.subtitle, "mt-2")}>
+              Opens the host&apos;s public profile. Follow happens on that platform.
+            </p>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
 
   async function onAddCustom() {
     setFormError(null);

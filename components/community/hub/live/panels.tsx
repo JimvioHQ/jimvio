@@ -755,6 +755,10 @@ export function SettingsPanel({
   recording = false,
   onToggleRecord,
   canRecord = false,
+  canManageParticipantPermissions = false,
+  participantPermissions,
+  onParticipantPermissions,
+  recordingDeniedReason = null,
 }: {
   /** @deprecated unused */
   mode?: StudioMode;
@@ -808,6 +812,22 @@ export function SettingsPanel({
   recording?: boolean;
   onToggleRecord?: () => void;
   canRecord?: boolean;
+  canManageParticipantPermissions?: boolean;
+  participantPermissions?: {
+    allowAudio: boolean;
+    allowVideo: boolean;
+    allowScreenShare: boolean;
+    allowRecording: boolean;
+  };
+  onParticipantPermissions?: (
+    patch: Partial<{
+      allowAudio: boolean;
+      allowVideo: boolean;
+      allowScreenShare: boolean;
+      allowRecording: boolean;
+    }>
+  ) => void;
+  recordingDeniedReason?: string | null;
 }) {
   const [category, setCategory] = useState<SettingsCategory | null>(initialCategory);
   const [draftTitle, setDraftTitle] = useState(title ?? "");
@@ -827,7 +847,13 @@ export function SettingsPanel({
 
   const visibleCategories = SETTINGS_CATEGORIES.filter((item) => {
     if (item.id === "chat") return Boolean(canManageChat && onChatEnabled);
-    if (item.id === "recording") return Boolean(canRecord && onToggleRecord);
+    if (item.id === "recording") {
+      return (
+        Boolean(canRecord && onToggleRecord) ||
+        Boolean(canManageParticipantPermissions) ||
+        Boolean(recordingDeniedReason)
+      );
+    }
     if (item.id === "destinations") return Boolean(advancedSlot);
     return true;
   });
@@ -892,61 +918,113 @@ export function SettingsPanel({
       </button>
 
       {category === "general" && (
-        <SettingsSection label="Live details">
-          {canEditTitle && onSaveTitle ? (
-            <>
-              <div className="flex gap-2">
-                <input
-                  value={draftTitle}
-                  maxLength={120}
-                  onChange={(e) => setDraftTitle(e.target.value)}
-                  className={cn(
-                    "min-w-0 flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
-                    dark
-                      ? "border-white/15 bg-white/5 text-white"
-                      : "border-neutral-200 bg-white",
-                    ring
-                  )}
-                  aria-label="Live title"
-                />
+        <>
+          <SettingsSection label="Live details">
+            {canEditTitle && onSaveTitle ? (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    value={draftTitle}
+                    maxLength={120}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    className={cn(
+                      "min-w-0 flex-1 rounded-xl border px-3 py-2 text-[13px] outline-none focus:border-accent",
+                      dark
+                        ? "border-white/15 bg-white/5 text-white"
+                        : "border-neutral-200 bg-white",
+                      ring
+                    )}
+                    aria-label="Live title"
+                  />
+                  <button
+                    type="button"
+                    disabled={titleBusy}
+                    onClick={() => {
+                      void (async () => {
+                        setTitleBusy(true);
+                        setTitleMsg(null);
+                        try {
+                          await onSaveTitle(draftTitle);
+                          setTitleMsg("Saved");
+                        } catch (e) {
+                          setDraftTitle(title ?? "");
+                          setTitleMsg(e instanceof Error ? e.message : "Save failed");
+                        } finally {
+                          setTitleBusy(false);
+                        }
+                      })();
+                    }}
+                    className={cn(
+                      "rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                      ring
+                    )}
+                  >
+                    {titleBusy ? "…" : "Save"}
+                  </button>
+                </div>
+                {titleMsg ? (
+                  <p className={cn("text-[11px]", muted)} role="status">
+                    {titleMsg}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className={cn("rounded-xl px-3 py-2 text-[13px]", surface)}>
+                {title || "Untitled Live"}
+              </p>
+            )}
+          </SettingsSection>
+          {canManageParticipantPermissions &&
+          participantPermissions &&
+          onParticipantPermissions ? (
+            <SettingsSection label="Participant permissions">
+              {(
+                [
+                  ["allowAudio", "Microphone", participantPermissions.allowAudio],
+                  ["allowVideo", "Camera", participantPermissions.allowVideo],
+                  [
+                    "allowScreenShare",
+                    "Screen sharing",
+                    participantPermissions.allowScreenShare,
+                  ],
+                  [
+                    "allowRecording",
+                    "Recording",
+                    participantPermissions.allowRecording,
+                  ],
+                ] as const
+              ).map(([key, label, allowed]) => (
                 <button
+                  key={key}
                   type="button"
-                  disabled={titleBusy}
-                  onClick={() => {
-                    void (async () => {
-                      setTitleBusy(true);
-                      setTitleMsg(null);
-                      try {
-                        await onSaveTitle(draftTitle);
-                        setTitleMsg("Saved");
-                      } catch (e) {
-                        setDraftTitle(title ?? "");
-                        setTitleMsg(e instanceof Error ? e.message : "Save failed");
-                      } finally {
-                        setTitleBusy(false);
-                      }
-                    })();
-                  }}
+                  onClick={() => onParticipantPermissions({ [key]: !allowed })}
                   className={cn(
-                    "rounded-xl bg-[#FF5A1F] px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                    "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                    rowClass,
                     ring
                   )}
                 >
-                  {titleBusy ? "…" : "Save"}
+                  {label}
+                  <span
+                    className={cn(
+                      "text-[11px] font-semibold",
+                      allowed
+                        ? dark
+                          ? "text-emerald-300"
+                          : "text-emerald-700"
+                        : muted
+                    )}
+                  >
+                    {allowed ? "Allowed" : "Blocked"}
+                  </span>
                 </button>
-              </div>
-              {titleMsg ? (
-                <p className={cn("text-[11px]", muted)} role="status">
-                  {titleMsg}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p className={cn("rounded-xl px-3 py-2 text-[13px]", surface)}>
-              {title || "Untitled Live"}
-            </p>
-          )}
-        </SettingsSection>
+              ))}
+              <p className={cn("px-1 text-[11px]", muted)}>
+                Changes apply to participants immediately — no refresh required.
+              </p>
+            </SettingsSection>
+          ) : null}
+        </>
       )}
 
       {category === "video" && (
@@ -1119,7 +1197,7 @@ export function SettingsPanel({
       )}
 
       {category === "recording" && (
-        <SettingsSection label="Local recording">
+        <SettingsSection label="Recording">
           {canRecord && onToggleRecord ? (
             <button
               type="button"
@@ -1127,19 +1205,43 @@ export function SettingsPanel({
               className={cn(
                 "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
                 rowClass,
-                ring
+                ring,
+                recording && (dark ? "text-[#EF4444]" : "text-[#EF4444]")
               )}
             >
-              Recording
+              {recording ? "● Recording" : "○ Record"}
               <span className={cn("text-[11px] font-semibold", muted)}>
                 {recording ? "Stop" : "Start"}
               </span>
             </button>
           ) : (
             <p className={cn("rounded-xl px-3 py-2 text-[12px]", surface, muted)}>
-              Recording is available from the Record control on the dock when you can publish.
+              {recordingDeniedReason ||
+                "Recording is unavailable for this Live session."}
             </p>
           )}
+          {canManageParticipantPermissions &&
+          participantPermissions &&
+          onParticipantPermissions ? (
+            <button
+              type="button"
+              onClick={() =>
+                onParticipantPermissions({
+                  allowRecording: !participantPermissions.allowRecording,
+                })
+              }
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px]",
+                rowClass,
+                ring
+              )}
+            >
+              Allow Everyone / Guest to record
+              <span className={cn("text-[11px] font-semibold", muted)}>
+                {participantPermissions.allowRecording ? "Allowed" : "Blocked"}
+              </span>
+            </button>
+          ) : null}
         </SettingsSection>
       )}
 

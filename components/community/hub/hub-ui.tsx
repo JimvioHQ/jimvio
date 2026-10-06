@@ -103,18 +103,24 @@ export function HubAvatar({
     .join("");
   const showImage = Boolean(src?.trim()) && !failed;
   return (
-    <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
+    <div
+      className={cn(
+        "relative shrink-0 overflow-hidden rounded-full aspect-square",
+        className
+      )}
+      style={{ width: size, height: size }}
+    >
       {showImage ? (
         <img
           src={src!}
           alt={name}
-          className="h-full w-full rounded-full object-cover ring-2 ring-white"
+          className="h-full w-full rounded-full object-cover aspect-square ring-2 ring-white"
           style={{ width: size, height: size }}
           onError={() => setFailed(true)}
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-[11px] font-bold text-white"
+          className="flex h-full w-full items-center justify-center rounded-full aspect-square bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-[11px] font-bold text-white"
           style={{ width: size, height: size }}
         >
           {initials || "?"}

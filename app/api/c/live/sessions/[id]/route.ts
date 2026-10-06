@@ -31,10 +31,12 @@ import {
   transferHost,
   updateLiveChatSettings,
   updateLiveTitle,
+  updateParticipantPermissions,
   updateSelfMedia,
   voteLivePoll,
   type LiveChatSettings,
 } from "@/services/live/session-service";
+import type { LiveParticipantPermissions } from "@/lib/live/participant-permissions";
 import type { LiveStageRole } from "@/lib/live/roles";
 import { liveStudioLog } from "@/lib/live/observability";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -57,6 +59,7 @@ type ActionBody = {
   chatSettings?: LiveChatSettings;
   enabled?: boolean;
   title?: string;
+  permissions?: Partial<LiveParticipantPermissions>;
 };
 
 export async function GET(
@@ -329,6 +332,14 @@ export async function POST(
     case "waiting-room": {
       const enabled = Boolean((body as { enabled?: boolean }).enabled);
       const result = await setWaitingRoomEnabled(id, user.id, enabled);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "participant-permissions": {
+      if (!body.permissions || typeof body.permissions !== "object") {
+        return NextResponse.json({ error: "permissions required" }, { status: 400 });
+      }
+      const result = await updateParticipantPermissions(id, user.id, body.permissions);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

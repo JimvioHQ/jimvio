@@ -564,6 +564,25 @@ export function useLiveSession(initialSessionId?: string | null) {
     [session, refresh]
   );
 
+  const updateParticipantPermissions = useCallback(
+    async (permissions: {
+      allowAudio?: boolean;
+      allowVideo?: boolean;
+      allowScreenShare?: boolean;
+      allowRecording?: boolean;
+    }) => {
+      if (!session) return;
+      const json = await sessionAction(session.id, {
+        action: "participant-permissions",
+        permissions,
+      });
+      const next = (json as { session?: LiveSessionRow }).session;
+      if (next) setSession(next);
+      return next;
+    },
+    [session]
+  );
+
   const reject = useCallback(
     async (targetUserId: string) => {
       if (!session) return;
@@ -743,6 +762,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     admit,
     admitAll,
     setWaitingRoom,
+    updateParticipantPermissions,
     reject,
     remove,
     mute,
