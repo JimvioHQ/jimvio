@@ -83,6 +83,8 @@ export function useLiveSession(initialSessionId?: string | null) {
   const profileInflight = useRef<Set<string>>(new Set());
   const userIdRef = useRef<string | null>(null);
   const presenceBootstrapped = useRef<string | null>(null);
+  /** Suppress stale "joined" rows briefly after a leave event (read race). */
+  const leftTombstones = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     userIdRef.current = userId;
@@ -237,16 +239,31 @@ export function useLiveSession(initialSessionId?: string | null) {
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load session");
     setSession(json.session ?? null);
-    const server = (json.participants ?? []).map((row) => {
-      if (row.display_name || row.avatar_url || row.username) {
-        profileCache.current.set(row.user_id, {
-          display_name: row.display_name ?? null,
-          avatar_url: row.avatar_url ?? null,
-          username: row.username ?? null,
-        });
-      }
-      return applyProfileCache(row, profileCache.current);
-    });
+    const now = Date.now();
+    for (const [uid, ts] of leftTombstones.current) {
+      if (now - ts > 5_000) leftTombstones.current.delete(uid);
+    }
+    const server = (json.participants ?? [])
+      .filter((row) => {
+        const leftAt = leftTombstones.current.get(row.user_id);
+        if (leftAt == null) return true;
+        // Tombstone wins over a lagging joined read for a few seconds.
+        if (row.status === "joined" || row.status === "requested" || row.status === "invited") {
+          return false;
+        }
+        leftTombstones.current.delete(row.user_id);
+        return true;
+      })
+      .map((row) => {
+        if (row.display_name || row.avatar_url || row.username) {
+          profileCache.current.set(row.user_id, {
+            display_name: row.display_name ?? null,
+            avatar_url: row.avatar_url ?? null,
+            username: row.username ?? null,
+          });
+        }
+        return applyProfileCache(row, profileCache.current);
+      });
     setParticipants((prev) => {
       const next = reconcileParticipants(prev, server);
       emitPresenceDiff(prev, next, sessionId);
@@ -303,6 +320,11 @@ export function useLiveSession(initialSessionId?: string | null) {
     let chPart: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     const sid = session.id;
     const isCancelled = () => cancelledSub;
+    const onChannelReady = (status: string) => {
+      if (status !== "SUBSCRIBED" || cancelledSub) return;
+      // Catch events missed between initial fetch and channel ready.
+      void refresh(sid).catch(() => undefined);
+    };
 
     void (async () => {
       chSession = await subscribePostgresChanges(
@@ -321,7 +343,8 @@ export function useLiveSession(initialSessionId?: string | null) {
           }
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
-        isCancelled
+        isCancelled,
+        { onStatus: onChannelReady }
       );
       chPart = await subscribePostgresChanges(
         supabase,
@@ -337,6 +360,18 @@ export function useLiveSession(initialSessionId?: string | null) {
           const raw = payload?.new as LiveParticipantRow | null;
           const old = payload?.old as LiveParticipantRow | null;
           const row = raw ? applyProfileCache(raw, profileCache.current) : raw;
+
+          const leftUid =
+            eventType === "DELETE"
+              ? old?.user_id ?? row?.user_id
+              : row && (row.status === "left" || row.status === "removed")
+                ? row.user_id
+                : null;
+          if (leftUid) {
+            leftTombstones.current.set(leftUid, Date.now());
+          } else if (row?.user_id && row.status === "joined") {
+            leftTombstones.current.delete(row.user_id);
+          }
 
           setParticipants((prev) => {
             const next = applyParticipantEvent(prev, { eventType, row, old });
@@ -354,9 +389,14 @@ export function useLiveSession(initialSessionId?: string | null) {
             hydrateProfile(row.user_id, isCancelled);
           }
 
-          if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
+          // INSERT is already applied optimistically — avoid a racing GET that
+          // can briefly omit the new row and wipe it via reconcile.
+          if (payload && eventType !== "INSERT") {
+            scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
+          }
         },
-        isCancelled
+        isCancelled,
+        { onStatus: onChannelReady }
       );
     })();
 
@@ -366,7 +406,7 @@ export function useLiveSession(initialSessionId?: string | null) {
       unsubscribeRealtime(supabase, chSession, `live_session:${sid}`);
       unsubscribeRealtime(supabase, chPart, `live_session_participants:${sid}`);
     };
-  }, [session?.id, supabase, scheduleRefresh, hydrateProfile, emitPresenceDiff]);
+  }, [session?.id, supabase, scheduleRefresh, hydrateProfile, emitPresenceDiff, refresh]);
 
   const createLive = useCallback(
     async (input: {
@@ -427,6 +467,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     setParticipants([]);
     setPresenceEvents([]);
     presenceBootstrapped.current = null;
+    leftTombstones.current.clear();
     seenPresence.current.clear();
   }, [session]);
 

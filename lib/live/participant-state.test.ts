@@ -155,3 +155,38 @@ describe("duplicate realtime events", () => {
     assert.equal(second[0].mic_on, false);
   });
 });
+
+describe("reconcile keeps recent optimistic joins", () => {
+  it("does not drop a local join missing from a stale server snapshot", () => {
+    const now = Date.parse("2026-01-01T00:00:02.000Z");
+    const local = [
+      p("host", { role: "host", updated_at: "2026-01-01T00:00:00.000Z" }),
+      p("joiner", {
+        display_name: "Joiner",
+        updated_at: "2026-01-01T00:00:01.500Z",
+        joined_at: "2026-01-01T00:00:01.500Z",
+      }),
+    ];
+    const server = [p("host", { role: "host" })];
+    const next = reconcileParticipants(local, server, now);
+    assert.equal(next.length, 2);
+    assert.ok(next.some((x) => x.user_id === "joiner"));
+  });
+
+  it("drops stale local joins after the grace window", () => {
+    const now = Date.parse("2026-01-01T00:00:20.000Z");
+    const local = [
+      p("host", { role: "host" }),
+      p("gone", {
+        updated_at: "2026-01-01T00:00:01.000Z",
+        joined_at: "2026-01-01T00:00:01.000Z",
+      }),
+    ];
+    const server = [p("host", { role: "host" })];
+    const next = reconcileParticipants(local, server, now);
+    assert.deepEqual(
+      next.map((x) => x.user_id),
+      ["host"]
+    );
+  });
+});

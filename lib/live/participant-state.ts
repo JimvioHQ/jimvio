@@ -94,14 +94,21 @@ export function applyParticipantEvent<T extends ParticipantLike>(
   return prev;
 }
 
+/** Keep optimistic joins briefly when a debounced GET races ahead of commit. */
+export const RECONCILE_JOIN_GRACE_MS = 5_000;
+
 /**
  * Reconcile authoritative server participants with local optimistic state.
  * Server wins on identity; local profile fields fill gaps when server omits them.
  * Dedupes by user_id.
+ *
+ * Recent local joins missing from `server` are retained for a short grace window
+ * so a stale GET cannot erase a realtime INSERT that just landed.
  */
 export function reconcileParticipants<T extends ParticipantLike>(
   local: T[],
-  server: T[]
+  server: T[],
+  now = Date.now()
 ): T[] {
   const localByUser = new Map(local.map((p) => [p.user_id, p]));
   const seen = new Set<string>();
@@ -112,6 +119,15 @@ export function reconcileParticipants<T extends ParticipantLike>(
     if (!isActiveParticipantStatus(row.status)) continue;
     seen.add(row.user_id);
     out.push(mergeParticipantProfile(localByUser.get(row.user_id), row));
+  }
+
+  for (const row of local) {
+    if (!row.user_id || seen.has(row.user_id)) continue;
+    if (!isActiveParticipantStatus(row.status)) continue;
+    const ts = Date.parse(String(row.updated_at ?? row.joined_at ?? ""));
+    if (!Number.isFinite(ts) || now - ts >= RECONCILE_JOIN_GRACE_MS) continue;
+    seen.add(row.user_id);
+    out.push(row);
   }
 
   return out;

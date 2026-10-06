@@ -1031,57 +1031,138 @@ export function HubLivePage({
   }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
 
   /**
-   * Full People list — every joined participant, hydrated.
-   * Merge LiveKit remotes so join/leave appears immediately even before
-   * the Postgres participant row finishes round-tripping.
+   * Full People list for the active Live room.
+   *
+   * When LiveKit is connected, room presence is LiveKit-primary (join/leave
+   * without refresh). DB rows hydrate names/roles and cover waiting-room /
+   * just-joined users still connecting to the SFU.
    */
   const peopleFromLive = useMemo(() => {
-    const joined = live.participants.filter((p) => p.status === "joined");
     const byId = new Map<string, Speaker>();
+    const dbByUser = new Map(live.participants.map((p) => [p.user_id, p]));
+    const dashById = new Map((data?.speakers ?? []).map((s) => [s.id, s]));
 
-    for (const p of joined) {
-      const dash = data?.speakers.find((s) => s.id === p.user_id);
-      const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+    const toSpeaker = (
+      id: string,
+      opts?: { name?: string | null; role?: string | null }
+    ): Speaker => {
+      const p = dbByUser.get(id);
+      const dash = dashById.get(id);
+      const remote = livekit.remotes.find((r) => r.identity === id);
       const name =
-        p.display_name ||
+        p?.display_name ||
         dash?.name ||
+        opts?.name ||
         remote?.name ||
-        (p.user_id === live.userId ? "You" : null);
-      byId.set(p.user_id, {
-        id: p.user_id,
+        (id === live.userId ? "You" : null);
+      const role =
+        p?.role ||
+        opts?.role ||
+        (remote && remote.role !== "unknown" ? remote.role : null) ||
+        "viewer";
+      return {
+        id,
         name: name || "Member",
-        avatar_url: p.avatar_url ?? dash?.avatar_url ?? null,
-        role: p.role || "viewer",
-        username: p.username ?? null,
-      });
-    }
+        avatar_url: p?.avatar_url ?? dash?.avatar_url ?? null,
+        role,
+        username: p?.username ?? null,
+      };
+    };
 
-    for (const r of livekit.remotes) {
-      if (!r.identity || byId.has(r.identity)) continue;
-      if (r.identity === live.userId) continue;
-      byId.set(r.identity, {
-        id: r.identity,
-        name: r.name || "Member",
-        avatar_url: null,
-        role: r.role === "unknown" ? "viewer" : r.role,
-        username: null,
-      });
-    }
-
-    // Drop anyone who left in DB even if a stale LiveKit remote briefly remains.
-    for (const p of live.participants) {
-      if (
-        (p.status === "left" || p.status === "removed") &&
-        byId.has(p.user_id) &&
-        !livekit.remotes.some((r) => r.identity === p.user_id)
-      ) {
-        byId.delete(p.user_id);
+    if (livekit.connected) {
+      if (live.userId) {
+        byId.set(live.userId, toSpeaker(live.userId, { name: "You", role: live.myRole }));
+      }
+      for (const r of livekit.remotes) {
+        if (!r.identity || byId.has(r.identity)) continue;
+        byId.set(
+          r.identity,
+          toSpeaker(r.identity, {
+            name: r.name,
+            role: r.role === "unknown" ? "viewer" : r.role,
+          })
+        );
+      }
+      // Waiting / invited: DB-only (no LiveKit until admitted / accepted).
+      for (const p of live.participants) {
+        if (p.status !== "requested" && p.status !== "invited") continue;
+        if (byId.has(p.user_id)) continue;
+        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role || p.status }));
+      }
+      // Grace: DB joined but SFU connect still in flight (recent join only).
+      const now = Date.now();
+      for (const p of live.participants) {
+        if (p.status !== "joined" || byId.has(p.user_id)) continue;
+        const ts = Date.parse(String(p.joined_at ?? p.updated_at ?? ""));
+        if (!Number.isFinite(ts) || now - ts > 8_000) continue;
+        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role }));
+      }
+    } else {
+      for (const p of live.participants) {
+        if (p.status !== "joined") continue;
+        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role }));
+      }
+      for (const r of livekit.remotes) {
+        if (!r.identity || byId.has(r.identity)) continue;
+        byId.set(
+          r.identity,
+          toSpeaker(r.identity, {
+            name: r.name,
+            role: r.role === "unknown" ? "viewer" : r.role,
+          })
+        );
       }
     }
 
     if (!byId.size) return null;
     return Array.from(byId.values());
-  }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
+  }, [
+    live.participants,
+    live.userId,
+    live.myRole,
+    data?.speakers,
+    livekit.remotes,
+    livekit.connected,
+  ]);
+
+  /* When LiveKit sees a peer the DB list lacks, heal via authoritative GET
+     (service-role API) — covers missed postgres_changes without polling. */
+  const livekitHealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const livekitHealedKey = useRef<string>("");
+  useEffect(() => {
+    const sid = live.session?.id;
+    if (!sid || live.session?.status !== "live" || !livekit.connected) return;
+    const joined = new Set(
+      live.participants
+        .filter((p) => p.status === "joined")
+        .map((p) => p.user_id)
+    );
+    const missingIds = livekit.remotes
+      .map((r) => r.identity)
+      .filter((id): id is string => Boolean(id) && !joined.has(id))
+      .sort();
+    if (!missingIds.length) {
+      livekitHealedKey.current = "";
+      return;
+    }
+    const key = `${sid}:${missingIds.join(",")}`;
+    if (livekitHealedKey.current === key) return;
+    if (livekitHealTimer.current) clearTimeout(livekitHealTimer.current);
+    livekitHealTimer.current = setTimeout(() => {
+      livekitHealedKey.current = key;
+      void live.refresh(sid).catch(() => undefined);
+    }, 250);
+    return () => {
+      if (livekitHealTimer.current) clearTimeout(livekitHealTimer.current);
+    };
+  }, [
+    livekit.connected,
+    livekit.remotes,
+    live.participants,
+    live.session?.id,
+    live.session?.status,
+    live.refresh,
+  ]);
 
   const analytics = data?.analytics;
   const session = data?.session ?? {
@@ -1115,9 +1196,16 @@ export function HubLivePage({
 
   const peopleList = useMemo(() => {
     let list: Speaker[];
-    if (peopleFromLive?.length) list = peopleFromLive;
-    else if (speakers.length) list = speakers;
-    else list = EMPTY_SPEAKERS;
+    // Active Live: never fall back to stale dashboard speakers (hides viewers).
+    if (hasSession) {
+      list = peopleFromLive?.length ? peopleFromLive : EMPTY_SPEAKERS;
+    } else if (peopleFromLive?.length) {
+      list = peopleFromLive;
+    } else if (speakers.length) {
+      list = speakers;
+    } else {
+      list = EMPTY_SPEAKERS;
+    }
     if (!hostUserId) return list;
     return [...list].sort((a, b) => {
       if (a.id === hostUserId) return -1;
@@ -1132,7 +1220,7 @@ export function HubLivePage({
       };
       return rank(b.role) - rank(a.role);
     });
-  }, [peopleFromLive, speakers, hostUserId]);
+  }, [peopleFromLive, speakers, hostUserId, hasSession]);
 
   useEffect(() => {
     if (hasSession && hostUserId) {
