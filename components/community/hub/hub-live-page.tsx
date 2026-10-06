@@ -38,6 +38,11 @@ import {
 import { presenceToChatMessages } from "@/lib/live/presence-events";
 import { sortMessagesChronologically } from "@/lib/live/chat-message-state";
 import { liveStudioLog } from "@/lib/live/observability";
+import {
+  composeLivePresenceIds,
+  countLivePresence,
+  LIVEKIT_JOIN_GRACE_MS,
+} from "@/lib/live/livekit-presence";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
@@ -174,6 +179,8 @@ export function HubLivePage({
   } | null>(null);
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Last LiveKit room identities while connected — used during SFU blips. */
+  const lastLivekitPresenceIds = useRef<Set<string>>(new Set());
   const { msg: toast, show: showToast } = useEphemeralToast();
 
   const media = useLiveMediaPlane(true);
@@ -1118,9 +1125,14 @@ export function HubLivePage({
     setLeaveLiveBusy(true);
     try {
       media.stopScreenShare();
-      await livekit.disconnect();
-      await media.releaseMedia();
-      await live.leave();
+      // Mark left in DB before tearing down LiveKit so peer UIs reconcile
+      // from both authorities without a lingering "joined" row.
+      try {
+        await live.leave();
+      } finally {
+        await livekit.disconnect();
+        await media.releaseMedia();
+      }
       setConfirmDialog(null);
       showToast("Left live");
       const href =
@@ -1311,6 +1323,46 @@ export function HubLivePage({
   ]);
 
   const speakersFromLive = useMemo(() => {
+    if (livekit.connected) {
+      const list: Speaker[] = [];
+      const seen = new Set<string>();
+      const push = (
+        id: string,
+        opts?: { name?: string | null; role?: string | null; avatar?: string | null; username?: string | null }
+      ) => {
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        const p = live.speakers.find((s) => s.user_id === id);
+        const dash = data?.speakers.find((s) => s.id === id);
+        const remote = livekit.remotes.find((r) => r.identity === id);
+        list.push({
+          id,
+          name:
+            opts?.name ||
+            p?.display_name ||
+            dash?.name ||
+            remote?.name ||
+            (id === live.userId ? "You" : null) ||
+            "Member",
+          avatar_url: opts?.avatar ?? p?.avatar_url ?? dash?.avatar_url ?? null,
+          role:
+            opts?.role ||
+            p?.role ||
+            (remote && remote.role !== "unknown" ? remote.role : null) ||
+            "speaker",
+          username: opts?.username ?? p?.username ?? null,
+        });
+      };
+      if (live.userId) push(live.userId, { name: "You", role: live.myRole });
+      for (const r of livekit.remotes) {
+        if (r.role === "viewer") continue;
+        push(r.identity, {
+          name: r.name,
+          role: r.role === "unknown" ? "speaker" : r.role,
+        });
+      }
+      return list.length ? list : null;
+    }
     if (live.speakers.length) {
       return live.speakers.map((p) => {
         const dash = data?.speakers.find((s) => s.id === p.user_id);
@@ -1341,7 +1393,14 @@ export function HubLivePage({
         }));
     }
     return null;
-  }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
+  }, [
+    live.speakers,
+    live.userId,
+    live.myRole,
+    data?.speakers,
+    livekit.remotes,
+    livekit.connected,
+  ]);
 
   /**
    * Full People list for the active Live room.
@@ -1349,6 +1408,7 @@ export function HubLivePage({
    * When LiveKit is connected, room presence is LiveKit-primary (join/leave
    * without refresh). DB rows hydrate names/roles and cover waiting-room /
    * just-joined users still connecting to the SFU.
+   * Never resurrect departed remotes from lagging DB "joined" rows.
    */
   const peopleFromLive = useMemo(() => {
     const byId = new Map<string, Speaker>();
@@ -1382,49 +1442,33 @@ export function HubLivePage({
       };
     };
 
+    const presenceIds = composeLivePresenceIds({
+      selfId: live.userId,
+      remotes: livekit.remotes,
+      dbParticipants: live.participants,
+      connected: livekit.connected,
+      lastConnectedIds: lastLivekitPresenceIds.current,
+    });
+
     if (livekit.connected) {
-      if (live.userId) {
-        byId.set(live.userId, toSpeaker(live.userId, { name: "You", role: live.myRole }));
-      }
-      for (const r of livekit.remotes) {
-        if (!r.identity || byId.has(r.identity)) continue;
-        byId.set(
-          r.identity,
-          toSpeaker(r.identity, {
-            name: r.name,
-            role: r.role === "unknown" ? "viewer" : r.role,
-          })
-        );
-      }
-      // Waiting / invited: DB-only (no LiveKit until admitted / accepted).
-      for (const p of live.participants) {
-        if (p.status !== "requested" && p.status !== "invited") continue;
-        if (byId.has(p.user_id)) continue;
-        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role || p.status }));
-      }
-      // Grace: DB joined but SFU connect still in flight (recent join only).
-      const now = Date.now();
-      for (const p of live.participants) {
-        if (p.status !== "joined" || byId.has(p.user_id)) continue;
-        const ts = Date.parse(String(p.joined_at ?? p.updated_at ?? ""));
-        if (!Number.isFinite(ts) || now - ts > 8_000) continue;
-        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role }));
-      }
-    } else {
-      for (const p of live.participants) {
-        if (p.status !== "joined") continue;
-        byId.set(p.user_id, toSpeaker(p.user_id, { role: p.role }));
-      }
-      for (const r of livekit.remotes) {
-        if (!r.identity || byId.has(r.identity)) continue;
-        byId.set(
-          r.identity,
-          toSpeaker(r.identity, {
-            name: r.name,
-            role: r.role === "unknown" ? "viewer" : r.role,
-          })
-        );
-      }
+      lastLivekitPresenceIds.current = new Set(presenceIds);
+    }
+
+    for (const id of presenceIds) {
+      if (!id || byId.has(id)) continue;
+      const remote = livekit.remotes.find((r) => r.identity === id);
+      const p = dbByUser.get(id);
+      byId.set(
+        id,
+        toSpeaker(id, {
+          name: remote?.name ?? (id === live.userId ? "You" : null),
+          role:
+            (remote && remote.role !== "unknown" ? remote.role : null) ||
+            p?.role ||
+            (id === live.userId ? live.myRole : null) ||
+            "viewer",
+        })
+      );
     }
 
     if (!byId.size) return null;
@@ -1472,6 +1516,57 @@ export function HubLivePage({
     livekit.connected,
     livekit.remotes,
     live.participants,
+    live.session?.id,
+    live.session?.status,
+    live.refresh,
+  ]);
+
+  /* When LiveKit confirms a departure the DB still shows joined, heal leave. */
+  const livekitLeaveHealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const livekitLeaveHealedKey = useRef<string>("");
+  useEffect(() => {
+    const sid = live.session?.id;
+    if (!sid || live.session?.status !== "live" || !livekit.connected) return;
+    const remoteIds = new Set(
+      livekit.remotes.map((r) => r.identity).filter(Boolean)
+    );
+    if (live.userId) remoteIds.add(live.userId);
+    const staleJoined = live.participants
+      .filter((p) => {
+        if (p.status !== "joined" || !p.user_id) return false;
+        if (remoteIds.has(p.user_id)) return false;
+        const ts = Date.parse(String(p.joined_at ?? p.updated_at ?? ""));
+        // Still within join grace — SFU may not have them yet.
+        if (Number.isFinite(ts) && Date.now() - ts <= LIVEKIT_JOIN_GRACE_MS) {
+          return false;
+        }
+        return true;
+      })
+      .map((p) => p.user_id)
+      .sort();
+    if (!staleJoined.length) {
+      livekitLeaveHealedKey.current = "";
+      return;
+    }
+    const key = `${sid}:leave:${staleJoined.join(",")}`;
+    if (livekitLeaveHealedKey.current === key) return;
+    if (livekitLeaveHealTimer.current) clearTimeout(livekitLeaveHealTimer.current);
+    // Drop from last presence snapshot immediately (UI already LiveKit-primary).
+    for (const id of staleJoined) {
+      lastLivekitPresenceIds.current.delete(id);
+    }
+    livekitLeaveHealTimer.current = setTimeout(() => {
+      livekitLeaveHealedKey.current = key;
+      void live.refresh(sid).catch(() => undefined);
+    }, 250);
+    return () => {
+      if (livekitLeaveHealTimer.current) clearTimeout(livekitLeaveHealTimer.current);
+    };
+  }, [
+    livekit.connected,
+    livekit.remotes,
+    live.participants,
+    live.userId,
     live.session?.id,
     live.session?.status,
     live.refresh,
@@ -2107,11 +2202,24 @@ export function HubLivePage({
   ]);
 
   const participantCountLabel = useMemo(() => {
-    const joined = live.participants.filter((p) => p.status === "joined").length;
-    if (joined > 0) return joined;
-    // Never conflate with viewer/watching counts — those stay on People/nav/chat.
-    return galleryParticipants.length + (hostUserId ? 1 : 0);
-  }, [live.participants, galleryParticipants.length, hostUserId]);
+    const pendingDb = live.participants.filter(
+      (p) => p.status === "requested" || p.status === "invited"
+    ).length;
+    // LiveKit-primary while connected — never lag on DB "joined" after a leave.
+    return countLivePresence({
+      connected: livekit.connected,
+      selfId: live.userId,
+      remoteCount: livekit.remotes.length,
+      pendingDbCount: pendingDb,
+      composedIdCount: peopleList.length,
+    });
+  }, [
+    livekit.connected,
+    livekit.remotes.length,
+    live.userId,
+    live.participants,
+    peopleList.length,
+  ]);
 
   const watchingCountLabel = useMemo(() => {
     const n = live.viewerCount || analytics?.liveViewers || analytics?.viewers || 0;

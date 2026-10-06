@@ -14,6 +14,7 @@ import {
   type Participant,
 } from "livekit-client";
 import type { LiveStageRole } from "@/lib/live/roles";
+import { selectLatestScreenShareIdentity } from "@/lib/live/livekit-presence";
 import { selectStageShareLayout } from "@/lib/live/stage-share-layout";
 
 export type LiveKitRemoteMedia = {
@@ -148,8 +149,11 @@ export class LiveKitRoomTransport {
   private hostIdentity: string | null = null;
   /** Host-promoted participant identity (Move to Stage). Null = host owns stage. */
   private stagePinIdentity: string | null = null;
-  /** Most recently subscribed remote screen-share identity (handoff). */
+  /** Most recently published/subscribed remote screen-share identity (handoff). */
   private lastRemoteScreenIdentity: string | null = null;
+  /** Monotonic publication order for remote screen shares (B → C → B). */
+  private remoteScreenOrder = new Map<string, number>();
+  private remoteScreenSeq = 0;
   private resyncGeneration = 0;
   private remoteStreamCache = new Map<string, MediaStream>();
   private syncQueue: Promise<void> = Promise.resolve();
@@ -272,6 +276,8 @@ export class LiveKitRoomTransport {
     this.remoteStreamCache.clear();
     this.localSharing = false;
     this.lastRemoteScreenIdentity = null;
+    this.remoteScreenOrder.clear();
+    this.remoteScreenSeq = 0;
     this.emit();
   }
 
@@ -438,34 +444,26 @@ export class LiveKitRoomTransport {
 
   private bindRoom(room: Room): void {
     const refresh = () => this.emit();
-    const pruneLastScreen = () => {
-      if (!this.lastRemoteScreenIdentity) return;
-      const still =
-        this.room?.remoteParticipants.get(this.lastRemoteScreenIdentity) ?? null;
-      if (!still) {
-        this.lastRemoteScreenIdentity = null;
-        return;
-      }
-      let hasScreen = false;
-      still.trackPublications.forEach((pub) => {
-        if (
-          pub.source === Track.Source.ScreenShare &&
-          pub.kind === Track.Kind.Video &&
-          pub.track &&
-          !pub.isMuted
-        ) {
-          hasScreen = true;
-        }
+    const noteRemoteScreen = (identity: string) => {
+      this.remoteScreenSeq += 1;
+      this.remoteScreenOrder.set(identity, this.remoteScreenSeq);
+      this.lastRemoteScreenIdentity = identity;
+    };
+    const clearRemoteScreen = (identity: string) => {
+      this.remoteScreenOrder.delete(identity);
+      const stillSharing = this.listRemotes()
+        .filter((r) => r.sharing && r.screenStream)
+        .map((r) => r.identity);
+      this.lastRemoteScreenIdentity = selectLatestScreenShareIdentity({
+        screenIdentities: stillSharing,
+        order: this.remoteScreenOrder,
       });
-      if (!hasScreen) this.lastRemoteScreenIdentity = null;
     };
 
     room.on(RoomEvent.ConnectionStateChanged, refresh);
     room.on(RoomEvent.ParticipantConnected, refresh);
     room.on(RoomEvent.ParticipantDisconnected, (p) => {
-      if (p.identity === this.lastRemoteScreenIdentity) {
-        this.lastRemoteScreenIdentity = null;
-      }
+      clearRemoteScreen(p.identity);
       refresh();
     });
     room.on(RoomEvent.TrackSubscribed, (_track, pub, participant) => {
@@ -473,20 +471,31 @@ export class LiveKitRoomTransport {
         pub.source === Track.Source.ScreenShare &&
         pub.kind === Track.Kind.Video
       ) {
-        this.lastRemoteScreenIdentity = participant.identity;
+        noteRemoteScreen(participant.identity);
       }
       refresh();
     });
     room.on(RoomEvent.TrackUnsubscribed, (_track, pub, participant) => {
-      if (
-        pub.source === Track.Source.ScreenShare &&
-        participant.identity === this.lastRemoteScreenIdentity
-      ) {
-        pruneLastScreen();
+      if (pub.source === Track.Source.ScreenShare && pub.kind === Track.Kind.Video) {
+        clearRemoteScreen(participant.identity);
       }
       refresh();
     });
-    room.on(RoomEvent.TrackPublished, refresh);
+    room.on(RoomEvent.TrackPublished, (pub, participant) => {
+      if (
+        pub.source === Track.Source.ScreenShare &&
+        pub.kind === Track.Kind.Video
+      ) {
+        noteRemoteScreen(participant.identity);
+      }
+      refresh();
+    });
+    room.on(RoomEvent.TrackUnpublished, (pub, participant) => {
+      if (pub.source === Track.Source.ScreenShare && pub.kind === Track.Kind.Video) {
+        clearRemoteScreen(participant.identity);
+      }
+      refresh();
+    });
     room.on(RoomEvent.TrackMuted, refresh);
     room.on(RoomEvent.TrackUnmuted, refresh);
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {

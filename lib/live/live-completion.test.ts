@@ -62,12 +62,28 @@ describe("Jimvio Live completion — invite & share", () => {
     const layout = read("lib/live/stage-share-layout.ts");
     assert.match(room, /activeScreenShareIdentity/);
     assert.match(room, /lastRemoteScreenIdentity/);
+    assert.match(room, /remoteScreenOrder/);
     assert.match(room, /selectStageShareLayout/);
+    assert.match(room, /selectLatestScreenShareIdentity/);
     assert.match(layout, /SCREEN SHARE > CAMERA/);
     assert.match(page, /activeScreenShareIdentity/);
     assert.match(page, /Never put the screen track in PIP/);
     assert.match(pip, /stream && camOn/);
     assert.doesNotMatch(pip, /camOn \|\| sharing/);
+  });
+
+  it("participant leave uses LiveKit presence and leave-before-disconnect", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const presence = read("lib/live/livekit-presence.ts");
+    assert.match(presence, /composeLivePresenceIds/);
+    assert.match(presence, /countLivePresence/);
+    assert.match(page, /composeLivePresenceIds/);
+    assert.match(page, /countLivePresence/);
+    assert.match(page, /await live\.leave\(\)/);
+    // Leave API before LiveKit disconnect — not disconnect-then-leave.
+    const leaveIdx = page.indexOf("await live.leave()");
+    const discIdx = page.indexOf("await livekit.disconnect()");
+    assert.ok(leaveIdx > 0 && discIdx > leaveIdx);
   });
 
   it("livekit stage promotes active screen share over host camera", () => {

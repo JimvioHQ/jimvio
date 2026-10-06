@@ -110,6 +110,31 @@ describe("stage-share-layout", () => {
     assert.equal(layout.activeScreenShareIdentity, "guest-c");
   });
 
+  it("hands off back to B when B publishes screen again", () => {
+    const screenB = fakeStream("screen-b");
+    const screenC = fakeStream("screen-c");
+    const layout = selectStageShareLayout({
+      remotes: [
+        {
+          identity: "guest-b",
+          role: "speaker",
+          screenStream: screenB,
+          cameraStream: fakeStream("cam-b"),
+        },
+        {
+          identity: "guest-c",
+          role: "speaker",
+          screenStream: screenC,
+          cameraStream: null,
+        },
+      ],
+      hostIdentity: "host-a",
+      lastRemoteScreenIdentity: "guest-b",
+    });
+    assert.equal(layout.stageStream, screenB);
+    assert.equal(layout.activeScreenShareIdentity, "guest-b");
+  });
+
   it("restores host camera stage when screen share stops", () => {
     const hostCam = fakeStream("host-cam");
     const layout = selectStageShareLayout({
