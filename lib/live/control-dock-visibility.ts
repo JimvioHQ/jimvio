@@ -66,15 +66,15 @@ export function desktopDockControls(
   ];
 
   if (opts?.canPublish === false) {
-    return base.filter((id) => id !== "share").concat([]);
+    return base.filter((id) => id !== "share");
   }
   return base;
 }
 
 /**
- * Mobile dock control order (reference two-row dock):
- * Mute → Start Video → Share Screen → Invite → Participants →
- * Record → Chat → Stream To → More → End
+ * Mobile dock (latest reference): icon-first single row.
+ * Mute → Camera → Share → Participants → Chat → Stream To → More
+ * End lives in the mobile header, not the dock.
  */
 export function mobileDockControls(opts: {
   canPublish: boolean;
@@ -86,20 +86,8 @@ export function mobileDockControls(opts: {
       ? "stopShare"
       : "share"
     : "copyLink";
-  const endOrLeave: LiveDockControlId = opts.isHost ? "end" : "leave";
 
-  return [
-    "mic",
-    "cam",
-    share,
-    "invite",
-    "people",
-    "record",
-    "chat",
-    "streamTo",
-    "more",
-    endOrLeave,
-  ];
+  return ["mic", "cam", share, "people", "chat", "streamTo", "more"];
 }
 
 export function dockKeepsAvDuringShare(activity: LiveDockActivity): boolean {

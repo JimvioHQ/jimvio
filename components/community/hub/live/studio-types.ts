@@ -5,12 +5,19 @@ import {
   LayoutGrid,
   Radio,
   Settings,
+  Signal,
   Users,
 } from "lucide-react";
 
 export type StudioMode = "minimal" | "creator" | "studio";
 export type ActivityMode = "live" | "share" | "present";
-export type LeftPanel = "none" | "people" | "rooms" | "layout" | "settings";
+export type LeftPanel =
+  | "none"
+  | "people"
+  | "rooms"
+  | "layout"
+  | "settings"
+  | "destinations";
 export type RightTab =
   | "chat"
   | "qa"
@@ -31,7 +38,7 @@ export type RightTab =
 export const MODE_KEY = "jimvio-live-studio-mode";
 export const DRAWER_KEY = "jimvio-live-drawer-state";
 /** Bump when DrawerState shape changes — invalid/old persisted state resets safely. */
-export const DRAWER_STATE_VERSION = 3;
+export const DRAWER_STATE_VERSION = 4;
 export const LAYOUTS = ["Presentation", "Grid", "Screen Share", "Classroom"] as const;
 
 export const VALID_RIGHT_TABS: readonly RightTab[] = [
@@ -58,13 +65,15 @@ export const VALID_LEFT_PANELS: readonly LeftPanel[] = [
   "rooms",
   "layout",
   "settings",
+  "destinations",
 ] as const;
 
 export const LEFT_TOOLS: { id: Exclude<LeftPanel, "none">; label: string; icon: LucideIcon }[] = [
-  { id: "people", label: "People", icon: Users },
+  { id: "people", label: "Participants", icon: Users },
   { id: "rooms", label: "Rooms", icon: Radio },
   { id: "layout", label: "Layout", icon: LayoutGrid },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "destinations", label: "Live Destinations", icon: Signal },
 ];
 
 /** Primary Live Studio right rail — Chat only. Other tools stay available via dock/More. */

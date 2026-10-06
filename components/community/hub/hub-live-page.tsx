@@ -47,6 +47,7 @@ import { LiveStageFallback } from "./live/LiveStageFallback";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
 import { ChatWorkspace } from "./live/ChatWorkspace";
 import { LiveContextNav } from "./live/LiveContextNav";
+import { LiveMorePanel, type LiveMoreActionId } from "./live/LiveMorePanel";
 import { LiveShareSheet } from "./live/LiveShareSheet";
 import { StageMediaPreview } from "./live/StageMediaPreview";
 import { RemoteAudioSink } from "./live/RemoteAudioSink";
@@ -147,6 +148,9 @@ export function HubLivePage({
   const [guestPreviewLoading, setGuestPreviewLoading] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
+  const [settingsCategory, setSettingsCategory] = useState<
+    null | "general" | "stream" | "audio" | "engagement" | "moderation" | "analytics" | "advanced"
+  >(null);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -583,6 +587,7 @@ export function HubLivePage({
       });
       if (!closing) {
         setShareOpen(false);
+        setLiveNavOpen(false);
         setFocusMode(false);
       }
     },
@@ -611,14 +616,23 @@ export function HubLivePage({
     }
     updateDrawer({ rightOpen: true, rightTab: "chat", leftPanel: "none" });
     setShareOpen(false);
+    setLiveNavOpen(false);
     setChatIdle(false);
     setFocusMode(false);
   }, [drawer.rightOpen, drawer.rightTab, updateDrawer]);
 
   const openStreamTo = useCallback(() => {
-    // Stream To opens Advanced destinations via Settings category — host destinations panel.
-    toggleLeft("settings");
+    setLiveNavOpen(false);
+    setShareOpen(false);
+    toggleLeft("destinations");
   }, [toggleLeft]);
+
+  const openMore = useCallback(() => {
+    setLiveNavOpen((v) => !v);
+    updateDrawer({ leftPanel: "none", rightOpen: false });
+    setShareOpen(false);
+    setFocusMode(false);
+  }, [updateDrawer]);
 
   useEffect(() => {
     if (drawer.rightTab !== "chat") {
@@ -1443,6 +1457,61 @@ export function HubLivePage({
       .catch((e) => showToast(e instanceof Error ? e.message : "Report failed"));
   }, [live.session?.id, showToast]);
 
+  const handleMoreAction = useCallback(
+    (id: LiveMoreActionId) => {
+      setLiveNavOpen(false);
+      switch (id) {
+        case "chat":
+          toggleChat();
+          break;
+        case "people":
+          toggleLeft("people");
+          break;
+        case "invite":
+          openShareSheet();
+          break;
+        case "record":
+          void toggleRecord();
+          break;
+        case "share":
+          void startShare();
+          break;
+        case "streamTo":
+          openStreamTo();
+          break;
+        case "settings":
+          setSettingsCategory(null);
+          toggleLeft("settings");
+          break;
+        case "reactions":
+          if (live.session?.id) void live.react("❤️");
+          showToast("Reaction sent");
+          break;
+        case "analytics":
+          setSettingsCategory("analytics");
+          updateDrawer({ leftPanel: "settings", rightOpen: false });
+          break;
+        case "report":
+          reportLive();
+          break;
+        default:
+          break;
+      }
+    },
+    [
+      toggleChat,
+      toggleLeft,
+      openShareSheet,
+      toggleRecord,
+      startShare,
+      openStreamTo,
+      live,
+      showToast,
+      updateDrawer,
+      reportLive,
+    ]
+  );
+
   const liveBackHref = communitySlugProp
     ? `/communities/${communitySlugProp}`
     : "/communities/live";
@@ -1528,9 +1597,11 @@ export function HubLivePage({
 
   const liveSettingsPanel = (
     <SettingsPanel
+      key={settingsCategory ?? "root"}
       title={displayTitle}
       canEditTitle={canEditLiveTitle}
       analytics={analytics}
+      initialCategory={settingsCategory}
       onSaveTitle={
         canEditLiveTitle
           ? async (next) => {
@@ -1722,8 +1793,11 @@ export function HubLivePage({
           follow={follow}
           onFollow={() => void toggleFollowHost()}
           onShare={openShareSheet}
-          onMore={() => setLiveNavOpen(true)}
-          onSettings={() => toggleLeft("settings")}
+          onMore={openMore}
+          onSettings={() => {
+            setSettingsCategory(null);
+            toggleLeft("settings");
+          }}
           onOpenChat={toggleChat}
           copied={copied}
           showFollow={Boolean(hostUserId && hostUserId !== live.userId && hasSession)}
@@ -1733,6 +1807,8 @@ export function HubLivePage({
           watchingCount={hasSession ? watchingCountLabel : undefined}
           elapsedLabel={hasSession ? formatElapsed(elapsed) : undefined}
           canEditTitle={canEditLiveTitle}
+          canEnd={canEndLive(live.myRole)}
+          onEndLive={() => setConfirmDialog("end")}
           onSaveTitle={
             canEditLiveTitle
               ? async (next) => {
@@ -1780,55 +1856,38 @@ export function HubLivePage({
           />
         )}
 
-        {/* More menu — available on mobile/desktop during Live */}
+        {/* More panel — desktop right rail / mobile bottom sheet */}
         {liveNavOpen && (
-          <div className="fixed inset-0 z-50">
+          <>
             <button
               type="button"
-              className="absolute inset-0 bg-black/45"
-              aria-label="Close live menu"
+              className="fixed inset-0 z-40 bg-black/45"
+              aria-label="Close more menu"
               onClick={() => setLiveNavOpen(false)}
             />
-            <div className="absolute inset-x-0 bottom-0 flex max-h-[min(72vh,560px)] flex-col rounded-t-[20px] bg-white shadow-2xl pb-[env(safe-area-inset-bottom)] sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[min(300px,88vw)] sm:rounded-none">
-              <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-200 sm:hidden" aria-hidden />
-              <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3">
-                <p className="text-[15px] font-semibold text-neutral-900">More</p>
-                <button
-                  type="button"
-                  onClick={() => setLiveNavOpen(false)}
-                  className={cn(
-                    "rounded-lg p-2 text-neutral-400 hover:text-neutral-700",
-                    FOCUS_RING
-                  )}
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
+            <aside
+              className={cn(
+                "fixed z-50 flex flex-col bg-white shadow-[0_20px_60px_rgba(0,0,0,0.28)]",
+                "inset-x-0 bottom-0 max-h-[min(78vh,640px)] rounded-t-[28px] pb-[env(safe-area-inset-bottom)]",
+                "animate-in fade-in slide-in-from-bottom-2 duration-200",
+                "lg:inset-y-16 lg:bottom-auto lg:right-4 lg:left-auto lg:top-20 lg:h-[min(720px,calc(100vh-7rem))] lg:w-[min(380px,34vw)] lg:rounded-[28px] lg:slide-in-from-right-2"
+              )}
+            >
+              <div
+                className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-neutral-200"
+                aria-hidden
+              />
+              <DrawerHeader title="More" onClose={() => setLiveNavOpen(false)} />
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-1">
+                <div className="hidden lg:block">
+                  <LiveMorePanel variant="desktop" onAction={handleMoreAction} />
+                </div>
+                <div className="lg:hidden">
+                  <LiveMorePanel variant="mobile" onAction={handleMoreAction} />
+                </div>
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <LiveContextNav
-                  variant="drawer"
-                  leftPanel={drawer.leftPanel}
-                  rightTab={drawer.rightTab}
-                  rightOpen={drawer.rightOpen}
-                  viewerCount={live.viewerCount || analytics?.viewers || 0}
-                  onOverview={() => {
-                    updateDrawer({ leftPanel: "none", rightOpen: false });
-                    setLiveNavOpen(false);
-                  }}
-                  onOpenLeft={(panel) => {
-                    toggleLeft(panel);
-                    setLiveNavOpen(false);
-                  }}
-                  onToggleChat={() => {
-                    toggleChat();
-                    setLiveNavOpen(false);
-                  }}
-                  onShare={openShareSheet}
-                />
-              </div>
-            </div>
-          </div>
+            </aside>
+          </>
         )}
 
         {/* Stage — cinematic dark Live canvas */}
@@ -2049,8 +2108,8 @@ export function HubLivePage({
                   peopleOpen={drawer.leftPanel === "people"}
                   participantCount={participantCountLabel}
                   onStreamTo={openStreamTo}
-                  streamToOpen={drawer.leftPanel === "settings"}
-                  onMore={() => setLiveNavOpen(true)}
+                  streamToOpen={drawer.leftPanel === "destinations"}
+                  onMore={openMore}
                   moreOpen={liveNavOpen}
                   onReact={() => {
                     if (live.session?.id) void live.react("❤️");
@@ -2078,10 +2137,10 @@ export function HubLivePage({
             <aside
               className={cn(
                 "flex w-full shrink-0 flex-col bg-white",
-                "fixed inset-x-0 bottom-0 z-40 max-h-[min(85vh,720px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.25)]",
+                "fixed inset-x-0 bottom-0 z-40 max-h-[min(85vh,720px)] rounded-t-[28px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.25)]",
                 "pb-[env(safe-area-inset-bottom)]",
                 "animate-in fade-in slide-in-from-bottom-2 duration-200",
-                "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:animate-in lg:slide-in-from-right-2 lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none"
+                "lg:static lg:inset-auto lg:z-auto lg:my-3 lg:mr-3 lg:h-auto lg:max-h-none lg:w-[min(380px,34vw)] lg:animate-in lg:slide-in-from-right-2 lg:rounded-[28px] lg:border lg:border-neutral-200 lg:pb-0 lg:shadow-[0_20px_60px_rgba(0,0,0,0.22)]"
               )}
             >
               <div
@@ -2094,7 +2153,9 @@ export function HubLivePage({
                     ? "Participants"
                     : drawer.leftPanel === "settings"
                       ? "Settings"
-                      : LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""
+                      : drawer.leftPanel === "destinations"
+                        ? "Live Destinations"
+                        : LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""
                 }
                 count={
                   drawer.leftPanel === "people" ? participantCountLabel : undefined
@@ -2112,6 +2173,13 @@ export function HubLivePage({
                   <LayoutPanel layout={layout} onChange={setLayout} />
                 )}
                 {drawer.leftPanel === "settings" && liveSettingsPanel}
+                {drawer.leftPanel === "destinations" && (
+                  <LiveDestinationsPanel
+                    dest={destinations}
+                    variant="settings"
+                    isLive={live.session?.status === "live"}
+                  />
+                )}
               </div>
             </aside>
           </>
@@ -2131,13 +2199,13 @@ export function HubLivePage({
           <aside
             className={cn(
               "flex w-full shrink-0 flex-col bg-white",
-              "fixed inset-x-0 bottom-0 z-40 max-h-[min(80vh,680px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
+              "fixed inset-x-0 bottom-0 z-40 max-h-[min(80vh,680px)] rounded-t-[28px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
               "pb-[env(safe-area-inset-bottom)]",
-              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:pb-0 lg:shadow-none",
+              "lg:static lg:inset-auto lg:z-auto lg:my-3 lg:mr-3 lg:h-auto lg:max-h-none lg:rounded-[28px] lg:border lg:border-neutral-200 lg:pb-0 lg:shadow-[0_20px_60px_rgba(0,0,0,0.22)]",
               "transition-[transform,width,opacity] duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
               drawer.rightOpen
-                ? "translate-y-0 lg:w-[min(360px,32vw)] lg:opacity-100"
-                : "pointer-events-none translate-y-full lg:w-0 lg:overflow-hidden lg:border-0 lg:opacity-0"
+                ? "translate-y-0 lg:w-[min(380px,34vw)] lg:opacity-100"
+                : "pointer-events-none translate-y-full lg:w-0 lg:overflow-hidden lg:border-0 lg:opacity-0 lg:shadow-none"
             )}
             aria-hidden={!drawer.rightOpen}
           >
@@ -2189,19 +2257,10 @@ export function HubLivePage({
             <div className="flex min-h-0 flex-1 flex-col">
               {drawer.rightTab === "chat" && (
                 <>
-                  <div className="flex items-center justify-end px-2 pt-1 lg:hidden">
-                    <button
-                      type="button"
-                      onClick={() => updateDrawer({ rightOpen: false })}
-                      className={cn(
-                        "rounded-lg p-1.5 text-neutral-400 hover:text-neutral-600",
-                        FOCUS_RING
-                      )}
-                      aria-label="Close side panel"
-                    >
-                      <X className="h-4 w-4" aria-hidden />
-                    </button>
-                  </div>
+                  <DrawerHeader
+                    title="Chat"
+                    onClose={() => updateDrawer({ rightOpen: false })}
+                  />
                   <ChatWorkspace
                     messages={chatMessages}
                     scrollTop={drawer.chatScroll}
@@ -2209,6 +2268,8 @@ export function HubLivePage({
                     chatInput={chatInput}
                     setChatInput={setChatInput}
                     hostName={session.host}
+                    hideTitle
+                    showEngagementIcons
                     onlineCount={live.viewerCount || analytics?.viewers || 0}
                     participantAvatars={speakers.slice(0, 6).map((s) => ({
                       name: s.name,
@@ -2467,7 +2528,8 @@ export function HubLivePage({
         chatOpen={drawer.rightOpen && drawer.rightTab === "chat"}
         inviteOpen={shareOpen}
         peopleOpen={drawer.leftPanel === "people"}
-        streamToOpen={drawer.leftPanel === "settings"}
+        streamToOpen={drawer.leftPanel === "destinations"}
+        moreOpen={liveNavOpen}
         screenShareSupported={screenShareCapability.canAttempt}
         screenShareReason={screenShareCapability.reason}
         onMic={() => void toggleMic()}
@@ -2480,7 +2542,7 @@ export function HubLivePage({
         onRecord={() => void toggleRecord()}
         onStreamTo={openStreamTo}
         onShareLink={openShareSheet}
-        onMore={() => setLiveNavOpen(true)}
+        onMore={openMore}
         onEndLive={() => setConfirmDialog("end")}
         onLeave={() => setConfirmDialog("leave")}
       />

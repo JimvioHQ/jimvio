@@ -69,11 +69,11 @@ function statusLabel(status: string) {
     case "stopped":
       return "Stopped";
     case "not_connected":
-      return "Not connected";
+      return "NOT CONNECTED";
     case "supported":
       return "Ready";
     default:
-      return status;
+      return status.replace(/_/g, " ").toUpperCase();
   }
 }
 
@@ -137,37 +137,37 @@ const STUDIO_THEME: Theme = {
 };
 
 const SETTINGS_THEME: Theme = {
-  shell: "border border-[#E8E4DC] bg-white text-left shadow-sm",
-  title: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9A9388]",
-  subtitle: "mt-0.5 text-[11px] leading-snug text-[#8B8579]",
-  warn: "mb-2.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900",
-  error: "mb-2.5 text-[11px] text-red-600",
-  list: "divide-y divide-[#EFEBE3]",
-  row: "flex items-center gap-2.5 py-2.5 first:pt-0 last:pb-0",
+  shell: "border-0 bg-transparent text-left shadow-none",
+  title: "sr-only",
+  subtitle: "sr-only",
+  warn: "mb-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-900",
+  error: "mb-2.5 text-[12px] text-red-600",
+  list: "divide-y divide-neutral-100",
+  row: "flex items-center gap-3 py-3.5 first:pt-0 last:pb-0",
   iconShell:
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F7F4EF] ring-1 ring-[#E8E4DC]",
+    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-50 ring-1 ring-neutral-200",
   iconJimvio:
-    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF1EA] text-[10px] font-bold tracking-wide text-[#D6480F] ring-1 ring-[#FFD8C4]",
-  name: "truncate text-[13px] font-medium text-[#1C1B19]",
-  meta: "text-[10px] font-medium uppercase tracking-[0.08em] text-[#9A9388]",
+    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FF5A1F] text-[12px] font-bold tracking-wide text-white",
+  name: "truncate text-[14px] font-semibold text-neutral-900",
+  meta: "text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-400",
   badge:
-    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#8B8579] bg-[#F0EBE3]",
-  message: "mt-0.5 line-clamp-1 text-[10px] text-[#9A9388]",
+    "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-500 bg-neutral-100",
+  message: "mt-0.5 line-clamp-1 text-[11px] text-neutral-400",
   connectBtn:
-    "shrink-0 rounded-md bg-[#1C1B19] px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#2c2a26]",
+    "shrink-0 rounded-full bg-neutral-900 px-3.5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-neutral-800",
   dashedBtn:
-    "inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[#D9D3C8] px-2.5 py-2 text-[11px] font-medium text-[#8B8579] transition-colors hover:border-[#C7C1B4] hover:text-[#1C1B19]",
-  form: "mt-2 space-y-2 rounded-lg border border-[#E8E4DC] bg-[#FBF9F6] p-2.5",
+    "inline-flex w-full items-center justify-center gap-1.5 rounded-2xl border border-dashed border-neutral-300 px-3 py-3 text-[13px] font-semibold text-neutral-500 transition-colors hover:border-neutral-400 hover:text-neutral-800",
+  form: "mt-2 space-y-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-3",
   input:
-    "w-full rounded-md border border-[#E8E4DC] bg-white px-2.5 py-1.5 text-[12px] text-[#1C1B19] placeholder:text-[#B0A99C]",
-  cancel: "flex-1 rounded-md px-2.5 py-1.5 text-[11px] text-[#8B8579] hover:text-[#1C1B19]",
+    "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[13px] text-neutral-900 placeholder:text-neutral-400",
+  cancel: "flex-1 rounded-xl px-3 py-2 text-[12px] text-neutral-500 hover:text-neutral-800",
   enableOn: "bg-emerald-50 text-emerald-700",
-  enableOff: "bg-[#F0EBE3] text-[#6B655C] hover:bg-[#E8E4DC]",
+  enableOff: "bg-neutral-100 text-neutral-600 hover:bg-neutral-200",
   iconBtn:
-    "inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#F0EBE3] text-[#8B8579] transition-colors hover:bg-[#E8E4DC] hover:text-[#1C1B19]",
+    "inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 transition-colors hover:bg-neutral-200 hover:text-neutral-800",
   focus:
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6480F]/35 focus-visible:ring-offset-2",
-  divider: "border-t border-[#EFEBE3] pt-2.5 mt-2.5",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 focus-visible:ring-offset-2",
+  divider: "border-t border-neutral-100 pt-4 mt-3",
 };
 
 function PlatformGlyph({
@@ -306,12 +306,19 @@ export function LiveDestinationsPanel({
               <span
                 className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDot(isLive ? "live" : "ready"))}
               />
-              <span className={t.meta}>{isLive ? "LIVE" : "Active"}</span>
+              <span
+                className={cn(
+                  t.meta,
+                  isLive && (variant === "settings" ? "text-emerald-600" : "text-emerald-400")
+                )}
+              >
+                {isLive ? "● LIVE" : "Active"}
+              </span>
             </div>
           </div>
           <Check
             className={cn(
-              "h-3.5 w-3.5 shrink-0",
+              "h-4 w-4 shrink-0",
               variant === "studio" ? "text-emerald-400" : "text-emerald-600"
             )}
             aria-hidden
@@ -457,7 +464,7 @@ export function LiveDestinationsPanel({
             onClick={() => setShowCustomForm(true)}
             className={cn(t.dashedBtn, t.focus)}
           >
-            <Plus className="h-3 w-3" aria-hidden />
+            <Plus className="h-3.5 w-3.5" aria-hidden />
             Add Custom RTMP
           </button>
         ) : (

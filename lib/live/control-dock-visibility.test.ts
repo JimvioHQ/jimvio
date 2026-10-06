@@ -67,7 +67,7 @@ describe("desktop control visibility", () => {
 });
 
 describe("mobile control visibility", () => {
-  it("uses reference two-row dock order", () => {
+  it("uses icon-first mobile dock order from reference", () => {
     const controls = mobileDockControls({
       canPublish: true,
       isHost: false,
@@ -77,13 +77,10 @@ describe("mobile control visibility", () => {
       "mic",
       "cam",
       "share",
-      "invite",
       "people",
-      "record",
       "chat",
       "streamTo",
       "more",
-      "leave",
     ]);
   });
 
@@ -95,22 +92,12 @@ describe("mobile control visibility", () => {
     assert.ok(mobileDockAvFirst(controls));
     assert.ok(controls.includes("chat"));
     assert.ok(controls.includes("copyLink"));
-    assert.ok(controls.includes("invite"));
     assert.ok(controls.includes("people"));
     assert.ok(controls.includes("more"));
-    assert.ok(controls.includes("leave"));
+    assert.ok(!controls.includes("end"), "End lives in mobile header");
   });
 
-  it("exposes end for hosts and leave for speakers", () => {
-    assert.ok(
-      mobileDockControls({ canPublish: true, isHost: true }).includes("end")
-    );
-    assert.ok(
-      mobileDockControls({ canPublish: true, isHost: false }).includes("leave")
-    );
-  });
-
-  it("keeps Audio/Video visible in share and present-equivalent mobile share", () => {
+  it("keeps Audio/Video visible while sharing", () => {
     for (const sharing of [false, true]) {
       const c = mobileDockControls({
         canPublish: true,

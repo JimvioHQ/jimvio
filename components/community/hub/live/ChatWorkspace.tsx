@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState, type Dispatch, type SetStat
 import {
   CornerDownRight,
   Heart,
+  MessageSquare,
   MoreHorizontal,
   Pin,
   Smile,
@@ -89,6 +90,8 @@ function ChatWorkspaceImpl({
   queuedCount = 0,
   slowModeSeconds = 0,
   onlineCount,
+  hideTitle = false,
+  showEngagementIcons = false,
 }: {
   messages: ChatMessage[];
   scrollTop: number;
@@ -116,6 +119,10 @@ function ChatWorkspaceImpl({
   queuedCount?: number;
   slowModeSeconds?: number;
   onlineCount?: number;
+  /** When parent already renders Chat header (mobile sheet). */
+  hideTitle?: boolean;
+  /** Icon strip for engagement surfaces that actually exist (Chat always). */
+  showEngagementIcons?: boolean;
 }) {
   const status: LiveChatConnectionStatus =
     connectionStatus ?? (connected ? "connected" : "reconnecting");
@@ -269,40 +276,60 @@ function ChatWorkspaceImpl({
           : undefined
       }
     >
-      <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
-        <div className="min-w-0">
-          <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-neutral-900">
-            Chat
-          </h2>
-          {onlineCount != null && onlineCount > 0 && (
-            <p className="mt-0.5 text-[11px] text-neutral-400">
-              {onlineCount.toLocaleString()} watching
-            </p>
-          )}
+      {!hideTitle ? (
+        <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-neutral-900">
+              Chat
+            </h2>
+            {onlineCount != null && onlineCount > 0 && (
+              <p className="mt-0.5 text-[11px] text-neutral-400">
+                {onlineCount.toLocaleString()} watching
+              </p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {showStatusBadge && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  status === "connecting" || status === "reconnecting"
+                    ? "bg-amber-50 text-amber-700"
+                    : status === "disconnected" || status === "unavailable"
+                      ? "bg-neutral-100 text-neutral-600"
+                      : "bg-amber-50 text-amber-700"
+                )}
+                role="status"
+              >
+                {statusLabel}
+              </span>
+            )}
+            {queuedCount > 0 && (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                {queuedCount} queued
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {showStatusBadge && (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                status === "connecting" || status === "reconnecting"
-                  ? "bg-amber-50 text-amber-700"
-                  : status === "disconnected" || status === "unavailable"
-                    ? "bg-neutral-100 text-neutral-600"
-                    : "bg-amber-50 text-amber-700"
-              )}
-              role="status"
-            >
-              {statusLabel}
-            </span>
-          )}
-          {queuedCount > 0 && (
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              {queuedCount} queued
-            </span>
-          )}
+      ) : null}
+
+      {showEngagementIcons ? (
+        <div
+          className="flex items-center gap-5 border-b border-neutral-100 px-4"
+          role="tablist"
+          aria-label="Engagement"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected
+            className="inline-flex items-center justify-center border-b-2 border-[#FF5A1F] px-1 py-2.5 text-[#FF5A1F]"
+          >
+            <MessageSquare className="h-4 w-4" strokeWidth={2} aria-hidden />
+            <span className="sr-only">Live Chat</span>
+          </button>
         </div>
-      </div>
+      ) : null}
 
       {avatars.length > 0 && (
         <div className="flex items-center gap-[-4px] px-4 py-2.5" aria-label="Active chatters">

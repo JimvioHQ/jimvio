@@ -761,6 +761,7 @@ export function SettingsPanel({
   analytics,
   advancedSlot,
   dark = false,
+  initialCategory = null,
 }: {
   /** @deprecated unused */
   mode?: StudioMode;
@@ -810,8 +811,9 @@ export function SettingsPanel({
   analytics?: LiveDashboard["analytics"];
   advancedSlot?: React.ReactNode;
   dark?: boolean;
+  initialCategory?: SettingsCategory | null;
 }) {
-  const [category, setCategory] = useState<SettingsCategory | null>(null);
+  const [category, setCategory] = useState<SettingsCategory | null>(initialCategory);
   const [draftTitle, setDraftTitle] = useState(title ?? "");
   const [titleBusy, setTitleBusy] = useState(false);
   const [titleMsg, setTitleMsg] = useState<string | null>(null);

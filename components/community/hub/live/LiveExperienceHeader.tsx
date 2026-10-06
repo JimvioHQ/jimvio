@@ -8,6 +8,7 @@ import {
   Loader2,
   MoreHorizontal,
   Pencil,
+  PhoneOff,
   Settings,
   X,
 } from "lucide-react";
@@ -35,6 +36,9 @@ export function LiveExperienceHeader({
   watchingCount,
   elapsedLabel,
   brandMobile = false,
+  onEndLive,
+  canEnd = false,
+  profileAvatarUrl,
 }: {
   title: string;
   immersive?: boolean;
@@ -59,6 +63,10 @@ export function LiveExperienceHeader({
   elapsedLabel?: string;
   /** Mobile reference: show Jimvio brand row above title. */
   brandMobile?: boolean;
+  /** Mobile reference: End Live in the second header row. */
+  onEndLive?: () => void;
+  canEnd?: boolean;
+  profileAvatarUrl?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -152,26 +160,40 @@ export function LiveExperienceHeader({
         <div className="mb-2 flex items-center justify-between lg:hidden">
           <div className="flex min-w-0 items-center gap-2">
             {backBtn}
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#FF5A1F] text-[13px] font-black text-white">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-black text-white">
               J
             </span>
             <span className="text-[15px] font-semibold tracking-[-0.02em] text-white">
-              Jimvio.
+              Jimvio
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onMore}
-            title="More"
-            aria-label="More options"
-            className={cn(
-              "inline-flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
-              MOTION_COLORS,
-              FOCUS_RING_DARK
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onMore}
+              title="More"
+              aria-label="More options"
+              className={cn(
+                "inline-flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
+                MOTION_COLORS,
+                FOCUS_RING_DARK
+              )}
+            >
+              <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+            </button>
+            {profileAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profileAvatarUrl}
+                alt=""
+                className="h-8 w-8 rounded-full object-cover ring-1 ring-white/20"
+              />
+            ) : (
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold text-white/70 ring-1 ring-white/15">
+                You
+              </span>
             )}
-          >
-            <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-          </button>
+          </div>
         </div>
       ) : null}
 
@@ -265,7 +287,7 @@ export function LiveExperienceHeader({
               </button>
             ) : null}
             {liveActive ? (
-              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
+              <span className="hidden shrink-0 items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-white sm:inline-flex">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                 LIVE
               </span>
@@ -284,6 +306,22 @@ export function LiveExperienceHeader({
               )}
             >
               Go Live
+            </button>
+          ) : null}
+
+          {liveActive && onEndLive && canEnd ? (
+            <button
+              type="button"
+              onClick={onEndLive}
+              aria-label="End Live"
+              title="End Live"
+              className={cn(
+                "inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5A1F] text-white hover:bg-[#e04e1a] lg:hidden",
+                FOCUS_RING_DARK,
+                MOTION_COLORS
+              )}
+            >
+              <PhoneOff className="h-4 w-4" aria-hidden />
             </button>
           ) : null}
 
@@ -313,7 +351,7 @@ export function LiveExperienceHeader({
             aria-label="More options"
             className={cn(
               "inline-flex h-9 w-9 items-center justify-center rounded-full",
-              brandMobile && liveActive && "lg:inline-flex hidden",
+              brandMobile && liveActive && "hidden lg:inline-flex",
               MOTION_COLORS,
               focus,
               dark
