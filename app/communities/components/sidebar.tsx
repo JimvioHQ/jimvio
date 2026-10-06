@@ -596,7 +596,7 @@
 // }
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -757,37 +757,105 @@ const NAV_ITEMS = [
 ];
 
 // ── Fetch joined communities ──────────────────────────────────────────────────
+type CommunityListStatus = "loading" | "ready" | "error";
+
 function useCommunityList(initial: Community[]) {
-    const [dbCommunities, setDbCommunities] = useState<Community[] | null>(null);
+    const [dbCommunities, setDbCommunities] = useState<Community[] | null>(
+        initial.length > 0 ? initial : null
+    );
+    const [status, setStatus] = useState<CommunityListStatus>(
+        initial.length > 0 ? "ready" : "loading"
+    );
+    const lastGoodRef = useRef<Community[]>(initial);
 
     useEffect(() => {
         let cancelled = false;
-        async function loadCommunities() {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { if (!cancelled) setDbCommunities([]); return; }
+        const supabase = createClient();
 
-            const { data, error } = await supabase
-                .from("community_memberships")
-                .select("community_id, subscribed_at, communities!inner(id, name, slug, avatar_url, is_active)")
-                .eq("user_id", user.id)
-                .eq("status", "active")
-                .eq("communities.is_active", true)
-                .order("subscribed_at", { ascending: false })
-                .limit(50);
+        async function loadCommunities(opts?: { soft?: boolean }) {
+            const soft = Boolean(opts?.soft);
+            if (!soft && lastGoodRef.current.length === 0) {
+                setStatus("loading");
+            }
 
-            if (cancelled) return;
-            if (error) { console.error("[HubSidebar] Failed to load communities:", error); setDbCommunities([]); return; }
+            try {
+                const {
+                    data: { user },
+                } = await supabase.auth.getUser();
+                if (cancelled) return;
 
-            const mapped = (data ?? []).map((row: any) => row.communities).filter(Boolean) as Community[];
-            setDbCommunities(mapped);
+                if (!user) {
+                    // Auth may still be hydrating — do not treat as empty membership.
+                    // Wait for onAuthStateChange; only clear when signed out explicitly.
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from("community_memberships")
+                    .select(
+                        "community_id, subscribed_at, communities!inner(id, name, slug, avatar_url, is_active)"
+                    )
+                    .eq("user_id", user.id)
+                    .eq("status", "active")
+                    .eq("communities.is_active", true)
+                    .order("subscribed_at", { ascending: false })
+                    .limit(50);
+
+                if (cancelled) return;
+
+                if (error) {
+                    console.error("[HubSidebar] Failed to load communities:", error);
+                    // Preserve last known-good — never map failure → [].
+                    setStatus(lastGoodRef.current.length > 0 ? "ready" : "error");
+                    return;
+                }
+
+                const mapped = (data ?? [])
+                    .map((row: { communities?: Community | Community[] | null }) => {
+                        const raw = row.communities;
+                        return Array.isArray(raw) ? raw[0] : raw;
+                    })
+                    .filter(Boolean) as Community[];
+
+                lastGoodRef.current = mapped;
+                setDbCommunities(mapped);
+                setStatus("ready");
+            } catch (err) {
+                if (cancelled) return;
+                console.error("[HubSidebar] Communities load exception:", err);
+                setStatus(lastGoodRef.current.length > 0 ? "ready" : "error");
+            }
         }
 
-        loadCommunities();
-        return () => { cancelled = true; };
+        void loadCommunities();
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((event: string, session: { user?: { id: string } } | null) => {
+            if (cancelled) return;
+            if (event === "SIGNED_OUT") {
+                lastGoodRef.current = [];
+                setDbCommunities([]);
+                setStatus("ready");
+                return;
+            }
+            if (session?.user) {
+                void loadCommunities({ soft: true });
+            }
+        });
+
+        return () => {
+            cancelled = true;
+            subscription.unsubscribe();
+        };
     }, []);
 
-    return dbCommunities ?? initial;
+    return {
+        communities: dbCommunities ?? lastGoodRef.current,
+        status,
+        isLoading: status === "loading",
+        isError: status === "error",
+    };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -904,7 +972,11 @@ function SidebarContent({
         xp: number;
         xpMax: number;
     } | null>(null);
-    const communitiesToRender = useCommunityList([]);
+    const {
+        communities: communitiesToRender,
+        isLoading: communitiesLoading,
+        isError: communitiesError,
+    } = useCommunityList([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1135,15 +1207,19 @@ function SidebarContent({
                         <div style={{ height: 8 }} />
                     )}
 
-                    {/* Empty state */}
-                    {(communitiesOpen || collapsed) && communitiesToRender.length === 0 && !collapsed && (
+                    {/* Empty / loading / error — never treat loading or failure as "no communities" */}
+                    {(communitiesOpen || collapsed) && !collapsed && communitiesToRender.length === 0 && (
                         <p style={{
                             fontSize: 11, color: "var(--color-text-muted, #6a6a6a)",
                             padding: "4px 10px", margin: 0, lineHeight: 1.5,
                         }}>
                             {isAuthenticated === false
                                 ? "Sign in to see communities you've joined."
-                                : "You haven't joined any yet."}
+                                : communitiesLoading
+                                  ? "Loading your communities…"
+                                  : communitiesError
+                                    ? "Couldn't load communities. Pull to refresh or try again."
+                                    : "You haven't joined any yet."}
                         </p>
                     )}
 

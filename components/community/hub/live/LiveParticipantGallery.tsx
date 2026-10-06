@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Speaker } from "@/lib/community/hub-live-types";
 import type { SpeakerUi } from "./studio-types";
 import { LiveParticipantTile } from "./LiveParticipantTile";
-import { FOCUS_RING_DARK } from "./studio-ui";
+import { FOCUS_RING } from "./studio-ui";
 
 /**
  * Real joined participants only — never pads with fake people or empty human tiles.
@@ -43,10 +43,7 @@ function LiveParticipantGalleryImpl({
   const overflow = Math.max(0, list.length - desktopVisible.length);
 
   return (
-    <section
-      aria-label="Live participants"
-      className="shrink-0"
-    >
+    <section aria-label="Live participants" className="shrink-0">
       {/* Mobile: horizontal strip */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:hidden">
         {list.map((p) => {
@@ -72,8 +69,9 @@ function LiveParticipantGalleryImpl({
             onClick={onOpenPeople}
             aria-label="Open participants"
             className={cn(
-              "flex aspect-square w-[72px] shrink-0 items-center justify-center rounded-xl bg-white/5 text-white/70 ring-1 ring-white/10",
-              FOCUS_RING_DARK
+              "flex aspect-square w-[72px] shrink-0 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#64748B] shadow-sm",
+              FOCUS_RING,
+              "hover:bg-[#F8FAFC]"
             )}
           >
             <ChevronRight className="h-5 w-5" aria-hidden />
@@ -105,13 +103,13 @@ function LiveParticipantGalleryImpl({
             onClick={onOpenPeople}
             aria-label={`View ${overflow} more participants`}
             className={cn(
-              "flex aspect-[4/3] flex-col items-center justify-center gap-1 rounded-xl bg-white/5 text-white/80 ring-1 ring-white/10",
-              FOCUS_RING_DARK,
-              "hover:bg-white/10"
+              "flex aspect-[4/3] flex-col items-center justify-center gap-1 rounded-xl border border-[#E5E7EB] bg-white text-[#111827] shadow-sm",
+              FOCUS_RING,
+              "hover:bg-[#F8FAFC]"
             )}
           >
             <span className="text-[15px] font-semibold tabular-nums">+{overflow}</span>
-            <span className="text-[10px] font-medium text-white/45">More</span>
+            <span className="text-[10px] font-medium text-[#64748B]">More</span>
           </button>
         ) : null}
       </div>

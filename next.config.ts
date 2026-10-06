@@ -214,7 +214,8 @@ const nextConfig: NextConfig = {
             // force NotAllowedError/"Permission denied" even when the user clicks Allow.
             // Keep geolocation/payment locked; do not grant to third-party origins.
             key: "Permissions-Policy",
-            value: "camera=(self), microphone=(self), geolocation=(), payment=()",
+            value:
+              "camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=()",
           },
           {
             key: "Content-Security-Policy",

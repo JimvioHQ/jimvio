@@ -47,12 +47,12 @@ function DockAction({
         MOTION,
         FOCUS_RING,
         disabled
-          ? "cursor-not-allowed text-white/35"
+          ? "cursor-not-allowed text-[#94A3B8]"
           : danger
-            ? "text-red-500"
+            ? "text-red-600"
             : active
-              ? "bg-white/15 text-white"
-              : "text-white/80 hover:bg-white/10"
+              ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
+              : "text-[#111827] hover:bg-[#F1F5F9]"
       )}
     >
       {children}
@@ -178,7 +178,7 @@ export function LiveMobileDock({
       role="toolbar"
       aria-label="Live controls"
     >
-      <div className="pointer-events-auto inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[20px] border border-white/10 bg-black/55 px-1.5 py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl scrollbar-hide sm:gap-1 sm:px-2 sm:py-2">
+      <div className="pointer-events-auto inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[20px] border border-[#E5E7EB] bg-white/95 px-1.5 py-1.5 shadow-[0_12px_40px_rgba(15,23,42,0.12)] backdrop-blur-xl scrollbar-hide sm:gap-1 sm:px-2 sm:py-2">
         {controls.map((id) => {
           switch (id) {
             case "mic":
@@ -246,7 +246,7 @@ export function LiveMobileDock({
                       : screenShareSupported
                         ? "Share screen"
                         : (screenShareReason ??
-                          "Screen sharing is not supported on this device")
+                          "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device.")
                   }
                   onClick={
                     sharing || screenShareSupported ? handleShare : undefined

@@ -735,8 +735,12 @@ export function HubLivePage({
   const startShare = useCallback(async () => {
     if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
     const capability = detectScreenShareCapability();
-    if (!capability.supported) {
-      showToast(capability.reason ?? "Screen sharing is not supported on this device");
+    setScreenShareCapability(capability);
+    if (!capability.canAttempt) {
+      showToast(
+        capability.reason ??
+          "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device."
+      );
       return;
     }
     const prefs = useLiveCollabStore.getState();
@@ -1473,7 +1477,7 @@ export function HubLivePage({
   const canEditLiveTitle =
     (hasSession && (isLiveHost || live.myRole === "cohost") && Boolean(live.session?.id)) ||
     canStartLive;
-  const immersive = activity === "share" || focusMode || hasSession;
+  const immersive = focusMode;
   const startedLabel = live.session?.started_at
     ? `Started ${formatTime(live.session.started_at)}`
     : null;
@@ -1514,7 +1518,7 @@ export function HubLivePage({
       sharing={media.sharing}
       onStartShare={() => void startShare()}
       onStopShare={stopShare}
-      screenShareSupported={screenShareCapability.supported}
+      screenShareSupported={screenShareCapability.canAttempt}
       screenShareReason={screenShareCapability.reason}
       audioAccess={media.audioAccess}
       videoAccess={media.videoAccess}
@@ -1575,7 +1579,7 @@ export function HubLivePage({
   if (!live.authReady && sessionIdProp) {
     return (
       <div
-        className={cn("flex min-h-[100dvh] items-center justify-center bg-[#0B0B0C]")}
+        className={cn("flex min-h-[100dvh] items-center justify-center bg-[#F8FAFC]")}
         role="status"
         aria-live="polite"
         aria-busy="true"
@@ -1606,8 +1610,8 @@ export function HubLivePage({
   return (
     <div
       className={cn(
-        "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col text-neutral-900 motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        immersive ? "bg-neutral-950" : LIVE_PAGE_BG
+        "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col text-[#111827] motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        LIVE_PAGE_BG
       )}
     >
       {/* Status banners — offline / load errors / session errors */}
@@ -1862,17 +1866,17 @@ export function HubLivePage({
               role="presentation"
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
-                "relative w-full cursor-default overflow-hidden bg-neutral-950",
+                "relative w-full cursor-default overflow-hidden border border-[#E5E7EB] bg-white shadow-[0_12px_40px_rgba(15,23,42,0.08)]",
                 immersive
-                  ? "min-h-0 flex-1 rounded-none"
+                  ? "min-h-0 flex-1 rounded-none border-0"
                   : hasSession
-                    ? "aspect-video min-h-0 shrink-0 rounded-2xl ring-2 ring-[#FF5A1F] sm:aspect-auto sm:flex-1"
-                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none shadow-[0_8px_30px_rgba(0,0,0,0.12)] sm:rounded-2xl",
-                activity === "share" && "motion-safe:sm:scale-[1.002]",
+                    ? "aspect-video min-h-0 shrink-0 rounded-[20px] sm:aspect-auto sm:flex-1"
+                    : "min-h-[min(72vh,640px)] shrink-0 rounded-none sm:rounded-[20px]",
+                activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#1a1a1a_0%,#050505_72%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]" />
               <StageMediaPreview
                 stream={stageStream}
                 cover={
@@ -1882,14 +1886,14 @@ export function HubLivePage({
               />
               {media.sharing ? (
                 <div className="pointer-events-none absolute inset-x-0 bottom-20 z-[3] flex justify-center px-3 sm:bottom-24">
-                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md">
+                  <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white/95 px-3 py-1.5 text-[12px] font-medium text-[#111827] shadow-lg backdrop-blur-md">
                     <span>You&apos;re sharing your screen</span>
                     <button
                       type="button"
                       onClick={stopShare}
                       className={cn(
                         "rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
-                        FOCUS_RING_DARK
+                        FOCUS_RING
                       )}
                     >
                       Stop sharing
@@ -1910,7 +1914,7 @@ export function HubLivePage({
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                         LIVE
                       </span>
-                      <span className="inline-flex items-center rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
+                      <span className="inline-flex items-center rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#111827] shadow-sm backdrop-blur-md">
                         {watchingCountLabel === 1
                           ? "1 watching"
                           : `${formatCount(watchingCountLabel)} watching`}
@@ -1918,7 +1922,7 @@ export function HubLivePage({
                       <button
                         type="button"
                         onClick={() => toggleLeft("people")}
-                        className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md hover:bg-black/70"
+                        className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#111827] shadow-sm backdrop-blur-md hover:bg-white"
                         aria-label="Open participants"
                       >
                         People
@@ -1931,17 +1935,17 @@ export function HubLivePage({
                       )}
                     </div>
                     <div className="pointer-events-auto flex items-center gap-1.5">
-                      <span className="rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium tabular-nums text-white/90 backdrop-blur-md">
+                      <span className="rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium tabular-nums text-[#64748B] shadow-sm backdrop-blur-md">
                         {formatElapsed(elapsed)}
                       </span>
                       <span
                         className={cn(
-                          "rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium backdrop-blur-md",
+                          "rounded-full border border-[#E5E7EB] bg-white/95 px-2.5 py-1 text-[11px] font-medium shadow-sm backdrop-blur-md",
                           connectionLabel === "Poor" || connectionLabel === "Disconnected"
-                            ? "text-red-300"
+                            ? "text-red-600"
                             : connectionLabel === "Reconnecting"
-                              ? "text-amber-200"
-                              : "text-emerald-300"
+                              ? "text-amber-600"
+                              : "text-emerald-600"
                         )}
                         aria-label={`Connection ${connectionLabel}`}
                       >
@@ -1951,8 +1955,8 @@ export function HubLivePage({
                         type="button"
                         onClick={() => setFocusMode(true)}
                         className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
-                          FOCUS_RING_DARK
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#64748B] shadow-sm backdrop-blur-md hover:bg-white hover:text-[#111827]",
+                          FOCUS_RING
                         )}
                         aria-label="Enter fullscreen"
                       >
@@ -1962,8 +1966,8 @@ export function HubLivePage({
                         type="button"
                         onClick={() => toggleLeft("settings")}
                         className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
-                          FOCUS_RING_DARK
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#64748B] shadow-sm backdrop-blur-md hover:bg-white hover:text-[#111827]",
+                          FOCUS_RING
                         )}
                         aria-label="Open settings"
                       >
@@ -1974,14 +1978,14 @@ export function HubLivePage({
 
                   {/* Host identity badge — always dominant stage */}
                   <div className="pointer-events-none absolute left-3 top-14 z-10 sm:top-16">
-                    <div className="inline-flex items-start gap-2 rounded-xl bg-black/55 px-2.5 py-2 backdrop-blur-md">
+                    <div className="inline-flex items-start gap-2 rounded-xl border border-[#E5E7EB] bg-white/95 px-2.5 py-2 shadow-sm backdrop-blur-md">
                       <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">
                         <Crown className="h-3.5 w-3.5" aria-hidden />
                         Host
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-white">{stageHostName}</p>
-                        <p className="text-[10px] text-white/50">
+                        <p className="truncate text-[13px] font-semibold text-[#111827]">{stageHostName}</p>
+                        <p className="text-[10px] text-[#64748B]">
                           {media.camOn || hostRemote?.camOn
                             ? micOn || hostRemote?.micOn
                               ? "On stage"
@@ -1998,22 +2002,22 @@ export function HubLivePage({
                     <>
                       {livekit.connecting ? (
                         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center">
-                          <p className="inline-flex items-center gap-2 text-[13px] text-white/55">
+                          <p className="inline-flex items-center gap-2 text-[13px] text-[#64748B]">
                             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                             Connecting…
                           </p>
                         </div>
                       ) : livekit.error ? (
                         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center">
-                          <div className="max-w-sm rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
+                          <div className="max-w-sm rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-red-700">
                             <p className="font-medium">Connection issue</p>
-                            <p className="mt-1 text-red-200/80">{livekit.error}</p>
+                            <p className="mt-1 text-red-600/90">{livekit.error}</p>
                             <button
                               type="button"
                               onClick={() => void livekit.reconnect()}
                               className={cn(
-                                "mt-2 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/15",
-                                FOCUS_RING_DARK
+                                "mt-2 rounded-full bg-[#111827] px-3 py-1 font-medium text-white hover:bg-neutral-800",
+                                FOCUS_RING
                               )}
                             >
                               Reconnect
@@ -2038,9 +2042,9 @@ export function HubLivePage({
                       type="button"
                       onClick={() => setFocusMode(false)}
                       className={cn(
-                        "absolute right-4 top-4 z-20 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white/75 backdrop-blur-md hover:bg-white/15",
+                        "absolute right-4 top-4 z-20 rounded-full border border-[#E5E7EB] bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#111827] shadow-sm backdrop-blur-md hover:bg-white",
                         MOTION_COLORS,
-                        FOCUS_RING_DARK
+                        FOCUS_RING
                       )}
                     >
                       Exit Focus
@@ -2102,7 +2106,6 @@ export function HubLivePage({
                   sharing={media.sharing}
                   focusMode={focusMode}
                   canPublish={canPublishAv(live.myRole)}
-                  dark
                   onMic={() => void toggleMic()}
                   onCam={() => void toggleCam()}
                   onShare={() => void startShare()}
@@ -2473,7 +2476,7 @@ export function HubLivePage({
         audioAccess={media.audioAccess}
         videoAccess={media.videoAccess}
         permissionDenied={media.permissionDenied}
-        screenShareSupported={screenShareCapability.supported}
+        screenShareSupported={screenShareCapability.canAttempt}
         screenShareReason={screenShareCapability.reason}
         onMic={() => void toggleMic()}
         onCam={() => void toggleCam()}

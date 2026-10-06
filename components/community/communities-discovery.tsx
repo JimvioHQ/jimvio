@@ -615,6 +615,7 @@ export function CommunitiesDiscovery({
 
   useEffect(() => {
     let cancelled = false;
+    const lastGood = { current: [] as CommunityRow[] };
     (async () => {
       setMyCommunitiesLoading(true);
       try {
@@ -623,7 +624,7 @@ export function CommunitiesDiscovery({
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          if (!cancelled) setMyCommunities([]);
+          // Auth may still hydrate — do not flash empty membership.
           return;
         }
 
@@ -644,7 +645,12 @@ export function CommunitiesDiscovery({
 
         if (cancelled) return;
         if (error) {
-          setMyCommunities([]);
+          // Preserve last known-good; never map failure → [].
+          if (lastGood.current.length === 0) {
+            /* keep empty + stop loading below */
+          } else {
+            setMyCommunities(lastGood.current);
+          }
           return;
         }
 
@@ -683,9 +689,13 @@ export function CommunitiesDiscovery({
           });
         }
 
-        setMyCommunities([...byId.values()]);
+        const next = [...byId.values()];
+        lastGood.current = next;
+        setMyCommunities(next);
       } catch {
-        if (!cancelled) setMyCommunities([]);
+        if (!cancelled && lastGood.current.length > 0) {
+          setMyCommunities(lastGood.current);
+        }
       } finally {
         if (!cancelled) setMyCommunitiesLoading(false);
       }

@@ -8,6 +8,10 @@ import {
   logMediaError,
   type MediaAccessKind,
 } from "@/lib/live/media-errors";
+import {
+  buildScreenShareConstraints,
+  classifyScreenShareError,
+} from "@/lib/live/screen-share-capability";
 
 export type LiveMediaDevice = {
   deviceId: string;
@@ -432,37 +436,53 @@ export class LiveMediaPlane {
       return true;
     }
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      this.lastError = "Screen share unavailable";
+      this.lastError =
+        "Screen sharing isn't supported by this browser. Update your browser or use a supported browser/device.";
       this.emit();
       return false;
     }
     this.shareStarting = true;
     try {
-      const surface =
-        options?.target === "browser_tab"
-          ? "browser"
-          : options?.target === "window"
-            ? "window"
-            : "monitor";
-      const high = options?.quality !== "standard";
-      // Native picker exposes Chrome Tab / Window / Entire Screen where the
-      // browser/OS supports them. PreferCurrentTab stays off so the Live room
-      // tab itself is not the default (avoids recursive capture).
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          displaySurface: surface,
-          width: { ideal: high ? 1920 : 1280 },
-          height: { ideal: high ? 1080 : 720 },
-          frameRate: { ideal: high ? 30 : 24 },
-        } as MediaTrackConstraints,
-        // Browser may offer tab audio when a Chrome Tab is selected.
-        audio: true,
-        preferCurrentTab: false,
-        selfBrowserSurface: "exclude",
-        ...(options?.target === "browser_tab"
-          ? { monitorTypeSurfaces: "exclude" }
-          : {}),
-      } as DisplayMediaStreamOptions);
+      // Prefer minimal constraints on touch devices; fall back to bare video
+      // if desktop hints overconstrain (common on mobile WebKit/Chrome).
+      const attempts: DisplayMediaStreamOptions[] = [
+        buildScreenShareConstraints(options),
+        { video: true, audio: true } as DisplayMediaStreamOptions,
+        { video: true } as DisplayMediaStreamOptions,
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastErr: unknown = null;
+      for (const constraints of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia(constraints);
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          const classified = classifyScreenShareError(err);
+          // Don't retry after explicit user cancel / permission deny.
+          if (
+            classified.code === "aborted" ||
+            classified.code === "permission_denied" ||
+            classified.code === "unsupported"
+          ) {
+            break;
+          }
+        }
+      }
+
+      if (!stream) {
+        const classified = classifyScreenShareError(lastErr);
+        if (classified.code === "aborted") {
+          this.lastError = null;
+        } else {
+          this.lastError = classified.message;
+        }
+        this.emit();
+        return false;
+      }
+
       this.stopShareTracks();
       this.shareStream = stream;
       const vt = stream.getVideoTracks()[0];
@@ -474,13 +494,9 @@ export class LiveMediaPlane {
       this.emit();
       return true;
     } catch (err) {
-      // User cancelled picker — not a hard error
-      const name = err instanceof DOMException ? err.name : "";
-      if (name === "NotAllowedError" || name === "AbortError") {
-        this.lastError = null;
-      } else {
-        this.lastError = err instanceof Error ? err.message : "Screen share failed";
-      }
+      const classified = classifyScreenShareError(err);
+      this.lastError =
+        classified.code === "aborted" ? null : classified.message;
       this.emit();
       return false;
     } finally {

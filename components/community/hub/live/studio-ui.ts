@@ -18,16 +18,21 @@ export const FOCUS_RING_INSET =
 /** Cap rendered chat rows for long sessions (UI window; full history remains in memory if needed later). */
 export const CHAT_RENDER_CAP = 200;
 
-/** Premium Live studio surfaces */
+/** Premium Live studio surfaces — Light Mode (Meet/Zoom quality). */
 export const LIVE_SURFACE = "bg-white";
 export const LIVE_PAGE_BG = "bg-[#F8FAFC]";
-export const LIVE_STAGE_BG = "bg-[#0a0c10]";
-export const LIVE_BORDER = "border border-neutral-200/80";
+/** Stage card chrome (video itself may still be dark). */
+export const LIVE_STAGE_BG = "bg-white";
+export const LIVE_STAGE_FALLBACK_BG =
+  "bg-[radial-gradient(ellipse_at_50%_40%,#F1F5F9_0%,#E2E8F0_72%)]";
+export const LIVE_BORDER = "border border-[#E5E7EB]";
 export const LIVE_SHADOW =
   "shadow-[0_8px_30px_rgba(15,23,42,0.06)]";
 export const LIVE_SHADOW_LG =
-  "shadow-[0_20px_60px_rgba(0,0,0,0.28)]";
+  "shadow-[0_12px_40px_rgba(15,23,42,0.08)]";
 export const LIVE_RADIUS = "rounded-2xl";
 export const LIVE_RADIUS_LG = "rounded-[20px]";
 export const LIVE_ACCENT = "text-[#FF5A1F]";
 export const LIVE_ACCENT_BG = "bg-[#FF5A1F]";
+export const LIVE_TEXT = "text-[#111827]";
+export const LIVE_TEXT_MUTED = "text-[#64748B]";

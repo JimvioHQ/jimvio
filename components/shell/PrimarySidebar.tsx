@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -137,14 +137,16 @@ function NavBadge({ badge }: { badge: NonNullable<NavItem["badge"]> }) {
 
 export function PrimarySidebar({ activeItem, user: userProp, className }: PrimarySidebarProps) {
   const pathname = usePathname();
-  const { user: feedUser, isAuthenticated } = useFeedUser();
+  const { user: feedUser, isAuthenticated, isLoading: authLoading } = useFeedUser();
   const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const [pinned, setPinned] = useState<CommunityRow[]>([]);
   const [ownedCommunities, setOwnedCommunities] = useState<CommunityRow[]>([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(true);
+  const [communitiesError, setCommunitiesError] = useState(false);
   const [user, setUser] = useState(userProp ?? null);
+  const lastGoodCommunitiesRef = useRef<CommunityRow[]>([]);
 
   useEffect(() => {
     if (userProp) {
@@ -163,28 +165,43 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       });
       return;
     }
-    if (!isAuthenticated) setUser(null);
-  }, [userProp, feedUser, isAuthenticated]);
+    if (!authLoading && !isAuthenticated) setUser(null);
+  }, [userProp, feedUser, isAuthenticated, authLoading]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!isAuthenticated && !userProp) {
+      // Wait for auth hydration — never treat "still loading" as signed-out empty.
+      if (authLoading && !userProp && !feedUser?.id) {
+        if (lastGoodCommunitiesRef.current.length === 0) {
+          setCommunitiesLoading(true);
+        }
+        return;
+      }
+
+      if (!isAuthenticated && !userProp && !feedUser?.id) {
+        lastGoodCommunitiesRef.current = [];
         setCommunities([]);
         setPinned([]);
         setOwnedCommunities([]);
         setCommunitiesLoading(false);
+        setCommunitiesError(false);
         return;
       }
-      setCommunitiesLoading(true);
+
+      // Soft refresh: keep existing list visible while refetching.
+      if (lastGoodCommunitiesRef.current.length === 0) {
+        setCommunitiesLoading(true);
+      }
+      setCommunitiesError(false);
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const authUserId = feedUser?.id ?? authUser?.id;
       if (!authUserId || cancelled) {
-        setCommunities([]);
-        setPinned([]);
-        setOwnedCommunities([]);
-        setCommunitiesLoading(false);
+        // Auth still resolving — preserve last known-good.
+        if (!cancelled && lastGoodCommunitiesRef.current.length === 0) {
+          setCommunitiesLoading(true);
+        }
         return;
       }
 
@@ -208,7 +225,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         }
       }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("community_memberships")
         .select("communities!inner(id, name, slug, avatar_url, is_active)")
         .eq("user_id", authUserId)
@@ -217,6 +234,18 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         .limit(20);
 
       if (cancelled) return;
+
+      if (error) {
+        setCommunitiesError(true);
+        // Keep last known-good list; do not wipe to [].
+        if (lastGoodCommunitiesRef.current.length === 0) {
+          setCommunitiesLoading(false);
+        } else {
+          setCommunitiesLoading(false);
+        }
+        return;
+      }
+
       const mapped: CommunityRow[] = [];
       for (const row of data ?? []) {
         const raw = (row as { communities: CommunityRow | CommunityRow[] | null })
@@ -231,7 +260,9 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           });
         }
       }
+      lastGoodCommunitiesRef.current = mapped;
       setCommunities(mapped);
+      setCommunitiesError(false);
 
       const { data: ownedRows } = await supabase
         .from("communities")
@@ -276,10 +307,10 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
     }
     void load();
     return () => { cancelled = true; };
-  }, [userProp, isAuthenticated, feedUser?.id]);
+  }, [userProp, isAuthenticated, feedUser?.id, authLoading]);
 
   const profile = user ?? GUEST_PROFILE;
-  const isGuest = !isAuthenticated && !userProp;
+  const isGuest = !authLoading && !isAuthenticated && !userProp;
 
   return (
     <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]", className)}>
@@ -381,7 +412,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                   <div className="mx-3 my-1.5 border-t border-gray-100" />
                 </>
               ) : null}
-              {communitiesLoading ? (
+              {communitiesLoading && communities.length === 0 ? (
                 <div className="space-y-2 px-3 py-1" aria-busy="true" aria-label="Loading communities">
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="flex items-center gap-2.5">
@@ -392,7 +423,9 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                 </div>
               ) : communities.length === 0 ? (
                 <p className="px-3 py-2 text-[12px] text-gray-400">
-                  No communities joined yet
+                  {communitiesError
+                    ? "Couldn't load communities. Try again."
+                    : "No communities joined yet"}
                 </p>
               ) : (
                 communities.map((c) => (

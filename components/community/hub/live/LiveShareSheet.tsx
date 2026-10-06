@@ -227,7 +227,7 @@ export function LiveShareSheet({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
-          <DialogTitle className="text-lg font-black">Invite to Live</DialogTitle>
+          <DialogTitle className="text-lg font-black text-[#111827]">Invite people</DialogTitle>
         </DialogHeader>
 
         <div className="flex gap-2">

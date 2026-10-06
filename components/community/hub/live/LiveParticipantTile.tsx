@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Crown, Mic, MicOff, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
-import { FOCUS_RING_DARK } from "./studio-ui";
+import { FOCUS_RING, LIVE_STAGE_FALLBACK_BG } from "./studio-ui";
 
 /** Compact camera-off / video tile for joined Live participants (never fakes people). */
 export function LiveParticipantTile({
@@ -47,11 +47,11 @@ export function LiveParticipantTile({
       aria-label={`${name}${isHost ? ", Host" : ""}${!micOn ? ", muted" : ""}${!camOn ? ", camera off" : ""}${speaking ? ", speaking" : ""}`}
       aria-current={selected || speaking ? "true" : undefined}
       className={cn(
-        "group relative overflow-hidden rounded-xl bg-[#0b1220] text-left ring-1 ring-white/10",
-        FOCUS_RING_DARK,
+        "group relative overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left shadow-[0_4px_16px_rgba(15,23,42,0.05)]",
+        FOCUS_RING,
         compact ? "aspect-square min-w-[72px] w-[88px] sm:w-[104px]" : "aspect-[4/3] w-full min-w-0",
-        (speaking || selected) && "ring-2 ring-[#FF5A1F]",
-        isHost && "ring-2 ring-[#FF5A1F]"
+        (speaking || selected) && "border-[#FF5A1F] ring-2 ring-[#FF5A1F]/25",
+        isHost && "border-[#FF5A1F] ring-2 ring-[#FF5A1F]/20"
       )}
     >
       {showVideo ? (
@@ -64,34 +64,53 @@ export function LiveParticipantTile({
           aria-hidden
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[radial-gradient(ellipse_at_50%_40%,#1f2937_0%,#0b1220_70%)] px-2">
+        <div
+          className={cn(
+            "absolute inset-0 flex flex-col items-center justify-center gap-2 px-2",
+            LIVE_STAGE_FALLBACK_BG
+          )}
+        >
           <HubAvatar
             name={name}
             src={avatarUrl}
             size={compact ? 40 : 56}
-            className="!ring-2 !ring-white/10"
+            className="!ring-2 !ring-white shadow-sm"
           />
           {!compact ? (
-            <p className="text-[10px] font-medium text-white/45">Camera off</p>
+            <p className="text-[10px] font-medium text-[#64748B]">Camera off</p>
           ) : null}
         </div>
       )}
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-2 pb-1.5 pt-6">
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6",
+          showVideo
+            ? "bg-gradient-to-t from-black/70 via-black/25 to-transparent"
+            : "bg-gradient-to-t from-white/95 via-white/70 to-transparent"
+        )}
+      >
         <div className="flex items-end justify-between gap-1">
           <div className="min-w-0">
             {isHost ? (
-              <span className="mb-0.5 inline-flex items-center gap-0.5 rounded-md bg-[#FF5A1F]/15 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF5A1F]">
+              <span className="mb-0.5 inline-flex items-center gap-0.5 rounded-md bg-[#FF5A1F]/10 px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#FF5A1F]">
                 <Crown className="h-2.5 w-2.5" aria-hidden />
                 Host
               </span>
             ) : null}
-            <p className="truncate text-[11px] font-semibold text-white sm:text-[12px]">{name}</p>
+            <p
+              className={cn(
+                "truncate text-[11px] font-semibold sm:text-[12px]",
+                showVideo ? "text-white" : "text-[#111827]"
+              )}
+            >
+              {name}
+            </p>
           </div>
           <span
             className={cn(
               "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-              micOn ? "bg-emerald-500/90 text-white" : "bg-red-500/90 text-white"
+              micOn ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
             )}
             aria-hidden
           >
@@ -106,7 +125,7 @@ export function LiveParticipantTile({
 
       {!camOn && compact ? (
         <span
-          className="absolute right-1.5 top-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white"
+          className="absolute right-1.5 top-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#64748B] shadow-sm"
           aria-hidden
         >
           <VideoOff className="h-2.5 w-2.5" />

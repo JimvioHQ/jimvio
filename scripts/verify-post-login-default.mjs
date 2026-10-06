@@ -29,6 +29,10 @@ assert(
   "Permissions-Policy must allow first-party camera/mic"
 );
 assert(
+  nextConfig.includes("display-capture=(self)"),
+  "Permissions-Policy must allow first-party display-capture for Live screen share"
+);
+assert(
   !nextConfig.includes("camera=(), microphone=()"),
   "Permissions-Policy must not deny camera/mic site-wide"
 );
