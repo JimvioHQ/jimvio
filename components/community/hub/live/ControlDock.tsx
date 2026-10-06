@@ -345,13 +345,13 @@ function ControlDockImpl({
             )}
           >
             <PhoneOff className="h-4 w-4" aria-hidden />
-            <span>End</span>
+            <span>End Live</span>
           </button>
         ) : (
           <button
             type="button"
             title="Leave Live"
-            aria-label="Leave live session"
+            aria-label="Leave Live"
             onClick={onLeave}
             className={cn(
               "inline-flex h-11 shrink-0 items-center gap-2 rounded-2xl bg-[#F3F4F6] px-5 text-[13px] font-semibold tracking-[-0.01em] text-[#111827]",
@@ -361,7 +361,7 @@ function ControlDockImpl({
             )}
           >
             <PhoneOff className="h-4 w-4" aria-hidden />
-            <span>Leave</span>
+            <span>Leave Live</span>
           </button>
         )}
       </div>

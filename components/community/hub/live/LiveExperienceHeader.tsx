@@ -38,6 +38,7 @@ export function LiveExperienceHeader({
   brandMobile = false,
   onEndLive,
   canEnd = false,
+  onLeaveLive,
   profileAvatarUrl,
 }: {
   title: string;
@@ -63,9 +64,11 @@ export function LiveExperienceHeader({
   elapsedLabel?: string;
   /** Mobile reference: show Jimvio brand row above title. */
   brandMobile?: boolean;
-  /** Mobile reference: End Live in the second header row. */
+  /** Mobile: End Live for hosts. */
   onEndLive?: () => void;
   canEnd?: boolean;
+  /** Mobile: Leave Live for participants (not hosts). */
+  onLeaveLive?: () => void;
   profileAvatarUrl?: string | null;
 }) {
   const [editing, setEditing] = useState(false);
@@ -316,12 +319,30 @@ export function LiveExperienceHeader({
               aria-label="End Live"
               title="End Live"
               className={cn(
-                "inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#FF5A1F] text-white hover:bg-[#e04e1a] lg:hidden",
+                "inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white hover:bg-[#e04e1a] lg:hidden",
                 FOCUS_RING,
                 MOTION_COLORS
               )}
             >
               <PhoneOff className="h-4 w-4" aria-hidden />
+              <span>End</span>
+            </button>
+          ) : null}
+
+          {liveActive && !canEnd && onLeaveLive ? (
+            <button
+              type="button"
+              onClick={onLeaveLive}
+              aria-label="Leave Live"
+              title="Leave Live"
+              className={cn(
+                "inline-flex h-10 items-center gap-1.5 rounded-full bg-[#F3F4F6] px-3.5 text-[12px] font-semibold text-[#111827] ring-1 ring-[#E5E7EB] hover:bg-[#E5E7EB] lg:hidden",
+                FOCUS_RING,
+                MOTION_COLORS
+              )}
+            >
+              <PhoneOff className="h-4 w-4" aria-hidden />
+              <span>Leave</span>
             </button>
           ) : null}
 

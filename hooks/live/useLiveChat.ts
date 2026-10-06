@@ -81,6 +81,15 @@ function toChatMessage(m: ApiMessage): ChatMessage {
   };
 }
 
+/** Map a raw postgres_changes row (may only have user_id) into a chat message. */
+function realtimeRowToChatMessage(row: ApiMessage & { user_id?: string | null }): ChatMessage {
+  return toChatMessage({
+    ...row,
+    sender_id: row.sender_id ?? row.user_id ?? null,
+    sender_name: row.sender_name || row.profiles?.full_name || row.profiles?.username || undefined,
+  });
+}
+
 function asChatLike(m: ChatMessage & { client_id?: string | null; pending?: boolean; failed?: boolean }): ChatMessageLike {
   return m;
 }
@@ -261,19 +270,25 @@ export function useLiveChat(
           },
           (payload) => {
             const eventType = payload?.eventType;
-            const row = payload?.new as ApiMessage | null;
+            const row = payload?.new as (ApiMessage & { user_id?: string | null }) | null;
             if (eventType === "INSERT" && row?.id) {
               if (shouldSkipRealtimeInsert(seenInserts.current, row.id)) return;
               markSeenMessageId(seenInserts.current, row.id);
               if (row.body && row.created_at) {
                 setMessages((prev) =>
-                  upsertChatMessage(prev.map(asChatLike), asChatLike(toChatMessage(row))) as ChatMessage[]
+                  upsertChatMessage(
+                    prev.map(asChatLike),
+                    asChatLike(realtimeRowToChatMessage(row))
+                  ) as ChatMessage[]
                 );
               }
+              // Enrich profiles / pins without blocking first paint of the body.
               scheduleReload();
               return;
             }
-            scheduleReload();
+            if (eventType === "UPDATE" || eventType === "DELETE") {
+              scheduleReload();
+            }
           },
           () => cancelled,
           { onStatus: applyRealtimeStatus }
@@ -290,20 +305,24 @@ export function useLiveChat(
           },
           (payload) => {
             const eventType = payload?.eventType;
-            const row = payload?.new as ApiMessage | null;
+            const row = payload?.new as (ApiMessage & { user_id?: string | null }) | null;
             if (eventType === "INSERT" && row?.id) {
               if (shouldSkipRealtimeInsert(seenInserts.current, row.id)) return;
               markSeenMessageId(seenInserts.current, row.id);
               if (row.body && row.created_at) {
                 setMessages((prev) =>
-                  upsertChatMessage(prev.map(asChatLike), asChatLike(toChatMessage(row))) as ChatMessage[]
+                  upsertChatMessage(
+                    prev.map(asChatLike),
+                    asChatLike(realtimeRowToChatMessage(row))
+                  ) as ChatMessage[]
                 );
               }
-              // Reload enriches sender profiles for session chat rows
               scheduleReload();
               return;
             }
-            scheduleReload();
+            if (eventType === "UPDATE" || eventType === "DELETE") {
+              scheduleReload();
+            }
           },
           () => cancelled,
           { onStatus: applyRealtimeStatus }

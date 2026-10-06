@@ -133,6 +133,7 @@ export function HubLivePage({
   const [focusMode, setFocusMode] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<null | "end" | "leave" | "back">(null);
   const [endLiveBusy, setEndLiveBusy] = useState(false);
+  const [leaveLiveBusy, setLeaveLiveBusy] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [chatInput, setChatInput] = useState("");
@@ -820,20 +821,37 @@ export function HubLivePage({
       showToast("Host must end the live session");
       return;
     }
+    setLeaveLiveBusy(true);
     try {
       media.stopScreenShare();
+      await livekit.disconnect();
+      await media.releaseMedia();
       await live.leave();
-      showToast("Left live — discussion stays open");
+      setConfirmDialog(null);
+      showToast("Left live");
       const href =
         data?.session.discussionHref ??
         (data?.session.communitySlug
           ? `/communities/${data.session.communitySlug}`
-          : "/communities");
+          : communitySlugProp
+            ? `/communities/${communitySlugProp}`
+            : "/communities/live");
       router.push(href);
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Could not leave");
+    } finally {
+      setLeaveLiveBusy(false);
     }
-  }, [live, media, showToast, router, data?.session.discussionHref, data?.session.communitySlug]);
+  }, [
+    live,
+    livekit,
+    media,
+    showToast,
+    router,
+    data?.session.discussionHref,
+    data?.session.communitySlug,
+    communitySlugProp,
+  ]);
 
   const endLive = useCallback(async () => {
     if (!live.session) {
@@ -853,6 +871,7 @@ export function HubLivePage({
         setEgressRecording(false);
       }
       if (recording) await media.stopRecording({ download: true });
+      await livekit.disconnect();
       await media.releaseMedia();
       await live.endLive();
       showToast("Live ended");
@@ -866,7 +885,7 @@ export function HubLivePage({
     } finally {
       setEndLiveBusy(false);
     }
-  }, [live, gate, media, recording, egressRecording, showToast, router, communitySlugProp]);
+  }, [live, gate, media, livekit, recording, egressRecording, showToast, router, communitySlugProp]);
 
   const createOrJoinLive = useCallback(async () => {
     // Hub Live (/communities/live) = Creator Live (no community).
@@ -1582,6 +1601,12 @@ export function HubLivePage({
         case "report":
           reportLive();
           break;
+        case "leave":
+          setConfirmDialog("leave");
+          break;
+        case "end":
+          setConfirmDialog("end");
+          break;
         default:
           break;
       }
@@ -1897,6 +1922,7 @@ export function HubLivePage({
           canEditTitle={canEditLiveTitle}
           canEnd={canEndLive(live.myRole)}
           onEndLive={() => setConfirmDialog("end")}
+          onLeaveLive={() => setConfirmDialog("leave")}
           onSaveTitle={
             canEditLiveTitle
               ? async (next) => {
@@ -1968,10 +1994,18 @@ export function HubLivePage({
               <DrawerHeader title="More" onClose={() => setLiveNavOpen(false)} />
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-1">
                 <div className="hidden lg:block">
-                  <LiveMorePanel variant="desktop" onAction={handleMoreAction} />
+                  <LiveMorePanel
+                    variant="desktop"
+                    canEnd={canEndLive(live.myRole)}
+                    onAction={handleMoreAction}
+                  />
                 </div>
                 <div className="lg:hidden">
-                  <LiveMorePanel variant="mobile" onAction={handleMoreAction} />
+                  <LiveMorePanel
+                    variant="mobile"
+                    canEnd={canEndLive(live.myRole)}
+                    onAction={handleMoreAction}
+                  />
                 </div>
               </div>
             </aside>
@@ -2203,7 +2237,7 @@ export function HubLivePage({
                   onCopyLink={openShareSheet}
                   onFullscreen={() => setFocusMode(true)}
                   onEnd={() => setConfirmDialog("end")}
-                  onLeave={() => void leaveLive()}
+                  onLeave={() => setConfirmDialog("leave")}
                   canEnd={canEndLive(live.myRole)}
                 />
               </div>
@@ -2635,8 +2669,8 @@ export function HubLivePage({
 
       <LiveConfirmDialog
         open={confirmDialog === "end"}
-        title="End this Live?"
-        description="Your Live will end for everyone. Recordings will be finalized if active."
+        title="End Live?"
+        description="Ending the live session will disconnect everyone. Recordings will be finalized if active."
         confirmLabel="End Live"
         danger
         busy={endLiveBusy}
@@ -2659,9 +2693,9 @@ export function HubLivePage({
       <LiveConfirmDialog
         open={confirmDialog === "leave"}
         title="Leave Live?"
-        description="You will leave this Live session. The broadcast will continue for others."
-        confirmLabel="Leave"
-        busy={false}
+        description="You will leave this live session. The broadcast will continue for others."
+        confirmLabel="Leave Live"
+        busy={leaveLiveBusy}
         onConfirm={() => void leaveLive()}
         onCancel={() => setConfirmDialog(null)}
       />

@@ -5,6 +5,7 @@ import {
   Circle,
   MessageSquare,
   MonitorUp,
+  PhoneOff,
   Settings,
   ShieldAlert,
   Signal,
@@ -25,7 +26,9 @@ export type LiveMoreActionId =
   | "settings"
   | "reactions"
   | "analytics"
-  | "report";
+  | "report"
+  | "leave"
+  | "end";
 
 type MoreItem = {
   id: LiveMoreActionId;
@@ -65,12 +68,30 @@ const MOBILE_ITEMS: MoreItem[] = [
  */
 export function LiveMorePanel({
   variant = "desktop",
+  canEnd = false,
   onAction,
 }: {
   variant?: "desktop" | "mobile";
+  /** Host/cohost can end; participants get Leave Live instead. */
+  canEnd?: boolean;
   onAction: (id: LiveMoreActionId) => void;
 }) {
-  const items = variant === "mobile" ? MOBILE_ITEMS : DESKTOP_ITEMS;
+  const items = [
+    ...(variant === "mobile" ? MOBILE_ITEMS : DESKTOP_ITEMS),
+    canEnd
+      ? ({
+          id: "end" as const,
+          label: "End Live",
+          icon: PhoneOff,
+          iconClass: "text-[#EF4444]",
+        } satisfies MoreItem)
+      : ({
+          id: "leave" as const,
+          label: "Leave Live",
+          icon: PhoneOff,
+          iconClass: "text-[#111827]",
+        } satisfies MoreItem),
+  ];
 
   return (
     <div

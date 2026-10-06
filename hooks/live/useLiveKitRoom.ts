@@ -154,9 +154,14 @@ export function useLiveKitRoom(opts: {
     await transportRef.current?.connect(json.url, json.token);
   }, [sessionId]);
 
+  const disconnect = useCallback(async () => {
+    await transportRef.current?.disconnect();
+  }, []);
+
   return {
     ...snap,
     remotes: snap.remotes as LiveKitRemoteMedia[],
     reconnect,
+    disconnect,
   };
 }

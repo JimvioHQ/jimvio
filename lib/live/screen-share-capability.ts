@@ -170,14 +170,14 @@ export function classifyScreenShareError(err: unknown): ScreenShareStartError {
   if (name === "NotFoundError") {
     return {
       code: "not_found",
-      message: "No screen source is available.",
+      message: "No screen or window is available to share.",
       technical: `${name}: ${raw}`,
     };
   }
   if (name === "NotReadableError") {
     return {
       code: "not_readable",
-      message: "Screen sharing couldn't start. Please try again.",
+      message: "Your device or operating system blocked screen sharing.",
       technical: `${name}: ${raw}`,
     };
   }
@@ -212,7 +212,7 @@ export function classifyScreenShareError(err: unknown): ScreenShareStartError {
   }
   return {
     code: "unknown",
-    message: "Screen sharing couldn't start.",
+    message: "Screen sharing could not be started. Please try again.",
     technical: raw,
   };
 }
