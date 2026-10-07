@@ -1,123 +1,144 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BarChart3,
+  Globe,
+  Link2,
+  Megaphone,
+  ShoppingBag,
+  Shield,
+  Truck,
+  UserPlus,
+  Users,
+  Wallet,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
-import { JourneyStack, JOURNEY_STACK_CSS } from "./journey-stack";
-import { MobileStoryStack } from "./mobile-story-stack";
 import {
+  AffiliateCoinsVisual,
+  BrandMegaphoneVisual,
+  BuildCommunitiesVisual,
   BuyProductsVisual,
-  EarnCommissionsVisual,
+  CommunityPeopleVisual,
   CreateCampaignsVisual,
+  EarnCommissionsVisual,
+  SellProductsVisual,
 } from "./journey-visuals";
 
 const ORANGE = "#FF5A1F";
-const GREEN = "#16a34a";
-const BLUE = "#2563eb";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
-type Step = {
-  step: string;
+type HowCard = {
   title: string;
-  desc: string;
-  detail: string;
-  color: string;
-  visual: ReactNode;
+  description: string;
+  icon: LucideIcon;
+  href?: string;
+  cta?: string;
+  visual: "join" | "explore" | "global" | "sell" | "paid" | "build" | "affiliate";
 };
 
-/** Preserve existing Home step content — visual redesign only. */
-const STEPS: readonly Step[] = [
+const CARDS: HowCard[] = [
   {
-    step: "01",
-    title: "Look around",
-    desc: "Check products, open campaigns, and skim communities before you pick a lane.",
-    detail: "Marketplace, UGC, and groups live in one app.",
-    color: ORANGE,
-    visual: <BuyProductsVisual accent={ORANGE} />,
+    title: "Join Jimvio",
+    description:
+      "Create your free account in seconds and join a global community of creators, buyers and entrepreneurs.",
+    icon: UserPlus,
+    href: "/register",
+    cta: "Get Started Free",
+    visual: "join",
   },
   {
-    step: "02",
-    title: "Promote & earn",
-    desc: "List stock, drop affiliate links, or ship content for a live brief.",
-    detail: "Payouts hit your Jimvio wallet.",
-    color: GREEN,
-    visual: <EarnCommissionsVisual accent={GREEN} />,
+    title: "Explore & Create",
+    description:
+      "Discover products, import dropshipping items, create your own products, content or start a campaign.",
+    icon: ShoppingBag,
+    href: "/marketplace",
+    cta: "Explore Marketplace",
+    visual: "explore",
   },
   {
-    step: "03",
-    title: "See what sticks",
-    desc: "Watch which links and posts actually convert, then do more of that.",
-    detail: "Sales and clicks in one dashboard.",
-    color: BLUE,
-    visual: <CreateCampaignsVisual accent={BLUE} />,
+    title: "Reach Global Audience",
+    description:
+      "Your products and content reach buyers, creators and communities across supported markets worldwide.",
+    icon: Globe,
+    href: "/marketplace",
+    visual: "global",
+  },
+  {
+    title: "Sell & Promote",
+    description:
+      "Sell products, run campaigns, do dropshipping, promote as an affiliate or through your content.",
+    icon: Megaphone,
+    href: "/seller/products",
+    cta: "List or Promote",
+    visual: "sell",
+  },
+  {
+    title: "Get Paid",
+    description:
+      "Earn from sales, affiliate commissions, campaigns, UGC, live streams and your community.",
+    icon: Wallet,
+    href: "/wallet",
+    visual: "paid",
+  },
+  {
+    title: "Build & Grow",
+    description:
+      "Create communities, go live, collaborate with creators, and build your brand globally on Jimvio.",
+    icon: Users,
+    href: "/communities",
+    visual: "build",
+  },
+  {
+    title: "Earn as an Affiliate",
+    description:
+      "Promote products and campaigns, earn commissions and grow your income with Jimvio affiliates.",
+    icon: BarChart3,
+    href: "/affiliates",
+    visual: "affiliate",
   },
 ];
 
-function HowStepCard({ step, index }: { step: Step; index: number }) {
-  return (
-    <RevealItem index={index + 2} as="article" className="h-full">
-      <JourneyStack
-        accent={step.color}
-        className="h-full"
-        density="compact"
-        style={{ ["--how-accent" as string]: step.color } as CSSProperties}
-      >
-        <div className="relative flex h-full min-h-[236px] flex-col sm:min-h-[248px]">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background: `linear-gradient(160deg, color-mix(in srgb, ${step.color} 9%, #ffffff) 0%, #ffffff 46%)`,
-            }}
-          />
+const TRUST = [
+  { icon: Globe, label: `${PLATFORM_STATS.countries}+ Countries` },
+  { icon: Users, label: "Global Community" },
+  { icon: Shield, label: "Secure & Trusted" },
+  { icon: Zap, label: "Built for Creators" },
+];
 
-          <div className="relative flex h-[108px] items-center justify-center px-4 pt-4 sm:h-[118px]">
-            <span
-              className="absolute left-4 top-4 rounded-full px-2.5 py-1 font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-[0.14em] sm:left-5 sm:top-5"
-              style={{ background: `${step.color}14`, color: step.color }}
-            >
-              {step.step}
-            </span>
-            <div
-              className={cn(
-                "jimvio-card-visual relative h-[96px] w-[108px] sm:h-[104px] sm:w-[116px]",
-                "drop-shadow-[0_12px_22px_rgba(17,24,39,0.11)]",
-                "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/stack:-translate-y-1",
-                "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:scale-100",
-              )}
-            >
-              {step.visual}
-            </div>
-          </div>
+const RAIL: { label: string; sub: string; icon: LucideIcon; href: string }[] = [
+  { label: "Marketplace", sub: "Physical & Digital Products", icon: ShoppingBag, href: "/marketplace" },
+  { label: "Dropshipping", sub: "Global Suppliers", icon: Truck, href: "/commerce" },
+  { label: "UGC & Clipping", sub: "Create & Earn", icon: Megaphone, href: "/ugc" },
+  { label: "Communities", sub: "Live, Learn & Grow", icon: Users, href: "/communities" },
+  { label: "Affiliates", sub: "Earn Commissions", icon: Link2, href: "/affiliates" },
+];
 
-          <div
-            className={cn(
-              "jimvio-card-panel relative z-[2] mx-3 mb-3 mt-auto rounded-[18px] border border-[rgba(17,24,39,0.05)]",
-              "bg-white/95 p-4 shadow-[0_10px_28px_rgba(17,24,39,0.06)] sm:mx-4 sm:mb-4 sm:p-[18px]",
-              "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              "group-hover/stack:-translate-y-1",
-              "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
-            )}
-          >
-            <h3 className="text-[16px] font-bold tracking-[-0.02em] text-[#111827] sm:text-[17px]">
-              {step.title}
-            </h3>
-            <p className="mt-2 text-[12.5px] leading-relaxed text-[#6B7280] sm:text-[13px]">
-              {step.desc}
-            </p>
-            <p
-              className="mt-3 border-t pt-3 text-[11.5px] font-semibold leading-snug sm:text-[12px]"
-              style={{ borderColor: `${step.color}22`, color: step.color }}
-            >
-              {step.detail}
-            </p>
-          </div>
-        </div>
-      </JourneyStack>
-    </RevealItem>
-  );
+function CardVisual({ type }: { type: HowCard["visual"] }) {
+  switch (type) {
+    case "join":
+      return <CommunityPeopleVisual accent={ORANGE} />;
+    case "explore":
+      return <BuyProductsVisual accent={ORANGE} />;
+    case "global":
+      return <BuildCommunitiesVisual accent={ORANGE} />;
+    case "sell":
+      return <BrandMegaphoneVisual accent={ORANGE} />;
+    case "paid":
+      return <EarnCommissionsVisual accent={ORANGE} />;
+    case "build":
+      return <CreateCampaignsVisual accent={ORANGE} />;
+    case "affiliate":
+      return <AffiliateCoinsVisual accent={ORANGE} />;
+    default:
+      return <SellProductsVisual accent={ORANGE} />;
+  }
 }
 
 export function HowJimvioWorks() {
@@ -128,57 +149,125 @@ export function HowJimvioWorks() {
       aria-labelledby="jimvio-how-title"
       threshold={0.08}
     >
-      <style>{`${JOURNEY_STACK_CSS}${HOW_CSS}`}</style>
-
       <div className={shell}>
-        <div className="mb-8 text-center sm:mb-10">
+        <header className="mb-8 text-center sm:mb-10">
           <RevealItem
             index={0}
+            as="div"
+            className="mb-3 inline-flex rounded-full bg-[#FFF1EB] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]"
+            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
+          >
+            How Jimvio Works
+          </RevealItem>
+          <RevealItem
+            index={1}
             as="h2"
             id="jimvio-how-title"
             className="text-[clamp(1.65rem,3.6vw,2.35rem)] font-black tracking-[-0.035em] text-[#111827]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
-            How Jimvio <span className="text-[#FF5A1F]">works</span>
+            How <span className="text-[#FF5A1F]">Jimvio</span> Works
           </RevealItem>
           <RevealItem
-            index={1}
+            index={2}
             as="p"
             className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
-            Roughly how it goes — explore, promote, and double down on what converts.
+            Create. Sell. Promote. Earn. Build. All in one platform.
           </RevealItem>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {TRUST.map((t) => (
+              <span
+                key={t.label}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(17,24,39,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#4B5563]"
+              >
+                <t.icon className="size-3.5 text-[#FF5A1F]" aria-hidden />
+                {t.label}
+              </span>
+            ))}
+          </div>
+        </header>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 xl:gap-3">
+          {CARDS.map((card, index) => {
+            const Icon = card.icon;
+            const body = (
+              <>
+                <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-9">
+                  <Icon className="size-3.5 sm:size-4" strokeWidth={2.2} aria-hidden />
+                </span>
+                <h3 className="mt-2.5 text-[14px] font-bold tracking-[-0.02em] text-[#111827] xl:text-[13px]">
+                  {card.title}
+                </h3>
+                <p className="mt-1.5 flex-1 text-[12px] leading-relaxed text-[#6B7280] xl:text-[11px]">
+                  {card.description}
+                </p>
+                <div className="mx-auto mt-2.5 h-[80px] w-[92px] xl:h-[72px] xl:w-[84px]" aria-hidden>
+                  <CardVisual type={card.visual} />
+                </div>
+                {card.cta ? (
+                  <span className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-bold text-[#FF5A1F] xl:text-[11px]">
+                    {card.cta}
+                    <ArrowRight className="size-3" aria-hidden />
+                  </span>
+                ) : null}
+              </>
+            );
+
+            const className = cn(
+              "group flex h-full min-h-[260px] flex-col rounded-[18px] border border-[rgba(17,24,39,0.07)] bg-white p-4",
+              "shadow-[0_8px_22px_rgba(17,24,39,0.04)] transition-[transform,box-shadow,border-color] duration-300",
+              "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.22)] hover:shadow-[0_14px_30px_rgba(17,24,39,0.08)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
+              "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+              "xl:min-h-[280px] xl:p-3.5",
+            );
+
+            return (
+              <RevealItem key={card.title} index={Math.min(index + 3, 8)} as="div" className="h-full">
+                {card.href ? (
+                  <Link
+                    href={card.href}
+                    className={className}
+                    aria-label={`${card.title}${card.cta ? `. ${card.cta}` : ""}`}
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <article className={className}>{body}</article>
+                )}
+              </RevealItem>
+            );
+          })}
         </div>
 
-        <div className="relative">
-          {/* Desktop connector rail sits behind the three cards */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-[16%] right-[16%] top-[42%] hidden h-px md:block"
-            style={{
-              background: `linear-gradient(90deg, ${ORANGE}, ${GREEN}, ${BLUE})`,
-              opacity: 0.55,
-            }}
-          />
-          <MobileStoryStack desktopClassName="md:grid md:grid-cols-3 md:gap-6 lg:gap-7">
-            {STEPS.map((step, index) => (
-              <HowStepCard key={step.step} step={step} index={index} />
+        {/* Bottom ecosystem rail */}
+        <div className="mt-8 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mt-10">
+          <div className="flex min-w-max items-center justify-center gap-2 px-1 sm:min-w-0 sm:flex-wrap sm:gap-3">
+            {RAIL.map((item, i) => (
+              <div key={item.label} className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  href={item.href}
+                  className="inline-flex items-center gap-2 rounded-[14px] border border-[rgba(17,24,39,0.08)] bg-white px-3 py-2 shadow-[0_4px_12px_rgba(17,24,39,0.03)] transition-colors hover:border-[rgba(255,90,31,0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
+                >
+                  <span className="inline-flex size-8 items-center justify-center rounded-full bg-[#FF5A1F]/10 text-[#FF5A1F]">
+                    <item.icon className="size-3.5" aria-hidden />
+                  </span>
+                  <span>
+                    <span className="block text-[12px] font-bold text-[#111827]">{item.label}</span>
+                    <span className="block text-[10px] text-[#6B7280]">{item.sub}</span>
+                  </span>
+                </Link>
+                {i < RAIL.length - 1 ? (
+                  <ArrowRight className="size-3.5 shrink-0 text-[#FF5A1F]/70" aria-hidden />
+                ) : null}
+              </div>
             ))}
-          </MobileStoryStack>
+          </div>
         </div>
       </div>
     </SectionReveal>
   );
 }
-
-const HOW_CSS = `
-.jimvio-how-works .jimvio-journey-stack:hover .jimvio-stack-face {
-  border-color: color-mix(in srgb, var(--stack-accent) 22%, rgba(255,255,255,0.9));
-}
-@media (min-width: 768px) {
-  .jimvio-how-works .jimvio-story-stack {
-    display: grid;
-  }
-}
-`;

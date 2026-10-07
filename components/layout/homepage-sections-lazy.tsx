@@ -25,11 +25,6 @@ export const FeaturedCommunities = dynamic(
   { loading },
 );
 
-export const OnePlatformOpportunities = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.OnePlatformOpportunities })),
-  { loading },
-);
-
 export const GrowthStack = dynamic(
   () => import("./homepage-sections").then((m) => ({ default: m.GrowthStack })),
   { loading },
@@ -40,18 +35,16 @@ export const WhyChooseJimvio = dynamic(
   { loading },
 );
 
-export const GlobalNetworkStats = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.GlobalNetworkStats })),
-  { loading },
-);
-
-export const TopCreatorsEarnings = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.TopCreatorsEarnings })),
+export const GlobalNetworkSection = dynamic(
+  () =>
+    import("./global-network-section").then((m) => ({
+      default: m.GlobalNetworkSection,
+    })),
   { loading },
 );
 
 export const First30Minutes = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.First30Minutes })),
+  () => import("./first-30-minutes").then((m) => ({ default: m.First30Minutes })),
   { loading },
 );
 

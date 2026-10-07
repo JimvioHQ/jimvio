@@ -3,20 +3,14 @@ import { Hero } from "./hero";
 import { WhatToDoToday } from "./action-hub";
 import { ChooseYourJourney } from "./choose-your-journey";
 import { HomeCanvas } from "./home-canvas";
-import {
-  TrustedStrip,
-  PlatformOverviewBar,
-  TrendingProductsRow,
-} from "./homepage-sections";
+import { TrustedStrip, TrendingProductsRow } from "./homepage-sections";
 import {
   HowJimvioWorks,
   FeaturedUGCCampaigns,
   FeaturedCommunities,
-  OnePlatformOpportunities,
   GrowthStack,
   WhyChooseJimvio,
-  GlobalNetworkStats,
-  TopCreatorsEarnings,
+  GlobalNetworkSection,
   First30Minutes,
   FAQSection,
   TrustedBrands,
@@ -68,6 +62,16 @@ export interface HomepageRedesignProps {
 /**
  * Server Component shell — client islands live in section files.
  * Keep this file free of "use client" so static sections stay lean.
+ *
+ * Final Home order:
+ * 1. What do you want to build today?
+ * 2. Why people stick with Jimvio
+ * 3. Choose Your Journey
+ * 4. Global Network + Top Earner
+ * 5. How Jimvio Works
+ * 6. Your first 30 minutes on Jimvio
+ * 7. Take Jimvio Everywhere
+ * 8. Remaining approved sections
  */
 export function HomepageRedesign({
   campaigns = [],
@@ -85,8 +89,27 @@ export function HomepageRedesign({
       <Hero />
       <WhatToDoToday />
       <TrustedStrip />
+
+      <HomeMotionSection>
+        <WhyChooseJimvio />
+      </HomeMotionSection>
+
       <ChooseYourJourney />
+
+      <HomeMotionSection>
+        <GlobalNetworkSection creators={creators as never} platform={platform} />
+      </HomeMotionSection>
+
       <HowJimvioWorks />
+
+      <HomeMotionSection>
+        <First30Minutes />
+      </HomeMotionSection>
+
+      <HomeMotionSection>
+        <TakeJimvioEverywhere />
+      </HomeMotionSection>
+
       <TrendingProductsRow
         products={products as never}
         flashDeals={flashDeals as never}
@@ -98,33 +121,14 @@ export function HomepageRedesign({
         communities={communities}
         loadError={communitiesLoadError}
       />
-      <PlatformOverviewBar />
-      <HomeMotionSection>
-        <OnePlatformOpportunities />
-      </HomeMotionSection>
       <HomeMotionSection>
         <GrowthStack />
-      </HomeMotionSection>
-      <HomeMotionSection>
-        <WhyChooseJimvio />
-      </HomeMotionSection>
-      <HomeMotionSection>
-        <GlobalNetworkStats platform={platform} />
-      </HomeMotionSection>
-      <HomeMotionSection>
-        <TopCreatorsEarnings creators={creators as never} />
-      </HomeMotionSection>
-      <HomeMotionSection>
-        <First30Minutes />
       </HomeMotionSection>
       <HomeMotionSection>
         <FAQSection />
       </HomeMotionSection>
       <HomeMotionSection>
         <TrustedBrands />
-      </HomeMotionSection>
-      <HomeMotionSection>
-        <TakeJimvioEverywhere />
       </HomeMotionSection>
     </HomeCanvas>
   );
