@@ -1030,7 +1030,7 @@ function MobileStickyBuyBar({ priceLabel, compareLabel, savings, outOfStock, onB
         onClick={onBuyClick}
         disabled={outOfStock}
         className={cn(
-          "h-11 shrink-0 rounded-xl px-6 text-sm font-bold transition-[transform,background-color,box-shadow] duration-200",
+          "h-10 shrink-0 rounded-xl px-5 text-[13px] font-bold transition-[transform,background-color,box-shadow] duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
           outOfStock
             ? "cursor-not-allowed bg-[var(--color-border)] text-[var(--color-text-muted)]"
@@ -1310,9 +1310,6 @@ export function PhysicalProductDetail({
                 />
               </section>
             ) : null}
-            <section className="order-6 min-w-0 lg:order-none">
-              <CompactBuyerProtectionCard />
-            </section>
           </div>
 
           <div className="contents lg:col-span-5 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
@@ -1378,11 +1375,11 @@ export function PhysicalProductDetail({
                     <span>This option is out of stock</span>
                   </div>
                 )}
-                <div className="mt-3">
+                <div className="mt-2.5">
                   <SellToStoreButton
                     productId={product.id}
                     productName={product.name}
-                    className="h-11 w-full rounded-xl border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
+                    className="h-10 w-full rounded-xl border-[#FF5A1F]/30 text-[13px] text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
                   />
                 </div>
               </div>
@@ -1442,51 +1439,50 @@ export function PhysicalProductDetail({
                 <div className="p-5 lg:p-6">
                   {/* Overview tab */}
                   {activeTab === "overview" && (
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                       <ProductAiSummary productId={product.id} />
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8">
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
-                            Product Description
-                          </h3>
-                          <ProductDescriptionView
-                            description={product.description}
-                            featureBullets={featureBullets}
-                            collapsible
-                            collapsedMaxHeight={168}
-                            expandLabel="View full description"
-                            collapseLabel="View less"
-                          />
-                        </div>
-
-                        {whatsIncluded.length > 0 && (
-                          <div>
-                            <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
-                              What&apos;s Included
-                            </h3>
-                            <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
-                              {whatsIncluded.map((item) => (
-                                <li
-                                  key={item}
-                                  className="flex items-center gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
-                                  style={{ background: "var(--color-surface-secondary)" }}
-                                >
-                                  <Package className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                                  {item}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                      <div>
+                        <h3 className="mb-2 text-[14px] font-semibold text-[var(--color-text-primary)]">
+                          Product Description
+                        </h3>
+                        <ProductDescriptionView
+                          description={product.description}
+                          featureBullets={featureBullets}
+                          collapsible
+                          collapsedMaxHeight={168}
+                          expandLabel="View full description"
+                          collapseLabel="View less"
+                        />
                       </div>
 
+                      <CompactBuyerProtectionCard />
+
+                      {whatsIncluded.length > 0 && (
+                        <div>
+                          <h3 className="mb-2 text-[14px] font-semibold text-[var(--color-text-primary)]">
+                            What&apos;s Included
+                          </h3>
+                          <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
+                            {whatsIncluded.map((item) => (
+                              <li
+                                key={item}
+                                className="flex items-center gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
+                                style={{ background: "var(--color-surface-secondary)" }}
+                              >
+                                <Package className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
                       <div>
-                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
+                        <h3 className="mb-2 text-[14px] font-semibold text-[var(--color-text-primary)]">
                           Product information
                         </h3>
                         {specRows.length > 0 ? (
-                          <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+                          <div className="overflow-hidden rounded-lg border border-[var(--color-border)]">
                             {specRows.map(({ label, value }, i, arr) => (
                               <div
                                 key={`${label}-${i}`}
@@ -1495,8 +1491,8 @@ export function PhysicalProductDetail({
                                   i < arr.length - 1 && "border-b border-[var(--color-border)]",
                                 )}
                               >
-                                <span className="text-[var(--color-text-muted)] shrink-0">{label}</span>
-                                <span className="font-medium text-[var(--color-text-primary)] text-right">
+                                <span className="shrink-0 text-[var(--color-text-muted)]">{label}</span>
+                                <span className="text-right font-medium text-[var(--color-text-primary)]">
                                   {value}
                                 </span>
                               </div>
@@ -1508,7 +1504,6 @@ export function PhysicalProductDetail({
                           </p>
                         )}
                       </div>
-                    </div>
                     </div>
                   )}
 

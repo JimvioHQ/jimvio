@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
-  expandSearchTerms,
   rankProducts,
+  resolveMatchedCategoryIds,
   sanitizeSearchTerm,
   scoreCategory,
+  sqlSearchTerms,
   type SearchableCategory,
   type SearchableProduct,
 } from "@/lib/marketplace/search-engine";
@@ -44,31 +45,41 @@ export async function GET(req: NextRequest) {
 
   try {
     const supabase = await createClient();
-    const terms = expandSearchTerms(q);
     const typeFilter = type === "digital" ? [...DIGITAL_TYPES] : [...PHYSICAL_TYPES];
+    const nameTerms = sqlSearchTerms(q, 6);
+    const descTerms = sqlSearchTerms(q, 4);
 
-    const namePatterns = terms.slice(0, 6).map((t) => `name.ilike.${ilikePattern(t)}`);
-    const descPatterns = terms.slice(0, 4).map((t) => `short_description.ilike.${ilikePattern(t)}`);
+    // Fallback to original query if all expansions were filtered as too short
+    const namePatterns = (nameTerms.length > 0 ? nameTerms : [q.toLowerCase()])
+      .filter((t) => t.length >= 2)
+      .map((t) => `name.ilike.${ilikePattern(t)}`);
+    const descPatterns = (descTerms.length > 0 ? descTerms : [q.toLowerCase()])
+      .filter((t) => t.length >= 2)
+      .map((t) => `short_description.ilike.${ilikePattern(t)}`);
 
     const [byName, byDesc, categoriesRes, fallbackRes] = await Promise.all([
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", typeFilter)
-        .or(namePatterns.join(","))
-        .limit(80),
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", typeFilter)
-        .or(descPatterns.join(","))
-        .limit(40),
+      namePatterns.length > 0
+        ? supabase
+            .from("products")
+            .select(PRODUCT_SELECT)
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", typeFilter)
+            .or(namePatterns.join(","))
+            .limit(80)
+        : Promise.resolve({ data: [] as SearchableProduct[] }),
+      descPatterns.length > 0
+        ? supabase
+            .from("products")
+            .select(PRODUCT_SELECT)
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", typeFilter)
+            .or(descPatterns.join(","))
+            .limit(40)
+        : Promise.resolve({ data: [] as SearchableProduct[] }),
       supabase
         .from("product_categories")
         .select("id, name, slug")
@@ -87,9 +98,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     const categories = (categoriesRes.data ?? []) as SearchableCategory[];
-    const matchedCategoryIds = categories
-      .filter((c) => scoreCategory(c, terms) >= 12)
-      .map((c) => c.id);
+    const matchedCategoryIds = resolveMatchedCategoryIds(categories, q);
 
     let byCategory: { data: SearchableProduct[] | null } = { data: [] };
     if (matchedCategoryIds.length > 0) {
@@ -116,12 +125,13 @@ export async function GET(req: NextRequest) {
       if (p.vendor_id && v?.business_name) vendorById.set(p.vendor_id, v.business_name);
     }
 
-    let ranked = rankProducts([...merged.values()], q, categoryById, vendorById, 8);
+    // Higher floor after fuzzy fixes — weak accidental hits no longer clear as "exact"
+    const ranked = rankProducts([...merged.values()], q, categoryById, vendorById, 20);
     const exactMatch = ranked.length > 0;
 
     const matchedCategories = categories
-      .map((c) => ({ ...c, _searchScore: scoreCategory(c, terms) }))
-      .filter((c) => c._searchScore >= 12)
+      .filter((c) => matchedCategoryIds.includes(c.id))
+      .map((c) => ({ ...c, _searchScore: scoreCategory(c, sqlSearchTerms(q, 8)) }))
       .sort((a, b) => b._searchScore - a._searchScore)
       .slice(0, 6);
 
@@ -134,7 +144,7 @@ export async function GET(req: NextRequest) {
         vendorById,
         0,
       );
-      const similarRanked = rankedFallback.filter((p) => p._searchScore >= 5).slice(0, limit);
+      const similarRanked = rankedFallback.filter((p) => p._searchScore >= 15).slice(0, limit);
       const similarIds = new Set(similarRanked.map((p) => p.id));
       const recommended = fallbackProducts
         .filter((p) => !similarIds.has(p.id))
@@ -167,6 +177,7 @@ export async function GET(req: NextRequest) {
       similar: [],
       recommended: [],
       exactMatch: false,
+      error: true,
     });
   }
 }

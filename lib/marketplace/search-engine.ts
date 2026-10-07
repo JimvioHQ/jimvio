@@ -1,5 +1,7 @@
 /** Shared marketplace search scoring — partial, fuzzy, synonym-aware */
 
+import { PHYSICAL_CATEGORY_CATALOG } from "@/lib/marketplace/category-catalog";
+
 export type SearchableProduct = {
   id: string;
   name: string;
@@ -33,14 +35,13 @@ export type SearchSuggestion = {
 
 const SYNONYMS: Record<string, string[]> = {
   head: ["headphone", "headphones", "headset", "earbud", "earbuds", "headband"],
-  hea: ["headphone", "headphones", "headset", "health", "beauty"],
   phone: ["smartphone", "mobile", "iphone", "android", "cellphone", "charger", "holder"],
   cam: ["camera", "webcam", "security camera", "creator"],
   camera: ["webcam", "security camera", "creator", "equipment", "streaming"],
   shirt: ["fashion", "clothing", "apparel", "wear", "top", "casual"],
   gam: ["gaming", "game", "controller", "keyboard", "mouse", "headset"],
-  game: ["gaming", "controller", "console", "headset", "machine", "mobile"],
-  gaming: ["controller", "keyboard", "mouse", "headset", "accessories"],
+  game: ["gaming", "controller", "console", "headset", "gamer"],
+  gaming: ["controller", "keyboard", "mouse", "headset", "accessories", "game"],
   lap: ["laptop", "notebook", "computer", "pc"],
   watch: ["smartwatch", "wearable", "fitness"],
   beauty: ["cosmetic", "skincare", "makeup", "wellness", "health"],
@@ -49,16 +50,25 @@ const SYNONYMS: Record<string, string[]> = {
   course: ["education", "learning", "training", "tutorial"],
   soft: ["software", "saas", "app", "digital"],
   mobile: ["phone", "smartphone", "charger", "accessories"],
+  bag: ["handbag", "tote", "backpack", "purse", "satchel", "luggage"],
+  bags: ["bag", "handbag", "tote", "backpack", "purse"],
+  shoe: ["shoes", "sneaker", "sneakers", "footwear", "boot", "boots"],
+  shoes: ["shoe", "sneaker", "sneakers", "footwear", "boot", "boots"],
+  ring: ["rings", "jewelry", "jewellery", "band", "engagement"],
+  rings: ["ring", "jewelry", "jewellery", "band"],
 };
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   electronics: ["phone", "smartphone", "gadget", "laptop", "charger", "headphone"],
-  fashion: ["shirt", "clothing", "shoes", "apparel", "dress"],
+  fashion: ["shirt", "clothing", "shoes", "shoe", "apparel", "dress", "bag", "handbag"],
   "creator-equipment": ["camera", "microphone", "streaming", "webcam", "tripod"],
-  "gaming-accessories": ["gaming", "controller", "keyboard", "headset", "mouse"],
+  "gaming-accessories": ["gaming", "game", "controller", "keyboard", "headset", "mouse"],
   "health-beauty": ["beauty", "cosmetic", "skincare", "wellness", "health"],
   automotive: ["car", "vehicle", "auto", "accessories"],
 };
+
+/** Minimum length for SQL ILIKE / stem candidates — blocks `ba` / `rin` pollution */
+export const MIN_SQL_TERM_LENGTH = 3;
 
 export function sanitizeSearchTerm(raw: string): string {
   return raw.replace(/[%_\\]/g, "").trim().slice(0, 80);
@@ -73,17 +83,29 @@ export function expandSearchTerms(query: string): string[] {
   for (const word of words) {
     terms.add(word);
     for (const [key, syns] of Object.entries(SYNONYMS)) {
-      if (word.startsWith(key) || key.startsWith(word)) {
+      if (word === key || word.startsWith(key) || (key.length >= 3 && key.startsWith(word))) {
         syns.forEach((s) => terms.add(s));
       }
     }
   }
 
+  // Plural/singular stem: shoes→shoe, bags→bag.
+  // Require word length ≥ 5 so ring≠rin and bag≠ba never enter candidate retrieval.
   for (const word of words) {
-    if (word.length >= 3) terms.add(word.slice(0, word.length - 1));
+    if (word.length >= 5) {
+      const stem = word.slice(0, word.length - 1);
+      if (stem.length >= MIN_SQL_TERM_LENGTH) terms.add(stem);
+    }
   }
 
   return [...terms];
+}
+
+/** Terms safe for ILIKE candidate retrieval (excludes short stems like `ba`). */
+export function sqlSearchTerms(query: string, limit = 6): string[] {
+  return expandSearchTerms(query)
+    .filter((t) => t.length >= MIN_SQL_TERM_LENGTH)
+    .slice(0, limit);
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -92,15 +114,29 @@ function normalizeText(value: string | null | undefined): string {
 
 function fuzzyWordScore(word: string, term: string): number {
   if (!word || !term) return 0;
+  if (term.length < MIN_SQL_TERM_LENGTH) return word === term ? 1 : 0;
   if (word === term) return 1;
-  if (word.startsWith(term) || term.startsWith(word)) return 0.9;
-  if (word.includes(term) || term.includes(word)) return 0.75;
+  if (term.startsWith(word) && word.length >= 3) return 0.9;
+  if (word.startsWith(term)) return 0.9;
+  // Compound suffix/prefix: ear+ring, key+ring — reject accidental suffixes like sp+ring
+  if (word.endsWith(term)) {
+    const prefix = word.slice(0, -term.length);
+    if (!prefix) return 1;
+    if (prefix.length >= 3 && prefix.length <= 5) return 0.75;
+    return 0;
+  }
+  if (word.includes(term) && term.length >= 5 && term.length / word.length >= 0.5) return 0.6;
+  // Only allow term-includes-word for longer terms
+  if (term.length >= 4 && term.includes(word) && word.length >= 3) return 0.7;
+  // Positional fuzzy only for longer tokens
+  if (term.length < 4 || word.length < 4) return 0;
   let matches = 0;
   const limit = Math.min(word.length, term.length);
   for (let i = 0; i < limit; i++) {
     if (word[i] === term[i]) matches++;
   }
-  return matches / Math.max(word.length, term.length);
+  const ratio = matches / Math.max(word.length, term.length);
+  return ratio >= 0.7 ? ratio : 0;
 }
 
 function scoreField(text: string, terms: string[]): number {
@@ -108,10 +144,11 @@ function scoreField(text: string, terms: string[]): number {
   const words = text.split(/[\s,/&+-]+/).filter(Boolean);
   let best = 0;
   for (const term of terms) {
-    if (text.includes(term)) best = Math.max(best, 1);
+    // Prefer token matches — avoid raw substring hits like "ring" inside "spring"
     for (const word of words) {
       best = Math.max(best, fuzzyWordScore(word, term));
     }
+    if (term.includes(" ") && text.includes(term)) best = Math.max(best, 1);
   }
   return best;
 }
@@ -190,6 +227,61 @@ export function scoreCategory(category: SearchableCategory, terms: string[]): nu
   return Math.max(scoreField(name, terms) * 50, scoreField(slug.replace(/-/g, " "), terms) * 35);
 }
 
+/**
+ * Resolve category IDs via curated keyword catalogs — avoids fuzzy false positives
+ * (e.g. "game" matching Fashion / Home via weak name overlap).
+ */
+export function resolveMatchedCategoryIds(
+  categories: SearchableCategory[],
+  query: string,
+): string[] {
+  const q = sanitizeSearchTerm(query).toLowerCase();
+  if (!q) return [];
+  const terms = expandSearchTerms(q);
+  const ids = new Set<string>();
+
+  for (const curated of PHYSICAL_CATEGORY_CATALOG) {
+    const keywordHit = curated.matchKeywords.some((k) => {
+      const key = k.toLowerCase();
+      return (
+        q === key ||
+        q.includes(key) ||
+        (key.length >= 3 && key.includes(q)) ||
+        terms.some((t) => t === key || (t.length >= 3 && (t.includes(key) || key.includes(t))))
+      );
+    });
+    if (!keywordHit) continue;
+
+    for (const c of categories) {
+      const hay = `${normalizeText(c.name)} ${normalizeText(c.slug).replace(/-/g, " ")}`;
+      const curatedName = curated.name.toLowerCase();
+      if (
+        hay.includes(curatedName) ||
+        hay.includes(curated.slug.replace(/-/g, " ")) ||
+        curated.matchKeywords.some((k) => hay.includes(k.toLowerCase()))
+      ) {
+        ids.add(c.id);
+      }
+    }
+  }
+
+  // Also map CATEGORY_KEYWORDS → DB categories by slug/name
+  for (const [slug, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    const hit = keywords.some(
+      (k) => q === k || q.includes(k) || terms.some((t) => t === k || t.includes(k) || k.includes(t)),
+    );
+    if (!hit) continue;
+    for (const c of categories) {
+      const hay = `${normalizeText(c.name)} ${normalizeText(c.slug).replace(/-/g, " ")}`;
+      if (hay.includes(slug.replace(/-/g, " ")) || keywords.some((k) => hay.includes(k))) {
+        ids.add(c.id);
+      }
+    }
+  }
+
+  return [...ids];
+}
+
 export function buildSuggestions(
   query: string,
   products: SearchableProduct[],
@@ -201,10 +293,11 @@ export function buildSuggestions(
   if (terms.length === 0) return [];
 
   const items: SearchSuggestion[] = [];
+  const matchedIds = new Set(resolveMatchedCategoryIds(categories, query));
 
   for (const c of categories) {
-    const score = scoreCategory(c, terms);
-    if (score < 12) continue;
+    const score = matchedIds.has(c.id) ? Math.max(scoreCategory(c, terms), 30) : scoreCategory(c, terms);
+    if (score < 25 && !matchedIds.has(c.id)) continue;
     items.push({
       id: `cat-${c.id}`,
       label: c.name,

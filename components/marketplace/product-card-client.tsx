@@ -14,6 +14,7 @@ import {
 import { cn, isRenderableImageSrc, normalizeImages, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
+  buyDirectCheckout,
   checkProductInCart,
   getProductVariants,
   removeProductFromCart,
@@ -83,6 +84,7 @@ export function ProductCardClient({
   onClick,
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -202,6 +204,36 @@ export function ProductCardClient({
     await doAddToCart(vendorId, null, true);
   };
 
+  const handleBuyNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outOfStock || buyNowLoading) return;
+
+    const vendorId = p.vendors?.id;
+    if (!vendorId) {
+      toast.error("Cannot find vendor for this product.");
+      return;
+    }
+
+    setBuyNowLoading(true);
+    try {
+      const result = await buyDirectCheckout(p.id, vendorId, 1);
+      if (result.success && result.orderId) {
+        window.location.href = `/checkout?order_id=${result.orderId}&direct=1`;
+        return;
+      }
+      if (result.error === "Authentication required") {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      toast.error(result.error || "Couldn't start checkout");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setBuyNowLoading(false);
+    }
+  };
+
   const hue = useMemo(() => {
     let h = 0;
     for (let i = 0; i < p.name.length; i++) h = (h + p.name.charCodeAt(i) * 17) % 360;
@@ -278,11 +310,6 @@ export function ProductCardClient({
             }
           />
 
-          <div
-            className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent transition-opacity duration-400"
-            style={{ opacity: hovered ? 1 : 0 }}
-          />
-
           <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
             {discount > 0 && (
               <span
@@ -299,7 +326,9 @@ export function ProductCardClient({
               productId={p.id}
               productName={p.name}
               onAddToCart={handleCartToggle}
+              onBuyNow={handleBuyNow}
               loading={loading}
+              buyNowLoading={buyNowLoading}
               disabled={outOfStock}
               inCart={inCart}
             />

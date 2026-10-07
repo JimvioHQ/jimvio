@@ -317,8 +317,9 @@ export function MarketplacePageClient({
     router.replace(`/marketplace?${params.toString()}`, { scroll: false });
   }
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const urlQ = (searchParams.get("q") ?? "").trim();
+  const [search, setSearch] = useState(urlQ);
+  const [debouncedSearch, setDebouncedSearch] = useState(urlQ);
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
     dedupeProductsByIdentity(startingBundle.flashDeals),
   );
@@ -353,6 +354,40 @@ export function MarketplacePageClient({
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
     return () => clearTimeout(t);
   }, [search]);
+
+  // Browser back/forward: hydrate search from URL without fighting typing
+  useEffect(() => {
+    if (urlQ === debouncedSearch) return;
+    if (urlQ === search.trim()) {
+      setDebouncedSearch(urlQ);
+      return;
+    }
+    setSearch(urlQ);
+    setDebouncedSearch(urlQ);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL only
+  }, [urlQ]);
+
+  // Keep marketplace search shareable / refreshable via ?q=
+  useEffect(() => {
+    const current = (searchParams.get("q") ?? "").trim();
+    if (debouncedSearch === current) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    else params.delete("q");
+
+    // Physical marketplace is canonical at /marketplace/physical
+    const path =
+      type === "physical"
+        ? "/marketplace/physical"
+        : "/marketplace";
+    if (type === "digital") params.set("type", "digital");
+    else if (path === "/marketplace/physical") params.delete("type");
+
+    const qs = params.toString();
+    router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional URL write on query change
+  }, [debouncedSearch, type]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -789,6 +824,8 @@ export function MarketplacePageClient({
     setNewProductIds(new Set());
     setLoadingMore(false);
     setSearchError(false);
+    // Clear stale browse results so loading never flashes unrelated products
+    setTrending([]);
 
     const controller = new AbortController();
     const searchGeneration = ++loadGenRef.current;
@@ -804,24 +841,21 @@ export function MarketplacePageClient({
         const data = await res.json();
         if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
 
-        const primary = (data.exactMatch ? data.results : data.similar) ?? [];
-        const related = data.exactMatch ? [] : (data.recommended ?? []);
-        const seen = new Set<string>();
-        const combined = [...primary, ...related].filter((p: DbProduct) => {
-          if (seen.has(p.id)) return false;
-          seen.add(p.id);
-          return true;
-        });
+        // Exact results only for the primary grid. Similar stays labeled; never dump popular as "results".
+        const primary = (
+          data.exactMatch ? data.results : data.similar
+        ) as DbProduct[] | undefined;
+        const list = Array.isArray(primary) ? primary : [];
 
         const videoMap = await fetchProductVideosMap(
           supabaseRef.current,
-          combined.map((p: DbProduct) => p.id),
+          list.map((p) => p.id),
         );
         if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
 
-        setTrending(dedupeProductsByIdentity(attachProductVideos(combined, videoMap)));
+        setTrending(dedupeProductsByIdentity(attachProductVideos(list, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
-        setListingCount(combined.length);
+        setListingCount(list.length);
       } catch (err) {
         if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
           return;
@@ -947,7 +981,9 @@ export function MarketplacePageClient({
   }
 
   function submitSearch(term?: string) {
-    applySearch(term ?? search);
+    const t = (term ?? search).trim();
+    if (!t) return;
+    applySearch(t);
   }
 
   const q = search.trim();

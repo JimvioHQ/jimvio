@@ -21,7 +21,7 @@ export function QuantitySelector({
   return (
     <div
       className={cn(
-        "flex h-11 items-center gap-1 rounded-xl border border-[var(--color-border)]",
+        "flex h-10 items-center gap-1 rounded-xl border border-[var(--color-border)]",
         "bg-[var(--color-surface-secondary)] p-1",
       )}
       role="group"
@@ -31,7 +31,7 @@ export function QuantitySelector({
         variant="ghost"
         size="icon"
         className={cn(
-          "h-9 w-9 rounded-lg text-[var(--color-text-muted)]",
+          "h-8 w-8 rounded-lg text-[var(--color-text-muted)]",
           "transition-[transform,background-color,color] duration-200",
           "hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)]",
           "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-1",
@@ -57,7 +57,7 @@ export function QuantitySelector({
         variant="ghost"
         size="icon"
         className={cn(
-          "h-9 w-9 rounded-lg text-[var(--color-text-muted)]",
+          "h-8 w-8 rounded-lg text-[var(--color-text-muted)]",
           "transition-[transform,background-color,color] duration-200",
           "hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)]",
           "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-1",

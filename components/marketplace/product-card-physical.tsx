@@ -8,6 +8,7 @@ import { ProductCardVideoMedia } from "@/components/marketplace/product-card-vid
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
+  buyDirectCheckout,
   checkProductInCart,
   removeProductFromCart,
   getProductVariants,
@@ -36,6 +37,7 @@ export function ProductCardPhysical({
   onClick,
 }: ProductCardPhysicalProps) {
   const [loading, setLoading] = useState(false);
+  const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
@@ -169,6 +171,36 @@ export function ProductCardPhysical({
     await doAddToCart(vendorId, null, true);
   };
 
+  const handleBuyNow = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outOfStock || buyNowLoading) return;
+
+    const vendorId = p.vendors?.id;
+    if (!vendorId) {
+      toast.error("Cannot find vendor.");
+      return;
+    }
+
+    setBuyNowLoading(true);
+    try {
+      const result = await buyDirectCheckout(p.id, vendorId, 1);
+      if (result.success && result.orderId) {
+        window.location.href = `/checkout?order_id=${result.orderId}&direct=1`;
+        return;
+      }
+      if (result.error === "Authentication required") {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+      toast.error(result.error || "Couldn't start checkout");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setBuyNowLoading(false);
+    }
+  };
+
   return (
     <>
       <article
@@ -229,12 +261,6 @@ export function ProductCardPhysical({
             }
           />
 
-          {/* Bottom fade */}
-          <div
-            className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-            aria-hidden
-          />
-
           <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
             {onSale && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)]/95 px-2 py-0.5 text-[10px] font-medium tracking-wide text-rose-600 backdrop-blur-sm">
@@ -260,7 +286,9 @@ export function ProductCardPhysical({
           productId={p.id}
           productName={p.name}
           onAddToCart={handleCartToggle}
+          onBuyNow={handleBuyNow}
           loading={loading}
+          buyNowLoading={buyNowLoading}
           disabled={outOfStock}
           inCart={inCart}
         />
@@ -269,7 +297,7 @@ export function ProductCardPhysical({
         {/* ── Info ── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
 
-          {/* Name */}
+          {/* Name → PDP */}
           <Link
             href={`${detailBasePath}/${p.slug}`}
             className="min-w-0 block"
@@ -287,8 +315,12 @@ export function ProductCardPhysical({
             </h3>
           </Link>
 
-          {/* Price */}
-          <div className="mt-auto flex items-baseline gap-1 pt-0.5">
+          {/* Price → PDP */}
+          <Link
+            href={`${detailBasePath}/${p.slug}`}
+            className="mt-auto flex items-baseline gap-1 pt-0.5"
+            aria-label={`View ${p.name} — price details`}
+          >
             <LocalizedPrice
               amount={price}
               currency={p.currency}
@@ -301,7 +333,7 @@ export function ProductCardPhysical({
                 className="text-[8px] font-medium tabular-nums leading-none text-[#9CA3AF] line-through md:text-[9px]"
               />
             )}
-          </div>
+          </Link>
 
         </div>
       </article>

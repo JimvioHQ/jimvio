@@ -34,7 +34,9 @@ describe("PDP layout", () => {
     assert.equal(physical.includes("DROPSHIP"), false);
     assert.equal(shared.includes("DROPSHIP"), false);
     assert.equal(physical.includes("order-3"), true);
-    assert.equal(physical.includes("order-6"), true);
+    // Buyer Protection lives in Product Details (overview), not a left-column order-6 card
+    assert.equal(physical.includes("CompactBuyerProtectionCard"), true);
+    assert.equal(physical.includes("order-6"), false);
   });
 
   it("keeps marketplace cards free of dropship badges and reveals both commerce actions", () => {
@@ -47,8 +49,10 @@ describe("PDP layout", () => {
     assert.equal(clientCard.includes("ProductCardCommerceActions"), true);
     assert.equal(actions.includes("Add to Cart"), true);
     assert.equal(actions.includes("Sell to Store"), true);
+    assert.equal(actions.includes("Buy now"), true);
     assert.equal(actions.includes("group-hover"), true);
     assert.equal(actions.includes("flex-col"), true);
+    assert.equal(actions.includes("h-9"), true);
   });
 
   it("renders the variant table with SKU, USD price, and real stock", () => {

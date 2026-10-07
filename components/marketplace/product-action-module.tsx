@@ -255,8 +255,8 @@ export function ProductActionModule({
             href={`/library?highlight=${product.id}`}
             className={cn(
               "w-full inline-flex items-center justify-center gap-2",
-              "font-medium text-[13px] rounded-xl h-11 transition-colors",
-              "bg-emerald-600 hover:bg-emerald-700 text-white",
+              "h-10 rounded-xl text-[13px] font-medium transition-colors",
+              "bg-emerald-600 text-white hover:bg-emerald-700",
             )}
           >
             <FolderOpen className="h-4 w-4" />
@@ -269,10 +269,10 @@ export function ProductActionModule({
       ) : (
         <>
           {/* ── Quantity + Add to cart row ── */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {!isDigital && (
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                   Qty
                 </p>
                 <QuantitySelector
@@ -287,7 +287,7 @@ export function ProductActionModule({
               onClick={handleAddToCart}
               disabled={isDisabled}
               className={cn(
-                "w-full h-11 font-semibold text-[13px] rounded-xl border-none gap-2",
+                "h-10 w-full gap-2 rounded-xl border-none text-[13px] font-semibold",
                 !isDisabled && !added && "hover:scale-[1.01]",
                 cartBtnColors,
               )}
@@ -304,7 +304,7 @@ export function ProductActionModule({
               disabled={isBuyNowDisabled}
               variant="outline"
               className={cn(
-                "w-full h-11 font-semibold text-[13px] rounded-xl gap-2",
+                "h-10 w-full gap-2 rounded-xl text-[13px] font-semibold",
                 "border-[var(--color-border)] bg-[var(--color-surface)]",
                 "transition-[transform,background-color,border-color,box-shadow] duration-200",
                 "hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)]",
