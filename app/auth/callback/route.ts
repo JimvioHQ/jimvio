@@ -177,7 +177,9 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}${safeNext}${sep}guest_error=expired`);
       }
       if (otpType === "signup" || otpType === "email_change" || otpType === "email") {
-        return NextResponse.redirect(`${origin}/verify?status=expired`);
+        const q = new URLSearchParams({ status: "expired" });
+        if (safeNext) q.set("next", safeNext);
+        return NextResponse.redirect(`${origin}/verify?${q.toString()}`);
       }
     }
     if (
@@ -230,7 +232,9 @@ export async function GET(request: Request) {
   }
 
   if (otpType === "signup" || otpType === "email") {
-    const verified = NextResponse.redirect(`${origin}/verify?status=email_verified`);
+    const q = new URLSearchParams({ status: "email_verified" });
+    if (safeNext) q.set("next", safeNext);
+    const verified = NextResponse.redirect(`${origin}/verify?${q.toString()}`);
     verified.cookies.delete(PASSWORD_RECOVERY_COOKIE);
     verified.cookies.delete("sb-code-verifier");
     return verified;

@@ -55,17 +55,17 @@ export function VerifyEmailClient({
     status === "expired" || status === "invalid" || status === "try_again";
   const coolingDown = Date.now() < cooldownUntil;
 
-  const loginHref = next
-    ? `/login?next=${encodeURIComponent(next)}`
+  const safeNext =
+    next.startsWith("/") &&
+    !next.startsWith("//") &&
+    !next.includes("://")
+      ? next
+      : "";
+  const loginHref = safeNext
+    ? `/login?next=${encodeURIComponent(safeNext)}`
     : "/login";
   const continueHref =
-    status === "email_verified"
-      ? next && next.startsWith("/")
-        ? next
-        : merchantMode
-          ? "/"
-          : "/"
-      : loginHref;
+    status === "email_verified" ? safeNext || "/" : loginHref;
 
   return (
     <div className="w-full text-center">

@@ -715,6 +715,7 @@ import { dispatchNonShopifyFulfillmentIntegrations, isShopifyFulfillmentLine } f
 import { grantDigitalAccess as executeDigitalAccessGrant } from "@/lib/actions/digital-access";
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import { decrementOrderInventory } from "@/lib/actions/inventory-management";
+import { commitInventoryHolds } from "@/lib/commerce-os/inventory/holds";
 import {
   recordOrderStatusChange,
   recordPaymentStatusChange,
@@ -1185,6 +1186,11 @@ export async function finalizeOrderPayment(
     const inventoryResult = await decrementOrderInventory(orderId);
     if (!inventoryResult.success) {
       console.warn("[finalizeOrderPayment] inventory decrement failed (non-fatal):", inventoryResult.error);
+    }
+    try {
+      await commitInventoryHolds(db, orderId);
+    } catch (holdErr) {
+      console.warn("[finalizeOrderPayment] commit inventory holds failed (non-fatal):", holdErr);
     }
 
     // ── Record order status transition ────────────────────────────────────
