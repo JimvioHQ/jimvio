@@ -8,7 +8,6 @@ import { ProductCardVideoMedia } from "@/components/marketplace/product-card-vid
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
-  buyDirectCheckout,
   checkProductInCart,
   removeProductFromCart,
   getProductVariants,
@@ -37,7 +36,6 @@ export function ProductCardPhysical({
   onClick,
 }: ProductCardPhysicalProps) {
   const [loading, setLoading] = useState(false);
-  const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
@@ -171,36 +169,6 @@ export function ProductCardPhysical({
     await doAddToCart(vendorId, null, true);
   };
 
-  const handleBuyNow = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (outOfStock || buyNowLoading) return;
-
-    const vendorId = p.vendors?.id;
-    if (!vendorId) {
-      toast.error("Cannot find vendor.");
-      return;
-    }
-
-    setBuyNowLoading(true);
-    try {
-      const result = await buyDirectCheckout(p.id, vendorId, 1);
-      if (result.success && result.orderId) {
-        window.location.href = `/checkout?order_id=${result.orderId}&direct=1`;
-        return;
-      }
-      if (result.error === "Authentication required") {
-        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-        return;
-      }
-      toast.error(result.error || "Couldn't start checkout");
-    } catch {
-      toast.error("Something went wrong");
-    } finally {
-      setBuyNowLoading(false);
-    }
-  };
-
   return (
     <>
       <article
@@ -286,9 +254,7 @@ export function ProductCardPhysical({
           productId={p.id}
           productName={p.name}
           onAddToCart={handleCartToggle}
-          onBuyNow={handleBuyNow}
           loading={loading}
-          buyNowLoading={buyNowLoading}
           disabled={outOfStock}
           inCart={inCart}
         />

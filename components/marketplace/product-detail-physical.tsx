@@ -806,142 +806,14 @@ type SellerProductRef = {
 };
 
 function sellerTrustItems(verified: boolean) {
-  // Buyer Protection lives in Overview + PdpTrustStrip — avoid a third duplicate chip here
   return [
     ...(verified ? [{ icon: BadgeCheck, label: "Verified Supplier" }] : []),
     { icon: Lock, label: "Secure Transaction" },
+    { icon: ShieldCheck, label: "Buyer Protection" },
   ];
 }
 
-/** Compact seller row — mobile purchase flow (under price, above variants). */
-function CompactSellerRow({
-  vendor,
-  product,
-}: {
-  vendor: any;
-  product?: SellerProductRef;
-}) {
-  const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
-  const verified = vendor.verification_status === "verified";
-  const logo = storefrontLogoSrc(vendor);
-
-  return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 lg:hidden">
-      <div className="flex items-center gap-2.5">
-        <Link
-          href={`/vendors/${vendor.business_slug}`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
-          aria-label={`Visit ${vendor.business_name ?? "store"}`}
-        >
-          {logo ? (
-            <Image src={logo} alt="" width={36} height={36} className="h-full w-full object-contain p-0.5" />
-          ) : (
-            <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-          )}
-        </Link>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <Link
-              href={`/vendors/${vendor.business_slug}`}
-              className="truncate text-[13px] font-semibold text-[var(--color-text-primary)]"
-            >
-              {vendor.business_name ?? "Official Store"}
-            </Link>
-            {verified ? (
-              <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" aria-label="Verified supplier" />
-            ) : null}
-          </div>
-          <p className="truncate text-[10px] text-[var(--color-text-muted)]">
-            {[verified ? "Verified Supplier" : null, followersLabel || null].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <ProductChatTrigger
-          variant="outline"
-          vendor={{
-            id: vendor.id,
-            business_name: vendor.business_name ?? null,
-            business_logo: vendor.business_logo ?? null,
-            business_slug: vendor.business_slug ?? null,
-          }}
-          product={
-            product
-              ? {
-                  id: product.id,
-                  name: product.name,
-                  slug: product.slug,
-                  price: product.price,
-                  images: product.images ?? null,
-                }
-              : undefined
-          }
-          className="h-8 w-full rounded-lg border-[var(--color-border)] bg-[var(--color-surface)] text-[11px] font-semibold shadow-none"
-        >
-          Contact
-        </ProductChatTrigger>
-        <Link
-          href={`/vendors/${vendor.business_slug}`}
-          className="flex h-8 items-center justify-center rounded-lg border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-text-primary)]"
-        >
-          Visit Store
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-/** Desktop compact seller row in the purchase column. */
-function DesktopSellerCompact({ vendor }: { vendor: any }) {
-  const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
-  const verified = vendor.verification_status === "verified";
-  const logo = storefrontLogoSrc(vendor);
-
-  return (
-    <div className="hidden items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-3 py-2 lg:flex">
-      <Link
-        href={`/vendors/${vendor.business_slug}`}
-        className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
-      >
-        {logo ? (
-          <Image src={logo} alt="" width={32} height={32} className="h-full w-full object-contain p-0.5" />
-        ) : (
-          <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-        )}
-      </Link>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-[var(--color-text-muted)]">Sold by</span>
-          <Link
-            href={`/vendors/${vendor.business_slug}`}
-            className="truncate text-[12px] font-semibold text-[var(--color-text-primary)] hover:underline"
-          >
-            {vendor.business_name ?? "Official Store"}
-          </Link>
-          {verified ? (
-            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" aria-label="Verified supplier" />
-          ) : null}
-        </div>
-        <p className="truncate text-[10px] text-[var(--color-text-muted)]">
-          {[verified ? "Verified Supplier" : null, followersLabel || null].filter(Boolean).join(" · ")}
-        </p>
-      </div>
-      <button
-        type="button"
-        className="shrink-0 text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
-        onClick={() => {
-          const el = document.getElementById("pdp-seller-tab-trigger");
-          el?.click();
-          document.getElementById("pdp-details-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
-      >
-        Details
-      </button>
-    </div>
-  );
-}
-
-/** Full seller panel — Seller Info tab only. */
+/** Full seller panel — Seller Info tab only (not under purchase price). */
 function VendorSectionCard({
   vendor,
   product,
@@ -954,6 +826,7 @@ function VendorSectionCard({
   const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
   const verified = vendor.verification_status === "verified";
   const trustItems = sellerTrustItems(verified);
+  // Only real vendor metrics (omit empty sales placeholders)
   const metricCards = [
     ...(vendor.on_time_delivery != null
       ? [{
@@ -964,18 +837,6 @@ function VendorSectionCard({
           bg: "bg-emerald-500/10",
         }]
       : []),
-    {
-      icon: Package,
-      value:
-        (vendor.total_sales ?? 0) > 0
-          ? (vendor.total_sales ?? 0) >= 1000
-            ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k`
-            : `${vendor.total_sales}`
-          : "—",
-      label: "Fulfilled Orders",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-    },
     ...(vendor.response_time
       ? [{
           icon: MessageSquare,
@@ -988,7 +849,7 @@ function VendorSectionCard({
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="max-w-xl space-y-4">
       <div className="flex items-center gap-3">
         <Link
           href={`/vendors/${vendor.business_slug}`}
@@ -1026,18 +887,19 @@ function VendorSectionCard({
       </div>
 
       {metricCards.length > 0 ? (
-        <div className={cn("grid gap-3", metricCards.length >= 3 ? "grid-cols-3" : "grid-cols-2")}>
+        <div className={cn("grid gap-2", metricCards.length >= 2 ? "grid-cols-2" : "grid-cols-1")}>
           {metricCards.map(({ icon: Icon, value, label, color, bg }) => (
             <div
               key={label}
-              className="flex flex-col items-center rounded-md p-3 text-center"
-              style={{ border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}
+              className="flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5"
             >
-              <div className={cn("mb-1.5 flex h-8 w-8 items-center justify-center rounded-full", bg)}>
+              <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full", bg)}>
                 <Icon className={cn("h-3.5 w-3.5", color)} />
               </div>
-              <p className="text-[14px] font-bold text-[var(--color-text-primary)]">{value}</p>
-              <p className="mt-0.5 text-[10px] leading-tight text-[var(--color-text-muted)]">{label}</p>
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-[var(--color-text-primary)]">{value}</p>
+                <p className="text-[10px] leading-tight text-[var(--color-text-muted)]">{label}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -1047,7 +909,7 @@ function VendorSectionCard({
         {trustItems.map(({ icon: Icon, label }) => (
           <span
             key={label}
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-primary)]"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1 text-[10px] font-semibold text-[var(--color-text-primary)]"
           >
             <Icon className="h-3 w-3 text-[var(--color-accent)]" aria-hidden />
             {label}
@@ -1090,7 +952,7 @@ function VendorSectionCard({
       <FollowButton
         vendorId={vendor.id}
         initialFollowing={followedVendorIds.includes(String(vendor.id))}
-        className="h-10 w-full rounded-md border border-[var(--color-border)] text-[12px] font-semibold"
+        className="h-10 w-full rounded-xl border border-[var(--color-border)] text-[12px] font-semibold"
       />
     </div>
   );
@@ -1536,21 +1398,6 @@ export function PhysicalProductDetail({
                   </p>
                 )}
               </div>
-              {vendor ? (
-                <>
-                  <CompactSellerRow
-                    vendor={vendor}
-                    product={{
-                      id: product.id,
-                      name: title,
-                      slug: product.slug,
-                      price: activePrice,
-                      images: activeImages,
-                    }}
-                  />
-                  <DesktopSellerCompact vendor={vendor} />
-                </>
-              ) : null}
             </section>
 
             <section className="order-4 min-w-0 space-y-4 lg:order-none">

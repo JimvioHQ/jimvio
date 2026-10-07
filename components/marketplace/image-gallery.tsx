@@ -83,9 +83,7 @@
 //     const [imageLoaded, setImageLoaded] = useState(false);
 //     const [showZoomHint, setShowZoomHint] = useState(true);
 //     const stripRef = useRef<HTMLDivElement>(null);
-//     const { zoom, onMove, onLeave } = useZoom();
-
-//     // Clamp activeIndex if the images array shrinks
+// //     // Clamp activeIndex if the images array shrinks
 //     useEffect(() => {
 //         if (activeIndex >= images.length) {
 //             setActiveIndex(0);
@@ -292,7 +290,7 @@
 import React, {
     useState, useRef, useCallback, useEffect, useMemo, useId,
 } from "react";
-import { Zap, ZoomIn, ChevronLeft, ChevronRight, X, Maximize2, Play, Film } from "lucide-react";
+import { Zap, ChevronLeft, ChevronRight, X, Maximize2, Play, Film } from "lucide-react";
 import { cn, ImageInput, normalizeImages } from "@/lib/utils";
 import { isPlayableVideoUrl, normalizeVideoUrl, resolveVideoPlayback, type VideoPlayback } from "@/lib/product-videos";
 import { ProductVideoPlayer } from "@/components/marketplace/product-video-player";
@@ -336,23 +334,6 @@ function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedi
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
-
-function useZoom() {
-    const [zoom, setZoom] = useState({ active: false, x: 50, y: 50 });
-
-    const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        setZoom({ active: true, x, y });
-    }, []);
-
-    const onLeave = useCallback(() => {
-        setZoom((z) => ({ ...z, active: false }));
-    }, []);
-
-    return { zoom, onMove, onLeave };
-}
 
 function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
     const start = useRef<{ x: number; y: number } | null>(null);
@@ -623,7 +604,6 @@ export function ImageGallery({
     const [imageLoaded, setImageLoaded] = useState(false);
     const [mediaError, setMediaError] = useState(false);
     const [videoNeedsTap, setVideoNeedsTap] = useState(false);
-    const [zoomHintDismissed, setZoomHintDismissed] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const mainImgRef = useRef<HTMLImageElement>(null);
@@ -634,8 +614,6 @@ export function ImageGallery({
     const firstImageIndex = media.findIndex((m) => m.type === "image");
 
     const stripRef = useRef<HTMLDivElement>(null);
-    const { zoom, onMove, onLeave } = useZoom();
-
     // Default to first video when available, otherwise first image
     useEffect(() => {
         if (media.length === 0) return;
@@ -705,8 +683,6 @@ export function ImageGallery({
     const mainVideoEmbed =
         mainVideo?.playback.kind === "youtube-embed" ? mainVideo.playback.src : null;
     const hasMultiple = media.length > 1;
-    const showZoom = activeMedia?.type === "image" && !mediaError;
-
     // Cached images may load before onLoad fires — detect via ref after paint
     useEffect(() => {
         const raf = requestAnimationFrame(() => {
@@ -738,9 +714,6 @@ export function ImageGallery({
             .catch(() => setVideoNeedsTap(true));
     }, []);
 
-    const handleMouseEnter = useCallback(() => {
-        setZoomHintDismissed(true);
-    }, []);
 
     return (
         <>
@@ -792,12 +765,10 @@ export function ImageGallery({
                         border: mainVideo ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--color-border)",
                         borderRadius: "14px",
                         isolation: "isolate",
-                        cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
+                        cursor: mainImage ? "pointer" : "default",
                         touchAction: "manipulation",
                         boxShadow: mainVideo ? "0 20px 48px rgba(0,0,0,0.28)" : undefined,
                     }}
-                    onMouseMove={(e) => { onMove(e); handleMouseEnter(); }}
-                    onMouseLeave={onLeave}
                     onTouchStart={onTouchStart}
                     onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
@@ -866,18 +837,6 @@ export function ImageGallery({
                             {/* Skeleton */}
                             {!imageLoaded && <ImageSkeleton />}
 
-                            {/* Zoom layer */}
-                            <div
-                                className="absolute inset-0 pointer-events-none z-10 transition-opacity duration-100"
-                                style={{
-                                    backgroundImage: `url(${mainImage})`,
-                                    backgroundSize: "280%",
-                                    backgroundPosition: `${zoom.x}% ${zoom.y}%`,
-                                    backgroundRepeat: "no-repeat",
-                                    opacity: zoom.active && imageLoaded ? 1 : 0,
-                                }}
-                            />
-
                             {/* Main image */}
                             <img
                                 ref={mainImgRef}
@@ -893,7 +852,7 @@ export function ImageGallery({
                                 }}
                                 className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-5 transition-opacity duration-300 [image-rendering:auto]"
                                 style={{
-                                    opacity: zoom.active ? 0 : mediaError ? 0 : imageLoaded ? 1 : 0.01,
+                                    opacity: mediaError ? 0 : imageLoaded ? 1 : 0.01,
                                 }}
                                 draggable={false}
                             />
@@ -915,27 +874,6 @@ export function ImageGallery({
                             >
                                 {productName[0]}
                             </span>
-                        </div>
-                    )}
-
-                    {/* Custom zoom crosshair cursor */}
-                    {mainImage && zoom.active && (
-                        <div
-                            className="pointer-events-none absolute z-20"
-                            style={{
-                                left: `${zoom.x}%`,
-                                top: `${zoom.y}%`,
-                                transform: "translate(-50%, -50%)",
-                            }}
-                        >
-                            <div className="relative w-8 h-8">
-                                <span className="absolute inset-0 m-auto w-[1px] h-full bg-white/50" />
-                                <span className="absolute inset-0 m-auto h-[1px] w-full bg-white/50" />
-                                <span
-                                    className="absolute inset-0 rounded-full scale-150"
-                                    style={{ border: "1px solid rgba(255,255,255,0.25)" }}
-                                />
-                            </div>
                         </div>
                     )}
 
@@ -996,32 +934,19 @@ export function ImageGallery({
                         )}
                     </div>
 
-                    {/* ── Zoom hint ─────────────────────────────────────────────── */}
-                    {mainImage && !zoomHintDismissed && (
-                        <>
-                            <div
-                                className="absolute bottom-3 right-3 z-10 hidden items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none transition-opacity duration-300 md:flex"
-                                style={{
-                                    background: "rgba(0,0,0,0.5)",
-                                    color: "rgba(255,255,255,0.75)",
-                                    backdropFilter: "blur(6px)",
-                                }}
-                            >
-                                <ZoomIn className="h-3 w-3" />
-                                Hover to zoom
-                            </div>
-                            <div
-                                className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none md:hidden"
-                                style={{
-                                    background: "rgba(0,0,0,0.5)",
-                                    color: "rgba(255,255,255,0.75)",
-                                    backdropFilter: "blur(6px)",
-                                }}
-                            >
-                                <Maximize2 className="h-3 w-3" />
-                                Tap to enlarge
-                            </div>
-                        </>
+                    {/* ── Enlarge hint (mobile) ─────────────────────────────────── */}
+                    {mainImage && (
+                        <div
+                            className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none md:hidden"
+                            style={{
+                                background: "rgba(0,0,0,0.5)",
+                                color: "rgba(255,255,255,0.75)",
+                                backdropFilter: "blur(6px)",
+                            }}
+                        >
+                            <Maximize2 className="h-3 w-3" />
+                            Tap to enlarge
+                        </div>
                     )}
 
                     {/* ── Prev / Next arrows ─────────────────────────────────────── */}

@@ -33,9 +33,11 @@ describe("PDP layout", () => {
     assert.equal(physical.includes("SKU <span"), false);
     assert.equal(physical.includes("DROPSHIP"), false);
     assert.equal(shared.includes("DROPSHIP"), false);
-    // Compact seller under purchase identity; full seller lives in Seller Info tab
-    assert.equal(physical.includes("CompactSellerRow"), true);
-    assert.equal(physical.includes("DesktopSellerCompact"), true);
+    // Seller lives in Seller Info tab only — not under purchase price
+    assert.equal(physical.includes("CompactSellerRow"), false);
+    assert.equal(physical.includes("DesktopSellerCompact"), false);
+    assert.equal(physical.includes('label: "Fulfilled Orders"'), false);
+    assert.equal(physical.includes("VendorSectionCard"), true);
     assert.equal(physical.includes("PdpTrustStrip"), true);
     assert.equal(physical.includes("CompactBuyerProtectionCard"), true);
     assert.equal(physical.includes("order-6"), false);
@@ -53,12 +55,16 @@ describe("PDP layout", () => {
     assert.equal(clientCard.includes("ProductCardCommerceActions"), true);
     assert.equal(actions.includes("Add to Cart"), true);
     assert.equal(actions.includes("Sell to Store"), true);
-    assert.equal(actions.includes("Buy now"), true);
+    assert.equal(actions.includes("Buy now"), false);
     assert.equal(actions.includes("group-hover"), true);
     assert.equal(actions.includes("flex-col"), true);
-    assert.equal(actions.includes("h-9"), true);
+    assert.equal(actions.includes("h-8"), true);
     assert.equal(actions.includes("onPointerDown"), true);
     assert.equal(actions.includes("setOpenProductCardActionsId"), true);
+    const gallery = read("components/marketplace/image-gallery.tsx");
+    assert.equal(gallery.includes("onMouseMove={(e) => { onMove(e)"), false);
+    assert.equal(gallery.includes("cursor: showZoom"), false);
+    assert.equal(/^(?!\/\/).*Hover to zoom/m.test(gallery), false);
   });
 
   it("renders the variant table with SKU, USD price, and real stock", () => {

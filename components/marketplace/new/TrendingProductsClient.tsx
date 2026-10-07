@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { addToCart, buyDirectCheckout, getCartProductIds, removeProductFromCart } from "@/lib/actions/marketplace";
+import { addToCart, getCartProductIds, removeProductFromCart } from "@/lib/actions/marketplace";
 import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
@@ -319,7 +319,6 @@ function ProductCard({
   const [showSizes, setShowSizes] = useState(false);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [inCart, setInCart] = useState(inCartInitially);
   const [addError, setAddError] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
@@ -477,40 +476,6 @@ function ProductCard({
     }
   }
 
-  async function handleBuyNow(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (adding || removing || buyNowLoading || outOfStock) return;
-
-    if (!vendorId) {
-      reportError("Missing vendor information.", setAddError);
-      return;
-    }
-
-    setBuyNowLoading(true);
-    setAddError(null);
-    try {
-      const result = await buyDirectCheckout(
-        p.id,
-        vendorId,
-        1,
-        variantForCart?.id ?? null,
-      );
-      if (result.success && result.orderId) {
-        window.location.href = `/checkout?order_id=${result.orderId}&direct=1`;
-        return;
-      }
-      if (result.error === "Authentication required") {
-        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-        return;
-      }
-      reportError(result.error ?? "Couldn't start checkout.", setAddError);
-    } catch (err: any) {
-      reportError(err?.message ?? "Something went wrong.", setAddError);
-    } finally {
-      setBuyNowLoading(false);
-    }
-  }
 
   useEffect(() => {
     setImgReady(!displayImage);
@@ -618,9 +583,7 @@ function ProductCard({
           productId={p.id}
           productName={p.name}
           onAddToCart={handleCartToggle}
-          onBuyNow={handleBuyNow}
           loading={adding || removing}
-          buyNowLoading={buyNowLoading}
           disabled={(outOfStock && !inCart) || !vendorId}
           inCart={inCart}
         />

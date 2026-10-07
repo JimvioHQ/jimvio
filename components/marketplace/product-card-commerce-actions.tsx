@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Loader2, ShoppingCart } from "lucide-react";
 import { SellToStoreButton } from "@/components/commerce-os/sell-to-store-button";
 import { cn } from "@/lib/utils";
 import {
@@ -10,15 +10,11 @@ import {
   subscribeOpenProductCardActions,
 } from "@/lib/marketplace/product-card-actions-controller";
 
-/** Compact card CTAs — keep product image dominant */
+/** Compact equal-weight card CTAs — keep product image dominant */
 const actionClass =
-  "flex h-9 min-h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border-0 bg-[#FF5A1F] px-2.5 text-[12px] font-semibold leading-none text-white shadow-none hover:bg-[#E54E18] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:cursor-not-allowed disabled:opacity-60";
-
-const secondaryActionClass =
-  "flex h-9 min-h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-xl border border-white/80 bg-white/95 px-2.5 text-[12px] font-semibold leading-none text-[#FF5A1F] shadow-none hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:cursor-not-allowed disabled:opacity-60";
+  "flex h-8 min-h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-[10px] border-0 bg-[#FF5A1F] px-2 text-[12px] font-semibold leading-none text-white shadow-none hover:bg-[#E54E18] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 disabled:cursor-not-allowed disabled:opacity-60";
 
 function useCoarsePointer() {
-  /** null until mounted — avoid wrong first paint on either desktop or mobile */
   const [coarse, setCoarse] = useState<boolean | null>(null);
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -33,25 +29,21 @@ function useCoarsePointer() {
 
 /**
  * Image overlay for marketplace cards.
- * Desktop (hover): Add to Cart + Sell to Store
- * Mobile (pointerdown): Add to Cart + Buy now — single open card, outside tap closes
+ * Desktop hover + mobile touch: Add to Cart + Sell to Store (equal weight).
+ * Buy Now remains on the Product Detail Page only.
  */
 export function ProductCardCommerceActions({
   productId,
   productName,
   onAddToCart,
-  onBuyNow,
   loading,
-  buyNowLoading,
   disabled,
   inCart,
 }: {
   productId: string;
   productName: string;
   onAddToCart: (event: React.MouseEvent) => void;
-  onBuyNow?: (event: React.MouseEvent) => void;
   loading: boolean;
-  buyNowLoading?: boolean;
   disabled: boolean;
   inCart: boolean;
 }) {
@@ -60,7 +52,6 @@ export function ProductCardCommerceActions({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [openId, setOpenId] = useState<string | null>(() => getOpenProductCardActionsId());
   const open = openId === productId;
-  const busy = loading || Boolean(buyNowLoading);
 
   useEffect(() => subscribeOpenProductCardActions(setOpenId), []);
 
@@ -115,7 +106,6 @@ export function ProductCardCommerceActions({
 
   const reveal = useCallback(
     (event: React.PointerEvent) => {
-      // Touch / pen only — desktop mouse uses hover
       if (event.pointerType === "mouse") return;
       event.preventDefault();
       event.stopPropagation();
@@ -136,7 +126,6 @@ export function ProductCardCommerceActions({
       className="pointer-events-none absolute inset-0 z-20 @container"
       onClick={(event) => event.stopPropagation()}
     >
-      {/* Touch / pen: tap image zone to reveal (mouse uses hover) */}
       <button
         type="button"
         aria-label="Show product actions"
@@ -149,10 +138,9 @@ export function ProductCardCommerceActions({
         )}
       />
 
-      {/* Subtle bottom fade */}
       <div
         className={cn(
-          "pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/35 to-transparent opacity-0 transition-opacity duration-150",
+          "pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent opacity-0 transition-opacity duration-150",
           open && "opacity-100",
           "[@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100",
         )}
@@ -162,13 +150,11 @@ export function ProductCardCommerceActions({
       <div
         id={`card-actions-panel-${productId}`}
         className={cn(
-          "absolute inset-x-2 bottom-2 gap-1.5 transition-[opacity,transform] duration-150 ease-out",
+          "absolute inset-x-1.5 bottom-1.5 gap-1.5 transition-[opacity,transform] duration-150 ease-out",
           "flex-col @[280px]:flex-row",
-          // Touch open state (no-hover devices)
           open
             ? "pointer-events-auto flex translate-y-0 opacity-100"
             : "pointer-events-none hidden translate-y-1 opacity-0",
-          // Fine pointer / hover-capable: CSS hover path overrides closed hidden
           "[@media(hover:hover)]:flex [@media(hover:hover)]:translate-y-1 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none",
           "[@media(hover:hover)]:group-hover:pointer-events-auto [@media(hover:hover)]:group-hover:translate-y-0 [@media(hover:hover)]:group-hover:opacity-100",
           "[@media(hover:hover)]:group-focus-within:pointer-events-auto [@media(hover:hover)]:group-focus-within:translate-y-0 [@media(hover:hover)]:group-focus-within:opacity-100",
@@ -179,7 +165,7 @@ export function ProductCardCommerceActions({
           type="button"
           onClick={onAddToCart}
           onPointerDown={stop}
-          disabled={busy || disabled}
+          disabled={loading || disabled}
           className={actionClass}
         >
           {loading ? (
@@ -192,9 +178,8 @@ export function ProductCardCommerceActions({
           </span>
         </button>
 
-        {/* Desktop: Sell to Store */}
         <div
-          className="hidden min-w-0 flex-1 [@media(hover:hover)]:flex"
+          className="flex min-w-0 flex-1"
           onClick={stop}
           onPointerDown={stop}
         >
@@ -202,27 +187,9 @@ export function ProductCardCommerceActions({
             productId={productId}
             productName={productName}
             label="Sell to Store"
-            className={cn(actionClass, "w-full")}
+            className={cn(actionClass, "w-full [&_svg]:h-3.5 [&_svg]:w-3.5")}
           />
         </div>
-
-        {/* Mobile: Buy now */}
-        {onBuyNow ? (
-          <button
-            type="button"
-            onClick={onBuyNow}
-            onPointerDown={stop}
-            disabled={busy || disabled}
-            className={cn(secondaryActionClass, "[@media(hover:hover)]:hidden")}
-          >
-            {buyNowLoading ? (
-              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <ShoppingBag className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            )}
-            <span className="truncate">{disabled ? "Out of stock" : "Buy now"}</span>
-          </button>
-        ) : null}
       </div>
     </div>
   );
