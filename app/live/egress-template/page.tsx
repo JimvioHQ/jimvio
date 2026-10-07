@@ -3,13 +3,12 @@
 /**
  * LiveKit Room Composite custom template.
  *
- * Default LiveKit template waits for a subscribed track before logging
- * START_RECORDING. Jimvio Live supports avatar-only / silent hosts (camera
- * and mic off), so that default aborts with "Start signal not received".
+ * Avatar-only hosts: START_RECORDING after connect (no published tracks).
+ * Screen share / camera: wait for decoded frames before START so the MP4
+ * does not bake in a tiny avatar-only composite.
  *
- * This page joins as the hidden recorder, renders available media (or avatar
- * tiles when none), and signals START_RECORDING once the room is connected —
- * without requiring the host to publish camera/mic tracks.
+ * adaptiveStream is OFF — LiveKit pauses adaptive streams when elements are
+ * briefly "invisible", which produces empty/tiny screen-share recordings.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,25 +17,18 @@ import {
   Room,
   RoomEvent,
   Track,
+  type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
-  type RemoteParticipant,
 } from "livekit-client";
+import {
+  buildEgressTiles,
+  decideEgressStartSignal,
+  type EgressPubSnapshot,
+  type EgressTile,
+} from "@/lib/live/egress-template-logic";
 
-type Tile =
-  | {
-      key: string;
-      kind: "video";
-      track: RemoteTrack;
-      name: string;
-      screen: boolean;
-    }
-  | {
-      key: string;
-      kind: "avatar";
-      name: string;
-      identity: string;
-    };
+const FRAME_DECODE_TIMEOUT_MS = 8_000;
 
 function queryParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -47,10 +39,58 @@ function displayName(p: RemoteParticipant): string {
   return (p.name || p.identity || "Participant").trim() || "Participant";
 }
 
-function collectTiles(room: Room): Tile[] {
-  const tiles: Tile[] = [];
+function sourceOf(pub: RemoteTrackPublication): EgressPubSnapshot["source"] {
+  if (pub.source === Track.Source.ScreenShare) return "screen";
+  if (pub.source === Track.Source.Camera) return "camera";
+  if (pub.kind === Track.Kind.Audio) return "audio";
+  return "unknown";
+}
+
+async function framesDecodedFor(pub: RemoteTrackPublication): Promise<number> {
+  const vt = pub.videoTrack;
+  if (!vt) return 0;
+  try {
+    const stats = await vt.getRTCStatsReport();
+    if (!stats) return 0;
+    for (const item of stats.values()) {
+      const row = item as { type?: string; framesDecoded?: number };
+      if (row.type === "inbound-rtp" && typeof row.framesDecoded === "number") {
+        return row.framesDecoded;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return 0;
+}
+
+async function snapshotPubs(room: Room): Promise<EgressPubSnapshot[]> {
+  const out: EgressPubSnapshot[] = [];
   for (const p of room.remoteParticipants.values()) {
-    let hasVideo = false;
+    for (const pub of p.trackPublications.values()) {
+      const kind =
+        pub.kind === Track.Kind.Video
+          ? "video"
+          : pub.kind === Track.Kind.Audio
+            ? "audio"
+            : "other";
+      out.push({
+        identity: p.identity,
+        name: displayName(p),
+        source: sourceOf(pub),
+        kind,
+        subscribed: pub.isSubscribed,
+        hasTrack: Boolean(pub.track),
+        framesDecoded: kind === "video" ? await framesDecodedFor(pub) : 0,
+      });
+    }
+  }
+  return out;
+}
+
+function collectVideoTracks(room: Room): Map<string, RemoteTrack> {
+  const map = new Map<string, RemoteTrack>();
+  for (const p of room.remoteParticipants.values()) {
     for (const pub of p.trackPublications.values()) {
       if (
         pub.kind === Track.Kind.Video &&
@@ -60,49 +100,73 @@ function collectTiles(room: Room): Tile[] {
           pub.source === Track.Source.ScreenShare ||
           pub.source === Track.Source.Unknown)
       ) {
-        hasVideo = true;
-        tiles.push({
-          key: `${p.identity}:${pub.trackSid}`,
-          kind: "video",
-          track: pub.track,
-          name: displayName(p),
-          screen: pub.source === Track.Source.ScreenShare,
-        });
+        const src = sourceOf(pub);
+        const key = `${p.identity}:${src}:sub`;
+        map.set(key, pub.track);
       }
     }
-    if (!hasVideo) {
-      tiles.push({
-        key: `avatar:${p.identity}`,
-        kind: "avatar",
-        name: displayName(p),
-        identity: p.identity,
-      });
-    }
   }
-  // Prefer screen share as primary when present
-  tiles.sort((a, b) => {
-    const as = a.kind === "video" && a.screen ? 0 : 1;
-    const bs = b.kind === "video" && b.screen ? 0 : 1;
-    return as - bs;
-  });
-  return tiles;
+  return map;
 }
 
-function VideoTile({ track, name }: { track: RemoteTrack; name: string }) {
+/** Ensure egress subscribes to every remote video publication (esp. screen). */
+function forceSubscribeVideos(room: Room): void {
+  for (const p of room.remoteParticipants.values()) {
+    for (const pub of p.trackPublications.values()) {
+      if (pub.kind !== Track.Kind.Video) continue;
+      if (
+        pub.source === Track.Source.Camera ||
+        pub.source === Track.Source.ScreenShare ||
+        pub.source === Track.Source.Unknown
+      ) {
+        if (!pub.isSubscribed) {
+          try {
+            void pub.setSubscribed(true);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+  }
+}
+
+function VideoTile({
+  track,
+  name,
+  screen,
+}: {
+  track: RemoteTrack;
+  name: string;
+  screen?: boolean;
+}) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     track.attach(el);
+    el.muted = true;
+    el.playsInline = true;
+    void el.play().catch(() => undefined);
     return () => {
       track.detach(el);
     };
   }, [track]);
   return (
     <div className="relative h-full w-full overflow-hidden bg-black">
-      <video ref={ref} autoPlay playsInline muted className="h-full w-full object-contain" />
-      <span className="absolute bottom-3 left-3 rounded bg-black/55 px-2 py-1 text-xs text-white">
-        {name}
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        muted
+        className={
+          screen
+            ? "h-full w-full object-contain bg-black"
+            : "h-full w-full object-cover bg-black"
+        }
+      />
+      <span className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-0.5 text-[11px] text-white">
+        {screen ? `${name} · Screen` : name}
       </span>
     </div>
   );
@@ -124,7 +188,8 @@ function AvatarTile({ name }: { name: string }) {
 }
 
 export default function LiveEgressTemplatePage() {
-  const [tiles, setTiles] = useState<Tile[]>([]);
+  const [tiles, setTiles] = useState<EgressTile[]>([]);
+  const [trackMap, setTrackMap] = useState<Map<string, RemoteTrack>>(new Map());
   const [connectError, setConnectError] = useState<string | null>(null);
   const startedRef = useRef(false);
   const roomRef = useRef<Room | null>(null);
@@ -142,67 +207,88 @@ export default function LiveEgressTemplatePage() {
     if (!url || !token) return;
 
     let cancelled = false;
+    // adaptiveStream/dynacast must stay off for egress — they pause layers when
+    // the headless page briefly has no "visible" video attachment.
     const room = new Room({
-      adaptiveStream: true,
-      dynacast: true,
+      adaptiveStream: false,
+      dynacast: false,
     });
     roomRef.current = room;
 
-    const refresh = () => {
+    const refreshTiles = async () => {
       if (cancelled) return;
-      setTiles(collectTiles(room));
+      forceSubscribeVideos(room);
+      const pubs = await snapshotPubs(room);
+      if (cancelled) return;
+      setTiles(buildEgressTiles(pubs));
+      setTrackMap(collectVideoTracks(room));
     };
 
-    const signalStart = () => {
+    const signalStart = (reason: string) => {
       if (startedRef.current || cancelled) return;
       startedRef.current = true;
-      // LiveKit egress watches the browser console for this exact string.
-      // eslint-disable-next-line no-console
       console.log("START_RECORDING");
+      console.log(`JIMVIO_EGRESS_START_REASON=${reason}`);
     };
 
-    const onTrackSubscribed = (
-      _track: RemoteTrack,
-      _pub: RemoteTrackPublication,
-      _participant: RemoteParticipant
-    ) => {
-      refresh();
-    };
-
-    room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
-    room.on(RoomEvent.TrackUnsubscribed, refresh);
-    room.on(RoomEvent.ParticipantConnected, refresh);
-    room.on(RoomEvent.ParticipantDisconnected, refresh);
-    room.on(RoomEvent.TrackMuted, refresh);
-    room.on(RoomEvent.TrackUnmuted, refresh);
+    room.on(RoomEvent.TrackSubscribed, () => {
+      void refreshTiles();
+    });
+    room.on(RoomEvent.TrackUnsubscribed, () => {
+      void refreshTiles();
+    });
+    room.on(RoomEvent.TrackPublished, () => {
+      forceSubscribeVideos(room);
+      void refreshTiles();
+    });
+    room.on(RoomEvent.ParticipantConnected, () => {
+      forceSubscribeVideos(room);
+      void refreshTiles();
+    });
+    room.on(RoomEvent.ParticipantDisconnected, () => {
+      void refreshTiles();
+    });
+    room.on(RoomEvent.TrackMuted, () => {
+      void refreshTiles();
+    });
+    room.on(RoomEvent.TrackUnmuted, () => {
+      void refreshTiles();
+    });
     room.on(RoomEvent.Disconnected, () => {
-      // eslint-disable-next-line no-console
       console.log("END_RECORDING");
     });
 
     void (async () => {
       try {
-        await room.connect(url, token);
+        await room.connect(url, token, { autoSubscribe: true });
         if (cancelled) return;
-        refresh();
+        forceSubscribeVideos(room);
+        await refreshTiles();
 
-        // Allow a brief window for existing publishers to subscribe, then start
-        // even for avatar-only / silent rooms (no published tracks).
-        const startAfterMs = 750;
-        window.setTimeout(() => {
-          if (cancelled) return;
-          refresh();
-          if (room.state === ConnectionState.Connected) {
-            signalStart();
-          }
-        }, startAfterMs);
-
-        // Safety: if connection settles later, still start once.
-        room.once(RoomEvent.Connected, () => {
-          window.setTimeout(() => {
-            if (!cancelled) signalStart();
-          }, 200);
-        });
+        const startTime = Date.now();
+        const interval = window.setInterval(() => {
+          void (async () => {
+            if (cancelled || startedRef.current) {
+              window.clearInterval(interval);
+              return;
+            }
+            if (room.state !== ConnectionState.Connected) return;
+            forceSubscribeVideos(room);
+            const pubs = await snapshotPubs(room);
+            if (cancelled || startedRef.current) return;
+            setTiles(buildEgressTiles(pubs));
+            setTrackMap(collectVideoTracks(room));
+            const decision = decideEgressStartSignal({
+              elapsedMs: Date.now() - startTime,
+              pubs,
+              frameDecodeTimeoutMs: FRAME_DECODE_TIMEOUT_MS,
+            });
+            if (decision.shouldStart) {
+              window.clearInterval(interval);
+              signalStart(decision.reason);
+            }
+          })();
+        }, 150);
       } catch (e) {
         if (!cancelled) {
           setConnectError(e instanceof Error ? e.message : "Failed to connect");
@@ -226,9 +312,55 @@ export default function LiveEgressTemplatePage() {
     );
   }
 
+  const screenTile = tiles.find((t) => t.kind === "video" && t.screen) ?? null;
+  const otherVideos = tiles.filter(
+    (t) => t.kind === "video" && !t.screen
+  ) as Extract<EgressTile, { kind: "video" }>[];
+  const avatars = tiles.filter((t) => t.kind === "avatar") as Extract<
+    EgressTile,
+    { kind: "avatar" }
+  >[];
+  const pip =
+    otherVideos[0] ??
+    (avatars[0]
+      ? ({ ...avatars[0], screen: false } as const)
+      : null);
+  const isSpeaker = layout.startsWith("speaker") || layout.startsWith("single-speaker");
+
+  // Screen-share dominant: full-bleed screen + PIP camera/avatar (matches Live stage).
+  if (screenTile && screenTile.kind === "video") {
+    const screenTrack = trackMap.get(screenTile.key);
+    const pipVideo =
+      pip && pip.kind === "video" ? trackMap.get(pip.key) : null;
+    return (
+      <div className="relative h-screen w-screen overflow-hidden bg-black text-white">
+        <div className="absolute inset-0">
+          {screenTrack ? (
+            <VideoTile track={screenTrack} name={screenTile.name} screen />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-sm text-white/70">
+              Waiting for screen…
+            </div>
+          )}
+        </div>
+        {pip ? (
+          <div
+            className="absolute bottom-4 right-4 z-10 overflow-hidden rounded-xl shadow-lg ring-1 ring-white/20"
+            style={{ width: 200, height: 112 }}
+          >
+            {pip.kind === "video" && pipVideo ? (
+              <VideoTile track={pipVideo} name={pip.name} />
+            ) : (
+              <AvatarTile name={pip.name} />
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   const primary = tiles[0];
   const secondary = tiles.slice(1);
-  const isSpeaker = layout.startsWith("speaker") || layout.startsWith("single-speaker");
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-black text-white">
@@ -250,8 +382,12 @@ export default function LiveEgressTemplatePage() {
           }}
         >
           <div className="min-h-0 min-w-0">
-            {primary.kind === "video" ? (
-              <VideoTile track={primary.track} name={primary.name} />
+            {primary.kind === "video" && trackMap.get(primary.key) ? (
+              <VideoTile
+                track={trackMap.get(primary.key)!}
+                name={primary.name}
+                screen={primary.screen}
+              />
             ) : (
               <AvatarTile name={primary.name} />
             )}
@@ -260,8 +396,12 @@ export default function LiveEgressTemplatePage() {
             <div className="flex min-h-0 flex-col gap-2 overflow-hidden">
               {secondary.map((t) => (
                 <div key={t.key} className="min-h-0 flex-1 overflow-hidden rounded">
-                  {t.kind === "video" ? (
-                    <VideoTile track={t.track} name={t.name} />
+                  {t.kind === "video" && trackMap.get(t.key) ? (
+                    <VideoTile
+                      track={trackMap.get(t.key)!}
+                      name={t.name}
+                      screen={t.screen}
+                    />
                   ) : (
                     <AvatarTile name={t.name} />
                   )}
@@ -275,14 +415,18 @@ export default function LiveEgressTemplatePage() {
           className="grid h-full w-full gap-2 p-2"
           style={{
             gridTemplateColumns:
-              tiles.length <= 1 ? "1fr" : tiles.length === 2 ? "1fr 1fr" : "1fr 1fr",
+              tiles.length <= 1 ? "1fr" : "1fr 1fr",
             gridTemplateRows: tiles.length > 2 ? "1fr 1fr" : "1fr",
           }}
         >
           {tiles.map((t) => (
             <div key={t.key} className="min-h-0 min-w-0 overflow-hidden rounded">
-              {t.kind === "video" ? (
-                <VideoTile track={t.track} name={t.name} />
+              {t.kind === "video" && trackMap.get(t.key) ? (
+                <VideoTile
+                  track={trackMap.get(t.key)!}
+                  name={t.name}
+                  screen={t.screen}
+                />
               ) : (
                 <AvatarTile name={t.name} />
               )}

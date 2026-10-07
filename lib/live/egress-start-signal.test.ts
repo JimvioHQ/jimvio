@@ -17,8 +17,8 @@ describe("egress start signal reliability", () => {
   it("custom template signals START_RECORDING without requiring published tracks", () => {
     const template = read("app/live/egress-template/page.tsx");
     assert.match(template, /console\.log\("START_RECORDING"\)/);
-    assert.match(template, /ConnectionState\.Connected/);
-    assert.doesNotMatch(template, /TrackSubscribed.*startRecording|startRecording.*TrackSubscribed/);
+    assert.match(template, /avatar_only_ready|decideEgressStartSignal/);
+    assert.match(template, /adaptiveStream:\s*false/);
   });
 
   it("startSessionEgress uses custom template and keeps starting until ACTIVE", () => {

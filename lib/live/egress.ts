@@ -115,7 +115,8 @@ function sleep(ms: number): Promise<void> {
  * participant so egress does not join an empty room.
  */
 async function waitForRoomParticipant(roomName: string): Promise<
-  { ok: true; identity: string } | { ok: false; error: string }
+  | { ok: true; identity: string; hasScreenShare: boolean; hasVideo: boolean }
+  | { ok: false; error: string }
 > {
   const rooms = createRoomServiceClient();
   if (!rooms) {
@@ -130,7 +131,18 @@ async function waitForRoomParticipant(roomName: string): Promise<
         (p) => !p.identity?.startsWith("EG_") && p.identity !== "egress"
       );
       if (human?.identity) {
-        return { ok: true, identity: human.identity };
+        const tracks = human.tracks ?? [];
+        // TrackSource.SCREEN_SHARE = 3, CAMERA = 1 (livekit protocol)
+        const hasScreenShare = tracks.some((t) => Number(t.source) === 3);
+        const hasVideo = tracks.some(
+          (t) => t.type === 1 /* VIDEO */ || Number(t.source) === 1 || Number(t.source) === 3
+        );
+        return {
+          ok: true,
+          identity: human.identity,
+          hasScreenShare,
+          hasVideo,
+        };
       }
     } catch {
       // Room may not exist yet while the host is still connecting.
@@ -243,6 +255,16 @@ export async function startSessionEgress(input: {
   try {
     // EncodedOutputs.file form → fileOutputs[] + valid EncodedFileOutput.output (S3).
     // customBaseUrl: avatar-only safe START_RECORDING (see /live/egress-template).
+    liveStudioLog("info", "recording_start", {
+      sessionId: input.sessionId,
+      roomName,
+      participant: ready.identity,
+      hasScreenShare: ready.hasScreenShare,
+      hasVideo: ready.hasVideo,
+    });
+
+    // Template waits for decoded screen/camera frames when those publications
+    // exist (see /live/egress-template). Server only gates on participant join.
     const info: EgressInfo = await client.startRoomCompositeEgress(
       roomName,
       { file: fileOut.file },
