@@ -1,4 +1,5 @@
 import { AccessToken, type VideoGrant } from "livekit-server-sdk";
+import { randomUUID } from "node:crypto";
 import { canPublishAv, canShareScreen, type LiveStageRole } from "@/lib/live/roles";
 import {
   getLiveKitApiKey,
@@ -18,7 +19,15 @@ export type LiveKitTokenResult = {
   role: LiveStageRole;
   canPublish: boolean;
   canPublishData: boolean;
+  anonymous?: boolean;
 };
+
+/** Anonymous preview identities — filtered from People UI / counts. */
+export const ANON_LIVEKIT_PREFIX = "anon:";
+
+export function isAnonymousLiveIdentity(identity: string | null | undefined): boolean {
+  return Boolean(identity && identity.startsWith(ANON_LIVEKIT_PREFIX));
+}
 
 /**
  * Issue a LiveKit JWT after Supabase auth + membership + role are already verified.
@@ -75,5 +84,55 @@ export async function mintLiveKitToken(input: {
     role: input.role,
     canPublish,
     canPublishData: true,
+  };
+}
+
+/**
+ * View-only LiveKit JWT for unauthenticated public Live preview.
+ * Never grants publish, data, or metadata update.
+ */
+export async function mintAnonymousViewerToken(input: {
+  sessionId: string;
+}): Promise<LiveKitTokenResult> {
+  const apiKey = getLiveKitApiKey();
+  const apiSecret = getLiveKitApiSecret();
+  if (!apiKey || !apiSecret) {
+    throw new Error("LiveKit is not configured");
+  }
+
+  const roomName = liveKitRoomName(input.sessionId);
+  const identity = `${ANON_LIVEKIT_PREFIX}${randomUUID()}`;
+
+  const grant: VideoGrant = {
+    roomJoin: true,
+    room: roomName,
+    canSubscribe: true,
+    canPublish: false,
+    canPublishData: false,
+    canUpdateOwnMetadata: false,
+    hidden: true,
+  };
+
+  const at = new AccessToken(apiKey, apiSecret, {
+    identity,
+    name: "Viewer",
+    metadata: JSON.stringify({
+      role: "viewer",
+      sessionId: input.sessionId,
+      anonymous: true,
+    }),
+    ttl: "15m",
+  });
+  at.addGrant(grant);
+
+  const token = await at.toJwt();
+  return {
+    token,
+    roomName,
+    identity,
+    role: "viewer",
+    canPublish: false,
+    canPublishData: false,
+    anonymous: true,
   };
 }

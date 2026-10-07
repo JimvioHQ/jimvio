@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   desktopDockControls,
   dockKeepsAvDuringShare,
+  dockKeepsCollabDuringShare,
   mobileDockAvFirst,
   mobileDockControls,
 } from "./control-dock-visibility.ts";
@@ -10,11 +11,32 @@ import {
 describe("screen share preserving audio/video controls", () => {
   it("keeps mic and cam in desktop share mode", () => {
     assert.equal(dockKeepsAvDuringShare("share"), true);
-    const share = desktopDockControls("share");
+    const share = desktopDockControls("share", { sharing: true });
     assert.ok(share.includes("mic"));
     assert.ok(share.includes("cam"));
     assert.ok(share.includes("stopShare"));
     assert.ok(!share.includes("share") || share.includes("stopShare"));
+  });
+
+  it("keeps full collab dock during screen share (not a reduced share-only dock)", () => {
+    assert.equal(dockKeepsCollabDuringShare("share"), true);
+    assert.equal(dockKeepsCollabDuringShare("live"), true);
+    const share = desktopDockControls("share", { sharing: true, canEnd: true });
+    for (const id of [
+      "mic",
+      "cam",
+      "stopShare",
+      "fullscreen",
+      "invite",
+      "people",
+      "record",
+      "chat",
+      "streamTo",
+      "more",
+      "end",
+    ] as const) {
+      assert.ok(share.includes(id), `expected ${id} during share`);
+    }
   });
 
   it("keeps mic and cam in present mode", () => {
@@ -33,6 +55,10 @@ describe("screen share preserving audio/video controls", () => {
     assert.ok(controls.includes("mic"));
     assert.ok(controls.includes("cam"));
     assert.ok(controls.includes("stopShare"));
+    assert.ok(controls.includes("people"));
+    assert.ok(controls.includes("chat"));
+    assert.ok(controls.includes("streamTo"));
+    assert.ok(controls.includes("more"));
     assert.ok(mobileDockAvFirst(controls));
   });
 });

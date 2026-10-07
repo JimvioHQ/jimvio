@@ -49,10 +49,46 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.match(page, /LiveStagePipStack/);
     assert.match(page, /LiveStagePipTile/);
     assert.match(pip, /\(You\)/);
-    assert.match(pip, /Screen sharing/);
+    assert.match(pip, /Screen/);
     assert.match(page, /setStageFocus/);
     assert.match(page, /onViewFull/);
     assert.doesNotMatch(page, /LiveParticipantGallery/);
+  });
+
+  it("screen share keeps full control dock and removes custom sharing overlay", () => {
+    const dock = read("components/community/hub/live/ControlDock.tsx");
+    const visibility = read("lib/live/control-dock-visibility.ts");
+    const page = read("components/community/hub/hub-live-page.tsx");
+    assert.match(dock, /showLiveDock/);
+    assert.match(dock, /Stop Share/);
+    assert.match(dock, /Invite/);
+    assert.match(dock, /Participants/);
+    assert.match(dock, /Destinations & RTMP/);
+    assert.match(visibility, /dockKeepsCollabDuringShare/);
+    assert.doesNotMatch(page, /Sharing your screen/);
+    assert.doesNotMatch(page, /screenShareBannerHidden/);
+  });
+
+  it("anonymous public Live previews before auth gate", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const guest = read("components/community/hub/live/LiveGuestJoinCard.tsx");
+    const token = read("lib/live/livekit-token.ts");
+    const previewRoute = read("app/api/live/token/preview/route.ts");
+    assert.match(page, /isAnonymousViewer/);
+    assert.match(page, /authGateOpen/);
+    assert.match(page, /continueWatching/);
+    assert.match(guest, /Continue watching/);
+    assert.match(token, /mintAnonymousViewerToken/);
+    assert.match(token, /hidden:\s*true/);
+    assert.match(previewRoute, /mintAnonymousViewerToken/);
+  });
+
+  it("speaker role does not auto-pin stage_focus", () => {
+    const page = read("components/community/hub/hub-live-page.tsx");
+    const promoteIdx = page.indexOf('.promote(id, "speaker")');
+    assert.ok(promoteIdx > 0);
+    const nearby = page.slice(promoteIdx, promoteIdx + 280);
+    assert.doesNotMatch(nearby, /setStageFocus/);
   });
 
   it("screen share becomes main stage while sharer camera stays in PIP", () => {
@@ -139,7 +175,7 @@ describe("Jimvio Live completion — invite & share", () => {
   it("guest Join Live is Google-first without email continuation", () => {
     const guest = read("components/community/hub/live/LiveGuestJoinCard.tsx");
     assert.match(guest, /Continue with Google/);
-    assert.match(guest, /Login to your account/);
+    assert.match(guest, /Log in to your account/);
     assert.match(guest, /\/login\?next=/);
     assert.doesNotMatch(guest, /Continue with Email/);
     assert.doesNotMatch(guest, /signInWithMagicLink/);

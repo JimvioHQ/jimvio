@@ -10,8 +10,6 @@ import {
   Mic,
   MicOff,
   MoreHorizontal,
-  MousePointer2,
-  PenLine,
   PhoneOff,
   Presentation,
   Radio,
@@ -124,9 +122,14 @@ function ControlDockImpl({
   const icon = "h-[18px] w-[18px]";
   const sw = 1.65;
   const showAv = canPublish;
+  const isSharing = Boolean(sharing) || activity === "share";
+  // Screen share must NOT replace the dock — keep full Live controls.
+  const showLiveDock = activity === "live" || activity === "share";
   void dark;
   void onCopyLink;
   void onReact;
+  void onAnnotate;
+  void onLaser;
 
   return (
     <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-1")}>
@@ -140,7 +143,7 @@ function ControlDockImpl({
           LIVE_DOCK_BG
         )}
       >
-        {(activity === "live" || activity === "share" || activity === "present") && showAv && (
+        {(showLiveDock || activity === "present") && showAv && (
           <>
             <DockBtn
               pressed={micOn}
@@ -171,21 +174,26 @@ function ControlDockImpl({
           </>
         )}
 
-        {activity === "live" && (
+        {showLiveDock && (
           <>
             {showAv ? (
               <DockBtn
-                pressed={sharing}
-                success={sharing}
-                onClick={sharing ? onStopShare : onShare}
-                label={sharing ? "Stop Share" : "Share Screen"}
+                pressed={isSharing}
+                success={isSharing}
+                onClick={isSharing ? onStopShare : onShare}
+                label={isSharing ? "Stop Share" : "Share Screen"}
                 hint="S"
               >
-                {sharing ? (
+                {isSharing ? (
                   <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
                 ) : (
                   <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
                 )}
+              </DockBtn>
+            ) : null}
+            {onFullscreen ? (
+              <DockBtn onClick={onFullscreen} label="Fullscreen" className="hidden sm:flex">
+                <Fullscreen className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
             <DockBtn
@@ -250,41 +258,6 @@ function ControlDockImpl({
                 <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
               </DockBtn>
             ) : null}
-          </>
-        )}
-
-        {activity === "share" && (
-          <>
-            <DockBtn accent onClick={onStopShare} label="Stop Share">
-              <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            {onAnnotate && (
-              <DockBtn onClick={onAnnotate} label="Annotate">
-                <PenLine className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            )}
-            {onLaser && (
-              <DockBtn onClick={onLaser} label="Laser" className="hidden sm:flex">
-                <MousePointer2 className={icon} strokeWidth={sw} aria-hidden />
-              </DockBtn>
-            )}
-            <DockBtn onClick={onFullscreen} label="Fullscreen" className="hidden sm:flex">
-              <Fullscreen className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn
-              pressed={recording}
-              recording={recording}
-              onClick={onRecord}
-              label={recording ? "Recording" : "Record"}
-              hint="R"
-              className={recording ? "!bg-[#EF4444] !text-white" : undefined}
-            >
-              <Circle
-                className={cn(icon, recording && "fill-current text-white")}
-                strokeWidth={sw}
-                aria-hidden
-              />
-            </DockBtn>
           </>
         )}
 

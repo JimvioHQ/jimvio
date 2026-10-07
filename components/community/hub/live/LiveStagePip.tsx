@@ -8,8 +8,8 @@ import { HubAvatar } from "../hub-ui";
 import { FOCUS_RING, FOCUS_RING_DARK } from "./studio-ui";
 
 /**
- * Picture-in-picture participant tile inside the Host stage (bottom-right stack).
- * Rounded card — circular avatar when camera off; video fill when camera/share on.
+ * Picture-in-picture participant tile inside the Host stage.
+ * Compact on mobile so the stack never consumes most of the stage.
  */
 export function LiveStagePipTile({
   name,
@@ -56,7 +56,7 @@ export function LiveStagePipTile({
   return (
     <div
       className={cn(
-        "group relative w-[96px] overflow-hidden rounded-2xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] transition-[box-shadow,transform] duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200 sm:w-[120px]",
+        "group relative w-[84px] overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] transition-[box-shadow,transform] duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200 sm:w-[112px] sm:rounded-2xl",
         (speaking || selected) && "ring-2 ring-[#FF5A1F]",
         sharing && "ring-2 ring-[#7C3AED]/70"
       )}
@@ -66,7 +66,7 @@ export function LiveStagePipTile({
         onClick={onSelect}
         aria-label={`${name}${isYou ? ", you" : ""}${sharing ? ", screen sharing" : ""}${!micOn ? ", muted" : ""}`}
         className={cn(
-          "relative block aspect-[4/5] w-full overflow-hidden bg-[#EEF2F7]",
+          "relative block aspect-video w-full overflow-hidden bg-[#EEF2F7] sm:aspect-[4/5]",
           FOCUS_RING
         )}
       >
@@ -76,22 +76,20 @@ export function LiveStagePipTile({
             autoPlay
             playsInline
             muted
-            className={cn(
-              "absolute inset-0 h-full w-full object-cover"
-            )}
+            className="absolute inset-0 h-full w-full object-cover"
             aria-hidden
           />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center bg-transparent">
             <span
               className="overflow-hidden rounded-full"
-              style={{ width: 64, height: 64, borderRadius: 9999 }}
+              style={{ width: 40, height: 40, borderRadius: 9999 }}
             >
               <HubAvatar
                 name={name}
                 src={avatarUrl}
-                size={64}
-                className="!bg-transparent !shadow-none !ring-0"
+                size={40}
+                className="!bg-transparent !shadow-none !ring-0 sm:!h-14 sm:!w-14"
               />
             </span>
           </span>
@@ -99,41 +97,41 @@ export function LiveStagePipTile({
 
         <span
           className={cn(
-            "absolute bottom-1.5 right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-white/30 shadow-sm",
+            "absolute bottom-1 right-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/30 shadow-sm sm:bottom-1.5 sm:right-1.5 sm:h-5 sm:w-5",
             micOn ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
           )}
           aria-hidden
         >
           {micOn ? (
-            <Mic className="h-2.5 w-2.5" strokeWidth={2.2} />
+            <Mic className="h-2 w-2 sm:h-2.5 sm:w-2.5" strokeWidth={2.2} />
           ) : (
-            <MicOff className="h-2.5 w-2.5" strokeWidth={2.2} />
+            <MicOff className="h-2 w-2 sm:h-2.5 sm:w-2.5" strokeWidth={2.2} />
           )}
         </span>
 
         {sharing ? (
-          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-[#7C3AED] px-1.5 py-0.5 text-[9px] font-semibold text-white">
-            <Monitor className="h-2.5 w-2.5" aria-hidden />
+          <span className="absolute left-1 top-1 inline-flex items-center gap-0.5 rounded-full bg-[#7C3AED] px-1 py-0.5 text-[8px] font-semibold text-white sm:left-1.5 sm:top-1.5 sm:gap-1 sm:px-1.5 sm:text-[9px]">
+            <Monitor className="h-2 w-2 sm:h-2.5 sm:w-2.5" aria-hidden />
             Screen
           </span>
         ) : null}
       </button>
 
-      <div className="space-y-0.5 px-2 py-1.5 text-left">
-        <p className="truncate text-[11px] font-semibold leading-tight text-[#111827]">
+      <div className="space-y-0 px-1.5 py-1 text-left sm:space-y-0.5 sm:px-2 sm:py-1.5">
+        <p className="truncate text-[10px] font-semibold leading-tight text-[#111827] sm:text-[11px]">
           {name}
         </p>
         {isYou ? (
-          <p className="text-[10px] font-medium text-[#FF5A1F]">(You)</p>
+          <p className="text-[9px] font-medium text-[#FF5A1F] sm:text-[10px]">(You)</p>
         ) : sharing ? (
-          <p className="text-[10px] font-medium text-[#7C3AED]">Screen sharing</p>
-        ) : (
-          <p className="text-[10px] text-neutral-400">Participant</p>
-        )}
+          <p className="truncate text-[9px] font-medium text-[#7C3AED] sm:text-[10px]">
+            Screen
+          </p>
+        ) : null}
       </div>
 
       {(onViewFull || onMoveToStage || onStopShare) && (sharing || canManage) ? (
-        <div className="flex items-center gap-0.5 border-t border-neutral-100 px-1 py-1">
+        <div className="hidden items-center gap-0.5 border-t border-neutral-100 px-1 py-1 sm:flex">
           {onViewFull ? (
             <button
               type="button"
@@ -192,13 +190,13 @@ export function LiveStagePipStack({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-[4.75rem] right-2 z-[5] flex max-h-[62%] flex-col-reverse items-end gap-2 overflow-y-auto sm:bottom-4 sm:right-4 sm:max-h-[78%]",
+        "pointer-events-none absolute bottom-[4.25rem] right-1.5 z-[5] flex max-h-[38%] flex-col-reverse items-end gap-1.5 overflow-y-auto sm:bottom-4 sm:right-4 sm:max-h-[72%] sm:gap-2",
         "pb-[env(safe-area-inset-bottom)]",
         className
       )}
       aria-label="Participant tiles"
     >
-      <div className="pointer-events-auto flex flex-col-reverse items-end gap-2">
+      <div className="pointer-events-auto flex max-w-[calc(100vw-1.5rem)] flex-row-reverse flex-wrap items-end justify-end gap-1.5 sm:max-w-none sm:flex-col-reverse sm:gap-2">
         {children}
       </div>
     </div>

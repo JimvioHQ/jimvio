@@ -73,6 +73,7 @@ export function useLiveSession(initialSessionId?: string | null) {
   const [presenceEvents, setPresenceEvents] = useState<PresenceSystemEvent[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [anonymousWatch, setAnonymousWatch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cancelled = useRef(false);
@@ -99,8 +100,20 @@ export function useLiveSession(initialSessionId?: string | null) {
         setAuthReady(true);
       }
     });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (_event: string, sessionAuth: { user?: { id: string } | null } | null) => {
+        if (cancelled.current) return;
+        const id = sessionAuth?.user?.id ?? null;
+        setUserId(id);
+        setAuthReady(true);
+        if (id) setAnonymousWatch(false);
+      }
+    );
     return () => {
       cancelled.current = true;
+      subscription.unsubscribe();
     };
   }, [supabase]);
 
@@ -290,12 +303,39 @@ export function useLiveSession(initialSessionId?: string | null) {
     [refresh]
   );
 
+  const loadAnonymousWatch = useCallback(async (sessionId: string) => {
+    const res = await fetch(`/api/c/live/sessions/${sessionId}/watch`);
+    const json = (await res.json()) as {
+      canWatch?: boolean;
+      session?: LiveSessionRow;
+      participants?: LiveParticipantRow[];
+      error?: string;
+    };
+    if (!res.ok || !json.canWatch || !json.session) {
+      throw new Error(json.error ?? "Preview unavailable");
+    }
+    setError(null);
+    setAnonymousWatch(true);
+    setSession(json.session);
+    const rows = (json.participants ?? []).map((row) =>
+      applyProfileCache(row, profileCache.current)
+    );
+    setParticipants(rows);
+    seedPresenceSeen(sessionId, rows);
+  }, [seedPresenceSeen]);
+
   useEffect(() => {
-    if (!initialSessionId) return;
+    if (!initialSessionId || !authReady) return;
     let cancelledLoad = false;
     void (async () => {
       try {
-        await refresh(initialSessionId);
+        if (userId) {
+          setAnonymousWatch(false);
+          await refresh(initialSessionId);
+          return;
+        }
+        // Unauthenticated public Live — hydrate watch bootstrap (view-only).
+        await loadAnonymousWatch(initialSessionId);
       } catch (e) {
         if (!cancelledLoad) setError(e instanceof Error ? e.message : "Load failed");
       }
@@ -303,7 +343,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     return () => {
       cancelledLoad = true;
     };
-  }, [initialSessionId, refresh]);
+  }, [initialSessionId, authReady, userId, refresh, loadAnonymousWatch]);
 
   const myRole: LiveStageRole = useMemo(() => {
     if (!userId) return "viewer";
@@ -315,7 +355,7 @@ export function useLiveSession(initialSessionId?: string | null) {
 
   /* Realtime sync — optimistic local apply + debounced authoritative refresh */
   useEffect(() => {
-    if (!session?.id) return;
+    if (!session?.id || !userId) return;
     let cancelledSub = false;
     let chSession: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     let chPart: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
@@ -407,7 +447,7 @@ export function useLiveSession(initialSessionId?: string | null) {
       unsubscribeRealtime(supabase, chSession, `live_session:${sid}`);
       unsubscribeRealtime(supabase, chPart, `live_session_participants:${sid}`);
     };
-  }, [session?.id, supabase, scheduleRefresh, hydrateProfile, emitPresenceDiff, refresh]);
+  }, [session?.id, userId, supabase, scheduleRefresh, hydrateProfile, emitPresenceDiff, refresh]);
 
   const createLive = useCallback(
     async (input: {
@@ -787,6 +827,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     myRole,
     userId,
     authReady,
+    anonymousWatch,
     error,
     busy,
     createLive,

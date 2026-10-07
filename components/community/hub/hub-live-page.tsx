@@ -44,6 +44,7 @@ import {
   LIVEKIT_JOIN_GRACE_MS,
 } from "@/lib/live/livekit-presence";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
+import { isAnonymousLiveIdentity } from "@/lib/live/livekit-token";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
 import {
@@ -161,13 +162,14 @@ export function HubLivePage({
   const [guestPreview, setGuestPreview] = useState<LiveGuestPreview | null>(null);
   const [guestPreviewLoading, setGuestPreviewLoading] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
+  /** Auth sheet over active anonymous Live preview (after ~5s). */
+  const [authGateOpen, setAuthGateOpen] = useState(false);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
   const [settingsCategory, setSettingsCategory] = useState<
     null | "general" | "video" | "audio" | "chat" | "destinations" | "recording"
   >(null);
   const [draftTitle, setDraftTitle] = useState("Start your Live");
   const [mediaBusy, setMediaBusy] = useState(false);
-  const [screenShareBannerHidden, setScreenShareBannerHidden] = useState(false);
   const [viewFull, setViewFull] = useState<{
     name: string;
     stream: MediaStream;
@@ -224,16 +226,23 @@ export function HubLivePage({
     allowParticipantRecording: participantPerms.allowRecording,
   });
 
+  const isAnonymousViewer =
+    Boolean(live.authReady && !live.userId && live.anonymousWatch);
+
   const livekit = useLiveKitRoom({
     sessionId: live.session?.status === "live" ? live.session.id : null,
     enabled: true,
+    authReady: live.authReady,
+    userId: live.userId,
+    anonymousPreview: isAnonymousViewer,
     localAvStream: media.cameraStream,
-    camOn: media.camOn && canUseCam,
-    micOn: media.micOn && canUseMic,
+    camOn: media.camOn && canUseCam && !isAnonymousViewer,
+    micOn: media.micOn && canUseMic && !isAnonymousViewer,
     shareStream: media.shareStream,
-    sharing: media.sharing && canUseScreen,
+    sharing: media.sharing && canUseScreen && !isAnonymousViewer,
     preferLocalStage:
-      live.myRole === "host" || live.myRole === "cohost",
+      !isAnonymousViewer &&
+      (live.myRole === "host" || live.myRole === "cohost"),
     hostIdentity: hostUserId,
     stagePinIdentity: (() => {
       const settings = (live.session?.settings ?? {}) as Record<string, unknown>;
@@ -488,7 +497,23 @@ export function HubLivePage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionIdProp, data?.session.liveSessionId, communitySlugProp, live.authReady, live.userId]);
 
-  /* Guest Join Live — public session preview for unauthenticated visitors */
+  /* Auth gate after ~5s of real anonymous Live preview */
+  useEffect(() => {
+    if (!isAnonymousViewer || !sessionIdProp) {
+      setAuthGateOpen(false);
+      return;
+    }
+    // Wait until LiveKit has something to show (or a short grace), then 5s gate.
+    const connectedAt = Date.now();
+    const timer = setTimeout(() => {
+      setAuthGateOpen(true);
+    }, 5000);
+    // If connect is slow, still open the gate ~5s after mount — Live stays behind.
+    void connectedAt;
+    return () => clearTimeout(timer);
+  }, [isAnonymousViewer, sessionIdProp]);
+
+  /* Guest Join Live — public session metadata for auth overlay */
   useEffect(() => {
     if (!sessionIdProp || !live.authReady || live.userId) {
       setGuestPreview(null);
@@ -561,6 +586,9 @@ export function HubLivePage({
 
   useEffect(() => {
     if (!livekit.error) return;
+    if (/client initiated disconnect|cancelled|aborted/i.test(livekit.error)) {
+      return;
+    }
     showToast(livekit.error);
   }, [livekit.error, showToast]);
 
@@ -668,7 +696,6 @@ export function HubLivePage({
     if (me && me.sharing === false) {
       media.stopScreenShare();
       setActivity("live");
-      setScreenShareBannerHidden(false);
       showToast("Screen sharing was stopped.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to remote force-media
@@ -1074,7 +1101,6 @@ export function HubLivePage({
     });
     if (ok) {
       setActivity("share");
-      setScreenShareBannerHidden(false);
       void live.syncMedia({ sharing: true });
       liveStudioLog("info", "media_publish", {
         kind: "screen_share",
@@ -1094,7 +1120,6 @@ export function HubLivePage({
   const stopShare = useCallback(() => {
     media.stopScreenShare();
     setActivity("live");
-    setScreenShareBannerHidden(false);
     void live.syncMedia({ sharing: false });
     liveStudioLog("info", "media_publish", {
       kind: "screen_share_stop",
@@ -1442,13 +1467,17 @@ export function HubLivePage({
       };
     };
 
+    const visibleRemotes = livekit.remotes.filter(
+      (r) => !isAnonymousLiveIdentity(r.identity)
+    );
+
     const presenceIds = composeLivePresenceIds({
       selfId: live.userId,
-      remotes: livekit.remotes,
+      remotes: visibleRemotes,
       dbParticipants: live.participants,
       connected: livekit.connected,
       lastConnectedIds: lastLivekitPresenceIds.current,
-    });
+    }).filter((id) => !isAnonymousLiveIdentity(id));
 
     if (livekit.connected) {
       lastLivekitPresenceIds.current = new Set(presenceIds);
@@ -1496,7 +1525,12 @@ export function HubLivePage({
     );
     const missingIds = livekit.remotes
       .map((r) => r.identity)
-      .filter((id): id is string => Boolean(id) && !joined.has(id))
+      .filter(
+        (id): id is string =>
+          Boolean(id) &&
+          !joined.has(id) &&
+          !isAnonymousLiveIdentity(id)
+      )
       .sort();
     if (!missingIds.length) {
       livekitHealedKey.current = "";
@@ -2205,17 +2239,20 @@ export function HubLivePage({
     const pendingDb = live.participants.filter(
       (p) => p.status === "requested" || p.status === "invited"
     ).length;
+    const remoteCount = livekit.remotes.filter(
+      (r) => !isAnonymousLiveIdentity(r.identity)
+    ).length;
     // LiveKit-primary while connected — never lag on DB "joined" after a leave.
     return countLivePresence({
       connected: livekit.connected,
       selfId: live.userId,
-      remoteCount: livekit.remotes.length,
+      remoteCount,
       pendingDbCount: pendingDb,
       composedIdCount: peopleList.length,
     });
   }, [
     livekit.connected,
-    livekit.remotes.length,
+    livekit.remotes,
     live.userId,
     live.participants,
     peopleList.length,
@@ -2396,10 +2433,15 @@ export function HubLivePage({
     />
   );
 
-  const showGuestJoin =
-    Boolean(sessionIdProp) && live.authReady && !live.userId;
+  const showRestrictedGuestGate =
+    Boolean(sessionIdProp) &&
+    live.authReady &&
+    !live.userId &&
+    guestPreview &&
+    !guestPreview.canGuestJoin;
 
-  if (showGuestJoin && sessionIdProp) {
+  /* Private / invite-only / ended — full-page gate (no LiveKit preview). */
+  if (showRestrictedGuestGate && sessionIdProp) {
     return (
       <LiveGuestJoinCard
         sessionId={sessionIdProp}
@@ -2410,7 +2452,7 @@ export function HubLivePage({
     );
   }
 
-  if ((!live.authReady && sessionIdProp) || loading) {
+  if ((!live.authReady && sessionIdProp) || (loading && !isAnonymousViewer)) {
     return (
       <div
         className={cn(
@@ -2717,47 +2759,6 @@ export function HubLivePage({
                   </span>
                 </div>
               ) : null}
-              {media.sharing && !screenShareBannerHidden ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-[5.5rem] z-[3] flex justify-center px-3 sm:bottom-24">
-                  <div
-                    className="pointer-events-auto inline-flex max-w-[min(100%,360px)] items-center gap-2 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[12px] font-medium text-white shadow-lg backdrop-blur-md"
-                    role="status"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActivity("share")}
-                      className={cn(
-                        "min-w-0 flex-1 truncate text-left hover:text-white/90",
-                        FOCUS_RING_DARK
-                      )}
-                    >
-                      Sharing your screen
-                    </button>
-                    <button
-                      type="button"
-                      onClick={stopShare}
-                      className={cn(
-                        "shrink-0 rounded-full bg-red-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-red-500",
-                        FOCUS_RING_DARK
-                      )}
-                    >
-                      Stop
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setScreenShareBannerHidden(true)}
-                      aria-label="Hide screen share indicator"
-                      title="Hide indicator (keeps sharing)"
-                      className={cn(
-                        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white",
-                        FOCUS_RING_DARK
-                      )}
-                    >
-                      <X className="h-3.5 w-3.5" aria-hidden />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
@@ -2798,7 +2799,10 @@ export function HubLivePage({
                             Connecting…
                           </p>
                         </div>
-                      ) : livekit.error ? (
+                      ) : livekit.error &&
+                        !/client initiated disconnect|cancelled|aborted/i.test(
+                          livekit.error
+                        ) ? (
                         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center px-6 text-center">
                           <div className="max-w-sm rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
                             <p className="font-medium">Connection issue</p>
@@ -3015,7 +3019,7 @@ export function HubLivePage({
               )}
             </div>
 
-            {hasSession ? (
+            {hasSession && !isAnonymousViewer ? (
               <div className="hidden lg:block">
                 <ControlDock
                   activity={activity}
@@ -3480,8 +3484,12 @@ export function HubLivePage({
 
       <LiveMobileDock
         isHost={isLiveHost && hasSession}
-        canPublish={hasSession && (canUseMic || canUseCam || canUseScreen)}
-        hasSession={hasSession}
+        canPublish={
+          hasSession &&
+          !isAnonymousViewer &&
+          (canUseMic || canUseCam || canUseScreen)
+        }
+        hasSession={hasSession && !isAnonymousViewer}
         micOn={micOn}
         camOn={camOn}
         sharing={media.sharing}
@@ -3614,6 +3622,17 @@ export function HubLivePage({
         onMessaged={(name) => showToast(`Sent to ${name}`)}
         onError={(message) => showToast(message)}
       />
+
+      {isAnonymousViewer && authGateOpen && sessionIdProp ? (
+        <LiveGuestJoinCard
+          sessionId={sessionIdProp}
+          preview={guestPreview}
+          initialError={guestError}
+          loadingPreview={guestPreviewLoading}
+          overlay
+          continueWatching
+        />
+      ) : null}
 
       {toast && (
         <div

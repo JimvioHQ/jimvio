@@ -26,7 +26,14 @@ type TokenResponse = {
   roomName?: string;
   role?: string;
   error?: string;
+  anonymous?: boolean;
 };
+
+function isBenignDisconnect(message: string): boolean {
+  return /client initiated disconnect|connection interrupted|cancelled|aborted/i.test(
+    message
+  );
+}
 
 /**
  * Connects to LiveKit for a Jimvio live session.
@@ -35,6 +42,12 @@ type TokenResponse = {
 export function useLiveKitRoom(opts: {
   sessionId: string | null | undefined;
   enabled?: boolean;
+  /** When true, mint a view-only anonymous preview token. */
+  anonymousPreview?: boolean;
+  /** Wait until auth hydration finishes before requesting an authenticated token. */
+  authReady?: boolean;
+  /** Authenticated Jimvio user id — required for non-preview tokens. */
+  userId?: string | null;
   /** Local AV stream from media plane (camera+mic). */
   localAvStream?: MediaStream | null;
   camOn?: boolean;
@@ -52,6 +65,9 @@ export function useLiveKitRoom(opts: {
   const {
     sessionId,
     enabled = true,
+    anonymousPreview = false,
+    authReady = true,
+    userId = null,
     localAvStream = null,
     camOn = false,
     micOn = false,
@@ -64,6 +80,8 @@ export function useLiveKitRoom(opts: {
 
   const transportRef = useRef<LiveKitRoomTransport | null>(null);
   const [snap, setSnap] = useState<LiveKitRoomSnapshot>(INITIAL);
+  const connectGen = useRef(0);
+  const wasAnonymousRef = useRef(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -77,34 +95,65 @@ export function useLiveKitRoom(opts: {
     };
   }, [enabled]);
 
-  /* Connect when session is live */
+  const fetchToken = useCallback(
+    async (sid: string, anon: boolean): Promise<TokenResponse> => {
+      const path = anon ? "/api/live/token/preview" : "/api/live/token";
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: sid }),
+      });
+      return (await res.json()) as TokenResponse & { status?: number };
+    },
+    []
+  );
+
+  /* Connect when session is live and auth/preview mode is ready */
   useEffect(() => {
     if (!enabled || !sessionId) return;
+    if (!authReady) return;
+    if (!anonymousPreview && !userId) return;
+
     let cancelled = false;
+    const gen = ++connectGen.current;
+    const useAnon = Boolean(anonymousPreview && !userId);
 
     void (async () => {
       try {
-        const res = await fetch("/api/live/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
-        });
-        const json = (await res.json()) as TokenResponse;
-        if (cancelled) return;
-        if (!res.ok || !json.token || !json.url) {
+        const json = await fetchToken(sessionId, useAnon);
+        if (cancelled || gen !== connectGen.current) return;
+        if (!json.token || !json.url) {
+          const err = json.error ?? "Failed to get LiveKit token";
+          if (isBenignDisconnect(err)) return;
           setSnap((s) => ({
             ...s,
-            error: json.error ?? "Failed to get LiveKit token",
+            error: err,
             connecting: false,
           }));
           return;
         }
+        wasAnonymousRef.current = useAnon;
         await transportRef.current?.connect(json.url, json.token);
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled || gen !== connectGen.current) return;
+        const msg = e instanceof Error ? e.message : "LiveKit connect failed";
+        if (isBenignDisconnect(msg)) {
+          // Auth remount / Strict Mode / token handoff — auto-retry once.
+          try {
+            const retry = await fetchToken(sessionId, useAnon);
+            if (cancelled || gen !== connectGen.current) return;
+            if (retry.token && retry.url) {
+              await transportRef.current?.connect(retry.url, retry.token);
+              return;
+            }
+          } catch {
+            /* fall through */
+          }
+          return;
+        }
         setSnap((s) => ({
           ...s,
-          error: e instanceof Error ? e.message : "LiveKit connect failed",
+          error: msg,
           connecting: false,
         }));
       }
@@ -112,21 +161,72 @@ export function useLiveKitRoom(opts: {
 
     return () => {
       cancelled = true;
-      void transportRef.current?.disconnect();
+      // Do not disconnect on every dependency blip — only when effect is truly
+      // superseded (session change / disable). disconnect happens below.
     };
+  }, [enabled, sessionId, authReady, userId, anonymousPreview, fetchToken]);
+
+  /* Tear down when session ends or preview→auth identity changes */
+  useEffect(() => {
+    if (!enabled) {
+      void transportRef.current?.disconnect();
+      return;
+    }
+    if (!sessionId) {
+      void transportRef.current?.disconnect();
+    }
   }, [enabled, sessionId]);
+
+  /* When anonymous preview upgrades to authenticated user, remint + reconnect */
+  useEffect(() => {
+    if (!enabled || !sessionId || !authReady || !userId) return;
+    if (!wasAnonymousRef.current && !anonymousPreview) return;
+    if (anonymousPreview && !userId) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const json = await fetchToken(sessionId, false);
+        if (cancelled || !json.token || !json.url) return;
+        wasAnonymousRef.current = false;
+        await transportRef.current?.connect(json.url, json.token);
+      } catch {
+        /* reconnect() surface remains available */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, sessionId, authReady, userId, anonymousPreview, fetchToken]);
 
   /* Publish local AV — only when connected; re-run after LiveKit reconnect */
   useEffect(() => {
     if (!snap.connected) return;
+    if (anonymousPreview && !userId) return;
     void transportRef.current?.syncLocalAv(localAvStream, { camOn, micOn });
-  }, [localAvStream, camOn, micOn, snap.connected, snap.resyncGeneration]);
+  }, [
+    localAvStream,
+    camOn,
+    micOn,
+    snap.connected,
+    snap.resyncGeneration,
+    anonymousPreview,
+    userId,
+  ]);
 
   /* Publish screen share (+ screen audio) */
   useEffect(() => {
     if (!snap.connected) return;
+    if (anonymousPreview && !userId) return;
     void transportRef.current?.syncScreenShare(shareStream, sharing);
-  }, [shareStream, sharing, snap.connected, snap.resyncGeneration]);
+  }, [
+    shareStream,
+    sharing,
+    snap.connected,
+    snap.resyncGeneration,
+    anonymousPreview,
+    userId,
+  ]);
 
   /* Stage composition: local screen/camera preferred when hosting or while sharing.
      Mic-only must NOT attach an audio MediaStream to the video stage (black tile).
@@ -153,17 +253,17 @@ export function useLiveKitRoom(opts: {
 
   const reconnect = useCallback(async () => {
     if (!sessionId) return;
-    const res = await fetch("/api/live/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId }),
-    });
-    const json = (await res.json()) as TokenResponse;
-    if (!res.ok || !json.token || !json.url) {
+    const useAnon = Boolean(anonymousPreview && !userId);
+    if (!useAnon && !userId) {
+      throw new Error("Sign in to reconnect");
+    }
+    const json = await fetchToken(sessionId, useAnon);
+    if (!json.token || !json.url) {
       throw new Error(json.error ?? "Token failed");
     }
+    wasAnonymousRef.current = useAnon;
     await transportRef.current?.connect(json.url, json.token);
-  }, [sessionId]);
+  }, [sessionId, anonymousPreview, userId, fetchToken]);
 
   const disconnect = useCallback(async () => {
     await transportRef.current?.disconnect();

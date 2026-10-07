@@ -254,11 +254,32 @@ export class LiveKitRoomTransport {
 
     try {
       await room.connect(url, token, { autoSubscribe: true });
+      if (this.disposed || this.room !== room) {
+        try {
+          room.removeAllListeners();
+          await room.disconnect(true);
+        } catch {
+          /* superseded connect */
+        }
+        return;
+      }
       this.connecting = false;
+      this.error = null;
       this.emit();
     } catch (e) {
       this.connecting = false;
-      this.error = e instanceof Error ? e.message : "LiveKit connect failed";
+      if (this.disposed || this.room !== room) {
+        return;
+      }
+      const msg = e instanceof Error ? e.message : "LiveKit connect failed";
+      // Predictable auth/StrictMode/token handoff disconnects — not user-facing errors.
+      if (/client initiated disconnect|cancelled|aborted/i.test(msg)) {
+        this.error = null;
+        this.room = null;
+        this.emit();
+        return;
+      }
+      this.error = msg;
       this.room = null;
       this.emit();
       throw e;

@@ -135,6 +135,21 @@ describe("stage-share-layout", () => {
     assert.equal(layout.activeScreenShareIdentity, "guest-b");
   });
 
+  it("does not promote a speaker camera to main stage without pin or share", () => {
+    const camA = fakeStream("cam-a");
+    const camB = fakeStream("cam-b");
+    const sel = selectStageShareLayout({
+      remotes: [
+        { identity: "host-a", role: "host", screenStream: null, cameraStream: camA },
+        { identity: "guest-b", role: "speaker", screenStream: null, cameraStream: camB },
+      ],
+      hostIdentity: "host-a",
+      preferLocalStage: false,
+    });
+    assert.equal(sel.activeScreenShareIdentity, null);
+    assert.equal(sel.stageStream, camA);
+  });
+
   it("restores host camera stage when screen share stops", () => {
     const hostCam = fakeStream("host-cam");
     const layout = selectStageShareLayout({
