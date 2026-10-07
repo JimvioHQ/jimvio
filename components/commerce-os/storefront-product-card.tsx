@@ -11,6 +11,7 @@ import {
   StorefrontCartGlyph,
   storefrontCardActionClass,
 } from "@/components/commerce-os/storefront-card-chrome";
+import { resolveStockStatus } from "@/lib/marketplace/stock-status";
 
 export type StorefrontProductCardData = {
   id: string;
@@ -63,6 +64,10 @@ export function StorefrontProductCard({
     product.track_inventory === true &&
     typeof product.inventory_quantity === "number" &&
     product.inventory_quantity <= 0;
+  const stockLabel = resolveStockStatus({
+    inventory_quantity: product.inventory_quantity,
+    track_inventory: product.track_inventory,
+  }).label;
   const canAdd = Boolean(storeId && product.vendor_id && !soldOut);
   const storeCurrency = displayCurrency || "USD";
 
@@ -111,7 +116,7 @@ export function StorefrontProductCard({
           ) : null}
           {soldOut ? (
             <span className="absolute right-2 top-2 rounded-md bg-[var(--store-text)]/85 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[var(--store-surface)]">
-              Sold out
+              Out of stock
             </span>
           ) : null}
         </div>
@@ -149,6 +154,11 @@ export function StorefrontProductCard({
                 </p>
               ) : null}
             </div>
+            {stockLabel ? (
+              <p className="mt-1 text-[11px] font-medium text-[var(--store-muted,#6B7280)]">
+                {stockLabel}
+              </p>
+            ) : null}
           </div>
           {canAdd ? (
             <StorefrontCardAddToCart

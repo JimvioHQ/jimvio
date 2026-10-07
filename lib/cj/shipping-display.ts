@@ -1,4 +1,5 @@
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
+import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import type { StorefrontShippingMeta } from "@/lib/shipping/regional-shipping";
 import {
   resolveWarehouseCountryCode,
@@ -46,6 +47,19 @@ export type ProductShippingDisplay = {
   maxDeliveryDays: number | null;
   warehouseCountryCode?: string | null;
 };
+
+/** Customer-facing shipping price. Converts to USD and never prints a source currency code. */
+export function formatCustomerShippingCost(
+  fee: number | null | undefined,
+  currency: string | null | undefined,
+  isFree: boolean,
+): string {
+  if (isFree) return "Free";
+  const amount = Number(fee);
+  if (fee == null || !Number.isFinite(amount)) return "Calculated at checkout";
+  if (!currency || !String(currency).trim()) return "Calculated at checkout";
+  return formatMoneyAsUSD(amount, currency);
+}
 
 function formatDayRange(min?: number | null, max?: number | null): string | null {
   if (min != null && max != null && min > 0 && max > 0) {
@@ -112,6 +126,20 @@ export function resolveWarehouseFlagCountry(
   });
 }
 
+/** True when the label is the empty-metadata day range, not a sourced window. */
+export function isUnsourcedDeliveryEstimate(display: {
+  deliveryEstimate?: string | null;
+  minDeliveryDays?: number | null;
+  maxDeliveryDays?: number | null;
+}): boolean {
+  const fallback = defaultDeliveryRange({});
+  return (
+    display.deliveryEstimate === fallback.label &&
+    display.minDeliveryDays === fallback.minDays &&
+    display.maxDeliveryDays === fallback.maxDays
+  );
+}
+
 function defaultDeliveryRange(meta: StorefrontShippingMeta): {
   minDays: number;
   maxDays: number;
@@ -175,12 +203,11 @@ export function resolveStorefrontShippingDisplay(
       : null;
 
   const free = isFreeShipping || Boolean(meta.isFreeShipping ?? best?.is_free_shipping);
-  let shippingCost = "Calculated at checkout";
-  if (free) {
-    shippingCost = "Free";
-  } else if (best?.shipping_fee != null && best.currency) {
-    shippingCost = `${best.currency} ${best.shipping_fee.toFixed(2)}`;
-  }
+  const shippingCost = formatCustomerShippingCost(
+    best?.shipping_fee,
+    best?.currency,
+    free,
+  );
 
   const rawMethod = best?.method_name ?? best?.carrier ?? displayOption?.method_name ?? displayOption?.carrier ?? null;
 
@@ -239,12 +266,11 @@ export function resolveProductShippingDisplay(
   const processingTime = formatProcessingTime(meta.cj_delivery_cycle);
 
   const free = isFreeShipping || Boolean(best?.is_free_shipping);
-  let shippingCost = "Calculated at checkout";
-  if (free) {
-    shippingCost = "Free";
-  } else if (best?.shipping_fee != null && best.currency) {
-    shippingCost = `${best.currency} ${best.shipping_fee.toFixed(2)}`;
-  }
+  const shippingCost = formatCustomerShippingCost(
+    best?.shipping_fee,
+    best?.currency,
+    free,
+  );
 
   const rawMethod = best?.method_name ?? best?.carrier ?? null;
   const fallbackDelivery = defaultDeliveryRange({

@@ -17,7 +17,6 @@ import { SellToStoreButton } from "@/components/commerce-os/sell-to-store-button
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ProductQA, ProductAiSummary } from "@/components/marketplace/product-qa";
-import { StickyPurchaseCard } from "@/components/marketplace/sticky-purchase-card";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
 import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
 import { resolveProductVideoUrls } from "@/lib/product-videos";
@@ -26,7 +25,7 @@ import {
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
 import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
-import { formatFollowersLabel, formatFollowerCount, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
+import { formatFollowersLabel, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -37,6 +36,8 @@ import {
   getCJTitle, parseCJSpecifications, formatCJWeight,
 } from "@/lib/cj/render";
 import {
+  formatCustomerShippingCost,
+  isUnsourcedDeliveryEstimate,
   type ProductShippingDisplay,
 } from "@/lib/cj/shipping-display";
 import {
@@ -49,7 +50,7 @@ import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
 import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
 import {
   isPurchaseBlockedByStock,
-  shouldHideStockQuantity,
+  resolveStockStatus,
 } from "@/lib/marketplace/stock-status";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -340,7 +341,9 @@ function ShippingOptionsTable({ options }: { options: RegionalShippingOption[] }
             )}
           </div>
           <div className="text-right">
-            {opt.is_free_shipping ? <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">Free</span> : <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.currency} {opt.shipping_fee.toFixed(2)}</span>}
+            <span className={cn("text-[12px] font-semibold text-[var(--color-text-primary)]", opt.is_free_shipping && "font-bold text-emerald-600 dark:text-emerald-400")}>
+              {formatCustomerShippingCost(opt.shipping_fee, opt.currency, Boolean(opt.is_free_shipping))}
+            </span>
           </div>
         </div>
       ))}
@@ -350,23 +353,22 @@ function ShippingOptionsTable({ options }: { options: RegionalShippingOption[] }
 
 function ShippingInfoFallback({ display }: { display: ProductShippingDisplay }) {
   const shipsFrom = display.shipsFrom || "International";
-  const delivery =
-    display.deliveryEstimate && display.deliveryEstimate !== "—"
-      ? display.deliveryEstimate
-      : "10–20 business days";
-
   const rows = [
     { icon: MapPin, label: "Ships from", value: shipsFrom },
     ...(display.processingTime
       ? [{ icon: Timer, label: "Processing time", value: display.processingTime }]
       : []),
-    { icon: Truck, label: "Est. delivery", value: delivery },
+    ...(display.minDeliveryDays != null &&
+    display.maxDeliveryDays != null &&
+    display.deliveryEstimate &&
+    display.deliveryEstimate !== "—" &&
+    !isUnsourcedDeliveryEstimate(display)
+      ? [{ icon: Truck, label: "Est. delivery", value: display.deliveryEstimate }]
+      : []),
     { icon: Package, label: "Shipping cost", value: display.shippingCost },
-    {
-      icon: Globe,
-      label: "Tracking",
-      value: display.hasTracking ? "Full tracking included" : "Limited tracking",
-    },
+    ...(display.hasTracking
+      ? [{ icon: Globe, label: "Tracking", value: "Full tracking included" }]
+      : []),
   ];
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
@@ -549,20 +551,26 @@ function ShippingInfoCard({
   loading?: boolean;
 }) {
   const bestOption = shippingOptions.find((o) => o.is_recommended) ?? shippingOptions[0] ?? null;
-  const today = new Date();
-  const minDays = display.minDeliveryDays ?? bestOption?.min_delivery_days ?? 10;
-  const maxDays = display.maxDeliveryDays ?? bestOption?.max_delivery_days ?? 20;
-  const minDate = new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000);
-  const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
-  const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const sourcedMin = bestOption?.min_delivery_days ?? null;
+  const sourcedMax = bestOption?.max_delivery_days ?? null;
   const fromCountry = display.warehouseCountryCode ?? bestOption?.ship_from_country ?? "";
   const flag = fromCountry ? (COUNTRY_FLAGS[fromCountry] ?? "🌍") : "🌍";
   const isFree = isFreeShipping || (bestOption?.is_free_shipping ?? false);
   const shipsFromText = display.shipsFrom || "International";
-  const deliveryText =
-    display.deliveryEstimate && display.deliveryEstimate !== "—"
-      ? display.deliveryEstimate
-      : `${minDays}–${maxDays} business days`;
+  const hasSourcedWindow = sourcedMin != null && sourcedMax != null && sourcedMin > 0 && sourcedMax > 0;
+  const sourcedEstimate = bestOption?.estimated_delivery?.trim() || "";
+  const deliveryText = sourcedEstimate && sourcedEstimate !== "—" ? sourcedEstimate : null;
+  const sourcedWindowLabel =
+    hasSourcedWindow && sourcedMin === sourcedMax
+      ? `${sourcedMin} business day${sourcedMin === 1 ? "" : "s"}`
+      : hasSourcedWindow
+        ? `${sourcedMin}–${sourcedMax} business days`
+        : null;
+  const deliveryValue = loading
+    ? "Loading…"
+    : deliveryText ?? sourcedWindowLabel ?? "Calculated at checkout";
+  const rawMethod = bestOption?.method_name?.trim() || bestOption?.carrier?.trim() || "";
+  const methodName = rawMethod ? sanitizeShippingMethodName(rawMethod) : "";
 
   const rows: { label: string; value: React.ReactNode }[] = [
     {
@@ -579,10 +587,7 @@ function ShippingInfoCard({
       value: (
         <div className="text-right">
           <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-            {loading ? "Loading…" : `${fmtDate(minDate)} – ${fmtDate(maxDate)}`}
-          </p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">
-            {loading ? "Updating for your region" : deliveryText}
+            {deliveryValue}
           </p>
         </div>
       ),
@@ -600,21 +605,27 @@ function ShippingInfoCard({
     });
   }
 
-  rows.push(
-    {
+  if (methodName) {
+    rows.push({
       label: "Shipping Method",
       value: (
         <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {display.methodName ?? sanitizeShippingMethodName(bestOption?.method_name) ?? "Standard Shipping"}
+          {methodName}
         </span>
       ),
-    },
+    });
+  }
+
+  rows.push(
     {
       label: "Shipping Cost",
-      value: isFree ? (
-        <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">$0.00</span>
-      ) : (
-        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+      value: (
+        <span
+          className={cn(
+            "text-[13px] font-semibold text-[var(--color-text-primary)]",
+            isFree && "font-bold text-emerald-600 dark:text-emerald-400",
+          )}
+        >
           {display.shippingCost}
         </span>
       ),
@@ -642,7 +653,7 @@ function ShippingInfoCard({
       {isFree && (
         <div className="px-5 py-2" style={{ background: "rgba(16,185,129,0.06)", borderTop: "1px solid rgba(16,185,129,0.2)" }}>
           <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-            ✓ Free shipping on orders over $50
+            ✓ Free shipping
           </p>
         </div>
       )}
@@ -758,41 +769,6 @@ function OrderTrackingCard() {
         <Link href="/help" className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
           View details <ArrowRight className="h-3 w-3" />
         </Link>
-      </div>
-    </div>
-  );
-}
-
-// ─── Why Choose Section ───────────────────────────────────────────────────────
-
-function WhyChooseSection({ vendor, product }: { vendor?: any; product?: any }) {
-  const rating = Number(product?.rating ?? vendor?.rating ?? 0);
-  const orders = vendor?.total_sales ?? product?.sale_count ?? 0;
-  const positiveRate = vendor?.positive_rate ?? null;
-
-  const stats = [
-    { value: orders > 0 ? (orders >= 1000 ? `${(orders / 1000).toFixed(1)}K` : orders.toString()) : "—", label: "Orders" },
-    { value: formatFollowerCount(storefrontFollowerCount(vendor)), label: "Followers" },
-    { value: rating > 0 ? rating.toFixed(1) : "—", label: "Rating", isRating: rating > 0 },
-    { value: positiveRate !== null ? `${positiveRate}%` : "—", label: "Positive Rate" },
-  ];
-  const brandName = vendor?.business_name ?? product?.brand ?? "Seller";
-
-  return (
-    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
-      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
-        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Why Choose {brandName}?</p>
-      </div>
-      <div className="grid grid-cols-4 divide-x divide-[var(--color-border)] py-4">
-        {stats.map(({ value, label, isRating }) => (
-          <div key={label} className="flex flex-col items-center gap-1 px-2">
-            <div className="flex items-center gap-0.5">
-              <p className="text-[15px] font-bold text-orange-600 tabular-nums">{value}</p>
-              {isRating && <Star className="h-3 w-3 fill-amber-400 text-amber-400 mb-0.5" />}
-            </div>
-            <p className="text-[9px] text-[var(--color-text-muted)] text-center leading-tight">{label}</p>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -961,21 +937,53 @@ function commonPrefixLength(names: string[]): number {
   return len;
 }
 
-function VariantsTable({ variants, currency, showDiscount }: { variants: ProductVariant[]; productName: string; currency?: string | null; showDiscount?: boolean }) {
+function VariantsTable({
+  variants,
+  currency,
+  showDiscount,
+  formatMoney,
+  trackInventory,
+  lowStockThreshold,
+}: {
+  variants: ProductVariant[];
+  productName: string;
+  currency?: string | null;
+  showDiscount?: boolean;
+  formatMoney: (price: number, currency: string, displayCurrency?: string) => string;
+  trackInventory: boolean;
+  lowStockThreshold?: number | null;
+}) {
   const names = variants.map((v) => v.name ?? "");
   const prefixLen = commonPrefixLength(names);
+  const headers = ["Variant", "SKU", "Price", "Stock"];
   return (
-    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-md" style={{ border: "1px solid var(--color-border)" }}>
+      <table className="w-full min-w-[520px] text-sm">
         <thead>
           <tr style={{ background: "var(--color-surface-secondary)", borderBottom: "1px solid var(--color-border)" }}>
-            {["Variant", "Price", "Stock"].map((h, i) => <th key={h} className={cn("px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]", i === 0 ? "text-left" : "text-right")}>{h}</th>)}
+            {headers.map((h, i) => (
+              <th
+                key={h}
+                className={cn(
+                  "px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]",
+                  i === 0 ? "text-left" : "text-right",
+                )}
+              >
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {variants.map((v, i) => {
             const words = (v.name ?? "").split(" ");
             const label = words.slice(prefixLen).join(" ").trim() || v.name;
+            const sku = v.sku?.trim() ? v.sku : "Not available";
+            const stock = resolveStockStatus({
+              inventory_quantity: v.inventory_quantity,
+              track_inventory: trackInventory,
+              low_stock_threshold: lowStockThreshold,
+            });
             return (
               <tr key={v.id} style={{ background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)", borderBottom: i < variants.length - 1 ? "1px solid var(--color-border)" : "none" }}>
                 <td className="px-4 py-3 text-[13px] font-medium text-[var(--color-text-primary)]">
@@ -984,12 +992,17 @@ function VariantsTable({ variants, currency, showDiscount }: { variants: Product
                     {label}
                   </div>
                 </td>
+                <td className="px-4 py-3 text-right font-mono text-[12px] text-[var(--color-text-secondary)]">{sku}</td>
                 <td className="px-4 py-3 text-right text-[13px] font-semibold text-[var(--color-text-primary)]">
-                  {currency} {v.price.toLocaleString()}
-                  {showDiscount && v.compare_at_price && v.compare_at_price > v.price && <span className="text-[10px] text-[var(--color-text-muted)] line-through ml-1">{currency} {v.compare_at_price.toLocaleString()}</span>}
+                  {formatMoney(v.price, currency ?? "USD", "USD")}
+                  {showDiscount && v.compare_at_price && v.compare_at_price > v.price && (
+                    <span className="ml-1 text-[10px] text-[var(--color-text-muted)] line-through">
+                      {formatMoney(v.compare_at_price, currency ?? "USD", "USD")}
+                    </span>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  {v.inventory_quantity <= 5 ? <span className="text-[11px] font-semibold text-amber-500">{v.inventory_quantity} left</span> : <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">In stock</span>}
+                <td className="px-4 py-3 text-right text-[12px] font-semibold text-[var(--color-text-primary)]">
+                  {stock.label || "—"}
                 </td>
               </tr>
             );
@@ -1026,13 +1039,13 @@ function ReviewBreakdown({ rating, reviewCount, breakdown }: { rating: number; r
   );
 }
 
-function MobileStickyBuyBar({ price, compareAtPrice, currency, savings, outOfStock, onBuyClick }: { price: number; compareAtPrice: number | null; currency: string; savings: number | null; outOfStock: boolean; onBuyClick: () => void }) {
+function MobileStickyBuyBar({ priceLabel, compareLabel, savings, outOfStock, onBuyClick }: { priceLabel: string; compareLabel: string | null; savings: number | null; outOfStock: boolean; onBuyClick: () => void }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-extrabold tracking-[-0.02em] text-[var(--color-accent)]">{currency} {price.toLocaleString()}</span>
-          {compareAtPrice && compareAtPrice > price && <span className="text-[11px] text-[var(--color-text-muted)] line-through">{currency} {compareAtPrice.toLocaleString()}</span>}
+          <span className="text-lg font-extrabold tracking-[-0.02em] text-[var(--color-accent)]">{priceLabel}</span>
+          {compareLabel ? <span className="text-[11px] text-[var(--color-text-muted)] line-through">{compareLabel}</span> : null}
         </div>
         {savings !== null && savings > 0 && <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">You save {savings}%</p>}
       </div>
@@ -1091,7 +1104,10 @@ export function PhysicalProductDetail({
           name: v.name ?? "",
           price: Number(v.price),
           compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
-          inventory_quantity: v.inventory_quantity ?? 0,
+          inventory_quantity:
+            v.inventory_quantity == null || !Number.isFinite(Number(v.inventory_quantity))
+              ? null
+              : Math.max(0, Math.floor(Number(v.inventory_quantity))),
           image_url: v.image_url ?? null,
           options:
             v.options && typeof v.options === "object" && !Array.isArray(v.options)
@@ -1140,13 +1156,16 @@ export function PhysicalProductDetail({
   };
   const activeCompareAt = getEffectiveCompareAtPrice(productDiscountFields);
   const showProductDiscount = hasRealProductDiscount(productDiscountFields);
-  const activeInventory = selectedVariant?.inventory_quantity ?? product.inventory_quantity ?? 0;
+  const activeInventory = selectedVariant
+    ? selectedVariant.inventory_quantity
+    : product.inventory_quantity ?? null;
+  const activeSku = String(selectedVariant?.sku || product.sku || "").trim();
   const stockInput = {
     inventory_quantity: activeInventory,
     track_inventory: trackInventory,
     allow_backorder: Boolean((product as any).allow_backorder),
     low_stock_threshold: (product as any).low_stock_threshold ?? null,
-    hideQuantity: shouldHideStockQuantity(product),
+    hideQuantity: false,
   };
   const isOutOfStock = isPurchaseBlockedByStock(stockInput);
 
@@ -1205,7 +1224,10 @@ export function PhysicalProductDetail({
     if (vwt) variantDimensions.push({ label: "Variant weight", value: `${vwt} g` });
     const extras = [
       { label: "Ships from", value: shippingDisplay.shipsFrom },
-      { label: "Est. delivery", value: shippingDisplay.deliveryEstimate },
+      {
+        label: "Est. delivery",
+        value: isUnsourcedDeliveryEstimate(shippingDisplay) ? "—" : shippingDisplay.deliveryEstimate,
+      },
       { label: "Weight", value: weightDisplay || "—" }, { label: "SKU", value: product.sku || "—" },
       { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" }, { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
       { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: product.condition ?? "—" },
@@ -1268,29 +1290,24 @@ export function PhysicalProductDetail({
         <div className="mx-auto flex h-11 min-w-0 max-w-[1440px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <ProductBreadcrumb productName={title} />
           <div className="shrink-0">
-            <SaveShareBar />
+            <SaveShareBar
+              product={{
+                id: product.id,
+                slug: product.slug,
+                name: title,
+                price: activePrice,
+                currency: product.currency,
+                affiliateEnabled: Boolean(product.affiliate_enabled),
+                affiliateCommissionRate: product.affiliate_commission_rate ?? null,
+              }}
+            />
           </div>
         </div>
       </div>
 
       <div className="mx-auto min-w-0 max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
-
-          {/* ════════════ COLUMN A: main (9 cols) ════════════ */}
-          <div className="min-w-0 space-y-6 lg:col-span-9">
-
-            {/* ── Top row: 3 sub-columns ── */}
-            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
-
-              {/* Sub-col 1: Gallery (3 of 12) */}
-              <section className="min-w-0 space-y-3 lg:col-span-7">
-                <ProductTitleBadges
-                  vendor={vendor}
-                  product={product}
-                  isFreeShipping={isFreeShipping}
-                  showFastShippingBadge={isFreeShipping || Boolean(shippingDisplay?.deliveryEstimate)}
-                  variant="physical"
-                />
+        <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-12 xl:gap-8">
+              <section className="min-w-0 lg:col-span-7">
                 <ImageGallery
                   images={activeImages}
                   videos={productVideos}
@@ -1300,9 +1317,15 @@ export function PhysicalProductDetail({
                   thumbnailsPosition="bottom"
                 />
               </section>
-              {/* Sub-col 2: Product info + buy box (6 of 12) */}
               <section className="min-w-0 space-y-4 lg:col-span-5">
                 <div>
+                  <ProductTitleBadges
+                    vendor={vendor}
+                    product={product}
+                    isFreeShipping={isFreeShipping}
+                    showFastShippingBadge={isFreeShipping || Boolean(shippingDisplay?.deliveryEstimate)}
+                    variant="physical"
+                  />
                   {/* Title */}
                   <h1 className="break-words text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
                     {title}
@@ -1310,6 +1333,11 @@ export function PhysicalProductDetail({
 
                   <div className="mt-2">
                     <StockStatusBadge input={stockInput} />
+                    {activeSku ? (
+                      <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+                        SKU <span className="font-semibold text-[var(--color-text-primary)]">{activeSku}</span>
+                      </p>
+                    ) : null}
                   </div>
 
                   {/* Price */}
@@ -1396,9 +1424,9 @@ export function PhysicalProductDetail({
                     </div>
                   </div>
 
-                  {/* Mobile-only: shipping + buyer protection */}
-                  <div className="mt-4 space-y-4 lg:hidden">
+                  <div className="mt-4 space-y-4">
                     {shippingCards}
+                    <CompactBuyerProtectionCard />
                   </div>
 
                   {/* 4-badge trust row */}
@@ -1422,10 +1450,9 @@ export function PhysicalProductDetail({
                   </div>
                 </div>
               </section>
-            </div>
+        </div>
 
-            {/* ── Bottom row: Tabs + cross-sell (spans full 9-col width) ── */}
-            <div className="space-y-10">
+        <div className="mt-8 space-y-10">
               {/* Tabs */}
               <div className="rounded-md overflow-hidden"
                 style={{
@@ -1584,7 +1611,15 @@ export function PhysicalProductDetail({
 
                   {/* Variants tab */}
                   {activeTab === "variants" && hasVariants && (
-                    <VariantsTable variants={variants} productName={product.name} currency={product.currency} showDiscount={showProductDiscount} />
+                    <VariantsTable
+                      variants={variants}
+                      productName={product.name}
+                      currency={product.currency}
+                      showDiscount={showProductDiscount}
+                      formatMoney={formatMoney}
+                      trackInventory={trackInventory}
+                      lowStockThreshold={(product as any).low_stock_threshold ?? null}
+                    />
                   )}
 
                   {/* Reviews tab */}
@@ -1693,30 +1728,14 @@ export function PhysicalProductDetail({
             <AffiliateBanner product={product} />
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
-          </div>
-          <aside className="hidden min-w-0 lg:col-span-3 lg:block">
-            <div className="space-y-4">
-              <StickyPurchaseCard
-                product={productProps}
-                vendor={vendorProps}
-                currentPath={`/marketplace/${product.slug}`}
-                activePrice={activePrice}
-                compareAt={activeCompareAt}
-                selectedVariantId={selectedVariant?.id ?? null}
-                selectedVariantOutOfStock={isOutOfStock}
-                requiresVariantSelection={needsVariantSelection}
-              />
-              {shippingCards}
-              <CompactBuyerProtectionCard />
-              <WhyChooseSection vendor={vendor} product={product} />
-            </div>
-          </aside>
         </div>
-      </div>
       <MobileStickyBuyBar
-        price={activePrice}
-        compareAtPrice={activeCompareAt}
-        currency={product.currency}
+        priceLabel={formatMoney(activePrice, product.currency, "USD")}
+        compareLabel={
+          activeCompareAt && activeCompareAt > activePrice
+            ? formatMoney(activeCompareAt, product.currency, "USD")
+            : null
+        }
         savings={savings}
         outOfStock={isOutOfStock}
         onBuyClick={() => buyBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}

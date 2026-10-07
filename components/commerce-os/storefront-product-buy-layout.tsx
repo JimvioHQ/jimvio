@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StorefrontProductGallery } from "@/components/commerce-os/storefront-product-gallery";
 import { StorefrontAddToCartButton } from "@/components/commerce-os/storefront-add-to-cart";
 import { formatStorefrontMoney, salePercent } from "@/lib/commerce-os/storefront/money";
+import { resolveStockStatus } from "@/lib/marketplace/stock-status";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import Link from "next/link";
 
@@ -58,6 +59,11 @@ export function StorefrontProductBuyLayout({
     product.track_inventory !== true ||
     (typeof product.inventory_quantity === "number" &&
       product.inventory_quantity > 0);
+  const stock = resolveStockStatus({
+    inventory_quantity: product.inventory_quantity,
+    track_inventory: product.track_inventory,
+  });
+  const stockLabel = stock.label || (inStock ? "In stock" : "Out of stock");
   const short =
     product.short_description?.trim() &&
     product.short_description.trim().toLowerCase() !==
@@ -112,13 +118,7 @@ export function StorefrontProductBuyLayout({
             }`}
             aria-hidden
           />
-          {inStock
-            ? product.track_inventory === true &&
-              typeof product.inventory_quantity === "number" &&
-              product.inventory_quantity <= 99
-              ? `In stock — ${product.inventory_quantity} left`
-              : "In stock"
-            : "Sold out"}
+          {stockLabel}
         </p>
 
         {short ? (

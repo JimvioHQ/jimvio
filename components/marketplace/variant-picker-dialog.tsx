@@ -767,6 +767,7 @@ import { LocalizedPrice } from "@/components/currency/localized-price";
 import { cn, isRenderableImageSrc, getEffectiveCompareAtPrice, getProductDiscountPercent, type ProductDiscountFields } from "@/lib/utils";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { sanitizeVariantOptions } from "@/lib/products/variant-option-values";
+import { resolveStockStatus } from "@/lib/marketplace/stock-status";
 
 /* ──────────────────────────────────────────────
    Types
@@ -1466,21 +1467,17 @@ export function VariantPickerDialog({
                           Out of stock for this combination
                         </p>
                       </>
-                    ) : isLowStock ? (
+                    ) : resolvedVariant.inventory_quantity != null ? (
                       <>
-                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: "#f59e0b" }} />
-                        <p className="text-[12px] font-medium" style={{ color: "#92400e" }}>
-                          Only {resolvedVariant.inventory_quantity} left — order soon
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: "#22c55e" }} />
+                        <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: isLowStock ? "#f59e0b" : "#22c55e" }} />
                         <p className="text-[12px] font-medium" style={{ color: "var(--color-text-muted)" }}>
-                          In stock and ready to ship
+                          {resolveStockStatus({
+                            inventory_quantity: resolvedVariant.inventory_quantity,
+                            track_inventory: true,
+                          }).label}
                         </p>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               )}

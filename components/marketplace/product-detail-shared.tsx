@@ -6,12 +6,11 @@ import {
     Star, TrendingUp, ThumbsUp, CheckCircle2,
     ChevronRight, ChevronDown, Users,
     Share2, Heart, BadgeCheck, Globe,
-    Package, Zap, ShoppingBag,
+    Package, Zap,
     ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { Product, Vendor } from "@/types/db";
 import { CurrencyCode } from "@/lib/currency/config";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
@@ -24,7 +23,11 @@ import {
   toPlatformUsd,
 } from "@/lib/currency/platform";
 import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
-import { isDropshipEligible, shouldHideStockQuantity } from "@/lib/marketplace/stock-status";
+import { isDropshipEligible } from "@/lib/marketplace/stock-status";
+import {
+  ProductShareDialog,
+  type ShareProductTarget,
+} from "@/components/marketplace/product-share-dialog";
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -212,15 +215,13 @@ export function ProductBreadcrumb({ productName }: { productName: string }) {
 
 // ─── Save / Share bar ─────────────────────────────────────────────────────────
 
-export function SaveShareBar() {
+export function SaveShareBar({ product }: { product?: ShareProductTarget }) {
     const [saved, setSaved] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-    function handleShare() {
-        navigator.clipboard.writeText(window.location.href)
-            .then(() => { setCopied(true); toast.success("Link copied"); setTimeout(() => setCopied(false), 2000); })
-            .catch(() => toast.error("Could not copy link"));
-    }
+    const [earnIntent] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return new URLSearchParams(window.location.search).get("share") === "earn";
+    });
+    const [shareOpen, setShareOpen] = useState(earnIntent);
 
     return (
         <div className="flex items-center gap-2">
@@ -242,17 +243,23 @@ export function SaveShareBar() {
             </button>
             <button
                 type="button"
-                onClick={handleShare}
-                aria-label={copied ? "Link copied" : "Share product"}
+                onClick={() => setShareOpen(true)}
+                aria-label="Share product"
                 className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-[transform,background-color,border-color] duration-200",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
                     "hover:scale-[1.03] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] active:scale-[0.97]",
-                    copied && "border-emerald-300 text-emerald-600 dark:border-emerald-500/30 dark:text-emerald-400",
                 )}
             >
-                {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                <Share2 className="h-3.5 w-3.5" />
             </button>
+            {shareOpen && product ? (
+                <ProductShareDialog
+                    product={product}
+                    startOnEarn={earnIntent}
+                    onClose={() => setShareOpen(false)}
+                />
+            ) : null}
         </div>
     );
 }
@@ -638,12 +645,7 @@ export function RelatedProducts({
                 </Link>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-                {products.slice(0, 8).map(rp => {
-                    const commissionRate =
-                      rp.affiliate_enabled && Number(rp.affiliate_commission_rate) > 0
-                        ? Number(rp.affiliate_commission_rate)
-                        : null;
-                    return (
+                {products.slice(0, 8).map(rp => (
                     <div
                         key={rp.id}
                         className={cn(
@@ -656,11 +658,6 @@ export function RelatedProducts({
                           href={`/marketplace/${rp.slug}`}
                           className="relative aspect-square overflow-hidden bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
                         >
-                            {isDropshipEligible(rp) && (
-                              <span className="absolute left-2 top-2 z-10 rounded-md bg-violet-600/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                                Dropship
-                              </span>
-                            )}
                             {rp.images?.[0] ? (
                                 <img
                                     src={rp.images[0]}
@@ -691,28 +688,17 @@ export function RelatedProducts({
                                 inventory_quantity: rp.inventory_quantity,
                                 track_inventory: rp.track_inventory,
                                 low_stock_threshold: rp.low_stock_threshold,
-                                hideQuantity: shouldHideStockQuantity(rp),
                               }}
                             />
-                            {commissionRate != null && (
-                                <span
-                                    className="inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold"
-                                    style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)" }}
-                                >
-                                    ↗ {commissionRate}% commission
-                                </span>
-                            )}
                             <Link
                               href={`/marketplace/${rp.slug}`}
-                              className="mt-auto inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-3 text-[11px] font-semibold text-[var(--color-surface)] transition-opacity hover:opacity-90"
+                              className="mt-auto inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
                             >
-                              <ShoppingBag className="h-3 w-3" />
                               View product
                             </Link>
                         </div>
                     </div>
-                    );
-                })}
+                ))}
             </div>
         </div>
     );

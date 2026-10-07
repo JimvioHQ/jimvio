@@ -8,6 +8,7 @@ import { X, Star, ShoppingCart, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LocalizedPrice } from "@/components/currency/localized-price";
+import { resolveStockStatus } from "@/lib/marketplace/stock-status";
 
 export type ProductPopupProduct = {
   id?: string;
@@ -41,8 +42,11 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
   if (!open) return null;
 
   const imgSrc = Array.isArray(product.images) && product.images[0] ? product.images[0] : null;
-  const rating = product.rating ?? 4.5;
-  const inStock = (product.inventory_quantity ?? 1) > 0;
+  const rating = product.rating ?? 0;
+  const stock = resolveStockStatus({
+    inventory_quantity: product.inventory_quantity,
+    track_inventory: product.inventory_quantity != null,
+  });
   const productUrl = product.slug ? `/marketplace/${product.slug}` : "/marketplace";
   const storeUrl = vendor?.business_slug ? `/vendors/${vendor.business_slug}` : "/marketplace";
 
@@ -108,13 +112,13 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
               </Link>
             </p>
           )}
-          <p className="text-xs text-[#9ca3af]">
-            {inStock ? (
-              <span className="text-green-600 font-semibold">In stock</span>
-            ) : (
-              <span className="text-red-600 font-semibold">Out of stock</span>
-            )}
-          </p>
+          {stock.label ? (
+            <p className="text-xs text-[#9ca3af]">
+              <span className={stock.status === "out_of_stock" ? "font-semibold text-red-600" : "font-semibold text-green-600"}>
+                {stock.label}
+              </span>
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-2 pt-2">
             <Link href={`${productUrl}?buy=1`} onClick={onClose}>

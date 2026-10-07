@@ -3,6 +3,7 @@
 import React, { useMemo, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
+import { resolveStockStatus } from "@/lib/marketplace/stock-status";
 import {
     isInvalidOptionLabel,
     sanitizeOptionValue,
@@ -25,7 +26,7 @@ export interface ProductVariant {
     name: string;
     price: number;
     compare_at_price?: number | null;
-    inventory_quantity: number;
+    inventory_quantity: number | null;
     image_url?: string | null;
     options?: Record<string, string> | null;
     is_active: boolean;
@@ -878,30 +879,27 @@ function ColorSwatch({
 
 // ─── Stock badge ──────────────────────────────────────────────────────────────
 
-export function VariantStockBadge({ quantity }: { quantity: number }) {
-    if (quantity <= 0) {
-        return (
-            <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 shrink-0" />
-                Out of stock
-            </p>
-        );
-    }
-    if (quantity <= 5) {
-        return (
-            <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                <span className="relative flex h-1.5 w-1.5 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
-                </span>
-                Only {quantity} left in stock
-            </p>
-        );
-    }
+export function VariantStockBadge({ quantity }: { quantity: number | null }) {
+    const stock = resolveStockStatus({
+        inventory_quantity: quantity,
+        track_inventory: true,
+    });
+    const tone =
+        stock.status === "out_of_stock"
+            ? "text-rose-600 dark:text-rose-400"
+            : stock.status === "low_stock"
+                ? "text-amber-700 dark:text-amber-400"
+                : "text-emerald-700 dark:text-emerald-400";
+    const dot =
+        stock.status === "out_of_stock"
+            ? "bg-rose-500"
+            : stock.status === "low_stock"
+                ? "bg-amber-500"
+                : "bg-emerald-500";
     return (
-        <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-            In stock
+        <p className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium", tone)}>
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dot)} />
+            {stock.label}
         </p>
     );
 }

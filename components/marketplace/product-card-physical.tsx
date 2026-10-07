@@ -24,7 +24,6 @@ import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
 import {
   isDropshipEligible,
   isPurchaseBlockedByStock,
-  shouldHideStockQuantity,
 } from "@/lib/marketplace/stock-status";
 import {
   resolveCommissionRatePercent,
@@ -87,7 +86,7 @@ export function ProductCardPhysical({
     allow_backorder: (p as any).allow_backorder,
     low_stock_threshold: (p as any).low_stock_threshold,
     in_stock: (p as any).in_stock,
-    hideQuantity: shouldHideStockQuantity(p),
+    hideQuantity: false,
   };
   const outOfStock = isPurchaseBlockedByStock(stockInput);
   const showDropship = isDropshipEligible(p);

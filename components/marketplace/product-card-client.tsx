@@ -29,7 +29,6 @@ import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
 import {
   isDropshipEligible,
   isPurchaseBlockedByStock,
-  shouldHideStockQuantity,
 } from "@/lib/marketplace/stock-status";
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -123,7 +122,7 @@ export function ProductCardClient({
     track_inventory: (p as any).track_inventory,
     allow_backorder: (p as any).allow_backorder,
     low_stock_threshold: (p as any).low_stock_threshold,
-    hideQuantity: shouldHideStockQuantity(p),
+    hideQuantity: false,
   };
   const outOfStock = isPurchaseBlockedByStock(stockInput);
   const showDropship = isDropshipEligible(p);
@@ -483,7 +482,7 @@ export function ProductCardClient({
           currency: p.currency,
           images: p.images ?? null,
           rating: p.rating ?? null,
-          inventory_quantity: undefined,
+          inventory_quantity: p.inventory_quantity ?? null,
         }}
         vendor={
           p.vendors

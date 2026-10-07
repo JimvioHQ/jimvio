@@ -1290,7 +1290,17 @@ export function DigitalProductDetail({
         <div className="mx-auto flex h-11 min-w-0 max-w-[1440px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <ProductBreadcrumb productName={product.name} />
           <div className="shrink-0">
-            <SaveShareBar />
+            <SaveShareBar
+              product={{
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                price: Number(product.price ?? 0),
+                currency: product.currency,
+                affiliateEnabled: Boolean(product.affiliate_enabled),
+                affiliateCommissionRate: product.affiliate_commission_rate ?? null,
+              }}
+            />
           </div>
         </div>
       </div>
