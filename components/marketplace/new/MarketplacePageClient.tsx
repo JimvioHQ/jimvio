@@ -325,14 +325,15 @@ export function MarketplacePageClient({
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
     dedupeProductsByIdentity(startingBundle.flashDeals),
   );
+  // When landing with ?q=, do not paint SSR browse products as fake "results"
   const [trending, setTrending] = useState<DbProduct[]>(() =>
-    dedupeProductsByIdentity(startingBundle.trending),
+    urlQ ? [] : dedupeProductsByIdentity(startingBundle.trending),
   );
+  const [productsLoading, setProductsLoading] = useState(() => Boolean(urlQ));
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(false);
-  const [productsLoading, setProductsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [newProductIds, setNewProductIds] = useState<Set<string>>(() => new Set());
   const [listingCount, setListingCount] = useState(startingBundle.listingCount);
