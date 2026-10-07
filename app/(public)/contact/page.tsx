@@ -12,7 +12,8 @@ import {
   Store,
   Users,
 } from "lucide-react";
-import { ContactForm, normalizeContactTopic } from "@/components/contact/ContactForm";
+import { ContactForm } from "@/components/contact/ContactForm";
+import { normalizeContactTopic } from "@/lib/contact/topics";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
 const CHANNELS = [

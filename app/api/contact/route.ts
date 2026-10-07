@@ -1,24 +1,8 @@
 import { NextResponse } from "next/server";
+import { isContactTopic } from "@/lib/contact/topics";
 import { sendEmail } from "@/lib/email/send";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
-
-const TOPICS = [
-  "general",
-  "support",
-  "business",
-  "partnerships",
-  "creator",
-  "vendor",
-  "press",
-  "investors",
-] as const;
-
-type Topic = (typeof TOPICS)[number];
-
-function isTopic(value: unknown): value is Topic {
-  return typeof value === "string" && (TOPICS as readonly string[]).includes(value);
-}
 
 function clientIp(request: Request): string {
   return (
@@ -49,7 +33,7 @@ export async function POST(request: Request) {
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const email = typeof body?.email === "string" ? body.email.trim() : "";
   const message = typeof body?.message === "string" ? body.message.trim() : "";
-  const topic = isTopic(body?.topic) ? body.topic : null;
+  const topic = isContactTopic(body?.topic) ? body.topic : null;
   const honeypot = typeof body?.company === "string" ? body.company.trim() : "";
 
   if (honeypot) {

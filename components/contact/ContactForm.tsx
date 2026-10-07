@@ -4,25 +4,12 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CONTACT_TOPICS,
+  normalizeContactTopic,
+  type ContactTopic,
+} from "@/lib/contact/topics";
 import { cn } from "@/lib/utils";
-
-export const CONTACT_TOPICS = [
-  { value: "general", label: "General inquiry" },
-  { value: "support", label: "Customer support" },
-  { value: "business", label: "Business inquiry" },
-  { value: "partnerships", label: "Partnership inquiry" },
-  { value: "creator", label: "Creator inquiry" },
-  { value: "vendor", label: "Vendor / seller inquiry" },
-  { value: "press", label: "Press / media inquiry" },
-  { value: "investors", label: "Investor inquiry" },
-] as const;
-
-export type ContactTopic = (typeof CONTACT_TOPICS)[number]["value"];
-
-export function normalizeContactTopic(raw: string | null | undefined): ContactTopic {
-  const match = CONTACT_TOPICS.find((t) => t.value === raw);
-  return match?.value ?? "general";
-}
 
 export function ContactForm({ initialTopic = "general" }: { initialTopic?: ContactTopic }) {
   const [name, setName] = useState("");
