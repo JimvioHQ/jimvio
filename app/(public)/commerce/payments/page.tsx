@@ -110,13 +110,33 @@ export default async function CommercePaymentsPage({ searchParams }: Props) {
     string,
     { id: string; reference: string | null; status: string | null; provider?: string }
   >();
+  let webhookEvents: Array<{
+    id: string;
+    provider: string;
+    status: string;
+    error: string | null;
+    order_id: string | null;
+    idempotency_key: string;
+    created_at: string;
+    updated_at: string;
+  }> = [];
   if (orderIds.length) {
-    const { data: txs } = await db
-      .from("transactions")
-      .select("id, order_id, reference, status, metadata, created_at")
-      .in("order_id", orderIds)
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const [{ data: txs }, { data: hooks }] = await Promise.all([
+      db
+        .from("transactions")
+        .select("id, order_id, reference, status, metadata, created_at")
+        .in("order_id", orderIds)
+        .order("created_at", { ascending: false })
+        .limit(200),
+      db
+        .from("webhook_events")
+        .select(
+          "id, provider, status, error, order_id, idempotency_key, created_at, updated_at",
+        )
+        .in("order_id", orderIds)
+        .order("created_at", { ascending: false })
+        .limit(40),
+    ]);
     for (const tx of txs ?? []) {
       if (!tx.order_id || txByOrder.has(tx.order_id)) continue;
       const meta =
@@ -131,6 +151,15 @@ export default async function CommercePaymentsPage({ searchParams }: Props) {
           typeof meta?.provider === "string" ? meta.provider : undefined,
       });
     }
+    webhookEvents = (hooks ?? []).filter((h) => {
+      const p = String(h.provider || "").toLowerCase();
+      return !(
+        p.includes("paypal") ||
+        p.includes("pesa") ||
+        p.includes("afripay") ||
+        p.includes("pawa")
+      );
+    });
   }
 
   const buyerIds = Array.from(
@@ -378,26 +407,113 @@ export default async function CommercePaymentsPage({ searchParams }: Props) {
       )}
 
       <CommerceCard className="p-4">
-        <h2 className="text-sm font-semibold text-[#111827]">Webhook monitoring</h2>
+        <h2 className="text-sm font-semibold text-[#111827]">Webhook health</h2>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Provider webhooks mark transactions successful and orders paid. Browser
-          return URLs alone never finalize payment. Detailed webhook health metrics
-          are not exposed in merchant UI yet.
+          Store-scoped payment webhook events. Secrets and raw signatures are never
+          shown. Browser return URLs alone never finalize payment.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Link
-            href={`/commerce/finance?storeId=${active.id}&tab=transactions`}
-            className="rounded-md border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold text-[#374151]"
-          >
-            Transactions ledger
-          </Link>
-          <Link
-            href="/wallet"
-            className="rounded-md border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold text-[#374151]"
-          >
-            Wallet OS
-          </Link>
-        </div>
+        {(() => {
+          const received = webhookEvents.length;
+          const processed = webhookEvents.filter((e) =>
+            ["completed", "processed", "success"].includes(
+              String(e.status || "").toLowerCase(),
+            ),
+          ).length;
+          const failed = webhookEvents.filter((e) =>
+            ["failed", "error"].includes(String(e.status || "").toLowerCase()),
+          ).length;
+          const lastOk = webhookEvents.find((e) =>
+            ["completed", "processed", "success"].includes(
+              String(e.status || "").toLowerCase(),
+            ),
+          );
+          const lastFail = webhookEvents.find((e) =>
+            ["failed", "error"].includes(String(e.status || "").toLowerCase()),
+          );
+          return (
+            <div className="mt-3 grid gap-2 grid-cols-2 sm:grid-cols-4">
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                <p className="text-[11px] text-[#6B7280]">Received</p>
+                <p className="text-lg font-semibold tabular-nums">{received}</p>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                <p className="text-[11px] text-[#6B7280]">Processed</p>
+                <p className="text-lg font-semibold tabular-nums">{processed}</p>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                <p className="text-[11px] text-[#6B7280]">Failed</p>
+                <p className="text-lg font-semibold tabular-nums">{failed}</p>
+              </div>
+              <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                <p className="text-[11px] text-[#6B7280]">Last success</p>
+                <p className="text-xs font-medium">
+                  {lastOk
+                    ? new Date(lastOk.created_at).toLocaleString()
+                    : "—"}
+                </p>
+                {lastFail ? (
+                  <p className="mt-1 text-[11px] text-red-600">
+                    Last failure {new Date(lastFail.created_at).toLocaleDateString()}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })()}
+        {webhookEvents.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="text-[11px] uppercase tracking-wide text-[#9CA3AF]">
+                <tr>
+                  <th className="pb-2 font-medium">Provider</th>
+                  <th className="pb-2 font-medium">Status</th>
+                  <th className="pb-2 font-medium">Order</th>
+                  <th className="pb-2 font-medium">Reference</th>
+                  <th className="pb-2 font-medium">Received</th>
+                  <th className="pb-2 font-medium">Error</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#F3F4F6]">
+                {webhookEvents.slice(0, 20).map((e) => (
+                  <tr key={e.id}>
+                    <td className="py-2 font-medium capitalize">{e.provider}</td>
+                    <td className="py-2">{e.status}</td>
+                    <td className="py-2">
+                      {e.order_id ? (
+                        <Link
+                          href={`/commerce/orders/${e.order_id}?storeId=${active.id}`}
+                          className="text-[#FF5A1F]"
+                        >
+                          {e.order_id.slice(0, 8)}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2 font-mono text-xs text-[#6B7280]">
+                      {e.idempotency_key.slice(0, 24)}
+                    </td>
+                    <td className="py-2 text-[#6B7280]">
+                      {new Date(e.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-2 text-xs text-red-600">
+                      {e.error ? String(e.error).slice(0, 80) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-[#6B7280]">
+            No webhook events for this store&apos;s orders yet.
+          </p>
+        )}
+        <p className="mt-3 text-xs text-[#9CA3AF]">
+          Safe retry of failed webhooks is handled by provider redelivery +
+          existing idempotency keys. Manual retry is not exposed here to avoid
+          duplicate ledger or fulfillment side effects.
+        </p>
       </CommerceCard>
     </div>
   );

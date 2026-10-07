@@ -48,7 +48,9 @@ export function RegisterForm({
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
   const [pending, startTransition] = useTransition();
+  const coolingDown = Date.now() < cooldownUntil;
 
   function bumpCaptcha() {
     setCaptchaToken(null);
@@ -141,21 +143,42 @@ export function RegisterForm({
           <Button
             type="button"
             variant="outline"
-            disabled={pending || !resendCaptcha}
+            disabled={pending || coolingDown || !resendCaptcha}
             className="h-11 w-full rounded-lg border-zinc-200 text-[14px] font-bold hover:bg-zinc-50"
             onClick={() => {
-              if (!resendCaptcha) return;
+              if (!resendCaptcha || coolingDown) {
+                if (coolingDown) {
+                  setResendNotice(
+                    "Please wait a moment before requesting another email.",
+                  );
+                }
+                return;
+              }
               const fd = new FormData();
               fd.set("email", submittedEmail);
               fd.set("captchaToken", resendCaptcha);
+              if (next) fd.set("next", next);
               startTransition(async () => {
                 const res = await resendSignUpConfirmation(fd);
-                setResendNotice(res.success ?? res.error ?? "If an account exists, we sent another email.");
+                if (res.error) {
+                  setResendNotice(res.error);
+                  setCooldownUntil(Date.now() + 30_000);
+                } else {
+                  setResendNotice(
+                    res.success ??
+                      "Confirmation email sent. Check your inbox and spam folder.",
+                  );
+                  setCooldownUntil(Date.now() + 45_000);
+                }
                 setResendCaptcha(null);
               });
             }}
           >
-            {pending ? "Sending…" : "Resend confirmation email"}
+            {pending
+              ? "Sending…"
+              : coolingDown
+                ? "Please wait…"
+                : "Resend confirmation email"}
           </Button>
         </div>
 

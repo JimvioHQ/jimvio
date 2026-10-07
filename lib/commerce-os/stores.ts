@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { cosTable } from "./db";
 import {
   assertCanCreateJimvioStore,
+  isReservedStoreHandle,
   slugifyHandle,
 } from "./tenant";
 import {
@@ -80,8 +81,22 @@ export async function createJimvioStore(
   if (handle.length < 2) {
     return {
       ok: false,
-      error: "Store handle must use letters, numbers, and dashes.",
+      error: "Choose a longer store URL (at least 2 characters).",
       code: "INVALID_HANDLE",
+    };
+  }
+  if (handle.length > 48) {
+    return {
+      ok: false,
+      error: "Choose a shorter store URL.",
+      code: "INVALID_HANDLE",
+    };
+  }
+  if (isReservedStoreHandle(handle)) {
+    return {
+      ok: false,
+      error: "This store URL is reserved.",
+      code: "HANDLE_RESERVED",
     };
   }
 
@@ -97,7 +112,7 @@ export async function createJimvioStore(
   if (conflict) {
     return {
       ok: false,
-      error: "That store handle is already taken. Choose another.",
+      error: "This store URL is already taken.",
       code: "HANDLE_TAKEN",
     };
   }

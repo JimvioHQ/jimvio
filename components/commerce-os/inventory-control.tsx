@@ -20,9 +20,22 @@ export type InventoryRow = {
   sku: string | null;
   trackInventory: boolean;
   quantity: number | null;
+  reserved: number;
+  available: number;
   lowStockThreshold: number;
   updatedAt: string | null;
   allowBackorder: boolean;
+};
+
+export type InventoryHistoryRow = {
+  id: string;
+  productName: string;
+  delta: number;
+  previous: number;
+  next: number;
+  reason: string;
+  createdAt: string;
+  actor: string | null;
 };
 
 type Filter = "all" | "in" | "low" | "out" | "tracked" | "untracked";
@@ -30,9 +43,11 @@ type Filter = "all" | "in" | "low" | "out" | "tracked" | "untracked";
 export function InventoryControl({
   storeId,
   rows,
+  history = [],
 }: {
   storeId: string;
   rows: InventoryRow[];
+  history?: InventoryHistoryRow[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -46,6 +61,8 @@ export function InventoryControl({
 
   const summary = useMemo(() => {
     let totalUnits = 0;
+    let reserved = 0;
+    let available = 0;
     let inStock = 0;
     let low = 0;
     let out = 0;
@@ -53,11 +70,13 @@ export function InventoryControl({
       if (!r.trackInventory) continue;
       const qty = Number(r.quantity ?? 0);
       totalUnits += qty;
-      if (qty <= 0) out += 1;
-      else if (qty <= r.lowStockThreshold) low += 1;
+      reserved += r.reserved;
+      available += r.available;
+      if (r.available <= 0) out += 1;
+      else if (r.available <= r.lowStockThreshold) low += 1;
       else inStock += 1;
     }
-    return { totalUnits, inStock, low, out, available: totalUnits };
+    return { totalUnits, reserved, available, inStock, low, out };
   }, [rows]);
 
   const filtered = useMemo(() => {
@@ -124,13 +143,14 @@ export function InventoryControl({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-5">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: "Total units", value: summary.totalUnits },
+          { label: "On hand", value: summary.totalUnits },
+          { label: "Reserved", value: summary.reserved },
+          { label: "Available", value: summary.available },
           { label: "In stock", value: summary.inStock },
           { label: "Low stock", value: summary.low },
           { label: "Out of stock", value: summary.out },
-          { label: "Available", value: summary.available },
         ].map((item) => (
           <CommerceCard key={item.label} className="px-3 py-3">
             <p className="text-[11px] text-[#6B7280]">{item.label}</p>
@@ -295,6 +315,7 @@ export function InventoryControl({
                   <th className="px-4 py-3 font-medium">Product</th>
                   <th className="px-4 py-3 font-medium">SKU</th>
                   <th className="px-4 py-3 font-medium">On hand</th>
+                  <th className="px-4 py-3 font-medium">Reserved</th>
                   <th className="px-4 py-3 font-medium">Available</th>
                   <th className="px-4 py-3 font-medium">Threshold</th>
                   <th className="px-4 py-3 font-medium">Status</th>
@@ -313,7 +334,12 @@ export function InventoryControl({
                       </td>
                       <td className="px-4 py-3 text-[#6B7280]">{r.sku || "—"}</td>
                       <td className="px-4 py-3 tabular-nums">{qty ?? "—"}</td>
-                      <td className="px-4 py-3 tabular-nums">{qty ?? "—"}</td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {r.trackInventory ? r.reserved : "—"}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {r.trackInventory ? r.available : "—"}
+                      </td>
                       <td className="px-4 py-3 tabular-nums text-[#6B7280]">
                         {r.trackInventory ? r.lowStockThreshold : "—"}
                       </td>
@@ -355,10 +381,51 @@ export function InventoryControl({
         </>
       )}
 
-      <p className="text-xs text-[#9CA3AF]">
-        Inventory history ledger is not available yet — adjustments update live
-        stock only.
-      </p>
+      {history.length ? (
+        <CommerceCard className="overflow-hidden">
+          <div className="border-b border-[#E5E7EB] px-4 py-3">
+            <h2 className="text-sm font-semibold text-[#111827]">
+              Inventory history
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="bg-[#F8FAFC] text-[11px] uppercase tracking-wide text-[#6B7280]">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Date</th>
+                  <th className="px-4 py-2 font-medium">Product</th>
+                  <th className="px-4 py-2 font-medium">Change</th>
+                  <th className="px-4 py-2 font-medium">Previous → New</th>
+                  <th className="px-4 py-2 font-medium">Reason</th>
+                  <th className="px-4 py-2 font-medium">Actor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h) => (
+                  <tr key={h.id} className="border-t border-[#F3F4F6]">
+                    <td className="px-4 py-2 text-[#6B7280]">
+                      {new Date(h.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2 font-medium">{h.productName}</td>
+                    <td className="px-4 py-2 tabular-nums">
+                      {h.delta > 0 ? `+${h.delta}` : h.delta}
+                    </td>
+                    <td className="px-4 py-2 tabular-nums text-[#6B7280]">
+                      {h.previous} → {h.next}
+                    </td>
+                    <td className="px-4 py-2 text-[#6B7280]">{h.reason}</td>
+                    <td className="px-4 py-2 text-[#6B7280]">{h.actor || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CommerceCard>
+      ) : (
+        <p className="text-xs text-[#9CA3AF]">
+          Inventory history appears after adjustments are recorded.
+        </p>
+      )}
 
       {adjusting ? (
         <div

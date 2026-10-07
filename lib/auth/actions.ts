@@ -12,6 +12,10 @@ import {
 import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect"
 import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context"
 import { getPublicAppUrl } from "@/lib/app-url"
+import {
+  resolveAuthEmailNext,
+  resolveAuthEmailOrigin,
+} from "@/lib/auth/email-redirect-origin"
 import { verifyTOTP } from "@/lib/totp"
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions"
 import {
@@ -242,7 +246,11 @@ export async function signUp(formData: FormData) {
     if (passwordError) return { error: passwordError }
 
     const next = (formData.get("next") as string)?.trim()
-    const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), next || "/verify")
+    const emailNext = await resolveAuthEmailNext(next)
+    const callbackUrl = buildAuthCallbackUrl(
+      await resolveAuthEmailOrigin(),
+      emailNext,
+    )
     const captchaToken = captchaTokenFromForm(formData)
 
     const { data, error } = await supabase.auth.signUp({
@@ -295,8 +303,13 @@ export async function resendSignUpConfirmation(formData: FormData) {
     const email = normalizeSignInEmail((formData.get("email") as string) || "")
     if (!isValidAuthEmail(email)) return { error: "Enter a valid email address." }
 
+    const next = (formData.get("next") as string)?.trim()
+    const emailNext = await resolveAuthEmailNext(next)
     const supabase = await createClient()
-    const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), "/verify")
+    const callbackUrl = buildAuthCallbackUrl(
+      await resolveAuthEmailOrigin(),
+      emailNext,
+    )
     const captchaToken = captchaTokenFromForm(formData)
     const { error } = await supabase.auth.resend({
       type: "signup",
@@ -307,12 +320,15 @@ export async function resendSignUpConfirmation(formData: FormData) {
       },
     })
     if (error && isRateLimitAuthError(error)) {
-      return { error: "Too many attempts. Please wait a moment and try again." }
+      return { error: "Please wait a moment before requesting another email." }
     }
-    return { success: GENERIC_CONFIRMATION_SENT }
+    if (error) {
+      console.error("[auth] resendSignUpConfirmation supabase:", error.message)
+    }
+    return { success: "Confirmation email sent. Check your inbox and spam folder." }
   } catch (err) {
     console.error("[auth] resendSignUpConfirmation error:", err)
-    return { success: GENERIC_CONFIRMATION_SENT }
+    return { success: "Confirmation email sent. Check your inbox and spam folder." }
   }
 }
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import { resendSignUpConfirmation } from "@/lib/auth/actions";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 
 const COPY: Record<
   string,
@@ -15,7 +16,7 @@ const COPY: Record<
 > = {
   email_verified: {
     title: "Email verified",
-    body: "Your email is confirmed. You can continue to Jimvio.",
+    body: "Your email is confirmed. You can sign in and continue.",
     icon: "ok",
   },
   already_verified: {
@@ -35,17 +36,40 @@ const COPY: Record<
   },
 };
 
-export function VerifyEmailClient() {
+export function VerifyEmailClient({
+  merchantMode = false,
+}: {
+  /** When true, never show platform marketing CTAs. */
+  merchantMode?: boolean;
+} = {}) {
   const searchParams = useSearchParams();
   const status = searchParams.get("status") ?? "expired";
+  const next = searchParams.get("next") ?? "";
   const copy = COPY[status] ?? COPY.invalid;
   const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
   const [pending, startTransition] = useTransition();
-  const showResend = status === "expired" || status === "invalid" || status === "try_again";
+  const showResend =
+    status === "expired" || status === "invalid" || status === "try_again";
+  const coolingDown = Date.now() < cooldownUntil;
+
+  const loginHref = next
+    ? `/login?next=${encodeURIComponent(next)}`
+    : "/login";
+  const continueHref =
+    status === "email_verified"
+      ? next && next.startsWith("/")
+        ? next
+        : merchantMode
+          ? "/"
+          : "/"
+      : loginHref;
 
   return (
     <div className="w-full text-center">
-      <div className="w-16 h-16 rounded-sm bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
+      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm bg-green-50 ring-4 ring-green-50">
         {copy.icon === "ok" ? (
           <CheckCircle className="h-8 w-8 text-green-500" />
         ) : copy.icon === "info" ? (
@@ -54,35 +78,86 @@ export function VerifyEmailClient() {
           <MailWarning className="h-8 w-8 text-amber-500" />
         )}
       </div>
-      <h1 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">
+      <h1 className="mb-2 text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
         {copy.title}
       </h1>
-      <p className="text-[14px] font-medium text-zinc-500 mb-8 max-w-sm mx-auto">{copy.body}</p>
+      <p className="mx-auto mb-8 max-w-sm text-[14px] font-medium text-zinc-500">
+        {copy.body}
+      </p>
 
       {showResend && (
         <form
-          className="space-y-4 text-left mb-6"
+          className="mb-6 space-y-4 text-left"
           onSubmit={(e) => {
             e.preventDefault();
+            setError(null);
+            setNotice(null);
+            if (coolingDown) {
+              setError("Please wait a moment before requesting another email.");
+              return;
+            }
+            if (!captcha) {
+              setError("Please complete the security check.");
+              return;
+            }
             const fd = new FormData(e.currentTarget);
+            fd.set("captchaToken", captcha);
+            if (next) fd.set("next", next);
             startTransition(async () => {
               const res = await resendSignUpConfirmation(fd);
-              setNotice(res.success ?? res.error ?? "Try again.");
+              if (res.error) {
+                setError(res.error);
+                setCooldownUntil(Date.now() + 30_000);
+              } else {
+                setNotice(
+                  res.success ??
+                    "Confirmation email sent. Check your inbox and spam folder.",
+                );
+                setCooldownUntil(Date.now() + 45_000);
+              }
+              setCaptcha(null);
             });
           }}
         >
           <Field label="Email address">
-            <FieldInput name="email" type="email" required placeholder="you@example.com" disabled={pending} />
+            <FieldInput
+              name="email"
+              type="email"
+              required
+              placeholder="you@example.com"
+              disabled={pending}
+            />
           </Field>
-          {notice && <p className="text-[13px] font-medium text-emerald-600 text-center">{notice}</p>}
-          <Button type="submit" className="w-full h-12 rounded-sm" disabled={pending}>
-            {pending ? "Sending…" : "Try again"}
+          <TurnstileWidget
+            onToken={setCaptcha}
+            className="flex justify-center"
+          />
+          {notice && (
+            <p className="text-center text-[13px] font-medium text-emerald-600">
+              {notice}
+            </p>
+          )}
+          {error && (
+            <p className="text-center text-[13px] font-medium text-red-600">
+              {error}
+            </p>
+          )}
+          <Button
+            type="submit"
+            className="h-12 w-full rounded-sm"
+            disabled={pending || coolingDown || !captcha}
+          >
+            {pending
+              ? "Sending…"
+              : coolingDown
+                ? "Please wait…"
+                : "Resend confirmation email"}
           </Button>
         </form>
       )}
 
-      <Link href={status === "email_verified" ? "/" : "/login"}>
-        <Button className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px]">
+      <Link href={continueHref}>
+        <Button className="h-12 w-full rounded-sm bg-zinc-900 text-[14px] font-bold text-white hover:bg-zinc-800">
           {status === "email_verified" ? "Continue" : "Back to sign in"}
         </Button>
       </Link>

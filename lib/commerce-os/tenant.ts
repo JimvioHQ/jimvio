@@ -36,6 +36,53 @@ export function slugifyHandle(input: string): string {
     .slice(0, 48);
 }
 
+/** Platform routes / hosts that must never be merchant store handles. */
+export const RESERVED_STORE_HANDLES = new Set([
+  "www",
+  "api",
+  "app",
+  "admin",
+  "commerce",
+  "marketplace",
+  "communities",
+  "community",
+  "affiliates",
+  "affiliate",
+  "login",
+  "register",
+  "signup",
+  "signin",
+  "checkout",
+  "account",
+  "products",
+  "orders",
+  "cart",
+  "wallet",
+  "help",
+  "support",
+  "status",
+  "docs",
+  "cdn",
+  "static",
+  "assets",
+  "mail",
+  "email",
+  "auth",
+  "verify",
+  "billing",
+  "seller",
+  "vendor",
+  "store",
+  "stores",
+  "ugc",
+  "live",
+  "jimvio",
+]);
+
+export function isReservedStoreHandle(handle: string): boolean {
+  return RESERVED_STORE_HANDLES.has(handle.trim().toLowerCase());
+}
+
 export async function assertCanCreateJimvioStore(
   db: SupabaseClient,
   vendorId: string

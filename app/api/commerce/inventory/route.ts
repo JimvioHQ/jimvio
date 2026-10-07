@@ -19,7 +19,7 @@ const REASONS = new Set([
 
 /**
  * Merchant inventory adjustment for products published to an owned Jimvio store.
- * Authenticates merchant, verifies store ownership, verifies product link.
+ * Writes an audit row to jimvio_inventory_adjustments when available.
  */
 export async function POST(req: NextRequest) {
   const auth = await requireCommerceMerchant();
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as {
     storeId?: string;
     productId?: string;
+    variantId?: string | null;
     delta?: number;
     setQuantity?: number;
     reason?: string;
@@ -100,6 +101,17 @@ export async function POST(req: NextRequest) {
   const next = hasSet
     ? Math.max(0, Math.floor(Number(body.setQuantity)))
     : Math.max(0, Math.floor(previous + Number(body.delta)));
+  const delta = next - previous;
+
+  if (delta === 0) {
+    return NextResponse.json({
+      ok: true,
+      productId: body.productId,
+      previous,
+      quantity: previous,
+      delta: 0,
+    });
+  }
 
   const { data: updated, error } = await db
     .from("products")
@@ -119,14 +131,72 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Soft audit trail in store settings metadata is intentionally omitted —
-  // no inventory_history table exists. Return the mutation result only.
+  const notes =
+    typeof body.notes === "string" ? body.notes.trim().slice(0, 500) : null;
+
+  const { error: histErr } = await cosTable(db, "jimvio_inventory_adjustments").insert({
+    store_id: body.storeId,
+    vendor_id: auth.vendorId,
+    product_id: body.productId,
+    variant_id: body.variantId ?? null,
+    previous_quantity: previous,
+    delta,
+    new_quantity: Number(updated.inventory_quantity ?? next),
+    reason,
+    notes,
+    reference: null,
+    actor_user_id: auth.userId,
+  });
+
+  if (histErr) {
+    // Stock was updated; history is best-effort until migration is applied.
+    console.error("[commerce/inventory] history insert failed:", histErr.message);
+  }
+
   return NextResponse.json({
     ok: true,
     productId: body.productId,
     previous,
     quantity: Number(updated.inventory_quantity ?? next),
+    delta,
     reason,
-    notes: typeof body.notes === "string" ? body.notes.slice(0, 500) : null,
+    notes,
+    historyRecorded: !histErr,
   });
+}
+
+export async function GET(req: NextRequest) {
+  const auth = await requireCommerceMerchant();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const storeId = req.nextUrl.searchParams.get("storeId");
+  if (!storeId) {
+    return NextResponse.json({ error: "storeId is required." }, { status: 400 });
+  }
+
+  const db = cosAdminDb();
+  const owned = await assertStoreOwnedByVendor(db, storeId, auth.vendorId);
+  if (!owned) {
+    return NextResponse.json({ error: "Store not found." }, { status: 404 });
+  }
+
+  const { data, error } = await cosTable(db, "jimvio_inventory_adjustments")
+    .select(
+      "id, product_id, variant_id, previous_quantity, delta, new_quantity, reason, notes, reference, actor_user_id, created_at, products(name)",
+    )
+    .eq("store_id", storeId)
+    .eq("vendor_id", auth.vendorId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    return NextResponse.json(
+      { error: "Inventory history is not available yet.", history: [] },
+      { status: 200 },
+    );
+  }
+
+  return NextResponse.json({ history: data ?? [] });
 }

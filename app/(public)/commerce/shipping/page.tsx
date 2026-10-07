@@ -8,7 +8,10 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { cosTable } from "@/lib/commerce-os/db";
-import { formatCommerceMoney } from "@/lib/commerce-os/money";
+import {
+  ShippingManager,
+  type ShippingZoneRow,
+} from "@/components/commerce-os/shipping-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -38,18 +41,34 @@ export default async function CommerceShippingPage({ searchParams }: Props) {
   }
 
   const { data: zones } = await cosTable(db, "jimvio_shipping_zones")
-    .select("id, name, countries, jimvio_shipping_rates(id, name, rate_type, price, currency)")
+    .select(
+      "id, name, countries, jimvio_shipping_rates(id, name, rate_type, price, currency)",
+    )
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId)
     .order("created_at", { ascending: true });
+
+  const rows: ShippingZoneRow[] = (zones ?? []).map((z) => ({
+    id: z.id,
+    name: z.name,
+    countries: Array.isArray(z.countries) ? (z.countries as string[]) : [],
+    rates: ((z.jimvio_shipping_rates as ShippingZoneRow["rates"]) || []).map(
+      (r) => ({
+        id: r.id,
+        name: r.name,
+        rate_type: r.rate_type,
+        price: Number(r.price || 0),
+        currency: r.currency || "USD",
+      }),
+    ),
+  }));
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl font-semibold text-[#111827]">Shipping</h1>
         <p className="mt-1 text-sm text-[#6B7280]">
-          Store shipping zones for {active.name}. Network shipping rates apply
-          automatically at checkout for eligible products.
+          Shipping zones and rates for {active.name}.
         </p>
       </div>
       <StoreSelector
@@ -57,50 +76,7 @@ export default async function CommerceShippingPage({ searchParams }: Props) {
         activeId={active.id}
         basePath="/commerce/shipping"
       />
-      {!zones?.length ? (
-        <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 text-sm text-[#6B7280]">
-          No shipping zones configured yet. Checkout can still use platform/supplier rates.
-        </div>
-      ) : (
-        <ul className="space-y-3">
-          {zones.map((z) => {
-            const rates =
-              (z.jimvio_shipping_rates as Array<{
-                id: string;
-                name: string;
-                rate_type: string;
-                price: number;
-                currency: string;
-              }>) || [];
-            return (
-              <li
-                key={z.id}
-                className="rounded-lg border border-[#E5E7EB] bg-white px-4 py-3 text-sm"
-              >
-                <p className="font-medium text-[#111827]">{z.name}</p>
-                <p className="text-xs text-[#6B7280]">
-                  Countries:{" "}
-                  {(z.countries as string[])?.length
-                    ? (z.countries as string[]).join(", ")
-                    : "All"}
-                </p>
-                {rates.length ? (
-                  <ul className="mt-2 space-y-1 text-xs text-[#4B5563]">
-                    {rates.map((r) => (
-                      <li key={r.id}>
-                        {r.name} · {r.rate_type} ·{" "}
-                        {formatCommerceMoney(r.price, r.currency)}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 text-xs text-[#6B7280]">No rates in this zone.</p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <ShippingManager storeId={active.id} zones={rows} />
     </div>
   );
 }

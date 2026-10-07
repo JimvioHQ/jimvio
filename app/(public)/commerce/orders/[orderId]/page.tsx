@@ -8,6 +8,7 @@ import {
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
 import { CommerceOrderFulfillmentPanel } from "@/components/commerce-os/commerce-order-fulfillment-panel";
 import { formatCommerceMoney } from "@/lib/commerce-os/money";
+import { CommerceOrderActions } from "@/components/commerce-os/order-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -205,6 +206,16 @@ export default async function CommerceOrderDetailPage({
           ) : null}
         </div>
       </div>
+
+      {store ? (
+        <CommerceOrderActions
+          storeId={store.id}
+          orderId={order.id}
+          paymentStatus={order.payment_status}
+          fulfillmentStatus={order.status}
+          hasTracking={Boolean(order.tracking_number)}
+        />
+      ) : null}
 
       <CommerceCard className="p-5">
         <h2 className="text-sm font-semibold text-[#111827]">Items</h2>

@@ -1,16 +1,22 @@
 import { Suspense } from "react";
 import { VerifyEmailClient } from "./verify-client";
+import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Verify email - Jimvio",
+  title: "Verify email",
 };
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPage() {
+  const merchantMode = await isMerchantAuthContext();
   return (
-    <Suspense fallback={<div className="text-center text-sm text-zinc-500 py-10">Loading…</div>}>
-      <VerifyEmailClient />
+    <Suspense
+      fallback={
+        <div className="py-10 text-center text-sm text-zinc-500">Loading…</div>
+      }
+    >
+      <VerifyEmailClient merchantMode={merchantMode} />
     </Suspense>
   );
 }
