@@ -33,10 +33,14 @@ describe("PDP layout", () => {
     assert.equal(physical.includes("SKU <span"), false);
     assert.equal(physical.includes("DROPSHIP"), false);
     assert.equal(shared.includes("DROPSHIP"), false);
-    assert.equal(physical.includes("order-3"), true);
-    // Buyer Protection lives in Product Details (overview), not a left-column order-6 card
+    // Compact seller under purchase identity; full seller lives in Seller Info tab
+    assert.equal(physical.includes("CompactSellerRow"), true);
+    assert.equal(physical.includes("DesktopSellerCompact"), true);
+    assert.equal(physical.includes("PdpTrustStrip"), true);
     assert.equal(physical.includes("CompactBuyerProtectionCard"), true);
     assert.equal(physical.includes("order-6"), false);
+    // No large left-column seller card under the gallery
+    assert.equal(physical.includes("order-3"), false);
   });
 
   it("keeps marketplace cards free of dropship badges and reveals both commerce actions", () => {
@@ -53,6 +57,8 @@ describe("PDP layout", () => {
     assert.equal(actions.includes("group-hover"), true);
     assert.equal(actions.includes("flex-col"), true);
     assert.equal(actions.includes("h-9"), true);
+    assert.equal(actions.includes("onPointerDown"), true);
+    assert.equal(actions.includes("setOpenProductCardActionsId"), true);
   });
 
   it("renders the variant table with SKU, USD price, and real stock", () => {
