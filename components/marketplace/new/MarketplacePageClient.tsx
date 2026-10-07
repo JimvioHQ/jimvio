@@ -273,6 +273,8 @@ export function MarketplacePageClient({
     },
   });
   const loadGenRef = useRef(0);
+  /** Separate from browse generation so browse loads cannot discard in-flight search results */
+  const searchGenRef = useRef(0);
   const skipInitialFetchRef = useRef(true);
   const prefetchRef = useRef<Map<string, DbProduct[]>>(new Map());
   const prefetchingRef = useRef<Set<string>>(new Set());
@@ -630,6 +632,12 @@ export function MarketplacePageClient({
       return;
     }
 
+    // Active search owns the product grid — do not bump browse generation (that raced search).
+    if (debouncedSearch) {
+      setLoading(false);
+      return;
+    }
+
     if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
       const cached = cacheRef.current[type];
       // Empty stub from deferred SSR — fall through and load the tab.
@@ -828,7 +836,9 @@ export function MarketplacePageClient({
     setTrending([]);
 
     const controller = new AbortController();
-    const searchGeneration = ++loadGenRef.current;
+    const searchGeneration = ++searchGenRef.current;
+    // Invalidate in-flight browse so it cannot overwrite search results later
+    loadGenRef.current += 1;
     setProductsLoading(true);
 
     (async () => {
@@ -839,7 +849,7 @@ export function MarketplacePageClient({
         );
         if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
-        if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
+        if (controller.signal.aborted || searchGeneration !== searchGenRef.current) return;
 
         // Exact results only for the primary grid. Similar stays labeled; never dump popular as "results".
         const primary = (
@@ -851,7 +861,7 @@ export function MarketplacePageClient({
           supabaseRef.current,
           list.map((p) => p.id),
         );
-        if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
+        if (controller.signal.aborted || searchGeneration !== searchGenRef.current) return;
 
         setTrending(dedupeProductsByIdentity(attachProductVideos(list, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
@@ -860,12 +870,12 @@ export function MarketplacePageClient({
         if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
           return;
         }
-        if (searchGeneration === loadGenRef.current) {
+        if (searchGeneration === searchGenRef.current) {
           setTrending([]);
           setSearchError(true);
         }
       } finally {
-        if (!controller.signal.aborted && searchGeneration === loadGenRef.current) {
+        if (!controller.signal.aborted && searchGeneration === searchGenRef.current) {
           setProductsLoading(false);
         }
       }
