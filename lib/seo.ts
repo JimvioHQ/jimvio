@@ -91,11 +91,6 @@ export const PAGE_SEO = {
     description: "News, guides, and updates from the Jimvio creator commerce platform.",
     path: "/blog",
   },
-  contact: {
-    title: "Contact",
-    description: "Get in touch with the Jimvio team for support, partnerships, and press inquiries.",
-    path: "/contact",
-  },
   pricing: {
     title: "Pricing",
     description: "Transparent pricing for selling, affiliates, and UGC on Jimvio. Start free and scale as you grow.",
@@ -112,9 +107,22 @@ export const PAGE_SEO = {
     path: "/verified",
   },
   careers: {
-    title: "Careers",
-    description: "Join the Jimvio team and help build the global creator commerce platform.",
+    title: "Careers at Jimvio",
+    description:
+      "Join Jimvio’s remote-first team building the global creator commerce platform — marketplace, affiliates, UGC, and communities.",
     path: "/careers",
+  },
+  press: {
+    title: "Press & Media",
+    description:
+      "Media resources for Jimvio — company overview, brand assets, and press contact for journalists and partners.",
+    path: "/press",
+  },
+  contact: {
+    title: "Contact Jimvio",
+    description:
+      "Contact Jimvio for support, partnerships, creator and vendor questions, press, and general inquiries.",
+    path: "/contact",
   },
   legal: {
     title: "Legal Center",

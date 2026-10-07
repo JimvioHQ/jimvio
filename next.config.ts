@@ -118,6 +118,9 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       { source: "/vendors/jimvio-dropshipping", destination: "/vendors/jimvio-store", permanent: true },
+      // Company IA — no public IR dossier; keep bookmarks from 404ing.
+      { source: "/investor-relations", destination: "/contact?topic=investors", permanent: false },
+
       // Canonical Physical Marketplace (avoid duplicate ?type=physical indexation)
       {
         source: "/marketplace",

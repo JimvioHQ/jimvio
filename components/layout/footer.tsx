@@ -3,13 +3,10 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  Twitter, Youtube, Mail, TrendingUp,
+  Youtube,
   ShieldCheck, CreditCard, Lock,
-  ChevronRight, ArrowRight, Circle,
-  ArrowUpRight
-
+  ChevronRight, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContactSettings } from "@/lib/platform-settings-shared";
@@ -52,7 +49,6 @@ const footerLinks = {
     { label: "Legal Center", href: "/legal" },
     { label: "Prohibited Products", href: "/prohibited-products" },
     { label: "Contact", href: "/contact" },
-    { label: "Investor Relations", href: "/investors" },
   ],
 };
 
@@ -70,15 +66,13 @@ type LegalLink = {
 
 const statusUrl = process.env.STATUS_WEBSITE_URL || "https://status.jimvio.com";
 
+/** Bottom legal bar — keep minimal; cookies/refunds remain via Legal Center. */
 export const legalLinks: LegalLink[] = [
   { label: "Status", href: statusUrl, external: true },
   { label: "Legal", href: "/legal" },
   { label: "Privacy", href: "/privacy" },
   { label: "Terms", href: "/terms" },
-  { label: "Cookies", href: "/cookies" },
-  { label: "Cookie Settings", href: "/cookie-settings" },
-  { label: "Refunds", href: "/refunds-payouts" },
-  { label: "Sitemap", href: "/sitemap.xml", external: true },
+  { label: "About Us", href: "/about" },
 ];
 
 function NewsletterStrip() {
@@ -109,7 +103,7 @@ function NewsletterStrip() {
           {submitted ? (
             <div className="flex items-center gap-2 rounded-md border border-[var(--color-success)]/30 bg-[var(--color-success)]/10 px-5 py-3 text-sm font-semibold text-[var(--color-success)]">
               <ShieldCheck size={15} />
-              You're in — check your inbox!
+              You&apos;re in — check your inbox!
             </div>
           ) : (
             <form
@@ -374,31 +368,27 @@ type Props = {
 };
 
 export function LegalLinkItem({ label, href, external }: Props) {
+  const className = cn(
+    "rounded-md flex items-center px-2 py-1 text-xs text-text-muted",
+    "transition-[color,background] duration-150",
+    "hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+  );
+
   if (external) {
     return (
       <Link
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(
-          "rounded-md flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
-          "transition-[color,background] duration-150",
-          "hover:text-text-primary"
-        )}
+        className={className}
       >
         {label}
-        <ArrowUpRight size={14} className="opacity-70" />
       </Link>
     );
   }
 
   return (
-    <Link href={href}
-      className={cn(
-        "rounded flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
-        "transition-[color,background] duration-150",
-        "hover:text-text-primary"
-      )}>
+    <Link href={href} className={className}>
       {label}
     </Link>
   );

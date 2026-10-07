@@ -1,130 +1,222 @@
-﻿import React from "react";
-import { Mail, Phone, MapPin, MessageCircle, Send, Globe, Linkedin, Twitter, Youtube } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+﻿import Link from "next/link";
+import {
+  ArrowRight,
+  Briefcase,
+  Clapperboard,
+  Handshake,
+  HelpCircle,
+  Mail,
+  MapPin,
+  Megaphone,
+  Scale,
+  Store,
+  Users,
+} from "lucide-react";
+import { ContactForm, normalizeContactTopic } from "@/components/contact/ContactForm";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
-export default async function ContactPage() {
+const CHANNELS = [
+  {
+    icon: HelpCircle,
+    title: "Customer support",
+    body: "Account help, orders, payouts, and product questions.",
+    href: "/help",
+    cta: "Open Help Center",
+  },
+  {
+    icon: Store,
+    title: "Vendors & sellers",
+    body: "Listing, verification, and marketplace seller questions.",
+    href: "/contact?topic=vendor",
+    cta: "Seller inquiry",
+  },
+  {
+    icon: Clapperboard,
+    title: "Creators & affiliates",
+    body: "Campaigns, clipping, and affiliate program questions.",
+    href: "/contact?topic=creator",
+    cta: "Creator inquiry",
+  },
+  {
+    icon: Handshake,
+    title: "Partnerships & business",
+    body: "Integrations, commercial partnerships, and B2B conversations.",
+    href: "/contact?topic=partnerships",
+    cta: "Partnership inquiry",
+  },
+  {
+    icon: Megaphone,
+    title: "Press & media",
+    body: "Interviews, brand assets, and media requests.",
+    href: "/press",
+    cta: "Press kit",
+  },
+  {
+    icon: Briefcase,
+    title: "Investor inquiries",
+    body: "Jimvio does not publish a public IR dossier. Use the contact form for investor questions.",
+    href: "/contact?topic=investors",
+    cta: "Investor inquiry",
+  },
+] as const;
+
+export default async function ContactPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ topic?: string }>;
+}) {
   const { contact } = await getResolvedPlatformSettings();
+  const params = await searchParams;
+  const initialTopic = normalizeContactTopic(params.topic);
+
   return (
-    <div className="bg-[var(--color-bg)] min-h-screen">
-      {/* Header */}
-      <section className="bg-white dark:bg-surface border-b border-[var(--color-border)] py-20">
-        <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 text-center">
-          <Badge className="bg-[var(--color-accent-light)] text-[var(--color-accent)] border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
-            Support & Inquiry
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-[900] text-[var(--color-text-primary)] mb-6 tracking-tighter leading-none">
-            Let&apos;s <span className="text-[var(--color-accent)]">Talk Business</span>
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[var(--color-bg)]">
+      <section className="relative overflow-hidden border-b border-[var(--color-border)] bg-[linear-gradient(135deg,#FFF8F4_0%,#FFF1E8_42%,#FFFFFF_100%)] dark:bg-[linear-gradient(135deg,#1a0f0a_0%,#120c09_100%)]">
+        <div className="mx-auto max-w-8xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#FF5A1F]">
+            Contact
+          </p>
+          <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)] sm:text-5xl md:text-6xl">
+            Talk with the Jimvio team
           </h1>
-          <p className="text-[var(--color-text-secondary)] text-xl font-medium max-w-2xl mx-auto">
-            Our global support team is available 24/7 to help you with sourcing, logistics, and account inquiries.
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
+            Choose the right channel below, or send a message with the form. We use the published
+            Jimvio contact emails — no invented phone numbers or office networks.
           </p>
         </div>
       </section>
 
-      <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
-          
-          {/* Contact Info */}
-          <div>
-            <h2 className="text-3xl font-black text-[var(--color-text-primary)] mb-10">Get in Touch</h2>
-            <div className="space-y-10">
-              <div className="flex items-start gap-6">
-                <div className="h-14 w-14 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)] flex items-center justify-center shrink-0">
-                  <Mail className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-text-primary)] mb-1 text-lg">Email Us</h4>
-                  <p className="text-[var(--color-text-secondary)] mb-2 font-medium">For general inquiries and support.</p>
-                  <a href={`mailto:${contact.info_email}`} className="text-[var(--color-accent)] font-black text-xl hover:underline">{contact.info_email}</a>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-6">
-                <div className="h-14 w-14 rounded-sm bg-ink-dark text-white flex items-center justify-center shrink-0">
-                  <MessageCircle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-text-primary)] mb-1 text-lg">Live Chat</h4>
-                  <p className="text-[var(--color-text-secondary)] mb-2 font-medium">Real-time support via Jimvio Messenger.</p>
-                  <Button variant="outline" className="font-black border-2 rounded-sm">Open Chat Now</Button>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-6">
-                <div className="h-14 w-14 rounded-sm bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] flex items-center justify-center shrink-0 border border-[var(--color-border)]">
-                  <MapPin className="h-6 w-6" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-[var(--color-text-primary)] mb-1 text-lg">Global HQ</h4>
-                  <p className="text-[var(--color-text-secondary)] mb-4 font-medium leading-relaxed">
-                    {contact.hq_line1}<br />
-                    {contact.hq_line2}
-                  </p>
-                  <div className="flex gap-4">
-                    <a href={contact.social_x} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Twitter className="h-5 w-5" /></a>
-                    <a href={contact.social_youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Youtube className="h-5 w-5" /></a>
-                    <a href={contact.social_instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Globe className="h-5 w-5" /></a>
-                    <a href={contact.social_tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"><Send className="h-5 w-5" /></a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Form */}
-          <div className="bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm p-10 shadow-none">
-            <h3 className="text-2xl font-black text-[var(--color-text-primary)] mb-8">Send a Message</h3>
-            <form className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-black capitalize tracking-widest text-[var(--color-text-muted)]">Full Name</label>
-                  <Input placeholder="John Doe" className="h-12 border-2 rounded-sm focus-visible:ring-[var(--color-accent)]" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black capitalize tracking-widest text-[var(--color-text-muted)]">Email Address</label>
-                  <Input placeholder="john@example.com" className="h-12 border-2 rounded-sm focus-visible:ring-[var(--color-accent)]" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black capitalize tracking-widest text-[var(--color-text-muted)]">Subject</label>
-                <select className="w-full h-12 border-2 rounded-sm px-4 bg-white dark:bg-surface font-bold outline-none focus:border-[var(--color-accent)] transition-colors">
-                  <option>Sourcing Inquiry</option>
-                  <option>Vendor Verification</option>
-                  <option>Affiliate Partnership</option>
-                  <option>Technical Support</option>
-                  <option>Investor Relations</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black capitalize tracking-widest text-[var(--color-text-muted)]">Message</label>
-                <Textarea placeholder="How can we help you?" className="min-h-[150px] border-2 rounded-sm focus-visible:ring-[var(--color-accent)]" />
-              </div>
-              <Button className="w-full h-14 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black text-lg rounded-sm shadow-none shadow-[var(--color-accent)]/20">
-                Send Message <Send className="ml-2 h-5 w-5" />
-              </Button>
-            </form>
-          </div>
+      <section className="mx-auto max-w-8xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CHANNELS.map(({ icon: Icon, title, body, href, cta }) => (
+            <Link
+              key={title}
+              href={href}
+              className="rounded-[16px] border border-[var(--color-border)] bg-white p-5 transition hover:border-[rgba(255,90,31,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] dark:bg-[var(--color-surface)]"
+            >
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-[12px] bg-[rgba(255,90,31,0.1)] text-[#FF5A1F]">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <h2 className="mt-4 text-base font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
+                {title}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{body}</p>
+              <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#C2410C]">
+                {cta}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
-      {/* Global Presence Map Placeholder */}
-      <section className="py-24 bg-[var(--color-surface-secondary)] border-y border-[var(--color-border)]">
-        <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 text-center">
-            <h2 className="text-3xl font-black text-[var(--color-text-primary)] mb-4">Everywhere You Are</h2>
-            <p className="text-[var(--color-text-secondary)] mb-12">With local offices in 6 continents, our expertise is truly global.</p>
-            <div className="aspect-[21/9] bg-white dark:bg-surface border border-[var(--color-border)] rounded-sm shadow-none flex items-center justify-center">
-                <div className="text-center">
-                    <Globe className="h-20 w-20 text-[var(--color-accent-light)] mx-auto mb-4" />
-                    <p className="text-[var(--color-text-muted)] font-black capitalize tracking-[0.3em]">Interactive Map Incoming</p>
+      <section className="border-y border-[var(--color-border)] bg-white dark:bg-[var(--color-surface)]">
+        <div className="mx-auto max-w-8xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)]">
+                Direct channels
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Prefer email? Use the addresses already published for Jimvio support and general
+                inquiries.
+              </p>
+
+              <div className="mt-8 space-y-6">
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-[rgba(255,90,31,0.1)] text-[#FF5A1F]">
+                    <Mail className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
+                      Support
+                    </h3>
+                    <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                      Product, account, and payout questions.
+                    </p>
+                    <a
+                      href={`mailto:${contact.support_email}`}
+                      className="mt-2 inline-block text-base font-bold text-[#FF5A1F] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+                    >
+                      {contact.support_email}
+                    </a>
+                  </div>
                 </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-[rgba(255,90,31,0.1)] text-[#FF5A1F]">
+                    <Users className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
+                      General & partnerships
+                    </h3>
+                    <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                      Press, partnerships, careers interest, and general company mail.
+                    </p>
+                    <a
+                      href={`mailto:${contact.info_email}`}
+                      className="mt-2 inline-block text-base font-bold text-[#FF5A1F] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+                    >
+                      {contact.info_email}
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] border border-[var(--color-border)] bg-[#F8FAFC] text-[#111827] dark:bg-[var(--color-bg)] dark:text-[var(--color-text-primary)]">
+                    <MapPin className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
+                      Headquarters
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                      {contact.hq_line1}
+                      <br />
+                      {contact.hq_line2}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Link
+                    href="/legal"
+                    className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--color-border)] px-4 text-sm font-bold text-[#111827] hover:border-[rgba(255,90,31,0.35)] dark:text-[var(--color-text-primary)]"
+                  >
+                    <Scale className="h-4 w-4" aria-hidden="true" />
+                    Legal Center
+                  </Link>
+                  <Link
+                    href="/community-guidelines"
+                    className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--color-border)] px-4 text-sm font-bold text-[#111827] hover:border-[rgba(255,90,31,0.35)] dark:text-[var(--color-text-primary)]"
+                  >
+                    Trust & Safety
+                  </Link>
+                  <Link
+                    href="/cookie-settings"
+                    className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-[var(--color-border)] px-4 text-sm font-bold text-[#111827] hover:border-[rgba(255,90,31,0.35)] dark:text-[var(--color-text-primary)]"
+                  >
+                    Cookie settings
+                  </Link>
+                </div>
+              </div>
             </div>
+
+            <div className="rounded-[20px] border border-[var(--color-border)] bg-[#F8FAFC] p-6 sm:p-8 dark:bg-[var(--color-bg)]">
+              <h2 className="text-2xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)]">
+                Send a message
+              </h2>
+              <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                Messages route to the appropriate Jimvio inbox based on topic.
+              </p>
+              <div className="relative mt-6">
+                <ContactForm key={initialTopic} initialTopic={initialTopic} />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>
   );
 }
-

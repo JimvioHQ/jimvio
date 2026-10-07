@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAdminDB } from "@/services/base";
 import { SITE } from "@/lib/seo";
+import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
@@ -23,8 +24,10 @@ const STATIC_ROUTES: Array<{
   { path: "/vendors", priority: 0.75, changeFrequency: "weekly" },
   { path: "/shorts", priority: 0.7, changeFrequency: "daily" },
   { path: "/about", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/help", priority: 0.6, changeFrequency: "monthly" },
+  { path: "/careers", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/press", priority: 0.5, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/help", priority: 0.6, changeFrequency: "monthly" },
   { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
   { path: "/pricing", priority: 0.6, changeFrequency: "monthly" },
   { path: "/protection", priority: 0.5, changeFrequency: "monthly" },
@@ -49,64 +52,85 @@ const STATIC_ROUTES: Array<{
   { path: "/legal/affiliate-terms", priority: 0.3, changeFrequency: "yearly" },
   { path: "/legal/advertising-disclosure", priority: 0.3, changeFrequency: "yearly" },
   { path: "/content", priority: 0.3, changeFrequency: "yearly" },
-  { path: "/careers", priority: 0.5, changeFrequency: "monthly" },
 ];
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const admin = getAdminDB();
-  const now = new Date();
-
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({
+function staticEntries(): MetadataRoute.Sitemap {
+  return STATIC_ROUTES.map((route) => ({
     url: `${SITE.url}${route.path === "/" ? "" : route.path}`,
-    lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
+}
 
-  const [productsRes, communitiesRes, blogRes] = await Promise.all([
-    admin
-      .from("products")
-      .select("slug, updated_at")
-      .eq("status", "active")
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false })
-      // Single sitemap remains under the protocol's 50k URL limit; shard when
-      // the public catalog approaches that ceiling.
-      .limit(45_000),
-    admin
-      .from("communities")
-      .select("slug, updated_at")
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(4_000),
-    admin
-      .from("blog_posts")
-      .select("slug, published_at")
-      .eq("is_published", true)
-      .order("published_at", { ascending: false })
-      .limit(200),
-  ]);
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = staticEntries();
 
-  const productEntries: MetadataRoute.Sitemap = (productsRes.data ?? []).map((p) => ({
-    url: `${SITE.url}/marketplace/${p.slug}`,
-    lastModified: p.updated_at ? new Date(p.updated_at) : now,
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }));
+  if (!hasSupabaseSecretKey()) {
+    console.warn("[sitemap] Missing Supabase secret key — returning static routes only");
+    return base;
+  }
 
-  const communityEntries: MetadataRoute.Sitemap = (communitiesRes.data ?? []).map((c) => ({
-    url: `${SITE.url}/communities/${c.slug}`,
-    lastModified: c.updated_at ? new Date(c.updated_at) : now,
-    changeFrequency: "weekly",
-    priority: 0.65,
-  }));
+  try {
+    const admin = getAdminDB();
 
-  const blogEntries: MetadataRoute.Sitemap = (blogRes.data ?? []).map((b) => ({
-    url: `${SITE.url}/blog/${b.slug}`,
-    lastModified: b.published_at ? new Date(b.published_at) : now,
-    changeFrequency: "monthly",
-    priority: 0.6,
-  }));
+    const [productsRes, communitiesRes, blogRes] = await Promise.all([
+      admin
+        .from("products")
+        .select("slug, updated_at")
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .order("updated_at", { ascending: false })
+        // Single sitemap remains under the protocol's 50k URL limit; shard when
+        // the public catalog approaches that ceiling.
+        .limit(45_000),
+      admin
+        .from("communities")
+        .select("slug, updated_at")
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(4_000),
+      admin
+        .from("blog_posts")
+        .select("slug, published_at")
+        .eq("is_published", true)
+        .order("published_at", { ascending: false })
+        .limit(200),
+    ]);
 
-  return [...staticEntries, ...productEntries, ...communityEntries, ...blogEntries];
+    if (productsRes.error) console.error("[sitemap] products:", productsRes.error.message);
+    if (communitiesRes.error) console.error("[sitemap] communities:", communitiesRes.error.message);
+    if (blogRes.error) console.error("[sitemap] blog:", blogRes.error.message);
+
+    const productEntries: MetadataRoute.Sitemap = (productsRes.data ?? [])
+      .filter((p) => typeof p.slug === "string" && p.slug.length > 0)
+      .map((p) => ({
+        url: `${SITE.url}/marketplace/${p.slug}`,
+        lastModified: p.updated_at ? new Date(p.updated_at) : undefined,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      }));
+
+    const communityEntries: MetadataRoute.Sitemap = (communitiesRes.data ?? [])
+      .filter((c) => typeof c.slug === "string" && c.slug.length > 0)
+      .map((c) => ({
+        url: `${SITE.url}/communities/${c.slug}`,
+        lastModified: c.updated_at ? new Date(c.updated_at) : undefined,
+        changeFrequency: "weekly" as const,
+        priority: 0.65,
+      }));
+
+    const blogEntries: MetadataRoute.Sitemap = (blogRes.data ?? [])
+      .filter((b) => typeof b.slug === "string" && b.slug.length > 0)
+      .map((b) => ({
+        url: `${SITE.url}/blog/${b.slug}`,
+        lastModified: b.published_at ? new Date(b.published_at) : undefined,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      }));
+
+    return [...base, ...productEntries, ...communityEntries, ...blogEntries];
+  } catch (err) {
+    console.error("[sitemap] Failed to load dynamic entries:", err);
+    return base;
+  }
 }
