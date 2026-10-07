@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
-  MessageCircle, ShoppingBag, Check, X, Minus,
-  PercentSquare, AlertTriangle,
+  ShoppingBag, Check, X, Minus,
 } from "lucide-react";
 import { productHasVideos } from "@/lib/product-videos";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
@@ -21,6 +20,16 @@ import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import type { ProductCardClientProps } from "./product-card-client";
+import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
+import {
+  isDropshipEligible,
+  isPurchaseBlockedByStock,
+  shouldHideStockQuantity,
+} from "@/lib/marketplace/stock-status";
+import {
+  resolveCommissionRatePercent,
+} from "@/lib/currency/platform";
+import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 
 /* ─── Extended props ─── */
 export interface ProductCardPhysicalProps extends ProductCardClientProps {
@@ -68,17 +77,29 @@ export function ProductCardPhysical({
   const discount = getProductDiscountPercent(discountFields);
 
   /* ── Stock / affiliate helpers (safe cast — fields optional) ── */
-  const stockQty = (p as any).stock_quantity as number | null | undefined;
-  const inStock = (p as any).in_stock !== false;
-  const outOfStock = !inStock;
-  const lowStock = !outOfStock && stockQty != null && stockQty <= 5;
-  const commissionRate = (p as any).affiliate_commission_rate as number | null | undefined;
-
-  // ✅ FIXED: only show badge when affiliate is enabled AND has a real commission rate > 0
-  const affiliateEnabled =
+  const inventoryQty =
+    (p as any).inventory_quantity ??
+    (p as any).stock_quantity ??
+    null;
+  const stockInput = {
+    inventory_quantity: inventoryQty,
+    track_inventory: (p as any).track_inventory,
+    allow_backorder: (p as any).allow_backorder,
+    low_stock_threshold: (p as any).low_stock_threshold,
+    in_stock: (p as any).in_stock,
+    hideQuantity: shouldHideStockQuantity(p),
+  };
+  const outOfStock = isPurchaseBlockedByStock(stockInput);
+  const showDropship = isDropshipEligible(p);
+  const configuredCommission =
     (p as any).affiliate_enabled === true &&
-    commissionRate != null &&
-    Number(commissionRate) > 0;
+    Number((p as any).affiliate_commission_rate) > 0
+      ? resolveCommissionRatePercent({
+          productRate: (p as any).affiliate_commission_rate,
+          platformDefault:
+            PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent,
+        })
+      : null;
 
   /* Cap absurdly long CJ titles */
   const displayName = useMemo(
@@ -168,30 +189,6 @@ export function ProductCardPhysical({
     await doAddToCart(vendorId, null, true);
   };
 
-  /* ── Chat ── */
-  const handleChat = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!p.vendors?.id) return;
-    window.dispatchEvent(
-      new CustomEvent("openProductChat", {
-        detail: {
-          vendor: {
-            id: p.vendors.id,
-            business_name: p.vendors.business_name ?? null,
-            business_logo: (p.vendors as any).business_logo ?? null,
-            business_slug: (p.vendors as any).business_slug ?? null,
-          },
-          product: {
-            id: p.id, name: p.name, slug: p.slug,
-            price: Number(p.price ?? 0), images: p.images ?? null,
-          },
-          currentPath: typeof window !== "undefined" ? window.location.pathname : "/marketplace/physical",
-        },
-      })
-    );
-  };
-
   return (
     <>
       <article
@@ -257,12 +254,19 @@ export function ProductCardPhysical({
             aria-hidden
           />
 
-          {onSale && (
-            <span className="absolute flex items-center gap-1 top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
-              <Minus size={12} aria-hidden />
-              {discount}%
-            </span>
-          )}
+          <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
+            {showDropship && (
+              <span className="rounded-md bg-violet-600/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                Dropship
+              </span>
+            )}
+            {onSale && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)]/95 px-2 py-0.5 text-[10px] font-medium tracking-wide text-rose-600 backdrop-blur-sm">
+                <Minus size={12} aria-hidden />
+                {discount}%
+              </span>
+            )}
+          </div>
 
           {inCart && (
             <div className="absolute top-3 right-3 flex items-center gap-1.5">
@@ -290,30 +294,6 @@ export function ProductCardPhysical({
 
         {/* ── Info ── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
-
-          {(lowStock || affiliateEnabled) && (
-            <div className="flex flex-wrap items-center gap-1">
-              {lowStock && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                  style={{ background: "rgba(245,158,11,0.1)", color: "#d97706" }}
-                >
-                  <AlertTriangle className="h-2.5 w-2.5" aria-hidden />
-                  Only {stockQty} left
-                </span>
-              )}
-
-              {affiliateEnabled && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
-                  style={{ background: "rgba(99,102,241,0.1)", color: "#6366f1" }}
-                >
-                  <PercentSquare className="h-2.5 w-2.5" aria-hidden />
-                  {commissionRate}% commission
-                </span>
-              )}
-            </div>
-          )}
 
           {/* Name */}
           <Link
@@ -349,8 +329,16 @@ export function ProductCardPhysical({
             )}
           </div>
 
+          <StockStatusBadge size="sm" input={stockInput} />
+
+          {configuredCommission != null && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent)]">
+              ↗ {configuredCommission}% commission
+            </span>
+          )}
+
           {/* Actions */}
-          <div className="grid grid-cols-[1fr_auto] gap-1.5 pt-1">
+          <div className="pt-1">
             <button
               type="button"
               onClick={handleCartToggle}
@@ -361,7 +349,7 @@ export function ProductCardPhysical({
                     : "Add to cart"
               }
               className={cn(
-                "group/btn relative flex items-center justify-center gap-1.5",
+                "group/btn relative flex w-full items-center justify-center gap-1.5",
                 "h-9 px-3 rounded-xl text-[12px] font-medium",
                 "transition-all duration-200",
                 "disabled:opacity-60",
@@ -378,7 +366,7 @@ export function ProductCardPhysical({
                   aria-label="Loading"
                 />
               ) : outOfStock ? (
-                <span>Unavailable</span>
+                <span>Out of stock</span>
               ) : inCart ? (
                 <>
                   <Check className="h-3.5 w-3.5 group-hover/btn:hidden" aria-hidden />
@@ -389,18 +377,9 @@ export function ProductCardPhysical({
               ) : (
                 <>
                   <ShoppingBag className="h-3.5 w-3.5" aria-hidden />
-                  <span>Add</span>
+                  <span>Add to cart</span>
                 </>
               )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleChat}
-              aria-label="Chat with seller"
-              className="flex items-center justify-center h-9 w-9 rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
             </button>
           </div>
         </div>
@@ -414,7 +393,7 @@ export function ProductCardPhysical({
           currency: p.currency,
           images: p.images ?? null,
           rating: p.rating ?? null,
-          inventory_quantity: stockQty ?? undefined,
+          inventory_quantity: inventoryQty ?? undefined,
         }}
         vendor={
           p.vendors

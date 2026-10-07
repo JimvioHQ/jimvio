@@ -25,7 +25,13 @@ import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketpla
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { notFound, redirect } from "next/navigation";
-import { formatFollowerCount, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
+import {
+  formatFollowerCount,
+  formatStoreRating,
+  formatStoreSales,
+  storefrontFollowerCount,
+  storefrontLogoSrc,
+} from "@/lib/marketplace/store-display";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
@@ -87,6 +93,10 @@ export default async function VendorStorePage({ params }: PageProps) {
 
   const cartSet = new Set(cartProductIds);
   const isFollowing = followedVendorIds.includes(vendor.id);
+  const storeRating = formatStoreRating(vendor);
+  const storeSales = formatStoreSales(vendor.total_sales);
+  const followerCount = storefrontFollowerCount(vendor);
+  const isVerified = vendor.verification_status === "verified";
 
   return (
     <>
@@ -144,32 +154,35 @@ export default async function VendorStorePage({ params }: PageProps) {
                     {vendor.business_description || vendor.about || `Welcome to ${vendor.business_name}. Shop creator-ready products from this Jimvio storefront.`}
                   </p>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Rating</p>
-                      <div className="flex items-center gap-1 font-black text-lg">
-                        <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />{" "}
-                        {vendor.rating != null ? Number(vendor.rating).toFixed(1) : "—"}
-                      </div>
+                      {storeRating.hasRating ? (
+                        <div>
+                          <div className="flex items-center gap-1 font-black text-lg">
+                            <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+                            {storeRating.label}
+                          </div>
+                          {storeRating.reviewLabel && (
+                            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                              {storeRating.reviewLabel}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="font-semibold text-[15px] text-[var(--color-text-muted)]">
+                          No ratings yet
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Sales</p>
-                      <p className="font-black text-lg">
-                        {(vendor.total_sales || 0) >= 1000
-                          ? `${((vendor.total_sales || 0) / 1000).toFixed(1)}k`
-                          : vendor.total_sales || 0}
-                      </p>
+                      <p className="font-black text-lg">{storeSales.label}</p>
                     </div>
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Followers</p>
                       <p className="font-black text-lg">
-                        {formatFollowerCount(storefrontFollowerCount(vendor))}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Country</p>
-                      <p className="font-black text-lg flex items-center gap-1">
-                         {vendor.business_country || "Global"}
+                        {formatFollowerCount(followerCount)}
                       </p>
                     </div>
                   </div>
@@ -189,9 +202,6 @@ export default async function VendorStorePage({ params }: PageProps) {
                   </TabsTrigger>
                   <TabsTrigger value="profile" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Company Profile
-                  </TabsTrigger>
-                  <TabsTrigger value="capabilities" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
-                    Capabilities
                   </TabsTrigger>
                 </TabsList>
                 
@@ -254,26 +264,25 @@ export default async function VendorStorePage({ params }: PageProps) {
                   <TabsContent value="profile" className="mt-0">
                     <div className="prose prose-sm max-w-none text-[var(--color-text-secondary)]">
                       <h3 className="text-xl font-bold text-[var(--color-text-primary)] mb-4">About {vendor.business_name}</h3>
-                      <p className="text-lg leading-relaxed mb-6">{vendor.about || "This supplier has not provided a detailed biography yet."}</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Business Type</h4>
-                          <p>Manufacturer, Trading Company</p>
-                          <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Main Products</h4>
-                          <p>Industrial components, electronics, customized gear</p>
+                      <p className="text-lg leading-relaxed mb-6">
+                        {vendor.about || vendor.business_description || "This store has not provided a company profile yet."}
+                      </p>
+                      {(vendor.business_type || vendor.main_products) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+                          {vendor.business_type && (
+                            <div className="space-y-2">
+                              <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Business Type</h4>
+                              <p>{vendor.business_type}</p>
+                            </div>
+                          )}
+                          {vendor.main_products && (
+                            <div className="space-y-2">
+                              <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Main Products</h4>
+                              <p>{vendor.main_products}</p>
+                            </div>
+                          )}
                         </div>
-                        <div className="space-y-4">
-                          <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Total Annual Revenue</h4>
-                          <p>US$10 Million - US$50 Million</p>
-                          <h4 className="font-bold text-[var(--color-text-primary)] border-b pb-2">Certifications</h4>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline">ISO 9001</Badge>
-                            <Badge variant="outline">CE</Badge>
-                            <Badge variant="outline">RoHS</Badge>
-                          </div>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </TabsContent>
                 </div>
@@ -305,12 +314,19 @@ export default async function VendorStorePage({ params }: PageProps) {
               </div>
 
               <div className="mt-8 pt-8 border-t border-[var(--color-border)] space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                {isVerified && (
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span className="font-medium">On-time Delivery</span>
+                    <span className="font-medium">Verified Supplier</span>
                   </div>
-                  <span className="font-black text-green-600">99.2%</span>
+                )}
+                <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                  <ShieldCheck className="h-4 w-4 text-blue-500" />
+                  <span className="font-medium">Secure Transaction</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
+                  <Package className="h-4 w-4 text-emerald-500" />
+                  <span className="font-medium">Buyer Protection</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
@@ -318,7 +334,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                     <span className="font-medium">Followers</span>
                   </div>
                   <span className="font-black text-[var(--color-text-primary)]">
-                    {formatFollowerCount(storefrontFollowerCount(vendor))}
+                    {formatFollowerCount(followerCount)}
                   </span>
                 </div>
               </div>
@@ -326,7 +342,7 @@ export default async function VendorStorePage({ params }: PageProps) {
 
             <div className="bg-ink-dark text-white rounded-2xl p-6">
               <h4 className="font-black text-lg mb-3">Custom Sourcing</h4>
-              <p className="text-white/60 text-sm mb-6">Need something custom built? This supplier offers OEM/ODM services.</p>
+              <p className="text-white/60 text-sm mb-6">Need something custom built? Ask this store about OEM/ODM availability.</p>
               <Button className="w-full bg-white dark:bg-surface text-text-primary hover:bg-white dark:bg-surface/90 font-black h-12 rounded-xl">
                 Send RFQ
               </Button>

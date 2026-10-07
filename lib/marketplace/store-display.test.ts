@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   formatFollowerCount,
   formatFollowersLabel,
+  formatStoreRating,
+  formatStoreSales,
   storefrontFollowerCount,
   storefrontLogoSrc,
 } from "./store-display";
@@ -30,5 +32,22 @@ describe("storefront follower display", () => {
       storefrontLogoSrc({ business_slug: "other-shop", business_logo: null }),
       null,
     );
+  });
+
+  it("does not display 0.0 as a store rating", () => {
+    const empty = formatStoreRating({ rating: 0, review_count: 0 });
+    assert.equal(empty.hasRating, false);
+    assert.equal(empty.label, "No ratings yet");
+
+    const rated = formatStoreRating({ rating: 4.8, review_count: 1204 });
+    assert.equal(rated.hasRating, true);
+    assert.equal(rated.label, "4.8");
+    assert.equal(rated.reviewLabel, "1,204 reviews");
+  });
+
+  it("formats real sales without inventing totals", () => {
+    assert.equal(formatStoreSales(1074).label, "1,074");
+    assert.equal(formatStoreSales(0).label, "0");
+    assert.equal(formatStoreSales(null).count, 0);
   });
 });

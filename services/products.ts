@@ -472,7 +472,9 @@ export async function getProductPageData(
       .from("products")
       .select(`
         id, name, slug, price, compare_at_price, currency, images,
-        rating, review_count, sale_count, source, product_type
+        rating, review_count, sale_count, source, product_type,
+        inventory_quantity, track_inventory, low_stock_threshold,
+        affiliate_enabled, affiliate_commission_rate
       `)
       .eq("category_id", (product as any).category_id)
       .eq("status", "active")
@@ -509,8 +511,9 @@ export async function getVendorProducts(vendorId: string) {
   const { data } = await db
     .from("products")
     .select(`
-      id, name, slug, price, compare_at_price, status, product_type,
-      images, inventory_quantity, sale_count, rating, review_count,
+      id, name, slug, price, compare_at_price, status, product_type, source,
+      images, inventory_quantity, track_inventory, low_stock_threshold,
+      sale_count, rating, review_count,
       affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency,
       pricing_type, billing_period
     `)

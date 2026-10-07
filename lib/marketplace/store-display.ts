@@ -36,3 +36,46 @@ export function formatFollowersLabel(count: number): string {
   if (!Number.isFinite(count) || count <= 0) return "No followers yet";
   return `${formatFollowerCount(count)} Followers`;
 }
+
+/** Store rating for customer-facing UI — never presents 0.0 as a reviewed score. */
+export function formatStoreRating(vendor: {
+  rating?: number | null;
+  review_count?: number | null;
+} | null | undefined): {
+  hasRating: boolean;
+  score: number | null;
+  label: string;
+  reviewLabel: string | null;
+} {
+  const score = Number(vendor?.rating);
+  const reviews = Math.max(0, Number(vendor?.review_count ?? 0) || 0);
+
+  // If rating is 0/null, treat as unreviewed even if a stale 0.0 is stored.
+  if (!Number.isFinite(score) || score <= 0) {
+    return {
+      hasRating: false,
+      score: null,
+      label: "No ratings yet",
+      reviewLabel: null,
+    };
+  }
+
+  return {
+    hasRating: true,
+    score,
+    label: score.toFixed(1),
+    reviewLabel: reviews > 0 ? `${reviews.toLocaleString()} reviews` : null,
+  };
+}
+
+/** Successful/paid sales count from the vendor's authoritative total_sales field. */
+export function formatStoreSales(totalSales: number | null | undefined): {
+  count: number;
+  label: string;
+} {
+  const count = Math.max(0, Math.floor(Number(totalSales ?? 0) || 0));
+  return {
+    count,
+    label: count.toLocaleString(),
+  };
+}

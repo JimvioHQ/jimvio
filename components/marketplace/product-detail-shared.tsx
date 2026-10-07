@@ -3,10 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-    Star, TrendingUp, Clock, ThumbsUp, CheckCircle2,
-    ChevronRight, ChevronDown, Users, DollarSign,
+    Star, TrendingUp, ThumbsUp, CheckCircle2,
+    ChevronRight, ChevronDown, Users,
     Share2, Heart, BadgeCheck, Globe,
-    Package, ArrowRight, Link2, Wallet, Zap, Sparkles,
+    Package, Zap, ShoppingBag,
     ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
@@ -14,10 +14,17 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Product, Vendor } from "@/types/db";
 import { CurrencyCode } from "@/lib/currency/config";
-import { useCurrency } from "@/context/CurrencyContext";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 import { productHasTrendingSignal, productHasVerifiedSupplier } from "@/lib/marketplace/product-signals";
+import {
+  estimateAffiliateCommissionUsd,
+  formatUSD,
+  resolveCommissionRatePercent,
+  toPlatformUsd,
+} from "@/lib/currency/platform";
+import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
+import { isDropshipEligible, shouldHideStockQuantity } from "@/lib/marketplace/stock-status";
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -47,6 +54,7 @@ export function ProductTitleBadges({
   product,
   isFreeShipping = false,
   variant = "physical",
+  showFastShippingBadge = false,
 }: {
   vendor?: { verification_status?: string | null } | null;
   product: {
@@ -56,8 +64,11 @@ export function ProductTitleBadges({
     delivery_time?: string | null;
     source_metadata?: unknown;
     inventory_quantity?: number | null;
+    source?: string | null;
   };
   isFreeShipping?: boolean;
+  /** Only show when actual shipping data supports fast/free shipping. */
+  showFastShippingBadge?: boolean;
   variant?: "physical" | "digital";
 }) {
   const sales = product.sale_count ?? product.sold_count ?? 0;
@@ -67,31 +78,20 @@ export function ProductTitleBadges({
   });
   const isBestseller = sales >= 100;
   const isTrending = productHasTrendingSignal(product);
-  const showFastShipping = variant === "physical";
+  const showFastShipping = variant === "physical" && (showFastShippingBadge || isFreeShipping);
+  const showDropship = isDropshipEligible(product);
 
   if (variant === "physical") {
     return (
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        {isBestseller && (
+        {showDropship && (
           <span
             className={cn(
               PHYSICAL_TITLE_CHIP,
-              "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+              "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300",
             )}
           >
-            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
-            Bestseller
-          </span>
-        )}
-        {isTrending && (
-          <span
-            className={cn(
-              PHYSICAL_TITLE_CHIP,
-              "bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300",
-            )}
-          >
-            <TrendingUp className="h-3 w-3" />
-            Trending
+            DROPSHIP
           </span>
         )}
         {showFastShipping && (
@@ -116,6 +116,28 @@ export function ProductTitleBadges({
           >
             <BadgeCheck className="h-3 w-3" />
             Verified Supplier
+          </span>
+        )}
+        {isBestseller && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+            )}
+          >
+            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+            Bestseller
+          </span>
+        )}
+        {isTrending && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              "bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300",
+            )}
+          >
+            <TrendingUp className="h-3 w-3" />
+            Trending
           </span>
         )}
       </div>
@@ -244,11 +266,20 @@ export function SocialProofBar({
     saleCount: number;
     reviewCount: number;
 }) {
-    const items = [
-        { icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />, text: saleCount > 0 ? `${saleCount.toLocaleString()}+ users` : "New Product" },
-        { icon: <Clock className="h-3.5 w-3.5 text-sky-500" />, text: "Updated recently" },
-        { icon: <ThumbsUp className="h-3.5 w-3.5 text-violet-500" />, text: "97% recommend" },
-    ];
+    const items: Array<{ icon: React.ReactNode; text: string }> = [];
+    if (saleCount > 0) {
+        items.push({
+            icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />,
+            text: `${saleCount.toLocaleString()}+ sold`,
+        });
+    }
+    if (reviewCount > 0) {
+        items.push({
+            icon: <ThumbsUp className="h-3.5 w-3.5 text-violet-500" />,
+            text: `${reviewCount.toLocaleString()} reviews`,
+        });
+    }
+    if (items.length === 0) return null;
     return (
         <div className="flex flex-wrap items-center gap-3 py-3 px-4 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)]">
             {items.map((item, i) => (
@@ -265,9 +296,13 @@ export function SocialProofBar({
 export function AffiliateBanner({ product }: { product: Product }) {
     if (!product.affiliate_enabled) return null;
 
-    const rate = product.affiliate_commission_rate ?? DEFAULT_AFFILIATE_RATE;
-    const earnPerSale = ((product.price * rate) / 100).toFixed(2);
-    const currencySymbol = product.currency === "USD" ? "$" : product.currency;
+    const rate = resolveCommissionRatePercent({
+      productRate: product.affiliate_commission_rate,
+      platformDefault: DEFAULT_AFFILIATE_RATE,
+    });
+    const priceUsd = toPlatformUsd(Number(product.price ?? 0), product.currency);
+    const { amount: earnUsd } = estimateAffiliateCommissionUsd(priceUsd, rate);
+    const earnLabel = formatUSD(earnUsd);
 
     return (
         <div className="rounded-2xl border border-[var(--color-border)] overflow-hidden">
@@ -297,7 +332,7 @@ export function AffiliateBanner({ product }: { product: Product }) {
                     <p className="text-[15px] font-semibold text-[var(--color-text-primary)] leading-snug">
                         Earn{" "}
                         <span style={{ color: "var(--color-accent)" }}>
-                            {currencySymbol}{earnPerSale}
+                            {earnLabel}
                         </span>{" "}
                         every time someone buys through your link
                     </p>
@@ -314,7 +349,7 @@ export function AffiliateBanner({ product }: { product: Product }) {
                     }}
                 >
                     {[
-                        { label: "You earn", value: `${currencySymbol}${earnPerSale}` },
+                        { label: "You earn", value: earnLabel },
                         { label: "Commission", value: `${rate}%` },
                         { label: "Payout", value: "Instant" },
                     ].map((stat, i) => (
@@ -581,35 +616,51 @@ export function RelatedProducts({
     formatMoney,
 }: {
     products: any[];
-    formatMoney: (price: number, currency: CurrencyCode) => string;
+    formatMoney: (price: number, currency: CurrencyCode, displayCurrency?: CurrencyCode) => string;
 }) {
     if (!products.length) return null;
     return (
         <div className="space-y-5">
-            <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
-                    You might also like
-                </h2>
+            <div className="flex items-end justify-between gap-3">
+                <div>
+                    <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
+                        Related products
+                    </h2>
+                    <p className="mt-0.5 text-[13px] text-[var(--color-text-muted)]">
+                        More products you may like
+                    </p>
+                </div>
                 <Link
                     href="/marketplace"
-                    className="flex items-center gap-1 text-xs font-semibold text-[var(--color-accent)] transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md"
+                    className="flex shrink-0 items-center gap-1 text-xs font-semibold text-[var(--color-accent)] transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md"
                 >
                     View all <ChevronRight className="h-3 w-3" />
                 </Link>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-                {products.slice(0, 3).map(rp => (
-                    <Link
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                {products.slice(0, 8).map(rp => {
+                    const commissionRate =
+                      rp.affiliate_enabled && Number(rp.affiliate_commission_rate) > 0
+                        ? Number(rp.affiliate_commission_rate)
+                        : null;
+                    return (
+                    <div
                         key={rp.id}
-                        href={`/marketplace/${rp.slug}`}
                         className={cn(
-                            "group overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]",
+                            "group flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]",
                             "transition-[transform,border-color,box-shadow] duration-300 ease-out",
-                            "hover:scale-[1.02] hover:border-[var(--color-border-strong)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                            "hover:border-[var(--color-border-strong)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]",
                         )}
                     >
-                        <div className="relative aspect-square overflow-hidden bg-[var(--color-surface-secondary)]">
+                        <Link
+                          href={`/marketplace/${rp.slug}`}
+                          className="relative aspect-square overflow-hidden bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
+                        >
+                            {isDropshipEligible(rp) && (
+                              <span className="absolute left-2 top-2 z-10 rounded-md bg-violet-600/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                                Dropship
+                              </span>
+                            )}
                             {rp.images?.[0] ? (
                                 <img
                                     src={rp.images[0]}
@@ -623,25 +674,45 @@ export function RelatedProducts({
                                     <Package className="h-8 w-8 text-[var(--color-border)]" />
                                 </div>
                             )}
-                        </div>
-                        <div className="p-3.5">
-                            <p className="truncate text-xs font-semibold leading-snug text-[var(--color-text-primary)]">
+                        </Link>
+                        <div className="flex flex-1 flex-col gap-1.5 p-3.5">
+                            <Link
+                              href={`/marketplace/${rp.slug}`}
+                              className="truncate text-xs font-semibold leading-snug text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
+                            >
                                 {rp.name}
+                            </Link>
+                            <p className="text-sm font-bold text-[var(--color-accent)]">
+                                {formatMoney(Number(rp.price), rp.currency, "USD")}
                             </p>
-                            <p className="mt-1.5 text-sm font-bold text-[var(--color-accent)]">
-                                {formatMoney(Number(rp.price), rp.currency)}
-                            </p>
-                            {rp.affiliate_enabled && (
+                            <StockStatusBadge
+                              size="sm"
+                              input={{
+                                inventory_quantity: rp.inventory_quantity,
+                                track_inventory: rp.track_inventory,
+                                low_stock_threshold: rp.low_stock_threshold,
+                                hideQuantity: shouldHideStockQuantity(rp),
+                              }}
+                            />
+                            {commissionRate != null && (
                                 <span
-                                    className="mt-1.5 inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold"
+                                    className="inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold"
                                     style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)" }}
                                 >
-                                    {(rp.affiliate_commission_rate ?? DEFAULT_AFFILIATE_RATE)}% affiliate
+                                    ↗ {commissionRate}% commission
                                 </span>
                             )}
+                            <Link
+                              href={`/marketplace/${rp.slug}`}
+                              className="mt-auto inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-3 text-[11px] font-semibold text-[var(--color-surface)] transition-opacity hover:opacity-90"
+                            >
+                              <ShoppingBag className="h-3 w-3" />
+                              View product
+                            </Link>
                         </div>
-                    </Link>
-                ))}
+                    </div>
+                    );
+                })}
             </div>
         </div>
     );

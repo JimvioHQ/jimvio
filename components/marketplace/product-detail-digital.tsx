@@ -507,16 +507,11 @@ import {
   SaveShareBar,
   AffiliateBanner,
   FaqSection,
-  CommunityAccessCard,
   RelatedProducts,
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
 import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
-import { buildProductCommerceGraph } from "@/lib/commerce-graph";
-import { buildProductBusinessGraph } from "@/lib/business-graph";
-import { CommerceGraphDiscovery, CommerceGraphPanel } from "@/components/commerce-graph";
-import { BusinessCollaborationPanel } from "@/components/business-graph";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -1218,7 +1213,6 @@ export function DigitalProductDetail({
   }) : null;
   const savingsAmount = compareAtPrice ? compareAtPrice - price : 0;
 
-  const liveViewers = useLiveViewers(5);
   const buyBoxRef = useRef<HTMLDivElement>(null);
 
   // Specifications derived from metadata
@@ -1246,35 +1240,6 @@ export function DigitalProductDetail({
 
     return rows;
   }, [product]);
-
-  const commerceGraph = useMemo(
-    () =>
-      buildProductCommerceGraph({
-        product: {
-          id: product.id,
-          name: product.name,
-          slug: product.slug,
-          price,
-          images: product.images,
-          product_type: product.product_type,
-          vendor_id: product.vendor_id,
-          category: product.product_categories?.name ?? null,
-        },
-        vendor,
-        relatedProducts,
-      }),
-    [product, price, vendor, relatedProducts],
-  );
-
-  const businessGraph = useMemo(
-    () =>
-      buildProductBusinessGraph({
-        product: { id: product.id, name: product.name, slug: product.slug, images: product.images },
-        vendor,
-        relatedProducts,
-      }),
-    [product, vendor, relatedProducts],
-  );
 
   const specHalf = Math.ceil(specRows.length / 2);
   const specsLeft = specRows.slice(0, specHalf);
@@ -1348,7 +1313,6 @@ export function DigitalProductDetail({
                   savings={savings}
                   thumbnailsPosition="bottom"
                 />
-                <SocialProofActivityFeed liveViewers={liveViewers} saleCount={saleCount} />
               </section>
 
               {/* Sub-col 2: Info + buy box */}
@@ -1942,12 +1906,6 @@ export function DigitalProductDetail({
 
             {/* ── Below tabs ── */}
             <AffiliateBanner product={product} />
-            <CommunityAccessCard
-              vendorSlug={vendor?.business_slug}
-              productName={product.name}
-            />
-            <CommerceGraphDiscovery graph={commerceGraph} maxSections={6} className="space-y-5" />
-            <BusinessCollaborationPanel graph={businessGraph} title="Business opportunities" />
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
           </div>
 
@@ -1957,8 +1915,6 @@ export function DigitalProductDetail({
               {sidebarCards}
               <CompactBuyerProtectionCard />
               <WhyChooseSection brandName="Jimvio" />
-              <CommerceGraphPanel graph={commerceGraph} />
-              <LiveActivityFeedSidebar liveViewers={liveViewers} />
 
               {/* Enterprise CTA */}
               <div

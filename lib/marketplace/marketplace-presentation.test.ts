@@ -26,6 +26,35 @@ describe("marketplace presentation hardening", () => {
     assert.equal(trending.includes("ProductSignalBadges"), false);
   });
 
+  it("removes chat/save from the purchase module and keeps sell-to-store on PDP", () => {
+    const actions = readFileSync(join(root, "components/marketplace/product-action-module.tsx"), "utf8");
+    const physical = readFileSync(join(root, "components/marketplace/product-detail-physical.tsx"), "utf8");
+    assert.equal(actions.includes("Chat with seller"), false);
+    assert.equal(actions.includes("ProductChatTrigger"), false);
+    assert.equal(actions.includes("handleToggleWishlist"), false);
+    assert.equal(physical.includes("SellToStoreButton"), true);
+    assert.equal(physical.includes("CommerceGraphDiscovery"), false);
+    assert.equal(physical.includes("% match"), false);
+  });
+
+  it("shows related products without fake match percentages", () => {
+    const shared = readFileSync(join(root, "components/marketplace/product-detail-shared.tsx"), "utf8");
+    assert.equal(shared.includes("Related products"), true);
+    assert.equal(shared.includes("More products you may like"), true);
+    assert.equal(shared.includes("% MATCH"), false);
+    assert.equal(shared.includes("% match"), false);
+    assert.equal(shared.includes("formatUSD"), true);
+    assert.equal(shared.includes("estimateAffiliateCommissionUsd"), true);
+  });
+
+  it("store page drops country RW and fake on-time metrics", () => {
+    const store = readFileSync(join(root, "app/(public)/vendors/[slug]/page.tsx"), "utf8");
+    assert.equal(store.includes("Country"), false);
+    assert.equal(store.includes("99.2%"), false);
+    assert.equal(store.includes("formatStoreRating"), true);
+    assert.equal(store.includes("No ratings yet"), true);
+  });
+
   it("does not render Shop by collection on the marketplace home", () => {
     const page = readFileSync(join(root, "components/marketplace/new/MarketplacePageClient.tsx"), "utf8");
     assert.equal(page.includes("CollectionsSection"), false);

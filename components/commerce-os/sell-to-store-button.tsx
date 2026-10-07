@@ -131,11 +131,14 @@ export function SellToStoreButton({ productId, productName, className }: Props) 
             {loadingStores ? (
               <p className="text-[#6B7280]">Loading stores…</p>
             ) : jimvioStores.length === 0 ? (
-              <div className="rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-3 text-[#4B5563]">
-                No Jimvio stores yet.{" "}
+              <div className="rounded-md border border-[#E5E7EB] bg-[#F8FAFC] p-4 text-[#4B5563] space-y-3">
+                <p className="text-sm leading-relaxed">
+                  You need a Jimvio store before you can sell this product.
+                  Create a store to list it on your storefront.
+                </p>
                 <Link
                   href="/commerce/stores"
-                  className="font-semibold text-[#FF5A1F] hover:underline"
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-[#FF5A1F] px-4 text-sm font-semibold text-white hover:bg-[#E54E18]"
                 >
                   Create a store
                 </Link>

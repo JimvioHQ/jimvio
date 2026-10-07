@@ -30,11 +30,11 @@ import { formatFollowersLabel, formatFollowerCount, storefrontFollowerCount, sto
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
-  AffiliateBanner, FaqSection, CommunityAccessCard, RelatedProducts,
+  AffiliateBanner, FaqSection, RelatedProducts,
   ProductTitleBadges,
 } from "@/components/marketplace/product-detail-shared";
 import {
-  getCJTitle, cleanCJDescription, parseCJSpecifications, formatCJWeight,
+  getCJTitle, parseCJSpecifications, formatCJWeight,
 } from "@/lib/cj/render";
 import {
   type ProductShippingDisplay,
@@ -46,10 +46,11 @@ import {
 import { resolveWarehouseCountryLabel } from "@/lib/shipping/warehouse-country";
 import { useRegionalShipping } from "@/hooks/use-regional-shipping";
 import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
-import { buildProductCommerceGraph } from "@/lib/commerce-graph";
-import { buildProductBusinessGraph } from "@/lib/business-graph";
-import { CommerceGraphDiscovery, CommerceGraphPanel } from "@/components/commerce-graph";
-import { BusinessCollaborationPanel } from "@/components/business-graph";
+import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
+import {
+  isPurchaseBlockedByStock,
+  shouldHideStockQuantity,
+} from "@/lib/marketplace/stock-status";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -174,7 +175,7 @@ function RecentlyViewedSection({ currentId, formatMoney }: { currentId: string; 
 
 // ─── Frequently Bought Together ───────────────────────────────────────────────
 
-function FrequentlyBoughtTogether({ currentProduct, products, formatMoney }: { currentProduct: any; products: any[]; formatMoney: (v: number, c: string) => string }) {
+function PeopleAlsoBought({ currentProduct, products, formatMoney }: { currentProduct: any; products: any[]; formatMoney: (v: number, c: string, d?: string) => string }) {
   const [selected, setSelected] = useState<Set<string>>(() => new Set([currentProduct.id, ...products.map((p) => p.id)]));
   if (!products.length) return null;
   const all = [currentProduct, ...products];
@@ -186,7 +187,8 @@ function FrequentlyBoughtTogether({ currentProduct, products, formatMoney }: { c
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-4 border-b border-[var(--color-border)]">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Frequently bought together</p>
+        <p className="text-[15px] font-bold text-[var(--color-text-primary)]">People also bought</p>
+        <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">Frequently purchased together</p>
       </div>
       <div className="p-5">
         <div className="flex items-center gap-2 flex-wrap mb-5">
@@ -210,7 +212,7 @@ function FrequentlyBoughtTogether({ currentProduct, products, formatMoney }: { c
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] text-[var(--color-text-muted)]">{selected.size} item{selected.size !== 1 ? "s" : ""} selected</p>
-            <p className="text-[18px] font-bold text-[var(--color-text-primary)] tabular-nums">{formatMoney(total, currency)}</p>
+            <p className="text-[18px] font-bold text-[var(--color-text-primary)] tabular-nums">{formatMoney(total, currency, "USD")}</p>
           </div>
           <button disabled={selected.size === 0} className="h-10 px-5 rounded-md text-[13px] font-semibold bg-orange-500 hover:bg-orange-600 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
             Add {selected.size} to cart
@@ -223,7 +225,6 @@ function FrequentlyBoughtTogether({ currentProduct, products, formatMoney }: { c
 
 // ─── Live Activity Toast ──────────────────────────────────────────────────────
 
-const FAKE_CITIES = ["Lagos", "London", "Nairobi", "Dubai", "Paris", "New York", "Accra", "Kigali", "Toronto", "Berlin"];
 const FAKE_ACTION_LABELS: Record<string, string> = {
   purchased: "just purchased this",
   added_to_cart: "added this to cart",
@@ -1079,7 +1080,6 @@ export function PhysicalProductDetail({
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   const title = useMemo(() => getCJTitle({ productNameEn: product.name, productName: null }) || product.name, [product.name]);
-  const isCJ = product.source === "cj";
 
   const trackInventory = Boolean(product.track_inventory);
 
@@ -1141,7 +1141,14 @@ export function PhysicalProductDetail({
   const activeCompareAt = getEffectiveCompareAtPrice(productDiscountFields);
   const showProductDiscount = hasRealProductDiscount(productDiscountFields);
   const activeInventory = selectedVariant?.inventory_quantity ?? product.inventory_quantity ?? 0;
-  const isOutOfStock = hasVariants ? activeInventory <= 0 : false;
+  const stockInput = {
+    inventory_quantity: activeInventory,
+    track_inventory: trackInventory,
+    allow_backorder: Boolean((product as any).allow_backorder),
+    low_stock_threshold: (product as any).low_stock_threshold ?? null,
+    hideQuantity: shouldHideStockQuantity(product),
+  };
+  const isOutOfStock = isPurchaseBlockedByStock(stockInput);
 
   const baseImages: string[] = useMemo(() => normalizeImages(product.images), [product.images]);
   const activeImages = useMemo(() => {
@@ -1159,15 +1166,11 @@ export function PhysicalProductDetail({
   const savings = activeCompareAt ? getProductDiscountPercent(productDiscountFields) : null;
   const savingsAmount = activeCompareAt ? activeCompareAt - activePrice : 0;
   const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : (product.review_count ?? 0);
-  const saleCount = product.sale_count ?? product.sold_count ?? 0;
   const ratingBreakdown: RatingBreakdown | null = product.rating_breakdown ?? null;
   const hasReviews = reviewCount > 0;
   const rating = hasReviews
     ? (product.reviews as any[]).reduce((s: number, r: any) => s + (Number(r.rating ?? 0) || 0), 0) / Math.max(1, reviewCount)
     : (product.rating ?? 0);
-  const ratingDisplay = hasReviews ? rating.toFixed(1) : null;
-
-  const cleanedHtml = useMemo(() => cleanCJDescription(product.description), [product.description]);
 
   const { specs: parsedSpecs } = useMemo(() => parseCJSpecifications(product.description), [product.description]);
   const cjMeta = product.source_metadata ?? {};
@@ -1217,7 +1220,6 @@ export function PhysicalProductDetail({
     return merged;
   }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant, shippingDisplay]);
 
-  const liveViewers = useLiveViewers(product.view_count ? Math.min(product.view_count, 12) : 5);
   useRecentlyViewed(product.id, product);
 
   useEffect(() => {
@@ -1243,35 +1245,6 @@ export function PhysicalProductDetail({
     return Array.isArray(meta) ? meta : [];
   }, [cjMeta, product]);
 
-  const commerceGraph = useMemo(
-    () =>
-      buildProductCommerceGraph({
-        product: {
-          id: product.id,
-          name: title,
-          slug: product.slug,
-          price: activePrice,
-          images: activeImages,
-          product_type: product.product_type,
-          vendor_id: product.vendor_id,
-          category: product.product_categories?.name ?? product.category ?? null,
-        },
-        vendor,
-        relatedProducts,
-        frequentlyBoughtTogether,
-      }),
-    [product, title, activePrice, activeImages, vendor, relatedProducts, frequentlyBoughtTogether],
-  );
-
-  const businessGraph = useMemo(
-    () =>
-      buildProductBusinessGraph({
-        product: { id: product.id, name: title, slug: product.slug, images: activeImages },
-        vendor,
-        relatedProducts,
-      }),
-    [product, title, activeImages, vendor, relatedProducts],
-  );
 
   // ─── Shared Shipping cards (used in both sub-col-3 and mobile) ─────────────
   const shippingCards = (
@@ -1315,6 +1288,7 @@ export function PhysicalProductDetail({
                   vendor={vendor}
                   product={product}
                   isFreeShipping={isFreeShipping}
+                  showFastShippingBadge={isFreeShipping || Boolean(shippingDisplay?.deliveryEstimate)}
                   variant="physical"
                 />
                 <ImageGallery
@@ -1325,11 +1299,6 @@ export function PhysicalProductDetail({
                   savings={savings}
                   thumbnailsPosition="bottom"
                 />
-                <SocialProofActivityFeed
-                  liveViewers={liveViewers}
-                  saleCount={saleCount}
-                  recentActivity={recentActivity}
-                />
               </section>
               {/* Sub-col 2: Product info + buy box (6 of 12) */}
               <section className="min-w-0 space-y-4 lg:col-span-5">
@@ -1339,16 +1308,8 @@ export function PhysicalProductDetail({
                     {title}
                   </h1>
 
-                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
-
-                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                      </span>
-                      <strong className="text-[var(--color-text-primary)]">{liveViewers}</strong> people viewing
-                    </span>
+                  <div className="mt-2">
+                    <StockStatusBadge input={stockInput} />
                   </div>
 
                   {/* Price */}
@@ -1371,20 +1332,6 @@ export function PhysicalProductDetail({
                     {savingsAmount > 0 && (
                       <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
                         You save {formatMoney(savingsAmount, product.currency, "USD")}
-                      </p>
-                    )}
-                    {!isCJ && !isOutOfStock && activeInventory > 0 && (
-                      <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {activeInventory <= 10
-                          ? `Only ${activeInventory} left in stock`
-                          : "In stock — ready to ship"}
-                      </p>
-                    )}
-                    {!isCJ && isOutOfStock && (
-                      <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Currently out of stock
                       </p>
                     )}
                   </div>
@@ -1423,14 +1370,6 @@ export function PhysicalProductDetail({
                     </div>
                   ) : null}
 
-                  {/* Stock warning */}
-                  {!isCJ && !isOutOfStock && activeInventory > 0 && activeInventory <= 10 && needsVariantSelection && (
-                    <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-amber-600 dark:text-amber-400">
-                      <AlertTriangle className="h-4 w-4 shrink-0" />
-                      <span>Only <strong>{activeInventory}</strong> left for this option</span>
-                    </div>
-                  )}
-
                   {/* Buy box */}
                   <div ref={buyBoxRef} className="mt-4">
                     <ProductActionModule
@@ -1448,11 +1387,11 @@ export function PhysicalProductDetail({
                         <span>This option is out of stock</span>
                       </div>
                     )}
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <SellToStoreButton
                         productId={product.id}
                         productName={product.name}
-                        className="w-full border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
+                        className="w-full h-11 rounded-xl border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
                       />
                     </div>
                   </div>
@@ -1712,9 +1651,13 @@ export function PhysicalProductDetail({
                           <VendorSectionCard vendor={vendor} followedVendorIds={followedVendorIds} />
                           <div className="grid grid-cols-3 gap-3">
                             {[
-                              { icon: CheckCircle2, value: `${vendor.on_time_delivery ?? 98}%`, label: "On-time Delivery", color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                              { icon: Package, value: (vendor.total_sales ?? 0) >= 1000 ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k` : `${vendor.total_sales ?? "—"}`, label: "Fulfilled Orders", color: "text-blue-500", bg: "bg-blue-500/10" },
-                              { icon: MessageSquare, value: vendor.response_time ?? "5 min", label: "Avg. Response Time", color: "text-orange-500", bg: "bg-orange-500/10" },
+                              ...(vendor.on_time_delivery != null
+                                ? [{ icon: CheckCircle2, value: `${vendor.on_time_delivery}%`, label: "On-time Delivery", color: "text-emerald-500", bg: "bg-emerald-500/10" }]
+                                : []),
+                              { icon: Package, value: (vendor.total_sales ?? 0) > 0 ? ((vendor.total_sales ?? 0) >= 1000 ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k` : `${vendor.total_sales}`) : "—", label: "Fulfilled Orders", color: "text-blue-500", bg: "bg-blue-500/10" },
+                              ...(vendor.response_time
+                                ? [{ icon: MessageSquare, value: vendor.response_time, label: "Avg. Response Time", color: "text-orange-500", bg: "bg-orange-500/10" }]
+                                : []),
                             ].map(({ icon: Icon, value, label, color, bg }) => (
                               <div key={label} className="flex flex-col items-center p-4 rounded-md text-center" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)" }}>
                                 <div className={cn("h-9 w-9 rounded-full flex items-center justify-center mb-2", bg)}><Icon className={cn("h-4 w-4", color)} /></div>
@@ -1741,16 +1684,13 @@ export function PhysicalProductDetail({
 
             {/* Cross-sell + related */}
             {frequentlyBoughtTogether.length > 0 && (
-              <FrequentlyBoughtTogether
+              <PeopleAlsoBought
                 currentProduct={{ ...product, name: title }}
                 products={frequentlyBoughtTogether}
                 formatMoney={formatMoney}
               />
             )}
             <AffiliateBanner product={product} />
-            <CommunityAccessCard vendorSlug={vendor?.business_slug} productName={title} />
-            <CommerceGraphDiscovery graph={commerceGraph} maxSections={6} className="min-w-0 space-y-5" />
-            <BusinessCollaborationPanel graph={businessGraph} title="Business opportunities" />
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
           </div>
@@ -1769,8 +1709,6 @@ export function PhysicalProductDetail({
               {shippingCards}
               <CompactBuyerProtectionCard />
               <WhyChooseSection vendor={vendor} product={product} />
-              <CommerceGraphPanel graph={commerceGraph} />
-              <LiveActivityFeedSidebar liveViewers={liveViewers} recentActivity={recentActivity} />
             </div>
           </aside>
         </div>

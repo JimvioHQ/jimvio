@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
-  MessageCircle,
   ShoppingCart,
   Zap,
   Trash2,
@@ -26,6 +25,12 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { VariantPickerDialog } from "./variant-picker-dialog";
 import { ProductCardVideoMedia } from "./product-card-video-media";
 import { productHasVideos } from "@/lib/product-videos";
+import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
+import {
+  isDropshipEligible,
+  isPurchaseBlockedByStock,
+  shouldHideStockQuantity,
+} from "@/lib/marketplace/stock-status";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface Product {
@@ -113,6 +118,15 @@ export function ProductCardClient({
     p.product_type === "digital" ||
     (p.product_type === undefined && p.is_digital === true);
   const commissionRate = p.affiliate_commission_rate;
+  const stockInput = {
+    inventory_quantity: p.inventory_quantity,
+    track_inventory: (p as any).track_inventory,
+    allow_backorder: (p as any).allow_backorder,
+    low_stock_threshold: (p as any).low_stock_threshold,
+    hideQuantity: shouldHideStockQuantity(p),
+  };
+  const outOfStock = isPurchaseBlockedByStock(stockInput);
+  const showDropship = isDropshipEligible(p);
 
   useEffect(() => {
     if (initialInCart !== undefined) return;
@@ -191,33 +205,6 @@ export function ProductCardClient({
     }
 
     await doAddToCart(vendorId, null, true);
-  };
-
-  const handleChat = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!p.vendors?.id) return;
-    window.dispatchEvent(
-      new CustomEvent("openProductChat", {
-        detail: {
-          vendor: {
-            id: p.vendors.id,
-            business_name: p.vendors.business_name ?? null,
-            business_logo: p.vendors.business_logo ?? null,
-            business_slug: p.vendors.business_slug ?? null,
-          },
-          product: {
-            id: p.id,
-            name: p.name,
-            slug: p.slug,
-            price: Number(p.price ?? 0),
-            images: p.images ?? null,
-          },
-          currentPath:
-            typeof window !== "undefined" ? window.location.pathname : "/marketplace",
-        },
-      })
-    );
   };
 
   const hue = useMemo(() => {
@@ -301,16 +288,21 @@ export function ProductCardClient({
             style={{ opacity: hovered ? 1 : 0 }}
           />
 
-          {discount > 0 && (
-            <div className="absolute top-3 left-3 z-20">
+          <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
+            {showDropship && (
+              <span className="rounded-md bg-violet-600/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                Dropship
+              </span>
+            )}
+            {discount > 0 && (
               <span
                 className="inline-flex items-center rounded-[6px] px-2 py-[3px] text-[10px] font-black tracking-widest text-white uppercase"
                 style={{ background: "linear-gradient(135deg,#ef4444,#b91c1c)" }}
               >
                 −{discount}%
               </span>
-            </div>
-          )}
+            )}
+          </div>
 
           <div
             className={cn(
@@ -321,31 +313,18 @@ export function ProductCardClient({
           >
             <button
               type="button"
-              onClick={handleChat}
-              className={cn(
-                "flex items-center justify-center gap-1.5 px-3",
-                "rounded-[10px] backdrop-blur-md",
-                "border border-white/25 bg-white/15 text-white",
-                "font-semibold hover:bg-white/30 active:scale-95 transition-all duration-200",
-                compact ? "h-8 text-[10px] flex-none w-9" : "h-9 text-[11px] flex-none"
-              )}
-            >
-              <MessageCircle className={compact ? "h-3 w-3" : "h-3.5 w-3.5 flex-shrink-0"} />
-              {!compact && <span>Chat</span>}
-            </button>
-
-            <button
-              type="button"
               onClick={handleCartToggle}
-              disabled={loading}
+              disabled={loading || outOfStock}
               className={cn(
                 "flex flex-1 items-center justify-center gap-1.5",
                 "rounded-[10px] font-bold text-white",
                 "active:scale-[0.97] transition-all duration-200 disabled:opacity-60",
                 compact ? "h-8 text-[10px]" : "h-9 text-[11px]",
-                inCart
-                  ? "bg-emerald-500 hover:bg-red-500"
-                  : "bg-gradient-to-r from-[#fd5000] to-[#e03c00] hover:from-[#ff6520] hover:to-[#fd5000]"
+                outOfStock
+                  ? "bg-stone-500 cursor-not-allowed"
+                  : inCart
+                    ? "bg-emerald-500 hover:bg-red-500"
+                    : "bg-gradient-to-r from-[#fd5000] to-[#e03c00] hover:from-[#ff6520] hover:to-[#fd5000]"
               )}
             >
               {loading ? (
@@ -357,6 +336,8 @@ export function ProductCardClient({
                   <Trash2 className="h-3.5 w-3.5 hidden group-hover/rm:block" />
                   <span className="hidden group-hover/rm:block">Remove</span>
                 </span>
+              ) : outOfStock ? (
+                <span>Out of stock</span>
               ) : p.button_text ? (
                 <span className="flex items-center gap-1">
                   <Zap className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
@@ -436,14 +417,19 @@ export function ProductCardClient({
             )}
           </div>
 
+          {!isDigital && (
+            <div className="mt-1.5 pointer-events-none">
+              <StockStatusBadge size="sm" input={stockInput} />
+            </div>
+          )}
+
           <div className="h-px bg-stone-100 dark:bg-white/[0.06] mt-2 mb-1.5" />
 
           <div className="flex items-center justify-between gap-2">
-            {/* ✅ FIXED: only show when affiliate_enabled AND commissionRate > 0 */}
             {p.affiliate_enabled && commissionRate != null && Number(commissionRate) > 0 ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[#fd5000] px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">
                 <TrendingUp className="h-2.5 w-2.5" />
-                {commissionRate}% commission
+                ↗ {commissionRate}% commission
               </span>
             ) : (
               <span />
