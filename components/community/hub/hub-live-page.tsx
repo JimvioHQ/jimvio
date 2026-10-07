@@ -158,6 +158,8 @@ export function HubLivePage({
   const [chatIdle, setChatIdle] = useState(false);
   const [hasPolls, setHasPolls] = useState(false);
   const [egressRecording, setEgressRecording] = useState(false);
+  /** True while StartEgress accepted but LiveKit has not confirmed EGRESS_ACTIVE. */
+  const [egressStarting, setEgressStarting] = useState(false);
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [guestPreview, setGuestPreview] = useState<LiveGuestPreview | null>(null);
   const [guestPreviewLoading, setGuestPreviewLoading] = useState(false);
@@ -990,7 +992,7 @@ export function HubLivePage({
 
     setRecordingBusy(true);
     try {
-      if (egressRecording || recording) {
+      if (egressRecording || egressStarting || recording) {
         const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1002,6 +1004,7 @@ export function HubLivePage({
           return;
         }
         setEgressRecording(false);
+        setEgressStarting(false);
         if (media.recordingState !== "idle") {
           await media.stopRecording({ download: false });
         }
@@ -1018,18 +1021,31 @@ export function HubLivePage({
         error?: string;
         recordingId?: string;
         alreadyActive?: boolean;
+        status?: "starting" | "active";
       };
       if (!res.ok) {
-        showToast(json.error ?? "Recording failed");
+        setEgressRecording(false);
+        setEgressStarting(false);
+        showToast(json.error ?? "Recording couldn't be saved");
         return;
       }
-      setEgressRecording(true);
-      showToast(
-        json.alreadyActive
-          ? "This Live is already being recorded"
-          : "Recording started — capturing this Live"
-      );
+      if (json.status === "active" || json.alreadyActive) {
+        setEgressStarting(false);
+        setEgressRecording(true);
+        showToast(
+          json.alreadyActive
+            ? "This Live is already being recorded"
+            : "Recording started — capturing this Live"
+        );
+      } else {
+        // StartEgress accepted — wait for LiveKit ACTIVE before showing REC.
+        setEgressRecording(false);
+        setEgressStarting(true);
+        showToast("Starting recording…");
+      }
     } catch (e) {
+      setEgressRecording(false);
+      setEgressStarting(false);
       showToast(e instanceof Error ? e.message : "Recording failed");
     } finally {
       setRecordingBusy(false);
@@ -1040,6 +1056,7 @@ export function HubLivePage({
     live,
     recording,
     egressRecording,
+    egressStarting,
     recordingBusy,
     media,
     showToast,
@@ -1051,24 +1068,50 @@ export function HubLivePage({
   useEffect(() => {
     if (live.session?.status !== "live" || !live.session.id) {
       setEgressRecording(false);
+      setEgressStarting(false);
       return;
     }
     let cancelled = false;
-    void fetch(`/api/live/sessions/${live.session.id}/recording`)
-      .then(async (res) => {
+    const sessionId = live.session.id;
+
+    const sync = async () => {
+      try {
+        const res = await fetch(`/api/live/sessions/${sessionId}/recording`);
         const json = (await res.json().catch(() => ({}))) as {
           recordingStatus?: string;
         };
         if (cancelled || !res.ok) return;
         if (json.recordingStatus === "recording") {
+          if (!egressRecording) {
+            showToast("Recording started — capturing this Live");
+          }
           setEgressRecording(true);
+          setEgressStarting(false);
+        } else if (json.recordingStatus === "starting") {
+          setEgressRecording(false);
+          setEgressStarting(true);
+        } else {
+          if (egressStarting && json.recordingStatus === "failed") {
+            showToast("Recording couldn't be saved");
+          }
+          setEgressRecording(false);
+          setEgressStarting(false);
         }
-      })
-      .catch(() => undefined);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    void sync();
+    const intervalMs = egressStarting ? 2_500 : 12_000;
+    const t = window.setInterval(() => {
+      void sync();
+    }, intervalMs);
     return () => {
       cancelled = true;
+      window.clearInterval(t);
     };
-  }, [live.session?.id, live.session?.status]);
+  }, [live.session?.id, live.session?.status, egressStarting, egressRecording, showToast]);
 
   const [screenShareCapability, setScreenShareCapability] = useState(() =>
     detectScreenShareCapability()
@@ -1193,13 +1236,14 @@ export function HubLivePage({
     setEndLiveBusy(true);
     try {
       media.stopScreenShare();
-      if (egressRecording && live.session) {
+      if ((egressRecording || egressStarting) && live.session) {
         await fetch(`/api/live/sessions/${live.session.id}/recording`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "stop" }),
         }).catch(() => undefined);
         setEgressRecording(false);
+        setEgressStarting(false);
       }
       if (recording) await media.stopRecording({ download: true });
       await livekit.disconnect();
@@ -1216,7 +1260,18 @@ export function HubLivePage({
     } finally {
       setEndLiveBusy(false);
     }
-  }, [live, gate, media, livekit, recording, egressRecording, showToast, router, communitySlugProp]);
+  }, [
+    live,
+    gate,
+    media,
+    livekit,
+    recording,
+    egressRecording,
+    egressStarting,
+    showToast,
+    router,
+    communitySlugProp,
+  ]);
 
   const createOrJoinLive = useCallback(async () => {
     // Hub Live (/communities/live) = Creator Live (no community).
@@ -1633,9 +1688,11 @@ export function HubLivePage({
       ).length,
       recordingStatus: egressRecording
         ? ("recording" as const)
-        : recordingBusy
-          ? ("ending" as const)
-          : ("none" as const),
+        : egressStarting
+          ? ("starting" as const)
+          : recordingBusy
+            ? ("ending" as const)
+            : ("none" as const),
       joinEvents: live.presenceEvents.filter((e) => e.kind === "join").length,
       leaveEvents: live.presenceEvents.filter((e) => e.kind === "leave").length,
       watchTimeMinutes:
@@ -1655,6 +1712,7 @@ export function HubLivePage({
     elapsed,
     analytics,
     egressRecording,
+    egressStarting,
     recordingBusy,
     media.sharing,
   ]);

@@ -53,10 +53,14 @@ export function extractEgressFileResult(info: EgressInfo): EgressFileResult {
   }
 
   const { file, source } = preferred;
+  // Prefer a real storage URL. Relative filenames alone are not playable and
+  // must not be written into cloudinary_url on failed/aborted egress.
+  const rawLocation = typeof file.location === "string" ? file.location.trim() : "";
   const location =
-    (typeof file.location === "string" && file.location.trim()) ||
-    (typeof file.filename === "string" && file.filename.trim()) ||
-    null;
+    rawLocation &&
+    (/^https?:\/\//i.test(rawLocation) || rawLocation.startsWith("s3://"))
+      ? rawLocation
+      : null;
 
   return {
     location,

@@ -210,7 +210,14 @@ export type LiveAnalyticsSnapshot = {
   screenSharing: boolean;
   destinationsLive: number;
   destinationsConnected: number;
-  recordingStatus: "none" | "recording" | "ending" | "ready" | "failed" | "unavailable";
+  recordingStatus:
+    | "none"
+    | "starting"
+    | "recording"
+    | "ending"
+    | "ready"
+    | "failed"
+    | "unavailable";
   joinEvents?: number;
   leaveEvents?: number;
   watchTimeMinutes?: number | null;
@@ -375,15 +382,17 @@ export function AnalyticsPanel({
           value={
             m?.recordingStatus === "recording"
               ? "Recording"
-              : m?.recordingStatus === "ending"
-                ? "Finalizing"
-                : m?.recordingStatus === "ready"
-                  ? "Saved"
-                  : m?.recordingStatus === "failed"
-                    ? "Failed"
-                    : m?.recordingStatus === "unavailable"
-                      ? "Unavailable"
-                      : "Idle"
+              : m?.recordingStatus === "starting"
+                ? "Starting"
+                : m?.recordingStatus === "ending"
+                  ? "Finalizing"
+                  : m?.recordingStatus === "ready"
+                    ? "Saved"
+                    : m?.recordingStatus === "failed"
+                      ? "Failed"
+                      : m?.recordingStatus === "unavailable"
+                        ? "Unavailable"
+                        : "Idle"
           }
           unavailable={!m}
         />

@@ -153,21 +153,27 @@ export async function GET(
     return { ...r, playUrl, downloadUrl };
   });
   const ready = withUrls.find((r) => r.status === "ready" && (r.playUrl || r.cloudinary_url));
+  const hasActive = withUrls.some(
+    (r) => r.status === "recording" || r.status === "active"
+  );
+  const hasStarting = withUrls.some((r) => r.status === "starting");
+  const hasEnding = withUrls.some((r) => r.status === "ending");
+  const hasFailed = withUrls.some((r) => r.status === "failed");
   return NextResponse.json({
     recordings: withUrls,
-    recordingStatus: withUrls.some((r) =>
-      r.status === "recording" || r.status === "active" || r.status === "starting"
-    )
+    recordingStatus: hasActive
       ? "recording"
-      : ready
-        ? "ready"
-        : withUrls.some((r) => r.status === "ending" || r.status === "failed")
-          ? withUrls.some((r) => r.status === "failed")
-            ? "failed"
-            : "processing"
-          : withUrls.length > 0
+      : hasStarting
+        ? "starting"
+        : ready
+          ? "ready"
+          : hasEnding
             ? "processing"
-            : "none",
+            : hasFailed
+              ? "failed"
+              : withUrls.length > 0
+                ? "processing"
+                : "none",
     replayUrl: ready?.playUrl ?? ready?.cloudinary_url ?? session.recording_url ?? null,
   });
 }

@@ -5,6 +5,13 @@
  * LiveKit Cloud requires a cloud storage destination on EncodedFileOutput.output
  * (S3 / Azure / GCP). A filepath-only EncodedFileOutput yields:
  *   "request has missing or invalid field: output"
+ *
+ * Status honesty:
+ * - starting = StartEgress accepted, waiting for LiveKit ACTIVE / media start
+ * - active   = egress confirmed running (EGRESS_ACTIVE)
+ * - ending / ready / failed = terminal lifecycle
+ *
+ * Never treat StartEgress HTTP success as “recording”.
  */
 
 import {
@@ -12,6 +19,7 @@ import {
   EncodedFileOutput,
   EncodedFileType,
   EgressStatus,
+  RoomServiceClient,
   S3Upload,
   type EgressInfo,
 } from "livekit-server-sdk";
@@ -24,6 +32,7 @@ import {
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { liveStudioLog } from "@/lib/live/observability";
 import { extractEgressFileResult } from "@/lib/live/egress-file-result";
+import { getCanonicalAppOrigin } from "@/lib/app-origin";
 
 function hostUrlFromWs(wsUrl: string): string {
   // wss://xxx.livekit.cloud → https://xxx.livekit.cloud
@@ -36,6 +45,19 @@ export function createEgressClient(): EgressClient | null {
   const secret = getLiveKitApiSecret();
   if (!url || !key || !secret) return null;
   return new EgressClient(hostUrlFromWs(url), key, secret);
+}
+
+function createRoomServiceClient(): RoomServiceClient | null {
+  const url = getLiveKitUrl();
+  const key = getLiveKitApiKey();
+  const secret = getLiveKitApiSecret();
+  if (!url || !key || !secret) return null;
+  return new RoomServiceClient(hostUrlFromWs(url), key, secret);
+}
+
+/** Public template URL for room-composite (avatar-only safe start signal). */
+export function egressCompositeTemplateBaseUrl(): string {
+  return `${getCanonicalAppOrigin()}/live/egress-template`;
 }
 
 export type EgressFileOutputResult =
@@ -78,11 +100,97 @@ export function buildEgressFileOutput(sessionId: string): EgressFileOutputResult
   return { ok: true, file, filepath };
 }
 
+function isTerminalRecordingStatus(status: string | null | undefined): boolean {
+  return status === "ready" || status === "failed";
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Room-composite (default template) only signals START_RECORDING after a track
+ * is subscribed. Jimvio supports avatar-only hosts, so we use a custom template
+ * that signals start after room connect. Still wait for at least one real
+ * participant so egress does not join an empty room.
+ */
+async function waitForRoomParticipant(roomName: string): Promise<
+  { ok: true; identity: string } | { ok: false; error: string }
+> {
+  const rooms = createRoomServiceClient();
+  if (!rooms) {
+    return { ok: false, error: "LiveKit room service is not configured" };
+  }
+
+  const deadline = Date.now() + 12_000;
+  while (Date.now() < deadline) {
+    try {
+      const participants = await rooms.listParticipants(roomName);
+      const human = participants.find(
+        (p) => !p.identity?.startsWith("EG_") && p.identity !== "egress"
+      );
+      if (human?.identity) {
+        return { ok: true, identity: human.identity };
+      }
+    } catch {
+      // Room may not exist yet while the host is still connecting.
+    }
+    await sleep(400);
+  }
+
+  return {
+    ok: false,
+    error:
+      "Live room is not ready for recording yet. Stay connected and try again in a moment.",
+  };
+}
+
+async function waitForEgressRunning(
+  client: EgressClient,
+  egressId: string,
+  timeoutMs = 14_000
+): Promise<{ status: "active" } | { status: "failed"; error: string } | { status: "starting" }> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const list = await client.listEgress({ egressId });
+      const info = list[0];
+      if (!info) {
+        await sleep(500);
+        continue;
+      }
+      const st = info.status;
+      if (st === EgressStatus.EGRESS_ACTIVE) {
+        return { status: "active" };
+      }
+      const failed =
+        Boolean(info.error) ||
+        st === EgressStatus.EGRESS_FAILED ||
+        st === EgressStatus.EGRESS_ABORTED ||
+        st === EgressStatus.EGRESS_LIMIT_REACHED ||
+        st === EgressStatus.EGRESS_COMPLETE;
+      if (failed) {
+        return {
+          status: "failed",
+          error: info.error || "Recording couldn't be saved — egress aborted before media started",
+        };
+      }
+    } catch {
+      // transient list errors — keep polling
+    }
+    await sleep(500);
+  }
+  return { status: "starting" };
+}
+
 export async function startSessionEgress(input: {
   sessionId: string;
   communityId: string | null;
   userId: string;
-}): Promise<{ recordingId: string; egressId: string; alreadyActive?: boolean } | { error: string; status: number }> {
+}): Promise<
+  | { recordingId: string; egressId: string; alreadyActive?: boolean; status: "starting" | "active" }
+  | { error: string; status: number }
+> {
   const client = createEgressClient();
   if (!client) {
     return { error: "LiveKit Egress is not configured", status: 503 };
@@ -96,7 +204,7 @@ export async function startSessionEgress(input: {
   const db = createServiceRoleClient();
   const { data: existing } = await db
     .from("live_recordings")
-    .select("id, egress_id")
+    .select("id, egress_id, status")
     .eq("session_id", input.sessionId)
     .in("status", ["starting", "active"])
     .order("started_at", { ascending: false })
@@ -107,7 +215,14 @@ export async function startSessionEgress(input: {
       recordingId: existing.id as string,
       egressId: existing.egress_id as string,
       alreadyActive: true,
+      status: existing.status === "active" ? "active" : "starting",
     };
+  }
+
+  const roomName = liveKitRoomName(input.sessionId);
+  const ready = await waitForRoomParticipant(roomName);
+  if (!ready.ok) {
+    return { error: ready.error, status: 409 };
   }
 
   const { data: recording, error: insertErr } = await db
@@ -126,12 +241,15 @@ export async function startSessionEgress(input: {
   }
 
   try {
-    const roomName = liveKitRoomName(input.sessionId);
     // EncodedOutputs.file form → fileOutputs[] + valid EncodedFileOutput.output (S3).
+    // customBaseUrl: avatar-only safe START_RECORDING (see /live/egress-template).
     const info: EgressInfo = await client.startRoomCompositeEgress(
       roomName,
       { file: fileOut.file },
-      { layout: "speaker" }
+      {
+        layout: "speaker",
+        customBaseUrl: egressCompositeTemplateBaseUrl(),
+      }
     );
 
     const egressId = info.egressId;
@@ -139,12 +257,38 @@ export async function startSessionEgress(input: {
       .from("live_recordings")
       .update({
         egress_id: egressId,
-        status: "active",
+        status: "starting",
         updated_at: new Date().toISOString(),
       })
       .eq("id", recording.id);
 
-    return { recordingId: recording.id as string, egressId };
+    const confirmed = await waitForEgressRunning(client, egressId);
+    if (confirmed.status === "failed") {
+      await db
+        .from("live_recordings")
+        .update({
+          status: "failed",
+          error: confirmed.error,
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", recording.id);
+      return { error: confirmed.error, status: 500 };
+    }
+
+    if (confirmed.status === "active") {
+      await db
+        .from("live_recordings")
+        .update({
+          status: "active",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", recording.id);
+      return { recordingId: recording.id as string, egressId, status: "active" };
+    }
+
+    // Still starting — client + reconcile will promote to active or failed.
+    return { recordingId: recording.id as string, egressId, status: "starting" };
   } catch (e) {
     await db
       .from("live_recordings")
@@ -212,22 +356,62 @@ export async function markRecordingReady(input: {
   durationSeconds?: number | null;
   byteSize?: number | null;
   error?: string | null;
+  /** When true, allow ready recovery from the known empty-location failure. */
+  allowRecoverFromFailed?: boolean;
 }): Promise<void> {
   const db = createServiceRoleClient();
+  const { data: row } = await db
+    .from("live_recordings")
+    .select("id, status, error")
+    .eq("egress_id", input.egressId)
+    .maybeSingle();
+
+  if (!row?.id) return;
+
+  const current = row.status as string;
+  const nextFailed = Boolean(input.error);
+  const nextReady = !nextFailed;
+
+  // Never flip READY → FAILED or FAILED → READY after a final authoritative state,
+  // except the explicit empty-location recovery path.
+  if (current === "ready" && nextFailed) {
+    return;
+  }
+  if (
+    current === "failed" &&
+    nextReady &&
+    !(
+      input.allowRecoverFromFailed &&
+      row.error === "Egress completed without a storage location"
+    )
+  ) {
+    return;
+  }
+  if (isTerminalRecordingStatus(current) && current === (nextFailed ? "failed" : "ready")) {
+    // Idempotent finalize — allow metadata refresh only for same terminal state.
+  }
+
+  const playableLocation =
+    nextReady && input.cloudinaryUrl && /^https?:\/\//i.test(input.cloudinaryUrl)
+      ? input.cloudinaryUrl
+      : nextReady
+        ? input.cloudinaryUrl ?? null
+        : null;
+
   await db
     .from("live_recordings")
     .update({
-      status: input.error ? "failed" : "ready",
-      cloudinary_url: input.cloudinaryUrl ?? null,
-      cloudinary_public_id: input.cloudinaryPublicId ?? null,
-      thumbnail_url: input.thumbnailUrl ?? null,
-      duration_seconds: input.durationSeconds ?? null,
-      byte_size: input.byteSize ?? null,
+      status: nextFailed ? "failed" : "ready",
+      cloudinary_url: playableLocation,
+      cloudinary_public_id: nextFailed ? null : input.cloudinaryPublicId ?? null,
+      thumbnail_url: nextFailed ? null : input.thumbnailUrl ?? null,
+      duration_seconds: nextFailed ? null : input.durationSeconds ?? null,
+      byte_size: nextFailed ? null : input.byteSize ?? null,
       error: input.error ?? null,
       ended_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
-    .eq("egress_id", input.egressId);
+    .eq("id", row.id);
 }
 
 /**
@@ -289,12 +473,13 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
               : null;
         await markRecordingReady({
           egressId,
-          cloudinaryUrl: location,
+          cloudinaryUrl: error ? null : location,
           durationSeconds: file.durationNs
             ? Math.round(file.durationNs / 1e9)
             : null,
           byteSize: file.sizeBytes,
           error,
+          allowRecoverFromFailed: row.status === "failed",
         });
         liveStudioLog(error ? "error" : "info", "egress_webhook", {
           egressId,
@@ -311,15 +496,23 @@ export async function reconcileSessionRecordings(sessionId: string): Promise<voi
           fileSize: file.sizeBytes != null ? String(file.sizeBytes) : null,
           egressError: info.error ? String(info.error).slice(0, 300) : null,
         });
+      } else if (status === EgressStatus.EGRESS_ACTIVE && row.status !== "active") {
+        await db
+          .from("live_recordings")
+          .update({
+            status: "active",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
       } else if (
-        (status === EgressStatus.EGRESS_ACTIVE ||
-          status === EgressStatus.EGRESS_STARTING) &&
+        status === EgressStatus.EGRESS_STARTING &&
+        row.status !== "starting" &&
         row.status !== "active"
       ) {
         await db
           .from("live_recordings")
           .update({
-            status: "active",
+            status: "starting",
             updated_at: new Date().toISOString(),
           })
           .eq("id", row.id);

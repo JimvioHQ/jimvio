@@ -51,7 +51,7 @@ describe("Live runtime defaults", () => {
     const page = read("components/community/hub/hub-live-page.tsx");
     const route = read("app/api/live/sessions/[id]/recording/route.ts");
     assert.match(page, /action: "start"/);
-    assert.match(page, /capturing this Live|already being recorded/);
+    assert.match(page, /capturing this Live|already being recorded|Starting recording/);
     assert.doesNotMatch(page, /media\.startRecording\(\)/);
     assert.match(route, /parseParticipantPermissions/);
     assert.match(route, /canRecord\(role/);

@@ -71,7 +71,10 @@ function statusLabel(r: ApiRecording): { label: string; className: string } {
   if (r.failed || r.status === "failed") {
     return { label: "Failed", className: "bg-red-50 text-red-700" };
   }
-  if (r.status === "active" || r.status === "starting" || r.status === "recording") {
+  if (r.status === "starting") {
+    return { label: "Starting", className: "bg-amber-50 text-amber-700" };
+  }
+  if (r.status === "active" || r.status === "recording") {
     return { label: "Recording", className: "bg-orange-50 text-[#FF5A1F]" };
   }
   return { label: "Processing", className: "bg-amber-50 text-amber-700" };

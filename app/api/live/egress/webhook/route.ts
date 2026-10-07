@@ -40,18 +40,19 @@ export async function POST(req: Request) {
       const hasFile = Boolean(location);
 
       if (event.event === "egress_ended" && (hasFile || !hasStream)) {
+        const error = failed
+          ? info.error || "Egress failed"
+          : !location
+            ? "Egress completed without a storage location"
+            : null;
         await markRecordingReady({
           egressId,
-          cloudinaryUrl: location,
+          cloudinaryUrl: error ? null : location,
           durationSeconds: file.durationNs
             ? Math.round(file.durationNs / 1e9)
             : null,
           byteSize: file.sizeBytes,
-          error: failed
-            ? info.error || "Egress failed"
-            : !location
-              ? "Egress completed without a storage location"
-              : null,
+          error,
         });
       }
 
