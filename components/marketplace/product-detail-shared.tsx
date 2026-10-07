@@ -23,11 +23,11 @@ import {
   toPlatformUsd,
 } from "@/lib/currency/platform";
 import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
-import { isDropshipEligible } from "@/lib/marketplace/stock-status";
 import {
   ProductShareDialog,
   type ShareProductTarget,
 } from "@/components/marketplace/product-share-dialog";
+
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -82,21 +82,10 @@ export function ProductTitleBadges({
   const isBestseller = sales >= 100;
   const isTrending = productHasTrendingSignal(product);
   const showFastShipping = variant === "physical" && (showFastShippingBadge || isFreeShipping);
-  const showDropship = isDropshipEligible(product);
 
   if (variant === "physical") {
     return (
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        {showDropship && (
-          <span
-            className={cn(
-              PHYSICAL_TITLE_CHIP,
-              "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300",
-            )}
-          >
-            DROPSHIP
-          </span>
-        )}
         {showFastShipping && (
           <span
             className={cn(

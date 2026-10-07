@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
   Flame, Sparkles,
-  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, CheckCircle2,
+  TrendingUp, Warehouse, ChevronDown, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-v
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
+import { ProductCardCommerceActions } from "@/components/marketplace/product-card-commerce-actions";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
@@ -319,7 +320,6 @@ function ProductCard({
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [inCart, setInCart] = useState(inCartInitially);
-  const [cartHovered, setCartHovered] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
   const [imgReady, setImgReady] = useState(false);
@@ -476,15 +476,6 @@ function ProductCard({
     }
   }
 
-  const cartButtonLabel = (() => {
-    if (removing) return "Removing…";
-    if (adding) return "Adding…";
-    if (addError) return "Failed";
-    if (inCart) return cartHovered ? "Remove from Cart" : "✓ In Cart";
-    if (outOfStock) return "Out of Stock";
-    return "Add to Cart";
-  })();
-
   useEffect(() => {
     setImgReady(!displayImage);
   }, [displayImage]);
@@ -496,6 +487,7 @@ function ProductCard({
 
   return (
     <div
+      data-cart-error={addError ? "1" : undefined}
       className="product-tap-nav group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
       style={{ background: "var(--color-surface)" }}
       onMouseEnter={() => {
@@ -504,7 +496,6 @@ function ProductCard({
       }}
       onMouseLeave={() => {
         setHovered(false);
-        setCartHovered(false);
       }}
       onFocusCapture={prefetchHref}
       onTouchStart={prefetchHref}
@@ -587,54 +578,14 @@ function ProductCard({
           </span>
         )}
 
-        <div
-          className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex gap-1.5 p-2 transition-[transform,opacity] duration-200 ease-out will-change-transform",
-            inCart
-              ? "translate-y-0 opacity-100"
-              : "translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 max-md:translate-y-0 max-md:opacity-100",
-          )}
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,.58) 0%, transparent 100%)" }}
-        >
-          <button
-            type="button"
-            onClick={handleCartToggle}
-            onMouseEnter={() => setCartHovered(true)}
-            onMouseLeave={() => setCartHovered(false)}
-            disabled={adding || removing || !vendorId || (outOfStock && !inCart)}
-            aria-label={cartButtonLabel}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-[10px] font-bold text-white transition-[background-color,opacity,transform] duration-200 ease-out will-change-transform hover:opacity-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-60"
-            style={{
-              background: addError
-                ? "#dc2626"
-                : inCart
-                  ? cartHovered
-                    ? "#dc2626"
-                    : "var(--color-success, #16a34a)"
-                  : outOfStock
-                    ? "rgba(100,100,100,.7)"
-                    : "var(--color-accent)",
-            }}
-          >
-            {adding || removing ? (
-              <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
-            ) : inCart ? (
-              <CheckCircle2 className="size-3" />
-            ) : (
-              <ShoppingCart className="size-3" />
-            )}
-            {cartButtonLabel}
-          </button>
-          <Link
-            href={`/marketplace/${p.slug}`}
-            className="pointer-events-auto relative z-10 grid size-8 shrink-0 place-items-center rounded-lg text-white transition-[background-color,transform] duration-200 hover:scale-[1.04] hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            style={{ background: "rgba(255,255,255,.16)" }}
-            aria-label="Quick view"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Eye className="size-3.5" />
-          </Link>
-        </div>
+        <ProductCardCommerceActions
+          productId={p.id}
+          productName={p.name}
+          onAddToCart={handleCartToggle}
+          loading={adding || removing}
+          disabled={(outOfStock && !inCart) || !vendorId}
+          inCart={inCart}
+        />
       </div>
 
       {/* ── Info ── */}

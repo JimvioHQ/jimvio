@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import {
-  ShoppingBag, Check, X, Minus,
-} from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { productHasVideos } from "@/lib/product-videos";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
@@ -20,15 +18,8 @@ import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import type { ProductCardClientProps } from "./product-card-client";
-import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
-import {
-  isDropshipEligible,
-  isPurchaseBlockedByStock,
-} from "@/lib/marketplace/stock-status";
-import {
-  resolveCommissionRatePercent,
-} from "@/lib/currency/platform";
-import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+import { isPurchaseBlockedByStock } from "@/lib/marketplace/stock-status";
+import { ProductCardCommerceActions } from "@/components/marketplace/product-card-commerce-actions";
 
 /* ─── Extended props ─── */
 export interface ProductCardPhysicalProps extends ProductCardClientProps {
@@ -89,16 +80,6 @@ export function ProductCardPhysical({
     hideQuantity: false,
   };
   const outOfStock = isPurchaseBlockedByStock(stockInput);
-  const showDropship = isDropshipEligible(p);
-  const configuredCommission =
-    (p as any).affiliate_enabled === true &&
-    Number((p as any).affiliate_commission_rate) > 0
-      ? resolveCommissionRatePercent({
-          productRate: (p as any).affiliate_commission_rate,
-          platformDefault:
-            PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent,
-        })
-      : null;
 
   /* Cap absurdly long CJ titles */
   const displayName = useMemo(
@@ -207,6 +188,7 @@ export function ProductCardPhysical({
         )}
       >
         {/* ── Image ── */}
+        <div className="relative">
         <Link
           href={`${detailBasePath}/${p.slug}`}
           aria-label={p.name}
@@ -254,11 +236,6 @@ export function ProductCardPhysical({
           />
 
           <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1.5">
-            {showDropship && (
-              <span className="rounded-md bg-violet-600/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                Dropship
-              </span>
-            )}
             {onSale && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)]/95 px-2 py-0.5 text-[10px] font-medium tracking-wide text-rose-600 backdrop-blur-sm">
                 <Minus size={12} aria-hidden />
@@ -278,18 +255,16 @@ export function ProductCardPhysical({
             </div>
           )}
 
-          {/* Out-of-stock overlay label */}
-          {outOfStock && (
-            <div className="absolute inset-0 flex items-end justify-center pb-4">
-              <span
-                className="px-3 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm"
-                style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
-              >
-                Out of stock
-              </span>
-            </div>
-          )}
         </Link>
+        <ProductCardCommerceActions
+          productId={p.id}
+          productName={p.name}
+          onAddToCart={handleCartToggle}
+          loading={loading}
+          disabled={outOfStock}
+          inCart={inCart}
+        />
+        </div>
 
         {/* ── Info ── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
@@ -328,59 +303,6 @@ export function ProductCardPhysical({
             )}
           </div>
 
-          <StockStatusBadge size="sm" input={stockInput} />
-
-          {configuredCommission != null && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent)]">
-              ↗ {configuredCommission}% commission
-            </span>
-          )}
-
-          {/* Actions */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleCartToggle}
-              disabled={loading || outOfStock}
-              aria-label={
-                outOfStock ? "Out of stock"
-                  : inCart ? "Remove from cart"
-                    : "Add to cart"
-              }
-              className={cn(
-                "group/btn relative flex w-full items-center justify-center gap-1.5",
-                "h-9 px-3 rounded-xl text-[12px] font-medium",
-                "transition-all duration-200",
-                "disabled:opacity-60",
-                outOfStock
-                  ? "cursor-not-allowed bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
-                  : inCart
-                    ? "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-                    : "bg-[var(--color-text-primary)] text-[var(--color-surface)] hover:bg-orange-600 active:scale-[0.98]"
-              )}
-            >
-              {loading ? (
-                <span
-                  className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin"
-                  aria-label="Loading"
-                />
-              ) : outOfStock ? (
-                <span>Out of stock</span>
-              ) : inCart ? (
-                <>
-                  <Check className="h-3.5 w-3.5 group-hover/btn:hidden" aria-hidden />
-                  <X className="h-3.5 w-3.5 hidden group-hover/btn:block" aria-hidden />
-                  <span className="group-hover/btn:hidden">In cart</span>
-                  <span className="hidden group-hover/btn:inline">Remove</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="h-3.5 w-3.5" aria-hidden />
-                  <span>Add to cart</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
       </article>
 

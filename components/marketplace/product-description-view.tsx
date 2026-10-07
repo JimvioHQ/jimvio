@@ -53,12 +53,16 @@ export function ProductDescriptionView({
   className,
   collapsible = false,
   collapsedMaxHeight = 280,
+  expandLabel = "View full description",
+  collapseLabel = "View less",
 }: {
   description?: string | null;
   featureBullets?: string[];
   className?: string;
   collapsible?: boolean;
   collapsedMaxHeight?: number;
+  expandLabel?: string;
+  collapseLabel?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const sections = useMemo(
@@ -80,6 +84,7 @@ export function ProductDescriptionView({
   }, [featureBullets]);
 
   const parsedFeatures = sections.features.filter((f) => f.title.trim());
+  const canExpand = collapsible && safeHtml.length > 420;
 
   if (!safeHtml && bullets.length === 0 && parsedFeatures.length === 0) {
     return (
@@ -98,19 +103,19 @@ export function ProductDescriptionView({
           <div
             className="product-description text-[12.5px] leading-relaxed text-[var(--color-text-secondary)] overflow-hidden transition-[max-height] duration-300"
             style={
-              collapsible && !expanded
+              canExpand && !expanded
                 ? { maxHeight: collapsedMaxHeight }
                 : undefined
             }
             dangerouslySetInnerHTML={{ __html: safeHtml }}
           />
-          {collapsible ? (
+          {canExpand ? (
             <button
               type="button"
               onClick={() => setExpanded((v) => !v)}
               className="mt-2 text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
             >
-              {expanded ? "Show less" : "Read more"}
+              {expanded ? collapseLabel : expandLabel}
             </button>
           ) : null}
         </>

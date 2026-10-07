@@ -24,10 +24,11 @@ type Props = {
   productId: string;
   productName?: string;
   className?: string;
+  label?: string;
 };
 
 /** Publish marketplace products to a native Jimvio store only (Shopify path retired). */
-export function SellToStoreButton({ productId, productName, className }: Props) {
+export function SellToStoreButton({ productId, productName, className, label = "Sell to store" }: Props) {
   const [open, setOpen] = useState(false);
   const [jimvioStores, setJimvioStores] = useState<JimvioStore[]>([]);
   const [storeId, setStoreId] = useState("");
@@ -113,8 +114,8 @@ export function SellToStoreButton({ productId, productName, className }: Props) 
         className={className}
         onClick={() => setOpen(true)}
       >
-        <Store className="h-3.5 w-3.5" />
-        Sell to store
+        <Store className="h-4 w-4 shrink-0" />
+        <span className="truncate">{label}</span>
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

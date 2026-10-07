@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, Link2, Loader2, Share2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -58,14 +58,28 @@ export function ProductShareDialog({
       : buildCanonicalProductUrl(window.location.origin, product.slug);
 
   async function copyText(value: string, which: "product" | "affiliate") {
+    let copiedOk = false;
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(which);
-      toast.success("Link copied");
-      window.setTimeout(() => setCopied(null), 2000);
+      copiedOk = true;
     } catch {
-      toast.error("Could not copy link");
+      const area = document.createElement("textarea");
+      area.value = value;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
+      copiedOk = document.execCommand("copy");
+      area.remove();
     }
+    if (!copiedOk) {
+      toast.error("Could not copy link");
+      return;
+    }
+    setCopied(which);
+    toast.success("Link copied");
+    window.setTimeout(() => setCopied(null), 2000);
   }
 
   async function shareProduct() {
@@ -144,6 +158,14 @@ export function ProductShareDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startOnEarn]);
 
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
   const priceUsd = toPlatformUsd(Number(product.price ?? 0), product.currency);
   const earnings =
     commissionRate != null
@@ -154,13 +176,18 @@ export function ProductShareDialog({
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-4 sm:items-center"
       role="presentation"
+      data-share-dialog="product"
       onClick={onClose}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose();
+      }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-share-title"
-        className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl"
+        tabIndex={-1}
+        className="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">

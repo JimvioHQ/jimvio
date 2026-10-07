@@ -30,6 +30,25 @@ describe("PDP layout", () => {
     assert.equal(physical.includes("Jimvio Buyer Protection"), true);
     assert.equal(physical.includes("Learn more"), true);
     assert.equal(physical.includes("Free shipping on orders over $50"), false);
+    assert.equal(physical.includes("SKU <span"), false);
+    assert.equal(physical.includes("DROPSHIP"), false);
+    assert.equal(shared.includes("DROPSHIP"), false);
+    assert.equal(physical.includes("order-3"), true);
+    assert.equal(physical.includes("order-6"), true);
+  });
+
+  it("keeps marketplace cards free of dropship badges and reveals both commerce actions", () => {
+    const physicalCard = read("components/marketplace/product-card-physical.tsx");
+    const clientCard = read("components/marketplace/product-card-client.tsx");
+    const actions = read("components/marketplace/product-card-commerce-actions.tsx");
+    assert.equal(physicalCard.includes("Dropship"), false);
+    assert.equal(clientCard.includes("Dropship"), false);
+    assert.equal(physicalCard.includes("ProductCardCommerceActions"), true);
+    assert.equal(clientCard.includes("ProductCardCommerceActions"), true);
+    assert.equal(actions.includes("Add to Cart"), true);
+    assert.equal(actions.includes("Sell to Store"), true);
+    assert.equal(actions.includes("group-hover"), true);
+    assert.equal(actions.includes("flex-col"), true);
   });
 
   it("renders the variant table with SKU, USD price, and real stock", () => {

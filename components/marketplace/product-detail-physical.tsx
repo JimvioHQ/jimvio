@@ -5,15 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Star, ShieldCheck, Clock, BadgeCheck,
-  ShoppingBag, Shield, Truck, Info, ArrowRight,
-  Package, MapPin, RotateCcw, Lock,
+  ShoppingBag, Truck, Info, ArrowRight,
+  Package, MapPin, Lock,
   Award, TrendingUp, CheckCircle2,
   MessageSquare, Globe, Zap, Timer,
-  AlertTriangle, Flame, ThumbsUp, Eye, Headphones,
+  AlertTriangle, Flame, ThumbsUp, Eye,
 } from "lucide-react";
 import { cn, normalizeImages, getEffectiveCompareAtPrice, getProductDiscountPercent, hasRealProductDiscount } from "@/lib/utils";
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { SellToStoreButton } from "@/components/commerce-os/sell-to-store-button";
+import { ProductChatTrigger } from "@/components/marketplace/product-chat-trigger";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ProductQA, ProductAiSummary } from "@/components/marketplace/product-qa";
@@ -415,40 +416,6 @@ function CompactBuyerProtectionCard() {
   );
 }
 
-// ─── Buyer Protection Section (Shipping tab) ──────────────────────────────────
-
-function BuyerProtectionSection() {
-  const items = [
-    { icon: RotateCcw, title: "14-day free returns", desc: "Changed your mind? No hassle." },
-    { icon: ShieldCheck, title: "Delivery guarantee", desc: "Full refund if not delivered" },
-    { icon: Lock, title: "Secure checkout", desc: "256-bit SSL encryption" },
-    { icon: MessageSquare, title: "Dispute protection", desc: "We're on your side" },
-  ];
-  return (
-    <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-4">
-      <div className="mb-1 flex items-center gap-2.5">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-500/10">
-          <Shield className="h-4 w-4 text-emerald-500" />
-        </span>
-        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-primary)]">Buyer Protection</p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {items.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex items-start gap-2.5">
-            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-              <Icon className="h-3.5 w-3.5 text-emerald-500" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10.5px] font-semibold leading-tight text-[var(--color-text-primary)]">{title}</p>
-              <p className="mt-0.5 text-[9.5px] leading-tight text-[var(--color-text-muted)]">{desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Social Proof Activity Feed ───────────────────────────────────────────────
 
 const ACTIVITY_AVATARS = [
@@ -829,34 +796,27 @@ function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers:
 
 // ─── Vendor Section Card ──────────────────────────────────────────────────────
 
-function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
+function VendorSectionCard({
+  vendor,
+  product,
+}: {
+  vendor: any;
+  followedVendorIds?: string[];
+  product?: { id: string; name: string; slug: string; price: number; images?: string[] | null };
+}) {
   const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
+  const verified = vendor.verification_status === "verified";
 
   const trustItems = [
-    {
-      icon: BadgeCheck,
-      label: "Verified Supplier",
-      iconClass: vendor.verification_status === "verified" ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
-      bgClass: vendor.verification_status === "verified" ? "bg-[var(--color-accent-light)]" : "bg-[var(--color-surface-secondary)]",
-    },
-    {
-      icon: Lock,
-      label: "Secure Transaction",
-      iconClass: "text-[var(--color-success)]",
-      bgClass: "bg-[var(--color-success-light)]",
-    },
-    {
-      icon: ShieldCheck,
-      label: "Buyer Protection",
-      iconClass: "text-sky-500",
-      bgClass: "bg-sky-500/10",
-    },
-  ] as const;
+    ...(verified ? [{ icon: BadgeCheck, label: "Verified Supplier" }] : []),
+    { icon: Lock, label: "Secure Transaction" },
+    { icon: ShieldCheck, label: "Buyer Protection" },
+  ];
 
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="p-4">
-        <div className="mb-4 flex items-center gap-3">
+      <div className="p-3.5">
+        <div className="flex items-center gap-3">
           <Link
             href={`/vendors/${vendor.business_slug}`}
             className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-[border-color,transform] duration-200 hover:scale-[1.02] hover:border-[var(--color-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2"
@@ -879,32 +839,48 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
               <Link href={`/vendors/${vendor.business_slug}`} className="text-[14px] font-semibold text-[var(--color-text-primary)] hover:underline underline-offset-2 truncate">
                 {vendor.business_name ?? "Official Store"}
               </Link>
-              {vendor.verification_status === "verified" && (
+              {verified && (
                 <BadgeCheck className="h-4 w-4 text-[var(--color-accent)] shrink-0" aria-label="Verified supplier" />
               )}
             </div>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{followersLabel}</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2.5 border-t border-[var(--color-border)] pt-4 text-[11px]">
-          {trustItems.map(({ icon: Icon, label, iconClass, bgClass }) => (
-            <div key={label} className="flex flex-col items-center gap-2 px-1 text-center">
-              <span className={cn("grid h-9 w-9 place-items-center rounded-full", bgClass)}>
-                <Icon className={cn("h-4 w-4", iconClass)} />
-              </span>
-              <div className="text-[10px] font-semibold leading-tight text-[var(--color-text-primary)]">
-                {label}
-              </div>
-            </div>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {trustItems.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-1 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-primary)]"
+            >
+              <Icon className="h-3 w-3 text-[var(--color-accent)]" aria-hidden />
+              {label}
+            </span>
           ))}
         </div>
-        <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            className="h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[12px] font-semibold text-[var(--color-text-primary)] transition-[transform,background-color,border-color] duration-200 hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]"
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ProductChatTrigger
+            variant="outline"
+            vendor={{
+              id: vendor.id,
+              business_name: vendor.business_name ?? null,
+              business_logo: vendor.business_logo ?? null,
+              business_slug: vendor.business_slug ?? null,
+            }}
+            product={
+              product
+                ? {
+                    id: product.id,
+                    name: product.name,
+                    slug: product.slug,
+                    price: product.price,
+                    images: product.images ?? null,
+                  }
+                : undefined
+            }
+            className="h-10 w-full rounded-xl border-[var(--color-border)] bg-[var(--color-surface)] text-[12px] font-semibold text-[var(--color-text-primary)] shadow-none hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
           >
             Contact Seller
-          </button>
+          </ProductChatTrigger>
           <Link
             href={`/vendors/${vendor.business_slug}`}
             className="flex h-10 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[12px] font-semibold text-[var(--color-text-primary)] transition-[transform,background-color,border-color] duration-200 hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]"
@@ -1159,7 +1135,6 @@ export function PhysicalProductDetail({
   const activeInventory = selectedVariant
     ? selectedVariant.inventory_quantity
     : product.inventory_quantity ?? null;
-  const activeSku = String(selectedVariant?.sku || product.sku || "").trim();
   const stockInput = {
     inventory_quantity: activeInventory,
     track_inventory: trackInventory,
@@ -1213,34 +1188,37 @@ export function PhysicalProductDetail({
   }, [product.description]);
 
   const specRows = useMemo(() => {
-    const base = parsedSpecs.length > 0 ? parsedSpecs.map((s) => ({ label: s.key, value: s.value })) : [];
-    const variantDimensions: { label: string; value: string }[] = [];
+    const rows = new Map<string, { label: string; value: string }>();
+    const add = (label: string, value: string | null | undefined) => {
+      const clean = String(value ?? "").trim();
+      if (!clean || clean === "—") return;
+      const key = label.toLowerCase();
+      if (rows.has(key)) return;
+      rows.set(key, { label, value: clean });
+    };
+    for (const spec of parsedSpecs) add(spec.key, spec.value);
     const vl = (selectedVariant as any)?.length ?? (selectedVariant as any)?.variant_length ?? null;
     const vw = (selectedVariant as any)?.width ?? (selectedVariant as any)?.variant_width ?? null;
     const vh = (selectedVariant as any)?.height ?? (selectedVariant as any)?.variant_height ?? null;
     const vwt = (selectedVariant as any)?.weight ?? (selectedVariant as any)?.variant_weight ?? null;
-    if (vl && vw && vh) variantDimensions.push({ label: "Dimensions", value: `${vl} × ${vw} × ${vh} cm` });
-    else { if (vl) variantDimensions.push({ label: "Length", value: `${vl} cm` }); if (vw) variantDimensions.push({ label: "Width", value: `${vw} cm` }); if (vh) variantDimensions.push({ label: "Height", value: `${vh} cm` }); }
-    if (vwt) variantDimensions.push({ label: "Variant weight", value: `${vwt} g` });
-    const extras = [
-      { label: "Ships from", value: shippingDisplay.shipsFrom },
-      {
-        label: "Est. delivery",
-        value: isUnsourcedDeliveryEstimate(shippingDisplay) ? "—" : shippingDisplay.deliveryEstimate,
-      },
-      { label: "Weight", value: weightDisplay || "—" }, { label: "SKU", value: product.sku || "—" },
-      { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" }, { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
-      { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: product.condition ?? "—" },
-      { label: "Shipping", value: isFreeShipping ? "Free shipping" : "Standard rates apply" },
-    ];
-    const existingKeys = new Set(base.map((r) => r.label.toLowerCase()));
-    const merged = [...base];
-    for (const row of variantDimensions) { if (!existingKeys.has(row.label.toLowerCase())) { merged.splice(1, 0, row); existingKeys.add(row.label.toLowerCase()); } }
-    for (const row of extras) { if (!existingKeys.has(row.label.toLowerCase()) && row.value !== "—") merged.push(row); }
-    if (!existingKeys.has("weight") && weightDisplay) merged.push({ label: "Weight", value: weightDisplay });
-    if (!existingKeys.has("sku") && product.sku) merged.push({ label: "SKU", value: product.sku });
-    return merged;
-  }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant, shippingDisplay]);
+    if (vl && vw && vh) add("Size", `${vl} × ${vw} × ${vh} cm`);
+    else {
+      if (vl) add("Length", `${vl} cm`);
+      if (vw) add("Width", `${vw} cm`);
+      if (vh) add("Height", `${vh} cm`);
+    }
+    if (vwt) add("Weight", `${vwt} g`);
+    add("Ships from", shippingDisplay.shipsFrom);
+    if (!isUnsourcedDeliveryEstimate(shippingDisplay)) add("Est. delivery", shippingDisplay.deliveryEstimate);
+    add("Weight", weightDisplay);
+    add("SKU", product.sku);
+    add("Brand", product.brand ?? cjMeta.brand);
+    add("Material", product.material ?? cjMeta.material);
+    add("Packaging", cjMeta.package_size);
+    add("Condition", product.condition);
+    if (isFreeShipping) add("Shipping", "Free shipping");
+    return [...rows.values()];
+  }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, product.condition, isFreeShipping, cjMeta, selectedVariant, shippingDisplay]);
 
   useRecentlyViewed(product.id, product);
 
@@ -1306,150 +1284,114 @@ export function PhysicalProductDetail({
       </div>
 
       <div className="mx-auto min-w-0 max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
-        <div className="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-12 xl:gap-8">
-              <section className="min-w-0 lg:col-span-7">
-                <ImageGallery
-                  images={activeImages}
-                  videos={productVideos}
-                  productName={title}
-                  isFeatured={product.is_featured}
-                  savings={savings}
-                  thumbnailsPosition="bottom"
+        <div className="flex min-w-0 flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
+          <div className="contents lg:col-span-7 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+            <section className="order-1 min-w-0 lg:order-none">
+              <ImageGallery
+                images={activeImages}
+                videos={productVideos}
+                productName={title}
+                isFeatured={product.is_featured}
+                savings={savings}
+                thumbnailsPosition="bottom"
+              />
+            </section>
+            {vendor ? (
+              <section className="order-3 min-w-0 lg:order-none">
+                <VendorSectionCard
+                  vendor={vendor}
+                  product={{
+                    id: product.id,
+                    name: title,
+                    slug: product.slug,
+                    price: activePrice,
+                    images: activeImages,
+                  }}
                 />
               </section>
-              <section className="min-w-0 space-y-4 lg:col-span-5">
-                <div>
-                  <ProductTitleBadges
-                    vendor={vendor}
-                    product={product}
-                    isFreeShipping={isFreeShipping}
-                    showFastShippingBadge={isFreeShipping || Boolean(shippingDisplay?.deliveryEstimate)}
-                    variant="physical"
-                  />
-                  {/* Title */}
-                  <h1 className="break-words text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
-                    {title}
-                  </h1>
+            ) : null}
+            <section className="order-6 min-w-0 lg:order-none">
+              <CompactBuyerProtectionCard />
+            </section>
+          </div>
 
-                  <div className="mt-2">
-                    <StockStatusBadge input={stockInput} />
-                    {activeSku ? (
-                      <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                        SKU <span className="font-semibold text-[var(--color-text-primary)]">{activeSku}</span>
-                      </p>
-                    ) : null}
-                  </div>
-
-                  {/* Price */}
-                  <div className="mt-4">
-                    <div className="flex flex-wrap items-baseline gap-2.5">
-                      <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)]">
-                        {formatMoney(activePrice, product.currency, "USD")}
-                      </span>
-                      {activeCompareAt && (
-                        <span className="text-[15px] font-medium text-[var(--color-text-muted)] line-through decoration-[var(--color-border-strong)]">
-                          {formatMoney(activeCompareAt, product.currency, "USD")}
-                        </span>
-                      )}
-                      {savings !== null && savings > 0 && (
-                        <span className="rounded-lg bg-[var(--color-accent-light)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-accent)]">
-                          −{savings}%
-                        </span>
-                      )}
-                    </div>
-                    {savingsAmount > 0 && (
-                      <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        You save {formatMoney(savingsAmount, product.currency, "USD")}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Vendor card */}
-                  {vendor && (
-                    <div className="mt-3">
-                      <VendorSectionCard vendor={vendor} followedVendorIds={followedVendorIds} />
-                    </div>
+          <div className="contents lg:col-span-5 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+            <section className="order-2 min-w-0 space-y-3 lg:order-none">
+              <ProductTitleBadges
+                vendor={vendor}
+                product={product}
+                isFreeShipping={isFreeShipping}
+                showFastShippingBadge={isFreeShipping || Boolean(shippingDisplay?.deliveryEstimate)}
+                variant="physical"
+              />
+              <h1 className="break-words text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
+                {title}
+              </h1>
+              <StockStatusBadge input={stockInput} />
+              <div>
+                <div className="flex flex-wrap items-baseline gap-2.5">
+                  <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)]">
+                    {formatMoney(activePrice, product.currency, "USD")}
+                  </span>
+                  {activeCompareAt && (
+                    <span className="text-[15px] font-medium text-[var(--color-text-muted)] line-through decoration-[var(--color-border-strong)]">
+                      {formatMoney(activeCompareAt, product.currency, "USD")}
+                    </span>
                   )}
-
-                  {/* Package warnings */}
-                  <div className="mt-3">
-                    <PackageWarning notes={packageWarnings} />
-                  </div>
-
-                  {/* Variants */}
-                  {hasVariants && needsVariantSelection && (
-                    <div className="mt-4">
-                      <VariantSelector
-                        variants={variants}
-                        selectedVariantId={selectedVariant?.id ?? null}
-                        onSelect={handleVariantSelect}
-                        currency={product.currency ?? "USD"}
-                      />
-                    </div>
+                  {savings !== null && savings > 0 && (
+                    <span className="rounded-lg bg-[var(--color-accent-light)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-accent)]">
+                      −{savings}%
+                    </span>
                   )}
-                  {!hasVariants && product.description?.trim() ? (
-                    <div className="mt-3">
-                      <ProductDescriptionView
-                        description={product.description}
-                        featureBullets={featureBullets}
-                        collapsible
-                        collapsedMaxHeight={220}
-                      />
-                    </div>
-                  ) : null}
-
-                  {/* Buy box */}
-                  <div ref={buyBoxRef} className="mt-4">
-                    <ProductActionModule
-                      product={productProps}
-                      vendor={vendorProps}
-                      selectedVariantId={selectedVariant?.id ?? null}
-                      selectedVariantOutOfStock={isOutOfStock}
-                      requiresVariantSelection={needsVariantSelection}
-                      currentPath={`/marketplace/${product.slug}`}
-                      className="w-full"
-                    />
-                    {hasVariants && isOutOfStock && (
-                      <div className="mt-2 flex items-center gap-2 text-xs text-red-500">
-                        <Info className="h-3.5 w-3.5 shrink-0" />
-                        <span>This option is out of stock</span>
-                      </div>
-                    )}
-                    <div className="mt-3">
-                      <SellToStoreButton
-                        productId={product.id}
-                        productName={product.name}
-                        className="w-full h-11 rounded-xl border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-4">
-                    {shippingCards}
-                    <CompactBuyerProtectionCard />
-                  </div>
-
-                  {/* 4-badge trust row */}
-                  <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-4 text-[11px] sm:grid-cols-4">
-                    {[
-                      { icon: Lock, label: "Secure Checkout", sub: "SSL Encrypted" },
-                      { icon: RotateCcw, label: "30-Day Returns", sub: "Easy Returns" },
-                      { icon: ShieldCheck, label: "Buyer Protection", sub: "Money Back Guarantee" },
-                      { icon: Headphones, label: "24/7 Support", sub: "We're here to help" },
-                    ].map(({ icon: Icon, label, sub }) => (
-                      <div key={label} className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-[var(--color-surface-secondary)]">
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-500/10">
-                          <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </span>
-                        <div className="min-w-0 leading-tight">
-                          <p className="text-[10.5px] font-semibold text-[var(--color-text-primary)]">{label}</p>
-                          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">{sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              </section>
+                {savingsAmount > 0 && (
+                  <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    You save {formatMoney(savingsAmount, product.currency, "USD")}
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="order-4 min-w-0 space-y-4 lg:order-none">
+              <PackageWarning notes={packageWarnings} />
+              {hasVariants && needsVariantSelection && (
+                <VariantSelector
+                  variants={variants}
+                  selectedVariantId={selectedVariant?.id ?? null}
+                  onSelect={handleVariantSelect}
+                  currency={product.currency ?? "USD"}
+                />
+              )}
+              <div ref={buyBoxRef}>
+                <ProductActionModule
+                  product={productProps}
+                  vendor={vendorProps}
+                  selectedVariantId={selectedVariant?.id ?? null}
+                  selectedVariantOutOfStock={isOutOfStock}
+                  requiresVariantSelection={needsVariantSelection}
+                  currentPath={`/marketplace/${product.slug}`}
+                  className="w-full"
+                />
+                {hasVariants && isOutOfStock && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-red-500">
+                    <Info className="h-3.5 w-3.5 shrink-0" />
+                    <span>This option is out of stock</span>
+                  </div>
+                )}
+                <div className="mt-3">
+                  <SellToStoreButton
+                    productId={product.id}
+                    productName={product.name}
+                    className="h-11 w-full rounded-xl border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="order-5 min-w-0 space-y-3 lg:order-none">
+              {shippingCards}
+            </section>
+          </div>
         </div>
 
         <div className="mt-8 space-y-10">
@@ -1511,6 +1453,10 @@ export function PhysicalProductDetail({
                           <ProductDescriptionView
                             description={product.description}
                             featureBullets={featureBullets}
+                            collapsible
+                            collapsedMaxHeight={168}
+                            expandLabel="View full description"
+                            collapseLabel="View less"
                           />
                         </div>
 
@@ -1537,7 +1483,7 @@ export function PhysicalProductDetail({
 
                       <div>
                         <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
-                          Specifications
+                          Product information
                         </h3>
                         {specRows.length > 0 ? (
                           <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
@@ -1605,7 +1551,6 @@ export function PhysicalProductDetail({
                           <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed">{shipsToLabels.join(", ")}</p>
                         </div>
                       )}
-                      <BuyerProtectionSection />
                     </div>
                   )}
 
@@ -1683,7 +1628,6 @@ export function PhysicalProductDetail({
                     <div className="space-y-5">
                       {vendor ? (
                         <>
-                          <VendorSectionCard vendor={vendor} followedVendorIds={followedVendorIds} />
                           <div className="grid grid-cols-3 gap-3">
                             {[
                               ...(vendor.on_time_delivery != null

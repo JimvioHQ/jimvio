@@ -25,11 +25,8 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { VariantPickerDialog } from "./variant-picker-dialog";
 import { ProductCardVideoMedia } from "./product-card-video-media";
 import { productHasVideos } from "@/lib/product-videos";
-import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
-import {
-  isDropshipEligible,
-  isPurchaseBlockedByStock,
-} from "@/lib/marketplace/stock-status";
+import { isPurchaseBlockedByStock } from "@/lib/marketplace/stock-status";
+import { ProductCardCommerceActions } from "@/components/marketplace/product-card-commerce-actions";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface Product {
@@ -125,7 +122,6 @@ export function ProductCardClient({
     hideQuantity: false,
   };
   const outOfStock = isPurchaseBlockedByStock(stockInput);
-  const showDropship = isDropshipEligible(p);
 
   useEffect(() => {
     if (initialInCart !== undefined) return;
@@ -288,11 +284,6 @@ export function ProductCardClient({
           />
 
           <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5">
-            {showDropship && (
-              <span className="rounded-md bg-violet-600/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                Dropship
-              </span>
-            )}
             {discount > 0 && (
               <span
                 className="inline-flex items-center rounded-[6px] px-2 py-[3px] text-[10px] font-black tracking-widest text-white uppercase"
@@ -303,6 +294,17 @@ export function ProductCardClient({
             )}
           </div>
 
+          {!isDigital ? (
+            <ProductCardCommerceActions
+              productId={p.id}
+              productName={p.name}
+              onAddToCart={handleCartToggle}
+              loading={loading}
+              disabled={outOfStock}
+              inCart={inCart}
+            />
+          ) : null}
+          {isDigital ? (
           <div
             className={cn(
               "pointer-events-auto absolute left-3 right-3 bottom-3 z-20 flex gap-2",
@@ -355,6 +357,7 @@ export function ProductCardClient({
               )}
             </button>
           </div>
+          ) : null}
 
           {isDigital && (
             <div className="absolute bottom-3 left-3 z-10 pointer-events-none">
@@ -416,12 +419,6 @@ export function ProductCardClient({
             )}
           </div>
 
-          {!isDigital && (
-            <div className="mt-1.5 pointer-events-none">
-              <StockStatusBadge size="sm" input={stockInput} />
-            </div>
-          )}
-
           <div className="h-px bg-stone-100 dark:bg-white/[0.06] mt-2 mb-1.5" />
 
           <div className="flex items-center justify-between gap-2">
@@ -442,6 +439,7 @@ export function ProductCardClient({
             )}
           </div>
 
+          {isDigital ? (
           <button
             type="button"
             onClick={handleCartToggle}
@@ -471,6 +469,7 @@ export function ProductCardClient({
               </span>
             )}
           </button>
+          ) : null}
         </div>
       </div>
 
