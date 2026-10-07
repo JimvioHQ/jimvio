@@ -28,10 +28,29 @@ function normalizeSql(sql) {
 
 function listTsFiles(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
-  for (const name of fs.readdirSync(dir)) {
-    if (name === "node_modules" || name === ".next" || name === "types") continue;
+  let names;
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return acc;
+  }
+  for (const name of names) {
+    if (
+      name === "node_modules" ||
+      name === ".next" ||
+      name === "types" ||
+      name === "tmp"
+    ) {
+      continue;
+    }
     const full = path.join(dir, name);
-    const st = fs.statSync(full);
+    let st;
+    try {
+      st = fs.lstatSync(full);
+    } catch {
+      continue;
+    }
+    if (st.isSymbolicLink()) continue;
     if (st.isDirectory()) listTsFiles(full, acc);
     else if (/\.(ts|tsx|js|mjs)$/.test(name)) acc.push(full);
   }

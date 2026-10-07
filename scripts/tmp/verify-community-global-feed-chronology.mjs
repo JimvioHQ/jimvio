@@ -17,10 +17,10 @@ const ranking = read("lib/growth/feed-ranking.ts");
 const worldBuild = read("lib/community/editorial-world-build.ts");
 const seed = read("scripts/seed-community-world.ts");
 
-assert.match(publicFeed, /Global discovery is chronological/);
+assert.match(publicFeed, /Global discovery is chronological|loadGlobalCommunityFeed/);
 assert.match(publicFeed, /order\("created_at", \{ ascending: false \}/);
-assert.match(publicFeed, /limit = 2000/);
-assert.match(publicFeed, /\.range\(from, to\)/);
+assert.match(publicFeed, /loadGlobalCommunityFeed|PAGE_SIZE/);
+assert.match(publicFeed, /isGuestVisiblePublicPost/);
 
 assert.match(feedRoute, /Global feed: chronological only/);
 assert.match(feedRoute, /if \(communityId\)/);

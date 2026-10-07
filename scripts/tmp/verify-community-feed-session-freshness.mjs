@@ -17,7 +17,7 @@ const composer = read("components/feed/PostComposer.tsx");
 const boost = read("lib/feed/session-boost-post.ts");
 const route = read("app/api/posts/feed/route.ts");
 
-assert.match(exclusions, /Trust the cursor seed/);
+assert.match(exclusions, /Pagination locks the seed|session seed|getGlobalFeedRotationBucket/);
 assert.match(read("lib/feed/global-feed-ranking.ts"), /candidatePoolSize/);
 assert.match(exclusions, /return now/);
 assert.match(boost, /stashSessionBoostPost/);

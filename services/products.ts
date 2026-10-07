@@ -506,6 +506,13 @@ export async function getProductPageData(
 // VENDOR-SCOPED QUERIES
 // ─────────────────────────────────────────────────────────────
 
+export type VendorStoreProductsQuery = {
+  search?: string;
+  sort?: "newest" | "price_asc" | "price_desc" | "sales";
+  limit?: number;
+  offset?: number;
+};
+
 export async function getVendorProducts(vendorId: string) {
   const db = await getDB();
   const { data } = await db
@@ -520,6 +527,79 @@ export async function getVendorProducts(vendorId: string) {
     .eq("vendor_id", vendorId)
     .order("created_at", { ascending: false });
   return data ?? [];
+}
+
+/**
+ * Store page listing: always vendor-scoped, supports search/sort/pagination.
+ * Never searches across other stores.
+ */
+export async function queryVendorStoreProducts(
+  vendorId: string,
+  opts: VendorStoreProductsQuery = {},
+) {
+  const db = await getDB();
+  const {
+    search,
+    sort = "newest",
+    limit = 24,
+    offset = 0,
+  } = opts;
+
+  let q = db
+    .from("products")
+    .select(
+      `
+      id, name, slug, sku, short_description, price, compare_at_price, status, product_type, source,
+      images, inventory_quantity, track_inventory, low_stock_threshold,
+      sale_count, rating, review_count, vendor_id,
+      affiliate_enabled, affiliate_commission_rate, is_active, created_at, currency,
+      pricing_type, billing_period,
+      vendors ( id, business_name, business_slug, business_logo, verification_status )
+    `,
+      { count: "exact" },
+    )
+    .eq("vendor_id", vendorId)
+    .eq("is_active", true)
+    .is("deleted_at", null);
+
+  const term = (search ?? "").trim();
+  if (term) {
+    const safe = term
+      .replace(/[%_,.()]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
+    if (safe) {
+      // Quote patterns so spaces / special chars stay inside one PostgREST value.
+      const pattern = `"%${safe.replace(/"/g, "")}%"`;
+      q = q.or(
+        `name.ilike.${pattern},sku.ilike.${pattern},short_description.ilike.${pattern}`,
+      );
+    }
+  }
+
+  switch (sort) {
+    case "price_asc":
+      q = q.order("price", { ascending: true, nullsFirst: false });
+      break;
+    case "price_desc":
+      q = q.order("price", { ascending: false, nullsFirst: false });
+      break;
+    case "sales":
+      // sale_count is the cached completed/paid sales counter used across marketplace.
+      q = q.order("sale_count", { ascending: false, nullsFirst: false });
+      break;
+    case "newest":
+    default:
+      q = q.order("created_at", { ascending: false });
+      break;
+  }
+
+  const { data, count } = await q.range(offset, offset + limit - 1);
+  return {
+    products: data ?? [],
+    total: count ?? 0,
+  };
 }
 
 export async function getTopVendorProducts(vendorId: string, limit = 4) {

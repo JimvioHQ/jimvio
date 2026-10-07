@@ -1,28 +1,24 @@
 import React from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { 
-  Star, 
-  MapPin, 
-  ShieldCheck, 
-  Package, 
+import {
+  Star,
+  ShieldCheck,
+  Package,
   MessageCircle,
-  Globe, 
-  Share2, 
-  Heart,
-  Search,
+  Share2,
   CheckCircle2,
   Users,
-  Send,
   Video,
-  Play
+  Play,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getAdminDB, getVendorProducts, getVendorClipsWithDetails } from "@/services/db";
+import { getAdminDB, queryVendorStoreProducts, getVendorClipsWithDetails } from "@/services/db";
 import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
+import { StoreProductControls } from "@/components/marketplace/store-product-controls";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -32,11 +28,19 @@ import {
   storefrontFollowerCount,
   storefrontLogoSrc,
 } from "@/lib/marketplace/store-display";
+import {
+  DEFAULT_STORE_PRODUCT_PAGE_SIZE,
+  buildStoreProductsHref,
+  parseStorePage,
+  parseStoreProductSort,
+  parseStoreSearchQuery,
+} from "@/lib/marketplace/store-product-query";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ q?: string; sort?: string; page?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -64,12 +68,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function VendorStorePage({ params }: PageProps) {
+export default async function VendorStorePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const sp = await searchParams;
   if (slug === "jimvio-dropshipping") {
     redirect("/vendors/jimvio-store");
   }
   const admin = getAdminDB();
+
+  const searchQuery = parseStoreSearchQuery(sp.q);
+  const sort = parseStoreProductSort(sp.sort);
+  const page = parseStorePage(sp.page);
+  const pageSize = DEFAULT_STORE_PRODUCT_PAGE_SIZE;
+  const offset = (page - 1) * pageSize;
   
   // Fetch vendor by slug from DB
   const { data: vendorData } = await admin
@@ -84,13 +95,21 @@ export default async function VendorStorePage({ params }: PageProps) {
 
   const vendor = vendorData as any;
 
-  const [products, clips, cartProductIds, followedVendorIds] = await Promise.all([
-    getVendorProducts(vendor.id),
+  const [productPage, clips, cartProductIds, followedVendorIds] = await Promise.all([
+    queryVendorStoreProducts(vendor.id, {
+      search: searchQuery || undefined,
+      sort,
+      limit: pageSize,
+      offset,
+    }),
     getVendorClipsWithDetails(vendor.id),
     getCartProductIds().catch(() => [] as string[]),
     getFollowedVendorIds().catch(() => [] as string[]),
   ]);
 
+  const products = productPage.products;
+  const totalProducts = productPage.total;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
   const cartSet = new Set(cartProductIds);
   const isFollowing = followedVendorIds.includes(vendor.id);
   const storeRating = formatStoreRating(vendor);
@@ -195,7 +214,7 @@ export default async function VendorStorePage({ params }: PageProps) {
               <Tabs defaultValue="products">
                 <TabsList className="bg-transparent border-b border-[var(--color-border)] w-full justify-start h-auto rounded-sm p-0">
                   <TabsTrigger value="products" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
-                    Products ({products.length})
+                    Products ({totalProducts})
                   </TabsTrigger>
                   <TabsTrigger value="videos" className="py-4 px-8 font-black rounded-sm data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--color-accent)] data-[state=active]:text-[var(--color-accent)]">
                     Videos ({clips.length})
@@ -207,23 +226,91 @@ export default async function VendorStorePage({ params }: PageProps) {
                 
                 <div className="p-8">
                   <TabsContent value="products" className="mt-0">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-text-muted)]" />
-                        <input placeholder="Search in this store..." className="w-full h-11 pl-10 pr-4 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl text-sm outline-none focus:border-[var(--color-accent)]" />
-                      </div>
-                      <select className="h-11 px-4 border border-[var(--color-border)] rounded-xl text-sm font-bold bg-[var(--color-surface)] dark:bg-[var(--color-surface)]">
-                        <option>Sort by: Newest</option>
-                        <option>Sort by: Bestselling</option>
-                        <option>Sort by: Price Low to High</option>
-                      </select>
-                    </div>
+                    <StoreProductControls
+                      key={`${searchQuery}::${sort}`}
+                      slug={slug}
+                      initialQuery={searchQuery}
+                      initialSort={sort}
+                      resultCount={totalProducts}
+                      totalCount={totalProducts}
+                    />
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                      {products.map((p) => (
-                        <ProductCardClient key={p.id} p={p as any} initialInCart={cartSet.has(p.id)} />
-                      ))}
-                    </div>
+                    {products.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                          {products.map((p) => (
+                            <ProductCardClient
+                              key={p.id}
+                              p={{
+                                ...(p as any),
+                                vendors: (p as any).vendors ?? {
+                                  id: vendor.id,
+                                  business_name: vendor.business_name,
+                                  business_slug: vendor.business_slug,
+                                  business_logo: vendor.business_logo,
+                                  verification_status: vendor.verification_status,
+                                },
+                              }}
+                              initialInCart={cartSet.has(p.id)}
+                            />
+                          ))}
+                        </div>
+
+                        {totalPages > 1 && (
+                          <div className="mt-8 flex items-center justify-center gap-3">
+                            {page > 1 ? (
+                              <Link
+                                href={buildStoreProductsHref({
+                                  slug,
+                                  q: searchQuery,
+                                  sort,
+                                  page: page - 1,
+                                })}
+                                className="h-10 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold hover:bg-[var(--color-surface-secondary)]"
+                              >
+                                Previous
+                              </Link>
+                            ) : null}
+                            <span className="text-sm text-[var(--color-text-muted)]">
+                              Page {page} of {totalPages}
+                            </span>
+                            {page < totalPages ? (
+                              <Link
+                                href={buildStoreProductsHref({
+                                  slug,
+                                  q: searchQuery,
+                                  sort,
+                                  page: page + 1,
+                                })}
+                                className="h-10 rounded-xl border border-[var(--color-border)] px-4 text-sm font-semibold hover:bg-[var(--color-surface-secondary)]"
+                              >
+                                Next
+                              </Link>
+                            ) : null}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-16 text-center text-[var(--color-text-muted)]">
+                        <Package className="mx-auto mb-4 h-12 w-12 opacity-50" />
+                        <p className="font-bold text-[var(--color-text-primary)]">
+                          {searchQuery ? "No products found" : "No products yet"}
+                        </p>
+                        <p className="mt-1 text-sm">
+                          {searchQuery
+                            ? "Try another search term."
+                            : "This store has not published products yet."}
+                        </p>
+                        {searchQuery ? (
+                          <Link
+                            href={buildStoreProductsHref({ slug, sort })}
+                            className="mt-4 inline-flex h-10 items-center rounded-xl bg-[var(--color-text-primary)] px-4 text-sm font-semibold text-[var(--color-surface)]"
+                          >
+                            Clear search
+                          </Link>
+                        ) : null}
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="videos" className="mt-0">

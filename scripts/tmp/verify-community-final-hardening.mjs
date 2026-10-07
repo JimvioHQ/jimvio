@@ -217,7 +217,7 @@ async function main() {
     resolve(root, "app/api/posts/[postId]/like/route.ts"),
     "utf8"
   );
-  assert.match(likeRoute, /canEngageWithRoom/);
+  assert.match(likeRoute, /canEngageWithCommunityPost/);
   const access = fs.readFileSync(resolve(root, "services/accessControl.ts"), "utf8");
   assert.match(access, /canEngageWithRoom/);
   assert.doesNotMatch(

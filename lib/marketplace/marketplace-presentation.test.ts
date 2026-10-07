@@ -53,6 +53,8 @@ describe("marketplace presentation hardening", () => {
     assert.equal(store.includes("99.2%"), false);
     assert.equal(store.includes("formatStoreRating"), true);
     assert.equal(store.includes("No ratings yet"), true);
+    assert.equal(store.includes("queryVendorStoreProducts"), true);
+    assert.equal(store.includes("Sort by: Newest"), false);
   });
 
   it("does not render Shop by collection on the marketplace home", () => {

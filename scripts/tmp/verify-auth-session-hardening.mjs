@@ -42,8 +42,11 @@ assert.doesNotMatch(
 );
 
 const appUrl = mustExist("lib/app-url.ts");
-assert.match(appUrl, /export function resolvePublicOrigin/);
-assert.match(appUrl, /isLoopbackHost/);
+assert.match(appUrl, /export \{ resolvePublicOrigin \} from/);
+const publicOrigin = mustExist("lib/auth/public-origin.ts");
+assert.match(publicOrigin, /export function resolvePublicOrigin/);
+assert.match(publicOrigin, /isLoopbackHost/);
+assert.match(publicOrigin, /\.jimvio\.com/);
 
 const actions = mustExist("lib/auth/actions.ts");
 assert.match(actions, /TWO_FA_VERIFIED_COOKIE/);

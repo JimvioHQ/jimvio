@@ -68,7 +68,9 @@ assert.doesNotMatch(rail, /Campaign announcements/i);
 
 const discoverApi = mustExist("app/api/c/hub/discover/route.ts");
 assert.match(discoverApi, /tagline/);
-assert.match(discoverApi, /get_trending_communities/);
+// Production uses TS scoring fallback + selection helper; RPC remains in migrations.
+assert.match(discoverApi, /selectDiscoveryCommunities/);
+assert.match(discoverApi, /communityTrendingScore/);
 assert.match(discoverApi, /communities:/);
 assert.doesNotMatch(discoverApi, /ugc_campaigns/);
 assert.doesNotMatch(discoverApi, /from\("products"\)/);
