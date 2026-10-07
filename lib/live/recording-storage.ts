@@ -196,21 +196,10 @@ export function buildPlaybackUrlForLocation(location: string): string | null {
 
 export function buildDownloadUrlForLocation(
   location: string,
-  filename: string
+  _filename: string
 ): string | null {
-  const config = getEgressStorageConfig();
-  const parsed = parseRecordingObjectRef(location, config?.bucket ?? null);
-  if (!parsed || !config || parsed.bucket !== config.bucket) {
-    return parsed?.httpsUrl ?? null;
-  }
-  try {
-    return createPresignedGetUrl({
-      config,
-      key: parsed.key,
-      expiresSeconds: 3600,
-      filename,
-    });
-  } catch {
-    return parsed.httpsUrl;
-  }
+  // Backblaze B2 frequently returns 403 for SigV4 URLs that include
+  // response-content-disposition. Use a plain signed GET (same as playback);
+  // the client can still hint a filename via the anchor download attribute.
+  return buildPlaybackUrlForLocation(location);
 }
