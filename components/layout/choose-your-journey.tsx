@@ -1,208 +1,260 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
-import { JourneyStack, JOURNEY_STACK_CSS } from "./journey-stack";
-import { MobileStoryStack } from "./mobile-story-stack";
 import {
-  BuyerBagVisual,
-  SellerStoreVisual,
   AffiliateCoinsVisual,
   BrandMegaphoneVisual,
-  CreatorMediaVisual,
+  BuildCommunitiesVisual,
+  BuyerBagVisual,
   CommunityPeopleVisual,
+  CreateCampaignsVisual,
+  CreatorMediaVisual,
+  EarnCommissionsVisual,
+  JoinCampaignsVisual,
+  SellProductsVisual,
 } from "./journey-visuals";
+import {
+  JOURNEY_CARDS,
+  type JourneyCardConfig,
+  type JourneyVisualKey,
+} from "./choose-your-journey-data";
 
 const ORANGE = "#FF5A1F";
-const GREEN = "#16a34a";
-const BLUE = "#2563eb";
-const INDIGO = "#4f46e5";
-const PURPLE = "#7c3aed";
-const AMBER = "#d97706";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
-type Journey = {
-  role: string;
-  color: string;
-  metric: string;
-  tagline: string;
-  items: readonly [string, string, string];
-  cta: string;
-  href: string;
-  visual: ReactNode;
-};
-
-const JOURNEYS: readonly Journey[] = [
-  {
-    role: "Buyer",
-    color: ORANGE,
-    metric: "Protected checkout",
-    tagline: "Browse verified suppliers and track every order in one place.",
-    items: ["Verified sellers", "Order tracking", "Buyer protection"],
-    cta: "Browse marketplace",
-    href: "/marketplace/physical",
-    visual: <BuyerBagVisual accent={ORANGE} />,
-  },
-  {
-    role: "Seller",
-    color: BLUE,
-    metric: "Your own storefront",
-    tagline: "List products, manage orders, and get paid without a separate tool stack.",
-    items: ["Store dashboard", "Inventory & orders", "Fast payouts"],
-    cta: "Open your store",
-    href: "/seller/products",
-    visual: <SellerStoreVisual accent={BLUE} />,
-  },
-  {
-    role: "Affiliate",
-    color: GREEN,
-    metric: "Up to 30% commission",
-    tagline: "Share referral links and earn when your audience buys.",
-    items: ["Custom links", "Real-time stats", "Wallet withdrawals"],
-    cta: "Start earning",
-    href: "/affiliates",
-    visual: <AffiliateCoinsVisual accent={GREEN} />,
-  },
-  {
-    role: "Brand",
-    color: INDIGO,
-    metric: "UGC at scale",
-    tagline: "Launch campaigns, brief creators, and track performance from one hub.",
-    items: ["Campaign builder", "Creator matching", "ROI tracking"],
-    cta: "Launch a campaign",
-    href: "/ugc/campaign-center/campaigns/new",
-    visual: <BrandMegaphoneVisual accent={INDIGO} />,
-  },
-  {
-    role: "Creator",
-    color: PURPLE,
-    metric: "Paid per campaign",
-    tagline: "Join brand briefs, publish content, and get paid for results.",
-    items: ["Campaign marketplace", "Per-view payouts", "Creator dashboard"],
-    cta: "Find campaigns",
-    href: "/ugc",
-    visual: <CreatorMediaVisual accent={PURPLE} />,
-  },
-  {
-    role: "Community Owner",
-    color: AMBER,
-    metric: "Recurring revenue",
-    tagline: "Run memberships, live sessions, and paid spaces for your audience.",
-    items: ["Public or private", "Subscriptions", "Live & courses"],
-    cta: "Build community",
-    href: "/communities",
-    visual: <CommunityPeopleVisual accent={AMBER} />,
-  },
-];
-
-function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
+function WalletVisual() {
   return (
-    <RevealItem index={index + 2} as="div" className="h-full">
-      <Link
-        href={journey.href}
-        className={cn(
-          "jimvio-journey-card block h-full rounded-[22px]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
-          "active:scale-[0.995] motion-reduce:active:scale-100",
-        )}
-        style={{ ["--journey-accent" as string]: journey.color } as CSSProperties}
-        aria-label={`${journey.role}. ${journey.cta}`}
+    <svg viewBox="0 0 160 130" className="h-full w-full" aria-hidden>
+      <ellipse cx="80" cy="118" rx="42" ry="7" fill="rgba(17,24,39,0.07)" />
+      <rect
+        x="36"
+        y="42"
+        width="88"
+        height="58"
+        rx="12"
+        fill="#FFFFFF"
+        stroke="rgba(17,24,39,0.1)"
+      />
+      <rect x="36" y="42" width="88" height="18" rx="10" fill={ORANGE} />
+      <rect x="48" y="68" width="36" height="8" rx="4" fill="#E5E7EB" />
+      <rect x="48" y="82" width="24" height="6" rx="3" fill="#F3F4F6" />
+      <circle cx="108" cy="80" r="10" fill={`${ORANGE}22`} stroke={ORANGE} strokeWidth="2" />
+      <path
+        d="M104 80h8M108 76v8"
+        stroke={ORANGE}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <rect x="92" y="28" width="18" height="28" rx="3" fill="#16a34a" opacity="0.9" />
+      <rect x="100" y="22" width="18" height="28" rx="3" fill="#22c55e" />
+    </svg>
+  );
+}
+
+function AiVisual() {
+  return (
+    <svg viewBox="0 0 160 130" className="h-full w-full" aria-hidden>
+      <ellipse cx="80" cy="118" rx="40" ry="7" fill="rgba(17,24,39,0.07)" />
+      <circle cx="80" cy="68" r="36" fill="#FFFFFF" stroke="rgba(17,24,39,0.1)" />
+      <circle cx="80" cy="68" r="28" fill="#FFF4EF" />
+      <circle cx="68" cy="64" r="4.5" fill="#111827" />
+      <circle cx="92" cy="64" r="4.5" fill="#111827" />
+      <path
+        d="M70 78 Q80 86 90 78"
+        fill="none"
+        stroke={ORANGE}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <rect x="72" y="40" width="16" height="8" rx="3" fill={ORANGE} />
+      <circle cx="110" cy="42" r="8" fill={`${ORANGE}20`} />
+      <path
+        d="M110 37v10M105 42h10"
+        stroke={ORANGE}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function LiveVisual() {
+  return (
+    <svg viewBox="0 0 160 130" className="h-full w-full" aria-hidden>
+      <ellipse cx="80" cy="118" rx="40" ry="7" fill="rgba(17,24,39,0.07)" />
+      <rect
+        x="48"
+        y="48"
+        width="64"
+        height="52"
+        rx="14"
+        fill="#FFFFFF"
+        stroke="rgba(17,24,39,0.1)"
+      />
+      <rect x="58" y="60" width="44" height="20" rx="6" fill={ORANGE} />
+      <text
+        x="80"
+        y="74"
+        textAnchor="middle"
+        fontSize="11"
+        fontWeight="800"
+        fill="#FFFFFF"
+        fontFamily="ui-sans-serif, system-ui, sans-serif"
       >
-        <JourneyStack accent={journey.color} className="h-full" density="compact">
-          <div className="relative flex h-full min-h-[220px] flex-col overflow-hidden sm:min-h-[200px] sm:flex-row sm:items-stretch">
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background: `linear-gradient(135deg, color-mix(in srgb, ${journey.color} 7%, #ffffff) 0%, #ffffff 50%)`,
-              }}
-            />
+        LIVE
+      </text>
+      <path
+        d="M80 42v8"
+        stroke={ORANGE}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <circle cx="80" cy="38" r="5" fill={ORANGE} />
+      <path
+        d="M58 40 Q80 22 102 40"
+        fill="none"
+        stroke={`${ORANGE}70`}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M50 34 Q80 12 110 34"
+        fill="none"
+        stroke={`${ORANGE}40`}
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
-            <div
-              className={cn(
-                "jimvio-card-visual relative z-[2] flex shrink-0 items-center justify-center",
-                "mx-auto mt-3 h-[84px] w-[94px]",
-                "sm:mx-0 sm:mt-0 sm:h-auto sm:w-[34%] sm:max-w-[118px] sm:self-stretch",
-                "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/stack:-translate-y-1",
-                "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0 motion-reduce:group-hover/stack:translate-x-0",
-              )}
-            >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-5 rounded-full opacity-55 blur-2xl sm:inset-6"
-                style={{
-                  background: `radial-gradient(circle, color-mix(in srgb, ${journey.color} 24%, transparent), transparent 70%)`,
-                }}
-              />
-              <div className="relative z-[1] h-full w-full drop-shadow-[0_12px_22px_rgba(17,24,39,0.11)]">
-                {journey.visual}
-              </div>
-            </div>
+function JourneyVisual({ id }: { id: JourneyVisualKey }) {
+  switch (id) {
+    case "marketplace":
+      return <BuyerBagVisual accent={ORANGE} />;
+    case "commerce":
+      return <SellProductsVisual accent={ORANGE} />;
+    case "affiliates":
+      return <EarnCommissionsVisual accent={ORANGE} />;
+    case "ugc":
+      return <CreateCampaignsVisual accent={ORANGE} />;
+    case "communities":
+      return <CommunityPeopleVisual accent={ORANGE} />;
+    case "digital":
+      return <JoinCampaignsVisual accent={ORANGE} />;
+    case "monetize":
+      return <AffiliateCoinsVisual accent={ORANGE} />;
+    case "campaigns":
+      return <BrandMegaphoneVisual accent={ORANGE} />;
+    case "live":
+      return <LiveVisual />;
+    case "global":
+      return <BuildCommunitiesVisual accent={ORANGE} />;
+    case "wallet":
+      return <WalletVisual />;
+    case "ai":
+      return <AiVisual />;
+    default:
+      return <CreatorMediaVisual accent={ORANGE} />;
+  }
+}
 
-            <div
-              className={cn(
-                "jimvio-card-panel relative z-[3] mx-2.5 mb-2.5 mt-1 flex flex-1 flex-col rounded-[14px] border border-[rgba(17,24,39,0.05)]",
-                "bg-white p-3 shadow-[0_6px_16px_rgba(17,24,39,0.045)]",
-                "sm:mx-0 sm:mb-2.5 sm:mr-2.5 sm:mt-2.5 sm:p-3.5",
-                "transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                "group-hover/stack:-translate-y-0.5",
-                "motion-reduce:transition-none motion-reduce:group-hover/stack:translate-y-0",
-              )}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-1.5">
-                <h3 className="text-[15px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:text-[16px]">
-                  {journey.role}
-                </h3>
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-wide sm:text-[9.5px]"
-                  style={{ background: `${journey.color}12`, color: journey.color }}
-                >
-                  {journey.metric}
-                </span>
-              </div>
+function JourneyCard({ card }: { card: JourneyCardConfig }) {
+  const openAssistant = useAIStore((s) => s.openAssistant);
+  const setPageContext = useAIStore((s) => s.setPageContext);
 
-              <p className="mt-1.5 text-[12px] leading-relaxed text-[#6B7280] sm:text-[12.5px]">
-                {journey.tagline}
-              </p>
+  const openAi = () => {
+    setPageContext("home", "/");
+    openAssistant("Help me get started on Jimvio.");
+  };
 
-              <ul className="mt-2.5 space-y-1">
-                {journey.items.map((item) => (
-                  <li
-                    key={item}
-                    className="flex items-center gap-1.5 text-[11.5px] text-[#4B5563] sm:text-[12px]"
-                  >
-                    <Check
-                      className="size-3 shrink-0"
-                      style={{ color: journey.color }}
-                      strokeWidth={2.6}
-                      aria-hidden
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+  const body = (
+    <>
+      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+        <div
+          className={cn(
+            "jimvio-eco-visual relative h-[72px] w-[72px] shrink-0 sm:h-[80px] sm:w-[80px]",
+            "drop-shadow-[0_8px_16px_rgba(17,24,39,0.1)] transition-transform duration-300",
+            "group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0",
+          )}
+          aria-hidden
+        >
+          <JourneyVisual id={card.visual} />
+        </div>
+        <div className="min-w-0 flex-1 pt-0.5">
+          <h3 className="text-[16px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:text-[17px]">
+            {card.title}
+          </h3>
+          <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#6B7280] sm:text-[13px]">
+            {card.description}
+          </p>
+        </div>
+      </div>
 
-              <span
-                className="mt-auto inline-flex min-h-11 items-center gap-1.5 pt-2.5 text-[12.5px] font-bold sm:text-[13px]"
-                style={{ color: journey.color }}
-              >
-                {journey.cta}
-                <ArrowRight
-                  className="size-3.5 transition-transform duration-250 ease-out group-hover/stack:translate-x-[3px] motion-reduce:transition-none motion-reduce:group-hover/stack:translate-x-0"
-                  strokeWidth={2.25}
-                  aria-hidden
-                />
-              </span>
-            </div>
-          </div>
-        </JourneyStack>
-      </Link>
-    </RevealItem>
+      <ul className="mt-3.5 space-y-2 px-4 sm:mt-4 sm:px-5">
+        {card.bullets.map((bullet) => (
+          <li
+            key={bullet}
+            className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#374151] sm:text-[13px]"
+          >
+            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/12 text-[#FF5A1F]">
+              <Check className="size-3" strokeWidth={2.8} aria-hidden />
+            </span>
+            {bullet}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-auto px-3 pb-3 pt-4 sm:px-3.5 sm:pb-3.5">
+        <span
+          className={cn(
+            "jimvio-eco-cta flex min-h-[44px] items-center justify-center rounded-[12px]",
+            "bg-[#FFF1EB] text-[13.5px] font-bold tracking-[-0.01em] text-[#FF5A1F]",
+            "transition-[background-color,color] duration-200",
+            "group-hover:bg-[#FFE4D8] motion-reduce:transition-none",
+          )}
+        >
+          {card.cta}
+        </span>
+      </div>
+    </>
+  );
+
+  const className = cn(
+    "group jimvio-eco-card flex h-full flex-col overflow-hidden rounded-[20px] border border-[rgba(17,24,39,0.07)]",
+    "bg-[linear-gradient(180deg,#FFFCFB_0%,#FFFFFF_42%)] shadow-[0_8px_24px_rgba(17,24,39,0.045)]",
+    "transition-[transform,box-shadow,border-color] duration-300",
+    "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.22)] hover:shadow-[0_14px_32px_rgba(17,24,39,0.08)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
+    "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+  );
+
+  if (card.action.type === "ai") {
+    return (
+      <button
+        type="button"
+        onClick={openAi}
+        className={cn(className, "w-full text-left")}
+        aria-label={`${card.title}. ${card.cta}`}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={card.action.href}
+      className={className}
+      aria-label={`${card.title}. ${card.cta}`}
+    >
+      {body}
+    </Link>
   );
 }
 
@@ -213,15 +265,13 @@ export function ChooseYourJourney() {
       aria-labelledby="jimvio-journey-title"
       threshold={0.08}
     >
-      <style>{`${JOURNEY_STACK_CSS}${JOURNEY_CSS}`}</style>
-
       <div className={shell}>
-        <div className="mb-6 text-center sm:mb-7">
+        <header className="mb-7 text-center sm:mb-8 lg:mb-9">
           <RevealItem
             index={0}
             as="h2"
             id="jimvio-journey-title"
-            className="text-[clamp(1.6rem,3.4vw,2.25rem)] font-black tracking-[-0.035em] text-[#111827]"
+            className="text-[clamp(1.65rem,3.4vw,2.35rem)] font-black tracking-[-0.035em] text-[#111827]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
             Choose Your <span className="text-[#FF5A1F]">Journey</span>
@@ -232,27 +282,18 @@ export function ChooseYourJourney() {
             className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
-            One account — sell, earn, create, or buy depending on what you need right now.
+            One account — create, earn, sell or buy depending on what you need right now.
           </RevealItem>
-        </div>
+        </header>
 
-        <MobileStoryStack desktopClassName="md:grid md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
-          {JOURNEYS.map((journey, index) => (
-            <JourneyCard key={journey.role} journey={journey} index={index} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-5">
+          {JOURNEY_CARDS.map((card, index) => (
+            <RevealItem key={card.id} index={Math.min(index + 2, 8)} as="div" className="h-full">
+              <JourneyCard card={card} />
+            </RevealItem>
           ))}
-        </MobileStoryStack>
+        </div>
       </div>
     </SectionReveal>
   );
 }
-
-const JOURNEY_CSS = `
-.jimvio-journey-card:hover .jimvio-stack-face {
-  border-color: color-mix(in srgb, var(--journey-accent) 22%, rgba(255,255,255,0.92));
-}
-@media (min-width: 768px) {
-  .jimvio-journey-hub .jimvio-story-stack {
-    display: grid;
-  }
-}
-`;

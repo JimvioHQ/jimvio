@@ -7,6 +7,8 @@ import {
   ArrowRight, Check, ShieldCheck, Globe, Sparkles,
   Bot, Wand2, Search, Clapperboard, Star,
   ChevronDown, TrendingUp, Wallet, Target, LineChart, BarChart3,
+  Truck, ShoppingCart, Lock, Scissors, Radio, FileText,
+  type LucideIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -477,31 +479,79 @@ export function GrowthStack() {
 }
 
 /* ═══ 11. Why choose Jimvio ═══ */
-const WHY = [
+const WHY: readonly { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: ShieldCheck, title: "Checked vendors", desc: "We review suppliers before they list." },
   { icon: Wallet, title: "Wallet payouts", desc: "Earnings land in your Jimvio balance." },
-  { icon: Globe, title: "Works across borders", desc: `Buyers and sellers in ${PLATFORM_STATS.countries} countries.` },
-  { icon: Sparkles, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
-  { icon: Clapperboard, title: "Creator listings", desc: "Brands can find people to work with." },
-  { icon: TrendingUp, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },
+  {
+    icon: Globe,
+    title: "Works across borders",
+    desc: `Buyers and sellers in ${PLATFORM_STATS.countries} countries.`,
+  },
+  { icon: Users, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
+  { icon: BarChart3, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },
+  { icon: FileText, title: "Creator listings", desc: "Brands can find people to work with." },
+  {
+    icon: ShoppingCart,
+    title: "All product types",
+    desc: "Physical, digital, courses, subscriptions, and more.",
+  },
+  {
+    icon: Truck,
+    title: "Dropshipping",
+    desc: "Import products, sync inventory, and fulfill orders.",
+  },
+  {
+    icon: Scissors,
+    title: "UGC & clipping tools",
+    desc: "Turn content into sales with built-in tools.",
+  },
+  { icon: Radio, title: "Live commerce", desc: "Go live, pin products, and sell in real time." },
+  { icon: Lock, title: "Secure & trusted", desc: "Buyer protection and secure checkout." },
+  {
+    icon: Sparkles,
+    title: "AI assistance",
+    desc: "Use Jimvio AI tools where they are already available.",
+  },
 ];
 
 export function WhyChooseJimvio() {
   return (
-    <section className={`${section} py-12 sm:py-16`}>
+    <section
+      className="jimvio-why-stick relative overflow-x-clip bg-transparent py-12 sm:py-14 lg:py-16"
+      aria-labelledby="jimvio-why-stick-title"
+    >
       <div className={shell}>
-        <SectionTitle>Why people stick with Jimvio</SectionTitle>
-        <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
+        <h2
+          id="jimvio-why-stick-title"
+          className="mb-8 text-center text-[clamp(1.5rem,3vw,2rem)] font-black tracking-[-0.03em] text-[#111827] sm:mb-9 lg:mb-10"
+        >
+          Why people stick with Jimvio
+        </h2>
+
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
           {WHY.map((w) => (
-            <div key={w.title} className="flex items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-orange-500/10 dark:bg-orange-500/15 sm:size-10" style={{ color: ORANGE }}>
-                <w.icon className="size-4 sm:size-5" />
+            <article
+              key={w.title}
+              className={cn(
+                "flex items-center gap-3.5 rounded-[16px] border border-[rgba(17,24,39,0.07)] bg-white",
+                "px-4 py-4 shadow-[0_4px_14px_rgba(17,24,39,0.035)] sm:gap-4 sm:px-5 sm:py-4",
+                "transition-[transform,box-shadow,border-color] duration-200",
+                "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.18)] hover:shadow-[0_10px_22px_rgba(17,24,39,0.06)]",
+                "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
+              )}
+            >
+              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-12">
+                <w.icon className="size-5" strokeWidth={2.1} aria-hidden />
               </span>
               <div className="min-w-0">
-                <h3 className="text-[12px] font-bold text-[var(--color-text-primary)] sm:text-[14px]">{w.title}</h3>
-                <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)] sm:text-[12px]">{w.desc}</p>
+                <h3 className="text-[14px] font-bold leading-tight tracking-[-0.015em] text-[#111827] sm:text-[15px]">
+                  {w.title}
+                </h3>
+                <p className="mt-1 text-[12px] leading-snug text-[#6B7280] sm:text-[12.5px]">
+                  {w.desc}
+                </p>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </div>
