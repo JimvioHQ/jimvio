@@ -1,13 +1,46 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowRight, Globe, Package, Store, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, Box, Globe, Store, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PLATFORM_STATS, formatPlatformStat } from "@/lib/platform-stats";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
-import { NetworkGlobe } from "./network-globe";
+import type { WorldMapDot, WorldMapPin } from "@/components/ui/world-map";
+
+const WorldMap = dynamic(
+  () => import("@/components/ui/world-map").then((m) => m.WorldMap),
+  { ssr: false, loading: () => <div className="aspect-[2/1] w-full" aria-hidden /> },
+);
+
+const ORANGE = "#FF5A1F";
+
+const MAP_DOTS: WorldMapDot[] = [
+  { start: { lat: 40.7, lng: -74 }, end: { lat: 51.5, lng: -0.1 } },
+  { start: { lat: 51.5, lng: -0.1 }, end: { lat: 6.5, lng: 3.4 } },
+  { start: { lat: 6.5, lng: 3.4 }, end: { lat: 19.1, lng: 72.9 } },
+  { start: { lat: 19.1, lng: 72.9 }, end: { lat: 35.7, lng: 139.7 } },
+  { start: { lat: 40.7, lng: -74 }, end: { lat: -23.5, lng: -46.6 } },
+  { start: { lat: -23.5, lng: -46.6 }, end: { lat: -1.3, lng: 36.8 } },
+  { start: { lat: 48.9, lng: 2.3 }, end: { lat: 25.2, lng: 55.3 } },
+  { start: { lat: 1.3, lng: 103.8 }, end: { lat: -33.9, lng: 151.2 } },
+];
+
+const MAP_PINS: WorldMapPin[] = [
+  { lat: 40.7, lng: -74, color: ORANGE },
+  { lat: 51.5, lng: -0.1, color: ORANGE },
+  { lat: 48.9, lng: 2.3, color: ORANGE },
+  { lat: -23.5, lng: -46.6, color: ORANGE },
+  { lat: 6.5, lng: 3.4, color: ORANGE },
+  { lat: -1.3, lng: 36.8, color: ORANGE },
+  { lat: 19.1, lng: 72.9, color: ORANGE },
+  { lat: 25.2, lng: 55.3, color: ORANGE },
+  { lat: 1.3, lng: 103.8, color: ORANGE },
+  { lat: 35.7, lng: 139.7, color: ORANGE },
+  { lat: -33.9, lng: 151.2, color: ORANGE },
+];
 
 const ORANGE = "#FF5A1F";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
@@ -46,12 +79,12 @@ const METRICS = [
   {
     key: "products" as const,
     label: "Products",
-    icon: Package,
+    icon: Box,
     color: "#2563eb",
   },
 ];
 
-const ROW_TINTS = ["#FFF4EF", "#F0FDF4", "#EEF2FF"];
+const ROW_TINTS = ["#FFF6F2", "#F3FBF6", "#F4FBF7"];
 
 export function GlobalNetworkSection({
   creators = [],
@@ -109,19 +142,19 @@ export function GlobalNetworkSection({
                 {METRICS.map((m) => (
                   <div
                     key={m.key}
-                    className="flex items-center gap-2.5 rounded-[14px] border border-[rgba(17,24,39,0.05)] bg-[#FAFAFA] px-3 py-2.5"
+                    className="flex items-center gap-3 rounded-[16px] bg-[#F8FAFC] px-3 py-2.5"
                   >
                     <span
-                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full"
-                      style={{ background: `${m.color}18`, color: m.color }}
+                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-full"
+                      style={{ background: `${m.color}1A`, color: m.color }}
                     >
                       <m.icon className="size-4" strokeWidth={2.2} aria-hidden />
                     </span>
                     <div className="min-w-0">
-                      <div className="text-[15px] font-black leading-none tabular-nums text-[#111827] sm:text-[16px]">
+                      <div className="text-[16px] font-black leading-none tabular-nums text-[#111827] sm:text-[17px]">
                         <AnimatedPlatformStatValue statKey={m.key} />
                       </div>
-                      <div className="mt-0.5 text-[11px] font-medium text-[#6B7280]">
+                      <div className="mt-1 text-[11px] font-medium text-[#9CA3AF]">
                         {m.label}
                       </div>
                       <div className="sr-only">
@@ -133,7 +166,13 @@ export function GlobalNetworkSection({
               </div>
 
               <div className="min-w-0 flex-1">
-                <NetworkGlobe />
+                <WorldMap
+                  dots={MAP_DOTS}
+                  pins={MAP_PINS}
+                  lineColor={ORANGE}
+                  showArcs
+                  className="!rounded-none !bg-transparent"
+                />
               </div>
             </div>
           </div>
@@ -199,11 +238,8 @@ export function GlobalNetworkSection({
                       <div className="text-[11px] text-[#6B7280]">{c.role}</div>
                     </div>
                     {hasEarnings && c.earnings > 0 ? (
-                      <div className="text-right">
-                        <div className="text-[15px] font-black tabular-nums text-[#FF5A1F]">
-                          ${Math.round(c.earnings).toLocaleString("en-US")}
-                        </div>
-                        <div className="text-[10px] font-medium text-[#6B7280]">earnings</div>
+                      <div className="shrink-0 text-[16px] font-black tabular-nums text-[#FF5A1F] sm:text-[18px]">
+                        ${Math.round(c.earnings).toLocaleString("en-US")}
                       </div>
                     ) : (
                       <span className="rounded-full bg-white/80 px-2.5 py-1 text-[11px] font-bold text-[#16a34a]">
