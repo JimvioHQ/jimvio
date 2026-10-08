@@ -15,31 +15,8 @@ export const HowJimvioWorks = dynamic(
   { loading },
 );
 
-export const FeaturedUGCCampaigns = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.FeaturedUGCCampaigns })),
-  { loading },
-);
-
-export const FeaturedCommunities = dynamic(
-  () => import("./featured-communities").then((m) => ({ default: m.FeaturedCommunities })),
-  { loading },
-);
-
-export const GrowthStack = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.GrowthStack })),
-  { loading },
-);
-
 export const WhyChooseJimvio = dynamic(
   () => import("./homepage-sections").then((m) => ({ default: m.WhyChooseJimvio })),
-  { loading },
-);
-
-export const GlobalNetworkSection = dynamic(
-  () =>
-    import("./global-network-section").then((m) => ({
-      default: m.GlobalNetworkSection,
-    })),
   { loading },
 );
 
@@ -49,12 +26,7 @@ export const First30Minutes = dynamic(
 );
 
 export const FAQSection = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.FAQSection })),
-  { loading },
-);
-
-export const TrustedBrands = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.TrustedBrands })),
+  () => import("./common-questions").then((m) => ({ default: m.FAQSection })),
   { loading },
 );
 

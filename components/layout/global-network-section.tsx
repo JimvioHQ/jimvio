@@ -42,7 +42,6 @@ const MAP_PINS: WorldMapPin[] = [
   { lat: -33.9, lng: 151.2, color: ORANGE },
 ];
 
-const ORANGE = "#FF5A1F";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
 type TopCreatorRow = {

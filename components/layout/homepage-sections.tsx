@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect, type CSSProperties, type ReactNode } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Sparkles,
-  Bot, Wand2, Search, Clapperboard, Star,
-  ChevronDown, TrendingUp, Wallet, Target, LineChart, BarChart3,
+  Bot, Wand2, Search, Wallet, Target, LineChart, BarChart3,
   Truck, ShoppingCart, Lock, Scissors, Radio, FileText,
   type LucideIcon,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useCurrency } from "@/context/CurrencyContext";
-import { getImage, fmtCount, cn } from "@/lib/utils";
+import { fmtCount, cn } from "@/lib/utils";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCampaignCard";
@@ -62,8 +60,6 @@ const cardBase =
   "rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]";
 const textPrimary = "text-[var(--color-text-primary)]";
 const textMuted = "text-[var(--color-text-muted)]";
-const textSecondary = "text-[var(--color-text-secondary)]";
-
 function iconTintStyle(color: string) {
   return { background: `${color}18`, color };
 }
@@ -528,26 +524,27 @@ export function WhyChooseJimvio() {
           Why people stick with Jimvio
         </h2>
 
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
           {WHY.map((w) => (
             <article
               key={w.title}
               className={cn(
-                "flex items-center gap-3.5 rounded-[16px] border border-[rgba(17,24,39,0.07)] bg-white",
-                "px-4 py-4 shadow-[0_4px_14px_rgba(17,24,39,0.035)] sm:gap-4 sm:px-5 sm:py-4",
+                "flex items-start gap-2 rounded-[14px] border border-[rgba(17,24,39,0.07)] bg-white",
+                "px-2.5 py-2.5 shadow-[0_4px_14px_rgba(17,24,39,0.035)]",
+                "sm:items-center sm:gap-4 sm:rounded-[16px] sm:px-5 sm:py-4",
                 "transition-[transform,box-shadow,border-color] duration-200",
                 "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.18)] hover:shadow-[0_10px_22px_rgba(17,24,39,0.06)]",
                 "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
               )}
             >
-              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-12">
-                <w.icon className="size-5" strokeWidth={2.1} aria-hidden />
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-12">
+                <w.icon className="size-3.5 sm:size-5" strokeWidth={2.1} aria-hidden />
               </span>
               <div className="min-w-0">
-                <h3 className="text-[14px] font-bold leading-tight tracking-[-0.015em] text-[#111827] sm:text-[15px]">
+                <h3 className="text-[12px] font-bold leading-tight tracking-[-0.015em] text-[#111827] sm:text-[15px]">
                   {w.title}
                 </h3>
-                <p className="mt-1 text-[12px] leading-snug text-[#6B7280] sm:text-[12.5px]">
+                <p className="mt-0.5 text-[11px] leading-snug text-[#6B7280] sm:mt-1 sm:text-[12.5px]">
                   {w.desc}
                 </p>
               </div>
@@ -813,384 +810,6 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══ 14. First 30 minutes ═══ */
-type OnboardStep = {
-  title: string;
-  desc: string;
-  detail: string;
-  minute: string;
-  href: string;
-};
-
-const ONBOARD_CREATORS: OnboardStep[] = [
-  {
-    title: "Create account",
-    desc: "Sign up with email or Google.",
-    detail: "No card needed. One account works for buying, selling, and creating.",
-    minute: "0–5 min",
-    href: "/register",
-  },
-  {
-    title: "Pick a path",
-    desc: "Buyer, seller, creator, or community owner.",
-    detail: "Choose what you want to do first. You can add other roles later from the dashboard.",
-    minute: "5–10 min",
-    href: "/",
-  },
-  {
-    title: "Finish your profile",
-    desc: "Add a photo, bio, and payout details.",
-    detail: "Creators need a short bio and payment method. Sellers add store name and logo.",
-    minute: "10–15 min",
-    href: "/identity/settings",
-  },
-  {
-    title: "Make your first move",
-    desc: "Share a link, list a product, or join a campaign.",
-    detail: "Grab an affiliate link, publish a listing, or apply to a UGC brief — pick one and ship it.",
-    minute: "15–22 min",
-    href: "/ugc",
-  },
-  {
-    title: "Check results",
-    desc: "Track clicks, sales, and earnings.",
-    detail: "Open your wallet and analytics. See what worked, then repeat or scale from there.",
-    minute: "22–30 min",
-    href: "/wallet",
-  },
-];
-
-const ONBOARD_BRANDS: OnboardStep[] = [
-  {
-    title: "Create account",
-    desc: "Register your brand in minutes.",
-    detail: "Use your business email. Verification unlocks campaign tools and vendor features.",
-    minute: "0–5 min",
-    href: "/register",
-  },
-  {
-    title: "Set campaign goals",
-    desc: "Budget, audience, platforms, and payout model.",
-    detail: "Decide per-view or fixed pay, which platforms you need, and how much budget to allocate.",
-    minute: "5–12 min",
-    href: "/ugc/campaign-center/campaigns/new",
-  },
-  {
-    title: "Launch a campaign",
-    desc: "Write the brief and publish.",
-    detail: "Add examples, hashtags, and deliverables so creators know exactly what to submit.",
-    minute: "12–20 min",
-    href: "/ugc/campaign-center/campaigns/new",
-  },
-  {
-    title: "Review submissions",
-    desc: "Approve content and track views.",
-    detail: "Check posts against your brief, approve the good ones, and monitor spend in real time.",
-    minute: "20–26 min",
-    href: "/ugc/campaign-center/campaigns",
-  },
-  {
-    title: "Scale what works",
-    desc: "Increase budget or spin up another campaign.",
-    detail: "Double down on creators and formats that perform. Clone a winning campaign to move faster.",
-    minute: "26–30 min",
-    href: "/ugc/campaign-center/campaigns/new",
-  },
-];
-
-export function First30Minutes() {
-  const [tab, setTab] = useState<"creators" | "brands">("creators");
-  const [activeStep, setActiveStep] = useState(0);
-  const steps = tab === "creators" ? ONBOARD_CREATORS : ONBOARD_BRANDS;
-  const current = steps[activeStep];
-  const progress = ((activeStep + 1) / steps.length) * 100;
-
-  useEffect(() => {
-    setActiveStep(0);
-  }, [tab]);
-
-  return (
-    <section className={`${sectionAlt} py-12 sm:py-16`}>
-      <div className={shell}>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start lg:gap-12">
-          <div>
-            <h2 className="text-[22px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
-              Your first 30 minutes on Jimvio
-            </h2>
-            <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-muted)]">
-              A realistic setup path with time estimates. Pick your role and follow the steps.
-            </p>
-
-            <nav
-              aria-label="Onboarding path"
-              className="mt-6 flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {(
-                [
-                  { id: "creators" as const, label: "For creators" },
-                  { id: "brands" as const, label: "For brands" },
-                ] as const
-              ).map((item) => {
-                const active = tab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setTab(item.id)}
-                    aria-pressed={active}
-                    className={cn(
-                      "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
-                      active
-                        ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
-                        : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </nav>
-
-            <div className="mt-6">
-              <div className="mb-2 flex items-center justify-between text-[12px] text-[var(--color-text-muted)]">
-                <span>
-                  Step <span className="font-semibold text-[var(--color-text-primary)]">{activeStep + 1}</span> of {steps.length}
-                </span>
-                <span className="font-medium tabular-nums text-[var(--color-text-primary)]">{current.minute}</span>
-              </div>
-              <div className="h-1 overflow-hidden rounded-md bg-[var(--color-surface)]">
-                <div
-                  className="h-full rounded-md transition-all duration-300"
-                  style={{ width: `${progress}%`, background: ORANGE }}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-md bg-[var(--color-surface)] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                {current.minute}
-              </p>
-              <h3 className="mt-1 text-[16px] font-bold text-[var(--color-text-primary)]">{current.title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-muted)]">{current.detail}</p>
-              <Link
-                href={current.href}
-                className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-md px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
-                style={{ background: ORANGE }}
-              >
-                {tab === "creators" ? "Start this step" : "Open brand tools"}
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="min-w-0">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 lg:gap-2">
-              {steps.map((step, i) => {
-                const selected = activeStep === i;
-                return (
-                  <button
-                    key={step.title}
-                    type="button"
-                    onClick={() => setActiveStep(i)}
-                    aria-pressed={selected}
-                    className={cn(
-                      "grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-md px-3 py-3 text-left transition-colors",
-                      selected
-                        ? "bg-[var(--color-surface)]"
-                        : "bg-transparent hover:bg-[var(--color-surface)]/70"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "grid size-8 place-items-center rounded-md text-[12px] font-bold tabular-nums",
-                        selected
-                          ? "text-white"
-                          : "bg-[var(--color-surface)] text-[var(--color-text-muted)]"
-                      )}
-                      style={selected ? { background: ORANGE } : undefined}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-semibold text-[var(--color-text-primary)]">{step.title}</span>
-                      <span className="mt-0.5 block text-[12px] text-[var(--color-text-muted)]">{step.desc}</span>
-                    </span>
-                    <span className="shrink-0 text-[11px] font-medium tabular-nums text-[var(--color-text-muted)]">
-                      {step.minute}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══ 15. FAQ ═══ */
-type FaqTopic = "all" | "start" | "earn" | "sell" | "ugc";
-
-const FAQ_TOPICS: { id: FaqTopic; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "start", label: "Getting started" },
-  { id: "earn", label: "Earnings" },
-  { id: "sell", label: "Selling" },
-  { id: "ugc", label: "UGC" },
-];
-
-const FAQS: { topic: Exclude<FaqTopic, "all">; q: string; a: string }[] = [
-  {
-    topic: "start",
-    q: "Does it cost anything to sign up?",
-    a: "No. Creating an account is free. Fees only apply when you complete a sale or receive a paid payout.",
-  },
-  {
-    topic: "earn",
-    q: "When do I get paid?",
-    a: "Earnings hit your wallet after sales or approved campaign work. Once you pass the minimum, request a payout — most clear within a day.",
-  },
-  {
-    topic: "earn",
-    q: "How do affiliate commissions work?",
-    a: "Grab a product link, share it, and earn the rate shown on that listing when someone buys. Rates vary by product, up to 30% on some items.",
-  },
-  {
-    topic: "sell",
-    q: "Can I open a store here?",
-    a: `Yes. List physical or digital products, set your prices, and ship to buyers in ${PLATFORM_STATS.countries} countries from your vendor dashboard.`,
-  },
-  {
-    topic: "ugc",
-    q: "How do UGC campaigns pay?",
-    a: "Each campaign lists its rate upfront — per view or per approved post. Submit your content on the allowed platforms and track earnings in your dashboard.",
-  },
-  {
-    topic: "ugc",
-    q: "Do I need a big following to join a campaign?",
-    a: "Not always. Brands set their own requirements. Check the brief on each campaign before you join.",
-  },
-  {
-    topic: "start",
-    q: "Is my money safe on Jimvio?",
-    a: "Payments run through secure processors. Vendors go through verification, and transactions are tracked in your account.",
-  },
-];
-
-export function FAQSection() {
-  const [topic, setTopic] = useState<FaqTopic>("all");
-  const [open, setOpen] = useState<Set<number>>(new Set());
-
-  const filtered = useMemo(
-    () => (topic === "all" ? FAQS : FAQS.filter((f) => f.topic === topic)),
-    [topic]
-  );
-
-  useEffect(() => {
-    setOpen(new Set());
-  }, [topic]);
-
-  const toggle = (index: number) => {
-    setOpen((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
-
-  return (
-    <section className={`${section} py-12 sm:py-16`}>
-      <div className={shell}>
-        <h2 className="text-[22px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
-          Common questions
-        </h2>
-        <p className="mt-2 text-[14px] text-[var(--color-text-muted)]">
-          Filter by topic, open what you need.
-        </p>
-
-        <nav
-          aria-label="Filter FAQ by topic"
-          className="mt-6 flex gap-0.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {FAQ_TOPICS.map((t) => {
-            const active = topic === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTopic(t.id)}
-                aria-pressed={active}
-                className={cn(
-                  "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
-                  active
-                    ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
-                    : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                )}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        <div className="mt-6">
-          {filtered.length === 0 ? (
-            <p className="py-8 text-center text-[13px] text-[var(--color-text-muted)]">
-              Nothing in this topic yet. Try another filter.
-            </p>
-          ) : (
-            filtered.map((f, i) => {
-              const isOpen = open.has(i);
-              return (
-                <div key={f.q}>
-                  <button
-                    type="button"
-                    onClick={() => toggle(i)}
-                    aria-expanded={isOpen}
-                    className="grid w-full grid-cols-[1fr_auto] items-start gap-3 py-4 text-left transition-colors hover:bg-[var(--color-surface-secondary)]/50"
-                  >
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-semibold leading-snug text-[var(--color-text-primary)]">
-                        {f.q}
-                      </span>
-                      {isOpen && (
-                        <span className="mt-2 block text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-                          {f.a}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "mt-0.5 size-4 shrink-0 text-[var(--color-text-muted)] transition-transform duration-200",
-                        isOpen && "rotate-180"
-                      )}
-                      aria-hidden
-                    />
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        <p className="mt-4 text-[13px] text-[var(--color-text-muted)]">
-          Can&apos;t find what you&apos;re looking for?{" "}
-          <Link href="/help" className="font-semibold text-[var(--color-text-primary)] underline-offset-2 hover:underline">
-            Browse help articles
-          </Link>
-          {" "}or{" "}
-          <Link href="/contact" className="font-semibold text-[var(--color-text-primary)] underline-offset-2 hover:underline">
-            contact support
-          </Link>
-          .
-        </p>
       </div>
     </section>
   );

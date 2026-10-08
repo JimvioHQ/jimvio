@@ -89,14 +89,12 @@ function RoleSelector({
       aria-label="Choose your Jimvio path"
       onKeyDown={onKeyDown}
       className={cn(
-        "flex gap-2 overflow-x-auto overscroll-x-contain pb-1",
-        "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        "flex w-max min-w-full gap-5 border-b border-[rgba(17,24,39,0.08)] sm:gap-7",
         "snap-x snap-mandatory",
       )}
     >
       {ONBOARDING_ROLES.map((role) => {
         const selected = role.id === active;
-        const Icon = role.icon;
         return (
           <button
             key={role.id}
@@ -109,16 +107,15 @@ function RoleSelector({
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(role.id)}
             className={cn(
-              "snap-start inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-[12.5px] font-bold",
-              "transition-[background-color,color,border-color,box-shadow] duration-200",
+              "snap-start -mb-px inline-flex min-h-11 shrink-0 items-center border-b-2 px-0.5 pb-3 pt-2 text-[13px] font-semibold tracking-[-0.01em] sm:text-[14.5px]",
+              "transition-colors duration-200",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
               "motion-reduce:transition-none",
               selected
-                ? "border-[#FF5A1F] bg-[#FF5A1F] text-white shadow-[0_8px_18px_rgba(255,90,31,0.28)]"
-                : "border-[rgba(17,24,39,0.1)] bg-white text-[#111827] hover:border-[rgba(255,90,31,0.3)] hover:bg-[#FFF8F5]",
+                ? "border-[#FF5A1F] text-[#FF5A1F]"
+                : "border-transparent text-[#6B7280] hover:text-[#111827]",
             )}
           >
-            <Icon className="size-3.5 shrink-0" strokeWidth={2.2} aria-hidden />
             <span className="whitespace-nowrap">{role.shortLabel}</span>
           </button>
         );
@@ -334,33 +331,18 @@ export function First30Minutes() {
 
       <div className={shell}>
         <header className="mb-6 max-w-2xl sm:mb-7">
-          <span className="inline-flex rounded-full bg-[#FFF1EB] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
-            Get started
-          </span>
           <h2
             id="jimvio-first-30-title"
-            className="mt-3 text-[clamp(1.55rem,3.2vw,2.15rem)] font-black tracking-[-0.035em] text-[#111827]"
+            className="text-[clamp(1.7rem,3.4vw,2.35rem)] font-black tracking-[-0.04em] text-[#111827]"
           >
-            Your first 30 minutes on <span className="text-[#FF5A1F]">Jimvio</span>
+            Your first 30 minutes on Jimvio
           </h2>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]">
+          <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280] sm:text-[16px]">
             Choose your path and get your Jimvio setup ready in 30 minutes.
           </p>
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {["Global Opportunities", "Multiple Ways to Earn", "One Jimvio Account"].map(
-              (label) => (
-                <span
-                  key={label}
-                  className="rounded-full border border-[rgba(17,24,39,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#4B5563]"
-                >
-                  {label}
-                </span>
-              ),
-            )}
-          </div>
         </header>
 
-        <div className="mb-5 sm:mb-6">
+        <div className="mb-5 min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:mb-6 [&::-webkit-scrollbar]:hidden">
           <RoleSelector active={activeRole} onSelect={setActiveRole} />
         </div>
 

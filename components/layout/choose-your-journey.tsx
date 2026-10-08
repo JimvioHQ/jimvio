@@ -175,10 +175,10 @@ function JourneyCard({ card }: { card: JourneyCardConfig }) {
 
   const body = (
     <>
-      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+      <div className="flex flex-col items-start gap-2 px-2.5 pt-2.5 sm:flex-row sm:gap-3 sm:px-5 sm:pt-5">
         <div
           className={cn(
-            "jimvio-eco-visual relative h-[72px] w-[72px] shrink-0 sm:h-[80px] sm:w-[80px]",
+            "jimvio-eco-visual relative h-12 w-12 shrink-0 sm:h-[80px] sm:w-[80px]",
             "drop-shadow-[0_8px_16px_rgba(17,24,39,0.1)] transition-transform duration-300",
             "group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0",
           )}
@@ -187,34 +187,34 @@ function JourneyCard({ card }: { card: JourneyCardConfig }) {
           <JourneyVisual id={card.visual} />
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
-          <h3 className="text-[16px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:text-[17px]">
+          <h3 className="text-[13px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:text-[17px]">
             {card.title}
           </h3>
-          <p className="mt-1.5 text-[12.5px] leading-relaxed text-[#6B7280] sm:text-[13px]">
+          <p className="mt-1 text-[11px] leading-snug text-[#6B7280] sm:mt-1.5 sm:text-[13px] sm:leading-relaxed">
             {card.description}
           </p>
         </div>
       </div>
 
-      <ul className="mt-3.5 space-y-2 px-4 sm:mt-4 sm:px-5">
+      <ul className="mt-2 space-y-1 px-2.5 sm:mt-4 sm:space-y-2 sm:px-5">
         {card.bullets.map((bullet) => (
           <li
             key={bullet}
-            className="flex items-center gap-2.5 text-[12.5px] font-medium text-[#374151] sm:text-[13px]"
+            className="flex items-start gap-1.5 text-[11px] font-medium leading-snug text-[#374151] sm:items-center sm:gap-2.5 sm:text-[13px]"
           >
-            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/12 text-[#FF5A1F]">
-              <Check className="size-3" strokeWidth={2.8} aria-hidden />
+            <span className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-[#FF5A1F]/12 text-[#FF5A1F] sm:mt-0 sm:size-5">
+              <Check className="size-2.5 sm:size-3" strokeWidth={2.8} aria-hidden />
             </span>
             {bullet}
           </li>
         ))}
       </ul>
 
-      <div className="mt-auto px-3 pb-3 pt-4 sm:px-3.5 sm:pb-3.5">
+      <div className="mt-auto px-2 pb-2 pt-3 sm:px-3.5 sm:pb-3.5 sm:pt-4">
         <span
           className={cn(
-            "jimvio-eco-cta flex min-h-[44px] items-center justify-center rounded-[12px]",
-            "bg-[#FFF1EB] text-[13.5px] font-bold tracking-[-0.01em] text-[#FF5A1F]",
+            "jimvio-eco-cta flex min-h-11 items-center justify-center rounded-[10px] px-2 text-center",
+            "bg-[#FFF1EB] text-[12px] font-bold tracking-[-0.01em] text-[#FF5A1F] sm:rounded-[12px] sm:text-[13.5px]",
             "transition-[background-color,color] duration-200",
             "group-hover:bg-[#FFE4D8] motion-reduce:transition-none",
           )}
@@ -226,7 +226,7 @@ function JourneyCard({ card }: { card: JourneyCardConfig }) {
   );
 
   const className = cn(
-    "group jimvio-eco-card flex h-full flex-col overflow-hidden rounded-[20px] border border-[rgba(17,24,39,0.07)]",
+    "group jimvio-eco-card flex h-full flex-col overflow-hidden rounded-[16px] border border-[rgba(17,24,39,0.07)] sm:rounded-[20px]",
     "bg-[linear-gradient(180deg,#FFFCFB_0%,#FFFFFF_42%)] shadow-[0_8px_24px_rgba(17,24,39,0.045)]",
     "transition-[transform,box-shadow,border-color] duration-300",
     "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.22)] hover:shadow-[0_14px_32px_rgba(17,24,39,0.08)]",
@@ -286,7 +286,7 @@ export function ChooseYourJourney() {
           </RevealItem>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-5">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-5 lg:grid-cols-4">
           {JOURNEY_CARDS.map((card, index) => (
             <RevealItem key={card.id} index={Math.min(index + 2, 8)} as="div" className="h-full">
               <JourneyCard card={card} />

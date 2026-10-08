@@ -190,25 +190,25 @@ export function HowJimvioWorks() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 xl:gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3 xl:grid-cols-7 xl:gap-3">
           {CARDS.map((card, index) => {
             const Icon = card.icon;
             const body = (
               <>
-                <span className="inline-flex size-8 items-center justify-center rounded-xl bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-9">
+                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-[#FF5A1F]/10 text-[#FF5A1F] sm:size-9 sm:rounded-xl">
                   <Icon className="size-3.5 sm:size-4" strokeWidth={2.2} aria-hidden />
                 </span>
-                <h3 className="mt-2.5 text-[14px] font-bold tracking-[-0.02em] text-[#111827] xl:text-[13px]">
+                <h3 className="mt-2 text-[12.5px] font-bold leading-tight tracking-[-0.02em] text-[#111827] sm:mt-2.5 sm:text-[14px] xl:text-[13px]">
                   {card.title}
                 </h3>
-                <p className="mt-1.5 flex-1 text-[12px] leading-relaxed text-[#6B7280] xl:text-[11px]">
+                <p className="mt-1 flex-1 text-[11px] leading-snug text-[#6B7280] sm:mt-1.5 sm:text-[12px] sm:leading-relaxed xl:text-[11px]">
                   {card.description}
                 </p>
-                <div className="mx-auto mt-2.5 h-[80px] w-[92px] xl:h-[72px] xl:w-[84px]" aria-hidden>
+                <div className="mx-auto mt-2 h-14 w-16 sm:mt-2.5 sm:h-[80px] sm:w-[92px] xl:h-[72px] xl:w-[84px]" aria-hidden>
                   <CardVisual type={card.visual} />
                 </div>
                 {card.cta ? (
-                  <span className="mt-2.5 inline-flex items-center gap-1 text-[12px] font-bold text-[#FF5A1F] xl:text-[11px]">
+                  <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-[#FF5A1F] sm:mt-2.5 sm:text-[12px] xl:text-[11px]">
                     {card.cta}
                     <ArrowRight className="size-3" aria-hidden />
                   </span>
@@ -217,7 +217,7 @@ export function HowJimvioWorks() {
             );
 
             const className = cn(
-              "group flex h-full min-h-[260px] flex-col rounded-[18px] border border-[rgba(17,24,39,0.07)] bg-white p-4",
+              "group flex h-full min-h-0 flex-col rounded-[14px] border border-[rgba(17,24,39,0.07)] bg-white p-2.5 sm:min-h-[260px] sm:rounded-[18px] sm:p-4",
               "shadow-[0_8px_22px_rgba(17,24,39,0.04)] transition-[transform,box-shadow,border-color] duration-300",
               "hover:-translate-y-0.5 hover:border-[rgba(255,90,31,0.22)] hover:shadow-[0_14px_30px_rgba(17,24,39,0.08)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
