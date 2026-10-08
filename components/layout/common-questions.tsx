@@ -314,13 +314,13 @@ export function FAQSection() {
 
   return (
     <section
-      className="jimvio-faq relative overflow-x-clip bg-transparent py-12 sm:py-16 lg:py-20"
+      className="jimvio-faq jimvio-home-section relative overflow-x-clip"
       aria-labelledby="jimvio-faq-title"
     >
       <div className={shell}>
         <h2
           id="jimvio-faq-title"
-          className="text-[clamp(1.85rem,4vw,2.75rem)] font-black tracking-[-0.04em] text-[#111827]"
+          className="text-[clamp(1.4rem,3.2vw,2.05rem)] font-black tracking-[-0.04em] text-[#111827]"
         >
           Common questions
         </h2>
@@ -328,7 +328,7 @@ export function FAQSection() {
           Find answers about buying, selling, earning, creating, and growing on Jimvio.
         </p>
 
-        <div className="mt-7 min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-8 [&::-webkit-scrollbar]:hidden">
+        <div className="mt-5 min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-6 [&::-webkit-scrollbar]:hidden">
           <div
             role="tablist"
             aria-label="Common question topics"

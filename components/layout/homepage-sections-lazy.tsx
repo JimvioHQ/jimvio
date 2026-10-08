@@ -3,20 +3,11 @@
 import dynamic from "next/dynamic";
 
 const loading = () => (
-  <div
-    aria-hidden
-    className="mx-auto w-full max-w-8xl px-4 py-12 sm:px-6 sm:py-16"
-    style={{ minHeight: 120 }}
-  />
+  <div aria-hidden className="jimvio-home-section mx-auto w-full max-w-8xl px-4 sm:px-6" />
 );
 
 export const HowJimvioWorks = dynamic(
   () => import("./how-jimvio-works").then((m) => ({ default: m.HowJimvioWorks })),
-  { loading },
-);
-
-export const WhyChooseJimvio = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.WhyChooseJimvio })),
   { loading },
 );
 
@@ -27,10 +18,5 @@ export const First30Minutes = dynamic(
 
 export const FAQSection = dynamic(
   () => import("./common-questions").then((m) => ({ default: m.FAQSection })),
-  { loading },
-);
-
-export const TakeJimvioEverywhere = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.TakeJimvioEverywhere })),
   { loading },
 );

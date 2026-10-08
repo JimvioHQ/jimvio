@@ -55,6 +55,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
+import { useHomeAutoCycle } from "./use-home-auto-cycle";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import {
   AffiliateCoinsVisual,
@@ -340,14 +341,13 @@ function JourneySelector({
     if (!root) return;
     const active = root.querySelector<HTMLElement>(`[data-path-id="${activePath}"]`);
     if (!active) return;
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    active.scrollIntoView({
-      behavior: reduce ? "auto" : "smooth",
-      inline: "center",
-      block: "nearest",
-    });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const left =
+      active.getBoundingClientRect().left -
+      root.getBoundingClientRect().left +
+      root.scrollLeft -
+      (root.clientWidth - active.clientWidth) / 2;
+    root.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
   }, [activePath]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -616,19 +616,24 @@ function PathContent({ pathId }: { pathId: JourneyPathId }) {
 }
 
 export function WhatToDoToday() {
-  const [activePath, setActivePath] = useState<JourneyPathId>(DEFAULT_JOURNEY_PATH);
+  const cycle = useHomeAutoCycle(JOURNEY_PATHS.length);
+  const activePath = JOURNEY_PATHS[cycle.index]?.id ?? DEFAULT_JOURNEY_PATH;
   const path = getJourneyPath(activePath);
+  const onSelect = (id: JourneyPathId) => {
+    const next = JOURNEY_PATHS.findIndex((item) => item.id === id);
+    if (next >= 0) cycle.select(next);
+  };
 
   return (
     <SectionReveal
-      className="jimvio-action-hub relative overflow-x-clip pt-10 pb-10 sm:pt-12 sm:pb-12 lg:pt-14 lg:pb-14"
+      className="jimvio-action-hub jimvio-home-section relative overflow-x-clip"
       aria-labelledby="jimvio-action-hub-title"
       threshold={0.08}
     >
       <style>{ACTION_HUB_CSS}</style>
 
-      <div className={shell}>
-        <header className="mx-auto mb-5 max-w-2xl text-center sm:mb-6 lg:mb-7">
+      <div className={shell} {...cycle.interaction}>
+        <header className="mx-auto mb-4 max-w-2xl text-center sm:mb-5">
           <RevealItem
             index={0}
             as="div"
@@ -643,7 +648,7 @@ export function WhatToDoToday() {
             index={1}
             as="h2"
             id="jimvio-action-hub-title"
-            className="text-[clamp(1.65rem,3.6vw,2.35rem)] font-black leading-[1.12] tracking-[-0.035em]"
+            className="text-[clamp(1.45rem,3.2vw,2.1rem)] font-black leading-[1.12] tracking-[-0.035em]"
             style={
               {
                 color: NAVY,
@@ -672,7 +677,7 @@ export function WhatToDoToday() {
         </header>
 
         <RevealItem index={3} as="div" className="mb-5 sm:mb-6">
-          <JourneySelector activePath={activePath} onSelect={setActivePath} />
+          <JourneySelector activePath={activePath} onSelect={onSelect} />
         </RevealItem>
 
         <div
@@ -684,7 +689,7 @@ export function WhatToDoToday() {
           <PathContent pathId={activePath} />
         </div>
 
-        <p className="sr-only" aria-live="polite">
+        <p className="sr-only">
           Showing {path.label} path: {path.headline}
         </p>
       </div>

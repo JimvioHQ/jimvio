@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Clock, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import {
   type OnboardingRole,
   type OnboardingRoleId,
 } from "./first-30-minutes-data";
+import { useHomeAutoCycle } from "./use-home-auto-cycle";
 
 const ORANGE = "#FF5A1F";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
@@ -55,6 +56,21 @@ function RoleSelector({
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    const scroller = root.parentElement ?? root;
+    const activeTab = root.querySelector<HTMLElement>(`[data-role-id="${active}"]`);
+    if (!activeTab) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const left =
+      activeTab.getBoundingClientRect().left -
+      scroller.getBoundingClientRect().left +
+      scroller.scrollLeft -
+      (scroller.clientWidth - activeTab.clientWidth) / 2;
+    scroller.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
+  }, [active]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const idx = ONBOARDING_ROLES.findIndex((r) => r.id === active);
@@ -310,13 +326,20 @@ function RoleBoard({ role }: { role: OnboardingRole }) {
 }
 
 export function First30Minutes() {
-  const [activeRole, setActiveRole] = useState<OnboardingRoleId>("buyers-sellers");
+  const cycle = useHomeAutoCycle(ONBOARDING_ROLES.length);
+  const activeRole: OnboardingRoleId =
+    ONBOARDING_ROLES[cycle.index]?.id ?? "buyers-sellers";
   const role = getOnboardingRole(activeRole);
+  const onSelect = (id: OnboardingRoleId) => {
+    const next = ONBOARDING_ROLES.findIndex((item) => item.id === id);
+    if (next >= 0) cycle.select(next);
+  };
 
   return (
     <section
-      className="jimvio-first-30 relative overflow-x-clip py-12 sm:py-14 lg:py-16"
+      className="jimvio-first-30 jimvio-home-section relative overflow-x-clip"
       aria-labelledby="jimvio-first-30-title"
+      {...cycle.interaction}
     >
       <style>{`
         .jimvio-onboard-panel { animation: jimvio-onboard-in 260ms cubic-bezier(0.16,1,0.3,1); }
@@ -330,10 +353,10 @@ export function First30Minutes() {
       `}</style>
 
       <div className={shell}>
-        <header className="mb-6 max-w-2xl sm:mb-7">
+        <header className="mb-4 max-w-2xl sm:mb-5">
           <h2
             id="jimvio-first-30-title"
-            className="text-[clamp(1.7rem,3.4vw,2.35rem)] font-black tracking-[-0.04em] text-[#111827]"
+            className="text-[clamp(1.4rem,3vw,2.05rem)] font-black tracking-[-0.04em] text-[#111827]"
           >
             Your first 30 minutes on Jimvio
           </h2>
@@ -343,14 +366,12 @@ export function First30Minutes() {
         </header>
 
         <div className="mb-5 min-w-0 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] sm:mb-6 [&::-webkit-scrollbar]:hidden">
-          <RoleSelector active={activeRole} onSelect={setActiveRole} />
+          <RoleSelector active={activeRole} onSelect={onSelect} />
         </div>
 
         <RoleBoard role={role} />
 
-        <p className="sr-only" aria-live="polite">
-          Showing onboarding path for {role.label}
-        </p>
+        <p className="sr-only">Showing onboarding path for {role.label}</p>
       </div>
     </section>
   );

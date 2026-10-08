@@ -69,27 +69,21 @@ const LONGEST_HERO_STAT = HERO_STATS.reduce((a, b) =>
 );
 
 function useInViewActive(ref: React.RefObject<HTMLElement | null>, enabled: boolean) {
-  const [active, setActive] = useState(true);
+  const [inView, setInView] = useState(true);
 
   useEffect(() => {
-    if (!enabled) {
-      setActive(false);
-      return;
-    }
+    if (!enabled) return;
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setActive(true);
-      return;
-    }
+    if (!el || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
-      ([entry]) => setActive(Boolean(entry?.isIntersecting)),
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
       { threshold: 0.05, rootMargin: "40px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [enabled, ref]);
 
-  return active;
+  return enabled && inView;
 }
 
 const HeroRotatingPhrase = memo(function HeroRotatingPhrase({
@@ -323,7 +317,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <p className="mb-6 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-7 sm:text-[13px]">
+      <p className="mb-3 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
         Trusted by{" "}
         <span className="font-semibold tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
           17,238
@@ -511,7 +505,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <div className="relative z-10 w-full pb-6 pt-9 sm:pb-8 sm:pt-10 lg:pb-10">
+        <div className="relative z-10 w-full pb-2 pt-6 sm:pb-3 sm:pt-7 lg:pb-4">
           <motion.div custom={6} variants={enter} initial="hidden" animate="show">
             <HeroTrustBadges />
           </motion.div>
@@ -521,7 +515,7 @@ export function Hero() {
             variants={enter}
             initial="hidden"
             animate="show"
-            className="mt-9 w-full sm:mt-11"
+            className="mt-5 w-full sm:mt-6"
           >
             <HeroPartnerStrip play={inView} />
           </motion.div>

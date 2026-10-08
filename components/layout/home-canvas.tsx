@@ -66,20 +66,37 @@ export function HomeCanvas({
 }
 
 const HOME_CANVAS_CSS = `
+.jimvio-home-canvas {
+  --home-pad-y: 1.75rem;
+}
+@media (min-width: 640px) {
+  .jimvio-home-canvas { --home-pad-y: 2.125rem; }
+}
+@media (min-width: 1024px) {
+  .jimvio-home-canvas { --home-pad-y: 2.5rem; }
+}
+.jimvio-home-canvas .jimvio-home-section {
+  padding-top: var(--home-pad-y);
+  padding-bottom: var(--home-pad-y);
+}
+.jimvio-home-canvas .jimvio-action-hub.jimvio-home-section {
+  padding-top: 0.75rem;
+}
+@media (min-width: 640px) {
+  .jimvio-home-canvas .jimvio-action-hub.jimvio-home-section { padding-top: 1rem; }
+}
+@media (min-width: 1024px) {
+  .jimvio-home-canvas .jimvio-action-hub.jimvio-home-section { padding-top: 1.125rem; }
+}
 .jimvio-home-canvas > .relative > section,
 .jimvio-home-canvas .jimvio-action-hub,
 .jimvio-home-canvas .jimvio-journey-hub,
 .jimvio-home-canvas .jimvio-how-works,
 .jimvio-home-canvas .jimvio-take-everywhere,
+.jimvio-home-canvas .jimvio-why-stick,
+.jimvio-home-canvas .jimvio-first-30,
+.jimvio-home-canvas .jimvio-faq,
 .jimvio-home-canvas .jimvio-trusted-strip {
   background-color: transparent !important;
-}
-.jimvio-home-canvas .jimvio-section-bridge {
-  background-image: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(255,255,255,0.35) 48%,
-    transparent 100%
-  );
 }
 `;
