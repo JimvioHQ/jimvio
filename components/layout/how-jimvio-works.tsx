@@ -153,14 +153,6 @@ export function HowJimvioWorks() {
         <header className="mb-5 text-center sm:mb-7">
           <RevealItem
             index={0}
-            as="div"
-            className="mb-3 inline-flex rounded-full bg-[#FFF1EB] px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]"
-            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
-          >
-            How Jimvio Works
-          </RevealItem>
-          <RevealItem
-            index={1}
             as="h2"
             id="jimvio-how-title"
             className="text-[clamp(1.4rem,3.2vw,2.05rem)] font-black tracking-[-0.035em] text-[#111827]"
@@ -169,7 +161,7 @@ export function HowJimvioWorks() {
             How <span className="text-[#FF5A1F]">Jimvio</span> Works
           </RevealItem>
           <RevealItem
-            index={2}
+            index={1}
             as="p"
             className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}

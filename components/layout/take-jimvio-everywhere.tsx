@@ -41,11 +41,7 @@ export function TakeJimvioEverywhere() {
       <div className={`relative ${shell}`}>
         <div className="grid items-center gap-6 sm:gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.15fr)] lg:gap-10">
           <div className="w-full max-w-xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#FF5A1F] sm:text-[12px]">
-              Jimvio Mobile App
-            </p>
-
-            <div className="mt-2.5 flex min-w-0 items-stretch gap-3">
+            <div className="flex min-w-0 items-stretch gap-3">
               <span aria-hidden className="mt-1.5 w-[3px] shrink-0 rounded-full bg-[#FF5A1F]" />
               <h2
                 id="jimvio-take-everywhere-title"

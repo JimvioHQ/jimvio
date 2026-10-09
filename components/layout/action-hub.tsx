@@ -706,16 +706,6 @@ export function WhatToDoToday() {
         <header className="mx-auto mb-4 max-w-2xl text-center sm:mb-5">
           <RevealItem
             index={0}
-            as="div"
-            className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,90,31,0.16)] bg-[#FFF4EF] px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F] sm:text-[11px]"
-            style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
-          >
-            <Sparkles className="size-3.5" aria-hidden />
-            All-in-one creator commerce ecosystem
-          </RevealItem>
-
-          <RevealItem
-            index={1}
             as="h2"
             id="jimvio-action-hub-title"
             className="text-[clamp(1.45rem,3.2vw,2.1rem)] font-black leading-[1.12] tracking-[-0.035em]"
@@ -731,7 +721,7 @@ export function WhatToDoToday() {
           </RevealItem>
 
           <RevealItem
-            index={2}
+            index={1}
             as="p"
             className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed sm:mt-3.5 sm:text-[15px]"
             style={

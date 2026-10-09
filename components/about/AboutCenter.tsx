@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Globe2,
   Lock,
+  Download,
   Sparkles,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
@@ -33,6 +34,66 @@ import { cn } from "@/lib/utils";
 import { AboutHeroArt } from "./AboutHeroArt";
 import { AboutMobileNav } from "./AboutMobileNav";
 import { AboutSidebar } from "./AboutSidebar";
+
+/** Original supplied rasters. Previews and downloads use these files unchanged. */
+const BRAND_FILES = [
+  {
+    href: "/brand/jimvio/jimvio-brand-kit-mark-white-on-black.png",
+    file: "jimvio-brand-kit-mark-white-on-black.png",
+    category: "Brand kit",
+    label: "Mark, white on black",
+    frame: "bg-[#050505]",
+  },
+  {
+    href: "/brand/jimvio/jimvio-brand-kit-mark-orange-on-dark.png",
+    file: "jimvio-brand-kit-mark-orange-on-dark.png",
+    category: "Brand kit",
+    label: "Mark, orange on dark",
+    frame: "bg-[#141414]",
+  },
+  {
+    href: "/brand/jimvio/jimvio-logo-mark-white-on-orange.png",
+    file: "jimvio-logo-mark-white-on-orange.png",
+    category: "Logo mark",
+    label: "White mark on orange",
+    frame: "bg-[#FF5A1F]",
+  },
+  {
+    href: "/brand/jimvio/jimvio-logo-mark-orange-on-white.png",
+    file: "jimvio-logo-mark-orange-on-white.png",
+    category: "Logo mark",
+    label: "Orange mark on white",
+    frame: "bg-white",
+  },
+  {
+    href: "/brand/jimvio/jimvio-wordmark-orange-on-white.png",
+    file: "jimvio-wordmark-orange-on-white.png",
+    category: "Wordmark",
+    label: "Orange lockup on white",
+    frame: "bg-white",
+  },
+  {
+    href: "/brand/jimvio/jimvio-wordmark-white-on-orange.png",
+    file: "jimvio-wordmark-white-on-orange.png",
+    category: "Wordmark",
+    label: "White lockup on orange",
+    frame: "bg-[#FF5A1F]",
+  },
+  {
+    href: "/brand/jimvio/jimvio-favicon-app-icon-on-white.png",
+    file: "jimvio-favicon-app-icon-on-white.png",
+    category: "Favicon",
+    label: "App icon on white",
+    frame: "bg-white",
+  },
+  {
+    href: "/brand/jimvio/jimvio-favicon-app-icon-on-dark.png",
+    file: "jimvio-favicon-app-icon-on-dark.png",
+    category: "Favicon",
+    label: "App icon on dark",
+    frame: "bg-[#141414]",
+  },
+] as const;
 
 const SECTION_IDS: AboutSectionId[] = [
   "introduction",
@@ -522,6 +583,42 @@ export function AboutCenter() {
                   </span>
                   <p className="text-xs font-semibold text-white/70">Avatar / profile mark</p>
                 </Card>
+              </div>
+              <h3 className="mt-8 text-sm font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
+                Downloadable brand files
+              </h3>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Original PNG artwork. Each download is the supplied file, not a traced vector.
+              </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {BRAND_FILES.map((asset) => (
+                  <Card key={asset.file} className="flex flex-col p-3">
+                    <div className={`flex h-36 items-center justify-center overflow-hidden rounded-[12px] ${asset.frame}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={asset.href}
+                        alt=""
+                        width={1024}
+                        height={1024}
+                        className="max-h-32 w-auto max-w-[90%] object-contain"
+                      />
+                    </div>
+                    <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
+                      {asset.category}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[#111827] dark:text-[var(--color-text-primary)]">
+                      {asset.label}
+                    </p>
+                    <a
+                      href={asset.href}
+                      download={asset.file}
+                      className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-[12px] border border-[var(--color-border)] text-sm font-bold text-[#111827] hover:border-[rgba(255,90,31,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] dark:text-[var(--color-text-primary)]"
+                    >
+                      <Download className="h-4 w-4" aria-hidden="true" />
+                      Download PNG
+                    </a>
+                  </Card>
+                ))}
               </div>
               <Card className="mt-4">
                 <h3 className="text-sm font-bold">Clear space</h3>
