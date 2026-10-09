@@ -513,6 +513,13 @@ export function Hero() {
         <div className="relative z-10 mx-auto flex w-full max-w-[820px] flex-col items-center px-4 pt-4 text-center sm:px-6 sm:pt-6 lg:pt-8">
           <motion.div custom={0} variants={enter} initial="hidden" animate="show">
             <HeroStatsRotatingBadge play={inView} stats={stats} />
+            <ul className="sr-only">
+              {stats.map((item) => (
+                <li key={item.label}>
+                  {item.value} {item.label}
+                </li>
+              ))}
+            </ul>
           </motion.div>
 
           <h1
