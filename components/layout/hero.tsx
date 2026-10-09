@@ -13,7 +13,7 @@ import {
   Zap,
 } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
-import { DEMO_STATS_LABEL, getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import {
@@ -244,41 +244,35 @@ const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
   if (!current || !longest) return null;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-[var(--color-surface)]">
-        <span className="relative inline-flex min-h-[18px] items-center overflow-hidden sm:min-h-[20px]">
-          <span
-            aria-hidden
-            className="invisible inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
-          >
-            <span className="font-semibold">
-              {longest.value} {longest.label}
-            </span>
-          </span>
-          <span className="absolute inset-0 flex items-center">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.span
-                key={`${current.value}-${current.label}`}
-                initial={reduced ? { opacity: 0 } : { y: 6, opacity: 0 }}
-                animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
-                exit={reduced ? { opacity: 0 } : { y: -6, opacity: 0 }}
-                transition={{ duration: STAT_TRANSITION_S, ease: PHRASE_EASE }}
-                className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
-              >
-                <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                  {current.value}
-                </span>
-                <span className="font-medium text-[var(--color-text-muted)]">
-                  {current.label}
-                </span>
-              </motion.span>
-            </AnimatePresence>
-          </span>
+    <div className="inline-flex items-center justify-center rounded-full border border-[rgba(17,24,39,0.08)] bg-white px-4 py-2 shadow-[0_1px_2px_rgba(17,24,39,0.04),0_8px_18px_rgba(17,24,39,0.04)] dark:border-[var(--color-border)] dark:bg-[var(--color-surface)]">
+      <span className="relative inline-flex h-5 items-center overflow-hidden">
+        <span
+          aria-hidden
+          className="invisible inline-flex items-center gap-2 whitespace-nowrap text-[13px] sm:text-[14px]"
+        >
+          <span className="font-semibold tabular-nums">{longest.value}</span>
+          <span className="font-medium">{longest.label}</span>
         </span>
-      </div>
-      <p className="text-[10px] font-medium tracking-[0.04em] text-[var(--color-text-muted)]">
-        {DEMO_STATS_LABEL}
-      </p>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={`${current.value}-${current.label}`}
+              initial={reduced ? { opacity: 0 } : { y: 6, opacity: 0 }}
+              animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
+              exit={reduced ? { opacity: 0 } : { y: -6, opacity: 0 }}
+              transition={{ duration: STAT_TRANSITION_S, ease: PHRASE_EASE }}
+              className="inline-flex items-center gap-2 whitespace-nowrap text-[13px] sm:text-[14px]"
+            >
+              <span className="font-semibold tabular-nums tracking-[-0.02em] text-[#111827] dark:text-[var(--color-text-primary)]">
+                {current.value}
+              </span>
+              <span className="font-medium text-[#6B7280] dark:text-[var(--color-text-muted)]">
+                {current.label}
+              </span>
+            </motion.span>
+          </AnimatePresence>
+        </span>
+      </span>
     </div>
   );
 });
@@ -425,8 +419,8 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <p className="mb-2 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-2.5 sm:text-[13px]">
-        Illustrative reach · <HeroTrustedCount value={users} /> creators and businesses
+      <p className="mb-2 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-2.5 sm:text-[13px]">
+        Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
       <p className="mb-3 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:mb-3.5">
         Platforms creators use

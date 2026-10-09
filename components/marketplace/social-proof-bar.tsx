@@ -3,7 +3,7 @@
 import React from "react";
 import { TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEMO_STATS_LABEL, getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { formatPlatformStat } from "@/lib/platform-stats";
 import {
   AnimatedPlatformStatValue,
@@ -71,7 +71,6 @@ export function SocialProofBar({
           </div>
         </div>
       ))}
-      <p className="col-span-2 text-[11px] font-medium text-[#889096] lg:col-span-4">{DEMO_STATS_LABEL}</p>
     </div>
   );
 }

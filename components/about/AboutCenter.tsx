@@ -29,8 +29,6 @@ import {
   LOGO_MISUSE,
   type AboutSectionId,
 } from "@/lib/about/content";
-import { DEMO_STATS_LABEL } from "@/lib/demo-platform-stats";
-import { PLATFORM_STAT_META } from "@/lib/platform-stats";
 import { cn } from "@/lib/utils";
 import { AboutHeroArt } from "./AboutHeroArt";
 import { AboutMobileNav } from "./AboutMobileNav";
@@ -459,18 +457,15 @@ export function AboutCenter() {
               <h2 className="text-2xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)]">
                 Impact & global reach
               </h2>
-              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                {DEMO_STATS_LABEL}. These counts are not live database totals.
-              </p>
-              <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
                 {ABOUT_IMPACT.map((item) => {
                   return (
-                    <Card key={item.key} className="text-center">
-                      <p className="text-2xl font-black tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
+                    <Card key={item.key} className="px-3 py-4 text-center sm:px-4 sm:py-5">
+                      <p className="text-[clamp(1.05rem,4.4vw,1.75rem)] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
                         <AnimatedPlatformStatValue statKey={item.key} />
                       </p>
-                      <p className="text-xs font-medium text-[var(--color-text-muted)]">
-                        {PLATFORM_STAT_META[item.key].label}
+                      <p className="mt-2 text-[11px] font-medium leading-snug text-[var(--color-text-muted)] sm:text-xs">
+                        {item.subtitle}
                       </p>
                     </Card>
                   );
@@ -891,16 +886,13 @@ export function AboutCenter() {
                 </span>
                 <p className="text-sm font-bold text-[#111827]">Global impact</p>
               </div>
-              <p className="mb-3 text-[11px] font-medium text-[var(--color-text-muted)]">
-                {DEMO_STATS_LABEL}
-              </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-5">
                 {ABOUT_IMPACT.map((stat) => (
-                  <div key={stat.key}>
-                    <p className="text-lg font-black tracking-tight text-[#FF5A1F]">
+                  <div key={stat.key} className="min-w-0">
+                    <p className="text-[1.15rem] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827]">
                       <AnimatedPlatformStatValue statKey={stat.key} />
                     </p>
-                    <p className="text-[11px] font-medium text-[var(--color-text-muted)]">
+                    <p className="mt-1.5 text-[11px] font-medium leading-snug text-[var(--color-text-muted)]">
                       {stat.subtitle}
                     </p>
                   </div>

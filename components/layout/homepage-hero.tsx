@@ -145,7 +145,7 @@ function StartEarnDialog({
           </div>
 
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-5 pt-4 border-t border-[var(--color-border)]">
-            Illustrative platform figures: <AnimatedPlatformStatValue statKey="users" /> users.
+            <AnimatedPlatformStatValue statKey="users" /> creators and businesses worldwide.
           </p>
         </div>
       </DialogContent>

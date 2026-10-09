@@ -1,5 +1,4 @@
 import { Eyebrow, SectionHeading } from "@/components/ui";
-import { DEMO_STATS_LABEL } from "@/lib/demo-platform-stats";
 import {
   formatPlatformStat,
   getPlatformStatsLaunchSnapshot,
@@ -126,7 +125,7 @@ export function CtaSection() {
                 </SectionHeading>
 
                 <p className="text-sm font-light text-[var(--color-text-secondary)] mb-10">
-                    {DEMO_STATS_LABEL}: {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} users. Earnings are not guaranteed.
+                    Join {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} creators and businesses on Jimvio.
                 </p>
 
                 <button className="btn-premium gradient-brand text-white shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] hover:-translate-y-0.5">

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEMO_STATS_LABEL, getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { formatPlatformStat } from "@/lib/platform-stats";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
@@ -112,9 +112,6 @@ export function GlobalNetworkSection({
                   {demo.countries} Countries
                 </p>
               </div>
-              <span className="inline-flex items-center rounded-full border border-[rgba(17,24,39,0.08)] bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-medium text-[#6B7280]">
-                {DEMO_STATS_LABEL}
-              </span>
             </div>
 
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
