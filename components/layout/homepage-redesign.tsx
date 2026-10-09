@@ -1,4 +1,5 @@
-import { Hero } from "./hero";
+import { Hero, type HeroLiveStats } from "./hero";
+import { getPlatformStats } from "@/services/platform";
 import { WhatToDoToday } from "./action-hub";
 import { ChooseYourJourney } from "./choose-your-journey";
 import { HomeCanvas } from "./home-canvas";
@@ -23,10 +24,36 @@ import {
  * 7. Take Jimvio Everywhere
  * 8. Common questions
  */
-export function HomepageRedesign() {
+/**
+ * Live profile, vendor, and product totals. Countries stay on the configured
+ * platform value. Unavailable or empty queries keep the published fallback.
+ * Counts are not incremented on a timer.
+ */
+async function loadHeroLiveStats(): Promise<HeroLiveStats | null> {
+  try {
+    const stats = await Promise.race([
+      getPlatformStats(),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 2500);
+      }),
+    ]);
+    if (!stats) return null;
+    const users = stats.totalUsers;
+    const businesses = stats.totalVendors;
+    const products = stats.totalProducts;
+    if (users <= 0 && businesses <= 0 && products <= 0) return null;
+    return { users, businesses, products };
+  } catch {
+    return null;
+  }
+}
+
+export async function HomepageRedesign() {
+  const liveStats = await loadHeroLiveStats();
+
   return (
     <HomeCanvas>
-      <Hero />
+      <Hero liveStats={liveStats} />
       <WhatToDoToday />
       <WhyChooseJimvio />
       <ChooseYourJourney />

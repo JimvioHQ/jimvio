@@ -12,23 +12,225 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
-import {
-  AmexLogo,
-  ApplePayLogo,
-  DiscoverLogo,
-  GooglePayLogo,
-  JcbLogo,
-  MastercardLogo,
-  UnionPayLogo,
-  VisaLogo,
-} from "@/components/ui/payment-logos";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
+import { PLATFORM_STATS } from "@/lib/platform-stats";
 import { cn } from "@/lib/utils";
 import {
   jimvioDuration,
   jimvioEase,
   jimvioStagger,
 } from "@/lib/motion/jimvio-motion";
+
+type LogoProps = { className?: string };
+
+// Local marks. Importing components/ui/payment-logos left these undefined in the client graph.
+
+/** Recognizable Visa mark — blue badge + VISA wordmark */
+function VisaLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 60 20"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="Visa"
+    >
+      <rect width="60" height="20" rx="3" fill="#1A1F71" />
+      <text
+        x="30"
+        y="14.5"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontSize="11"
+        fontWeight="700"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontStyle="italic"
+        letterSpacing="0.08em"
+      >
+        VISA
+      </text>
+    </svg>
+  );
+}
+
+/** Mastercard overlapping circles mark */
+function MastercardLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 52 32"
+      className={cn("h-6 w-auto", className)}
+      role="img"
+      aria-label="Mastercard"
+    >
+      <circle cx="18" cy="16" r="12" fill="#EB001B" />
+      <circle cx="34" cy="16" r="12" fill="#F79E1B" />
+      <path d="M26 6.5a12 12 0 0 0 0 19A12 12 0 0 0 26 6.5z" fill="#FF5F00" />
+    </svg>
+  );
+}
+
+/** Apple Pay mark — Apple icon + Pay */
+function ApplePayLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 58 20"
+      className={cn("h-5 w-auto text-[var(--color-text-primary)]", className)}
+      role="img"
+      aria-label="Apple Pay"
+    >
+      <path
+        fill="currentColor"
+        d="M11.8 4.4c-.7.8-1.7 1.3-2.7 1.2-.1-.9.3-1.8.9-2.4.7-.8 1.7-1.3 2.6-1.3.1 1-.3 1.9-.8 2.5zm.9 1.4c-1.3-.1-2.3.7-2.9.7-.6 0-1.4-.7-2.4-.7-1.3 0-2.4.8-3 2-.9 1.5-.7 3.7.2 5.2.6 1 1.2 2.1 2.1 2.1.9 0 1.2-.6 2.4-.6 1.2 0 1.4.6 2.4.6.9 0 1.6-.9 2.1-1.8.7-1 .9-2 1-2.1-1-.1-1.8-.7-1.8-2.7 0-1.7 1.4-2.5 1.5-2.6-.9-.7-2.3-.8-2.7-.8z"
+      />
+      <text
+        x="22"
+        y="14.5"
+        fill="currentColor"
+        fontSize="13"
+        fontWeight="600"
+        fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+      >
+        Pay
+      </text>
+    </svg>
+  );
+}
+
+/** American Express wordmark badge */
+function AmexLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 64 20"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="American Express"
+    >
+      <rect width="64" height="20" rx="3" fill="#2E77BC" />
+      <text
+        x="32"
+        y="13.5"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontSize="8"
+        fontWeight="700"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="0.04em"
+      >
+        AMEX
+      </text>
+    </svg>
+  );
+}
+
+/** Discover wordmark badge */
+function DiscoverLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 72 20"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="Discover"
+    >
+      <rect width="72" height="20" rx="3" fill="#FF6000" />
+      <text
+        x="36"
+        y="13.5"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontSize="8"
+        fontWeight="700"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="0.02em"
+      >
+        DISCOVER
+      </text>
+    </svg>
+  );
+}
+
+/** UnionPay mark */
+function UnionPayLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 56 20"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="UnionPay"
+    >
+      <rect x="0" y="0" width="18" height="20" rx="2" fill="#E21836" />
+      <rect x="19" y="0" width="18" height="20" rx="2" fill="#00447C" />
+      <rect x="38" y="0" width="18" height="20" rx="2" fill="#007B84" />
+    </svg>
+  );
+}
+
+/** JCB mark */
+function JcbLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 48 20"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="JCB"
+    >
+      <rect width="48" height="20" rx="3" fill="#0B4EA2" />
+      <text
+        x="24"
+        y="13.5"
+        textAnchor="middle"
+        fill="#FFFFFF"
+        fontSize="9"
+        fontWeight="700"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="0.06em"
+      >
+        JCB
+      </text>
+    </svg>
+  );
+}
+
+/** Google Pay mark */
+function GooglePayLogo({ className }: LogoProps) {
+  return (
+    <svg
+      viewBox="0 0 62 24"
+      className={cn("h-5 w-auto", className)}
+      role="img"
+      aria-label="Google Pay"
+    >
+      <path
+        fill="#4285F4"
+        d="M25.4 10.8v2.5h3.9c-.2 1-.7 1.8-1.5 2.3-.8.6-1.8.9-3 .9-2.4 0-4.4-2-4.4-4.4s2-4.4 4.4-4.4c1.2 0 2.2.4 3 1.1l1.8-1.8c-1.2-1.1-2.8-1.8-4.8-1.8-3.9 0-7.1 3.2-7.1 7.1s3.2 7.1 7.1 7.1c2.1 0 3.8-.7 5.1-1.9 1.3-1.3 1.7-3 1.7-4.4 0-.4 0-.7-.1-1.1h-6.1z"
+      />
+      <path fill="#EA4335" d="M36.8 6.9h-2.4v10.8h2.4V6.9z" />
+      <path
+        fill="#FBBC05"
+        d="M42.9 13.5c0-1.9 1.1-3.1 2.7-3.1 1.1 0 1.9.6 2.2 1.5h2.4c-.5-2-2.2-3.5-4.6-3.5-2.9 0-5.1 2.2-5.1 5.1s2.2 5.1 5.1 5.1c2.4 0 4.1-1.5 4.6-3.5h-2.4c-.3.9-1.1 1.5-2.2 1.5-1.6 0-2.7-1.2-2.7-3.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M53.6 10.4c-2.8 0-5 2.2-5 5.1s2.2 5.1 5 5.1c1.5 0 2.7-.5 3.6-1.5l-1.5-1.4c-.5.5-1.2.8-2.1.8-1.5 0-2.6-1-2.8-2.4h7.1v-.6c0-2.9-2-5.1-4.3-5.1zm0 1.9c1.3 0 2.3.9 2.5 2.1h-5c.3-1.2 1.3-2.1 2.5-2.1z"
+      />
+      <path
+        fill="#4285F4"
+        d="M14.1 10.6c0-.5-.1-1-.2-1.5H7.2v2.9h3.9c-.2.9-.7 1.7-1.5 2.2v1.8h2.4c1.4-1.3 2.1-3.2 2.1-5.4z"
+      />
+      <path
+        fill="#34A853"
+        d="M7.2 17.7c2 0 3.7-.7 4.9-1.8l-2.4-1.8c-.7.5-1.5.7-2.5.7-1.9 0-3.5-1.3-4.1-3H.6v1.9c1.2 2.4 3.7 4 6.6 4z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M3.1 11.8c-.2-.5-.2-1-.2-1.5s.1-1 .2-1.5V7H.6C.2 7.8 0 8.8 0 10.3s.2 2.5.6 3.3l2.5-1.8z"
+      />
+      <path
+        fill="#EA4335"
+        d="M7.2 5.7c1.1 0 2 .4 2.8 1.1l2.1-2.1C10.9 3.5 9.2 2.8 7.2 2.8 4.3 2.8 1.8 4.4.6 6.8l2.5 1.9c.6-1.7 2.2-3 4.1-3z"
+      />
+    </svg>
+  );
+}
+
 
 const ORANGE_GRAD = "linear-gradient(90deg, #fd5000 0%, #ff7a33 55%, #ff9a5c 100%)";
 const CTA_GRAD = "linear-gradient(135deg, #ff7a33 0%, #fd5000 55%, #e84800 100%)";
@@ -38,6 +240,7 @@ const STAT_INTERVAL_MS = 4200;
 const STAT_TRANSITION_S = 0.28;
 
 const HERO_PHRASES = [
+  "Build Your Business",
   "Monetize Knowledge",
   "Earn Globally",
   "Grow Your Audience",
@@ -51,22 +254,126 @@ const HERO_PHRASES = [
   "Make Money Online",
   "Teach Online",
   "Build Your Marketplace",
+  "Earn From Your Influence",
+  "Dropship Globally",
 ] as const;
 
 const LONGEST_HERO_PHRASE = HERO_PHRASES.reduce((a, b) =>
   a.length >= b.length ? a : b,
 );
 
-const HERO_STATS = [
-  { emoji: "🌍", value: "195", label: "Countries" },
-  { emoji: "👥", value: "17,238", label: "Users" },
-  { emoji: "🏪", value: "85K", label: "Businesses" },
-  { emoji: "🛍", value: "285,000", label: "Products" },
-] as const;
+/** Published hero fallback when a live count is unavailable. Not a growth simulation. */
+const HERO_PRODUCTS_FALLBACK = 285_000;
 
-const LONGEST_HERO_STAT = HERO_STATS.reduce((a, b) =>
-  `${a.value} ${a.label}`.length >= `${b.value} ${b.label}`.length ? a : b,
-);
+export type HeroLiveStats = {
+  users: number;
+  businesses: number;
+  products: number;
+};
+
+type HeroStatItem = {
+  emoji: string;
+  value: string;
+  label: string;
+};
+
+function formatHeroStat(key: "countries" | "users" | "businesses" | "products", value: number) {
+  if (key === "businesses" && value >= 1000) return `${Math.round(value / 1000)}K`;
+  return value.toLocaleString("en-US");
+}
+
+function heroStatItems(live: HeroLiveStats | null): HeroStatItem[] {
+  const users = live?.users ?? PLATFORM_STATS.users;
+  const businesses = live?.businesses ?? PLATFORM_STATS.businesses;
+  const products = live?.products ?? HERO_PRODUCTS_FALLBACK;
+  return [
+    { emoji: "🌍", value: formatHeroStat("countries", PLATFORM_STATS.countries), label: "Countries" },
+    { emoji: "👥", value: formatHeroStat("users", users), label: "Users" },
+    { emoji: "🏪", value: formatHeroStat("businesses", businesses), label: "Businesses" },
+    { emoji: "🛍", value: formatHeroStat("products", products), label: "Products" },
+  ];
+}
+
+function countUpStart(target: number): number {
+  if (!Number.isFinite(target) || target <= 20) return target;
+  const start = Math.round(target * 0.9);
+  return start >= target ? target - 1 : start;
+}
+
+function useHeroCountUp(target: number) {
+  const [display, setDisplay] = useState(target);
+  const displayRef = useRef(target);
+  const rafRef = useRef<number | null>(null);
+  const countedTarget = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let frame = 0;
+
+    if (reduceMotion || target <= 0) {
+      countedTarget.current = target;
+      if (displayRef.current !== target) {
+        frame = requestAnimationFrame(() => {
+          displayRef.current = target;
+          setDisplay(target);
+        });
+        rafRef.current = frame;
+      }
+      return () => {
+        cancelAnimationFrame(frame);
+        rafRef.current = null;
+      };
+    }
+
+    const start =
+      countedTarget.current === null ? countUpStart(target) : displayRef.current;
+    const diff = target - start;
+    if (diff === 0) {
+      countedTarget.current = target;
+      return;
+    }
+
+    const duration = 800;
+    const startTime = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const next = progress === 1 ? target : Math.round(start + diff * eased);
+      displayRef.current = next;
+      setDisplay(next);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+        rafRef.current = frame;
+      } else {
+        countedTarget.current = target;
+        rafRef.current = null;
+      }
+    };
+
+    frame = requestAnimationFrame(tick);
+    rafRef.current = frame;
+    return () => {
+      cancelAnimationFrame(frame);
+      rafRef.current = null;
+    };
+  }, [target]);
+
+  return display;
+}
+
+function HeroTrustedCount({ value }: { value: number }) {
+  const display = useHeroCountUp(value);
+  return (
+    <span className="font-semibold tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
+      {display.toLocaleString("en-US")}
+    </span>
+  );
+}
 
 function useInViewActive(ref: React.RefObject<HTMLElement | null>, enabled: boolean) {
   const [inView, setInView] = useState(true);
@@ -104,7 +411,7 @@ const HeroRotatingPhrase = memo(function HeroRotatingPhrase({
   }, [play, reduced]);
 
   return (
-    <span className="relative mx-auto block w-full max-w-[320px] min-w-0 sm:max-w-full">
+    <span className="relative mx-auto block w-full min-w-0 max-w-full">
       <span
         aria-hidden
         className="invisible block whitespace-nowrap bg-clip-text leading-[1.08] text-transparent"
@@ -133,8 +440,10 @@ const HeroRotatingPhrase = memo(function HeroRotatingPhrase({
 
 const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
   play,
+  stats,
 }: {
   play: boolean;
+  stats: readonly HeroStatItem[];
 }) {
   const reduced = usePrefersReducedMotion();
   const [index, setIndex] = useState(0);
@@ -142,13 +451,17 @@ const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
   useEffect(() => {
     if (!play || reduced) return;
     const timer = setInterval(
-      () => setIndex((current) => (current + 1) % HERO_STATS.length),
+      () => setIndex((current) => (current + 1) % stats.length),
       STAT_INTERVAL_MS,
     );
     return () => clearInterval(timer);
-  }, [play, reduced]);
+  }, [play, reduced, stats.length]);
 
-  const current = HERO_STATS[index];
+  const current = stats[index] ?? stats[0];
+  const longest = stats.reduce((a, b) =>
+    `${a.value} ${a.label}`.length >= `${b.value} ${b.label}`.length ? a : b,
+  );
+  if (!current || !longest) return null;
 
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-[var(--color-surface)]">
@@ -161,9 +474,9 @@ const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
           aria-hidden
           className="invisible inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
         >
-          <span className="inline-block w-[1.15em] text-center">{LONGEST_HERO_STAT.emoji}</span>
+          <span className="inline-block w-[1.15em] text-center">{longest.emoji}</span>
           <span className="font-semibold">
-            {LONGEST_HERO_STAT.value} {LONGEST_HERO_STAT.label}
+            {longest.value} {longest.label}
           </span>
         </span>
         <span className="absolute inset-0 flex items-center">
@@ -309,8 +622,10 @@ function PartnerLogoTrack({ suffix }: { suffix: string }) {
 
 const HeroPartnerStrip = memo(function HeroPartnerStrip({
   play,
+  users,
 }: {
   play: boolean;
+  users: number;
 }) {
   const reduced = usePrefersReducedMotion();
   const animate = !reduced && play;
@@ -318,11 +633,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
       <p className="mb-3 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
-        Trusted by{" "}
-        <span className="font-semibold tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
-          17,238
-        </span>{" "}
-        creators and businesses worldwide
+        Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
 
       <div
@@ -425,20 +736,22 @@ const HERO_ENTER_REDUCED = {
   }),
 } as const;
 
-export function Hero() {
+export function Hero({ liveStats = null }: { liveStats?: HeroLiveStats | null }) {
   const reduced = usePrefersReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInViewActive(sectionRef, !reduced);
   const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
+  const stats = heroStatItems(liveStats);
+  const users = liveStats?.users ?? PLATFORM_STATS.users;
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-transparent">
       <section ref={sectionRef} className="relative flex w-full flex-col overflow-hidden">
         <HeroPremiumBackground />
 
-        <div className="relative z-10 mx-auto flex w-full max-w-[820px] flex-col items-center px-4 pt-7 text-center sm:px-6 sm:pt-12 lg:pt-14">
+        <div className="relative z-10 mx-auto flex w-full max-w-[820px] flex-col items-center px-4 pt-4 text-center sm:px-6 sm:pt-6 lg:pt-8">
           <motion.div custom={0} variants={enter} initial="hidden" animate="show">
-            <HeroStatsRotatingBadge play={inView} />
+            <HeroStatsRotatingBadge play={inView} stats={stats} />
           </motion.div>
 
           <h1
@@ -517,7 +830,7 @@ export function Hero() {
             animate="show"
             className="mt-5 w-full sm:mt-6"
           >
-            <HeroPartnerStrip play={inView} />
+            <HeroPartnerStrip play={inView} users={users} />
           </motion.div>
         </div>
       </section>

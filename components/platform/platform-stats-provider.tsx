@@ -5,7 +5,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -21,6 +20,7 @@ import {
   type PlatformStatKey,
   type PlatformStatsSnapshot,
 } from "@/lib/platform-stats";
+import { useAnimatedNumber } from "@/components/platform/count-up-number";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +32,6 @@ const STAT_ICONS: Record<PlatformStatKey, LucideIcon> = {
   businesses: Store,
   products: Package,
 };
-
-function randomBetween(min: number, max: number) {
-  return min + Math.random() * (max - min);
-}
 
 type PlatformStatsContextValue = {
   stats: PlatformStatsSnapshot;
@@ -63,49 +59,6 @@ export function usePlatformStats() {
   return context;
 }
 
-
-function useAnimatedNumber(target: number, animate: boolean) {
-  const [display, setDisplay] = useState(target);
-  const displayRef = useRef(target);
-  const rafRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!animate) {
-      displayRef.current = target;
-      setDisplay(target);
-      return;
-    }
-
-    const start = displayRef.current;
-    const diff = target - start;
-    if (diff === 0) return;
-
-    const duration = randomBetween(500, 1000);
-    const startTime = performance.now();
-
-    const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const next = Math.round(start + diff * eased);
-      displayRef.current = next;
-      setDisplay(next);
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      } else {
-        displayRef.current = target;
-        setDisplay(target);
-      }
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    };
-  }, [target, animate]);
-
-  return display;
-}
 
 export function AnimatedPlatformStatValue({
   statKey,

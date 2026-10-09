@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import Link from "next/link";
+import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import {
   ArrowRight,
   BadgeCheck,
@@ -435,6 +436,63 @@ function JourneySelector({
   );
 }
 
+const DROPSHIP_PLACEHOLDER_PROMPTS = [
+  "What do you want to dropship?",
+  "Find trending products for my niche",
+  "Show me products with high profit margins",
+  "Find products with fast shipping",
+  "Discover home & living products",
+  "Find products my customers will love",
+] as const;
+
+function useTypewriterPlaceholder(prompts: readonly string[], enabled: boolean) {
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    if (!enabled || prompts.length === 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let cancelled = false;
+    let timer = 0;
+    let promptIndex = 0;
+    let charIndex = 0;
+    let deleting = false;
+
+    const tick = () => {
+      if (cancelled) return;
+      const prompt = prompts[promptIndex] ?? "";
+      if (!deleting) {
+        charIndex += 1;
+        setText(prompt.slice(0, charIndex));
+        if (charIndex >= prompt.length) {
+          deleting = true;
+          timer = window.setTimeout(tick, 1400);
+          return;
+        }
+        timer = window.setTimeout(tick, 42);
+        return;
+      }
+      charIndex -= 1;
+      setText(prompt.slice(0, Math.max(charIndex, 0)));
+      if (charIndex <= 0) {
+        deleting = false;
+        promptIndex = (promptIndex + 1) % prompts.length;
+        timer = window.setTimeout(tick, 280);
+        return;
+      }
+      timer = window.setTimeout(tick, 24);
+    };
+
+    timer = window.setTimeout(tick, 360);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [enabled, prompts]);
+
+  return text;
+}
+
 function AiPanel({
   title,
   description,
@@ -451,7 +509,17 @@ function AiPanel({
   const openAssistant = useAIStore((s) => s.openAssistant);
   const setPageContext = useAIStore((s) => s.setPageContext);
   const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
   const askLockRef = useRef(false);
+  const reducedMotion = usePrefersReducedMotion();
+  const typewriter = useTypewriterPlaceholder(
+    DROPSHIP_PLACEHOLDER_PROMPTS,
+    pathId === "dropship" && !reducedMotion && !focused && query.length === 0,
+  );
+  const inputPlaceholder =
+    pathId === "dropship" && !focused && query.length === 0 && typewriter
+      ? typewriter
+      : placeholder;
 
   const ask = useCallback(
     (raw: string) => {
@@ -508,8 +576,10 @@ function AiPanel({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={placeholder}
+                placeholder={inputPlaceholder}
                 autoComplete="off"
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
                 className={cn(
                   "h-12 w-full rounded-full border border-[rgba(17,24,39,0.08)] bg-white pl-10 pr-4 text-[13.5px] text-[#111827]",
                   "placeholder:text-[#9CA3AF] shadow-[0_4px_14px_rgba(17,24,39,0.04)]",
