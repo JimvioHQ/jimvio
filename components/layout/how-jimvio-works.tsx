@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLATFORM_STATS } from "@/lib/platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import {
@@ -106,7 +106,7 @@ const CARDS: HowCard[] = [
 ];
 
 const TRUST = [
-  { icon: Globe, label: `${PLATFORM_STATS.countries}+ Countries` },
+  { icon: null as typeof Globe | null, label: `${getDemoPlatformStats().countries} Countries` },
   { icon: Users, label: "Global Community" },
   { icon: Shield, label: "Secure & Trusted" },
   { icon: Zap, label: "Built for Creators" },
@@ -175,7 +175,7 @@ export function HowJimvioWorks() {
                 key={t.label}
                 className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(17,24,39,0.08)] bg-white px-3 py-1.5 text-[11.5px] font-semibold text-[#4B5563]"
               >
-                <t.icon className="size-3.5 text-[#FF5A1F]" aria-hidden />
+                {t.icon ? <t.icon className="size-3.5 text-[#FF5A1F]" aria-hidden /> : null}
                 {t.label}
               </span>
             ))}

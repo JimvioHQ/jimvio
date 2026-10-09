@@ -7,8 +7,10 @@ import {
   trimChatHistory,
   type ChatMessage,
 } from "@/lib/ai/chat-shared";
+import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
+import { EARNING_GUIDE_SYSTEM_RULES, buildEarningGuideReply } from "@/lib/ai/earning-guide";
 
-const responseCache = new Map<string, { text: string; mode: "live" | "demo"; ts: number }>();
+const responseCache = new Map<string, { text: string; mode: "live" | "guide"; ts: number }>();
 
 function isUsableApiKey(key?: string): boolean {
   if (!key?.trim()) return false;
@@ -22,99 +24,10 @@ function isGeminiKeyError(message: string): boolean {
   return /api_key_invalid|api key expired|invalid api key|400 bad request|403|permission/i.test(message);
 }
 
-function buildMockResponse(query: string): string {
-  const q = query.toLowerCase();
-
-  if (/earn|money|income|calculator|how much/.test(q)) {
-    return `**Quick Answer**
-You can earn on Jimvio through affiliate commissions, UGC campaigns, and community monetization — often stacking all three.
-
-**Steps**
-- Promote 2–3 high-commission products from the marketplace
-- Join one UGC campaign that fits your content style
-- Share links where your audience already engages
-
-**Recommended Action**
-Open your dashboard and pick one earning path to start today.
-
-**Related Opportunities**
-- Affiliate links pay per sale · UGC pays per view or post
-
-[CALCULATOR] [PRODUCTS: "high commission affiliate"] [CAMPAIGNS: "ugc paid"] [FOLLOWUPS: "Which products pay the most?", "How do UGC payouts work?", "How do I get my first sale?"] [LINKS: "Affiliate Program|/affiliates", "Browse Campaigns|/ugc", "Dashboard|/"]`;
-  }
-
-  if (/ugc|campaign|creator|content/.test(q)) {
-    return `**Quick Answer**
-UGC campaigns on Jimvio pay creators for content that matches brand briefs — per view or per approved post.
-
-**Steps**
-- Browse active campaigns and check payout type
-- Join campaigns that match your platforms
-- Submit content and track earnings in your dashboard
-
-**Recommended Action**
-Join one campaign you can publish to this week.
-
-[FOLLOWUPS: "Which campaigns pay the most?", "How do I submit content?", "What content performs best?"] [CAMPAIGNS: "ugc creator paid"] [LINKS: "Browse UGC Campaigns|/ugc", "Creator Dashboard|/", "Get Started|/register"]`;
-  }
-
-  if (/affiliate|commission|promot|link|product/.test(q)) {
-    return `**Quick Answer**
-Pick high-commission products, generate your affiliate link, and share where your audience buys.
-
-**Steps**
-- Browse marketplace products with strong commission rates
-- Generate your unique affiliate link per product
-- Track clicks and conversions from your dashboard
-
-**Recommended Action**
-Start with 2–3 products that fit your niche.
-
-[FOLLOWUPS: "What are the top commission products?", "How do affiliate links work?", "When do I get paid?"] [PRODUCTS: "affiliate high commission"] [LINKS: "Marketplace|/marketplace", "Affiliate Program|/affiliates", "Dashboard|/"]`;
-  }
-
-  if (/sell|vendor|store|list/.test(q)) {
-    return `**Quick Answer**
-Register as a vendor, list products with clear pricing, and use affiliates + UGC creators to drive traffic.
-
-**Steps**
-- Complete your vendor store profile
-- Publish your first listing with strong images
-- Set a competitive commission to attract promoters
-
-**Recommended Action**
-Publish your first product listing today.
-
-[FOLLOWUPS: "How do I set up my store?", "How do affiliates help vendors?", "What fees does Jimvio charge?"] [LINKS: "Open Dashboard|/", "Marketplace|/marketplace", "Create Account|/register"]`;
-  }
-
-  if (/community|live|course|monetiz/.test(q)) {
-    return `**Quick Answer**
-Build a community hub, host live sessions, and monetize with products, courses, or paid access.
-
-**Steps**
-- Create a community around one clear topic
-- Post consistently and engage members weekly
-- Link your community to products or campaigns
-
-**Recommended Action**
-Define one community topic and invite your first 10 members.
-
-[FOLLOWUPS: "How do I monetize a community?", "Can I sell courses?", "How do live events work?"] [COMMUNITIES: "creator community"] [LINKS: "Explore Communities|/communities", "Dashboard|/", "Start Free|/register"]`;
-  }
-
-  return `**Quick Answer**
-Jimvio helps you earn via affiliates, UGC campaigns, marketplace sales, and communities — start with one action today.
-
-**Steps**
-- Browse trending marketplace products
-- Join a UGC campaign that fits your style
-- Share affiliate links where your audience engages
-
-**Recommended Action**
-Pick one path and track results in your dashboard.
-
-[FOLLOWUPS: "How can I earn the fastest?", "What products should I promote?", "How do campaigns work?"] [PRODUCTS: "${query.slice(0, 60)}"] [LINKS: "Browse Marketplace|/marketplace", "Join UGC Campaigns|/ugc", "Start Earning|/register"]`;
+function buildGuideResponse(messages: ChatMessage[]): string {
+  const last = messages[messages.length - 1]?.content ?? "";
+  const history = messages.slice(0, -1).map((item) => item.content);
+  return `This is a Jimvio earning guide. The live model did not answer this turn.\n\n${buildEarningGuideReply(last, history)}`;
 }
 
 function sseChunk(content: string) {
@@ -122,14 +35,14 @@ function sseChunk(content: string) {
   return `data: ${JSON.stringify(payload)}\n\n`;
 }
 
-function streamText(text: string, mode: "live" | "demo" = "live") {
+function streamText(text: string, mode: "live" | "guide" = "guide") {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const chunks = text.match(/[\s\S]{1,48}/g) ?? [text];
       for (const chunk of chunks) {
         controller.enqueue(encoder.encode(sseChunk(chunk)));
-        if (mode === "demo") {
+        if (mode === "guide") {
           await new Promise((resolve) => setTimeout(resolve, 4));
         }
       }
@@ -180,7 +93,10 @@ async function tryGemini(messages: ChatMessage[]) {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
   const model = genAI.getGenerativeModel({
     model: modelName,
-    systemInstruction: { role: "system", parts: [{ text: JIMVIO_AI_SYSTEM_PROMPT }] },
+    systemInstruction: {
+      role: "system",
+      parts: [{ text: `${JIMVIO_AI_SYSTEM_PROMPT}\n\n${EARNING_GUIDE_SYSTEM_RULES}` }],
+    },
     generationConfig: {
       maxOutputTokens: 900,
       temperature: 0.6,
@@ -206,7 +122,10 @@ export async function POST(req: NextRequest) {
     }
 
     const messages = trimChatHistory(rawMessages);
-    const lastMessageText = messages[messages.length - 1]?.content ?? "";
+    if (messages.some((item) => isConfidentialAiRequest(item.content))) {
+      return streamText(CONFIDENTIAL_AI_REFUSAL, "guide");
+    }
+
     const cacheKey = buildCacheKey(messages);
     const cached = responseCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < AI_CACHE_TTL_MS) {
@@ -219,23 +138,22 @@ export async function POST(req: NextRequest) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       if (isGeminiKeyError(msg)) {
-        console.info("[Jimvio AI] Gemini unavailable (invalid or missing key). Using demo mode.");
+        console.info("[Jimvio AI] Gemini unavailable. Using the earning guide.");
       } else {
-        console.warn("[Jimvio AI] Gemini failed:", msg);
+        console.warn("[Jimvio AI] Gemini failed. Using the earning guide.");
       }
     }
 
-    const demoText = buildMockResponse(lastMessageText);
-    responseCache.set(cacheKey, { text: demoText, mode: "demo", ts: Date.now() });
+    const demoText = buildGuideResponse(messages);
+    responseCache.set(cacheKey, { text: demoText, mode: "guide", ts: Date.now() });
     if (responseCache.size > 200) {
       const oldest = [...responseCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
       if (oldest) responseCache.delete(oldest[0]);
     }
 
-    return streamText(demoText, "demo");
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[Jimvio AI] Critical error:", message);
-    return NextResponse.json({ error: "Service Unavailable", message }, { status: 503 });
+    return streamText(demoText, "guide");
+  } catch {
+    console.error("[Jimvio AI] Critical error");
+    return NextResponse.json({ error: "Jimvio AI is unavailable right now." }, { status: 503 });
   }
 }

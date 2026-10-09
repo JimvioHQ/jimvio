@@ -17,6 +17,7 @@ export type CopilotSendInput = {
   context: CopilotPageContext;
   pathname: string;
   actionId?: string;
+  signal?: AbortSignal;
 };
 
 export type CopilotQuickAction = {

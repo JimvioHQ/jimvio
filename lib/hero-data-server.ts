@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getAdminDB } from "@/services/base";
-import { PLATFORM_STATS } from "@/lib/platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 
 export type HeroDataPayload = {
   product: {
@@ -32,7 +32,7 @@ const FALLBACK: HeroDataPayload = {
   campaign: null,
   sale: { amount: "$24", timeAgo: "just now" },
   community: null,
-  stats: { totalUsers: formatCount(PLATFORM_STATS.users) },
+  stats: { totalUsers: formatCount(getDemoPlatformStats().users) },
 };
 
 const QUERY_MS = 8_000;
@@ -184,7 +184,7 @@ async function fetchHeroDataUncached(): Promise<HeroDataPayload> {
           avatar: community.avatar_url ?? null,
         }
       : null,
-    stats: { totalUsers: formatCount(PLATFORM_STATS.users) },
+    stats: { totalUsers: formatCount(getDemoPlatformStats().users) },
   };
 }
 

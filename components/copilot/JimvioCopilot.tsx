@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import { getCopilotContextMeta } from "@/lib/ai/copilot/context";
 import { getQuickActionsForContext } from "@/lib/ai/copilot/quick-actions";
+import { EARNING_OPTIONS, EARNING_WELCOME } from "@/lib/ai/earning-guide";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
 import { AiChatMessage } from "@/components/marketplace/ai/ai-chat-message";
@@ -56,6 +57,7 @@ export function JimvioCopilot() {
     isAssistantOpen,
     closeAssistant,
     initialQuery,
+    earnGuideToken,
     panelMode,
     toggleMinimize,
     toggleExpand,
@@ -63,12 +65,13 @@ export function JimvioCopilot() {
     status,
   } = useAIStore();
 
-  const { messages, isSending, sendMessage, clearHistory } = useCopilotChat();
+  const { messages, isSending, sendMessage, clearHistory, setMessages } = useCopilotChat();
   const [query, setQuery] = useState("");
   const [portalReady, setPortalReady] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const processedInitial = useRef("");
+  const processedEarn = useRef(0);
 
   const contextMeta = useMemo(() => getCopilotContextMeta(pageContext), [pageContext]);
   const quickActions = useMemo(() => getQuickActionsForContext(pageContext, 8), [pageContext]);
@@ -100,6 +103,23 @@ export function JimvioCopilot() {
   };
 
   useEffect(() => setPortalReady(true), []);
+
+  useEffect(() => {
+    if (!isAssistantOpen || !earnGuideToken || processedEarn.current === earnGuideToken) return;
+    processedEarn.current = earnGuideToken;
+    setMessages((prev) => {
+      if (prev.some((message) => message.id === "earn-intro")) return prev;
+      return [
+        {
+          id: "earn-intro",
+          role: "ai",
+          content: `${EARNING_WELCOME}\n\nWhat would you like to start with?`,
+          followups: [...EARNING_OPTIONS],
+        },
+        ...prev,
+      ];
+    });
+  }, [earnGuideToken, isAssistantOpen, setMessages]);
 
   useEffect(() => {
     if (isAssistantOpen && initialQuery.trim() && processedInitial.current !== initialQuery) {
@@ -253,8 +273,8 @@ export function JimvioCopilot() {
                 <span style={{ color: BRAND_ORANGE }}>{contextMeta.label}</span>?
               </h3>
               <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:text-[13px]">
-                Premium copilot preview — streaming layout ready for OpenAI, Gemini, Claude, or
-                DeepSeek.
+                Ask about selling, affiliates, UGC, dropshipping, communities, or live sessions.
+                Earnings are not guaranteed.
               </p>
               <div className="mt-5">
                 <CopilotQuickActions

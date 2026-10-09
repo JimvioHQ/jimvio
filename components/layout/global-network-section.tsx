@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ArrowRight, Box, Globe, Store, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PLATFORM_STATS, formatPlatformStat } from "@/lib/platform-stats";
+import { DEMO_STATS_LABEL, getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { formatPlatformStat } from "@/lib/platform-stats";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
@@ -57,30 +58,10 @@ type TopCreatorRow = {
 };
 
 const METRICS = [
-  {
-    key: "countries" as const,
-    label: "Countries",
-    icon: Globe,
-    color: ORANGE,
-  },
-  {
-    key: "users" as const,
-    label: "Users",
-    icon: Users,
-    color: "#16a34a",
-  },
-  {
-    key: "businesses" as const,
-    label: "Businesses",
-    icon: Store,
-    color: "#7c3aed",
-  },
-  {
-    key: "products" as const,
-    label: "Products",
-    icon: Box,
-    color: "#2563eb",
-  },
+  { key: "countries" as const, label: "Countries" },
+  { key: "users" as const, label: "Users" },
+  { key: "businesses" as const, label: "Businesses" },
+  { key: "products" as const, label: "Products" },
 ];
 
 const ROW_TINTS = ["#FFF6F2", "#F3FBF6", "#F4FBF7"];
@@ -108,6 +89,7 @@ export function GlobalNetworkSection({
     .slice(0, 3);
 
   const hasEarnings = list.some((c) => c.earnings > 0);
+  const demo = getDemoPlatformStats();
 
   return (
     <section
@@ -127,12 +109,11 @@ export function GlobalNetworkSection({
                   Global Network
                 </h2>
                 <p className="mt-1 text-[13px] text-[#6B7280]">
-                  {PLATFORM_STATS.countries} Countries Connected
+                  {demo.countries} Countries
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,90,31,0.2)] bg-[#FFF4EF] px-2.5 py-1 text-[11px] font-bold text-[#FF5A1F]">
-                <span className="size-1.5 rounded-full bg-[#ef4444]" aria-hidden />
-                Live Network
+              <span className="inline-flex items-center rounded-full border border-[rgba(17,24,39,0.08)] bg-[#F8FAFC] px-2.5 py-1 text-[11px] font-medium text-[#6B7280]">
+                {DEMO_STATS_LABEL}
               </span>
             </div>
 
@@ -143,12 +124,6 @@ export function GlobalNetworkSection({
                     key={m.key}
                     className="flex items-center gap-3 rounded-[16px] bg-[#F8FAFC] px-3 py-2.5"
                   >
-                    <span
-                      className="inline-flex size-10 shrink-0 items-center justify-center rounded-full"
-                      style={{ background: `${m.color}1A`, color: m.color }}
-                    >
-                      <m.icon className="size-4" strokeWidth={2.2} aria-hidden />
-                    </span>
                     <div className="min-w-0">
                       <div className="text-[16px] font-black leading-none tabular-nums text-[#111827] sm:text-[17px]">
                         <AnimatedPlatformStatValue statKey={m.key} />
@@ -157,7 +132,7 @@ export function GlobalNetworkSection({
                         {m.label}
                       </div>
                       <div className="sr-only">
-                        {formatPlatformStat(m.key, PLATFORM_STATS[m.key])} {m.label}
+                        {formatPlatformStat(m.key, demo[m.key])} {m.label}
                       </div>
                     </div>
                   </div>

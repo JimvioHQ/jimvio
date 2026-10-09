@@ -19,10 +19,12 @@ interface AIStore {
   isAssistantOpen: boolean;
   panelMode: CopilotPanelMode;
   initialQuery: string;
+  earnGuideToken: number;
   status: CopilotStatus;
   pageContext: CopilotPageContext;
   pathname: string;
   openAssistant: (query?: string) => void;
+  openEarningGuide: () => void;
   closeAssistant: () => void;
   setPanelMode: (mode: CopilotPanelMode) => void;
   toggleMinimize: () => void;
@@ -35,6 +37,7 @@ export const useAIStore = create<AIStore>((set, get) => ({
   isAssistantOpen: false,
   panelMode: "docked",
   initialQuery: "",
+  earnGuideToken: 0,
   status: "ready",
   pageContext: "general",
   pathname: "/",
@@ -43,6 +46,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
       isAssistantOpen: true,
       panelMode: get().panelMode === "minimized" ? "docked" : get().panelMode,
       initialQuery: query,
+      status: "ready",
+    }),
+  openEarningGuide: () =>
+    set({
+      isAssistantOpen: true,
+      panelMode: get().panelMode === "minimized" ? "docked" : get().panelMode,
+      initialQuery: "",
+      earnGuideToken: Date.now(),
       status: "ready",
     }),
   closeAssistant: () =>

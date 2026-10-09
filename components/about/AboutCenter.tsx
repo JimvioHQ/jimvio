@@ -29,6 +29,7 @@ import {
   LOGO_MISUSE,
   type AboutSectionId,
 } from "@/lib/about/content";
+import { DEMO_STATS_LABEL } from "@/lib/demo-platform-stats";
 import { PLATFORM_STAT_META } from "@/lib/platform-stats";
 import { cn } from "@/lib/utils";
 import { AboutHeroArt } from "./AboutHeroArt";
@@ -459,18 +460,14 @@ export function AboutCenter() {
                 Impact & global reach
               </h2>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Figures below come from Jimvio&apos;s live platform stats — not placeholder marketing
-                numbers.
+                {DEMO_STATS_LABEL}. These counts are not live database totals.
               </p>
               <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {ABOUT_IMPACT.map((item) => {
-                  const Icon = item.icon;
                   return (
                     <Card key={item.key} className="text-center">
-                      <Icon className="mx-auto h-5 w-5 text-[#FF5A1F]" aria-hidden="true" />
-                      <p className="mt-2 text-2xl font-black tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
+                      <p className="text-2xl font-black tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
                         <AnimatedPlatformStatValue statKey={item.key} />
-                        {item.key === "countries" ? "+" : ""}
                       </p>
                       <p className="text-xs font-medium text-[var(--color-text-muted)]">
                         {PLATFORM_STAT_META[item.key].label}
@@ -894,10 +891,15 @@ export function AboutCenter() {
                 </span>
                 <p className="text-sm font-bold text-[#111827]">Global impact</p>
               </div>
+              <p className="mb-3 text-[11px] font-medium text-[var(--color-text-muted)]">
+                {DEMO_STATS_LABEL}
+              </p>
               <div className="grid grid-cols-2 gap-3">
                 {ABOUT_IMPACT.map((stat) => (
                   <div key={stat.key}>
-                    <p className="text-lg font-black tracking-tight text-[#FF5A1F]">{stat.title}</p>
+                    <p className="text-lg font-black tracking-tight text-[#FF5A1F]">
+                      <AnimatedPlatformStatValue statKey={stat.key} />
+                    </p>
                     <p className="text-[11px] font-medium text-[var(--color-text-muted)]">
                       {stat.subtitle}
                     </p>

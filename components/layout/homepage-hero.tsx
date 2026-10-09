@@ -15,7 +15,6 @@ import {
 import { HeroSearch } from "@/components/marketplace/hero-search";
 import { HeroRightPanel } from "./hero-right-panel";
 import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
-import { formatPlatformStat, PLATFORM_STATS } from "@/lib/platform-stats";
 import { HeroStoryCard } from "@/components/marketplace/hero-story-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -146,7 +145,7 @@ function StartEarnDialog({
           </div>
 
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-5 pt-4 border-t border-[var(--color-border)]">
-            Join <AnimatedPlatformStatValue statKey="users" /> active members worldwide.
+            Illustrative platform figures: <AnimatedPlatformStatValue statKey="users" /> users.
           </p>
         </div>
       </DialogContent>
@@ -504,7 +503,7 @@ export function HomepageHero({
                         border: `1px solid ${color}18`,
                       }}
                     >
-                      <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+                      {statKey ? null : <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />}
                       <div>
                         <div className="text-[11px] font-black leading-none tabular-nums" style={{ color: "var(--color-text-primary)" }}>
                           {statKey ? <AnimatedPlatformStatValue statKey={statKey} /> : value}

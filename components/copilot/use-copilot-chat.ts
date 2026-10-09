@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiChatMessageData } from "@/components/marketplace/ai/ai-chat-message";
-import { MAX_CHAT_HISTORY, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
+import { MAX_CHAT_HISTORY, parseAiTriggers, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
 import { getCopilotProvider } from "@/lib/ai/copilot/provider";
 import { loadCopilotSession, saveCopilotSession } from "@/lib/ai/copilot/session";
 import type { CopilotPageContext } from "@/lib/store/use-ai-store";
@@ -14,6 +14,9 @@ export function useCopilotChat() {
   const setStatus = useAIStore((s) => s.setStatus);
   const [messages, setMessages] = useState<AiChatMessageData[]>(() => loadCopilotSession());
   const [isSending, setIsSending] = useState(false);
+  const sendingRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const generationRef = useRef(0);
   const streamRaf = useRef<number | null>(null);
   const pendingContent = useRef("");
 
@@ -21,9 +24,16 @@ export function useCopilotChat() {
     saveCopilotSession(messages);
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      if (streamRaf.current != null) cancelAnimationFrame(streamRaf.current);
+    };
+  }, []);
+
   const sendMessage = useCallback(
     async (text: string, options?: { regenerateFromId?: string; actionId?: string }) => {
-      if (isSending) return;
+      if (sendingRef.current) return;
 
       let baseMessages = messages;
       let messageText = text.trim();
@@ -40,6 +50,13 @@ export function useCopilotChat() {
       }
 
       if (!messageText) return;
+
+      sendingRef.current = true;
+      abortRef.current?.abort();
+      const request = new AbortController();
+      abortRef.current = request;
+      const generation = generationRef.current + 1;
+      generationRef.current = generation;
 
       const userMsg: AiChatMessageData = {
         id: `${Date.now()}-user`,
@@ -91,9 +108,11 @@ export function useCopilotChat() {
       };
 
       try {
-        const provider = getCopilotProvider("stub");
+        const provider = getCopilotProvider("jimvio-ai");
         let fullContent = "";
         let metadata: Partial<AiChatMessageData> = {};
+
+        if (request.signal.aborted) return;
 
         for await (const chunk of provider.send({
           message: messageText,
@@ -101,7 +120,9 @@ export function useCopilotChat() {
           context: pageContext as CopilotPageContext,
           pathname,
           actionId: options?.actionId,
+          signal: request.signal,
         })) {
+          if (request.signal.aborted) return;
           if (chunk.type === "text-delta" && chunk.text) {
             fullContent += chunk.text;
             setStatus("streaming");
@@ -116,38 +137,47 @@ export function useCopilotChat() {
           streamRaf.current = null;
         }
 
+        if (generation !== generationRef.current) return;
+        const parsed = parseAiTriggers(fullContent);
+        const content = metadata.content || parsed.cleaned || stripTriggersForDisplay(fullContent);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
               ? {
                   ...m,
-                  content: stripTriggersForDisplay(fullContent),
-                  thinking: false,
                   ...metadata,
+                  content,
+                  thinking: false,
+                  followups: parsed.followups ?? metadata.followups,
+                  links: parsed.links ?? metadata.links,
                 }
               : m,
           ),
         );
         setStatus("ready");
       } catch {
+        if (generation !== generationRef.current || request.signal.aborted) return;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === aiId
               ? {
                   ...m,
                   thinking: false,
-                  content: "Something went wrong. Please try again.",
+                  content: "Jimvio AI could not finish that reply. Try again.",
                 }
               : m,
           ),
         );
         setStatus("offline");
       } finally {
-        setIsSending(false);
-        pendingContent.current = "";
+        if (generation === generationRef.current) {
+          sendingRef.current = false;
+          setIsSending(false);
+          pendingContent.current = "";
+        }
       }
     },
-    [isSending, messages, pageContext, pathname, setStatus],
+    [messages, pageContext, pathname, setStatus],
   );
 
   const clearHistory = useCallback(() => {

@@ -30,7 +30,6 @@ import {
 import {
   formatPlatformStat,
   getPlatformStatsLaunchSnapshot,
-  PLATFORM_STATS,
 } from "@/lib/platform-stats";
 
 export const ABOUT_ORANGE = "#FF5A1F";
@@ -217,25 +216,25 @@ const stats = getPlatformStatsLaunchSnapshot();
 export const ABOUT_IMPACT = [
   {
     key: "users" as const,
-    title: `${formatPlatformStat("users", stats.users)}+`,
+    title: formatPlatformStat("users", stats.users),
     subtitle: "Creators & users",
     icon: Users,
   },
   {
     key: "countries" as const,
-    title: `${PLATFORM_STATS.countries}+`,
+    title: formatPlatformStat("countries", stats.countries),
     subtitle: "Countries",
     icon: Globe2,
   },
   {
     key: "businesses" as const,
-    title: `${formatPlatformStat("businesses", stats.businesses)}+`,
+    title: formatPlatformStat("businesses", stats.businesses),
     subtitle: "Businesses",
     icon: Store,
   },
   {
     key: "products" as const,
-    title: `${formatPlatformStat("products", stats.products)}+`,
+    title: formatPlatformStat("products", stats.products),
     subtitle: "Products & listings",
     icon: ShoppingBag,
   },

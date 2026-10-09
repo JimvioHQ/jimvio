@@ -13,7 +13,8 @@ import {
   Zap,
 } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
-import { PLATFORM_STATS } from "@/lib/platform-stats";
+import { DEMO_STATS_LABEL, getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import {
   jimvioDuration,
@@ -51,9 +52,6 @@ const LONGEST_HERO_PHRASE = HERO_PHRASES.reduce((a, b) =>
   a.length >= b.length ? a : b,
 );
 
-/** Published hero fallback when a live count is unavailable. Not a growth simulation. */
-const HERO_PRODUCTS_FALLBACK = 285_000;
-
 export type HeroLiveStats = {
   users: number;
   businesses: number;
@@ -61,25 +59,18 @@ export type HeroLiveStats = {
 };
 
 type HeroStatItem = {
-  emoji: string;
   value: string;
   label: string;
 };
 
-function formatHeroStat(key: "countries" | "users" | "businesses" | "products", value: number) {
-  if (key === "businesses" && value >= 1000) return `${Math.round(value / 1000)}K`;
-  return value.toLocaleString("en-US");
-}
-
-function heroStatItems(live: HeroLiveStats | null): HeroStatItem[] {
-  const users = live?.users ?? PLATFORM_STATS.users;
-  const businesses = live?.businesses ?? PLATFORM_STATS.businesses;
-  const products = live?.products ?? HERO_PRODUCTS_FALLBACK;
+function heroStatItems(): HeroStatItem[] {
+  const demo = getDemoPlatformStats();
+  const format = (value: number) => value.toLocaleString("en-US");
   return [
-    { emoji: "🌍", value: formatHeroStat("countries", PLATFORM_STATS.countries), label: "Countries" },
-    { emoji: "👥", value: formatHeroStat("users", users), label: "Users" },
-    { emoji: "🏪", value: formatHeroStat("businesses", businesses), label: "Businesses" },
-    { emoji: "🛍", value: formatHeroStat("products", products), label: "Products" },
+    { value: format(demo.countries), label: "Countries" },
+    { value: format(demo.users), label: "Users" },
+    { value: format(demo.businesses), label: "Businesses" },
+    { value: format(demo.products), label: "Products" },
   ];
 }
 
@@ -253,55 +244,59 @@ const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
   if (!current || !longest) return null;
 
   return (
-    <div className="inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-[var(--color-surface)]">
-      <span className="relative flex size-2 shrink-0" aria-hidden>
-        <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-      </span>
-
-      <span className="relative inline-flex min-h-[18px] items-center overflow-hidden sm:min-h-[20px]">
-        <span
-          aria-hidden
-          className="invisible inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
-        >
-          <span className="inline-block w-[1.15em] text-center">{longest.emoji}</span>
-          <span className="font-semibold">
-            {longest.value} {longest.label}
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:bg-[var(--color-surface)]">
+        <span className="relative inline-flex min-h-[18px] items-center overflow-hidden sm:min-h-[20px]">
+          <span
+            aria-hidden
+            className="invisible inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
+          >
+            <span className="font-semibold">
+              {longest.value} {longest.label}
+            </span>
+          </span>
+          <span className="absolute inset-0 flex items-center">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.span
+                key={`${current.value}-${current.label}`}
+                initial={reduced ? { opacity: 0 } : { y: 6, opacity: 0 }}
+                animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
+                exit={reduced ? { opacity: 0 } : { y: -6, opacity: 0 }}
+                transition={{ duration: STAT_TRANSITION_S, ease: PHRASE_EASE }}
+                className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
+              >
+                <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+                  {current.value}
+                </span>
+                <span className="font-medium text-[var(--color-text-muted)]">
+                  {current.label}
+                </span>
+              </motion.span>
+            </AnimatePresence>
           </span>
         </span>
-        <span className="absolute inset-0 flex items-center">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span
-              key={`${current.value}-${current.label}`}
-              initial={reduced ? { opacity: 0 } : { y: 6, opacity: 0 }}
-              animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
-              exit={reduced ? { opacity: 0 } : { y: -6, opacity: 0 }}
-              transition={{ duration: STAT_TRANSITION_S, ease: PHRASE_EASE }}
-              className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
-            >
-              <span className="inline-block w-[1.15em] text-center" aria-hidden>
-                {current.emoji}
-              </span>
-              <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                {current.value}
-              </span>
-              <span className="font-medium text-[var(--color-text-muted)]">
-                {current.label}
-              </span>
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      </span>
+      </div>
+      <p className="text-[10px] font-medium tracking-[0.04em] text-[var(--color-text-muted)]">
+        {DEMO_STATS_LABEL}
+      </p>
     </div>
   );
 });
 
 function HeroPrimaryCTA() {
   const [pending, setPending] = React.useState(false);
+  const openEarningGuide = useAIStore((s) => s.openEarningGuide);
+  const setPageContext = useAIStore((s) => s.setPageContext);
 
   return (
-    <Link
-      href="/register"
-      onClick={() => setPending(true)}
+    <button
+      type="button"
+      onClick={() => {
+        setPending(true);
+        setPageContext("home", "/");
+        openEarningGuide();
+        setPending(false);
+      }}
       aria-busy={pending}
       className={cn(
         "group relative inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full px-7 text-[13px] font-bold text-white sm:h-[50px] sm:w-auto sm:px-8 sm:text-[14px]",
@@ -326,7 +321,7 @@ function HeroPrimaryCTA() {
         Start earning for Free
         <ArrowRight className="size-4 shrink-0 transition-transform duration-150 group-hover:translate-x-0.5" />
       </span>
-    </Link>
+    </button>
   );
 }
 
@@ -396,7 +391,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
       <p className="mb-2 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-2.5 sm:text-[13px]">
-        Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
+        Illustrative reach · <HeroTrustedCount value={users} /> creators and businesses
       </p>
       <p className="mb-3 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:mb-3.5">
         Supported payment methods
@@ -502,13 +497,13 @@ const HERO_ENTER_REDUCED = {
   }),
 } as const;
 
-export function Hero({ liveStats = null }: { liveStats?: HeroLiveStats | null }) {
+export function Hero() {
   const reduced = usePrefersReducedMotion();
   const sectionRef = useRef<HTMLElement>(null);
   const inView = useInViewActive(sectionRef, !reduced);
   const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
-  const stats = heroStatItems(liveStats);
-  const users = liveStats?.users ?? PLATFORM_STATS.users;
+  const stats = heroStatItems();
+  const users = getDemoPlatformStats().users;
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-transparent">

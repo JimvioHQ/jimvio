@@ -9,14 +9,12 @@ import React, {
   type ReactNode,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Globe, Package, Store, Users, type LucideIcon } from "lucide-react";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import {
   PLATFORM_STAT_KEYS,
   PLATFORM_STAT_META,
-  PLATFORM_STATS,
   formatPlatformStat,
   getPlatformStatDisplay,
-  getPlatformStatsLaunchSnapshot,
   type PlatformStatKey,
   type PlatformStatsSnapshot,
 } from "@/lib/platform-stats";
@@ -25,13 +23,6 @@ import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 const PHRASE_EASE = [0.22, 1, 0.36, 1] as const;
-
-const STAT_ICONS: Record<PlatformStatKey, LucideIcon> = {
-  countries: Globe,
-  users: Users,
-  businesses: Store,
-  products: Package,
-};
 
 type PlatformStatsContextValue = {
   stats: PlatformStatsSnapshot;
@@ -42,7 +33,7 @@ const PlatformStatsContext = createContext<PlatformStatsContextValue | null>(
 );
 
 export function PlatformStatsProvider({ children }: { children: ReactNode }) {
-  const value = useMemo(() => ({ stats: { ...PLATFORM_STATS } }), []);
+  const value = useMemo(() => ({ stats: getDemoPlatformStats() }), []);
 
   return (
     <PlatformStatsContext.Provider value={value}>
@@ -54,7 +45,7 @@ export function PlatformStatsProvider({ children }: { children: ReactNode }) {
 export function usePlatformStats() {
   const context = useContext(PlatformStatsContext);
   if (!context) {
-    return { stats: getPlatformStatsLaunchSnapshot() };
+    return { stats: getDemoPlatformStats() };
   }
   return context;
 }
@@ -104,16 +95,18 @@ export function PlatformStatLine({
   );
 }
 
-const LONGEST_STAT_KEY = PLATFORM_STAT_KEYS.reduce((longest, key) =>
-  getPlatformStatDisplay(key, PLATFORM_STATS[key]).length >=
-  getPlatformStatDisplay(longest, PLATFORM_STATS[longest]).length
-    ? key
-    : longest,
-);
+function longestStatKey(stats: PlatformStatsSnapshot): PlatformStatKey {
+  return PLATFORM_STAT_KEYS.reduce((longest, key) =>
+    getPlatformStatDisplay(key, stats[key]).length >=
+    getPlatformStatDisplay(longest, stats[longest]).length
+      ? key
+      : longest,
+  );
+}
 
 export function PlatformStatsRotatingBadge({
   className,
-  showLiveDot = true,
+  showLiveDot = false,
   intervalMs = 2800,
 }: {
   className?: string;
@@ -133,11 +126,8 @@ export function PlatformStatsRotatingBadge({
   }, [intervalMs]);
 
   const currentKey = PLATFORM_STAT_KEYS[index];
-  const Icon = STAT_ICONS[currentKey];
-  const longestDisplay = getPlatformStatDisplay(
-    LONGEST_STAT_KEY,
-    stats[LONGEST_STAT_KEY],
-  );
+  const longestKey = longestStatKey(stats);
+  const longestDisplay = getPlatformStatDisplay(longestKey, stats[longestKey]);
 
   return (
     <div
@@ -158,7 +148,6 @@ export function PlatformStatsRotatingBadge({
           aria-hidden
           className="invisible inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
         >
-          <span className="size-3.5 shrink-0" />
           <span className="font-semibold">{longestDisplay}</span>
         </span>
 
@@ -172,7 +161,6 @@ export function PlatformStatsRotatingBadge({
               transition={{ duration: 0.38, ease: PHRASE_EASE }}
               className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
             >
-              <Icon className="size-3.5 shrink-0 text-[#FF5A1F]" strokeWidth={2.2} />
               <PlatformStatLine
                 statKey={currentKey}
                 valueClassName="font-semibold text-[var(--color-text-primary)]"

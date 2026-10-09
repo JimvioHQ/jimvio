@@ -5,7 +5,7 @@ export const COPILOT_QUICK_ACTIONS: CopilotQuickAction[] = [
   {
     id: "profitable-products",
     label: "Find profitable products",
-    prompt: "What are the most profitable products to promote on Jimvio right now?",
+    prompt: "Help me choose a product I can sell or promote on Jimvio.",
     icon: "trending",
     contexts: ["home", "marketplace", "affiliate", "general"],
   },
@@ -26,14 +26,14 @@ export const COPILOT_QUICK_ACTIONS: CopilotQuickAction[] = [
   {
     id: "affiliate-campaigns",
     label: "Find affiliate campaigns",
-    prompt: "Which affiliate products have the highest commission rates today?",
+    prompt: "Earn through affiliate links",
     icon: "percent",
     contexts: ["home", "affiliate", "general"],
   },
   {
     id: "ugc-opportunities",
     label: "Discover UGC opportunities",
-    prompt: "What UGC campaigns are paying creators the most right now?",
+    prompt: "Create UGC or join campaigns",
     icon: "video",
     contexts: ["home", "affiliate", "general"],
   },
@@ -68,7 +68,7 @@ export const COPILOT_QUICK_ACTIONS: CopilotQuickAction[] = [
   {
     id: "trending-products",
     label: "Find trending products",
-    prompt: "What trending products are winning sales this week on Jimvio?",
+    prompt: "Sell products",
     icon: "flame",
     contexts: ["home", "marketplace", "general"],
   },

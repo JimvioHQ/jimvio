@@ -2,10 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  PLATFORM_STATS,
-  formatPlatformStat,
-} from "@/lib/platform-stats";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
+import { formatPlatformStat } from "@/lib/platform-stats";
 import {
   AnimatedPlatformStatValue,
 } from "@/components/platform/platform-stats-provider";
@@ -18,7 +16,6 @@ import {
   Factory,
   TrendingUp,
   ArrowRight,
-  Globe,
   DollarSign,
   Star,
   CheckCircle2,
@@ -147,11 +144,11 @@ function TrustBadges() {
     <div className="flex flex-col gap-2">
       {[
         { icon: CheckCircle2, text: "Free to join — no card needed", color: "#22c55e" },
-        { icon: Globe, text: `${PLATFORM_STATS.countries} countries supported`, color: "#3b82f6" },
+        { icon: null, text: `${getDemoPlatformStats().countries} countries`, color: "#3b82f6" },
         { icon: Star, text: "Verified vendors & creators", color: "#f59e0b" },
       ].map(({ icon: Icon, text, color }) => (
         <div key={text} className="flex items-center gap-2">
-          <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
+          {Icon ? <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} /> : null}
           <span className="text-[10px] text-[var(--color-text-muted)] leading-tight">{text}</span>
         </div>
       ))}
@@ -321,7 +318,7 @@ function GuestView() {
           <div className="grid grid-cols-3 gap-1.5 mb-4">
             {[
               { value: "$1M+", label: "Paid out" },
-              { value: formatPlatformStat("countries", PLATFORM_STATS.countries), label: "Countries" },
+              { value: formatPlatformStat("countries", getDemoPlatformStats().countries), label: "Countries" },
               { value: "30%", label: "Max comm." },
             ].map(({ value, label }) => (
               <div

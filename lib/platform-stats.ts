@@ -1,3 +1,5 @@
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
+
 export const PLATFORM_STATS = {
   countries: 195,
   users: 17238,
@@ -28,21 +30,9 @@ export const PLATFORM_STAT_KEYS: PlatformStatKey[] = [
   "products",
 ];
 
-function formatCompactK(n: number): string {
-  if (n >= 1000) return `${Math.round(n / 1000)}K`;
-  return String(n);
-}
-
-/** Format a stat value for display. */
-export function formatPlatformStat(key: PlatformStatKey, value: number): string {
-  switch (key) {
-    case "countries":
-    case "users":
-      return value.toLocaleString("en-US");
-    case "businesses":
-    case "products":
-      return formatCompactK(value);
-  }
+/** Format a public stat with thousands separators. Not a compact K abbreviation. */
+export function formatPlatformStat(_key: PlatformStatKey, value: number): string {
+  return value.toLocaleString("en-US");
 }
 
 export function getPlatformStatLabel(key: PlatformStatKey): string {
@@ -63,7 +53,10 @@ export function getPlatformStatEmojiDisplay(
   return `${PLATFORM_STAT_META[key].emoji} ${getPlatformStatDisplay(key, value)}`;
 }
 
-/** Launch snapshot for server-rendered copy. */
+/**
+ * Public illustrative snapshot. Not the live database totals from getPlatformStats.
+ * Same value for every caller on the same UTC day.
+ */
 export function getPlatformStatsLaunchSnapshot(): PlatformStatsSnapshot {
-  return { ...PLATFORM_STATS };
+  return getDemoPlatformStats();
 }

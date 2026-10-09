@@ -6,7 +6,6 @@ import {
     BarChart2,
     Banknote,
 } from "lucide-react";
-import { PLATFORM_STATS } from "@/lib/platform-stats";
 import type {
     FeatureItem,
     StepItem,
