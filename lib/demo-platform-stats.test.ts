@@ -5,7 +5,6 @@ import {
   DEMO_STATS_DAILY_RANGE,
   DEMO_STATS_LABEL,
   DEMO_STATS_START,
-  demoDailyIncrement,
   formatDemoStatLine,
   getDemoPlatformStats,
 } from "./demo-platform-stats.ts";
@@ -17,7 +16,7 @@ describe("demo platform stats", () => {
   it("starts at the configured values on the anchor day", () => {
     const stats = getDemoPlatformStats(anchor);
     assert.deepEqual(stats, {
-      users: 18211,
+      users: 108211,
       businesses: 23412,
       products: 1134112,
       countries: 195,
@@ -26,7 +25,7 @@ describe("demo platform stats", () => {
 
   it("formats labels without compact abbreviations", () => {
     const stats = getDemoPlatformStats(anchor);
-    assert.equal(formatDemoStatLine("users", stats.users), "18,211 Users");
+    assert.equal(formatDemoStatLine("users", stats.users), "108,211 Users");
     assert.equal(formatDemoStatLine("businesses", stats.businesses), "23,412 Businesses");
     assert.equal(formatDemoStatLine("products", stats.products), "1,134,112 Products");
     assert.equal(formatDemoStatLine("countries", stats.countries), "195 Countries");
@@ -39,13 +38,12 @@ describe("demo platform stats", () => {
     assert.deepEqual(morning, evening);
   });
 
-  it("advances once on the next UTC day and keeps countries fixed", () => {
+  it("advances businesses and products once on the next UTC day and keeps users and countries fixed", () => {
     const start = getDemoPlatformStats(anchor);
     const later = getDemoPlatformStats(nextDay);
-    const userDelta = later.users - start.users;
     const businessDelta = later.businesses - start.businesses;
     const productDelta = later.products - start.products;
-    assert.ok(userDelta >= DEMO_STATS_DAILY_RANGE.users.min && userDelta <= DEMO_STATS_DAILY_RANGE.users.max);
+    assert.equal(later.users, start.users);
     assert.ok(
       businessDelta >= DEMO_STATS_DAILY_RANGE.businesses.min &&
         businessDelta <= DEMO_STATS_DAILY_RANGE.businesses.max,
@@ -55,7 +53,6 @@ describe("demo platform stats", () => {
         productDelta <= DEMO_STATS_DAILY_RANGE.products.max,
     );
     assert.equal(later.countries, 195);
-    assert.equal(demoDailyIncrement(1, "users"), userDelta);
   });
 
   it("does not change the live platform stats service", () => {

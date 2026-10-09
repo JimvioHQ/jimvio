@@ -1,26 +1,27 @@
 /**
  * Public illustrative platform figures.
  *
- * These numbers are not live database counts. They start at a fixed anchor
- * and grow by a deterministic daily amount. They must not be written back
- * to users, businesses, products, or analytics.
+ * These numbers are not live database counts. Businesses and products start
+ * at a fixed anchor and grow by a deterministic daily amount. Users and
+ * countries stay fixed. They must not be written back to users, businesses,
+ * products, or analytics.
  *
  * Anchor day (UTC) shows the starting values exactly. Each later UTC day
- * adds one stable increment per metric. Countries never change.
+ * adds one stable increment for businesses and products. Users and
+ * countries stay at their anchor figures.
  */
 export const DEMO_STATS_ANCHOR_UTC = "2026-10-09";
 
 export const DEMO_STATS_LABEL = "Illustrative platform figures";
 
 export const DEMO_STATS_START = {
-  users: 18_211,
+  users: 108_211,
   businesses: 23_412,
   products: 1_134_112,
   countries: 195,
 } as const;
 
 export const DEMO_STATS_DAILY_RANGE = {
-  users: { min: 7, max: 10 },
   businesses: { min: 4, max: 8 },
   products: { min: 10, max: 20 },
 } as const;
@@ -59,11 +60,10 @@ export function demoDailyIncrement(
 
 export function getDemoPlatformStats(now: Date = new Date()): DemoPlatformStats {
   const days = Math.max(0, utcDayIndex(now));
-  let users = DEMO_STATS_START.users;
+  const users = DEMO_STATS_START.users;
   let businesses = DEMO_STATS_START.businesses;
   let products = DEMO_STATS_START.products;
   for (let day = 1; day <= days; day += 1) {
-    users += demoDailyIncrement(day, "users");
     businesses += demoDailyIncrement(day, "businesses");
     products += demoDailyIncrement(day, "products");
   }
