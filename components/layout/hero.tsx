@@ -346,23 +346,35 @@ const TRUST_BADGES = [
 ] as const;
 
 /**
- * Homepage marks that the current codebase actually uses.
- * Integrations have a live provider path. Visa and Mastercard are card networks
- * on the Flutterwave card checkout, not separate partnerships.
- * Artwork is the official file already in the repo, or the brand SVG from
- * Wikimedia Commons / the vendor's own site.
+ * Official brand files only. Existing repo artwork is reused where it was
+ * already verified. New files are the vendor SVG/PNG or the Wikimedia Commons
+ * original. Float has no verified file in this set.
  */
 const ECOSYSTEM_LOGOS = [
   { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", w: 148, h: 32 },
-  { src: "/logos/platforms/visa.svg", alt: "Visa, accepted at card checkout", w: 98, h: 32 },
-  { src: "/logos/platforms/mastercard.svg", alt: "Mastercard, accepted at card checkout", w: 48, h: 32 },
+  { src: "/logos/platforms/slack.svg", alt: "Slack", w: 126, h: 32 },
+  { src: "/logos/platforms/visa.svg", alt: "Visa", w: 98, h: 32 },
+  { src: "/logos/platforms/zepto.svg", alt: "Zepto", w: 96, h: 32 },
+  { src: "/logos/platforms/youtube.svg", alt: "YouTube", w: 144, h: 32 },
+  { src: "/logos/platforms/mastercard.svg", alt: "Mastercard", w: 52, h: 32 },
+  { src: "/logos/platforms/omniretail.png", alt: "OmniRetail", w: 102, h: 32 },
   { src: "/logos/binance.png", alt: "Binance Pay", w: 132, h: 32 },
+  { src: "/logos/platforms/mailchimp.svg", alt: "Mailchimp", w: 129, h: 32 },
   { src: "/logos/platforms/nowpayments.svg", alt: "NOWPayments", w: 210, h: 32 },
-  { src: "/logos/platforms/cjdropshipping.svg", alt: "CJdropshipping", w: 148, h: 32 },
-  { src: "/logos/platforms/cloudflare.svg", alt: "Cloudflare", w: 120, h: 32 },
-  { src: "/logos/platforms/cloudinary.svg", alt: "Cloudinary", w: 168, h: 32 },
-  { src: "/logos/platforms/openai.svg", alt: "OpenAI", w: 132, h: 32 },
+  { src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", alt: "Payoneer", w: 165, h: 32 },
+  { src: "/logos/platforms/shopify.svg", alt: "Shopify", w: 108, h: 32 },
+  { src: "/logos/platforms/aliexpress.svg", alt: "AliExpress", w: 148, h: 32 },
+  { src: "/logos/platforms/perplexity.svg", alt: "Perplexity", w: 133, h: 32 },
+  { src: "/logos/platforms/ebay.svg", alt: "eBay", w: 80, h: 32 },
+  { src: "/logos/platforms/streamlabs.svg", alt: "Streamlabs", w: 191, h: 32 },
+  { src: "/logos/platforms/ahrefs.svg", alt: "Ahrefs", w: 141, h: 32 },
+  { src: "/logos/platforms/semrush.svg", alt: "Semrush", w: 160, h: 32 },
+  { src: "/logos/platforms/tiktok.svg", alt: "TikTok", w: 110, h: 32 },
+  { src: "/logos/platforms/content-rewards.svg", alt: "Content Rewards", w: 99, h: 32 },
 ] as const;
+
+const LOGO_TRACK_GAP = "gap-10 sm:gap-14";
+const LOGO_TRACK_PAD = "pr-10 sm:pr-14";
 
 function EcosystemLogo({
   logo,
@@ -381,29 +393,16 @@ function EcosystemLogo({
       decoding="async"
       loading="lazy"
       draggable={false}
-      className="h-6 w-auto max-h-6 max-w-[200px] shrink-0 object-contain sm:h-7 sm:max-h-7 sm:max-w-[220px]"
+      className="h-8 w-auto max-h-8 max-w-[240px] shrink-0 object-contain"
     />
   );
 }
 
-function EcosystemLogoTrack({
-  decorative,
-  wrap,
-}: {
-  decorative?: boolean;
-  wrap?: boolean;
-}) {
+function EcosystemLogoTrack({ decorative }: { decorative?: boolean }) {
   return (
-    <ul
-      className={cn(
-        "flex list-none items-center p-0",
-        wrap
-          ? "max-w-full flex-wrap justify-center gap-x-8 gap-y-3"
-          : "gap-12 sm:gap-16 md:gap-20",
-      )}
-    >
+    <ul className={cn("flex w-max list-none flex-nowrap items-center p-0", LOGO_TRACK_GAP)}>
       {ECOSYSTEM_LOGOS.map((logo) => (
-        <li key={logo.alt} className="flex shrink-0 items-center">
+        <li key={logo.alt} className="flex h-8 shrink-0 items-center">
           <EcosystemLogo logo={logo} decorative={decorative} />
         </li>
       ))}
@@ -422,48 +421,48 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
   const animate = !reduced && play;
 
   return (
-    <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <p className="mb-2 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-2.5 sm:text-[13px]">
+    <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
+      <p className="mb-3 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
         Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
-      <h2 className="mb-3 text-center text-[13px] font-semibold tracking-[-0.015em] text-[var(--color-text-primary)] sm:mb-3.5 sm:text-[15px]">
-        Platforms & Integrations
-      </h2>
 
-      {reduced ? (
-        <div className="flex justify-center overflow-hidden px-1">
-          <EcosystemLogoTrack wrap />
-        </div>
-      ) : (
+      <div
+        className="hidden w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain motion-reduce:block"
+        tabIndex={0}
+        aria-label="Platform logos"
+      >
+        <EcosystemLogoTrack />
+      </div>
+
+      <div
+        className={cn(
+          "group relative h-8 w-full min-w-0 overflow-hidden rounded-md motion-reduce:hidden",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+        )}
+        tabIndex={reduced ? -1 : 0}
+        aria-hidden={reduced ? true : undefined}
+        aria-label={reduced ? undefined : "Platform logos. Focus pauses the animation."}
+        style={{
+          maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
+        }}
+      >
         <div
-          className="group relative min-h-[32px] overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 sm:min-h-[36px]"
-          tabIndex={0}
-          aria-label="Platforms and integrations. Focus pauses the animation."
-          style={{
-            maskImage:
-              "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
-            WebkitMaskImage:
-              "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
-          }}
+          className={cn(
+            "flex w-max items-center will-change-transform",
+            animate && "animate-[hero-partner-marquee_60s_linear_infinite] motion-reduce:animate-none",
+            "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
+            !play && "[animation-play-state:paused]",
+          )}
         >
-          <div
-            className={cn(
-              "flex w-max items-center",
-              animate &&
-                "animate-[hero-partner-marquee_24s_linear_infinite] motion-reduce:animate-none",
-              "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
-              !play && "[animation-play-state:paused]",
-            )}
-          >
-            <div className="flex shrink-0 items-center pr-12 sm:pr-16 md:pr-20">
-              <EcosystemLogoTrack />
-            </div>
-            <div className="flex shrink-0 items-center pr-12 sm:pr-16 md:pr-20" aria-hidden>
-              <EcosystemLogoTrack decorative />
-            </div>
+          <div className={cn("flex shrink-0 items-center", LOGO_TRACK_PAD)}>
+            <EcosystemLogoTrack />
+          </div>
+          <div className={cn("flex shrink-0 items-center", LOGO_TRACK_PAD)} aria-hidden="true">
+            <EcosystemLogoTrack decorative />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 });
