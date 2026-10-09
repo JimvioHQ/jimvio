@@ -113,8 +113,8 @@
     --space-10: 2.5rem;
 
     --container-max: 1280px;
-    /* Single-row header: h-14. Keep in sync with components/layout/navbar.tsx */
-    --navbar-height: 56px;
+    /* Single-row header: h-14 plus the iOS status-bar inset. Keep in sync with navbar.tsx */
+    --navbar-height: calc(56px + env(safe-area-inset-top, 0px));
 
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(0, 0, 0, 0.06);
@@ -177,7 +177,7 @@
   /* md+ header bar is h-[62px] — keep in sync with components/layout/navbar.tsx */
   @media (min-width: 768px) {
     :root {
-      --navbar-height: 62px;
+      --navbar-height: calc(62px + env(safe-area-inset-top, 0px));
     }
   }
 
@@ -211,6 +211,7 @@
   html {
     margin: 0;
     padding: 0;
+    background-color: var(--color-bg);
     overflow-x: hidden;
     overflow-y: auto;
     /* Native scroll by default — smooth scroll janks mobile touch scrolling */
@@ -791,11 +792,11 @@
 
   @keyframes hero-partner-marquee {
     0% {
-      transform: translateX(0);
+      transform: translate3d(0, 0, 0);
     }
 
     100% {
-      transform: translateX(-50%);
+      transform: translate3d(-50%, 0, 0);
     }
   }
 

@@ -8,9 +8,9 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type RefObject,
 } from "react";
 import Link from "next/link";
-import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import {
   ArrowRight,
   BadgeCheck,
@@ -436,61 +436,90 @@ function JourneySelector({
   );
 }
 
-const DROPSHIP_PLACEHOLDER_PROMPTS = [
-  "What do you want to dropship?",
-  "Find trending products for my niche",
-  "Show me products with high profit margins",
-  "Find products with fast shipping",
-  "Discover home & living products",
-  "Find products my customers will love",
-] as const;
-
-function useTypewriterPlaceholder(prompts: readonly string[], enabled: boolean) {
-  const [text, setText] = useState("");
-
+/** Writes the placeholder on the input node so typing does not rerender the panel. */
+function useTypedPlaceholder(
+  inputRef: RefObject<HTMLInputElement | null>,
+  phrase: string,
+  active: boolean,
+) {
   useEffect(() => {
-    if (!enabled || prompts.length === 0) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const node = inputRef.current;
+    if (!node) return;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!active || reduced) {
+      node.placeholder = phrase;
+      return;
+    }
 
     let cancelled = false;
+    let paused = false;
     let timer = 0;
-    let promptIndex = 0;
     let charIndex = 0;
     let deleting = false;
 
+    const stop = () => {
+      paused = true;
+      window.clearTimeout(timer);
+      node.placeholder = phrase;
+    };
+
     const tick = () => {
-      if (cancelled) return;
-      const prompt = prompts[promptIndex] ?? "";
+      if (cancelled || paused) return;
+      if (node.value.length > 0 || document.activeElement === node) {
+        stop();
+        return;
+      }
       if (!deleting) {
         charIndex += 1;
-        setText(prompt.slice(0, charIndex));
-        if (charIndex >= prompt.length) {
+        node.placeholder = phrase.slice(0, charIndex);
+        if (charIndex >= phrase.length) {
           deleting = true;
-          timer = window.setTimeout(tick, 1400);
+          timer = window.setTimeout(tick, 1100);
           return;
         }
-        timer = window.setTimeout(tick, 42);
+        timer = window.setTimeout(tick, 56);
         return;
       }
       charIndex -= 1;
-      setText(prompt.slice(0, Math.max(charIndex, 0)));
+      node.placeholder = phrase.slice(0, Math.max(charIndex, 0));
       if (charIndex <= 0) {
         deleting = false;
-        promptIndex = (promptIndex + 1) % prompts.length;
-        timer = window.setTimeout(tick, 280);
+        timer = window.setTimeout(tick, 420);
         return;
       }
-      timer = window.setTimeout(tick, 24);
+      timer = window.setTimeout(tick, 32);
     };
 
-    timer = window.setTimeout(tick, 360);
+    const onFocus = () => stop();
+    const onInput = () => {
+      if (node.value.length > 0) stop();
+    };
+    const onBlur = () => {
+      if (node.value.length > 0) {
+        stop();
+        return;
+      }
+      paused = false;
+      charIndex = 0;
+      deleting = false;
+      node.placeholder = "";
+      timer = window.setTimeout(tick, 360);
+    };
+
+    node.addEventListener("focus", onFocus);
+    node.addEventListener("input", onInput);
+    node.addEventListener("blur", onBlur);
+    timer = window.setTimeout(tick, 480);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      node.removeEventListener("focus", onFocus);
+      node.removeEventListener("input", onInput);
+      node.removeEventListener("blur", onBlur);
+      node.placeholder = phrase;
     };
-  }, [enabled, prompts]);
-
-  return text;
+  }, [active, inputRef, phrase]);
 }
 
 function AiPanel({
@@ -508,24 +537,31 @@ function AiPanel({
 }) {
   const openAssistant = useAIStore((s) => s.openAssistant);
   const setPageContext = useAIStore((s) => s.setPageContext);
+  const aiStatus = useAIStore((s) => s.status);
   const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
+  const [emptyHint, setEmptyHint] = useState(false);
+  const [asked, setAsked] = useState(false);
   const askLockRef = useRef(false);
-  const reducedMotion = usePrefersReducedMotion();
-  const typewriter = useTypewriterPlaceholder(
-    DROPSHIP_PLACEHOLDER_PROMPTS,
-    pathId === "dropship" && !reducedMotion && !focused && query.length === 0,
+  const inputRef = useRef<HTMLInputElement>(null);
+  useTypedPlaceholder(
+    inputRef,
+    placeholder,
+    pathId === "dropship" && query.length === 0,
   );
-  const inputPlaceholder =
-    pathId === "dropship" && !focused && query.length === 0 && typewriter
-      ? typewriter
-      : placeholder;
 
   const ask = useCallback(
     (raw: string) => {
       const trimmed = raw.trim();
-      if (!trimmed || askLockRef.current) return;
+      if (!trimmed) {
+        setEmptyHint(true);
+        setAsked(false);
+        inputRef.current?.focus();
+        return;
+      }
+      if (askLockRef.current) return;
       askLockRef.current = true;
+      setEmptyHint(false);
+      setAsked(true);
       setPageContext("home", "/");
       openAssistant(trimmed);
       window.setTimeout(() => {
@@ -557,7 +593,7 @@ function AiPanel({
           </p>
 
           <form
-            className="mt-3.5 flex flex-col gap-2.5 sm:flex-row sm:items-center"
+            className="mt-3.5 flex flex-col gap-2 sm:flex-row sm:items-center"
             onSubmit={(e) => {
               e.preventDefault();
               ask(query);
@@ -572,16 +608,28 @@ function AiPanel({
                 aria-hidden
               />
               <input
+                ref={inputRef}
                 id={`jimvio-ai-input-${pathId}`}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={inputPlaceholder}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (e.target.value.trim()) setEmptyHint(false);
+                }}
+                placeholder={placeholder}
                 autoComplete="off"
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
+                aria-invalid={emptyHint}
+                aria-describedby={
+                  emptyHint ||
+                  (asked &&
+                    (aiStatus === "thinking" ||
+                      aiStatus === "streaming" ||
+                      aiStatus === "offline"))
+                    ? `jimvio-ai-status-${pathId}`
+                    : undefined
+                }
                 className={cn(
-                  "h-12 w-full rounded-full border border-[rgba(17,24,39,0.08)] bg-white pl-10 pr-4 text-[13.5px] text-[#111827]",
+                  "h-12 w-full min-w-0 rounded-full border border-[rgba(17,24,39,0.08)] bg-white pl-10 pr-4 text-[14px] text-[#111827]",
                   "placeholder:text-[#9CA3AF] shadow-[0_4px_14px_rgba(17,24,39,0.04)]",
                   "outline-none transition-[border-color,box-shadow] focus:border-[#FF5A1F]/45 focus:ring-2 focus:ring-[#FF5A1F]/15",
                 )}
@@ -589,18 +637,45 @@ function AiPanel({
             </div>
             <button
               type="submit"
-              disabled={!query.trim()}
               className={cn(
-                "inline-flex h-12 w-full shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#FF5A1F] px-5 text-[13.5px] font-bold text-white sm:w-auto",
-                "shadow-[0_8px_18px_rgba(255,90,31,0.28)] transition-[opacity,transform,background-color] duration-200",
+                "inline-flex h-12 w-full shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#FF5A1F] px-5 text-[14px] font-bold text-white sm:w-auto sm:min-w-[158px]",
+                "shadow-[0_8px_18px_rgba(255,90,31,0.28)] transition-[background-color,transform] duration-200",
                 "hover:bg-[#e84e16] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
-                "disabled:cursor-not-allowed disabled:opacity-55 active:scale-[0.98] motion-reduce:active:scale-100 motion-reduce:transition-none",
+                "active:scale-[0.98] motion-reduce:active:scale-100 motion-reduce:transition-none",
               )}
             >
               Ask Jimvio AI
               <ArrowRight className="size-3.5" aria-hidden />
             </button>
           </form>
+          {emptyHint ||
+          (asked &&
+            (aiStatus === "thinking" || aiStatus === "streaming" || aiStatus === "offline")) ? (
+            <div id={`jimvio-ai-status-${pathId}`} className="mt-2" aria-live="polite">
+              {emptyHint ? (
+                <p role="alert" className="text-[12.5px] font-medium text-[#9A3412]">
+                  Enter a question first, then ask Jimvio AI.
+                </p>
+              ) : null}
+              {asked && (aiStatus === "thinking" || aiStatus === "streaming") ? (
+                <p className="text-[12.5px] font-medium text-[#6B7280]">
+                  Jimvio AI is responding…
+                </p>
+              ) : null}
+              {asked && aiStatus === "offline" ? (
+                <p role="alert" className="flex flex-wrap items-center gap-2 text-[12.5px] font-medium text-[#9A3412]">
+                  Jimvio AI could not finish that reply.
+                  <button
+                    type="button"
+                    onClick={() => ask(query)}
+                    className="font-bold text-[#FF5A1F] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
+                  >
+                    Try again
+                  </button>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2" aria-label="Suggested prompts">
             {suggestions.map((suggestion) => (

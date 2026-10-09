@@ -351,30 +351,65 @@ const TRUST_BADGES = [
   { icon: Headphones, label: "24/7 Support", color: "#2563eb" },
 ] as const;
 
-/** Payment methods with a live checkout or deposit integration and a real logo file. */
-const PARTNER_IMG_LOGOS = [
+/**
+ * Creator platforms people already publish on, plus payment marks that have a
+ * live Jimvio checkout or deposit integration. Not a partner or endorsement line.
+ * Artwork is the official file (Wikimedia brand uploads or the vendor SVG/PNG already shipped).
+ */
+const ECOSYSTEM_LOGOS = [
+  { src: "/logos/platforms/youtube.svg", alt: "YouTube", w: 120, h: 27 },
+  { src: "/logos/platforms/tiktok.svg", alt: "TikTok", w: 112, h: 32 },
+  { src: "/logos/platforms/twitch.svg", alt: "Twitch", w: 88, h: 32 },
+  { src: "/logos/platforms/instagram.svg", alt: "Instagram", w: 28, h: 28 },
   { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", w: 132, h: 32 },
   { src: "/logos/binance.png", alt: "Binance Pay", w: 148, h: 32 },
   { src: "/logos/NOWPayments_idKVr3HnXR_1.svg", alt: "NOWPayments", w: 148, h: 32 },
 ] as const;
 
-function PartnerLogoTrack({ suffix }: { suffix: string }) {
+function EcosystemLogo({
+  logo,
+  decorative,
+}: {
+  logo: (typeof ECOSYSTEM_LOGOS)[number];
+  decorative?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-10 sm:gap-14 md:gap-16">
-      {PARTNER_IMG_LOGOS.map((logo) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={`${logo.alt}-${suffix}`}
-          src={logo.src}
-          alt={logo.alt}
-          width={logo.w}
-          height={logo.h}
-          decoding="async"
-          loading="lazy"
-          className="h-6 w-auto max-w-[148px] shrink-0 object-contain sm:h-7"
-        />
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logo.src}
+      alt={decorative ? "" : logo.alt}
+      width={logo.w}
+      height={logo.h}
+      decoding="async"
+      loading="lazy"
+      draggable={false}
+      className="h-6 w-auto max-h-6 max-w-[132px] shrink-0 object-contain sm:h-7 sm:max-h-7 sm:max-w-[148px]"
+    />
+  );
+}
+
+function EcosystemLogoTrack({
+  decorative,
+  wrap,
+}: {
+  decorative?: boolean;
+  wrap?: boolean;
+}) {
+  return (
+    <ul
+      className={cn(
+        "flex list-none items-center p-0",
+        wrap
+          ? "max-w-full flex-wrap justify-center gap-x-8 gap-y-3"
+          : "gap-10 sm:gap-14 md:gap-16",
+      )}
+    >
+      {ECOSYSTEM_LOGOS.map((logo) => (
+        <li key={logo.alt} className="flex shrink-0 items-center">
+          <EcosystemLogo logo={logo} decorative={decorative} />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -394,35 +429,43 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
         Illustrative reach · <HeroTrustedCount value={users} /> creators and businesses
       </p>
       <p className="mb-3 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:mb-3.5">
-        Supported payment methods
+        Platforms creators use
       </p>
 
-      <div
-        className="group relative min-h-[32px] overflow-hidden sm:min-h-[36px]"
-        style={{
-          maskImage:
-            "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
-          WebkitMaskImage:
-            "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
-        }}
-      >
+      {reduced ? (
+        <div className="flex justify-center overflow-hidden px-1">
+          <EcosystemLogoTrack wrap />
+        </div>
+      ) : (
         <div
-          className={cn(
-            "flex w-max items-center",
-            animate &&
-              "animate-[hero-partner-marquee_120s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_95s_linear_infinite]",
-            "group-hover:[animation-play-state:paused]",
-            !play && "[animation-play-state:paused]",
-          )}
+          className="group relative min-h-[32px] overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 sm:min-h-[36px]"
+          tabIndex={0}
+          aria-label="Platforms creators use. Focus pauses the animation."
+          style={{
+            maskImage:
+              "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+          }}
         >
-          <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16">
-            <PartnerLogoTrack suffix="a" />
-          </div>
-          <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16" aria-hidden>
-            <PartnerLogoTrack suffix="b" />
+          <div
+            className={cn(
+              "flex w-max items-center",
+              animate &&
+                "animate-[hero-partner-marquee_34s_linear_infinite] motion-reduce:animate-none",
+              "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
+              !play && "[animation-play-state:paused]",
+            )}
+          >
+            <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16">
+              <EcosystemLogoTrack />
+            </div>
+            <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16" aria-hidden>
+              <EcosystemLogoTrack decorative />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });

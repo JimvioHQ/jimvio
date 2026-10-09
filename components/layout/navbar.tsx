@@ -272,13 +272,16 @@ export function Navbar({ user, marketing }: NavbarProps) {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 pointer-events-none transition-all duration-300">
+    <header className="fixed top-0 inset-x-0 z-50 pointer-events-none">
       <div
         className={cn(
-          "pointer-events-auto relative mx-auto transition-all duration-300 flex flex-col",
+          "pointer-events-auto relative mx-auto flex flex-col",
+          "bg-white pt-[env(safe-area-inset-top,0px)] shadow-[0_1px_0_rgba(0,0,0,0.06)]",
+          "dark:bg-[#0a0a0a] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]",
+          "md:transition-all md:duration-300",
           scrolled
-            ? "bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
-            : "bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl"
+            ? "md:bg-white/90 md:backdrop-blur-2xl md:dark:bg-[#0a0a0a]/90"
+            : "md:bg-white/70 md:backdrop-blur-xl md:dark:bg-[#0a0a0a]/70 md:shadow-none",
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />

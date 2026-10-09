@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -73,14 +72,16 @@ function LogoMark({
       style={{ width: icon, height: icon }}
       aria-hidden
     >
-      <Image
+      {/* Sized img, not next/image fill: absolute fill painted a black tile under the mobile header on iOS. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
         src={MARK_SRC}
         alt=""
-        fill
-        sizes={`${icon}px`}
-        quality={92}
-        className="object-cover object-center [image-rendering:auto]"
-        priority
+        width={icon}
+        height={icon}
+        decoding="async"
+        draggable={false}
+        className="block h-full w-full object-cover object-center"
       />
     </span>
   );
