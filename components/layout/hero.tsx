@@ -346,18 +346,22 @@ const TRUST_BADGES = [
 ] as const;
 
 /**
- * Creator platforms people already publish on, plus payment marks that have a
- * live Jimvio checkout or deposit integration. Not a partner or endorsement line.
- * Artwork is the official file (Wikimedia brand uploads or the vendor SVG/PNG already shipped).
+ * Homepage marks that the current codebase actually uses.
+ * Integrations have a live provider path. Visa and Mastercard are card networks
+ * on the Flutterwave card checkout, not separate partnerships.
+ * Artwork is the official file already in the repo, or the brand SVG from
+ * Wikimedia Commons / the vendor's own site.
  */
 const ECOSYSTEM_LOGOS = [
-  { src: "/logos/platforms/youtube.svg", alt: "YouTube", w: 120, h: 27 },
-  { src: "/logos/platforms/tiktok.svg", alt: "TikTok", w: 112, h: 32 },
-  { src: "/logos/platforms/twitch.svg", alt: "Twitch", w: 88, h: 32 },
-  { src: "/logos/platforms/instagram.svg", alt: "Instagram", w: 28, h: 28 },
-  { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", w: 132, h: 32 },
-  { src: "/logos/binance.png", alt: "Binance Pay", w: 148, h: 32 },
-  { src: "/logos/NOWPayments_idKVr3HnXR_1.svg", alt: "NOWPayments", w: 148, h: 32 },
+  { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", w: 148, h: 32 },
+  { src: "/logos/platforms/visa.svg", alt: "Visa, accepted at card checkout", w: 98, h: 32 },
+  { src: "/logos/platforms/mastercard.svg", alt: "Mastercard, accepted at card checkout", w: 48, h: 32 },
+  { src: "/logos/binance.png", alt: "Binance Pay", w: 132, h: 32 },
+  { src: "/logos/platforms/nowpayments.svg", alt: "NOWPayments", w: 210, h: 32 },
+  { src: "/logos/platforms/cjdropshipping.svg", alt: "CJdropshipping", w: 148, h: 32 },
+  { src: "/logos/platforms/cloudflare.svg", alt: "Cloudflare", w: 120, h: 32 },
+  { src: "/logos/platforms/cloudinary.svg", alt: "Cloudinary", w: 168, h: 32 },
+  { src: "/logos/platforms/openai.svg", alt: "OpenAI", w: 132, h: 32 },
 ] as const;
 
 function EcosystemLogo({
@@ -377,7 +381,7 @@ function EcosystemLogo({
       decoding="async"
       loading="lazy"
       draggable={false}
-      className="h-6 w-auto max-h-6 max-w-[132px] shrink-0 object-contain sm:h-7 sm:max-h-7 sm:max-w-[148px]"
+      className="h-6 w-auto max-h-6 max-w-[200px] shrink-0 object-contain sm:h-7 sm:max-h-7 sm:max-w-[220px]"
     />
   );
 }
@@ -395,7 +399,7 @@ function EcosystemLogoTrack({
         "flex list-none items-center p-0",
         wrap
           ? "max-w-full flex-wrap justify-center gap-x-8 gap-y-3"
-          : "gap-10 sm:gap-14 md:gap-16",
+          : "gap-12 sm:gap-16 md:gap-20",
       )}
     >
       {ECOSYSTEM_LOGOS.map((logo) => (
@@ -422,9 +426,9 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
       <p className="mb-2 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-2.5 sm:text-[13px]">
         Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
-      <p className="mb-3 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:mb-3.5">
-        Platforms creators use
-      </p>
+      <h2 className="mb-3 text-center text-[13px] font-semibold tracking-[-0.015em] text-[var(--color-text-primary)] sm:mb-3.5 sm:text-[15px]">
+        Platforms & Integrations
+      </h2>
 
       {reduced ? (
         <div className="flex justify-center overflow-hidden px-1">
@@ -434,7 +438,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
         <div
           className="group relative min-h-[32px] overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 sm:min-h-[36px]"
           tabIndex={0}
-          aria-label="Platforms creators use. Focus pauses the animation."
+          aria-label="Platforms and integrations. Focus pauses the animation."
           style={{
             maskImage:
               "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
@@ -446,15 +450,15 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
             className={cn(
               "flex w-max items-center",
               animate &&
-                "animate-[hero-partner-marquee_34s_linear_infinite] motion-reduce:animate-none",
+                "animate-[hero-partner-marquee_24s_linear_infinite] motion-reduce:animate-none",
               "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
               !play && "[animation-play-state:paused]",
             )}
           >
-            <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16">
+            <div className="flex shrink-0 items-center pr-12 sm:pr-16 md:pr-20">
               <EcosystemLogoTrack />
             </div>
-            <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16" aria-hidden>
+            <div className="flex shrink-0 items-center pr-12 sm:pr-16 md:pr-20" aria-hidden>
               <EcosystemLogoTrack decorative />
             </div>
           </div>
