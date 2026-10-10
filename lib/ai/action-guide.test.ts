@@ -61,6 +61,9 @@ describe("action guide", () => {
       "Help me edit this post",
       "Help me create a campaign",
       "Help me start a live session",
+      "Help me find a campaign to join",
+      "Help me manage my community",
+      "Help me edit a product",
     ]) {
       const turn = planGuideTurn(prompt, null);
       assert.ok(turn, prompt);

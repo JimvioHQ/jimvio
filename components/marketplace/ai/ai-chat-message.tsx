@@ -30,6 +30,8 @@ export interface AiChatMessageData {
   followups?: string[];
   showCalculator?: boolean;
   feedback?: "up" | "down" | null;
+  /** True when the reply is the earning guide because the live model did not answer. */
+  fallback?: boolean;
 }
 
 function ThinkingBubble() {
@@ -133,6 +135,11 @@ export function AiChatMessage({
               {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
               {copied ? "Copied" : "Copy"}
             </button>
+            {msg.fallback ? (
+              <p className="w-full text-[11px] font-medium text-[#9A3412]" role="status">
+                The live model did not answer. This guide did not complete an action. Retry asks the model again.
+              </p>
+            ) : null}
             {onRegenerate && (
               <button
                 type="button"
@@ -140,7 +147,7 @@ export function AiChatMessage({
                 className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)]"
               >
                 <RefreshCw className="size-3" />
-                Regenerate
+                {msg.fallback ? "Retry" : "Regenerate"}
               </button>
             )}
             <button

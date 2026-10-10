@@ -58,7 +58,7 @@ const WORKFLOWS: Array<{
   },
   {
     id: "product",
-    test: /\b(add|create|list|upload)\b.{0,30}\bproduct\b|\bimprove (my |this )?product listing\b/i,
+    test: /\b(add|create|list|upload|edit)\b.{0,30}\bproduct\b|\bimprove (my |this )?product listing\b/i,
     content:
       "Product listings are saved from the product form, not from this chat. I have not added or published a product.\n\n1. Open Upload product for a new listing, or Seller products to edit one you already own.\n2. Enter the title, price, and details yourself.\n3. Publish only when the form confirms it.\n\nIf you tell me the product and who it is for, I can draft the description for you to paste in.",
     links: [
@@ -85,6 +85,25 @@ const WORKFLOWS: Array<{
       "Posts are written in the post composer. I can draft the words here, and I will not publish a post unless you submit it on that page.\n\n1. Open Create post.\n2. Paste or write the content.\n3. Publish from that page when you are ready.\n\nNothing has been published.",
     links: [{ label: "Create post", href: "/create/post" }],
     followups: ["Draft a community post", "Help me create a community"],
+  },
+  {
+    id: "join-campaign",
+    test: /\b(find|join|browse)\b.{0,40}\b(campaign|campaigns|ugc)\b/i,
+    content:
+      "Joining a campaign happens on the campaign page. I have not applied or joined one.\n\n1. Open UGC campaigns.\n2. Choose a campaign you qualify for.\n3. Apply or join from that page.",
+    links: [{ label: "UGC campaigns", href: "/ugc" }],
+    followups: ["Help me create a campaign", "What can I sell on Jimvio?"],
+  },
+  {
+    id: "manage-community",
+    test: /\b(manage|edit|settings)\b.{0,30}\b(my )?community\b/i,
+    content:
+      "Community settings are saved in the community you own. I have not changed a community.\n\n1. Open your communities.\n2. Choose the community you manage.\n3. Update it from that community's manage page.",
+    links: [
+      { label: "Your communities", href: "/communities" },
+      { label: "Owner communities", href: "/owner/communities" },
+    ],
+    followups: ["Help me create a community", "Help me create a space"],
   },
   {
     id: "campaign",

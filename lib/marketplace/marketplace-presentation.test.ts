@@ -7,7 +7,7 @@ import {
   productHasVerifiedSupplier,
   productHasVideoSignal,
   productIsInStock,
-} from "./product-signals";
+} from "./product-signals.ts";
 
 const root = process.cwd();
 

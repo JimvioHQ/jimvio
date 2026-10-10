@@ -3,11 +3,12 @@ import type { CopilotProvider, CopilotSendInput, CopilotStreamChunk } from "./ty
 
 const TIMEOUT_MS = 25_000;
 
-function parseSse(buffer: string): { text: string; rest: string; done: boolean } {
+function parseSse(buffer: string): { text: string; rest: string; done: boolean; fallback: boolean } {
   const parts = buffer.split("\n\n");
   const rest = parts.pop() ?? "";
   let text = "";
   let done = false;
+  let fallback = false;
   for (const part of parts) {
     const line = part
       .split("\n")
@@ -19,13 +20,20 @@ function parseSse(buffer: string): { text: string; rest: string; done: boolean }
       done = true;
       continue;
     }
-    const json = JSON.parse(data) as {
+    let json: {
       choices?: Array<{ delta?: { content?: string } }>;
+      jimvio?: { mode?: string };
     };
+    try {
+      json = JSON.parse(data) as typeof json;
+    } catch {
+      continue;
+    }
+    if (json.jimvio?.mode === "guide") fallback = true;
     const delta = json.choices?.[0]?.delta?.content;
     if (typeof delta === "string") text += delta;
   }
-  return { text, rest, done };
+  return { text, rest, done, fallback };
 }
 
 async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncGenerator<CopilotStreamChunk> {
@@ -47,6 +55,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
   const decoder = new TextDecoder();
   let buffer = "";
   let full = "";
+  let fallback = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -54,6 +63,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
       buffer += decoder.decode(value, { stream: true });
       const parsed = parseSse(buffer);
       buffer = parsed.rest;
+      fallback = fallback || parsed.fallback;
       if (parsed.text) {
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
@@ -71,6 +81,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
       content: triggers.cleaned,
       followups: triggers.followups,
       links: triggers.links,
+      fallback,
     },
   };
   yield { type: "done" };

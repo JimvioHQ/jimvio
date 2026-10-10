@@ -305,6 +305,7 @@ export function useCopilotChat() {
                   thinking: false,
                   followups: parsed.followups ?? metadata.followups,
                   links: parsed.links ?? metadata.links,
+                  fallback: metadata.fallback || content.startsWith("This is a Jimvio earning guide."),
                 }
               : m,
           ),
@@ -318,7 +319,8 @@ export function useCopilotChat() {
               ? {
                   ...m,
                   thinking: false,
-                  content: "Jimvio AI could not finish that reply. Try again.",
+                  content: "Jimvio AI could not finish that reply. Your message is still here.",
+                  fallback: true,
                 }
               : m,
           ),
