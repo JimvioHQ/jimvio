@@ -4,12 +4,13 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
-import {
-  customerQueueLabel,
-  type AgentAvailability,
-} from "@/lib/support/conversation-policy";
 import { assistantRevealChunks, revealDelayMs } from "@/lib/support/reveal";
-import { SUGGESTED_SEARCHES } from "@/lib/support/types";
+import {
+  SUPPORT_CHAT_SUGGESTIONS,
+  SUPPORT_COMPOSER_PLACEHOLDER,
+  SUPPORT_WELCOME_GREETING,
+  SUPPORT_WELCOME_PROMPT,
+} from "@/lib/support/welcome";
 
 type ArticleLink = { slug: string; title: string; href: string };
 type ChatMessage = {
@@ -28,8 +29,6 @@ type Conversation = {
   mode: string;
   customerUnread?: number;
 };
-
-const SUGGESTIONS = SUGGESTED_SEARCHES.slice(0, 4);
 
 function labelFor(role: ChatMessage["authorRole"]) {
   if (role === "ai") return "Jimvio AI";
@@ -105,14 +104,14 @@ export function SupportChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [draft, setDraft] = useState("");
-  const [phase, setPhase] = useState<"idle" | "loading" | "sending" | "failed">("idle");
+  const [phase, setPhase] = useState<"idle" | "loading" | "sending" | "failed">("loading");
   const [error, setError] = useState("");
   const [failedDraft, setFailedDraft] = useState("");
   const [pendingBody, setPendingBody] = useState("");
-  const [authRequired, setAuthRequired] = useState(false);
-  const [availability, setAvailability] = useState<AgentAvailability>("unknown");
+  const [canSave, setCanSave] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [staffTyping, setStaffTyping] = useState(false);
-  const [realtime, setRealtime] = useState<"subscribed" | "polling">("polling");
+  const [handoffFailed, setHandoffFailed] = useState(false);
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const liveRef = useRef(false);
 
@@ -129,50 +128,49 @@ export function SupportChat({
     const response = await fetch(`/api/support/conversations/${id}`);
     const data = await response.json().catch(() => null);
     if (response.status === 401) {
-      setAuthRequired(true);
+      setCanSave(false);
+      setSessionChecked(true);
+      setPhase((current) => (current === "loading" ? "idle" : current));
       return;
     }
     if (!response.ok) {
       setError(data?.error || "Could not load this conversation.");
+      setPhase((current) => (current === "loading" ? "idle" : current));
       return;
     }
-    setAuthRequired(false);
+    setCanSave(true);
+    setSessionChecked(true);
     setConversation(data.conversation);
     acceptMessages(data.messages ?? [], false);
     onConversationId(data.conversation.id);
-  }
-
-  async function refreshPresence() {
-    try {
-      const response = await fetch("/api/support/presence");
-      const data = await response.json().catch(() => null);
-      if (!response.ok || data?.status === "error") {
-        setAvailability("error");
-        return;
-      }
-      setAvailability(data?.available ? "available" : "unavailable");
-    } catch {
-      setAvailability("error");
-    }
+    setPhase((current) => (current === "loading" ? "idle" : current));
   }
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await refreshPresence();
-      if (cancelled) return;
       if (!conversationId) {
         const listed = await fetch("/api/support/conversations");
         if (listed.status === 401) {
-          if (!cancelled) setAuthRequired(true);
+          if (!cancelled) {
+            setCanSave(false);
+            setSessionChecked(true);
+            setPhase((current) => (current === "loading" ? "idle" : current));
+          }
           return;
+        }
+        if (!cancelled) {
+          setCanSave(true);
+          setSessionChecked(true);
         }
         const data = await listed.json().catch(() => null);
         const latest = (data?.conversations ?? []).find((item: { status: string }) => item.status !== "resolved") ?? data?.conversations?.[0];
         if (latest?.id && !cancelled) await load(latest.id);
+        if (!cancelled) setPhase((current) => (current === "loading" ? "idle" : current));
         return;
       }
       await load(conversationId);
+      if (!cancelled) setPhase((current) => (current === "loading" ? "idle" : current));
     })();
     return () => {
       cancelled = true;
@@ -208,7 +206,6 @@ export function SupportChat({
         onStatus: (status) => {
           if (cancelled) return;
           liveRef.current = status === "SUBSCRIBED";
-          setRealtime(status === "SUBSCRIBED" ? "subscribed" : "polling");
         },
       },
     );
@@ -236,6 +233,64 @@ export function SupportChat({
     stickRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
   }
 
+  function showLocalAnswer(body: string, answer: string, articles: ArticleLink[], mode: ChatMessage["answerMode"]) {
+    const now = new Date().toISOString();
+    const customer: ChatMessage = {
+      id: crypto.randomUUID(),
+      authorRole: "customer",
+      body,
+      createdAt: now,
+      answerMode: null,
+      articles: [],
+    };
+    const assistant: ChatMessage = {
+      id: crypto.randomUUID(),
+      authorRole: "ai",
+      body: answer,
+      createdAt: now,
+      answerMode: mode,
+      articles,
+    };
+    setMessages((current) => {
+      const next = [...current, customer, assistant];
+      for (const message of next) knownIds.current.add(message.id);
+      return next;
+    });
+    setRevealingId(assistant.id);
+  }
+
+  async function askPublic(body: string) {
+    setCanSave(false);
+    try {
+      const response = await fetch("/api/support/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: body }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setPhase("failed");
+        setPendingBody("");
+        setFailedDraft(body);
+        setError(data?.error || "I could not answer that just now.");
+        return;
+      }
+      const articles = Array.isArray(data?.articles) ? (data.articles as ArticleLink[]) : [];
+      const mode = data?.mode === "live" || data?.mode === "refused" || data?.mode === "knowledge" ? data.mode : "knowledge";
+      showLocalAnswer(body, typeof data?.answer === "string" ? data.answer : "I could not find an answer for that.", articles, mode);
+      setDraft("");
+      setPendingBody("");
+      setFailedDraft("");
+      setHandoffFailed(false);
+      setPhase("idle");
+    } catch {
+      setPhase("failed");
+      setPendingBody("");
+      setFailedDraft(body);
+      setError("I could not answer that. Check your connection and retry.");
+    }
+  }
+
   async function send(text: string): Promise<string | null> {
     const body = text.trim();
     if (body.length < 1 || sendingRef.current) return null;
@@ -244,10 +299,15 @@ export function SupportChat({
     if (!reusing) clientMessageId.current = crypto.randomUUID();
     setPhase("sending");
     setError("");
+    setHandoffFailed(false);
     setPendingBody(body);
     setFailedDraft("");
     stickRef.current = true;
     try {
+      if (sessionChecked && !canSave && !conversation?.id) {
+        await askPublic(body);
+        return null;
+      }
       const response = await fetch(conversation?.id ? `/api/support/conversations/${conversation.id}` : "/api/support/conversations", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -255,11 +315,8 @@ export function SupportChat({
       });
       const data = await response.json().catch(() => null);
       if (response.status === 401) {
-        setAuthRequired(true);
-        setPhase("failed");
-        setPendingBody("");
-        setFailedDraft(body);
-        setError("Sign in to save this conversation.");
+        setSessionChecked(true);
+        await askPublic(body);
         return null;
       }
       if (!response.ok) {
@@ -269,6 +326,7 @@ export function SupportChat({
         setError(data?.error || "The message was not saved.");
         return null;
       }
+      setCanSave(true);
       setDraft("");
       setPendingBody("");
       setFailedDraft("");
@@ -294,29 +352,48 @@ export function SupportChat({
     await send(draft);
   }
 
+  function noteNeedsSignInForPerson() {
+    const now = new Date().toISOString();
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        authorRole: "system",
+        body: "Sign in to ask a person to join this conversation. I can keep answering from the help articles here. I will not mark an agent as online unless one actually joins.",
+        createdAt: now,
+        answerMode: null,
+        articles: [],
+      },
+    ]);
+  }
+
   async function handoff() {
     if (sendingRef.current) return;
+    if (sessionChecked && !canSave && !conversation?.id) {
+      noteNeedsSignInForPerson();
+      return;
+    }
     const id = conversation?.id ?? (await send("I would like to talk with a person."));
     if (!id) return;
     sendingRef.current = true;
     setPhase("sending");
     setError("");
+    setHandoffFailed(false);
     try {
       const response = await fetch(`/api/support/conversations/${id}/handoff`, { method: "POST" });
       const data = await response.json().catch(() => null);
       if (!response.ok) {
         setPhase("failed");
+        setHandoffFailed(true);
         setError(data?.error || "Could not reach the support queue. Try again.");
         return;
       }
       setConversation(data.conversation);
       acceptMessages(data.messages ?? [], false);
-      if (data.availability === "available" || data.availability === "unavailable" || data.availability === "error") {
-        setAvailability(data.availability);
-      }
       setPhase("idle");
     } catch {
       setPhase("failed");
+      setHandoffFailed(true);
       setError("Could not reach the support queue. Check your connection and try again.");
     } finally {
       sendingRef.current = false;
@@ -328,7 +405,7 @@ export function SupportChat({
     void fetch(`/api/support/conversations/${conversation.id}/typing`, { method: "POST" });
   }
 
-  const queueLabel = customerQueueLabel(conversation?.status, availability);
+  const showWelcome = messages.length === 0 && !pendingBody && phase !== "sending";
 
   const scrollIfStuck = useCallback(() => {
     const list = listRef.current;
@@ -338,26 +415,13 @@ export function SupportChat({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="border-b border-neutral-100 px-4 py-2 text-xs text-[#4B5563]" role="status">
-        {queueLabel}
-        {availability === "error" ? (
-          <>
-            {" "}
-            <button type="button" className="font-semibold text-[#FF5A1F] underline-offset-2 hover:underline" onClick={() => void refreshPresence()}>
-              Retry
-            </button>
-          </>
-        ) : null}
-        {realtime === "polling" ? " Updates refresh automatically." : ""}
-      </p>
       <div ref={listRef} onScroll={onHistoryScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
         {phase === "loading" ? <p className="text-sm text-[#6B7280]">Loading conversation…</p> : null}
-        {messages.length === 0 && phase !== "sending" ? (
+        {showWelcome ? (
           <div className="rounded-2xl bg-[#F8FAFC] p-3 text-sm leading-6 text-[#374151]">
-            <p className="font-semibold text-[#111827]">Jimvio AI</p>
-            <p className="mt-1">
-              Ask a question about using Jimvio. Account balances and payouts are not looked up here.
-            </p>
+            <p className="font-semibold text-[#111827]">Jimvio Support</p>
+            <p className="mt-1">{SUPPORT_WELCOME_GREETING}</p>
+            <p className="mt-1">{SUPPORT_WELCOME_PROMPT}</p>
           </div>
         ) : null}
         {messages.map((message) => (
@@ -411,45 +475,44 @@ export function SupportChat({
               Retry
             </button>
           ) : null}
+          {handoffFailed ? (
+            <button type="button" className="font-semibold underline" onClick={() => void handoff()}>
+              Retry
+            </button>
+          ) : null}
         </p>
       ) : null}
-      {authRequired ? (
+      {!canSave && messages.length > 0 ? (
         <p className="px-4 pb-2 text-xs text-[#374151]">
           <Link href="/login?next=/help" className="font-semibold text-[#FF5A1F]">
             Sign in
           </Link>{" "}
-          to keep this chat, or{" "}
-          <Link href="/help/tickets/new" className="font-semibold text-[#FF5A1F]">
-            create a ticket
-          </Link>
-          .
+          to save this conversation on your account.
         </p>
       ) : null}
-      <div className="flex flex-wrap gap-2 px-4 pb-2">
-        {SUGGESTIONS.map((suggestion) => (
-          <button
-            key={suggestion}
-            type="button"
-            className="rounded-full border border-neutral-200 px-2.5 py-1 text-left text-[11px] font-medium text-[#374151] hover:border-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
-            onClick={() => void send(suggestion)}
-            disabled={phase === "sending"}
-          >
-            {suggestion}
-          </button>
-        ))}
-      </div>
-      <div className="flex items-center justify-between gap-2 px-4 pb-2">
+      {showWelcome ? (
+        <div className="flex flex-wrap gap-2 px-4 pb-2">
+          {SUPPORT_CHAT_SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion.label}
+              type="button"
+              className="rounded-full border border-neutral-200 px-2.5 py-1 text-left text-[11px] font-medium text-[#374151] hover:border-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+              onClick={() => void send(suggestion.question)}
+            >
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="px-4 pb-2">
         <button
           type="button"
           onClick={() => void handoff()}
-          disabled={phase === "sending" || authRequired}
+          disabled={phase === "sending"}
           className="text-xs font-semibold text-[#FF5A1F] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
         >
           Talk to a human agent
         </button>
-        <Link href="/help/tickets/new" className="text-xs font-medium text-[#4B5563] underline-offset-2 hover:underline">
-          Leave a ticket
-        </Link>
       </div>
       <form onSubmit={onSubmit} className="flex items-end gap-2 border-t border-neutral-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <label htmlFor={inputId} className="sr-only">
@@ -470,7 +533,7 @@ export function SupportChat({
             }
           }}
           className="max-h-28 min-h-10 min-w-0 flex-1 resize-none rounded-2xl border border-neutral-200 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
-          placeholder="Type your message…"
+          placeholder={SUPPORT_COMPOSER_PLACEHOLDER}
           maxLength={4000}
         />
         <button

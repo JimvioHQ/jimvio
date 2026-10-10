@@ -10,6 +10,13 @@ import { deliverConversationReply, deliverSupportNotice } from "./notify";
 import { canTransition, ticketSearchTerm, validateTicketInput } from "./validation";
 import { customerSupportEmail, supportNotificationRecipient } from "../contact-email";
 import { showSupportLauncher } from "./routes";
+import {
+  REMOVED_AVAILABILITY_BANNER,
+  SUPPORT_CHAT_SUGGESTIONS,
+  SUPPORT_COMPOSER_PLACEHOLDER,
+  SUPPORT_WELCOME_GREETING,
+  SUPPORT_WELCOME_PROMPT,
+} from "./welcome";
 import { assistantRevealChunks, revealDelayMs } from "./reveal";
 import {
   countAvailableAgents,
@@ -76,8 +83,20 @@ describe("support knowledge base", () => {
     assert.match(known.answer, /wallet/i);
     assert.ok(known.slugs.length > 0);
     const unknown = knowledgeAnswer(SUPPORT_ARTICLES, "quantum pineapple warranty");
-    assert.match(unknown.answer, /support ticket/i);
+    const otherUnknown = knowledgeAnswer(SUPPORT_ARTICLES, "marble telescope customs form");
+    assert.match(unknown.answer, /could not find/i);
+    assert.match(unknown.answer, /info@jimvio.com/);
+    assert.equal(unknown.answer.includes("quantum pineapple warranty"), true);
+    assert.notEqual(unknown.answer, otherUnknown.answer);
     assert.equal(unknown.slugs.length, 0);
+    assert.equal(unknown.answer.includes(REMOVED_AVAILABILITY_BANNER), false);
+    const order = knowledgeAnswer(SUPPORT_ARTICLES, "How do I track an order?");
+    const earnings = knowledgeAnswer(SUPPORT_ARTICLES, "How do I understand and withdraw my earnings?");
+    assert.notEqual(order.answer, earnings.answer);
+    assert.match(order.answer, /order/i);
+    assert.match(earnings.answer, /wallet|payout|earning/i);
+    assert.match(order.answer, /what do you see/i);
+    assert.equal(order.answer.toLowerCase().includes("i have looked up your wallet"), false);
   });
 });
 
@@ -278,9 +297,44 @@ describe("support tickets", () => {
     assert.equal(supportNotificationRecipient("ops-inbox@example.com"), "ops-inbox@example.com");
     assert.equal(handoffCustomerNote(0).includes("marked available"), false);
     assert.match(handoffCustomerNote(0), /follow-up/);
-    assert.match(customerQueueLabel("ai", "error"), /Could not check/);
-    assert.match(customerQueueLabel("ai", "unavailable"), /leave a message/i);
-    assert.equal(customerQueueLabel("queued", "unavailable").includes("No support agent is marked available"), false);
+    assert.equal(handoffCustomerNote(0).includes("support ticket"), false);
+    assert.equal(handoffCustomerNote(1).includes("replied"), false);
+    assert.equal(customerQueueLabel("ai", "error"), null);
+    assert.equal(customerQueueLabel("ai", "unavailable"), null);
+    assert.equal(customerQueueLabel(null, "unavailable"), null);
+    const queued = customerQueueLabel("queued", "unavailable");
+    assert.match(queued ?? "", /follow-up/);
+    assert.equal((queued ?? "").includes(REMOVED_AVAILABILITY_BANNER), false);
+  });
+
+  it("opens the widget as a conversation without the old banner or ticket button", () => {
+    const chat = readFileSync(new URL("../../components/support/support-chat.tsx", import.meta.url), "utf8");
+    const tickets = readFileSync(new URL("../../app/api/support/tickets/route.ts", import.meta.url), "utf8");
+    assert.equal(chat.includes(REMOVED_AVAILABILITY_BANNER), false);
+    assert.equal(chat.includes("Ask a question about using Jimvio"), false);
+    assert.equal(chat.includes("Leave a ticket"), false);
+    assert.equal(chat.includes("customerQueueLabel"), false);
+    assert.match(chat, /\{SUPPORT_WELCOME_GREETING\}/);
+    assert.match(chat, /\{SUPPORT_WELCOME_PROMPT\}/);
+    assert.match(chat, /placeholder=\{SUPPORT_COMPOSER_PLACEHOLDER\}/);
+    assert.match(SUPPORT_WELCOME_GREETING, /How can I help you today/);
+    assert.match(SUPPORT_WELCOME_PROMPT, /next steps/);
+    assert.equal(SUPPORT_COMPOSER_PLACEHOLDER, "How can I help you today?");
+    assert.equal(chat.includes("Talk to a human agent"), true);
+    assert.equal(chat.includes("/api/support/ask"), true);
+    assert.match(chat, /\{suggestion\.label\}/);
+    assert.match(chat, /send\(suggestion\.question\)/);
+    assert.deepEqual(
+      SUPPORT_CHAT_SUGGESTIONS.map((suggestion) => suggestion.label),
+      ["Track an order", "Understand my earnings", "Manage my account", "Get help with selling"],
+    );
+    for (const suggestion of SUPPORT_CHAT_SUGGESTIONS) {
+      const answer = knowledgeAnswer(SUPPORT_ARTICLES, suggestion.question);
+      assert.ok(answer.slugs.length > 0, suggestion.label);
+      assert.match(answer.answer, /help article/i);
+    }
+    assert.match(tickets, /export async function POST/);
+    assert.match(tickets, /export async function GET/);
   });
 
   it("does not email a chat reply when delivery is disabled", async () => {
