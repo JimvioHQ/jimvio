@@ -29,6 +29,8 @@ export type StorefrontStore = {
   /** Draft for owner preview only */
   theme_draft: ThemeDraft | null;
   announcement_bar: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
   seo: Record<string, unknown>;
   social: Record<string, unknown>;
   settings: Record<string, unknown>;
@@ -116,6 +118,8 @@ export async function loadPublishedStoreByHandle(
     published_sections: resolved.sections,
     theme_draft: resolved.draft,
     announcement_bar: data.announcement_bar,
+    contact_email: typeof data.contact_email === "string" ? data.contact_email : null,
+    contact_phone: typeof data.contact_phone === "string" ? data.contact_phone : null,
     seo: (data.seo as Record<string, unknown>) || {},
     social: (data.social as Record<string, unknown>) || {},
     settings: (data.settings as Record<string, unknown>) || {},
@@ -182,6 +186,8 @@ export async function loadPublishedStoreByHostname(
     published_sections: resolved.sections,
     theme_draft: resolved.draft,
     announcement_bar: data.announcement_bar,
+    contact_email: typeof data.contact_email === "string" ? data.contact_email : null,
+    contact_phone: typeof data.contact_phone === "string" ? data.contact_phone : null,
     seo: (data.seo as Record<string, unknown>) || {},
     social: (data.social as Record<string, unknown>) || {},
     settings: (data.settings as Record<string, unknown>) || {},

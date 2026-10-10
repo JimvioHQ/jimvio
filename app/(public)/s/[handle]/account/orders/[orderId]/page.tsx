@@ -6,6 +6,7 @@ import { cosTable } from "@/lib/commerce-os/db";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import { isRequestOnStoreHost } from "@/lib/commerce-os/storefront-request";
 import { formatStoreMoney } from "@/lib/commerce-os/storefront/money";
+import { safeTrackingHref } from "@/lib/commerce-os/fulfillment/tracking-link";
 
 export const dynamic = "force-dynamic";
 
@@ -83,17 +84,20 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
 
   if (!order) notFound();
 
-  const trackingFromMeta =
+  const meta =
     order.metadata &&
     typeof order.metadata === "object" &&
     !Array.isArray(order.metadata)
-      ? String(
-          (order.metadata as Record<string, unknown>).tracking_number ||
-            (order.metadata as Record<string, unknown>).trackingNumber ||
-            ""
-        ).trim() || null
+      ? (order.metadata as Record<string, unknown>)
+      : null;
+  const trackingFromMeta =
+    meta
+      ? String(meta.tracking_number || meta.trackingNumber || "").trim() || null
       : null;
   const tracking = order.tracking_number || trackingFromMeta;
+  const trackingHref = safeTrackingHref(
+    String(meta?.tracking_url || meta?.trackingUrl || ""),
+  );
 
   const paymentLabel = (() => {
     const p = (order.payment_status || "").toLowerCase();
@@ -231,8 +235,22 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
               {order.tracking_status}
             </p>
           ) : null}
+          {trackingHref ? (
+            <a
+              href={trackingHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--store-primary,#FF5A1F)] underline"
+            >
+              Open tracking link
+            </a>
+          ) : null}
         </div>
-      ) : null}
+      ) : (
+        <p className="mt-6 text-sm text-[var(--store-muted,#6B7280)]">
+          Tracking has not been added yet.
+        </p>
+      )}
 
       <ul className="mt-8 space-y-3">
         {items.map((row) => {

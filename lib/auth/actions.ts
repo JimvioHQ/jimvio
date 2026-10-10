@@ -48,6 +48,7 @@ import {
 } from "@/lib/auth/ensure-user-profile"
 import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin"
 import { validateNewPassword } from "@/lib/auth/password-rules"
+import { canConfirmFreshStoreSignup } from "@/lib/auth/merchant-store-signup"
 import {
   PASSWORD_RECOVERY_COOKIE,
   accessTokenHasRecoveryAmr,
@@ -232,6 +233,53 @@ export async function getAuthMethods(): Promise<AuthMethods | null> {
 // Sign up
 // ─────────────────────────────────────────────
 
+/**
+ * Confirm a customer created on a merchant store, then open a real session.
+ * Service role stays on the server. Failure falls back to the email step.
+ */
+async function establishFreshStoreCustomerSession(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  email: string,
+  password: string,
+): Promise<boolean> {
+  try {
+    const admin = createAdminClient()
+    const { error: confirmError } = await admin.auth.admin.updateUserById(userId, {
+      email_confirm: true,
+    })
+    if (confirmError) {
+      console.error("[auth] store signup confirm failed", {
+        code: confirmError.code ?? null,
+        status: confirmError.status ?? null,
+      })
+      return false
+    }
+
+    const { data: link, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    })
+    const tokenHash = link?.properties?.hashed_token
+    if (!linkError && tokenHash) {
+      const { data: verified, error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: "magiclink",
+      })
+      if (!verifyError && verified.session?.user?.id === userId) return true
+    }
+
+    const { data: signed, error: signError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    return Boolean(!signError && signed.session?.user?.id === userId)
+  } catch (err) {
+    console.error("[auth] store signup session failed", err)
+    return false
+  }
+}
+
 export async function signUp(formData: FormData) {
   try {
     const supabase = await createClient()
@@ -288,6 +336,29 @@ export async function signUp(formData: FormData) {
       await registerLoginSession(data.user.id)
       const path = await resolveLandingPath(data.user.id, next)
       redirect(path)
+    }
+
+    const merchantContext = await isMerchantAuthContext()
+    if (
+      data.user &&
+      canConfirmFreshStoreSignup({
+        merchantContext,
+        hasSession: Boolean(data.session),
+        duplicateUnconfirmed: isUnconfirmedDuplicateSignUp(data.user),
+        hasUserId: Boolean(data.user.id),
+      })
+    ) {
+      const established = await establishFreshStoreCustomerSession(
+        supabase,
+        data.user.id,
+        email,
+        password,
+      )
+      if (established) {
+        await registerLoginSession(data.user.id)
+        const path = await resolveLandingPath(data.user.id, next)
+        redirect(path)
+      }
     }
 
     return { success: "Check your email to confirm your account." }

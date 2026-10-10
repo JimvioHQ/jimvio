@@ -9,6 +9,10 @@ import {
   storefrontBrowsePath,
   storefrontDisplayUrl,
 } from "./storefront-url";
+import {
+  defaultStorePageHtml,
+  defaultStorePageTitle,
+} from "./storefront/page-content";
 
 export type CreateStoreInput = {
   vendorId: string;
@@ -215,14 +219,23 @@ export async function createJimvioStore(
     },
   ]);
 
-  const defaultPages = [
-    { title: "About", handle: "about", body_html: `<p>Welcome to ${name}.</p>` },
-    { title: "Contact", handle: "contact", body_html: "<p>Contact us for support.</p>" },
-    { title: "Shipping Policy", handle: "shipping-policy", body_html: "<p>Shipping details coming soon.</p>" },
-    { title: "Refund Policy", handle: "refund-policy", body_html: "<p>Refund details coming soon.</p>" },
-    { title: "Privacy Policy", handle: "privacy", body_html: "<p>Privacy policy coming soon.</p>" },
-    { title: "Terms", handle: "terms", body_html: "<p>Terms of service coming soon.</p>" },
-  ];
+  const defaultPages = (
+    [
+      "about",
+      "contact",
+      "shipping-policy",
+      "refund-policy",
+      "privacy",
+      "terms",
+    ] as const
+  ).map((handle) => ({
+    title: defaultStorePageTitle(handle),
+    handle,
+    body_html: defaultStorePageHtml(handle, name, {
+      email: input.contactEmail,
+      phone: input.contactPhone,
+    }),
+  }));
 
   await cosTable(db, "jimvio_store_pages").insert(
     defaultPages.map((p) => ({

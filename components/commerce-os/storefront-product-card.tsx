@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { storefrontHref } from "@/lib/commerce-os/storefront-url";
 import {
@@ -6,12 +9,7 @@ import {
   salePercent,
 } from "@/lib/commerce-os/storefront/money";
 import { productImageAt } from "@/lib/commerce-os/storefront/product-media";
-import { StorefrontCardAddToCart } from "@/components/commerce-os/storefront-card-add-to-cart";
-import {
-  StorefrontCartGlyph,
-  storefrontCardActionClass,
-} from "@/components/commerce-os/storefront-card-chrome";
-import { resolveStockStatus } from "@/lib/marketplace/stock-status";
+import { StorefrontCardQuickActions } from "@/components/commerce-os/storefront-card-quick-actions";
 
 export type StorefrontProductCardData = {
   id: string;
@@ -64,19 +62,28 @@ export function StorefrontProductCard({
     product.track_inventory === true &&
     typeof product.inventory_quantity === "number" &&
     product.inventory_quantity <= 0;
-  const stockLabel = resolveStockStatus({
-    inventory_quantity: product.inventory_quantity,
-    track_inventory: product.track_inventory,
-  }).label;
-  const canAdd = Boolean(storeId && product.vendor_id && !soldOut);
+  const canPurchase = Boolean(storeId && product.vendor_id && !soldOut);
   const storeCurrency = displayCurrency || "USD";
+  const [actionsOpen, setActionsOpen] = useState(false);
+
+  function revealActionsOnTouch(event: MouseEvent<HTMLAnchorElement>) {
+    if (typeof window === "undefined") return;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    if (!coarse || actionsOpen) return;
+    event.preventDefault();
+    setActionsOpen(true);
+  }
 
   return (
     <article
       className="group relative flex h-full min-w-0 flex-col overflow-hidden rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.06))] bg-[var(--store-surface,#fff)] shadow-[var(--store-shadow,0_2px_10px_rgba(15,23,42,0.05))] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(15,23,42,0.1)]"
       data-storefront-chrome="product-card"
     >
-      <Link href={href} className="relative block min-w-0 p-2 pb-0 sm:p-2.5 sm:pb-0">
+      <Link
+        href={href}
+        onClick={revealActionsOnTouch}
+        className="relative block min-w-0 p-2 pb-0 sm:p-2.5 sm:pb-0"
+      >
         <div
           className="relative overflow-hidden rounded-[calc(var(--store-card-radius,16px)-4px)] bg-[color-mix(in_srgb,var(--store-muted,#6B7280)_7%,white)]"
           style={{ aspectRatio: "var(--store-image-ratio, 1 / 1)" }}
@@ -119,6 +126,18 @@ export function StorefrontProductCard({
               Out of stock
             </span>
           ) : null}
+          {canPurchase ? (
+            <StorefrontCardQuickActions
+              productId={product.id}
+              vendorId={product.vendor_id!}
+              storeId={storeId!}
+              storeHandle={handle}
+              productName={product.name}
+              productHref={href}
+              disabled={soldOut}
+              revealed={actionsOpen}
+            />
+          ) : null}
         </div>
       </Link>
 
@@ -154,32 +173,7 @@ export function StorefrontProductCard({
                 </p>
               ) : null}
             </div>
-            {stockLabel ? (
-              <p className="mt-1 text-[11px] font-medium text-[var(--store-muted,#6B7280)]">
-                {stockLabel}
-              </p>
-            ) : null}
           </div>
-          {canAdd ? (
-            <StorefrontCardAddToCart
-              productId={product.id}
-              vendorId={product.vendor_id!}
-              storeId={storeId!}
-              storeHandle={handle}
-              productName={product.name}
-              productHref={href}
-              disabled={soldOut}
-            />
-          ) : (
-            <Link
-              href={href}
-              className={storefrontCardActionClass}
-              style={{ background: "var(--store-btn, var(--store-primary,#FF5A1F))" }}
-              aria-label={`View ${product.name}`}
-            >
-              <StorefrontCartGlyph />
-            </Link>
-          )}
         </div>
       </div>
     </article>

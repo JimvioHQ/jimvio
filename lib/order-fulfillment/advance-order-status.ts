@@ -22,7 +22,7 @@ export async function advanceOrderFulfillment(
 ): Promise<{ updated: boolean; status: string }> {
     const { data: order } = await db
         .from("orders")
-        .select("status, shipped_at, delivered_at, tracking_number, tracking_url, buyer_id, order_number")
+        .select("status, shipped_at, delivered_at, tracking_number, tracking_url, buyer_id, order_number, metadata")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -54,6 +54,17 @@ export async function advanceOrderFulfillment(
     if (targetStatus !== previousStatus) {
         patch.status = targetStatus;
     }
+    const prevMeta =
+      order.metadata &&
+      typeof order.metadata === "object" &&
+      !Array.isArray(order.metadata)
+        ? (order.metadata as Record<string, unknown>)
+        : {};
+    const trackingUrl = params.trackingUrl?.trim() || "";
+    if (trackingUrl) {
+      patch.metadata = { ...prevMeta, tracking_url: trackingUrl };
+    }
+
     if (targetStatus === "shipped" && !order.shipped_at) {
         patch.shipped_at = now;
     }

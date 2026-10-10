@@ -19,6 +19,7 @@ import { storefrontLetterMark } from "@/lib/commerce-os/storefront/related-produ
 import { storefrontDesktopNavClass } from "@/lib/commerce-os/storefront/chrome";
 import { previewProductGridClass, previewProductGridStyle } from "@/lib/commerce-os/builder/preview-viewport";
 import { sanitizeSocialLinks } from "@/lib/commerce-os/builder/nav-safe";
+import { withRequiredPolicyLinks } from "@/lib/commerce-os/storefront/policy-links";
 
 /** Builder canvas only. Production omits this and uses real viewport breakpoints. */
 export type StorefrontPreviewDevice =
@@ -794,21 +795,26 @@ export function StorefrontFooter({
   social?: Record<string, unknown> | null;
 }) {
   const linkOpts = { onStoreHost };
-  const items =
+  const policyLinks = [
+    { label: "About", href: storefrontHref(handle, onStoreHost ? "/about" : "/pages/about", linkOpts) },
+    { label: "Contact", href: storefrontHref(handle, onStoreHost ? "/contact" : "/pages/contact", linkOpts) },
+    { label: "Shipping", href: storefrontHref(handle, onStoreHost ? "/shipping-policy" : "/pages/shipping-policy", linkOpts) },
+    { label: "Refunds", href: storefrontHref(handle, onStoreHost ? "/refund-policy" : "/pages/refund-policy", linkOpts) },
+    { label: "Privacy", href: storefrontHref(handle, onStoreHost ? "/privacy" : "/pages/privacy", linkOpts) },
+    { label: "Terms", href: storefrontHref(handle, onStoreHost ? "/terms" : "/pages/terms", linkOpts) },
+  ];
+  const items = withRequiredPolicyLinks(
     navItems && navItems.length
       ? navItems.map((item) => ({
           ...item,
           href: normalizeStorefrontHref(handle, item.href, linkOpts),
         }))
       : [
-          { label: "About", href: storefrontHref(handle, onStoreHost ? "/about" : "/pages/about", linkOpts) },
-          { label: "Contact", href: storefrontHref(handle, onStoreHost ? "/contact" : "/pages/contact", linkOpts) },
-          { label: "Terms", href: storefrontHref(handle, onStoreHost ? "/terms" : "/pages/terms", linkOpts) },
-          { label: "Privacy", href: storefrontHref(handle, onStoreHost ? "/privacy" : "/pages/privacy", linkOpts) },
-          { label: "Refunds", href: storefrontHref(handle, onStoreHost ? "/refund-policy" : "/pages/refund-policy", linkOpts) },
-          { label: "Shipping", href: storefrontHref(handle, onStoreHost ? "/shipping-policy" : "/pages/shipping-policy", linkOpts) },
+          ...policyLinks,
           { label: "Account", href: storefrontHref(handle, "/account", linkOpts) },
-        ];
+        ],
+    policyLinks,
+  );
   const socialLinks = Object.entries(sanitizeSocialLinks(social));
   const year = new Date().getFullYear();
   const letter = storefrontLetterMark(storeName);

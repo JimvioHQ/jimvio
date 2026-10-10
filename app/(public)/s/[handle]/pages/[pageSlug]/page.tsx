@@ -8,6 +8,7 @@ import {
   buildStorefrontMetadata,
 } from "@/lib/commerce-os/storefront-metadata";
 import { POLICY_TEMPLATES } from "@/lib/commerce-os/builder/policy-templates";
+import { resolveStorePageHtml } from "@/lib/commerce-os/storefront/page-content";
 
 export const dynamic = "force-dynamic";
 
@@ -50,10 +51,16 @@ export default async function StorefrontContentPage({ params }: Props) {
   if (!page && !fallback) notFound();
 
   const title = page?.title || fallback?.title || pageSlug;
-  const bodyHtml =
-    (page?.body_html && page.body_html.trim()) ||
-    fallback?.body ||
-    `<p>Content coming soon.</p>`;
+  const resolved = resolveStorePageHtml({
+    handle: pageSlug,
+    storeName: store.name,
+    savedHtml: page?.body_html,
+    contact: {
+      email: store.contact_email,
+      phone: store.contact_phone,
+    },
+  });
+  const bodyHtml = resolved.html;
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">

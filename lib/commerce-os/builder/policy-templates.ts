@@ -1,37 +1,39 @@
 /** Professional policy templates — clearly templates, not merchant-specific facts. */
 
+import {
+  defaultStorePageHtml,
+  defaultStorePageTitle,
+  type StorePageHandle,
+} from "@/lib/commerce-os/storefront/page-content";
+
 export const POLICY_TEMPLATES: Record<
   string,
   { title: string; bodyHtml: (storeName: string) => string }
 > = {
   terms: {
-    title: "Terms of service",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>By placing an order on this storefront you agree to the store policies published here. Product availability, pricing, and fulfillment details are provided at checkout.</p><p>For questions, use the Contact page.</p>`,
+    title: defaultStorePageTitle("terms"),
+    bodyHtml: (n) => defaultStorePageHtml("terms", n),
   },
   privacy: {
-    title: "Privacy policy",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>We use order and contact details only to fulfill purchases and provide customer support. We do not sell personal information.</p><p>Contact the store for privacy requests.</p>`,
+    title: defaultStorePageTitle("privacy"),
+    bodyHtml: (n) => defaultStorePageHtml("privacy", n),
   },
   "refund-policy": {
-    title: "Refund policy",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>If an item arrives damaged or not as described, contact us through the Contact page. Approved refunds follow the store's review process.</p>`,
+    title: defaultStorePageTitle("refund-policy"),
+    bodyHtml: (n) => defaultStorePageHtml("refund-policy", n),
   },
   "shipping-policy": {
-    title: "Shipping policy",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>Orders ship as quickly as possible. Delivery times vary by destination and carrier. Tracking is provided when available.</p>`,
+    title: defaultStorePageTitle("shipping-policy"),
+    bodyHtml: (n) => defaultStorePageHtml("shipping-policy", n),
   },
   contact: {
-    title: "Contact",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>Questions about products or orders? Reach us using the contact details in the store footer or reply to your order confirmation email.</p>`,
+    title: defaultStorePageTitle("contact"),
+    bodyHtml: (n) => defaultStorePageHtml("contact", n),
   },
   about: {
-    title: "About",
-    bodyHtml: (n) =>
-      `<p><em>Template — customize for ${n}.</em></p><p>Welcome to ${n}. We curate products and fulfill orders with care.</p>`,
+    title: defaultStorePageTitle("about"),
+    bodyHtml: (n) => defaultStorePageHtml("about", n),
   },
 };
+
+export type { StorePageHandle };

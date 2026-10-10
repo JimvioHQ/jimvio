@@ -8,6 +8,7 @@ import {
   storefrontDisplayUrl,
 } from "@/lib/commerce-os/storefront-url";
 import { CommerceCard } from "@/components/commerce-os/commerce-shell";
+import { StorePolicyEditor } from "@/components/commerce-os/store-policy-editor";
 import { cn } from "@/lib/utils";
 
 type Store = {
@@ -85,7 +86,7 @@ const CATEGORIES: Array<{ id: CategoryId; label: string; description: string }> 
   {
     id: "policies",
     label: "Policies",
-    description: "Legal pages managed in Pages / Builder.",
+    description: "About, contact, and store policies. Saved copy replaces the default.",
   },
   {
     id: "advanced",
@@ -111,6 +112,7 @@ export function StoreSettingsForm({ store }: { store: Store }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [policyDirty, setPolicyDirty] = useState(false);
 
   const liveUrl = storefrontDisplayUrl(store.handle);
   const liveHost = storefrontDisplayHost(store.handle);
@@ -293,7 +295,16 @@ export function StoreSettingsForm({ store }: { store: Store }) {
           <button
             key={c.id}
             type="button"
-            onClick={() => setCategory(c.id)}
+            onClick={() => {
+              if (
+                (dirty || policyDirty) &&
+                c.id !== category &&
+                !window.confirm("You have unsaved changes. Leave this section?")
+              ) {
+                return;
+              }
+              setCategory(c.id);
+            }}
             className={cn(
               "shrink-0 rounded-lg px-3 py-2 text-left text-sm font-medium transition",
               category === c.id
@@ -454,8 +465,12 @@ export function StoreSettingsForm({ store }: { store: Store }) {
             </CommerceCard>
 
             <CommerceCard className="p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
                 Favicon
+              </p>
+              <p className="mb-3 text-xs text-[#6B7280]">
+                If you do not upload a favicon, the store logo is used as the
+                browser icon. Removing both falls back to a neutral icon.
               </p>
               <div className="flex items-center gap-3">
                 {form.favicon_url ? (
@@ -665,18 +680,13 @@ export function StoreSettingsForm({ store }: { store: Store }) {
         ) : null}
 
         {category === "policies" ? (
-          <CommerceCard className="space-y-2 p-4 text-sm text-[#4B5563]">
-            <p>
-              Terms, privacy, refund, and shipping policy pages are managed as
-              store pages.
-            </p>
-            <a
-              href={`/commerce/pages?storeId=${store.id}`}
-              className="inline-flex rounded-lg border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151]"
-            >
-              Manage pages
-            </a>
-          </CommerceCard>
+          <StorePolicyEditor
+            storeId={store.id}
+            storeName={store.name}
+            contactEmail={form.contact_email}
+            contactPhone={form.contact_phone}
+            onDirtyChange={setPolicyDirty}
+          />
         ) : null}
 
         {category === "advanced" ? (
