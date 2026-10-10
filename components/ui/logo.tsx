@@ -58,17 +58,21 @@ function LogoMark({
   flat?: boolean;
 }) {
   if (flat) {
+    // Background on a plain box, not an <img> with object-fit/overflow.
+    // iOS rasterizes that replaced layer as a black bar under the fixed header.
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={MARK_SRC}
-        alt=""
-        width={icon}
-        height={icon}
-        decoding="async"
-        draggable={false}
-        className={cn("block shrink-0 max-w-none object-cover", radius)}
-        style={{ width: icon, height: icon, maxWidth: icon, maxHeight: icon }}
+      <span
+        aria-hidden
+        className={cn("block shrink-0 bg-[#FB4C07]", radius)}
+        style={{
+          width: icon,
+          height: icon,
+          backgroundImage: `url(${MARK_SRC})`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+          backgroundSize: "100% 100%",
+          boxShadow: "none",
+        }}
       />
     );
   }
@@ -133,7 +137,6 @@ export function JimvioLogo({
               : cn(
                   "font-semibold leading-none tracking-tight",
                   text,
-                  isHeader && "translate-y-[0.5px]",
                 ),
           )}
         >

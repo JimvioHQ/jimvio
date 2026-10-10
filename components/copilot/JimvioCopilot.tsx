@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -27,6 +27,15 @@ import { CopilotQuickActions } from "./CopilotQuickActions";
 import { useCopilotChat } from "./use-copilot-chat";
 
 const BRAND_ORANGE = JIMVIO_ORANGE;
+const COMPOSER_MAX_HEIGHT = 128;
+
+function syncComposerHeight(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  const previous = el.style.height;
+  el.style.height = "auto";
+  const next = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`;
+  el.style.height = previous === next ? previous : next;
+}
 
 function CopilotStatusDot({ status }: { status: string }) {
   const color =
@@ -153,8 +162,8 @@ export function JimvioCopilot() {
     if (!viewport) return;
 
     const apply = () => {
-      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setKeyboardInset(Math.round(inset));
+      const inset = Math.max(0, Math.round(window.innerHeight - viewport.height - viewport.offsetTop));
+      setKeyboardInset((prev) => (prev === inset ? prev : inset));
     };
 
     apply();
@@ -168,10 +177,16 @@ export function JimvioCopilot() {
   }, [isAssistantOpen]);
 
   useEffect(() => {
-    if (isAssistantOpen && panelMode !== "minimized") {
-      inputRef.current?.focus();
-    }
+    if (!isAssistantOpen || panelMode === "minimized") return;
+    const el = inputRef.current;
+    if (!el || document.activeElement === el) return;
+    el.focus({ preventScroll: true });
   }, [isAssistantOpen, panelMode]);
+
+  useLayoutEffect(() => {
+    if (!isAssistantOpen || panelMode === "minimized") return;
+    syncComposerHeight(inputRef.current);
+  }, [query, isAssistantOpen, panelMode]);
 
   if (!portalReady) return null;
 
@@ -362,8 +377,17 @@ export function JimvioCopilot() {
             <textarea
               ref={inputRef}
               value={query}
-              rows={1}
-              onChange={(e) => setQuery(e.target.value)}
+              rows={2}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                syncComposerHeight(e.currentTarget);
+              }}
+              onFocus={(e) => {
+                const node = e.currentTarget;
+                window.setTimeout(() => {
+                  node.scrollIntoView({ block: "nearest", inline: "nearest" });
+                }, 280);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -375,7 +399,16 @@ export function JimvioCopilot() {
                 messages.length === 0 ? contextMeta.placeholder : "Ask a follow-up…"
               }
               aria-label="Message Jimvio AI"
-              className="max-h-28 min-h-[44px] w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-2.5 pl-10 pr-3 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#FF5A1F]/50 focus:ring-2 focus:ring-[#FF5A1F]/15 disabled:opacity-60"
+              enterKeyHint="send"
+              autoComplete="off"
+              autoCorrect="on"
+              style={{
+                color: "#111827",
+                WebkitTextFillColor: "#111827",
+                caretColor: "#111827",
+                backgroundColor: "#ffffff",
+              }}
+              className="jimvio-ai-composer max-h-32 min-h-[76px] w-full resize-none overflow-x-hidden overflow-y-auto rounded-xl border border-[#E5E7EB] bg-white py-3 pl-10 pr-3 text-base leading-6 text-[#111827] outline-none placeholder:text-[#889096] focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/20 focus-visible:outline-none disabled:opacity-60"
             />
           </div>
           <Button

@@ -182,6 +182,31 @@
     }
   }
 
+  /* Tailwind's shadow-none is `0 0 #0000`. iOS rasterizes that as a black
+     tile under the fixed mobile header. Force a real none on that shell. */
+  @media (max-width: 767px) {
+    .jimvio-mobile-header-bar {
+      box-shadow: none !important;
+      -webkit-box-shadow: none !important;
+    }
+  }
+
+  /* Beat the universal color transition. iOS hides textarea glyphs while
+     `color` is transitioning, which made Jimvio AI look blank while typing. */
+  textarea.jimvio-ai-composer {
+    color: #111827;
+    -webkit-text-fill-color: #111827;
+    caret-color: #111827;
+    background-color: #ffffff;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+
+  textarea.jimvio-ai-composer::placeholder {
+    color: #889096;
+    -webkit-text-fill-color: #889096;
+    opacity: 1;
+  }
+
   * {
     box-sizing: border-box;
     transition:

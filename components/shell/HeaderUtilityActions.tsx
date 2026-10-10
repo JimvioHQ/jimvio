@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Package, ShoppingCart, Wallet } from "lucide-react";
+import { Bell, Package, ShoppingCart, Sparkles, Wallet } from "lucide-react";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import {
   CART_HREF,
@@ -61,19 +61,14 @@ export function HeaderUtilityActions({
           onClick={() => openAssistant()}
           aria-label="Jimvio AI"
           title="Jimvio AI"
-          className={iconBtn}
+          className={cn(
+            "relative inline-flex h-9 shrink-0 items-center gap-1 rounded-xl px-2 transition-all duration-150 active:scale-[0.94]",
+            "text-[#FF5A1F] hover:bg-[#FF5A1F]/10 hover:text-[#FF5A1F]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+          )}
         >
-          <span className="grid h-[22px] w-[22px] place-items-center overflow-hidden rounded-[7px] bg-[#FFF1EA]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/hero/jimvio-ai-mascot-cutout.png"
-              alt=""
-              width={36}
-              height={36}
-              draggable={false}
-              className="h-9 w-9 max-w-none object-cover object-[50%_18%]"
-            />
-          </span>
+          <Sparkles className="h-[18px] w-[18px] shrink-0" strokeWidth={1.75} aria-hidden />
+          <span className="text-[12px] font-semibold leading-none tracking-tight">AI</span>
         </button>
       ) : isAuthenticated && showProducts ? (
         <Link
