@@ -65,3 +65,32 @@ export async function deliverSupportNotice(
     ? { sent: true as const, reason: "sent" as const }
     : { sent: false as const, reason: "failed" as const };
 }
+
+export async function deliverConversationReply(
+  input: { publicRef: string; subject: string; requesterEmail: string | null; reply: string },
+  deps?: { enabled?: boolean; send?: Mailer },
+) {
+  const enabled = deps?.enabled ?? isEmailEnabled();
+  if (!enabled) return { sent: false as const, reason: "not_configured" as const };
+  if (!input.requesterEmail || !input.requesterEmail.includes("@")) {
+    return { sent: false as const, reason: "no_recipient" as const };
+  }
+  const send = deps?.send ?? sendEmail;
+  const href = `${getAppBaseUrl()}/help`;
+  const html = wrapEmailHtml({
+    preview: "A Jimvio support agent replied.",
+    heading: `Reply on ${input.publicRef}`,
+    bodyHtml: `<p>A support agent replied on <strong>${escapeHtml(input.publicRef)}</strong>.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p>`,
+    ctaLabel: "Open support",
+    ctaUrl: href,
+  });
+  const result = await send({
+    to: input.requesterEmail,
+    subject: `Reply on ${input.publicRef}`,
+    html,
+    text: `Reply on ${input.publicRef}\n${input.reply.slice(0, 2000)}\n${href}`,
+  });
+  return result.ok
+    ? { sent: true as const, reason: "sent" as const }
+    : { sent: false as const, reason: "failed" as const };
+}

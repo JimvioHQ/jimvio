@@ -3,14 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import {
+  BookOpen,
+  Headset,
+  LayoutGrid,
+  LifeBuoy,
+  Ticket,
+} from "lucide-react";
 import { SUPPORT_CATEGORIES } from "@/lib/support/types";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/help", label: "Support Center" },
-  { href: "/help/articles", label: "Help Articles" },
-  { href: "/help/tickets", label: "My Tickets" },
-  { href: "/help/contact", label: "Contact Support" },
+  { href: "/help", label: "Support Center", icon: LayoutGrid },
+  { href: "/help/articles", label: "Help Articles", icon: BookOpen },
+  { href: "/help/tickets", label: "My Tickets", icon: Ticket },
+  { href: "/help/contact", label: "Contact Support", icon: Headset },
 ];
 
 export function SupportNav() {
@@ -32,16 +39,18 @@ export function SupportNav() {
         <ul className="space-y-1">
           {LINKS.map((link) => {
             const active = pathname === link.href;
+            const Icon = link.icon;
             return (
               <li key={link.href}>
                 <Link
                   href={link.href}
                   className={cn(
-                    "block rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
+                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
                     active ? "bg-[#FFF1EA] text-[#FF5A1F]" : "text-[#374151] hover:bg-white",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden />
                   {link.label}
                 </Link>
               </li>
@@ -49,7 +58,10 @@ export function SupportNav() {
           })}
         </ul>
         <div>
-          <p className="px-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">Topics</p>
+          <p className="flex items-center gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+            <LifeBuoy className="h-3.5 w-3.5" aria-hidden />
+            Topics
+          </p>
           <ul className="mt-2 space-y-1">
             {SUPPORT_CATEGORIES.map((category) => (
               <li key={category.id}>

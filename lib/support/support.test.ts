@@ -6,8 +6,17 @@ import { knowledgeAnswer } from "./knowledge-answer";
 import { searchSupportArticles } from "./search";
 import { SUPPORT_CATEGORIES } from "./types";
 import { customerVisibleMessages } from "./format";
-import { deliverSupportNotice } from "./notify";
+import { deliverConversationReply, deliverSupportNotice } from "./notify";
 import { canTransition, ticketSearchTerm, validateTicketInput } from "./validation";
+import {
+  countAvailableAgents,
+  shouldAnswerWithAssistant,
+  shouldEmailCustomerReply,
+  statusAfterCustomerMessage,
+  statusAfterHandoff,
+  toCustomerChatMessages,
+  validateChatBody,
+} from "./conversation-policy";
 
 const requiredTitles = [
   "How do I create a Jimvio account?",
@@ -188,8 +197,48 @@ describe("support tickets", () => {
 
   it("keeps the assistant provider key on the server", () => {
     const route = readFileSync(new URL("../../app/api/support/ask/route.ts", import.meta.url), "utf8");
-    assert.match(route, /GOOGLE_GENERATIVE_AI_API_KEY/);
+    const answer = readFileSync(new URL("./answer-question.ts", import.meta.url), "utf8");
+    const admin = readFileSync(new URL("../../app/api/admin/support/conversations/route.ts", import.meta.url), "utf8");
+    const handoff = readFileSync(new URL("../../app/api/support/conversations/[id]/handoff/route.ts", import.meta.url), "utf8");
+    assert.match(answer, /GOOGLE_GENERATIVE_AI_API_KEY/);
+    assert.match(answer, /knowledgeAnswer/);
+    assert.equal(answer.includes("AIza"), false);
     assert.equal(route.includes("AIza"), false);
-    assert.match(route, /knowledgeAnswer/);
+    assert.match(route, /answerSupportQuestion/);
+    assert.match(admin, /requirePlatformAdmin/);
+    assert.equal(handoff.includes("service_role"), false);
+  });
+
+  it("keeps live chat ownership, queue state, and internal notes honest", () => {
+    assert.equal(statusAfterHandoff("ai"), "queued");
+    assert.equal(statusAfterHandoff("active"), "active");
+    assert.equal(statusAfterCustomerMessage("resolved", "human"), "queued");
+    assert.equal(statusAfterCustomerMessage("resolved", "ai"), "ai");
+    assert.equal(shouldAnswerWithAssistant("queued", "human"), false);
+    assert.equal(shouldAnswerWithAssistant("ai", "ai"), true);
+    assert.equal(shouldEmailCustomerReply({ author_role: "staff", visibility: "internal" }), false);
+    assert.equal(shouldEmailCustomerReply({ author_role: "ai", visibility: "customer" }), false);
+    assert.equal(shouldEmailCustomerReply({ author_role: "staff", visibility: "customer" }), true);
+    assert.equal(countAvailableAgents([{ last_seen_at: new Date(Date.now() - 120_000).toISOString(), available: true }]), 0);
+    assert.equal(countAvailableAgents([{ last_seen_at: new Date().toISOString(), available: true }]), 1);
+    const secret = validateChatBody("my password is hunter2");
+    assert.equal(secret.ok, false);
+    const visible = toCustomerChatMessages([
+      { id: "n", author_role: "staff", visibility: "internal", body: "staff only", created_at: "2026-01-01" },
+      { id: "a", author_role: "ai", visibility: "customer", body: "from articles", created_at: "2026-01-02", answer_mode: "knowledge", articles: [{ slug: "track-order", title: "Track", href: "/help/articles/track-order" }] },
+    ]);
+    assert.equal(visible.length, 1);
+    assert.equal(visible[0]?.answerMode, "knowledge");
+    assert.equal(JSON.stringify(visible).includes("staff only"), false);
+  });
+
+  it("does not email a chat reply when delivery is disabled", async () => {
+    let called = false;
+    const skipped = await deliverConversationReply(
+      { publicRef: "SC-test", subject: "Help", requesterEmail: "person@example.com", reply: "Saved reply" },
+      { enabled: false, send: async () => { called = true; return { ok: true }; } },
+    );
+    assert.deepEqual(skipped, { sent: false, reason: "not_configured" });
+    assert.equal(called, false);
   });
 });

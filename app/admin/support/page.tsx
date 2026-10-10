@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminLiveInbox } from "@/components/support/admin-live-inbox";
 import { TICKET_STATUSES } from "@/lib/support/types";
 import { statusLabel } from "@/lib/support/format";
 
@@ -26,6 +27,7 @@ export default function AdminSupportPage() {
   const [note, setNote] = useState("");
   const [nextStatus, setNextStatus] = useState("in_progress");
   const [error, setError] = useState("");
+  const [desk, setDesk] = useState<"live" | "tickets">("live");
 
   async function loadList() {
     const params = new URLSearchParams();
@@ -89,7 +91,20 @@ export default function AdminSupportPage() {
 
   return (
     <div className="space-y-4 p-4">
-      <h1 className="text-2xl font-semibold">Support tickets</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Support inbox</h1>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setDesk("live")} className={`rounded-full px-3 py-1 text-sm font-semibold ${desk === "live" ? "bg-[#FF5A1F] text-white" : "bg-white ring-1 ring-neutral-200"}`}>
+            Live chats
+          </button>
+          <button type="button" onClick={() => setDesk("tickets")} className={`rounded-full px-3 py-1 text-sm font-semibold ${desk === "tickets" ? "bg-[#FF5A1F] text-white" : "bg-white ring-1 ring-neutral-200"}`}>
+            Tickets
+          </button>
+        </div>
+      </div>
+      {desk === "live" ? <AdminLiveInbox /> : null}
+      {desk === "tickets" ? (
+      <>
       <div className="flex flex-wrap gap-2">
         <input value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search reference, subject, email" className="rounded-lg border px-3 py-2 text-sm" />
         <select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-lg border px-3 py-2 text-sm">
@@ -152,6 +167,8 @@ export default function AdminSupportPage() {
           </div>
         ) : null}
       </div>
+      </>
+      ) : null}
     </div>
   );
 }

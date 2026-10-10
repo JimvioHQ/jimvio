@@ -3,6 +3,11 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
+const LiveSupportWidget = dynamic(
+  () => import("@/components/support/live-support-widget").then((m) => ({ default: m.LiveSupportWidget })),
+  { ssr: false },
+);
+
 const ProductChatWidgetLoader = dynamic(
   () =>
     import("@/components/marketplace/product-chat-widget-loader").then((m) => ({
@@ -28,6 +33,7 @@ export function DeferredPublicWidgets() {
 
   return (
     <>
+      <LiveSupportWidget />
       <ProductChatWidgetLoader />
     </>
   );
