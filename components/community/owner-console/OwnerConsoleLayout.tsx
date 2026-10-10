@@ -1,18 +1,12 @@
 "use client";
 
-import { Inter } from "next/font/google";
+import { ownerInter } from "@/app/self-hosted-fonts";
 import { OwnerConsoleSidebarConnected } from "./OwnerConsoleSidebar";
 import { OwnerConsoleTopBar } from "./OwnerConsoleTopBar";
 import {
   OwnerConsoleProvider,
   type OwnerConsoleContextValue,
 } from "./OwnerConsoleContext";
-
-const ownerInter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-owner-inter",
-});
 
 /**
  * Community Manager / Owner Console shell — sidebar + workspace top bar.

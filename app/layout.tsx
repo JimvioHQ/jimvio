@@ -9,7 +9,7 @@ import NextTopLoader from "nextjs-toploader";
 import "../styles/globals.css";
 import { constructMetadata } from "@/lib/seo";
 import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { dmSans, jetbrainsMono } from "./self-hosted-fonts";
 import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -35,20 +35,6 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
 };
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();

@@ -394,55 +394,26 @@ import { cn } from "@/lib/utils";
 
 // ─── Logo pills ───────────────────────────────────────────────────────────────
 
-const pillBase: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  height: 22,
-  minWidth: 34,
-  padding: "0 6px",
-  borderRadius: 5,
-  fontSize: 10,
-  fontWeight: 700,
-  flexShrink: 0,
-};
+const CARD_BRANDS = [
+  { src: "/logos/cards/discover.svg", name: "Discover" },
+  { src: "/logos/cards/visa.svg", name: "Visa" },
+  { src: "/logos/cards/amex.svg", name: "American Express" },
+  { src: "/logos/cards/mastercard.svg", name: "Mastercard" },
+  { src: "/logos/cards/verve.svg", name: "Verve" },
+  { src: "/logos/cards/diners.svg", name: "Diners Club International" },
+  { src: "/logos/cards/jcb.svg", name: "JCB" },
+] as const;
 
-// Card-style logo badges — larger and more visual than before
-function Visa() {
-  return <span style={{ ...pillBase, background: "#1A1F71", color: "#fff", minWidth: 42 }}>VISA</span>;
-}
-
-function Mastercard() {
-  return (
-    <span style={{ ...pillBase, background: "#111", padding: "0 4px", minWidth: 42 }}>
-      <svg width="32" height="20" viewBox="0 0 52 33">
-        <circle cx="18" cy="16.5" r="15" fill="#EB001B" />
-        <circle cx="34" cy="16.5" r="15" fill="#F79E1B" />
-        <path d="M26 5a15 15 0 010 23A15 15 0 0126 5z" fill="#FF5F00" />
-      </svg>
-    </span>
-  );
-}
-
-function Discover() {
+function CardBrandLogo({ src, name }: { src: string; name: string }) {
   return (
     <img
-      src="https://img.logokit.com/discover.com"
-      alt="Discover"
-      style={{ height: 22, width: "auto", objectFit: "contain", borderRadius: 4 }}
-      onError={(e) => {
-        e.currentTarget.src = "https://www.google.com/s2/favicons?domain=discover.com&sz=64";
-      }}
+      src={src}
+      alt={name}
+      width={38}
+      height={24}
+      className="h-[18px] w-auto max-w-[34px] shrink object-contain sm:h-[22px] sm:max-w-[40px]"
     />
   );
-}
-
-function Amex() {
-  return <span style={{ ...pillBase, background: "#007BC1", color: "#fff", minWidth: 42 }}>AMEX</span>;
-}
-
-function Verve() {
-  return <span style={{ ...pillBase, background: "#007B5E", color: "#fff", minWidth: 42 }}>Verve</span>;
 }
 
 // Crypto coin icons — colored circles matching the screenshot
@@ -539,12 +510,9 @@ const METHODS: MethodDef[] = [
         </svg>
       </div>
     ),
-    logos: [
-      <Visa key="v" />,
-      <Mastercard key="mc" />,
-      <Amex key="amex" />,
-      <Verve key="verve" />,
-    ],
+    logos: CARD_BRANDS.map((brand) => (
+      <CardBrandLogo key={brand.src} src={brand.src} name={brand.name} />
+    )),
     feeLabel: "Free",
   },
   {
@@ -729,7 +697,7 @@ export function PaymentMethodSelector({
 
                   {/* Payment logos row - only for non-crypto methods with logos */}
                   {m.id !== "nowpayments" && m.id !== "binancepay" && m.logos.length > 0 && (
-                    <PaymentLogoRail>
+                    <PaymentLogoRail className="max-w-full !flex-nowrap gap-1 overflow-x-auto [scrollbar-width:none] sm:gap-1.5">
                       {m.logos}
                       {fee > 0 && (
                         <span className="text-[10px] text-[var(--color-text-secondary)] ml-0.5 bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap">
