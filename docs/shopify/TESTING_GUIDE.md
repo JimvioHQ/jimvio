@@ -96,7 +96,6 @@ Must be subscribed via `shopify.app.toml` + `shopify app deploy` (app-level), no
 
 ## Support during review
 
-- support@jimvio.com  
 - info@jimvio.com  
 - https://www.jimvio.com/help  
 - Privacy: https://www.jimvio.com/privacy  

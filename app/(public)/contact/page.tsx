@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { normalizeContactTopic } from "@/lib/contact/topics";
+import { customerSupportEmail, supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
 const CHANNELS = [
@@ -136,10 +137,10 @@ export default async function ContactPage({
                       Product, account, and payout questions.
                     </p>
                     <a
-                      href={`mailto:${contact.support_email}`}
+                      href={`mailto:${customerSupportEmail()}`}
                       className="mt-2 inline-block text-base font-bold text-[#FF5A1F] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
                     >
-                      {contact.support_email}
+                      {customerSupportEmail()}
                     </a>
                   </div>
                 </div>
@@ -156,10 +157,10 @@ export default async function ContactPage({
                       Press, partnerships, careers interest, and general company mail.
                     </p>
                     <a
-                      href={`mailto:${contact.info_email}`}
+                      href={`mailto:${supportNotificationRecipient(contact.info_email)}`}
                       className="mt-2 inline-block text-base font-bold text-[#FF5A1F] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
                     >
-                      {contact.info_email}
+                      {supportNotificationRecipient(contact.info_email)}
                     </a>
                   </div>
                 </div>

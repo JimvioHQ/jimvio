@@ -24,6 +24,33 @@ export function countAvailableAgents(
   return rows.filter((row) => isPresenceFresh(row.last_seen_at, row.available, now)).length;
 }
 
+export type AgentAvailability = "unknown" | "available" | "unavailable" | "error";
+
+export function handoffCustomerNote(agentsOnline: number | null) {
+  if (agentsOnline === null) {
+    return "You asked to talk with a person. This conversation is in the support queue. We could not confirm whether an agent is online. Your messages stay here.";
+  }
+  if (agentsOnline > 0) {
+    return "You asked to talk with a person. Waiting for a support agent. Your messages stay in this conversation.";
+  }
+  return "You asked to talk with a person. No support agent is online right now. Your messages stay in this conversation for follow-up, and you can also open a support ticket.";
+}
+
+export function customerQueueLabel(status: string | null | undefined, availability: AgentAvailability) {
+  if (availability === "error") return "Could not check whether a support agent is online.";
+  if (status === "active") return "A support agent has this conversation.";
+  if (status === "resolved") return "This conversation is marked resolved.";
+  if (status === "queued") {
+    if (availability === "available" || availability === "unknown") {
+      return "Waiting for a support agent. Your messages stay in this conversation.";
+    }
+    return "Message received. No support agent is online right now. Your conversation stays open for follow-up.";
+  }
+  if (availability === "unknown") return "Checking whether a support agent is online.";
+  if (availability === "available") return "A support agent is online. You can ask to talk with them in this chat.";
+  return "No support agent is online right now. You can leave a message, and this conversation stays open for follow-up.";
+}
+
 export function isTypingFresh(updatedIso: string | null | undefined, now = Date.now()) {
   if (!updatedIso) return false;
   const seen = Date.parse(updatedIso);

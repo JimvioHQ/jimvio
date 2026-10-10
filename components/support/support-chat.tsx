@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useId, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
+import {
+  customerQueueLabel,
+  type AgentAvailability,
+} from "@/lib/support/conversation-policy";
+import { assistantRevealChunks, revealDelayMs } from "@/lib/support/reveal";
 import { SUGGESTED_SEARCHES } from "@/lib/support/types";
 
 type ArticleLink = { slug: string; title: string; href: string };
@@ -33,17 +38,55 @@ function labelFor(role: ChatMessage["authorRole"]) {
   return "You";
 }
 
-function disclosure(message: ChatMessage) {
-  if (message.authorRole !== "ai") return null;
-  if (message.answerMode === "live") return "Generated from Jimvio help articles";
-  if (message.answerMode === "refused") return "Not answered from private account data";
-  return "From the Jimvio knowledge base";
-}
-
 function formatTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function RevealedText({ chunks, onGrow }: { chunks: string[]; onGrow?: () => void }) {
+  const [count, setCount] = useState(1);
+
+  useEffect(() => {
+    if (chunks.length <= 1) return;
+    const delay = revealDelayMs(chunks.length, false);
+    const timer = window.setInterval(() => {
+      setCount((current) => (current >= chunks.length ? current : current + 1));
+    }, delay);
+    return () => window.clearInterval(timer);
+  }, [chunks]);
+
+  useEffect(() => {
+    onGrow?.();
+  }, [count, onGrow]);
+
+  return <p className="mt-1 whitespace-pre-wrap leading-6">{chunks.slice(0, count).join("")}</p>;
+}
+
+function AssistantBody({ text, animate, onGrow }: { text: string; animate: boolean; onGrow?: () => void }) {
+  const reduced = prefersReducedMotion() || !animate;
+  const chunks = useMemo(() => assistantRevealChunks(text, reduced), [text, reduced]);
+  if (reduced || chunks.length <= 1) {
+    return <p className="mt-1 whitespace-pre-wrap leading-6">{text}</p>;
+  }
+  return <RevealedText key={text} chunks={chunks} onGrow={onGrow} />;
+}
+
+function TypingIndicator({ label }: { label: string }) {
+  return (
+    <p className="flex items-center gap-2 text-xs text-[#6B7280]" role="status">
+      <span className="inline-flex gap-1" aria-hidden>
+        <span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F] motion-safe:animate-pulse" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F] motion-safe:animate-pulse [animation-delay:150ms]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F] motion-safe:animate-pulse [animation-delay:300ms]" />
+      </span>
+      {label}
+    </p>
+  );
 }
 
 export function SupportChat({
@@ -55,48 +98,77 @@ export function SupportChat({
 }) {
   const inputId = useId();
   const listRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true);
+  const knownIds = useRef(new Set<string>());
+  const clientMessageId = useRef<string | null>(null);
+  const sendingRef = useRef(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [draft, setDraft] = useState("");
   const [phase, setPhase] = useState<"idle" | "loading" | "sending" | "failed">("idle");
   const [error, setError] = useState("");
   const [failedDraft, setFailedDraft] = useState("");
+  const [pendingBody, setPendingBody] = useState("");
   const [authRequired, setAuthRequired] = useState(false);
-  const [available, setAvailable] = useState<boolean | null>(null);
+  const [availability, setAvailability] = useState<AgentAvailability>("unknown");
   const [staffTyping, setStaffTyping] = useState(false);
   const [realtime, setRealtime] = useState<"subscribed" | "polling">("polling");
+  const [revealingId, setRevealingId] = useState<string | null>(null);
   const liveRef = useRef(false);
+
+  function acceptMessages(next: ChatMessage[], revealAssistant: boolean) {
+    if (revealAssistant) {
+      const fresh = next.find((message) => message.authorRole === "ai" && !knownIds.current.has(message.id));
+      if (fresh) setRevealingId(fresh.id);
+    }
+    for (const message of next) knownIds.current.add(message.id);
+    setMessages(next);
+  }
 
   async function load(id: string) {
     const response = await fetch(`/api/support/conversations/${id}`);
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
     if (response.status === 401) {
       setAuthRequired(true);
       return;
     }
     if (!response.ok) {
-      setError(data.error || "Could not load this conversation.");
+      setError(data?.error || "Could not load this conversation.");
       return;
     }
     setAuthRequired(false);
     setConversation(data.conversation);
-    setMessages(data.messages ?? []);
+    acceptMessages(data.messages ?? [], false);
     onConversationId(data.conversation.id);
+  }
+
+  async function refreshPresence() {
+    try {
+      const response = await fetch("/api/support/presence");
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.status === "error") {
+        setAvailability("error");
+        return;
+      }
+      setAvailability(data?.available ? "available" : "unavailable");
+    } catch {
+      setAvailability("error");
+    }
   }
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const presence = await fetch("/api/support/presence").then((response) => response.json()).catch(() => null);
-      if (!cancelled) setAvailable(Boolean(presence?.available));
+      await refreshPresence();
+      if (cancelled) return;
       if (!conversationId) {
         const listed = await fetch("/api/support/conversations");
         if (listed.status === 401) {
           if (!cancelled) setAuthRequired(true);
           return;
         }
-        const data = await listed.json();
-        const latest = (data.conversations ?? []).find((item: { status: string }) => item.status !== "resolved") ?? data.conversations?.[0];
+        const data = await listed.json().catch(() => null);
+        const latest = (data?.conversations ?? []).find((item: { status: string }) => item.status !== "resolved") ?? data?.conversations?.[0];
         if (latest?.id && !cancelled) await load(latest.id);
         return;
       }
@@ -110,13 +182,14 @@ export function SupportChat({
   }, []);
 
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
-  }, [messages, staffTyping]);
+    const list = listRef.current;
+    if (!list || !stickRef.current) return;
+    list.scrollTo({ top: list.scrollHeight, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+  }, [messages, staffTyping, pendingBody, revealingId, phase]);
 
   useEffect(() => {
     if (!conversation?.id) return;
     let cancelled = false;
-    let poll = 0;
     const supabase = createClient();
     void subscribePostgresChanges(
       supabase,
@@ -139,7 +212,7 @@ export function SupportChat({
         },
       },
     );
-    poll = window.setInterval(() => {
+    const poll = window.setInterval(() => {
       if (cancelled) return;
       if (!liveRef.current) void load(conversation.id);
       void fetch(`/api/support/conversations/${conversation.id}/typing`)
@@ -157,44 +230,62 @@ export function SupportChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation?.id]);
 
+  function onHistoryScroll() {
+    const list = listRef.current;
+    if (!list) return;
+    stickRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  }
+
   async function send(text: string): Promise<string | null> {
     const body = text.trim();
-    if (body.length < 1) return null;
+    if (body.length < 1 || sendingRef.current) return null;
+    sendingRef.current = true;
+    const reusing = failedDraft === body && clientMessageId.current;
+    if (!reusing) clientMessageId.current = crypto.randomUUID();
     setPhase("sending");
     setError("");
+    setPendingBody(body);
     setFailedDraft("");
-    const clientMessageId = crypto.randomUUID();
+    stickRef.current = true;
     try {
       const response = await fetch(conversation?.id ? `/api/support/conversations/${conversation.id}` : "/api/support/conversations", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ body, clientMessageId, conversationId: conversation?.id }),
+        body: JSON.stringify({ body, clientMessageId: clientMessageId.current, conversationId: conversation?.id }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
       if (response.status === 401) {
         setAuthRequired(true);
         setPhase("failed");
+        setPendingBody("");
         setFailedDraft(body);
         setError("Sign in to save this conversation.");
         return null;
       }
       if (!response.ok) {
         setPhase("failed");
+        setPendingBody("");
         setFailedDraft(body);
-        setError(data.error || "The message was not saved.");
+        setError(data?.error || "The message was not saved.");
         return null;
       }
       setDraft("");
+      setPendingBody("");
+      setFailedDraft("");
+      clientMessageId.current = null;
       setConversation(data.conversation);
-      setMessages(data.messages ?? []);
+      acceptMessages(data.messages ?? [], true);
       onConversationId(data.conversation.id);
       setPhase("idle");
       return String(data.conversation.id);
     } catch {
       setPhase("failed");
+      setPendingBody("");
       setFailedDraft(body);
       setError("The message was not saved. Check your connection and retry.");
       return null;
+    } finally {
+      sendingRef.current = false;
     }
   }
 
@@ -204,20 +295,32 @@ export function SupportChat({
   }
 
   async function handoff() {
+    if (sendingRef.current) return;
     const id = conversation?.id ?? (await send("I would like to talk with a person."));
     if (!id) return;
+    sendingRef.current = true;
     setPhase("sending");
-    const response = await fetch(`/api/support/conversations/${id}/handoff`, { method: "POST" });
-    const data = await response.json();
-    if (!response.ok) {
+    setError("");
+    try {
+      const response = await fetch(`/api/support/conversations/${id}/handoff`, { method: "POST" });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        setPhase("failed");
+        setError(data?.error || "Could not reach the support queue. Try again.");
+        return;
+      }
+      setConversation(data.conversation);
+      acceptMessages(data.messages ?? [], false);
+      if (data.availability === "available" || data.availability === "unavailable" || data.availability === "error") {
+        setAvailability(data.availability);
+      }
+      setPhase("idle");
+    } catch {
       setPhase("failed");
-      setError(data.error || "Could not reach the support queue.");
-      return;
+      setError("Could not reach the support queue. Check your connection and try again.");
+    } finally {
+      sendingRef.current = false;
     }
-    setConversation(data.conversation);
-    setMessages(data.messages ?? []);
-    setAvailable(data.agentsAvailable > 0);
-    setPhase("idle");
   }
 
   function onType() {
@@ -225,32 +328,35 @@ export function SupportChat({
     void fetch(`/api/support/conversations/${conversation.id}/typing`, { method: "POST" });
   }
 
-  const queueLabel =
-    conversation?.status === "queued"
-      ? available
-        ? "In the support queue. An available agent can reply here."
-        : "In the support queue. No agent is marked available right now."
-      : conversation?.status === "active"
-        ? "A support agent has this conversation."
-        : conversation?.status === "resolved"
-          ? "This conversation is marked resolved."
-          : available
-            ? "A support agent is marked available."
-            : "No support agent is marked available right now.";
+  const queueLabel = customerQueueLabel(conversation?.status, availability);
+
+  const scrollIfStuck = useCallback(() => {
+    const list = listRef.current;
+    if (!list || !stickRef.current) return;
+    list.scrollTop = list.scrollHeight;
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <p className="border-b border-neutral-100 px-4 py-2 text-xs text-[#4B5563]" role="status">
         {queueLabel}
+        {availability === "error" ? (
+          <>
+            {" "}
+            <button type="button" className="font-semibold text-[#FF5A1F] underline-offset-2 hover:underline" onClick={() => void refreshPresence()}>
+              Retry
+            </button>
+          </>
+        ) : null}
         {realtime === "polling" ? " Updates refresh automatically." : ""}
       </p>
-      <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
+      <div ref={listRef} onScroll={onHistoryScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
         {phase === "loading" ? <p className="text-sm text-[#6B7280]">Loading conversation…</p> : null}
         {messages.length === 0 && phase !== "sending" ? (
           <div className="rounded-2xl bg-[#F8FAFC] p-3 text-sm leading-6 text-[#374151]">
             <p className="font-semibold text-[#111827]">Jimvio AI</p>
             <p className="mt-1">
-              Ask about help articles. Answers are labeled when they come from the knowledge base or a model grounded in those articles. Account balances and payouts are not looked up here.
+              Ask a question about using Jimvio. Account balances and payouts are not looked up here.
             </p>
           </div>
         ) : null}
@@ -267,8 +373,11 @@ export function SupportChat({
               <span>{labelFor(message.authorRole)}</span>
               <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
             </header>
-            {disclosure(message) ? <p className="mt-1 text-[11px] font-medium normal-case tracking-normal text-[#6B7280]">{disclosure(message)}</p> : null}
-            <p className="mt-1 whitespace-pre-wrap leading-6">{message.body}</p>
+            {message.authorRole === "ai" ? (
+              <AssistantBody text={message.body} animate={message.id === revealingId} onGrow={scrollIfStuck} />
+            ) : (
+              <p className="mt-1 whitespace-pre-wrap leading-6">{message.body}</p>
+            )}
             {message.articles.length > 0 ? (
               <ul className="mt-2 space-y-1">
                 {message.articles.map((article) => (
@@ -282,8 +391,17 @@ export function SupportChat({
             ) : null}
           </article>
         ))}
-        {staffTyping ? <p className="text-xs text-[#6B7280]">Support is typing</p> : null}
-        {phase === "sending" ? <p className="text-xs text-[#6B7280]">Sending…</p> : null}
+        {pendingBody ? (
+          <article className="ml-8 rounded-2xl bg-[#FF5A1F]/80 px-3 py-2 text-sm text-white">
+            <header className="text-[11px] font-semibold uppercase tracking-wide opacity-80">You · Sending</header>
+            <p className="mt-1 whitespace-pre-wrap leading-6">{pendingBody}</p>
+          </article>
+        ) : null}
+        {staffTyping ? <TypingIndicator label="Support is typing" /> : null}
+        {phase === "sending" && pendingBody ? (
+          <TypingIndicator label={conversation?.mode === "human" ? "Saving your message" : "Jimvio AI is typing"} />
+        ) : null}
+        {phase === "sending" && !pendingBody ? <TypingIndicator label="Saving your request" /> : null}
       </div>
       {error ? (
         <p className="px-4 text-xs text-red-700" role="alert">
@@ -312,8 +430,9 @@ export function SupportChat({
           <button
             key={suggestion}
             type="button"
-            className="rounded-full border border-neutral-200 px-2.5 py-1 text-left text-[11px] font-medium text-[#374151] hover:border-[#FF5A1F]"
+            className="rounded-full border border-neutral-200 px-2.5 py-1 text-left text-[11px] font-medium text-[#374151] hover:border-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
             onClick={() => void send(suggestion)}
+            disabled={phase === "sending"}
           >
             {suggestion}
           </button>
@@ -324,7 +443,7 @@ export function SupportChat({
           type="button"
           onClick={() => void handoff()}
           disabled={phase === "sending" || authRequired}
-          className="text-xs font-semibold text-[#FF5A1F] disabled:opacity-50"
+          className="text-xs font-semibold text-[#FF5A1F] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
         >
           Talk to a human agent
         </button>
@@ -332,25 +451,32 @@ export function SupportChat({
           Leave a ticket
         </Link>
       </div>
-      <form onSubmit={onSubmit} className="flex gap-2 border-t border-neutral-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <form onSubmit={onSubmit} className="flex items-end gap-2 border-t border-neutral-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <label htmlFor={inputId} className="sr-only">
           Message support
         </label>
-        <input
+        <textarea
           id={inputId}
           value={draft}
+          rows={1}
           onChange={(event) => {
             setDraft(event.target.value);
             onType();
           }}
-          className="min-w-0 flex-1 rounded-full border border-neutral-200 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void send(draft);
+            }
+          }}
+          className="max-h-28 min-h-10 min-w-0 flex-1 resize-none rounded-2xl border border-neutral-200 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
           placeholder="Type your message…"
           maxLength={4000}
         />
         <button
           type="submit"
           disabled={phase === "sending" || draft.trim().length < 1}
-          className="rounded-full bg-[#FF5A1F] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="rounded-full bg-[#FF5A1F] px-3 py-2 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111827] focus-visible:ring-offset-2 disabled:opacity-50"
         >
           Send
         </button>

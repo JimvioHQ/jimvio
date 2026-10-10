@@ -65,7 +65,7 @@ Jimvio does not currently implement Shopify Billing API in this connector — if
 
 | Field | Value |
 |-------|--------|
-| Support email | support@jimvio.com |
+| Support email | info@jimvio.com |
 | Contact email | info@jimvio.com |
 | Support URL | https://www.jimvio.com/support → /help |
 | Privacy policy | https://www.jimvio.com/privacy |

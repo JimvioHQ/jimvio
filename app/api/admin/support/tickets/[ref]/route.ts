@@ -3,6 +3,7 @@ import { requirePlatformAdmin } from "@/lib/auth/platform-admin";
 import { TICKET_STATUSES, type TicketStatus } from "@/lib/support/types";
 import { deliverSupportNotice } from "@/lib/support/notify";
 import { staffGetTicket, staffUpdateTicket } from "@/lib/support/store";
+import { supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
 export async function GET(
@@ -40,7 +41,7 @@ export async function PATCH(
         publicRef: result.publicRef,
         subject: result.subject,
         requesterEmail: result.requesterEmail,
-        supportEmail: settings?.contact.support_email || "support@jimvio.com",
+        supportEmail: supportNotificationRecipient(settings?.contact.support_email),
         reply: result.reply,
       })
     : { sent: false as const, reason: "not_configured" as const };

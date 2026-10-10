@@ -465,7 +465,7 @@ export function CommerceIntegrationsDocument() {
             "Merchants can disconnect a store in Jimvio Commerce.",
             "Uninstalling the Jimvio app from Shopify also clears stored access tokens.",
             "Shopify mandatory compliance webhooks for customer/shop redaction are processed with HMAC verification.",
-            `Privacy requests: ${LEGAL_CONTACT.infoEmail} or ${LEGAL_CONTACT.supportEmail}.`,
+            `Privacy requests: ${LEGAL_CONTACT.infoEmail}.`,
           ]}
         />
       </LegalSection>

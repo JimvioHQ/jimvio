@@ -18,7 +18,7 @@ Last updated with code prep for App Store review. This is **not** Shopify approv
 | Privacy policy URL live | PASS | https://www.jimvio.com/privacy (includes Shopify/Commerce section in code). |
 | Terms URL live | PASS | https://www.jimvio.com/terms |
 | Support URL | PASS | https://www.jimvio.com/support → /help |
-| Support emails | PASS | support@jimvio.com, info@jimvio.com |
+| Support emails | PASS | info@jimvio.com |
 | Emergency contact | NEEDS MANUAL ACTION | Partner Dashboard field |
 | App icon 1200×1200 | PASS (asset) | `public/icons/shopify-app-icon-1200.png` — upload manually |
 | Listing copy | PASS (draft) | `docs/shopify/APP_STORE_LISTING.md` — paste into Partner Dashboard |

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
-import { availableAgentCount } from "@/lib/support/conversations";
+import { readAgentAvailability } from "@/lib/support/conversations";
 
 export async function GET() {
-  const count = await availableAgentCount();
-  return NextResponse.json({ available: count > 0 });
+  const presence = await readAgentAvailability();
+  if (!presence.ok) {
+    return NextResponse.json({ available: false, status: "error" }, { status: 503 });
+  }
+  return NextResponse.json({ available: presence.count > 0, status: "ok" });
 }

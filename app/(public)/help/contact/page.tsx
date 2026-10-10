@@ -1,14 +1,13 @@
 import { ProductFeedbackForm } from "@/components/soft-launch/ProductFeedbackWidget";
 import { SupportTicketForm } from "@/components/support/ticket-form";
-import { getResolvedPlatformSettings } from "@/lib/platform-settings";
+import { customerSupportEmail } from "@/lib/contact-email";
 import { getCachedUser } from "@/lib/supabase/server";
 
 export default async function HelpContactPage() {
   const {
     data: { user },
   } = await getCachedUser();
-  const settings = await getResolvedPlatformSettings().catch(() => null);
-  const email = settings?.contact.support_email || "support@jimvio.com";
+  const email = customerSupportEmail();
 
   return (
     <div className="space-y-6">
@@ -19,7 +18,7 @@ export default async function HelpContactPage() {
           <a className="font-semibold text-[#FF5A1F]" href={`mailto:${email}`}>
             {email}
           </a>
-          . Live staff chat is not connected on this page. Marketplace messages and live-room chat are not Jimvio support.
+          . The support chat on Help pages keeps the same conversation for follow-up. Marketplace messages and live-room chat are not Jimvio support.
         </p>
       </header>
       <SupportTicketForm

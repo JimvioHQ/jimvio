@@ -5,6 +5,7 @@ import { getAdminDB } from "@/services/base";
 import { answerSupportQuestion } from "./answer-question";
 import {
   countAvailableAgents,
+  handoffCustomerNote,
   isTypingFresh,
   parseClientMessageId,
   shouldAnswerWithAssistant,
@@ -243,20 +244,19 @@ export async function requestHumanHandoff(userId: string, conversationId: string
   if (!supportLiveReady()) return unavailable();
   const conversation = await loadOwned(conversationId, userId);
   if (!conversation) return { error: "Conversation not found.", status: 404 as const };
+  const presence = await readAgentAvailability();
+  const agentsOnline = presence.ok ? presence.count : null;
   if (conversation.mode === "human" && (conversation.status === "queued" || conversation.status === "active")) {
     return {
       ok: true as const,
-      agentsAvailable: await availableAgentCount(),
+      agentsAvailable: agentsOnline ?? 0,
+      availability: presence.ok ? (presence.count > 0 ? "available" : "unavailable") : "error",
       conversation: publicConversation(conversation),
       messages: await threadForCustomer(conversationId),
     };
   }
   const next = statusAfterHandoff(String(conversation.status) as ConversationStatus);
-  const agents = await availableAgentCount();
-  const note =
-    agents > 0
-      ? "You asked to talk with a person. This conversation is in the support queue. An available agent can reply here."
-      : "You asked to talk with a person. No support agent is marked available right now. Your message stays in the queue, and you can also open a support ticket.";
+  const note = handoffCustomerNote(agentsOnline);
 
   await database().from("support_conversation_messages").insert({
     conversation_id: conversationId,
@@ -279,20 +279,30 @@ export async function requestHumanHandoff(userId: string, conversationId: string
   const fresh = await loadOwned(conversationId, userId);
   return {
     ok: true as const,
-    agentsAvailable: agents,
+    agentsAvailable: agentsOnline ?? 0,
+    availability: presence.ok ? ((agentsOnline ?? 0) > 0 ? "available" : "unavailable") : "error",
     conversation: publicConversation(fresh ?? conversation),
     messages: await threadForCustomer(conversationId),
   };
 }
 
-export async function availableAgentCount() {
-  if (!supportLiveReady()) return 0;
-  const { data } = await database()
+export async function readAgentAvailability() {
+  if (!supportLiveReady()) return { ok: false as const };
+  const { data, error } = await database()
     .from("support_agent_presence")
     .select("last_seen_at, available")
     .eq("available", true)
     .limit(50);
-  return countAvailableAgents((data ?? []) as Array<{ last_seen_at: string; available: boolean }>);
+  if (error) return { ok: false as const };
+  return {
+    ok: true as const,
+    count: countAvailableAgents((data ?? []) as Array<{ last_seen_at: string; available: boolean }>),
+  };
+}
+
+export async function availableAgentCount() {
+  const presence = await readAgentAvailability();
+  return presence.ok ? presence.count : 0;
 }
 
 export async function touchTyping(conversationId: string, actor: "customer" | "staff", userId: string) {

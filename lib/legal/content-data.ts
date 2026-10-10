@@ -310,7 +310,7 @@ export const SHOPIFY_COMMERCE_ITEMS = [
   "Order and customer contact fields used for fulfillment may include name, email, phone, and shipping address.",
   "Shopify mandatory compliance webhooks (customers/data_request, customers/redact, shop/redact) are processed with HMAC verification.",
   "Merchants can disconnect a store in Jimvio Commerce; uninstalling the app from Shopify also clears stored access tokens.",
-  "Privacy requests: info@jimvio.com or support@jimvio.com.",
+  "Privacy requests: info@jimvio.com.",
 ];
 
 export const ELIGIBILITY_ITEMS = [

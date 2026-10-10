@@ -8,9 +8,13 @@ import { SUPPORT_CATEGORIES } from "./types";
 import { customerVisibleMessages } from "./format";
 import { deliverConversationReply, deliverSupportNotice } from "./notify";
 import { canTransition, ticketSearchTerm, validateTicketInput } from "./validation";
+import { customerSupportEmail, supportNotificationRecipient } from "../contact-email";
 import { showSupportLauncher } from "./routes";
+import { assistantRevealChunks, revealDelayMs } from "./reveal";
 import {
   countAvailableAgents,
+  customerQueueLabel,
+  handoffCustomerNote,
   shouldAnswerWithAssistant,
   shouldEmailCustomerReply,
   statusAfterCustomerMessage,
@@ -139,7 +143,7 @@ describe("support tickets", () => {
         publicRef: "JV-test",
         subject: "Pending withdrawal",
         requesterEmail: "person@example.com",
-        supportEmail: "support@jimvio.com",
+        supportEmail: "info@jimvio.com",
       },
       { enabled: false, send: async () => { called = true; return { ok: true }; } },
     );
@@ -152,7 +156,7 @@ describe("support tickets", () => {
         publicRef: "JV-test",
         subject: "Pending withdrawal",
         requesterEmail: "person@example.com",
-        supportEmail: "support@jimvio.com",
+        supportEmail: "info@jimvio.com",
       },
       {
         enabled: true,
@@ -163,7 +167,7 @@ describe("support tickets", () => {
       },
     );
     assert.deepEqual(sent, { sent: true, reason: "sent" });
-    assert.deepEqual(payloads.map((item) => item.to).sort(), ["person@example.com", "support@jimvio.com"]);
+    assert.deepEqual(payloads.map((item) => item.to).sort(), ["info@jimvio.com", "person@example.com"]);
     assert.equal(payloads.some((item) => (item.text ?? "").includes("4242")), false);
     assert.equal(payloads.some((item) => item.html.includes("internal staff note")), false);
 
@@ -173,7 +177,7 @@ describe("support tickets", () => {
         publicRef: "JV-test",
         subject: "Pending withdrawal",
         requesterEmail: "person@example.com",
-        supportEmail: "support@jimvio.com",
+        supportEmail: "info@jimvio.com",
         reply: "We are reviewing the withdrawal on your wallet page.",
       },
       {
@@ -244,6 +248,39 @@ describe("support tickets", () => {
     assert.equal(showSupportLauncher("/checkout"), false);
     assert.equal(showSupportLauncher("/cart"), false);
     assert.equal(showSupportLauncher("/communities"), false);
+    assert.equal(showSupportLauncher("/help/"), true);
+    assert.equal(showSupportLauncher("/help/articles/"), true);
+    assert.equal(showSupportLauncher("/legal"), false);
+    assert.equal(showSupportLauncher("/help-center"), false);
+    assert.equal(showSupportLauncher("/helpful"), false);
+  });
+
+  it("reveals assistant text in chunks and skips animation for reduced motion", () => {
+    const text = "Jimvio keeps payout requests in the wallet. Open Wallet, then request a payout when the balance is eligible for transfer.";
+    const animated = assistantRevealChunks(text, false);
+    assert.ok(animated.length > 1);
+    assert.equal(animated.join(""), text);
+    assert.deepEqual(assistantRevealChunks(text, true), [text]);
+    assert.equal(revealDelayMs(animated.length, false) > 0, true);
+    assert.equal(revealDelayMs(animated.length, true), 0);
+    const chat = readFileSync(new URL("../../components/support/support-chat.tsx", import.meta.url), "utf8");
+    const widget = readFileSync(new URL("../../components/support/live-support-widget.tsx", import.meta.url), "utf8");
+    assert.equal(chat.includes("From the Jimvio knowledge base"), false);
+    assert.match(widget, /createPortal/);
+    assert.match(widget, /fixed /);
+    assert.match(widget, /data-support-launcher/);
+  });
+
+  it("uses info@jimvio.com for customer support and folds obsolete aliases", () => {
+    assert.equal(customerSupportEmail(), "info@jimvio.com");
+    assert.equal(supportNotificationRecipient("support@jimvio.com"), "info@jimvio.com");
+    assert.equal(supportNotificationRecipient(""), "info@jimvio.com");
+    assert.equal(supportNotificationRecipient("ops-inbox@example.com"), "ops-inbox@example.com");
+    assert.equal(handoffCustomerNote(0).includes("marked available"), false);
+    assert.match(handoffCustomerNote(0), /follow-up/);
+    assert.match(customerQueueLabel("ai", "error"), /Could not check/);
+    assert.match(customerQueueLabel("ai", "unavailable"), /leave a message/i);
+    assert.equal(customerQueueLabel("queued", "unavailable").includes("No support agent is marked available"), false);
   });
 
   it("does not email a chat reply when delivery is disabled", async () => {

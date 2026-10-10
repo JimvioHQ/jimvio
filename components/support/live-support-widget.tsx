@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { MessageCircle, X } from "lucide-react";
 import { SupportChat } from "@/components/support/support-chat";
 import { showSupportLauncher } from "@/lib/support/routes";
@@ -38,6 +39,7 @@ export function LiveSupportWidget() {
   const [tab, setTab] = useState<Tab>(session.tab);
   const [conversationId, setConversationId] = useState<string | null>(session.conversationId);
   const [unread, setUnread] = useState(0);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const hidden = !showSupportLauncher(pathname);
 
   useEffect(() => {
@@ -45,6 +47,38 @@ export function LiveSupportWidget() {
     window.addEventListener("jimvio-support-open", openPanel);
     return () => window.removeEventListener("jimvio-support-open", openPanel);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const sync = () => {
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardInset(inset > 80 ? inset : 0);
+    };
+    sync();
+    viewport.addEventListener("resize", sync);
+    viewport.addEventListener("scroll", sync);
+    return () => {
+      viewport.removeEventListener("resize", sync);
+      viewport.removeEventListener("scroll", sync);
+    };
+  }, [open]);
+
+  function toggleOpen() {
+    const scrollY = window.scrollY;
+    setOpen((value) => !value);
+    window.requestAnimationFrame(() => window.scrollTo(0, scrollY));
+  }
 
   useEffect(() => {
     const saved: Saved = { open, tab, conversationId };
@@ -69,25 +103,31 @@ export function LiveSupportWidget() {
     };
   }, [open, pathname]);
 
-  if (hidden) return null;
+  if (hidden || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <>
       {open ? (
         <section
           aria-label="Jimvio Support"
-          className="fixed inset-x-0 top-[var(--navbar-height)] z-40 flex h-[calc(100dvh-var(--navbar-height)-60px-env(safe-area-inset-bottom,0px))] flex-col overflow-hidden border border-neutral-200 bg-white shadow-2xl motion-reduce:transition-none md:inset-auto md:bottom-6 md:right-6 md:h-[min(680px,calc(100dvh-5rem))] md:w-[392px] md:rounded-3xl"
+          data-support-panel
+          style={
+            keyboardInset > 0
+              ? { height: `calc(100dvh - var(--navbar-height) - 60px - env(safe-area-inset-bottom, 0px) - ${keyboardInset}px)` }
+              : undefined
+          }
+          className="fixed inset-x-0 top-[var(--navbar-height)] z-40 flex h-[calc(100dvh-var(--navbar-height)-60px-env(safe-area-inset-bottom,0px))] max-h-[calc(100dvh-var(--navbar-height)-60px-env(safe-area-inset-bottom,0px))] flex-col overflow-hidden border border-neutral-200 bg-white shadow-2xl motion-reduce:transition-none md:inset-auto md:bottom-6 md:right-6 md:h-[min(680px,calc(100dvh-var(--navbar-height)-2rem))] md:max-h-[calc(100dvh-var(--navbar-height)-2rem)] md:w-[min(392px,calc(100vw-3rem))] md:rounded-3xl"
         >
-          <header className="flex items-start justify-between gap-3 bg-[#FF5A1F] px-4 py-3 text-white">
+          <header className="flex shrink-0 items-start justify-between gap-3 bg-[#FF5A1F] px-4 py-3 text-white">
             <div>
               <h2 className="text-base font-semibold">Jimvio Support</h2>
               <p className="text-xs text-white/90">Help articles, AI answers, and human support</p>
             </div>
-            <button type="button" className="rounded-full p-1 hover:bg-white/15" aria-label="Close support" onClick={() => setOpen(false)}>
+            <button type="button" className="rounded-full p-1 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white" aria-label="Close support" onClick={toggleOpen}>
               <X className="h-4 w-4" />
             </button>
           </header>
-          <div className="grid grid-cols-3 border-b border-neutral-100 text-sm" role="tablist">
+          <div className="grid shrink-0 grid-cols-3 border-b border-neutral-100 text-sm" role="tablist">
             {(
               [
                 ["chat", "Chat"],
@@ -100,7 +140,7 @@ export function LiveSupportWidget() {
                 type="button"
                 role="tab"
                 aria-selected={tab === id}
-                className={cn("px-2 py-2 font-medium", tab === id ? "text-[#FF5A1F]" : "text-[#6B7280]")}
+                className={cn("px-2 py-2 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]", tab === id ? "text-[#FF5A1F]" : "text-[#6B7280]")}
                 onClick={() => setTab(id)}
               >
                 {label}
@@ -122,8 +162,9 @@ export function LiveSupportWidget() {
           open && "max-md:hidden",
         )}
         aria-label={open ? "Close support" : "Open Jimvio support"}
+        data-support-launcher
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleOpen}
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
         {unread > 0 && !open ? (
@@ -132,7 +173,8 @@ export function LiveSupportWidget() {
           </span>
         ) : null}
       </button>
-    </>
+    </>,
+    document.body,
   );
 }
 

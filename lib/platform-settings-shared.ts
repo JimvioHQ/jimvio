@@ -1,5 +1,7 @@
 /** Types, defaults, and pure helpers — safe to import from client components. */
 
+import { JIMVIO_SUPPORT_EMAIL } from "@/lib/contact-email";
+
 export type FeesSettings = {
   min_payout_rwf: number;
   default_affiliate_commission_percent: number;
@@ -178,7 +180,7 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     mobile_search_subtitle: "Products, suppliers, and marketplace",
   },
   contact: {
-    support_email: "support@jimvio.com",
+    support_email: JIMVIO_SUPPORT_EMAIL,
     info_email: "info@jimvio.com",
     social_x: "https://x.com/Jimvio_Official",
     social_youtube: "https://youtube.com/@jimvio?si=V-gMmLi6YUr8xAhv",

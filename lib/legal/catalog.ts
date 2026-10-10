@@ -508,7 +508,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
 ];
 
 export const LEGAL_CONTACT = {
-  supportEmail: "support@jimvio.com",
+  supportEmail: "info@jimvio.com",
   infoEmail: "info@jimvio.com",
   copyrightEmail: "copyright@jimvio.com",
   safetyEmail: "safety@jimvio.com",

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { deliverSupportNotice } from "@/lib/support/notify";
 import { createSupportTicket, listOwnTickets } from "@/lib/support/store";
+import { supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
 function clientIp(request: Request) {
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
       publicRef: result.ticket.public_ref,
       subject: result.ticket.subject,
       requesterEmail: user?.email ?? (typeof body?.email === "string" ? body.email : null),
-      supportEmail: settings?.contact.support_email || "support@jimvio.com",
+      supportEmail: supportNotificationRecipient(settings?.contact.support_email),
     });
   }
   return NextResponse.json({ ok: true, ticket: result.ticket, duplicate: result.duplicate, email });

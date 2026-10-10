@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isContactTopic } from "@/lib/contact/topics";
 import { sendEmail } from "@/lib/email/send";
 import { rateLimit } from "@/lib/ops/rate-limit";
+import { supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
 function clientIp(request: Request): string {
@@ -57,10 +58,11 @@ export async function POST(request: Request) {
   }
 
   const { contact } = await getResolvedPlatformSettings();
-  const to =
+  const to = supportNotificationRecipient(
     topic === "support" || topic === "creator" || topic === "vendor"
       ? contact.support_email
-      : contact.info_email;
+      : contact.info_email,
+  );
 
   const subject = `[Jimvio Contact · ${topic}] ${name}`;
   const text = [

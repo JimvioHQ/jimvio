@@ -17,6 +17,7 @@ import { activateVendorRole } from "@/lib/actions/activate-vendor-role";
 import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
+import { JIMVIO_SUPPORT_EMAIL } from "@/lib/contact-email";
 import { cn } from "@/lib/utils";
 
 function slugify(text: string) {
@@ -65,21 +66,12 @@ export default function ActivateVendorPage() {
    const [otherCategoryInput, setOtherCategoryInput] = useState("");
    const [categorySearch, setCategorySearch] = useState("");
    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-   const [supportEmail, setSupportEmail] = useState("support@jimvio.com");
+   const supportEmail = JIMVIO_SUPPORT_EMAIL;
 
    const filteredCategories = existingCategories.filter(c =>
       !categorySearch.trim() ||
       c.name.toLowerCase().includes(categorySearch.toLowerCase())
    );
-
-   useEffect(() => {
-      (async () => {
-         const supabase = createClient();
-         const { data } = await supabase.from("platform_settings").select("value").eq("key", "contact").maybeSingle();
-         const em = (data?.value as { support_email?: string } | null)?.support_email;
-         if (em?.includes("@")) setSupportEmail(em);
-      })();
-   }, []);
 
    useEffect(() => {
       (async () => {
