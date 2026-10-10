@@ -70,6 +70,7 @@ const navSections = [
       { label: "Growth", href: "/admin/growth", icon: Megaphone },
       { label: "Growth KPIs", href: "/admin/growth-kpis", icon: TrendingUp },
       { label: "Feedback", href: "/admin/feedback", icon: Inbox },
+      { label: "Support", href: "/admin/support", icon: Inbox },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },
     ],
   },
