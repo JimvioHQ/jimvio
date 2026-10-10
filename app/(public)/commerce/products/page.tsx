@@ -127,16 +127,10 @@ export default async function CommerceProductsPage({ searchParams }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/commerce/products/new?storeId=${active.id}`}
+            href={`/commerce/products/import?storeId=${active.id}`}
             className="rounded-xl bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white"
           >
-            + Add product
-          </Link>
-          <Link
-            href="/marketplace/physical"
-            className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#374151]"
-          >
-            Import
+            Import from Marketplace
           </Link>
         </div>
       </div>

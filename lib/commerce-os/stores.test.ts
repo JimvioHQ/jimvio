@@ -19,6 +19,9 @@ describe("create store theme seed", () => {
       (hero?.props as { headline?: string } | undefined)?.headline,
       "Acme Shop"
     );
+    assert.equal(draft.templateId, "provider");
+    assert.equal(JSON.stringify(draft).toLowerCase().includes("p7 provider"), false);
+    assert.equal(draft.settings.backgroundColor, "#F8FAFC");
   });
 
   it("pairs with canonical subdomain public URL helper", () => {

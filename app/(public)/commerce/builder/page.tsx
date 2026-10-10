@@ -10,13 +10,14 @@ import {
 } from "@/lib/commerce-os";
 import type { ThemeDraft } from "@/lib/commerce-os/themes/registry";
 import { BuilderClient } from "@/components/commerce-os/builder-client";
+import { BuilderHome } from "@/components/commerce-os/builder-home";
 import { cosTable } from "@/lib/commerce-os/db";
 import type { NavItem } from "@/lib/commerce-os/builder/nav-safe";
 import "@/styles/storefront-product-grid.css";
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams: Promise<{ storeId?: string }> };
+type Props = { searchParams: Promise<{ storeId?: string; view?: string; template?: string }> };
 
 function asNavItems(raw: unknown): NavItem[] {
   if (!Array.isArray(raw)) return [];
@@ -42,7 +43,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
     );
   }
 
-  const { storeId } = await searchParams;
+  const { storeId, view, template } = await searchParams;
   const db = cosAdminDb();
   const stores = await listVendorJimvioStores(db, auth.vendorId);
   const active = pickActiveStore(stores, storeId);
@@ -71,7 +72,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
 
   const { data: store } = await cosTable(db, "jimvio_stores")
     .select(
-      "id, name, handle, theme_draft, logo_url, status, seo, social, description"
+      "id, name, handle, theme_draft, logo_url, status, seo, social, description, updated_at, published_theme_at"
     )
     .eq("id", active.id)
     .eq("vendor_id", auth.vendorId)
@@ -98,6 +99,36 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
     navRows?.find((n: { location: string }) => n.location === "footer")?.items
   );
 
+  const draft = (store?.theme_draft as ThemeDraft) || null;
+  const previewProducts = products as Array<{
+    id: string;
+    name: string;
+    slug: string;
+    price: number | string | null;
+    compare_at_price?: number | string | null;
+    currency?: string | null;
+    images?: unknown;
+    short_description?: string | null;
+    inventory_quantity?: number | null;
+    track_inventory?: boolean | null;
+  }>;
+
+  if (view !== "editor") {
+    return (
+      <BuilderHome
+        storeId={active.id}
+        storeName={store?.name || active.name}
+        handle={store?.handle || active.handle}
+        status={store?.status || active.status}
+        updatedAt={store?.updated_at}
+        publishedThemeAt={store?.published_theme_at}
+        initialDraft={draft}
+        previewTemplateId={view === "template" ? template : null}
+        previewProducts={previewProducts}
+      />
+    );
+  }
+
   return (
     <BuilderClient
       storeId={active.id}
@@ -111,7 +142,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
         handle: s.handle,
         status: s.status,
       }))}
-      initialDraft={(store?.theme_draft as ThemeDraft) || null}
+      initialDraft={draft}
       initialNav={{ header: headerNav, footer: footerNav }}
       initialPages={(pageRows || []) as Array<{
         id: string;
@@ -124,20 +155,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
       initialSeo={(store?.seo as Record<string, unknown>) || {}}
       initialSocial={(store?.social as Record<string, unknown>) || {}}
       initialDescription={store?.description}
-      previewProducts={
-        products as Array<{
-          id: string;
-          name: string;
-          slug: string;
-          price: number | string | null;
-          compare_at_price?: number | string | null;
-          currency?: string | null;
-          images?: unknown;
-          short_description?: string | null;
-          inventory_quantity?: number | null;
-          track_inventory?: boolean | null;
-        }>
-      }
+      previewProducts={previewProducts}
       previewCollections={collections}
     />
   );

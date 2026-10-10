@@ -15,7 +15,7 @@ export {
   buildMissingStorefrontMetadata,
   resolveStorefrontIcons,
 } from "./storefront-metadata";
-export { publishProductToJimvioStore } from "./products";
+export { publishProductToJimvioStore, importMarketplaceProductToStore } from "./products";
 export {
   loadPublishedStoreByHandle,
   loadPublishedStoreByHostname,

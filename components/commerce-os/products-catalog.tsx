@@ -281,14 +281,14 @@ export function ProductsCatalog({ storeId, storeHandle, products }: Props) {
           description={
             products.length
               ? "Try clearing search or filters."
-              : "Add your first product to start selling, or import from the Jimvio Marketplace."
+              : "Import a product from your Jimvio Marketplace catalog."
           }
           action={
             <Link
-              href={`/commerce/products/new?storeId=${storeId}`}
+              href={`/commerce/products/import?storeId=${storeId}`}
               className="rounded-lg bg-[#FF5A1F] px-4 py-2 text-xs font-semibold text-white"
             >
-              Add product
+              Import from Marketplace
             </Link>
           }
         />
@@ -320,7 +320,13 @@ export function ProductsCatalog({ storeId, storeHandle, products }: Props) {
                         {p.variantCount > 1 ? `${p.variantCount} variants · ` : ""}
                         {formatCommerceMoney(p.price, p.currency)}
                       </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Link
+                          href={`/commerce/products/${p.productId}/edit?storeId=${storeId}`}
+                          className="text-xs font-semibold text-[#FF5A1F]"
+                        >
+                          Edit
+                        </Link>
                         <CommerceStatusBadge
                           label={p.status}
                           tone={productStatusTone(p.status)}

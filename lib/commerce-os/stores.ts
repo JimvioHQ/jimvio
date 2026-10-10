@@ -13,6 +13,8 @@ import {
   defaultStorePageHtml,
   defaultStorePageTitle,
 } from "./storefront/page-content";
+import { mergeThemeSettings } from "./themes/registry";
+import { buildProviderStoreDraft } from "./themes/store-template";
 
 export type CreateStoreInput = {
   vendorId: string;
@@ -38,37 +40,13 @@ export function buildInitialStoreThemeDraft(
   name: string,
   themeSettings: Record<string, unknown> = {}
 ) {
+  const base = buildProviderStoreDraft(name);
   return {
-    sections: {
-      home: [
-        { id: "announcement", type: "announcement", enabled: true },
-        { id: "header", type: "header", enabled: true },
-        {
-          id: "hero",
-          type: "hero",
-          enabled: true,
-          props: {
-            headline: name,
-            subhead: `Shop ${name}`,
-            cta: "Shop the collection",
-          },
-        },
-        {
-          id: "featured_products",
-          type: "featured_products",
-          enabled: true,
-          props: { title: "Featured products" },
-        },
-        {
-          id: "trust",
-          type: "banner",
-          enabled: false,
-          props: { headline: "", subhead: "" },
-        },
-        { id: "footer", type: "footer", enabled: true },
-      ],
-    },
-    settings: themeSettings,
+    ...base,
+    settings: mergeThemeSettings(
+      base.settings,
+      themeSettings as Partial<typeof base.settings>,
+    ),
   };
 }
 
@@ -123,15 +101,17 @@ export async function createJimvioStore(
 
   let themeId: string | null = null;
   let themeSettings: Record<string, unknown> = {};
-  const themeCode = input.themeCode || "modern";
-  const { data: theme } = await cosTable(db, "jimvio_themes")
-    .select("id, default_settings")
-    .eq("code", themeCode)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (theme) {
-    themeId = theme.id;
-    themeSettings = (theme.default_settings as Record<string, unknown>) || {};
+  const themeCode = input.themeCode?.trim() || "";
+  if (themeCode) {
+    const { data: theme } = await cosTable(db, "jimvio_themes")
+      .select("id, default_settings")
+      .eq("code", themeCode)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (theme) {
+      themeId = theme.id;
+      themeSettings = (theme.default_settings as Record<string, unknown>) || {};
+    }
   }
 
   // Seed draft + published snapshot so the store is publicly reachable immediately.
@@ -205,6 +185,7 @@ export async function createJimvioStore(
       items: [
         { label: "Home", href: storefrontBrowsePath(store.handle) },
         { label: "All products", href: storefrontBrowsePath(store.handle, "/collections/all") },
+        { label: "About", href: storefrontBrowsePath(store.handle, "/pages/about") },
       ],
     },
     {
@@ -215,6 +196,8 @@ export async function createJimvioStore(
         { label: "Contact", href: storefrontBrowsePath(store.handle, "/pages/contact") },
         { label: "Shipping", href: storefrontBrowsePath(store.handle, "/pages/shipping-policy") },
         { label: "Refunds", href: storefrontBrowsePath(store.handle, "/pages/refund-policy") },
+        { label: "Privacy", href: storefrontBrowsePath(store.handle, "/pages/privacy") },
+        { label: "Terms", href: storefrontBrowsePath(store.handle, "/pages/terms") },
       ],
     },
   ]);

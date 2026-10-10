@@ -87,9 +87,14 @@ describe("editor chrome breakpoints", () => {
     assert.deepEqual(desktop, { leftOpen: true, rightOpen: true });
   });
 
-  it("hides Commerce OS nav only on builder routes", () => {
-    assert.equal(builderShouldHideCommerceNav("/commerce/builder"), true);
-    assert.equal(builderShouldHideCommerceNav("/commerce/builder?storeId=x"), true);
+  it("hides Commerce OS nav only inside the visual editor", () => {
+    assert.equal(builderShouldHideCommerceNav("/commerce/builder"), false);
+    assert.equal(builderShouldHideCommerceNav("/commerce/builder", "storeId=x"), false);
+    assert.equal(
+      builderShouldHideCommerceNav("/commerce/builder", "storeId=x&view=editor"),
+      true,
+    );
+    assert.equal(builderShouldHideCommerceNav("/commerce/builder?view=editor"), true);
     assert.equal(builderShouldHideCommerceNav("/commerce"), false);
     assert.equal(builderShouldHideCommerceNav("/commerce/products"), false);
   });

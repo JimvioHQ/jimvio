@@ -142,21 +142,25 @@ export const BUILDER_NAV_GROUPS: Array<{
   {
     id: "store",
     label: "Store",
-    items: [
-      { id: "settings", label: "Overview", hint: "Store identity basics" },
-      { id: "media", label: "Brand", hint: "Logo & favicon" },
-      { id: "theme", label: "Identity", hint: "Presets & tokens" },
-    ],
+    items: [{ id: "settings", label: "Overview", hint: "Store identity basics" }],
   },
   {
     id: "design",
     label: "Design",
-    items: [{ id: "design", label: "Colors & layout", hint: "Typography, cards, spacing" }],
+    items: [
+      { id: "theme", label: "Colors & type", hint: "Colors, typography, and buttons" },
+      { id: "design", label: "Spacing & layout", hint: "Radius, grid, and shadows" },
+    ],
   },
   {
     id: "sections",
     label: "Sections",
-    items: [{ id: "sections", label: "Homepage", hint: "Add, reorder, hide" }],
+    items: [{ id: "sections", label: "Homepage", hint: "Hero, products, FAQ, and footer" }],
+  },
+  {
+    id: "media",
+    label: "Media",
+    items: [{ id: "media", label: "Brand images", hint: "Logo and favicon" }],
   },
   {
     id: "navigation",
@@ -169,13 +173,6 @@ export const BUILDER_NAV_GROUPS: Array<{
     items: [
       { id: "pages", label: "Content pages", hint: "About, contact, custom" },
       { id: "policies", label: "Policies", hint: "Legal templates" },
-    ],
-  },
-  {
-    id: "commerce",
-    label: "Commerce",
-    items: [
-      { id: "design", label: "Product grid", hint: "Columns & card ratio" },
     ],
   },
   {

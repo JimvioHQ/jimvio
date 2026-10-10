@@ -73,7 +73,7 @@ export function CreateStoreForm({
       }
       setCreated(store);
       router.refresh();
-      router.push(`/commerce?storeId=${store.id}`);
+      router.push(`/commerce/builder?storeId=${store.id}`);
     } catch {
       setError("Request failed. Check your connection and try again.");
     } finally {
@@ -153,7 +153,7 @@ export function CreateStoreForm({
         <div>
           <p className="text-sm font-semibold text-[#111827]">Create your store</p>
           <p className="mt-1 text-xs text-[#6B7280]">
-            Go live immediately at your-handle.jimvio.com.
+            Your store gets its own name, handle, and the Provider Store design.
           </p>
         </div>
       ) : (
@@ -223,7 +223,7 @@ export function CreateStoreForm({
           disabled={submitting}
           className="rounded-md bg-[#FF5A1F] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
         >
-          {submitting ? "Creating…" : "Create store"}
+          {submitting ? "Creating…" : "Create Your Store"}
         </button>
       </div>
     </form>
@@ -250,7 +250,7 @@ export function CreateStoreForm({
           onClick={() => setPanelOpen(true)}
           className="rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#6B7280] hover:text-[#111827]"
         >
-          + Create new store
+          Create Store
         </button>
       ) : null}
 

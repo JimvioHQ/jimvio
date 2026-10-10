@@ -232,7 +232,10 @@ export function CommerceShell({
   const searchParams = useSearchParams();
   const searchTab = searchParams?.get("tab") ?? null;
   const [mobileNav, setMobileNav] = useState(false);
-  const isBuilder = builderShouldHideCommerceNav(pathname);
+  const isBuilder = builderShouldHideCommerceNav(
+    pathname,
+    searchParams?.toString() ?? "",
+  );
 
   useEffect(() => {
     // Close mobile drawer when navigating between Commerce routes.

@@ -91,6 +91,8 @@ export type ThemeSection = {
 };
 
 export type ThemeDraft = {
+  /** Design preset id. Omitted on stores saved before template tracking. */
+  templateId?: string;
   settings: ThemeSettings;
   sections: {
     home: ThemeSection[];

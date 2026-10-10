@@ -417,8 +417,9 @@ export function BuilderClient({
   }
 
   function buildDraft(): ThemeDraft {
-    return {
-      settings: {
+  return {
+    templateId: initialDraft?.templateId,
+    settings: {
         ...settings,
         logoUrl: settings.logoUrl || logoUrl || null,
       },
@@ -753,7 +754,14 @@ export function BuilderClient({
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[#111827]">
+          <div className="flex min-w-0 items-center gap-2">
+            <Link
+              href={`/commerce/builder?storeId=${storeId}`}
+              className="shrink-0 text-[11px] font-semibold text-[#6B7280] underline-offset-2 hover:text-[#111827] hover:underline"
+            >
+              Templates
+            </Link>
+            <p className="truncate text-sm font-semibold text-[#111827]">
             {storeName}
             <span
               className={
@@ -768,6 +776,7 @@ export function BuilderClient({
               <span className="ml-1 text-[10px] font-semibold text-amber-700">Unsaved</span>
             ) : null}
           </p>
+          </div>
           {showFullToolbar ? (
             <p className="truncate text-[10px] text-[#6B7280]">
               Home

@@ -57,7 +57,11 @@ export function constrainOverlayDrawers(state: {
   return { leftOpen: state.leftOpen, rightOpen: state.rightOpen };
 }
 
-export function builderShouldHideCommerceNav(pathname: string): boolean {
-  const path = pathname.split("?")[0]?.split("#")[0] || pathname;
-  return path === "/commerce/builder" || path.startsWith("/commerce/builder/");
+export function builderShouldHideCommerceNav(pathname: string, search = ""): boolean {
+  const [pathPart, queryFromPath = ""] = (pathname || "").split("?");
+  const path = (pathPart.split("#")[0] || "").trim();
+  const onBuilder = path === "/commerce/builder" || path.startsWith("/commerce/builder/");
+  if (!onBuilder) return false;
+  const params = new URLSearchParams(search || queryFromPath);
+  return params.get("view") === "editor";
 }
