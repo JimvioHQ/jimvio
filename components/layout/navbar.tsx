@@ -214,6 +214,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, marketing }: NavbarProps) {
+  const headerRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerPortalEl, setDrawerPortalEl] = useState<HTMLElement | null>(null);
@@ -240,6 +241,34 @@ export function Navbar({ user, marketing }: NavbarProps) {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  // Keep the in-flow offset equal to the header's border box. On iOS the
+  // safe-area variable and the painted bar can disagree, which leaves a band
+  // under the header.
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    const main = document.getElementById("main-content");
+    if (!header || !main) return;
+
+    const apply = () => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        main.style.paddingTop = "";
+        return;
+      }
+      const height = Math.ceil(header.getBoundingClientRect().height);
+      if (height > 0) main.style.paddingTop = `${height}px`;
+    };
+
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(header);
+    window.addEventListener("resize", apply);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", apply);
+      main.style.paddingTop = "";
+    };
+  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 15);
@@ -272,7 +301,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 pointer-events-none">
+    <>
+    <header
+      ref={headerRef}
+      className="fixed top-0 inset-x-0 z-50 pointer-events-none max-md:h-[calc(3.5rem+env(safe-area-inset-top,0px))] max-md:overflow-hidden md:h-auto"
+    >
       <div
         className={cn(
           "pointer-events-auto relative mx-auto flex flex-col",
@@ -535,8 +568,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
             drawerPortalEl,
           )
         : null}
-      <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
     </header>
+    <MobilePrimaryBottomNav isAuthenticated={Boolean(user)} />
+    </>
   );
 }
 
@@ -666,7 +700,7 @@ function MobileDrawer({
         onClick={onClose}
         className={cn(
           "fixed inset-0 z-[9998] bg-black/50 transition-opacity duration-150 motion-reduce:transition-none md:hidden",
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
+          open ? "pointer-events-auto opacity-100" : "hidden",
         )}
       />
 

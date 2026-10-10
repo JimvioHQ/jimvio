@@ -72,7 +72,11 @@ function LogoMark({
       style={{ width: icon, height: icon }}
       aria-hidden
     >
-      {/* Sized img, not next/image fill: absolute fill painted a black tile under the mobile header on iOS. */}
+      {/*
+        Explicit px box, not percentage sizing. A 512px mark with
+        height:auto / max-width:100% was painting an orange tile and a
+        black corner under the mobile header on iOS.
+      */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={MARK_SRC}
@@ -81,7 +85,8 @@ function LogoMark({
         height={icon}
         decoding="async"
         draggable={false}
-        className="block h-full w-full object-cover object-center"
+        className="block object-cover object-center"
+        style={{ width: icon, height: icon, maxWidth: icon, maxHeight: icon }}
       />
     </span>
   );
