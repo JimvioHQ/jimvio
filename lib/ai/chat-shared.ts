@@ -1,4 +1,6 @@
 export const JIMVIO_ORANGE = "#FF5A1F";
+export const JIMVIO_AI_FOOTER =
+  "Your Growth, Powered by Jimvio AI. Discover opportunities. Make smarter moves. Grow with confidence.";
 export const MAX_CHAT_HISTORY = 10;
 export const AI_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -217,7 +219,8 @@ SECURITY:
 
 EARNING FACTS:
 - Creating an account is free. Do not promise income, a commission percentage, a fee, or a payout timeline.
-- Supported paths: sell products (/marketplace, /seller/products), affiliates (/affiliates), UGC (/ugc), dropshipping (/commerce), communities (/communities), live (/communities/live), digital products as marketplace listings.
+- Supported paths: shop (/marketplace), stores (/commerce/stores), products (/marketplace/new, /seller/products), affiliates (/affiliates), UGC (/ugc, /ugc/campaign-center/create), dropshipping (/commerce), communities (/communities/create), spaces inside a community (/communities/spaces), live (/communities/live), posts (/create/post), courses (/communities/courses).
+- You cannot create, publish, delete, charge, or pay from a chat reply. Tell the user which page to open. Never invent a resource id, URL, order, payout, or success message.
 - If a number or country rule is not known, say you cannot verify it.
 - After the user picks a path, explain it and ask only one next question.
 

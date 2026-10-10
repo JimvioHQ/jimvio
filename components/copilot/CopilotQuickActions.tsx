@@ -8,6 +8,7 @@ import {
   Percent,
   Scale,
   Search,
+  ChevronRight,
   Sparkles,
   TrendingUp,
   Users,
@@ -89,9 +90,9 @@ export function CopilotQuickActions({
             disabled={disabled}
             onClick={() => onSelect(action)}
             className={cn(
-              "flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left",
+              "flex items-center gap-3 rounded-full border border-[#F3D2C4] bg-white px-4 py-3 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
               "transition-[transform,border-color,background-color] duration-200",
-              "hover:scale-[1.01] hover:border-[#FF5A1F]/40 hover:bg-[var(--color-surface-secondary)]",
+              "hover:border-[#FF5A1F]/50 hover:bg-[#FFF8F5]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
               "disabled:opacity-50",
             )}
@@ -103,9 +104,10 @@ export function CopilotQuickActions({
             >
               <Icon className="size-4 text-[#FF5A1F]" />
             </span>
-            <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+            <span className="min-w-0 flex-1 text-[13px] font-semibold text-[#1F2937]">
               {action.label}
             </span>
+            <ChevronRight className="size-4 shrink-0 text-[#C4C4C4]" aria-hidden />
           </button>
         );
       })}

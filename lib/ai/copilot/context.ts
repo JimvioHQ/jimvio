@@ -72,6 +72,7 @@ export function resolveCopilotContext(pathname: string): CopilotPageContext {
   if (pathname.startsWith("/checkout")) return "checkout";
   if (pathname.startsWith("/communities")) return "communities";
   if (pathname.startsWith("/affiliates") || pathname.startsWith("/influencers")) return "affiliate";
+  if (pathname === "/ai" || pathname === "/welcome") return "home";
   if (pathname.startsWith("/ugc")) return "affiliate";
   if (pathname.startsWith("/ugc/campaign-center") || pathname.startsWith("/admin")) {
     return "seller-dashboard";

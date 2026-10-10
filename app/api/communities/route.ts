@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/base";
-import { ensureDefaultCommunityWorkspace } from "@/lib/community/ensure-default-workspace";
+import { createOwnedCommunity, slugifyCommunityName } from "@/lib/community/create-owned-community";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export const dynamic = "force-dynamic";
 
 function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+  return slugifyCommunityName(name);
 }
 
 export async function GET(req: NextRequest) {
@@ -242,23 +239,12 @@ export async function GET(req: NextRequest) {
  * so feed posting and chat work immediately.
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const body = (await req.json()) as Record<string, unknown>;
   const name = String(body.name ?? "");
-  if (!name.trim()) return NextResponse.json({ error: "name is required" }, { status: 400 });
-
-  const slug = (body.slug as string) || slugify(name);
-  if (!slug) return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
-
-  const insert: Record<string, unknown> = {
+  const visibility = body.visibility;
+  const result = await createOwnedCommunity({
     name,
-    slug,
-    owner_id: user.id,
+    slug: typeof body.slug === "string" && body.slug.trim() ? body.slug : slugify(name),
     tagline: body.tagline as string | undefined,
     description: body.description as string | undefined,
     long_description: body.long_description as string | undefined,
@@ -274,55 +260,15 @@ export async function POST(req: NextRequest) {
     currency: (body.currency as string) || "USD",
     trial_days: body.trial_days as number | undefined,
     platform_commission_rate: body.platform_commission_rate as number | undefined,
-  };
-  if (
-    body.visibility === "public" ||
-    body.visibility === "private" ||
-    body.visibility === "invite_only"
-  ) {
-    insert.visibility = body.visibility;
-    insert.visibility_mode = body.visibility;
-    insert.is_private = body.visibility !== "public";
-  }
-
-  const { data, error } = await supabase.from("communities").insert(insert as any).select().single();
-
-  if (error) {
-    const duplicate =
-      error.code === "23505" || /duplicate|unique/i.test(error.message);
-    if (duplicate) {
-      return NextResponse.json(
-        { error: "A community with this name already exists." },
-        { status: 409 },
-      );
-    }
-    console.error("[communities] insert failed:", error.message);
-    return NextResponse.json({ error: "Could not create community." }, { status: 400 });
-  }
-
-  // Owner membership uses service role: user-scoped INSERT only allows free self-join.
-  const admin = getAdminDB();
-  const { error: membershipError } = await admin.from("community_memberships").insert({
-    community_id: data.id,
-    user_id: user.id,
-    role: "owner",
-    plan_type: "lifetime",
-    status: "active",
-  });
-  if (membershipError) {
-    console.error("[communities] owner membership insert failed:", membershipError.message);
-    await admin.from("communities").delete().eq("id", data.id).eq("owner_id", user.id);
-    return NextResponse.json(
-      { error: "Could not finish community setup. Please try again." },
-      { status: 500 },
-    );
-  }
-
-  // Seed default workspace with service role so RLS cannot block first group/room.
-  await ensureDefaultCommunityWorkspace(admin as any, data.id, {
-    communityName: data.name,
-    communitySlug: data.slug,
+    visibility:
+      visibility === "public" || visibility === "private" || visibility === "invite_only"
+        ? visibility
+        : undefined,
   });
 
-  return NextResponse.json({ community: data });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  return NextResponse.json({ community: result.community });
 }

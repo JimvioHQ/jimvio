@@ -55,6 +55,7 @@ export function PublicLayoutShell({
     pathname === "/marketplace" || pathname.startsWith("/marketplace/");
   // Home: opacity-only enter — avoid translate + overscroll contain fighting native scroll on mobile.
   const isHomeRoute = pathname === "/";
+  const isAiCanvas = pathname === "/ai" || pathname === "/welcome";
   const pageEnterAnimation =
     isMarketplaceRoute || isHomeRoute
       ? "page-enter-fade 220ms ease both"
@@ -85,9 +86,11 @@ export function PublicLayoutShell({
           {children}
         </main>
 
-        <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <Footer contact={contact} />
-        </div>
+        {isAiCanvas ? null : (
+          <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <Footer contact={contact} />
+          </div>
+        )}
 
         <DeferredPublicWidgets />
       </div>
