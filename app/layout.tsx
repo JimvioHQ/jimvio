@@ -25,7 +25,12 @@ import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 export const metadata: Metadata = constructMetadata();
 
 export const viewport: Viewport = {
-  themeColor: "#FB4C07",
+  // Match the page canvas. An orange theme color is what iOS/Chrome paint
+  // into the status bar and the pull-down overscroll area.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F1115" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

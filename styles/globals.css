@@ -113,8 +113,9 @@
     --space-10: 2.5rem;
 
     --container-max: 1280px;
-    /* Single-row header: h-14 plus the iOS status-bar inset. Keep in sync with navbar.tsx */
-    --navbar-height: calc(56px + env(safe-area-inset-top, 0px));
+    /* Mobile header is the 56px bar. The browser already insets the status bar;
+       adding env(safe-area-inset-top) here opened a band under that bar. */
+    --navbar-height: 56px;
 
     --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(0, 0, 0, 0.06);
@@ -219,6 +220,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color-scheme: light;
+  }
+
+  @media (max-width: 767px) {
+    html,
+    body {
+      /* Light canvas in the rubber-band area. Does not lock or block scrolling. */
+      background-color: var(--color-bg);
+      overscroll-behavior-y: none;
+    }
   }
 
   @media (hover: hover) and (pointer: fine) {

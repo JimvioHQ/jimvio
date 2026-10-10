@@ -214,7 +214,6 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, marketing }: NavbarProps) {
-  const headerRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drawerPortalEl, setDrawerPortalEl] = useState<HTMLElement | null>(null);
@@ -241,34 +240,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
-
-  // Keep the in-flow offset equal to the header's border box. On iOS the
-  // safe-area variable and the painted bar can disagree, which leaves a band
-  // under the header.
-  useLayoutEffect(() => {
-    const header = headerRef.current;
-    const main = document.getElementById("main-content");
-    if (!header || !main) return;
-
-    const apply = () => {
-      if (window.matchMedia("(min-width: 768px)").matches) {
-        main.style.paddingTop = "";
-        return;
-      }
-      const height = Math.ceil(header.getBoundingClientRect().height);
-      if (height > 0) main.style.paddingTop = `${height}px`;
-    };
-
-    apply();
-    const observer = new ResizeObserver(apply);
-    observer.observe(header);
-    window.addEventListener("resize", apply);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", apply);
-      main.style.paddingTop = "";
-    };
-  }, []);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 15);
@@ -303,13 +274,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
   return (
     <>
     <header
-      ref={headerRef}
-      className="fixed top-0 inset-x-0 z-50 pointer-events-none max-md:h-[calc(3.5rem+env(safe-area-inset-top,0px))] max-md:bg-white max-md:dark:bg-[#0a0a0a] md:h-auto"
+      className="fixed top-0 inset-x-0 z-50 pointer-events-none max-md:h-14 max-md:bg-white max-md:dark:bg-[#0a0a0a] md:h-auto"
     >
       <div
         className={cn(
           "pointer-events-auto relative mx-auto flex flex-col",
-          "bg-white pt-[env(safe-area-inset-top,0px)] shadow-[0_1px_0_rgba(0,0,0,0.06)]",
+          "bg-white shadow-[0_1px_0_rgba(0,0,0,0.06)]",
           "dark:bg-[#0a0a0a] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]",
           "md:transition-all md:duration-300",
           scrolled
