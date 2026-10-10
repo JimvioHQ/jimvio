@@ -69,26 +69,17 @@ function LogoMark({
             )
           : "shadow-[0_1px_2px_rgba(253,80,0,0.12)] ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
       )}
-      style={{ width: icon, height: icon }}
+      style={{
+        width: icon,
+        height: icon,
+        backgroundColor: "#FB4C07",
+        backgroundImage: `url(${MARK_SRC})`,
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
       aria-hidden
-    >
-      {/*
-        Explicit px box, not percentage sizing. A 512px mark with
-        height:auto / max-width:100% was painting an orange tile and a
-        black corner under the mobile header on iOS.
-      */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={MARK_SRC}
-        alt=""
-        width={icon}
-        height={icon}
-        decoding="async"
-        draggable={false}
-        className="block object-cover object-center"
-        style={{ width: icon, height: icon, maxWidth: icon, maxHeight: icon }}
-      />
-    </span>
+    />
   );
 }
 

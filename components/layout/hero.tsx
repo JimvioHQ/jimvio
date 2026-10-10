@@ -391,9 +391,9 @@ function EcosystemLogo({
       width={logo.w}
       height={logo.h}
       decoding="async"
-      loading="lazy"
       draggable={false}
-      className="h-8 w-auto max-h-8 max-w-[240px] shrink-0 object-contain"
+      className="block h-8 shrink-0 object-contain"
+      style={{ width: logo.w, height: 32, maxWidth: logo.w, maxHeight: 32 }}
     />
   );
 }
@@ -402,7 +402,7 @@ function EcosystemLogoTrack({ decorative }: { decorative?: boolean }) {
   return (
     <ul className={cn("flex w-max list-none flex-nowrap items-center p-0", LOGO_TRACK_GAP)}>
       {ECOSYSTEM_LOGOS.map((logo) => (
-        <li key={logo.alt} className="flex h-8 shrink-0 items-center">
+        <li key={logo.alt} className="flex h-8 shrink-0 items-center overflow-hidden">
           <EcosystemLogo logo={logo} decorative={decorative} />
         </li>
       ))}
@@ -422,7 +422,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-      <p className="mb-3 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
+      <p className="mb-5 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
         Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
 
@@ -438,18 +438,15 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
         className={cn(
           "group relative h-8 w-full min-w-0 overflow-hidden rounded-md motion-reduce:hidden",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
+          "[transform:translateZ(0)]",
         )}
         tabIndex={reduced ? -1 : 0}
         aria-hidden={reduced ? true : undefined}
         aria-label={reduced ? undefined : "Platform logos. Focus pauses the animation."}
-        style={{
-          maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-          WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
-        }}
       >
         <div
           className={cn(
-            "flex w-max items-center will-change-transform",
+            "flex w-max items-center",
             animate && "animate-[hero-partner-marquee_60s_linear_infinite] motion-reduce:animate-none",
             "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
             !play && "[animation-play-state:paused]",
@@ -462,6 +459,8 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
             <EcosystemLogoTrack decorative />
           </div>
         </div>
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#F8FAFC] to-transparent sm:w-12" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#F8FAFC] to-transparent sm:w-12" />
       </div>
     </div>
   );
@@ -626,7 +625,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <div className="relative z-10 w-full pb-2 pt-6 sm:pb-3 sm:pt-7 lg:pb-4">
+        <div className="relative z-10 w-full pb-10 pt-6 sm:pb-3 sm:pt-7 lg:pb-4">
           <motion.div custom={6} variants={enter} initial="hidden" animate="show">
             <HeroTrustBadges />
           </motion.div>

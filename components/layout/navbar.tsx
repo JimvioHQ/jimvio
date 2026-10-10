@@ -304,7 +304,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     <>
     <header
       ref={headerRef}
-      className="fixed top-0 inset-x-0 z-50 pointer-events-none max-md:h-[calc(3.5rem+env(safe-area-inset-top,0px))] max-md:overflow-hidden md:h-auto"
+      className="fixed top-0 inset-x-0 z-50 pointer-events-none max-md:h-[calc(3.5rem+env(safe-area-inset-top,0px))] max-md:bg-white max-md:dark:bg-[#0a0a0a] md:h-auto"
     >
       <div
         className={cn(
@@ -554,10 +554,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
         Drawer portals to document.body so no ancestor stacking/clipping
         (including header pointer-events / future transforms) can trap it.
       */}
-      {drawerPortalEl
+      {drawerPortalEl && mobileOpen
         ? createPortal(
             <MobileDrawer
-              open={mobileOpen}
+              open
               onClose={() => setMobileOpen(false)}
               user={user}
               pathname={pathname}
@@ -704,7 +704,7 @@ function MobileDrawer({
         )}
       />
 
-      {/* Drawer shell — always mounted so first open is transform-only (no cold remount) */}
+      {/* Mounted only while open so an off-screen translated layer cannot stick on scroll. */}
       <div
         role="dialog"
         aria-modal={open}
