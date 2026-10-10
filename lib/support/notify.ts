@@ -1,6 +1,8 @@
+import { customerSupportEmail } from "@/lib/contact-email";
 import { getAppBaseUrl, isEmailEnabled } from "@/lib/email/config";
 import { wrapEmailHtml } from "@/lib/email/layout";
 import { sendEmail, type SendEmailResult } from "@/lib/email/send";
+import { customerReplySubject, staffHandoffSubject, ticketReceivedSubject } from "@/lib/support/email-subject";
 
 type Mailer = (input: {
   to: string;
@@ -35,13 +37,14 @@ export async function deliverSupportNotice(
 
   const send = deps?.send ?? sendEmail;
   const ticketUrl = `${getAppBaseUrl()}/help/tickets/${encodeURIComponent(input.publicRef)}`;
-  const heading = input.reply ? `Reply on ${input.publicRef}` : `Ticket ${input.publicRef} saved`;
+  const heading = input.reply ? "There is a new reply on your request" : "Your support request has been received";
+  const subject = input.reply ? customerReplySubject("Jimvio Support") : ticketReceivedSubject(input.subject);
   const preview = input.reply
     ? "A support reply was added to your Jimvio ticket."
-    : "Your Jimvio support ticket was saved.";
+    : "Your Jimvio support request was saved.";
   const body = input.reply
-    ? `<p>There is a new reply on <strong>${escapeHtml(input.publicRef)}</strong>.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p>`
-    : `<p>Ticket <strong>${escapeHtml(input.publicRef)}</strong> was saved.</p><p>${escapeHtml(input.subject)}</p><p>Sign in with the same account to read the thread.</p>`;
+    ? `<p>There is a new reply on <strong>${escapeHtml(input.publicRef)}</strong>.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p><p style="font-size:13px;color:#6B7280;">Reference ${escapeHtml(input.publicRef)}. Questions can also go to ${escapeHtml(customerSupportEmail())}.</p>`
+    : `<p>We saved your request.</p><p>${escapeHtml(input.subject)}</p><p style="font-size:13px;color:#6B7280;">Reference <strong>${escapeHtml(input.publicRef)}</strong>. Sign in with the same account to read the thread, or email ${escapeHtml(customerSupportEmail())}.</p>`;
   const html = wrapEmailHtml({
     preview,
     heading,
@@ -58,7 +61,7 @@ export async function deliverSupportNotice(
 
   let sent = false;
   for (const to of unique) {
-    const result = await send({ to, subject: heading, html, text });
+    const result = await send({ to, subject, html, text });
     if (result.ok) sent = true;
   }
   return sent
@@ -67,7 +70,7 @@ export async function deliverSupportNotice(
 }
 
 export async function deliverConversationReply(
-  input: { publicRef: string; subject: string; requesterEmail: string | null; reply: string },
+  input: { publicRef: string; subject: string; requesterEmail: string | null; reply: string; agentName?: string | null },
   deps?: { enabled?: boolean; send?: Mailer },
 ) {
   const enabled = deps?.enabled ?? isEmailEnabled();
@@ -77,20 +80,51 @@ export async function deliverConversationReply(
   }
   const send = deps?.send ?? sendEmail;
   const href = `${getAppBaseUrl()}/help`;
+  const agent = input.agentName?.trim() || "Jimvio Support";
+  const subject = customerReplySubject(agent);
   const html = wrapEmailHtml({
-    preview: "A Jimvio support agent replied.",
-    heading: `Reply on ${input.publicRef}`,
-    bodyHtml: `<p>A support agent replied on <strong>${escapeHtml(input.publicRef)}</strong>.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p>`,
-    ctaLabel: "Open support",
+    preview: `${agent} replied in your Jimvio support conversation.`,
+    heading: `${escapeHtml(agent)} replied`,
+    bodyHtml: `<p>${escapeHtml(agent)} replied in your support conversation.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p><p style="font-size:13px;color:#6B7280;">Reference ${escapeHtml(input.publicRef)}. You can also reach ${escapeHtml(customerSupportEmail())}.</p>`,
+    ctaLabel: "Continue the conversation",
     ctaUrl: href,
   });
   const result = await send({
     to: input.requesterEmail,
-    subject: `Reply on ${input.publicRef}`,
+    subject,
     html,
-    text: `Reply on ${input.publicRef}\n${input.reply.slice(0, 2000)}\n${href}`,
+    text: `${subject}\n${input.reply.slice(0, 2000)}\nReference ${input.publicRef}\n${href}\n${customerSupportEmail()}`,
   });
   return result.ok
-    ? { sent: true as const, reason: "sent" as const }
+    ? { sent: true as const, reason: "sent" as const, id: result.id }
+    : { sent: false as const, reason: "failed" as const };
+}
+
+export async function deliverStaffHandoffNotice(
+  input: { publicRef: string; subject: string; preview: string; supportEmail: string },
+  deps?: { enabled?: boolean; send?: Mailer },
+) {
+  const enabled = deps?.enabled ?? isEmailEnabled();
+  if (!enabled) return { sent: false as const, reason: "not_configured" as const };
+  if (!input.supportEmail.includes("@")) return { sent: false as const, reason: "no_recipient" as const };
+  const send = deps?.send ?? sendEmail;
+  const href = `${getAppBaseUrl()}/admin/support`;
+  const subject = staffHandoffSubject();
+  const safePreview = input.preview.replace(/\s+/g, " ").trim().slice(0, 280);
+  const html = wrapEmailHtml({
+    preview: "A customer asked to talk with a person.",
+    heading: "A customer is waiting for support",
+    bodyHtml: `<p>A customer asked to talk with a person.</p><p>${escapeHtml(input.subject)}</p><p style="white-space:pre-wrap">${escapeHtml(safePreview)}</p><p style="font-size:13px;color:#6B7280;">Reference ${escapeHtml(input.publicRef)}</p>`,
+    ctaLabel: "Open the inbox",
+    ctaUrl: href,
+  });
+  const result = await send({
+    to: input.supportEmail,
+    subject,
+    html,
+    text: `${subject}\n${input.publicRef}\n${input.subject}\n${safePreview}\n${href}`,
+  });
+  return result.ok
+    ? { sent: true as const, reason: "sent" as const, id: result.id }
     : { sent: false as const, reason: "failed" as const };
 }

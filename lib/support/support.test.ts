@@ -9,6 +9,8 @@ import { customerVisibleMessages } from "./format";
 import { deliverConversationReply, deliverSupportNotice } from "./notify";
 import { canTransition, ticketSearchTerm, validateTicketInput } from "./validation";
 import { customerSupportEmail, supportNotificationRecipient } from "../contact-email";
+import { agentDisplayName, agentGreetingDraft, agentJoinedMessage } from "./agent-identity";
+import { customerReplySubject, sanitizeEmailSubject, staffHandoffSubject, ticketReceivedSubject } from "./email-subject";
 import { showSupportLauncher } from "./routes";
 import {
   REMOVED_AVAILABILITY_BANNER,
@@ -97,6 +99,32 @@ describe("support knowledge base", () => {
     assert.match(earnings.answer, /wallet|payout|earning/i);
     assert.match(order.answer, /what do you see/i);
     assert.equal(order.answer.toLowerCase().includes("i have looked up your wallet"), false);
+    assert.equal(order.answer.includes("This comes from Jimvio help articles"), false);
+    assert.equal(order.answer.includes("not from a live account lookup"), false);
+  });
+
+  it("names the agent who joins and builds safe email subjects", () => {
+    assert.equal(agentDisplayName({ displayName: "Alex" }), "Alex");
+    assert.equal(agentDisplayName({ fullName: "Alex Rivera" }), "Alex Rivera");
+    assert.equal(agentDisplayName({ email: "alex@jimvio.com" }), "alex");
+    assert.equal(agentJoinedMessage("Alex").includes("has joined"), true);
+    assert.equal(agentJoinedMessage("Alex").includes("reviewed"), false);
+    assert.match(agentGreetingDraft("Alex"), /I'm Alex from Jimvio Support/);
+    assert.equal(customerReplySubject("Alex\nBcc: evil"), "Alex Bcc: evil from Jimvio Support replied to your conversation");
+    assert.equal(sanitizeEmailSubject("a\r\nb").includes("\n"), false);
+    assert.equal(staffHandoffSubject(), "A new customer conversation needs attention | Jimvio");
+    assert.match(ticketReceivedSubject("order question"), /order question/);
+    assert.equal(ticketReceivedSubject(""), "Your Jimvio support request has been received");
+    const inbox = readFileSync(new URL("../../components/support/admin-live-inbox.tsx", import.meta.url), "utf8");
+    const nav = readFileSync(new URL("../../components/shell/AppTopNav.tsx", import.meta.url), "utf8");
+    const chat = readFileSync(new URL("../../components/support/support-chat.tsx", import.meta.url), "utf8");
+    assert.match(inbox, /Internal note/);
+    assert.match(inbox, /Accept conversation/);
+    assert.equal(inbox.includes("visibility: \"internal\"") || inbox.includes('send("internal")') || inbox.includes('send(mode)'), true);
+    assert.match(nav, /showJimvioAi/);
+    assert.match(nav, /showProducts=\{false\}/);
+    assert.match(chat, /authorName/);
+    assert.equal(chat.includes("Leave a ticket"), false);
   });
 });
 
@@ -331,7 +359,7 @@ describe("support tickets", () => {
     for (const suggestion of SUPPORT_CHAT_SUGGESTIONS) {
       const answer = knowledgeAnswer(SUPPORT_ARTICLES, suggestion.question);
       assert.ok(answer.slugs.length > 0, suggestion.label);
-      assert.match(answer.answer, /help article/i);
+      assert.match(answer.answer, /have not looked up/i);
     }
     assert.match(tickets, /export async function POST/);
     assert.match(tickets, /export async function GET/);

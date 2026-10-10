@@ -47,6 +47,7 @@ export async function POST(request: Request, { params }: Params) {
           subject: result.notify.subject,
           requesterEmail: result.notify.email,
           reply: result.notify.body,
+          agentName: result.notify.agentName,
         });
       } catch (error) {
         console.error("[support-live] reply email", error instanceof Error ? error.message : "error");

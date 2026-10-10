@@ -213,7 +213,8 @@ export function AppTopNav({
           notificationCount={notificationCount}
           walletBalance={walletBalance}
           walletCurrency={walletCurrency}
-          showProducts={isAuthenticated}
+          showProducts={false}
+          showJimvioAi
         />
 
         {user ? (

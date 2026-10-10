@@ -30,7 +30,7 @@ export function knowledgeAnswer(articles: SupportArticle[], question: string) {
 
   return {
     mode: "knowledge" as const,
-    answer: `${body}\n\n${followUp}\n\nThis comes from Jimvio help articles. I have not looked up your wallet, orders, payments, or account.`,
+    answer: `${body}\n\n${followUp}\n\nI have not looked up your wallet, orders, payments, or account.`,
     slugs: hits.map((hit) => hit.slug),
     context: top ? articlePlainText(top) : body,
   };

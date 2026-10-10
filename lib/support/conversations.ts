@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 import { getAdminDB } from "@/services/base";
 import { answerSupportQuestion } from "./answer-question";
+import { agentDisplayName, agentGreetingDraft, agentJoinedMessage } from "./agent-identity";
 import {
   countAvailableAgents,
   handoffCustomerNote,
@@ -66,7 +67,7 @@ async function loadOwned(conversationId: string, userId: string) {
 async function threadForCustomer(conversationId: string) {
   const { data, error } = await database()
     .from("support_conversation_messages")
-    .select("id, author_role, visibility, body, created_at, answer_mode, articles")
+    .select("id, author_role, visibility, body, created_at, answer_mode, articles, author_display_name")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -247,12 +248,30 @@ export async function requestHumanHandoff(userId: string, conversationId: string
   const presence = await readAgentAvailability();
   const agentsOnline = presence.ok ? presence.count : null;
   if (conversation.mode === "human" && (conversation.status === "queued" || conversation.status === "active")) {
+    let staffNotice: { publicRef: string; subject: string; preview: string } | null = null;
+    if (!conversation.handoff_notified_at) {
+      const claimed = await database()
+        .from("support_conversations")
+        .update({ handoff_notified_at: new Date().toISOString() })
+        .eq("id", conversationId)
+        .is("handoff_notified_at", null)
+        .select("id");
+      const claimedRows = (claimed.data ?? []) as Array<{ id?: string }>;
+      if (claimedRows.length) {
+        staffNotice = {
+          publicRef: String(conversation.public_ref),
+          subject: String(conversation.subject ?? "Customer support request"),
+          preview: preview(String(conversation.last_preview ?? "A customer asked to talk with a person.")),
+        };
+      }
+    }
     return {
       ok: true as const,
       agentsAvailable: agentsOnline ?? 0,
       availability: presence.ok ? (presence.count > 0 ? "available" : "unavailable") : "error",
       conversation: publicConversation(conversation),
       messages: await threadForCustomer(conversationId),
+      staffNotice,
     };
   }
   const next = statusAfterHandoff(String(conversation.status) as ConversationStatus);
@@ -276,13 +295,27 @@ export async function requestHumanHandoff(userId: string, conversationId: string
     })
     .eq("id", conversationId);
 
+  const claimed = await database()
+    .from("support_conversations")
+    .update({ handoff_notified_at: new Date().toISOString() })
+    .eq("id", conversationId)
+    .is("handoff_notified_at", null)
+    .select("id");
   const fresh = await loadOwned(conversationId, userId);
+  const claimedRows = (claimed.data ?? []) as Array<{ id?: string }>;
   return {
     ok: true as const,
     agentsAvailable: agentsOnline ?? 0,
     availability: presence.ok ? ((agentsOnline ?? 0) > 0 ? "available" : "unavailable") : "error",
     conversation: publicConversation(fresh ?? conversation),
     messages: await threadForCustomer(conversationId),
+    staffNotice: claimedRows.length
+      ? {
+          publicRef: String((fresh ?? conversation).public_ref),
+          subject: String((fresh ?? conversation).subject ?? "Customer support request"),
+          preview: preview(note),
+        }
+      : null,
   };
 }
 
@@ -380,12 +413,76 @@ export async function staffGetConversation(conversationId: string) {
   if (error || !data) return { error: "Conversation not found.", status: 404 as const };
   const messages = await database()
     .from("support_conversation_messages")
-    .select("id, author_id, author_role, visibility, body, created_at, answer_mode, articles")
+    .select("id, author_id, author_role, author_display_name, visibility, body, created_at, answer_mode, articles")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(300);
   await database().from("support_conversations").update({ staff_unread: 0 }).eq("id", conversationId);
   return { conversation: data, messages: messages.data ?? [] };
+}
+
+async function agentLabel(userId: string) {
+  const profile = await database().from("profiles").select("full_name, email").eq("id", userId).maybeSingle();
+  const agent = await database()
+    .from("support_agent_profiles")
+    .select("display_name, support_role, active, eligible")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return {
+    name: agentDisplayName({
+      displayName: typeof agent.data?.display_name === "string" ? agent.data.display_name : null,
+      fullName: typeof profile.data?.full_name === "string" ? profile.data.full_name : null,
+      email: typeof profile.data?.email === "string" ? profile.data.email : null,
+    }),
+    role: typeof agent.data?.support_role === "string" ? agent.data.support_role : "customer_support",
+    active: agent.data?.active !== false,
+    eligible: agent.data?.eligible !== false,
+  };
+}
+
+export async function readAgentProfile(userId: string) {
+  if (!supportLiveReady()) return unavailable();
+  const identity = await agentLabel(userId);
+  const agent = await database()
+    .from("support_agent_profiles")
+    .select("display_name, support_role, avatar_url, active, eligible")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return {
+    profile: {
+      displayName: identity.name,
+      supportRole: typeof agent.data?.support_role === "string" ? agent.data.support_role : "customer_support",
+      avatarUrl: typeof agent.data?.avatar_url === "string" ? agent.data.avatar_url : null,
+      active: agent.data ? agent.data.active !== false : true,
+      eligible: agent.data ? agent.data.eligible !== false : true,
+      configured: Boolean(agent.data?.display_name),
+    },
+  };
+}
+
+export async function saveAgentProfile(input: {
+  userId: string;
+  displayName: string;
+  supportRole: "customer_support" | "senior_support";
+  active: boolean;
+  eligible: boolean;
+}) {
+  if (!supportLiveReady()) return unavailable();
+  const displayName = input.displayName.replace(/\s+/g, " ").trim().slice(0, 80);
+  if (displayName.length < 2) return { error: "Enter a display name.", status: 400 as const };
+  const { error } = await database().from("support_agent_profiles").upsert(
+    {
+      user_id: input.userId,
+      display_name: displayName,
+      support_role: input.supportRole,
+      active: input.active,
+      eligible: input.eligible,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) return { error: "Could not save the support profile.", status: 500 as const };
+  return readAgentProfile(input.userId);
 }
 
 export async function staffSendMessage(input: {
@@ -417,12 +514,14 @@ export async function staffSendMessage(input: {
     .maybeSingle();
   if (!conversation.data) return { error: "Conversation not found.", status: 404 as const };
 
+  const identity = await agentLabel(input.authorId);
   const inserted = await database()
     .from("support_conversation_messages")
     .insert({
       conversation_id: input.conversationId,
       author_id: input.authorId,
       author_role: "staff",
+      author_display_name: identity.name,
       visibility: input.visibility,
       body: parsed.value,
       client_message_id: clientMessageId,
@@ -457,9 +556,17 @@ export async function staffSendMessage(input: {
             publicRef: String(conversation.data.public_ref),
             subject: String(conversation.data.subject ?? "Jimvio support"),
             body: parsed.value,
+            agentName: identity.name,
           }
         : null,
   };
+}
+
+export async function releaseHandoffNotification(conversationId: string) {
+  await database()
+    .from("support_conversations")
+    .update({ handoff_notified_at: null })
+    .eq("id", conversationId);
 }
 
 export async function claimReplyNotification(messageId: string) {
@@ -481,14 +588,58 @@ export async function staffUpdateConversation(input: {
   actorId: string;
 }) {
   if (!supportLiveReady()) return unavailable();
+  const current = await database().from("support_conversations").select("*").eq("id", input.conversationId).maybeSingle();
+  if (!current.data) return { error: "Conversation not found.", status: 404 as const };
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (input.status) patch.status = input.status;
   if (input.priority) patch.priority = input.priority;
   if (input.assigneeId !== undefined) patch.assignee_id = input.assigneeId;
   if (input.status === "active" || input.status === "queued") patch.mode = "human";
+
+  const accepting = Boolean(input.assigneeId) && input.status === "active";
+  const alreadyJoinedBy = typeof current.data.agent_joined_by === "string" ? current.data.agent_joined_by : null;
+  let joinedName: string | null = null;
+  if (accepting && input.assigneeId && alreadyJoinedBy !== input.assigneeId) {
+    const identity = await agentLabel(input.assigneeId);
+    if (!identity.eligible || !identity.active) {
+      return { error: "That agent is not eligible for new conversations.", status: 409 as const };
+    }
+    joinedName = identity.name;
+    patch.status = "active";
+    patch.mode = "human";
+    patch.agent_joined_at = new Date().toISOString();
+    patch.agent_joined_by = input.assigneeId;
+    await database().from("support_conversation_messages").insert({
+      conversation_id: input.conversationId,
+      author_id: input.assigneeId,
+      author_role: "system",
+      author_display_name: identity.name,
+      visibility: "customer",
+      body: agentJoinedMessage(identity.name),
+    });
+    await database().from("support_conversation_messages").insert({
+      conversation_id: input.conversationId,
+      author_id: input.actorId,
+      author_role: "system",
+      visibility: "internal",
+      body: `Assigned to ${identity.name}.`,
+    });
+  }
+
   const { error } = await database().from("support_conversations").update(patch).eq("id", input.conversationId);
   if (error) return { error: "Could not update the conversation.", status: 500 as const };
-  return staffGetConversation(input.conversationId);
+  const detail = await staffGetConversation(input.conversationId);
+  if ("error" in detail && detail.error) return detail;
+  const messages = "messages" in detail ? detail.messages : [];
+  const publicStaffReply = Array.isArray(messages)
+    && messages.some((message) => {
+      const row = message as { author_role?: string; visibility?: string };
+      return row.author_role === "staff" && row.visibility === "customer";
+    });
+  return {
+    ...detail,
+    suggestedGreeting: joinedName && !publicStaffReply ? agentGreetingDraft(joinedName) : null,
+  };
 }
 
 export async function heartbeatAgent(userId: string, available: boolean) {

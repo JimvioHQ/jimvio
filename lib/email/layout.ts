@@ -9,7 +9,6 @@ export function wrapEmailHtml(params: {
     ctaUrl?: string;
 }): string {
     const baseUrl = getAppBaseUrl();
-    const logoUrl = `${baseUrl.replace(/\/$/, "")}/jimvio-logo-mark.png`;
     const ctaBlock =
         params.ctaLabel && params.ctaUrl
             ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 8px;">
@@ -41,8 +40,8 @@ export function wrapEmailHtml(params: {
             <td style="padding:22px 28px 18px;border-bottom:1px solid #E5E7EB;">
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="vertical-align:middle;padding-right:12px;">
-                    <img src="${logoUrl}" width="36" height="36" alt="Jimvio" style="display:block;border:0;width:36px;height:36px;" />
+                  <td style="vertical-align:middle;padding-right:10px;">
+                    <span style="display:inline-block;width:36px;height:36px;line-height:36px;text-align:center;border-radius:10px;background:#FF5A1F;color:#ffffff;font-size:16px;font-weight:800;">J</span>
                   </td>
                   <td style="vertical-align:middle;">
                     <span style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#111827;">Jimvio</span>

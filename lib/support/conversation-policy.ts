@@ -86,6 +86,7 @@ export function parseClientMessageId(value: unknown) {
 export type CustomerChatMessage = {
   id: string;
   authorRole: "customer" | "ai" | "staff" | "system";
+  authorName: string | null;
   body: string;
   createdAt: string;
   answerMode: "knowledge" | "live" | "refused" | null;
@@ -101,6 +102,7 @@ export function toCustomerChatMessages(
     created_at: string;
     answer_mode?: string | null;
     articles?: unknown;
+    author_display_name?: string | null;
   }>,
 ): CustomerChatMessage[] {
   return messages
@@ -113,6 +115,9 @@ export function toCustomerChatMessages(
       message.author_role === "system"
         ? message.author_role
         : "customer") as CustomerChatMessage["authorRole"],
+      authorName: typeof message.author_display_name === "string" && message.author_display_name.trim()
+        ? message.author_display_name.trim().slice(0, 80)
+        : null,
       body: message.body,
       createdAt: message.created_at,
       answerMode:

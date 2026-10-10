@@ -16,6 +16,7 @@ type ArticleLink = { slug: string; title: string; href: string };
 type ChatMessage = {
   id: string;
   authorRole: "customer" | "ai" | "staff" | "system";
+  authorName?: string | null;
   body: string;
   createdAt: string;
   answerMode: "knowledge" | "live" | "refused" | null;
@@ -30,10 +31,10 @@ type Conversation = {
   customerUnread?: number;
 };
 
-function labelFor(role: ChatMessage["authorRole"]) {
-  if (role === "ai") return "Jimvio AI";
-  if (role === "staff") return "Jimvio Support";
-  if (role === "system") return "Jimvio Support";
+function labelFor(message: Pick<ChatMessage, "authorRole" | "authorName">) {
+  if (message.authorRole === "ai") return "Jimvio AI";
+  if (message.authorRole === "staff") return message.authorName || "Jimvio Support";
+  if (message.authorRole === "system") return "Jimvio Support";
   return "You";
 }
 
@@ -238,6 +239,7 @@ export function SupportChat({
     const customer: ChatMessage = {
       id: crypto.randomUUID(),
       authorRole: "customer",
+      authorName: null,
       body,
       createdAt: now,
       answerMode: null,
@@ -246,6 +248,7 @@ export function SupportChat({
     const assistant: ChatMessage = {
       id: crypto.randomUUID(),
       authorRole: "ai",
+      authorName: null,
       body: answer,
       createdAt: now,
       answerMode: mode,
@@ -359,6 +362,7 @@ export function SupportChat({
       {
         id: crypto.randomUUID(),
         authorRole: "system",
+        authorName: null,
         body: "Sign in to ask a person to join this conversation. I can keep answering from the help articles here. I will not mark an agent as online unless one actually joins.",
         createdAt: now,
         answerMode: null,
@@ -434,7 +438,7 @@ export function SupportChat({
             }
           >
             <header className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-wide opacity-80">
-              <span>{labelFor(message.authorRole)}</span>
+              <span>{labelFor(message)}</span>
               <time dateTime={message.createdAt}>{formatTime(message.createdAt)}</time>
             </header>
             {message.authorRole === "ai" ? (
