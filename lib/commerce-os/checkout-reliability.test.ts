@@ -78,6 +78,9 @@ describe("supplier inventory controls", () => {
       }),
       true,
     );
+    const route = readFileSync(join(root, "app/api/commerce/inventory/route.ts"), "utf8");
+    assert.match(route, /merchantCanAdjustStock/);
+    assert.match(route, /status: 403/);
   });
 });
 
