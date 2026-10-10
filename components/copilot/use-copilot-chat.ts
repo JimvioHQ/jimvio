@@ -54,7 +54,9 @@ export function useCopilotChat() {
     };
     messageListeners.add(apply);
     queueMicrotask(apply);
-    return () => messageListeners.delete(apply);
+    return () => {
+      messageListeners.delete(apply);
+    };
   }, []);
   const sendingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
