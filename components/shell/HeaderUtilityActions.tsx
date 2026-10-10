@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Package, ShoppingCart, Wallet } from "lucide-react";
+import { useAIStore } from "@/lib/store/use-ai-store";
 import {
   CART_HREF,
   MY_PRODUCTS_HREF,
@@ -23,6 +24,8 @@ type HeaderUtilityActionsProps = {
   walletCurrency?: string;
   /** Show seller products shortcut (authenticated only). */
   showProducts?: boolean;
+  /** Replace the products shortcut with the existing Jimvio AI launcher. */
+  showJimvioAi?: boolean;
   className?: string;
 };
 
@@ -38,9 +41,11 @@ export function HeaderUtilityActions({
   walletBalance = 0,
   walletCurrency = "USD",
   showProducts = true,
+  showJimvioAi = false,
   className,
 }: HeaderUtilityActionsProps) {
   const pathname = usePathname() ?? "/";
+  const openAssistant = useAIStore((s) => s.openAssistant);
   const balanceLabel = formatMoneyAsUSD(walletBalance, walletCurrency);
 
   const iconBtn = cn(
@@ -50,7 +55,27 @@ export function HeaderUtilityActions({
 
   return (
     <div className={cn("flex items-center gap-0.5 sm:gap-1", className)}>
-      {isAuthenticated && showProducts ? (
+      {isAuthenticated && showJimvioAi ? (
+        <button
+          type="button"
+          onClick={() => openAssistant()}
+          aria-label="Jimvio AI"
+          title="Jimvio AI"
+          className={iconBtn}
+        >
+          <span className="grid h-[22px] w-[22px] place-items-center overflow-hidden rounded-[7px] bg-[#FFF1EA]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero/jimvio-ai-mascot-cutout.png"
+              alt=""
+              width={36}
+              height={36}
+              draggable={false}
+              className="h-9 w-9 max-w-none object-cover object-[50%_18%]"
+            />
+          </span>
+        </button>
+      ) : isAuthenticated && showProducts ? (
         <Link
           href={MY_PRODUCTS_HREF}
           aria-label="My Products"

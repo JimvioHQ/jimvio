@@ -358,7 +358,7 @@ const ECOSYSTEM_LOGOS = [
   { src: "/logos/platforms/youtube.svg", alt: "YouTube", w: 144, h: 32 },
   { src: "/logos/platforms/mastercard.svg", alt: "Mastercard", w: 52, h: 32 },
   { src: "/logos/platforms/omniretail.png", alt: "OmniRetail", w: 102, h: 32 },
-  { src: "/logos/binance.png", alt: "Binance Pay", w: 132, h: 32 },
+  { src: "/logos/binance.svg", alt: "Binance", w: 160, h: 32 },
   { src: "/logos/platforms/mailchimp.svg", alt: "Mailchimp", w: 129, h: 32 },
   { src: "/logos/platforms/nowpayments.svg", alt: "NOWPayments", w: 210, h: 32 },
   { src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", alt: "Payoneer", w: 165, h: 32 },
@@ -422,7 +422,7 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-      <p className="mb-5 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-3.5 sm:text-[13px]">
+      <p className="mb-7 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-[22px] sm:text-[13px]">
         Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
       </p>
 

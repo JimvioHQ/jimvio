@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import { getCopilotContextMeta } from "@/lib/ai/copilot/context";
 import { getQuickActionsForContext } from "@/lib/ai/copilot/quick-actions";
@@ -45,7 +46,7 @@ function CopilotStatusDot({ status }: { status: string }) {
 
   return (
     <span className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
-      <span className={cn("size-1.5 rounded-full animate-pulse", color)} aria-hidden />
+      <span className={cn("size-1.5 rounded-full motion-reduce:animate-none animate-pulse", color)} aria-hidden />
       <span>{label}</span>
     </span>
   );
@@ -72,6 +73,8 @@ export function JimvioCopilot() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const processedInitial = useRef("");
   const processedEarn = useRef(0);
+  const reducedMotion = usePrefersReducedMotion();
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const contextMeta = useMemo(() => getCopilotContextMeta(pageContext), [pageContext]);
   const quickActions = useMemo(() => getQuickActionsForContext(pageContext, 8), [pageContext]);
@@ -136,8 +139,33 @@ export function JimvioCopilot() {
   }, [isAssistantOpen]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isSending]);
+    const node = scrollRef.current;
+    if (!node) return;
+    node.scrollTo({
+      top: node.scrollHeight,
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
+  }, [messages, isSending, reducedMotion]);
+
+  useEffect(() => {
+    if (!isAssistantOpen || typeof window === "undefined") return;
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const apply = () => {
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardInset(Math.round(inset));
+    };
+
+    apply();
+    viewport.addEventListener("resize", apply);
+    viewport.addEventListener("scroll", apply);
+    return () => {
+      viewport.removeEventListener("resize", apply);
+      viewport.removeEventListener("scroll", apply);
+      setKeyboardInset(0);
+    };
+  }, [isAssistantOpen]);
 
   useEffect(() => {
     if (isAssistantOpen && panelMode !== "minimized") {
@@ -157,11 +185,11 @@ export function JimvioCopilot() {
       <button
         type="button"
         onClick={toggleMinimize}
-        aria-label="Open Jimvio AI Copilot"
-        className="fixed bottom-4 right-4 z-[9999] inline-flex h-12 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[13px] font-bold text-[var(--color-text-primary)] shadow-lg transition-[transform,opacity] duration-300 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50"
+        aria-label="Open Jimvio AI"
+        className="fixed right-4 z-[9999] inline-flex h-12 items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-4 text-[13px] font-bold text-[#111827] shadow-lg transition-[transform,opacity] duration-300 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50 motion-reduce:transition-none motion-reduce:hover:scale-100"
         style={{
+          bottom: `max(16px, calc(env(safe-area-inset-bottom, 0px) + 16px + ${keyboardInset}px))`,
           boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
-          willChange: "transform",
         }}
       >
         <span
@@ -180,20 +208,23 @@ export function JimvioCopilot() {
     <div
       role="dialog"
       aria-modal="false"
-      aria-label="Jimvio AI Copilot"
+      aria-label="Jimvio AI"
       className={cn(
-        "fixed z-[9999] flex flex-col overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl",
-        "transition-[width,height,transform,opacity] duration-300 ease-out",
+        "fixed z-[9999] flex flex-col overflow-hidden border border-[#E5E7EB] bg-white text-[#111827] shadow-2xl",
+        "transition-[width,height,opacity] duration-300 ease-out motion-reduce:transition-none",
         expanded
-          ? "inset-x-3 bottom-3 top-[calc(var(--navbar-height,64px)+12px)] sm:inset-x-auto sm:bottom-4 sm:right-4 sm:top-auto sm:h-[min(820px,calc(100vh-96px))] sm:w-[min(720px,calc(100vw-32px))]"
-          : "bottom-4 right-4 h-[min(640px,calc(100vh-96px))] w-[min(420px,calc(100vw-24px))]",
+          ? "inset-x-3 top-[calc(var(--navbar-height,56px)+12px)] sm:inset-x-auto sm:right-4 sm:top-auto sm:h-[min(820px,calc(100dvh-96px))] sm:w-[min(720px,calc(100vw-32px))]"
+          : "right-3 w-[min(420px,calc(100vw-24px))] sm:right-4 sm:h-[min(640px,calc(100dvh-96px))]",
       )}
       style={{
         borderRadius: expanded ? "20px" : "18px",
-        boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
-        transform: "translateZ(0)",
-        willChange: "transform, opacity",
-        animation: "jimvio-copilot-enter 280ms ease-out",
+        boxShadow: "0 24px 64px rgba(17,24,39,0.16)",
+        bottom: `max(12px, calc(env(safe-area-inset-bottom, 0px) + 12px + ${keyboardInset}px))`,
+        height: expanded
+          ? undefined
+          : `min(640px, calc(100dvh - var(--navbar-height, 56px) - 24px - ${keyboardInset}px))`,
+        maxHeight: `calc(100dvh - var(--navbar-height, 56px) - 24px - env(safe-area-inset-bottom, 0px) - ${keyboardInset}px)`,
+        animation: reducedMotion ? undefined : "jimvio-copilot-enter 280ms ease-out",
       }}
     >
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--color-border)] px-3 py-2.5 sm:px-4">
@@ -205,8 +236,8 @@ export function JimvioCopilot() {
             <Sparkles className="size-4" />
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-[14px] font-bold text-[var(--color-text-primary)]">
-              Jimvio Copilot
+            <h2 className="truncate text-[14px] font-bold text-[#111827]">
+              Jimvio AI
             </h2>
             <div className="flex flex-wrap items-center gap-2">
               <CopilotStatusDot status={status} />
@@ -238,7 +269,7 @@ export function JimvioCopilot() {
           <button
             type="button"
             onClick={toggleMinimize}
-            aria-label="Minimize copilot"
+            aria-label="Minimize Jimvio AI"
             className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
           >
             <Minus className="size-4" />
@@ -246,7 +277,7 @@ export function JimvioCopilot() {
           <button
             type="button"
             onClick={closeAssistant}
-            aria-label="Close copilot"
+            aria-label="Close Jimvio AI"
             className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
           >
             <X className="size-4" />
@@ -254,10 +285,15 @@ export function JimvioCopilot() {
         </div>
       </header>
 
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2 sm:px-4">
-        <p className="text-[11px] leading-snug text-[var(--color-text-muted)] sm:text-[12px]">
+      <div className="border-b border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2 sm:px-4">
+        <p className="text-[11px] leading-snug text-[#6B7280] sm:text-[12px]">
           {contextMeta.description}
         </p>
+        {status === "offline" ? (
+          <p className="mt-1 text-[11px] font-medium text-[#B45309]" role="status">
+            Jimvio AI is unavailable right now. Your conversation is still here.
+          </p>
+        ) : null}
       </div>
 
       <div
@@ -302,7 +338,7 @@ export function JimvioCopilot() {
         </div>
       </div>
 
-      <footer className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:px-4">
+      <footer className="shrink-0 border-t border-[#E5E7EB] bg-white px-3 py-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] sm:px-4 sm:pb-3">
         <CopilotQuickActions
           actions={footerActions}
           disabled={isSending}
@@ -338,7 +374,7 @@ export function JimvioCopilot() {
               placeholder={
                 messages.length === 0 ? contextMeta.placeholder : "Ask a follow-up…"
               }
-              aria-label="Message Jimvio Copilot"
+              aria-label="Message Jimvio AI"
               className="max-h-28 min-h-[44px] w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-2.5 pl-10 pr-3 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#FF5A1F]/50 focus:ring-2 focus:ring-[#FF5A1F]/15 disabled:opacity-60"
             />
           </div>
@@ -353,7 +389,7 @@ export function JimvioCopilot() {
           </Button>
         </form>
         <p className="mt-2 text-center text-[10px] text-[var(--color-text-muted)]">
-          Jimvio Copilot preview — verify important product and earnings details.
+          Jimvio AI can be wrong. Confirm payments, orders, and earnings in the product.
         </p>
       </footer>
     </div>,

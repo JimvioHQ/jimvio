@@ -49,11 +49,30 @@ function LogoMark({
   icon,
   radius,
   elevated = false,
+  flat = false,
 }: {
   icon: number;
   radius: string;
   elevated?: boolean;
+  /** Header lockup. No shadow or clipping layer — those paint a black tile on iOS. */
+  flat?: boolean;
 }) {
+  if (flat) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={MARK_SRC}
+        alt=""
+        width={icon}
+        height={icon}
+        decoding="async"
+        draggable={false}
+        className={cn("block shrink-0 max-w-none object-cover", radius)}
+        style={{ width: icon, height: icon, maxWidth: icon, maxHeight: icon }}
+      />
+    );
+  }
+
   return (
     <span
       className={cn(
@@ -96,7 +115,7 @@ export function JimvioLogo({
   const { icon, text, gap, radius } = isHeader ? HEADER_SIZE[size] : SIZE[size];
 
   const logoMark = (
-    <LogoMark icon={icon} radius={radius} elevated={isPremium} />
+    <LogoMark icon={icon} radius={radius} elevated={isPremium} flat={isHeader} />
   );
 
   const inner = (

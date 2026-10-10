@@ -279,12 +279,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
       <div
         className={cn(
           "pointer-events-auto relative mx-auto flex flex-col",
-          "bg-white shadow-[0_1px_0_rgba(0,0,0,0.06)]",
-          "dark:bg-[#0a0a0a] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]",
-          "md:transition-all md:duration-300",
+          // Mobile uses a border, not a shadow layer. iOS rasterizes that
+          // shadow as a black tile under the logo.
+          "bg-white max-md:border-b max-md:border-black/[0.06] max-md:shadow-none",
+          "dark:bg-[#0a0a0a] dark:max-md:border-white/[0.08]",
+          "md:border-b-0 md:transition-all md:duration-300",
           scrolled
-            ? "md:bg-white/90 md:backdrop-blur-2xl md:dark:bg-[#0a0a0a]/90"
-            : "md:bg-white/70 md:backdrop-blur-xl md:dark:bg-[#0a0a0a]/70 md:shadow-none",
+            ? "md:bg-white/90 md:shadow-[0_1px_0_rgba(0,0,0,0.06)] md:backdrop-blur-2xl md:dark:bg-[#0a0a0a]/90 md:dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+            : "md:bg-white/70 md:shadow-none md:backdrop-blur-xl md:dark:bg-[#0a0a0a]/70",
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
@@ -434,6 +436,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 notificationCount={notificationCount}
                 walletBalance={walletBalance}
                 walletCurrency={walletCurrency}
+                showProducts={false}
+                showJimvioAi
                 className="hidden sm:flex"
               />
 

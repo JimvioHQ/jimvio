@@ -23,7 +23,7 @@ export const OsAiDock = memo(function OsAiDock() {
     <button
       type="button"
       onClick={() => openAssistant()}
-      aria-label="Open Jimvio AI Copilot"
+      aria-label="Open Jimvio AI"
       className={cn(
         "fixed bottom-11 right-4 z-[60] hidden items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-[12.5px] font-semibold text-[var(--color-text-primary)] shadow-lg transition-[transform,opacity] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 lg:flex",
         !reducedMotion && "duration-200",
