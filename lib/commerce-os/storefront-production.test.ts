@@ -154,6 +154,12 @@ describe("store favicon priority", () => {
     assert.match(String(platformShortcut), /^\/favicon\.ico/);
     assert.notEqual(platformShortcut, bare.shortcut);
   });
+
+  it("routes merchant favicon.ico through the store icon resolver", () => {
+    const src = readFileSync(join(process.cwd(), "proxy.ts"), "utf8");
+    assert.match(src, /\/api\/storefront-favicon\/\$\{subdomainHandle\}/);
+    assert.equal(src.includes('url.pathname = "/storefront-empty-favicon.svg"'), false);
+  });
 });
 
 describe("store tracking links", () => {

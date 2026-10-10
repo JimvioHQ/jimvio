@@ -34,8 +34,8 @@ export async function proxy(request: NextRequest) {
 
   const sessionResponse = await updateSession(request);
 
-  // Merchant host requesting /favicon.ico → serve neutral empty favicon
-  // unless the store has uploaded one (handled via HTML metadata icons).
+  // Merchant host /favicon.ico must not serve the platform Jimvio icon.
+  // The route redirects to the explicit favicon, the store logo, or a neutral svg.
   if (subdomainHandle && (pathname === "/favicon.ico" || pathname === "/manifest.webmanifest")) {
     if (pathname === "/manifest.webmanifest") {
       return new NextResponse("{}", {
@@ -44,7 +44,7 @@ export async function proxy(request: NextRequest) {
       });
     }
     const url = request.nextUrl.clone();
-    url.pathname = "/storefront-empty-favicon.svg";
+    url.pathname = `/api/storefront-favicon/${subdomainHandle}`;
     return NextResponse.rewrite(url);
   }
 
