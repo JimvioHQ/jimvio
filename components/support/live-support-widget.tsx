@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { SupportChat } from "@/components/support/support-chat";
+import { showSupportLauncher } from "@/lib/support/routes";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "jimvio-support-widget";
@@ -37,7 +38,7 @@ export function LiveSupportWidget() {
   const [tab, setTab] = useState<Tab>(session.tab);
   const [conversationId, setConversationId] = useState<string | null>(session.conversationId);
   const [unread, setUnread] = useState(0);
-  const hidden = pathname.startsWith("/checkout") || pathname.startsWith("/cart");
+  const hidden = !showSupportLauncher(pathname);
 
   useEffect(() => {
     const openPanel = () => setOpen(true);
@@ -75,7 +76,7 @@ export function LiveSupportWidget() {
       {open ? (
         <section
           aria-label="Jimvio Support"
-          className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom,0px))] top-[var(--navbar-height)] z-40 flex flex-col overflow-hidden border border-neutral-200 bg-white shadow-2xl motion-reduce:transition-none md:inset-auto md:bottom-6 md:right-6 md:h-[min(680px,calc(100dvh-5rem))] md:w-[392px] md:rounded-3xl"
+          className="fixed inset-x-0 top-[var(--navbar-height)] z-40 flex h-[calc(100dvh-var(--navbar-height)-60px-env(safe-area-inset-bottom,0px))] flex-col overflow-hidden border border-neutral-200 bg-white shadow-2xl motion-reduce:transition-none md:inset-auto md:bottom-6 md:right-6 md:h-[min(680px,calc(100dvh-5rem))] md:w-[392px] md:rounded-3xl"
         >
           <header className="flex items-start justify-between gap-3 bg-[#FF5A1F] px-4 py-3 text-white">
             <div>

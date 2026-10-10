@@ -91,7 +91,7 @@ CREATE POLICY support_conversations_select ON public.support_conversations
       SELECT 1 FROM public.user_roles ur
       WHERE ur.user_id = auth.uid()
         AND ur.is_active = true
-        AND ur.role IN ('admin', 'super_admin')
+        AND ur.role = 'admin'
     )
   );
 
@@ -110,7 +110,7 @@ CREATE POLICY support_conversation_messages_select ON public.support_conversatio
       SELECT 1 FROM public.user_roles ur
       WHERE ur.user_id = auth.uid()
         AND ur.is_active = true
-        AND ur.role IN ('admin', 'super_admin')
+        AND ur.role = 'admin'
     )
   );
 
@@ -126,7 +126,7 @@ CREATE POLICY support_typing_select ON public.support_conversation_typing
       SELECT 1 FROM public.user_roles ur
       WHERE ur.user_id = auth.uid()
         AND ur.is_active = true
-        AND ur.role IN ('admin', 'super_admin')
+        AND ur.role = 'admin'
     )
   );
 

@@ -8,6 +8,7 @@ import { SUPPORT_CATEGORIES } from "./types";
 import { customerVisibleMessages } from "./format";
 import { deliverConversationReply, deliverSupportNotice } from "./notify";
 import { canTransition, ticketSearchTerm, validateTicketInput } from "./validation";
+import { showSupportLauncher } from "./routes";
 import {
   countAvailableAgents,
   shouldAnswerWithAssistant,
@@ -230,6 +231,19 @@ describe("support tickets", () => {
     assert.equal(visible.length, 1);
     assert.equal(visible[0]?.answerMode, "knowledge");
     assert.equal(JSON.stringify(visible).includes("staff only"), false);
+  });
+
+  it("shows the support launcher only on Support Center routes", () => {
+    assert.equal(showSupportLauncher("/help"), true);
+    assert.equal(showSupportLauncher("/help/articles/track-order"), true);
+    assert.equal(showSupportLauncher("/help/topics/payments"), true);
+    assert.equal(showSupportLauncher("/help/tickets/JV-1"), true);
+    assert.equal(showSupportLauncher("/help/contact"), true);
+    assert.equal(showSupportLauncher("/"), false);
+    assert.equal(showSupportLauncher("/marketplace"), false);
+    assert.equal(showSupportLauncher("/checkout"), false);
+    assert.equal(showSupportLauncher("/cart"), false);
+    assert.equal(showSupportLauncher("/communities"), false);
   });
 
   it("does not email a chat reply when delivery is disabled", async () => {
