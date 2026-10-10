@@ -28,7 +28,7 @@ export function StorefrontCheckoutButton({
     setError(null);
     try {
       document.cookie = `jimvio_store_handle=${encodeURIComponent(handle)}; path=/; max-age=86400; samesite=lax`;
-      const result = await proceedToCheckout();
+      const result = await proceedToCheckout(handle);
       if (!result.ok) {
         setError(result.error || "Could not start checkout.");
         return;

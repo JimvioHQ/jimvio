@@ -246,11 +246,14 @@ export default async function StorefrontOrderDetailPage({ params }: Props) {
             </a>
           ) : null}
         </div>
-      ) : (
+      ) : ["paid", "completed", "success"].includes(
+          String(order.payment_status || "").toLowerCase()
+        ) &&
+        !["cancelled", "refunded"].includes(String(order.status || "").toLowerCase()) ? (
         <p className="mt-6 text-sm text-[var(--store-muted,#6B7280)]">
-          Tracking has not been added yet.
+          Tracking not available yet.
         </p>
-      )}
+      ) : null}
 
       <ul className="mt-8 space-y-3">
         {items.map((row) => {

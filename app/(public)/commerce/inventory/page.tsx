@@ -13,6 +13,7 @@ import {
   type InventoryRow,
 } from "@/components/commerce-os/inventory-control";
 import { cosTable } from "@/lib/commerce-os/db";
+import { merchantCanAdjustStock } from "@/lib/commerce-os/inventory/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
 
   const { data: links } = await cosTable(db, "jimvio_store_products")
     .select(
-      "id, status, products(id, name, sku, track_inventory, inventory_quantity, allow_backorder, low_stock_threshold, updated_at)",
+      "id, status, products(id, name, sku, vendor_id, source, source_metadata, track_inventory, inventory_quantity, allow_backorder, low_stock_threshold, updated_at)",
     )
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId);
@@ -77,6 +78,9 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
       id: string;
       name: string;
       sku: string | null;
+      vendor_id: string | null;
+      source: string | null;
+      source_metadata: Record<string, unknown> | null;
       track_inventory: boolean | null;
       inventory_quantity: number | null;
       allow_backorder: boolean | null;
@@ -100,6 +104,12 @@ export default async function CommerceInventoryPage({ searchParams }: Props) {
         lowStockThreshold: Number(p.low_stock_threshold ?? 5),
         updatedAt: p.updated_at,
         allowBackorder: Boolean(p.allow_backorder),
+        merchantManaged: merchantCanAdjustStock({
+          productVendorId: p.vendor_id,
+          merchantVendorId: auth.vendorId,
+          source: p.source,
+          sourceMetadata: p.source_metadata,
+        }),
       },
     ];
   });

@@ -12,10 +12,22 @@ import { StorefrontCartLineControls } from "@/components/commerce-os/storefront-
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ handle: string }> };
+type Props = {
+  params: Promise<{ handle: string }>;
+  searchParams: Promise<{ error?: string }>;
+};
 
-export default async function StorefrontCartPage({ params }: Props) {
+const CART_ERRORS: Record<string, string> = {
+  order_not_found: "That order could not be found or is no longer waiting for payment.",
+  sync_failed: "Checkout could not refresh this order. Your cart is unchanged.",
+  cart_empty: "This checkout no longer matches your cart. Review the items below and try again.",
+  mixed_products: "Digital and physical products need to be checked out separately.",
+  no_items: "This order has no items. Your cart is unchanged.",
+};
+
+export default async function StorefrontCartPage({ params, searchParams }: Props) {
   const { handle } = await params;
+  const { error: cartError } = await searchParams;
   const onStoreHost = await isRequestOnStoreHost();
   const linkOpts = { onStoreHost };
   const supabase = await createClient();
@@ -47,6 +59,14 @@ export default async function StorefrontCartPage({ params }: Props) {
       <p className="mt-1 text-sm text-[var(--store-muted,#6B7280)]">
         Items in this cart belong to {store.name} only.
       </p>
+      {cartError && CART_ERRORS[cartError] ? (
+        <p
+          className="mt-4 rounded-[var(--store-card-radius,16px)] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+          role="alert"
+        >
+          {CART_ERRORS[cartError]}
+        </p>
+      ) : null}
 
       {!items.length ? (
         <div className="mt-8 rounded-[var(--store-card-radius,16px)] border border-[var(--store-border,rgba(0,0,0,0.08))] bg-[var(--store-surface,#fff)] p-6 text-sm text-[var(--store-muted,#6B7280)]">

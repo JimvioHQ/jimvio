@@ -8,6 +8,11 @@ import {
 } from "@/lib/commerce-os";
 import { StoreSelector } from "@/components/commerce-os/store-selector";
 import { cosTable } from "@/lib/commerce-os/db";
+import {
+  defaultStorePageHtml,
+  defaultStorePageTitle,
+  missingDefaultStorePageHandles,
+} from "@/lib/commerce-os/storefront/page-content";
 
 export const dynamic = "force-dynamic";
 
@@ -36,11 +41,51 @@ export default async function CommercePagesPage({ searchParams }: Props) {
     );
   }
 
-  const { data: pages } = await cosTable(db, "jimvio_store_pages")
+  const { data: existingPages } = await cosTable(db, "jimvio_store_pages")
     .select("id, title, handle, published, updated_at")
     .eq("store_id", active.id)
     .eq("vendor_id", auth.vendorId)
     .order("title", { ascending: true });
+
+  const missing = missingDefaultStorePageHandles(
+    (existingPages ?? []).map((p) => String(p.handle))
+  );
+  if (missing.length) {
+    const { data: storeRow } = await cosTable(db, "jimvio_stores")
+      .select("name, contact_email, contact_phone, business_info")
+      .eq("id", active.id)
+      .eq("vendor_id", auth.vendorId)
+      .maybeSingle();
+    const info =
+      storeRow?.business_info &&
+      typeof storeRow.business_info === "object" &&
+      !Array.isArray(storeRow.business_info)
+        ? (storeRow.business_info as Record<string, unknown>)
+        : {};
+    const address = typeof info.address === "string" ? info.address : null;
+    await cosTable(db, "jimvio_store_pages").insert(
+      missing.map((handle) => ({
+        store_id: active.id,
+        vendor_id: auth.vendorId,
+        title: defaultStorePageTitle(handle),
+        handle,
+        body_html: defaultStorePageHtml(handle, storeRow?.name || active.name, {
+          email: storeRow?.contact_email,
+          phone: storeRow?.contact_phone,
+          address,
+        }),
+        published: false,
+      }))
+    );
+  }
+
+  const { data: pages } = missing.length
+    ? await cosTable(db, "jimvio_store_pages")
+        .select("id, title, handle, published, updated_at")
+        .eq("store_id", active.id)
+        .eq("vendor_id", auth.vendorId)
+        .order("title", { ascending: true })
+    : { data: existingPages };
 
   return (
     <div className="space-y-5">
@@ -74,13 +119,21 @@ export default async function CommercePagesPage({ searchParams }: Props) {
                   · {p.published ? "published" : "draft"}
                 </p>
               </div>
-              <Link
-                href={`https://${active.handle}.jimvio.com/${["terms","privacy","contact","about","refund-policy","shipping-policy"].includes(p.handle) ? p.handle : `pages/${p.handle}`}`}
-                className="text-xs font-semibold text-[#FF5A1F]"
-                target="_blank"
-              >
-                View
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/commerce/pages/${p.id}?storeId=${active.id}`}
+                  className="text-xs font-semibold text-[#111827]"
+                >
+                  Edit
+                </Link>
+                <Link
+                  href={`https://${active.handle}.jimvio.com/${["terms","privacy","contact","about","refund-policy","shipping-policy"].includes(p.handle) ? p.handle : `pages/${p.handle}`}`}
+                  className="text-xs font-semibold text-[#FF5A1F]"
+                  target="_blank"
+                >
+                  View
+                </Link>
+              </div>
             </li>
           ))}
         </ul>

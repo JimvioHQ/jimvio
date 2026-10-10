@@ -28,6 +28,7 @@ export type CosQuery = {
   lt: (...args: unknown[]) => CosQuery;
   lte: (...args: unknown[]) => CosQuery;
   in: (...args: unknown[]) => CosQuery;
+  filter: (...args: unknown[]) => CosQuery;
   not: (...args: unknown[]) => CosQuery;
   is: (...args: unknown[]) => CosQuery;
   order: (...args: unknown[]) => CosQuery;

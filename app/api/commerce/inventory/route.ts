@@ -5,6 +5,7 @@ import {
   cosAdminDb,
   assertStoreOwnedByVendor,
 } from "@/lib/commerce-os";
+import { merchantCanAdjustStock } from "@/lib/commerce-os/inventory/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -81,13 +82,32 @@ export async function POST(req: NextRequest) {
 
   const { data: product } = await db
     .from("products")
-    .select("id, vendor_id, inventory_quantity, track_inventory")
+    .select("id, vendor_id, inventory_quantity, track_inventory, source, source_metadata")
     .eq("id", body.productId)
     .eq("vendor_id", auth.vendorId)
     .maybeSingle();
 
   if (!product) {
     return NextResponse.json({ error: "Product not found." }, { status: 404 });
+  }
+
+  if (
+    !merchantCanAdjustStock({
+      productVendorId: product.vendor_id,
+      merchantVendorId: auth.vendorId,
+      source: product.source,
+      sourceMetadata:
+        product.source_metadata &&
+        typeof product.source_metadata === "object" &&
+        !Array.isArray(product.source_metadata)
+          ? (product.source_metadata as Record<string, unknown>)
+          : null,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Supplier-reported stock cannot be adjusted from this store." },
+      { status: 403 },
+    );
   }
 
   if (!product.track_inventory) {

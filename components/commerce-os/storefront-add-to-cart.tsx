@@ -166,7 +166,7 @@ export function StorefrontAddToCartButton({
       if (result.success) {
         incrementCartCount(qty);
         if (goCheckout) {
-          const checkout = await proceedToCheckout();
+          const checkout = await proceedToCheckout(storeHandle);
           if (checkout.ok) {
             window.location.href = `/checkout?order_id=${encodeURIComponent(checkout.orderId)}`;
             return;

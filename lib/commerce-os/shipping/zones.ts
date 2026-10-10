@@ -21,10 +21,11 @@ export async function getStoreShippingQuotes(
 ): Promise<ShippingQuote[]> {
   const country = countryCode.toUpperCase();
   const { data: zones } = await cosTable(db, "jimvio_shipping_zones")
-    .select("id, name, countries")
+    .select("id, name, countries, is_active")
     .eq("store_id", storeId);
 
   const matched = (zones ?? []).filter((z) => {
+    if (z.is_active === false) return false;
     const countries = (z.countries as string[]) || [];
     return countries.length === 0 || countries.map((c) => c.toUpperCase()).includes(country);
   });
@@ -41,15 +42,19 @@ export async function getStoreShippingQuotes(
     if (rate.min_order_amount != null && subtotal < Number(rate.min_order_amount)) continue;
     if (rate.max_order_amount != null && subtotal > Number(rate.max_order_amount)) continue;
 
+    if (rate.is_active === false) continue;
+    const rateType = String(rate.rate_type || "flat");
+    if (rateType === "weight" || rateType === "supplier") continue;
+
     let price = Number(rate.price) || 0;
-    if (rate.rate_type === "free") price = 0;
+    if (rateType === "free") price = 0;
 
     quotes.push({
       rateId: rate.id,
       name: rate.name,
       price,
       currency: rate.currency || "USD",
-      source: rate.rate_type === "supplier" ? "supplier" : "store",
+      source: "store",
     });
   }
 

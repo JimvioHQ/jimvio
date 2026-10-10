@@ -144,7 +144,9 @@ export default async function StorefrontCheckoutPage({
   if (!isDirectCheckout) {
     syncResult = await syncOrderWithCart(orderId);
     if (!syncResult.ok) {
-      redirect(`${cartHref}?error=sync_failed`);
+      const code =
+        syncResult.error === "cart_empty" ? "cart_empty" : "sync_failed";
+      redirect(`${cartHref}?error=${code}`);
     }
   }
 

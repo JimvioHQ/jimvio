@@ -12,21 +12,27 @@ export type ShippingZoneRow = {
   id: string;
   name: string;
   countries: string[];
+  is_active: boolean;
   rates: Array<{
     id: string;
     name: string;
     rate_type: string;
     price: number;
     currency: string;
+    min_order_amount?: number | null;
+    max_order_amount?: number | null;
+    is_active: boolean;
   }>;
 };
 
 export function ShippingManager({
   storeId,
   zones,
+  awaitingFulfillment = null,
 }: {
   storeId: string;
   zones: ShippingZoneRow[];
+  awaitingFulfillment?: number | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -36,7 +42,14 @@ export function ShippingManager({
   const [methodName, setMethodName] = useState("Standard Shipping");
   const [rateType, setRateType] = useState("flat");
   const [price, setPrice] = useState("0");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const activeRates = zones.reduce(
+    (sum, zone) => sum + zone.rates.filter((rate) => rate.is_active && zone.is_active).length,
+    0,
+  );
 
   async function createZone(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +69,8 @@ export function ShippingManager({
           rate_type: rateType,
           price: Number(price) || 0,
           currency: "USD",
+          min_order_amount: minAmount === "" ? null : Number(minAmount),
+          max_order_amount: maxAmount === "" ? null : Number(maxAmount),
         },
       }),
     });
@@ -67,6 +82,23 @@ export function ShippingManager({
     setOpen(false);
     setName("");
     setCountries("");
+    setNotice("Shipping zone saved.");
+    startTransition(() => router.refresh());
+  }
+
+  async function setZoneActive(zoneId: string, isActive: boolean) {
+    setError(null);
+    const res = await fetch("/api/commerce/shipping", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storeId, zoneId, is_active: isActive }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(typeof json.error === "string" ? json.error : "Could not update zone.");
+      return;
+    }
+    setNotice(isActive ? "Zone activated." : "Zone deactivated.");
     startTransition(() => router.refresh());
   }
 
@@ -93,8 +125,12 @@ export function ShippingManager({
           </CommerceCard>
           <CommerceCard className="px-3 py-3">
             <p className="text-[11px] text-[#6B7280]">Active rates</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums">{activeRates}</p>
+          </CommerceCard>
+          <CommerceCard className="px-3 py-3">
+            <p className="text-[11px] text-[#6B7280]">Awaiting fulfillment</p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
-              {zones.reduce((s, z) => s + z.rates.length, 0)}
+              {awaitingFulfillment ?? "—"}
             </p>
           </CommerceCard>
         </div>
@@ -107,6 +143,11 @@ export function ShippingManager({
         </button>
       </div>
 
+      {notice ? (
+        <p className="text-sm text-emerald-700" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-sm text-red-600" role="alert">
           {error}
@@ -116,7 +157,7 @@ export function ShippingManager({
       {!zones.length ? (
         <CommerceEmptyState
           title="No shipping zones configured yet"
-          description="Add a zone and rate so checkout can offer store-defined shipping. Network/supplier rates may still apply for eligible products."
+          description="Add a destination zone and a flat, free, or price-based rate. Checkout uses only rates you save here. Supplier shipping still applies to eligible supplier products."
           action={
             <button
               type="button"
@@ -136,10 +177,18 @@ export function ShippingManager({
                   <div>
                     <p className="font-semibold text-[#111827]">{z.name}</p>
                     <p className="mt-0.5 text-xs text-[#6B7280]">
-                      Countries:{" "}
+                      {z.is_active ? "Active" : "Inactive"} · Countries:{" "}
                       {z.countries.length ? z.countries.join(", ") : "All"}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => void setZoneActive(z.id, !z.is_active)}
+                    className="text-xs font-semibold text-[#111827]"
+                  >
+                    {z.is_active ? "Deactivate" : "Activate"}
+                  </button>
                   <button
                     type="button"
                     disabled={pending}
@@ -155,6 +204,7 @@ export function ShippingManager({
                       <li key={r.id}>
                         {r.name} · {r.rate_type} ·{" "}
                         {formatCommerceMoney(r.price, r.currency)}
+                        {r.is_active ? "" : " · inactive"}
                       </li>
                     ))}
                   </ul>
@@ -237,6 +287,28 @@ export function ShippingManager({
                   />
                 </label>
               </div>
+              {rateType === "price" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs font-medium">Min order</span>
+                    <input
+                      value={minAmount}
+                      onChange={(e) => setMinAmount(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm"
+                      inputMode="decimal"
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs font-medium">Max order</span>
+                    <input
+                      value={maxAmount}
+                      onChange={(e) => setMaxAmount(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-[#E5E7EB] px-3 text-sm"
+                      inputMode="decimal"
+                    />
+                  </label>
+                </div>
+              ) : null}
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"

@@ -25,6 +25,8 @@ export type InventoryRow = {
   lowStockThreshold: number;
   updatedAt: string | null;
   allowBackorder: boolean;
+  /** False for supplier-controlled imports. Those rows cannot be adjusted. */
+  merchantManaged: boolean;
 };
 
 export type InventoryHistoryRow = {
@@ -289,7 +291,7 @@ export function InventoryControl({
                       <p className="text-lg font-semibold tabular-nums">
                         {r.trackInventory ? r.quantity ?? 0 : "—"}
                       </p>
-                      {r.trackInventory ? (
+                      {r.trackInventory && r.merchantManaged ? (
                         <button
                           type="button"
                           onClick={() => {
@@ -300,6 +302,10 @@ export function InventoryControl({
                         >
                           Adjust
                         </button>
+                      ) : r.trackInventory ? (
+                        <p className="mt-1 text-[11px] font-medium text-[#6B7280]">
+                          Supplier stock
+                        </p>
                       ) : null}
                     </div>
                   </div>
@@ -352,7 +358,7 @@ export function InventoryControl({
                           : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        {r.trackInventory ? (
+                        {r.trackInventory && r.merchantManaged ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -363,6 +369,10 @@ export function InventoryControl({
                           >
                             Adjust stock
                           </button>
+                        ) : r.trackInventory ? (
+                          <span className="text-xs font-medium text-[#6B7280]">
+                            Supplier stock
+                          </span>
                         ) : (
                           <Link
                             href={`/commerce/products/${r.productId}/edit?storeId=${storeId}`}

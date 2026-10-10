@@ -22,6 +22,8 @@ import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import { cookies } from "next/headers";
 import { cosTable } from "@/lib/commerce-os/db";
 import { resolveJimvioStoreCheckoutTotals } from "@/lib/commerce-os/checkout/totals";
+import { shouldScopeCartSyncToCatalogVendor } from "@/lib/commerce-os/checkout/cart-sync-scope";
+import { resolveTrustedRateFromQuoteToken } from "@/lib/cj/checkout-quote-token";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,9 @@ const ShippingSchema = z.object({
   /** Marketplace-only client hint; Jimvio Store discounts are server-validated via discountCode. */
   discountAmount: z.number().nonnegative().optional(),
   discountCode: z.string().trim().max(64).optional(),
+  quoteToken: z.string().max(12_000).optional(),
+  shippingOptionId: z.string().max(200).optional(),
+  shippingOptionName: z.string().max(200).optional(),
 });
 
 export type ShippingPayload = z.input<typeof ShippingSchema>;
@@ -462,7 +467,7 @@ async function createVendorOrder(
     const { data: vendorRow } = await admin
       .from("vendors")
       .select("user_id")
-      .eq("id", vendorId)
+      .eq("id", orderOwnerVendorId)
       .maybeSingle();
     if (vendorRow?.user_id && vendorRow.user_id !== buyerId) {
       await notifyUser(admin, {
@@ -799,6 +804,38 @@ export async function updatePendingOrdersShipping(
     // Jimvio Store checkouts: server-authoritative discount + tax + shipping quotes
     if (order.jimvio_store_id) {
       try {
+        const { data: lineRows } = await admin
+          .from("order_items")
+          .select("product_source, product_type")
+          .eq("order_id", order.id);
+        const lines = lineRows ?? [];
+        const supplier = lines.some((line) => line.product_source === "cj");
+        const needsShipping = lines.some(
+          (line) => (line.product_type || "physical") !== "digital"
+        );
+        const fulfillment = supplier
+          ? "supplier"
+          : needsShipping
+            ? "merchant"
+            : "digital";
+        let verifiedSupplierShipping: number | null = null;
+        if (fulfillment === "supplier") {
+          const trusted = resolveTrustedRateFromQuoteToken({
+            token: payload.quoteToken,
+            selection: {
+              optionId: payload.shippingOptionId,
+              name: payload.shippingOptionName || "",
+              priceUSD: payload.shippingAmount,
+            },
+            products: [],
+            destCountryCode: payload.countryCode,
+            orderIds: [order.id],
+          });
+          verifiedSupplierShipping =
+            trusted && Number.isFinite(Number(trusted.priceUSD))
+              ? Number(trusted.priceUSD)
+              : null;
+        }
         const storeTotals = await resolveJimvioStoreCheckoutTotals(admin, {
           storeId: order.jimvio_store_id as string,
           subtotal,
@@ -808,6 +845,8 @@ export async function updatePendingOrdersShipping(
               ? payload.shippingAmount
               : undefined,
           discountCode: payload.discountCode ?? null,
+          fulfillment,
+          verifiedSupplierShipping,
         });
         shippingAmount = storeTotals.shippingAmount;
         discountAmount = storeTotals.discountAmount;
@@ -898,7 +937,9 @@ export async function updatePendingOrdersShipping(
 
 // ─── startCheckout ────────────────────────────────────────────────────────────
 
-export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
+export async function startCheckout(
+  storeHandle?: string | null
+): Promise<Result<{ orderIds: string[] }>> {
   // ── Auth ───────────────────────────────────────────────────────────────────
   const supabase = await createClient();
   const {
@@ -909,7 +950,7 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
 
   // ── Cart (marketplace vs Jimvio store scope) ───────────────────────────────
   const jar = await cookies();
-  const storeHandleCookie = jar.get("jimvio_store_handle")?.value;
+  const storeHandleCookie = storeHandle || jar.get("jimvio_store_handle")?.value;
   let scopedStoreId: string | null = null;
   if (storeHandleCookie) {
     try {
@@ -941,13 +982,18 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
 
 
   // ── Resume existing pending/failed orders for this cart ───────────────────
-  const { data: existingOrders, error: existingError } = await admin
-    .from("orders")
-    .select("id, payment_status")
+  let existingQuery = cosTable(admin, "orders")
+    .select("id, payment_status, jimvio_store_id")
     .eq("buyer_id", userId)
     .eq("status", "pending")
     .in("payment_status", ["pending", "failed"])
     .filter("metadata->>cart_id", "eq", cartId);
+  if (scopedStoreId) {
+    existingQuery = existingQuery.eq("jimvio_store_id", scopedStoreId);
+  } else {
+    existingQuery = existingQuery.is("jimvio_store_id", null);
+  }
+  const { data: existingOrders, error: existingError } = await existingQuery;
 
   if (existingError) {
     console.error("[startCheckout] Failed to fetch existing orders:", existingError);
@@ -1088,11 +1134,13 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   return ok({ orderIds: createdOrderIds });
 }
 
-export async function proceedToCheckout(): Promise<
+export async function proceedToCheckout(
+  storeHandle?: string | null
+): Promise<
   | { ok: true; orderId: string; orderIds: string[] }
   | { ok: false; error: string }
 > {
-  const result = await startCheckout();
+  const result = await startCheckout(storeHandle);
 
   if (!result.success) {
     return { ok: false, error: result.error };
@@ -1282,6 +1330,13 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
     return { ok: false, error: "Order not found" };
   }
 
+  const { data: storeScope } = await cosTable(admin, "orders")
+    .select("jimvio_store_id")
+    .eq("id", orderId)
+    .maybeSingle();
+  const orderStoreId =
+    (storeScope?.jimvio_store_id as string | null | undefined) ?? null;
+
   const metadata = (order.metadata as Record<string, unknown>) ?? {};
   const isDirectCheckout =
     order.status === "checkout_direct" || metadata.is_direct_checkout === true;
@@ -1307,7 +1362,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   }
 
   // ── Fetch current cart items (only this vendor's items) ─────────────────────
-  const { data: rawCartItems, error: cartError } = await supabase
+  let cartItemsQuery = supabase
     .from("cart_items")
     .select(
       `
@@ -1321,8 +1376,15 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
       product_variants(id, name, price, is_active, image_url)
     `
     )
-    .eq("cart_id", cartId)
-    .eq("vendor_id", order.vendor_id ?? "");
+    .eq("cart_id", cartId);
+  if (
+    shouldScopeCartSyncToCatalogVendor({
+      jimvio_store_id: orderStoreId,
+    })
+  ) {
+    cartItemsQuery = cartItemsQuery.eq("vendor_id", order.vendor_id ?? "");
+  }
+  const { data: rawCartItems, error: cartError } = await cartItemsQuery;
 
   if (cartError) {
     return { ok: false, error: `Could not read cart: ${cartError.message}` };
@@ -1405,17 +1467,7 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
       return { ok: false, error: `Could not cancel empty order: ${cancelError.message}` };
     }
 
-    return {
-      ok: true,
-      changed: true,
-      changes: {
-        itemsAdded: 0,
-        itemsRemoved,
-        itemsUpdated: 0,
-        priceChanged: false,
-        shippingReset: true,
-      },
-    };
+    return { ok: false, error: "cart_empty" };
   }
 
   // ── Rebuild order_items from cart ───────────────────────────────────────────

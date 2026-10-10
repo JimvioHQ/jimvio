@@ -44,7 +44,7 @@ export function StorefrontCardQuickActions({
       if (result.success) {
         incrementCartCount(1);
         if (buyNow) {
-          const checkout = await proceedToCheckout();
+          const checkout = await proceedToCheckout(storeHandle);
           if (checkout.ok) {
             window.location.href = `/checkout?order_id=${encodeURIComponent(checkout.orderId)}`;
             return;

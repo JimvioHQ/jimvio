@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeOrderTotalAmount, roundMoney } from "@/lib/commerce/order-totals";
 import { applyStoreDiscount, estimateTax, type DiscountRow } from "../discounts/engine";
 import { getStoreShippingQuotes } from "../shipping/zones";
+import { selectAuthoritativeShipping } from "../shipping/validate";
 import { cosTable } from "../db";
 
 export type StoreCheckoutTotalsInput = {
@@ -12,6 +13,9 @@ export type StoreCheckoutTotalsInput = {
   proposedShippingAmount?: number;
   /** Coupon code from checkout (server-validated) */
   discountCode?: string | null;
+  fulfillment?: "merchant" | "supplier" | "digital";
+  /** Amount already verified against a signed supplier quote. */
+  verifiedSupplierShipping?: number | null;
 };
 
 export type StoreCheckoutTotals = {
@@ -24,7 +28,7 @@ export type StoreCheckoutTotals = {
   discountId: string | null;
   discountLabel: string | null;
   taxRate: number | null;
-  shippingSource: "store" | "client" | "none";
+  shippingSource: "store" | "supplier" | "none";
 };
 
 /**
@@ -89,33 +93,25 @@ export async function resolveJimvioStoreCheckoutTotals(
     }
   }
 
-  // Shipping quotes
+  // Shipping quotes. Supplier-fulfilled orders use the verified supplier quote
+  // only — a store flat rate is not added on top of that quote.
   let shippingAmount = 0;
   let shippingSource: StoreCheckoutTotals["shippingSource"] = "none";
-  const quotes = await getStoreShippingQuotes(db, input.storeId, country, subtotal);
+  const fulfillment = input.fulfillment ?? "merchant";
+  const quotes =
+    fulfillment === "supplier" || fulfillment === "digital"
+      ? []
+      : await getStoreShippingQuotes(db, input.storeId, country, subtotal);
 
-  if (quotes.length) {
-    shippingSource = "store";
-    const proposed = input.proposedShippingAmount;
-    if (typeof proposed === "number" && proposed > 0) {
-      const match = quotes.find(
-        (q) => Math.abs(q.price - proposed) < 0.009
-      );
-      if (!match) {
-        throw new Error(
-          "Selected shipping rate is not available for this destination."
-        );
-      }
-      shippingAmount = match.price;
-    } else {
-      // No client selection yet (or 0) — use cheapest verified store rate
-      shippingAmount = quotes[0]!.price;
-    }
-  } else if (typeof input.proposedShippingAmount === "number") {
-    // No store zones — allow platform/CJ shipping amount from client (still clamped)
-    shippingAmount = Math.max(0, input.proposedShippingAmount);
-    shippingSource = "client";
-  }
+  const choice = selectAuthoritativeShipping({
+    fulfillment,
+    quotes,
+    proposed: input.proposedShippingAmount,
+    verifiedSupplierShipping: input.verifiedSupplierShipping,
+  });
+  if (choice.error) throw new Error(choice.error);
+  shippingAmount = choice.amount;
+  shippingSource = choice.source;
 
   if (freeShipping) shippingAmount = 0;
 
