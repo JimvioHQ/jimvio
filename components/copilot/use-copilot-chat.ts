@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiChatMessageData } from "@/components/marketplace/ai/ai-chat-message";
 import { planGuideTurn, writePendingAction } from "@/lib/ai/action-guide";
-import { prepareChatTurn } from "@/lib/ai/chat-turn";
+import {
+  completeAssistantTurn,
+  failAssistantTurn,
+  isCurrentGeneration,
+  prepareChatTurn,
+} from "@/lib/ai/chat-turn";
 import { parseAiTriggers, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
 import { getCopilotProvider } from "@/lib/ai/copilot/provider";
 import { loadCopilotSession, saveCopilotSession } from "@/lib/ai/copilot/session";
@@ -105,6 +110,10 @@ export function useCopilotChat() {
       }
 
       if (!messageText) return false;
+
+      const replaced = options?.regenerateFromId
+        ? baseMessages.find((message) => message.id === options.regenerateFromId)
+        : undefined;
 
       const guided = planGuideTurn(messageText);
       if (guided) {
@@ -243,7 +252,7 @@ export function useCopilotChat() {
       setStatus("thinking");
 
       const flushStream = () => {
-        if (generation !== generationRef.current) {
+        if (!isCurrentGeneration(generationRef.current, generation)) {
           streamRaf.current = null;
           return;
         }
@@ -284,7 +293,7 @@ export function useCopilotChat() {
             actionId: options?.actionId,
             signal: request.signal,
           })) {
-            if (request.signal.aborted || generation !== generationRef.current) return;
+            if (request.signal.aborted || !isCurrentGeneration(generationRef.current, generation)) return;
             if (chunk.type === "text-delta" && chunk.text) {
               fullContent += chunk.text;
               setStatus("streaming");
@@ -299,49 +308,37 @@ export function useCopilotChat() {
             streamRaf.current = null;
           }
 
-          if (generation !== generationRef.current) return;
+          if (!isCurrentGeneration(generationRef.current, generation)) return;
           const parsed = parseAiTriggers(fullContent);
           const content = metadata.content || parsed.cleaned || stripTriggersForDisplay(fullContent);
+          const guide =
+            Boolean(metadata.fallback) || content.startsWith("This is a Jimvio earning guide.");
           setMessages((prev) =>
-            prev.map((m) =>
+            completeAssistantTurn(prev, aiId, { content, fallback: guide }).map((m) =>
               m.id === aiId
                 ? {
                     ...m,
                     ...metadata,
-                    content,
+                    content: m.content,
+                    fallback: m.fallback,
                     thinking: false,
                     streaming: false,
                     followups: parsed.followups ?? metadata.followups,
                     links: parsed.links ?? metadata.links,
-                    fallback: metadata.fallback || content.startsWith("This is a Jimvio earning guide."),
                   }
                 : m,
             ),
           );
           setStatus("ready");
         } catch {
-          if (generation !== generationRef.current) return;
+          if (!isCurrentGeneration(generationRef.current, generation)) return;
           const timedOut = request.signal.aborted;
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiId
-                ? {
-                    ...m,
-                    thinking: false,
-                    streaming: false,
-                    content: m.content.trim()
-                      ? m.content
-                      : timedOut
-                        ? "Jimvio AI took too long. Your message is still here."
-                        : "Jimvio AI could not finish that reply. Your message is still here.",
-                    fallback: true,
-                  }
-                : m,
-            ),
+            failAssistantTurn(prev, aiId, { timedOut, previous: replaced }),
           );
           setStatus("offline");
         } finally {
-          if (generation === generationRef.current) {
+          if (isCurrentGeneration(generationRef.current, generation)) {
             sendingRef.current = false;
             setIsSending(false);
             pendingContent.current = "";

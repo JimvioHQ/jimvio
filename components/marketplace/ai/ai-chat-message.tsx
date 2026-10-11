@@ -59,6 +59,8 @@ interface AiChatMessageProps {
   onNavigate: (href: string) => void;
   onClose?: () => void;
   onRegenerate?: (id: string) => void;
+  /** True while another reply is being generated. */
+  actionsDisabled?: boolean;
   onFollowup?: (text: string) => void;
   onFeedback?: (id: string, feedback: "up" | "down") => void;
 }
@@ -68,6 +70,7 @@ export function AiChatMessage({
   onNavigate,
   onClose,
   onRegenerate,
+  actionsDisabled = false,
   onFollowup,
   onFeedback,
 }: AiChatMessageProps) {
@@ -149,8 +152,10 @@ export function AiChatMessage({
             {onRegenerate && (
               <button
                 type="button"
+                disabled={actionsDisabled}
+                aria-label={msg.fallback ? "Retry this answer" : "Regenerate this answer"}
                 onClick={() => onRegenerate(msg.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)]"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw className="size-3" />
                 {msg.fallback ? "Retry" : "Regenerate"}

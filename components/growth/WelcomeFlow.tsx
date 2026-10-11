@@ -240,6 +240,7 @@ export function WelcomeFlow() {
                   else router.push(href);
                 }}
                 onRegenerate={(id) => void sendMessage("", { regenerateFromId: id })}
+                actionsDisabled={isSending}
                 onFollowup={(text) => send(text)}
               />
             ))}

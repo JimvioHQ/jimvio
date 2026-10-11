@@ -176,6 +176,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
                 onRegenerate={
                   message.role === "ai" ? (id) => void sendMessage("", { regenerateFromId: id }) : undefined
                 }
+                actionsDisabled={isSending}
                 onFollowup={(text) => handleSend(text)}
               />
             ))

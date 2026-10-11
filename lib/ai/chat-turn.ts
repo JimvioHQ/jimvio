@@ -18,6 +18,61 @@ export type PreparedTurn =
       assistantId: string;
     };
 
+export const EMPTY_REPLY = "The live model did not answer. Your question is still here.";
+export const TIMEOUT_REPLY = "Jimvio AI took too long. Your message is still here.";
+export const FAILED_REPLY = "Jimvio AI could not finish that reply. Your message is still here.";
+
+export function assistantActionLabel(fallback: boolean | undefined): "Retry" | "Regenerate" {
+  return fallback ? "Retry" : "Regenerate";
+}
+
+export function isCurrentGeneration(active: number, generation: number): boolean {
+  return active === generation;
+}
+
+export function completeAssistantTurn<T extends TurnMessage & { fallback?: boolean }>(
+  messages: T[],
+  assistantId: string,
+  result: { content: string; fallback?: boolean },
+): T[] {
+  const trimmed = result.content.trim();
+  const content = trimmed || EMPTY_REPLY;
+  const fallback = Boolean(result.fallback) || !trimmed;
+  return messages.map((message) =>
+    message.id === assistantId
+      ? { ...message, content, fallback, thinking: false, streaming: false }
+      : message,
+  );
+}
+
+export function failAssistantTurn<T extends TurnMessage & { fallback?: boolean }>(
+  messages: T[],
+  assistantId: string,
+  input: { timedOut: boolean; previous?: T | null },
+): T[] {
+  return messages.map((message) => {
+    if (message.id !== assistantId) return message;
+    if (message.content.trim()) {
+      return { ...message, thinking: false, streaming: false, fallback: true };
+    }
+    if (input.previous?.content.trim()) {
+      return {
+        ...input.previous,
+        id: message.id,
+        thinking: false,
+        streaming: false,
+      };
+    }
+    return {
+      ...message,
+      thinking: false,
+      streaming: false,
+      fallback: true,
+      content: input.timedOut ? TIMEOUT_REPLY : FAILED_REPLY,
+    };
+  });
+}
+
 function settleInFlight(messages: TurnMessage[]): TurnMessage[] {
   return messages.map((message) =>
     message.thinking || message.streaming
