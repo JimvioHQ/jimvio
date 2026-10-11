@@ -41,6 +41,8 @@ export interface MobileMoneyPaymentStepProps {
   submitting?: boolean;
   awaitingConfirmation?: boolean;
   error?: string | null;
+  /** Associates the mobile-number label with the phone field. */
+  phoneInputId?: string;
   /** Contextual copy — defaults match Marketplace checkout. */
   title?: string;
   subtitle?: string;
@@ -114,6 +116,7 @@ export function MobileMoneyPaymentStep({
   submitting = false,
   awaitingConfirmation = false,
   error = null,
+  phoneInputId,
   title = "Mobile Money",
   subtitle,
   amountLabel = "Order total",
@@ -477,7 +480,7 @@ export function MobileMoneyPaymentStep({
           ) : null}
 
           {showPhone ? (
-            <label className="block space-y-2">
+            <label htmlFor={phoneInputId} className="block space-y-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-text-tertiary)]">
                 Mobile Number
               </span>
@@ -489,6 +492,7 @@ export function MobileMoneyPaymentStep({
                   {selectedMarket!.flag} {selectedMarket!.dialCode}
                 </span>
                 <input
+                  id={phoneInputId}
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel-national"

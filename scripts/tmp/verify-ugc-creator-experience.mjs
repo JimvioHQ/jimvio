@@ -30,11 +30,25 @@ for (const banned of ["/ugc/dashboard", "Creator Copilot", "Achievements", "More
     failed += 1;
   }
 }
-for (const required of ["Discover Campaigns", "My Campaigns", "Submissions", "Earnings"]) {
+for (const required of ["Discover Campaigns", "My Campaigns", "Submissions", "Overview", "Create Campaign"]) {
   if (!sidebar.includes(required)) {
     console.error(`sidebar missing required nav: ${required}`);
     failed += 1;
   }
+}
+if (sidebar.includes("Earnings")) {
+  console.error("sidebar must keep earnings off the nav; confirmed earnings stay on My Campaigns and /ugc/earnings");
+  failed += 1;
+}
+const earningsPage = join(root, "components/ugc/workspace/UGCEarningsPage.tsx");
+const myCampaigns = readFileSync(files.myCampaigns, "utf8");
+if (!existsSync(earningsPage) || !readFileSync(earningsPage, "utf8").includes("Lifetime earnings")) {
+  console.error("earnings page missing confirmed earnings surface");
+  failed += 1;
+}
+if (!myCampaigns.includes('href="/ugc/earnings"') || !myCampaigns.includes("Confirmed paid earnings")) {
+  console.error("My Campaigns must link to earnings and separate confirmed paid amounts");
+  failed += 1;
 }
 
 const datePanel = readFileSync(files.datePanel, "utf8");

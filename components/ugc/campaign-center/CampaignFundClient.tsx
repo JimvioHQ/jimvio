@@ -518,6 +518,7 @@ export function CampaignFundClient() {
               <div className="mt-5 space-y-3">
                 {stage === "mobile_money" ? (
                   <MobileMoneyPaymentStep
+                    phoneInputId="ugc-fund-phone"
                     amountUsd={amountToFund}
                     formatMoney={(amt, cur) => formatMoneyAsUSD(amt, cur)}
                     value={momoForm}

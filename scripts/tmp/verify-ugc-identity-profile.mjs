@@ -45,7 +45,13 @@ assert.match(completion, /export function isCreatorWorkspaceReady/);
 assert.match(completion, /id: "fullName"/);
 assert.match(completion, /id: "headline"/);
 assert.match(completion, /id: "bio"/);
-assert.doesNotMatch(completion, /identityVerified|documentsVerified|veriff/i);
+assert.match(completion, /identityVerified\?: boolean/);
+assert.match(completion, /id: "identityVerified"/);
+assert.match(completion, /label: "identity verification"/);
+const completionGate = completion.slice(completion.indexOf("export function evaluateCreatorProfileCompletion"));
+assert.doesNotMatch(completionGate, /identityVerified|documentsVerified|veriff/i);
+assert.doesNotMatch(completion, /documentsVerified|veriff/i);
+assert.doesNotMatch(identityUpdate, /identityVerified|identity_verified/);
 
 assert.match(sync, /export async function ensureInfluencerMirror/);
 assert.match(sync, /reason: "incomplete"/);
