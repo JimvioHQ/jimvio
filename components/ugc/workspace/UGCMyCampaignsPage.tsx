@@ -32,6 +32,8 @@ import {
 import { loginUrlForReturnPath } from "@/lib/ugc/join-auth";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { cn } from "@/lib/utils";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
+import { UGCOwnedCampaignsSection } from "./UGCOwnedCampaignsSection";
 
 type ParticipantRow = {
   id: string;
@@ -93,6 +95,11 @@ function isCompleted(row: ParticipantRow, subs: SubmissionLite[]): boolean {
 
 export function UGCMyCampaignsPage() {
   const searchParams = useSearchParams();
+  const { workspaces } = useUgcBrandWorkspace();
+  const canManageWorkspace = workspaces.length > 0;
+  const [workspace, setWorkspace] = useState<"joined" | "manage">(
+    searchParams.get("workspace") === "manage" ? "manage" : "joined",
+  );
   const initialTab = (searchParams.get("view") === "schedule" ? "schedule" : "active") as TabId;
   const { formatMoney } = useCurrency();
   const [rows, setRows] = useState<ParticipantRow[]>([]);
@@ -331,13 +338,44 @@ export function UGCMyCampaignsPage() {
   return (
     <UGCPageShell
       title="My Campaigns"
-      subtitle="Your creator workspace for joined campaigns, applications, submissions, and confirmed earnings."
+      subtitle={
+        workspace === "manage" && canManageWorkspace
+          ? "Campaigns you own or manage. Creator submissions stay in Joined."
+          : "Your creator workspace for joined campaigns, applications, submissions, and confirmed earnings."
+      }
       actions={
         <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
           <Link href="/ugc">Discover Campaigns</Link>
         </Button>
       }
     >
+      {canManageWorkspace ? (
+        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Campaign workspace">
+          {(
+            [
+              ["joined", "Joined"],
+              ["manage", "Campaigns I manage"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={workspace === id}
+              onClick={() => setWorkspace(id)}
+              className={cn(
+                "inline-flex h-10 items-center rounded-full px-3 text-[13px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]",
+                workspace === id ? "bg-[#FF5A1F] text-white" : "bg-white text-[#374151] ring-1 ring-[#E5E7EB]",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {workspace === "manage" && canManageWorkspace ? <UGCOwnedCampaignsSection /> : null}
+      {workspace === "joined" || !canManageWorkspace ? (
+        <>
       {!loading && !error && !needsProfile ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
           {[
@@ -492,7 +530,10 @@ export function UGCMyCampaignsPage() {
             const days = getDaysRemaining(campaign.submission_deadline ?? campaign.ends_at ?? null);
             const lifecycle = getCampaignLifecycleStatus(campaign);
             const cover = campaign.media?.find((m) => m.usage === "banner")?.url ?? campaign.media?.[0]?.url;
-            const canSubmit = row.status === "accepted" && campaign.status === "active";
+            const canSubmit =
+              row.status === "accepted" &&
+              campaign.status === "active" &&
+              lifecycle !== "ended";
             const hasRevision = campaignSubs.some((s) => s.status === "revision_requested");
             const hasPendingSub = campaignSubs.some((s) => s.status === "pending");
             const campaignPay = payouts.filter((p) => p.campaign_id === campaign.id);
@@ -659,6 +700,8 @@ export function UGCMyCampaignsPage() {
             </div>
           )}
         </div>
+      ) : null}
+        </>
       ) : null}
     </UGCPageShell>
   );

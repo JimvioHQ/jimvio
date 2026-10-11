@@ -25,16 +25,32 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const [
     activeCreatorsRes,
+    pendingAppsRes,
+    totalAppsRes,
     pendingSubsRes,
     revisionRes,
     approvalQueueRes,
+    totalSubsRes,
+    approvedSubsRes,
+    rejectedSubsRes,
     earningsRes,
+    escrowRes,
+    paidPayoutsRes,
   ] = await Promise.all([
     db
       .from("ugc_campaign_participants")
       .select("id", { count: "exact", head: true })
       .eq("campaign_id", id)
       .eq("status", "accepted"),
+    db
+      .from("ugc_campaign_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id)
+      .in("status", ["pending", "waitlisted"]),
+    db
+      .from("ugc_campaign_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id),
     db
       .from("ugc_submissions")
       .select("id", { count: "exact", head: true })
@@ -52,8 +68,36 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .in("status", ["pending", "revision_requested"]),
     db
       .from("ugc_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id),
+    db
+      .from("ugc_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id)
+      .eq("status", "approved"),
+    db
+      .from("ugc_submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", id)
+      .eq("status", "rejected"),
+    db
+      .from("ugc_submissions")
       .select("total_earnings")
       .eq("campaign_id", id),
+    showFinance
+      ? db
+          .from("ugc_campaign_escrow")
+          .select("amount, status")
+          .eq("campaign_id", id)
+          .eq("status", "held")
+      : Promise.resolve({ data: null, error: null }),
+    showFinance
+      ? db
+          .from("ugc_payouts")
+          .select("amount, status, submission:ugc_submissions!inner(campaign_id)")
+          .eq("submission.campaign_id", id)
+          .eq("status", "paid")
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   const totalBudget = Number(campaign.total_budget ?? 0);
@@ -62,6 +106,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     (sum, row) => sum + Number(row.total_earnings ?? 0),
     0
   );
+  const escrowHeld = showFinance
+    ? (escrowRes.data ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
+    : null;
+  const paidRows = paidPayoutsRes.error ? null : paidPayoutsRes.data;
+  const confirmedPayoutAmount = showFinance && paidRows
+    ? paidRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
+    : null;
+  const confirmedPayoutCount = showFinance && paidRows ? paidRows.length : null;
 
   return NextResponse.json({
     campaignId: id,
@@ -69,11 +121,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     status: campaign.status,
     metrics: {
       activeCreators: activeCreatorsRes.count ?? 0,
+      pendingApplications: pendingAppsRes.count ?? 0,
+      totalApplications: totalAppsRes.count ?? 0,
       pendingSubmissions: pendingSubsRes.count ?? 0,
       revisionRequested: revisionRes.count ?? 0,
+      totalSubmissions: totalSubsRes.count ?? 0,
+      approvedSubmissions: approvedSubsRes.count ?? 0,
+      rejectedSubmissions: rejectedSubsRes.count ?? 0,
       budgetRemaining: showFinance ? Math.max(0, totalBudget - spentBudget) : null,
       totalBudget: showFinance ? totalBudget : null,
       spentBudget: showFinance ? spentBudget : null,
+      escrowHeld,
+      confirmedPayoutAmount,
+      confirmedPayoutCount,
       views: Number(campaign.total_views_tracked ?? 0),
       earningsSum: showFinance ? earningsSum : null,
       approvalQueueSize: approvalQueueRes.count ?? 0,

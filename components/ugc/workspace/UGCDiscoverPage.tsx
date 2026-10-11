@@ -230,11 +230,12 @@ export function UGCDiscoverPage() {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10 pt-1">
+      <div className="ugc-discover-masthead -mx-3.5 mb-4 rounded-none px-3.5 pb-3 pt-1 sm:-mx-5 sm:rounded-2xl sm:px-5 sm:pb-4 lg:-mx-6 lg:px-6">
       <header className="mb-3 sm:mb-4">
-        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[30px]">
+        <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[30px] dark:text-[#F9FAFB]">
           UGC & Clipping
         </h1>
-        <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#64748B] sm:text-[14px]">
+        <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#64748B] sm:text-[14px] dark:text-[#D1D5DB]">
           Featured campaigns / creator opportunities
         </p>
       </header>
@@ -259,6 +260,7 @@ export function UGCDiscoverPage() {
         onClearAll={resetAll}
         hasFilters={hasFilters}
       />
+      </div>
 
       {loading && !campaigns.length ? (
         <>

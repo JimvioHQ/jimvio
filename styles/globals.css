@@ -1642,3 +1642,22 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
     content: none !important;
   }
 }
+
+/* Discover masthead: white dominant, Jimvio orange only as a light tint. */
+.ugc-discover-masthead {
+  background: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #ffffff 62%,
+    rgba(255, 90, 31, 0.055) 100%
+  );
+}
+
+.dark .ugc-discover-masthead {
+  background: linear-gradient(
+    165deg,
+    #111827 0%,
+    #111827 68%,
+    rgba(255, 90, 31, 0.14) 100%
+  );
+}

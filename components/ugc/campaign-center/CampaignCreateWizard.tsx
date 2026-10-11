@@ -511,8 +511,13 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Save failed");
-        toast.success(t("draftUpdated"));
-        router.push("/ugc/campaign-center/drafts");
+        if (persistedStatus === "draft") {
+          toast.success(t("draftUpdated"));
+          router.push("/ugc/campaign-center/drafts");
+        } else {
+          toast.success("Campaign saved. Its status is unchanged.");
+          router.push("/ugc/campaigns?workspace=manage");
+        }
         return;
       }
 
@@ -608,8 +613,18 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             {editId ? "Edit Campaign" : t("createCampaign")}
           </h1>
           <p className="mt-1 text-[13px] text-[#6B7280]">
-            Professional multi-step setup with autosave and validation.
+            {editId
+              ? `Current status: ${persistedStatus.replaceAll("_", " ")}. Saving keeps this status.`
+              : "Professional multi-step setup with autosave and validation."}
           </p>
+          {editId ? (
+            <Link
+              href={`/ugc/${editId}`}
+              className="mt-2 inline-flex text-[13px] font-semibold text-[#FF5A1F] hover:underline"
+            >
+              Preview campaign
+            </Link>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
@@ -1035,9 +1050,14 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   ))}
                 </ul>
               </div>
-            ) : (
+            ) : persistedStatus === "draft" ? (
               <p className="rounded-xl border border-[#BBF7D0] bg-[#ECFDF5] px-3 py-3 text-[12.5px] text-[#166534]">
                 Required campaign data is complete. Fund escrow to activate.
+              </p>
+            ) : (
+              <p className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-3 text-[12.5px] text-[#374151]">
+                This campaign stays <strong className="capitalize">{persistedStatus.replaceAll("_", " ")}</strong>.
+                Saving does not fund it or change its status.
               </p>
             )}
             <ReviewRow label={t("reviewType")} value={form.campaign_type.replace(/_/g, " ")} />
@@ -1066,7 +1086,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               value={form.required_hashtags.length ? form.required_hashtags.map((t) => `#${t}`).join(" ") : "None"}
             />
             <ReviewRow label={t("reviewAssetsLabel")} value={t("reviewAssets", { count: form.media.length })} />
-            {validateCampaignWizardReady(form).success ? (
+            {persistedStatus === "draft" && validateCampaignWizardReady(form).success ? (
               <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
                 Next step: fund your campaign (minimum $1.00). It stays in{" "}
                 <strong>Pending Funding</strong> until escrow is deposited, then activates
@@ -1096,7 +1116,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#E5E7EB] px-4 text-[13px] font-semibold text-[#374151] disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {t("saveDraft")}
+              {persistedStatus === "draft" ? t("saveDraft") : "Save changes"}
             </button>
             {step < STEPS.length - 1 ? (
               <button
@@ -1108,7 +1128,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 {t("continue")}
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
-            ) : (
+            ) : persistedStatus === "draft" ? (
               <button
                 type="button"
                 onClick={() => void continueToFunding()}
@@ -1118,7 +1138,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                 {t("continueToFunding")}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
