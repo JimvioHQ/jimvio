@@ -8,7 +8,7 @@ import {
   trimChatHistory,
   type ChatMessage,
 } from "@/lib/ai/chat-shared";
-import { EARNING_GUIDE_SYSTEM_RULES, buildEarningGuideReply } from "@/lib/ai/earning-guide";
+import { EARNING_GUIDE_SYSTEM_RULES } from "@/lib/ai/earning-guide";
 import {
   GEMINI_API_KEY_ENV,
   GEMINI_MODEL_ENV,
@@ -20,8 +20,8 @@ import {
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
-import { GUIDE_PREFIX } from "@/lib/ai/chat-turn";
-import { buildGroundedPrompt, retrieveJimvioKnowledge } from "@/lib/ai/knowledge";
+import { buildGuideResponse } from "@/lib/ai/guide-reply";
+import { buildGroundedPrompt } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseMode } from "@/lib/ai/sse";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
@@ -75,18 +75,6 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
       },
     );
   });
-}
-
-function buildGuideResponse(messages: ChatMessage[]): string {
-  const last = messages[messages.length - 1]?.content ?? "";
-  const history = messages.slice(0, -1).map((item) => item.content);
-  const earned = buildEarningGuideReply(last, history);
-  const knowledge = retrieveJimvioKnowledge(last);
-  const specificEarningPath = !earned.includes("Welcome to Jimvio AI");
-  const body = specificEarningPath
-    ? earned
-    : `${knowledge}\n\nI can't see this account, its orders, payments, or verification from chat.`;
-  return `${GUIDE_PREFIX}\n\n${body}`;
 }
 
 function streamText(text: string, mode: "live" | "guide" = "guide") {

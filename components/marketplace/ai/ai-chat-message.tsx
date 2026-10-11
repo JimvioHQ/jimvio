@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import { fallbackNotice } from "@/lib/ai/chat-turn";
+import { presentAssistantContent } from "@/lib/ai/guide-copy";
 import type { ParsedCampaign, ParsedCommunity, ParsedLink, ParsedProduct } from "@/lib/ai/chat-shared";
 import { stabilizeStreamingMarkdown } from "@/lib/ai/markdown-stream";
 import { AiMessageMarkdown } from "./ai-message-markdown";
@@ -76,10 +77,11 @@ export function AiChatMessage({
   onFeedback,
 }: AiChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const visibleContent = msg.role === "ai" ? presentAssistantContent(msg.content) : msg.content;
 
   const handleCopy = async () => {
-    if (!msg.content.trim()) return;
-    await navigator.clipboard.writeText(msg.content);
+    if (!visibleContent.trim()) return;
+    await navigator.clipboard.writeText(visibleContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -106,9 +108,9 @@ export function AiChatMessage({
           msg.role === "user" ? "items-end text-right" : "items-start text-left"
         )}
       >
-        {msg.thinking && !msg.content.trim() && <ThinkingBubble />}
+        {msg.thinking && !visibleContent.trim() && <ThinkingBubble />}
 
-        {msg.content.trim() && (
+        {visibleContent.trim() && (
           <div
             className={cn(
               "rounded-xl px-4 py-3",
@@ -120,11 +122,11 @@ export function AiChatMessage({
           >
             {msg.role === "ai" ? (
               <AiMessageMarkdown
-                content={msg.streaming ? stabilizeStreamingMarkdown(msg.content) : msg.content}
+                content={msg.streaming ? stabilizeStreamingMarkdown(visibleContent) : visibleContent}
                 onNavigate={onNavigate}
               />
             ) : (
-              <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed [overflow-wrap:anywhere]">{msg.content}</p>
+              <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed [overflow-wrap:anywhere]">{visibleContent}</p>
             )}
             {msg.role === "ai" && msg.thinking && (
               <span
@@ -135,7 +137,7 @@ export function AiChatMessage({
           </div>
         )}
 
-        {msg.role === "ai" && !msg.thinking && msg.content.trim() && (
+        {msg.role === "ai" && !msg.thinking && visibleContent.trim() && (
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
@@ -145,9 +147,9 @@ export function AiChatMessage({
               {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
               {copied ? "Copied" : "Copy"}
             </button>
-            {msg.fallback && fallbackNotice(msg.content) ? (
+            {msg.fallback && fallbackNotice(visibleContent) ? (
               <p className="w-full text-[11px] font-medium text-[#9A3412]" role="status">
-                {fallbackNotice(msg.content)}
+                {fallbackNotice(visibleContent)}
               </p>
             ) : null}
             {onRegenerate && (

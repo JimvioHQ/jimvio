@@ -1,4 +1,7 @@
 import { MAX_CHAT_HISTORY } from "@/lib/ai/chat-shared";
+import { GUIDE_PREFIX, presentAssistantContent } from "@/lib/ai/guide-copy";
+
+export { GUIDE_PREFIX };
 
 export type TurnMessage = {
   id: string;
@@ -20,7 +23,6 @@ export type PreparedTurn =
 
 export const MODEL_UNAVAILABLE_REPLY =
   "Jimvio AI couldn't generate a response right now. Please try again.";
-export const GUIDE_PREFIX = "Jimvio guide. This is not a live answer.";
 export const INTERRUPTED_REPLY = "Jimvio AI couldn't finish this response. Please try again.";
 export const EMPTY_REPLY = MODEL_UNAVAILABLE_REPLY;
 export const TIMEOUT_REPLY = MODEL_UNAVAILABLE_REPLY;
@@ -57,7 +59,7 @@ export function completeAssistantTurn<T extends TurnMessage & { fallback?: boole
   result: { content: string; fallback?: boolean },
 ): T[] {
   const trimmed = result.content.trim();
-  const content = trimmed || EMPTY_REPLY;
+  const content = trimmed ? presentAssistantContent(trimmed) : EMPTY_REPLY;
   const fallback = Boolean(result.fallback) || !trimmed;
   return messages.map((message) =>
     message.id === assistantId

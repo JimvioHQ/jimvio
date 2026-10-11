@@ -27,7 +27,9 @@ import {
   redactProviderMessage,
   resolveGeminiModel,
 } from "./gemini-model.ts";
-import { retrieveJimvioKnowledge } from "./knowledge.ts";
+import { presentAssistantContent, UNVERIFIED_GUIDE, PRIVATE_ACCOUNT_GUIDE } from "./guide-copy.ts";
+import { buildGuideResponse } from "./guide-reply.ts";
+import { composePublicGuide, retrieveJimvioKnowledge, verifiedGuideHrefs } from "./knowledge.ts";
 import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
 import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode } from "./sse.ts";
 import { clearRateLimitsForTests, rateLimit } from "../ops/rate-limit.ts";
@@ -352,6 +354,105 @@ describe("jimvio knowledge", () => {
   });
 });
 
+const INTERNAL_LEAK =
+  /Say you cannot verify|Do not invent|Do not quote|Do not claim|Unverified words:|No verified Jimvio article|Related public facts:|I can't see this account, its orders, payments, or verification from chat|Internal note, not a customer answer/i;
+
+function markdownHrefs(text: string): string[] {
+  return [...text.matchAll(/\]\(([^)]+)\)/g)].map((match) => match[1] ?? "");
+}
+
+describe("public guide wording", () => {
+  const allowed = new Set(verifiedGuideHrefs());
+
+  it("hides internal instructions and raw fallback templates", () => {
+    const leaked = buildGuideResponse([
+      { content: "Does Jimvio have a Mars colony shipping perk?" },
+    ]);
+    assert.equal(INTERNAL_LEAK.test(leaked), false);
+    assert.match(leaked, /couldn't verify/);
+    assert.equal(leaked.includes("/mars"), false);
+    assert.deepEqual(markdownHrefs(leaked), []);
+    assert.equal(leaked.split(GUIDE_PREFIX).length - 1, 1);
+    assert.equal(/gemini/i.test(leaked), false);
+    assert.equal(isJimvioGuide(leaked), true);
+
+    const raw = presentAssistantContent(
+      `${GUIDE_PREFIX}\n\n${GUIDE_PREFIX}\n\nNo verified Jimvio article covers this exact question. Say you cannot verify that feature, fee, or policy. Do not invent a page or a number.`,
+    );
+    assert.equal(INTERNAL_LEAK.test(raw), false);
+    assert.match(raw, /couldn't verify/);
+    assert.equal(raw.split(GUIDE_PREFIX).length - 1, 1);
+  });
+
+  it("answers an unverified feature and a private account question in natural words", () => {
+    const feature = composePublicGuide("Does Jimvio have a Mars colony shipping perk?");
+    assert.equal(feature, UNVERIFIED_GUIDE);
+    assert.equal(feature.includes("%"), false);
+    assert.equal(feature.includes("$"), false);
+
+    const account = buildGuideResponse([
+      { content: "Was my identity verification approved?" },
+    ]);
+    assert.match(account, /can't access your private account details/);
+    assert.match(account, /\/identity\/verification/);
+    assert.equal(account.includes(PRIVATE_ACCOUNT_GUIDE) || /can't access your private account details/.test(account), true);
+    assert.equal(/approved your|your verification is/i.test(account), false);
+    assert.equal(INTERNAL_LEAK.test(account), false);
+    for (const href of markdownHrefs(account)) {
+      assert.equal(allowed.has(href), true, href);
+    }
+    assert.equal(account.split(GUIDE_PREFIX).length - 1, 1);
+    assert.equal(isJimvioGuide(account), true);
+  });
+
+  it("uses a verified route for a documented question and keeps live answers unlabeled", () => {
+    const orders = buildGuideResponse([{ content: "Where can I view my orders?" }]);
+    assert.match(orders, /\/orders/);
+    assert.equal(INTERNAL_LEAK.test(orders), false);
+    assert.equal(orders.includes("couldn't verify"), false);
+    for (const href of markdownHrefs(orders)) assert.equal(allowed.has(href), true, href);
+    assert.equal(orders.split(GUIDE_PREFIX).length - 1, 1);
+
+    const live = "Sellers manage listings at /seller/products.";
+    assert.equal(isJimvioGuide(live), false);
+    assert.equal(presentAssistantContent(live), live);
+    assert.equal(assistantActionLabel(false), "Regenerate");
+    assert.equal(assistantActionLabel(true), "Retry");
+  });
+
+  it("stores a scrubbed guide without dropping a previous answer on failure", () => {
+    const started = prepareChatTurn({ messages: [], text: "Where can I view my orders?", busy: false, now: 5 });
+    assert.equal(started.accepted, true);
+    if (!started.accepted) return;
+    const done = completeAssistantTurn(started.messages, started.assistantId, {
+      content: `${GUIDE_PREFIX}\n\nNo verified Jimvio article covers this exact question. Unverified words: mars. Say you cannot verify that feature, fee, or policy. Do not invent a page or a number.\n\nI can't see this account, its orders, payments, or verification from chat.`,
+      fallback: true,
+    });
+    const content = done[1]?.content ?? "";
+    assert.equal(INTERNAL_LEAK.test(content), false);
+    assert.match(content, /couldn't verify/);
+    assert.equal(done[1]?.fallback, true);
+    assert.equal(assistantActionLabel(done[1]?.fallback), "Retry");
+    assert.equal(isJimvioGuide(content), true);
+
+    const previous = done[1];
+    const retry = prepareChatTurn({
+      messages: done,
+      text: "",
+      busy: false,
+      now: 6,
+      regenerateFromId: started.assistantId,
+    });
+    assert.equal(retry.accepted, true);
+    if (!retry.accepted) return;
+    assert.equal(retry.requestText, "Where can I view my orders?");
+    assert.equal(retry.messages.filter((message) => message.role === "user").length, 1);
+    const preserved = failAssistantTurn(retry.messages, retry.assistantId, { timedOut: false, previous });
+    assert.equal(preserved.find((message) => message.id === retry.assistantId)?.content, content);
+    assert.equal(preserved.filter((message) => message.role === "user").length, 1);
+  });
+});
+
 describe("gemini configuration", () => {
   it("uses Flash-Lite and remaps retired models", () => {
     assert.equal(resolveGeminiModel(undefined).model, DEFAULT_GEMINI_MODEL);
@@ -421,8 +522,16 @@ describe("copilot route safety", () => {
     assert.match(route, /geminiAttemptOrder/);
     assert.match(route, /v1beta\/models/);
     assert.match(route, /category: "fallback"|\"fallback\"/);
-    assert.match(route, /GUIDE_PREFIX/);
+    assert.match(route, /buildGuideResponse\(messages\), "guide"/);
+    const guideReply = readFileSync(new URL("lib/ai/guide-reply.ts", root), "utf8");
+    assert.match(guideReply, /GUIDE_PREFIX/);
+    assert.match(guideReply, /composePublicGuide/);
     assert.equal(route.includes("The live model did not answer"), false);
+    assert.equal(route.includes("Say you cannot verify"), false);
+    assert.equal(route.includes("I can't see this account"), false);
+    assert.equal(route.includes("X-Jimvio-AI-Model"), true);
+    const guideModelHeader = route.slice(route.indexOf("function streamText"), route.indexOf("function remember"));
+    assert.equal(guideModelHeader.includes("X-Jimvio-AI-Model"), false);
     assert.equal(route.includes("openai"), false);
     assert.equal(route.includes("OPENAI"), false);
     assert.equal(route.includes("service_role"), false);
@@ -436,6 +545,7 @@ describe("copilot route safety", () => {
     assert.match(markdown, /whitespace-pre-wrap/);
     assert.match(bubble, /overflow-wrap:anywhere/);
     assert.match(bubble, /stabilizeStreamingMarkdown/);
+    assert.match(bubble, /presentAssistantContent/);
     assert.match(bubble, /actionsDisabled/);
     assert.match(bubble, /Retry this answer/);
     const experience = readFileSync(new URL("components/ai/JimvioAiExperience.tsx", root), "utf8");
