@@ -231,6 +231,13 @@ export function CampaignCenterBoard({
 
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Link
+                      href={`/ugc/${c.id}`}
+                      className="inline-flex h-9 items-center gap-1 rounded-full border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#374151] hover:bg-[#F9FAFB]"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Preview
+                    </Link>
+                    <Link
                       href={`/ugc/campaign-center/${c.id}/edit`}
                       className="inline-flex h-9 items-center gap-1 rounded-full border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#374151] hover:bg-[#F9FAFB]"
                     >

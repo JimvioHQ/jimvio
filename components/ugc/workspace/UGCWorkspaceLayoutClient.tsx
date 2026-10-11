@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, type ReactNode } from "react";
+import { UGCCopilotEntry } from "./UGCCopilotEntry";
 import { UGCWorkspaceShell } from "./UGCWorkspaceShell";
 import { UgcBrandWorkspaceProvider } from "./UgcBrandWorkspaceProvider";
 
@@ -32,6 +33,7 @@ export function UGCWorkspaceLayoutClient({ children, user }: UGCWorkspaceLayoutC
       >
         <BrandProviderGate>
           <div className="min-w-0 max-w-full overflow-x-clip px-3.5 py-3 sm:px-5 lg:px-6 lg:py-4">
+            <UGCCopilotEntry />
             {children}
           </div>
         </BrandProviderGate>

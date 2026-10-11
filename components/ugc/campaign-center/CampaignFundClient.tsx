@@ -506,7 +506,7 @@ export function CampaignFundClient() {
 
               {readiness && !readiness.success ? (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-900">
-                  <p className="font-semibold">Complete your campaign setup first</p>
+                  <p className="font-semibold">{t("campaignNotReadyToFund")}</p>
                   <ul className="mt-1 list-inside list-disc">
                     {incompleteSteps.map((s) => (
                       <li key={s.id}>{s.label}</li>

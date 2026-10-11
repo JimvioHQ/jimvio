@@ -158,6 +158,8 @@ export async function POST(req: NextRequest) {
     readyForFunding?: boolean;
     brand_id?: string;
     join_config?: Record<string, unknown>;
+    join_mode?: string;
+    max_participants?: number | null;
     content_deadline?: string | null;
     live_at?: string | null;
     submission_deadline?: string | null;
@@ -218,7 +220,7 @@ export async function POST(req: NextRequest) {
     // Custom Types logic
     music_track_url, music_artist_name, promotion_target, promotion_target_url,
     // Payment Models
-    payment_model, fixed_rate, join_config
+    payment_model, fixed_rate, join_config, join_mode, max_participants
   } = body;
 
   if (!title?.trim())          return NextResponse.json({ error: 'title is required' }, { status: 400 });
@@ -272,6 +274,15 @@ export async function POST(req: NextRequest) {
       review_ends_at: review_ends_at ?? null,
       payment_at: payment_at ?? null,
       join_config: join_config && typeof join_config === "object" ? join_config : {},
+      join_mode:
+        typeof join_mode === "string" &&
+        (["instant", "application", "invite_only", "hybrid"] as string[]).includes(join_mode)
+          ? join_mode
+          : "instant",
+      max_participants:
+        Number.isFinite(Number(max_participants)) && Number(max_participants) > 0
+          ? Math.floor(Number(max_participants))
+          : null,
       
       // Custom Types Logics
       music_track_url: campaign_type === 'music_clipping' ? music_track_url : null,

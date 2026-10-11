@@ -7,6 +7,11 @@ import {
   campaignWizardErrorPayload,
 } from '@/lib/ugc/campaign-wizard-validation';
 import {
+  lockedMoneyFieldChange,
+  mayResumeWithoutEscrow,
+  stripDraftDemotion,
+} from '@/lib/ugc/campaign-edit-guard';
+import {
   canReadCampaign,
   requireCampaignMember,
   requireCampaignPermission,
@@ -100,10 +105,32 @@ export async function PATCH(
   );
 
   const currentStatus = typeof campaign?.status === 'string' ? campaign.status : 'draft';
+  const safeUpdates = stripDraftDemotion(currentStatus, updates);
+
+  if (updates.join_config && typeof updates.join_config === 'object' && !Array.isArray(updates.join_config)) {
+    const existing = campaign?.join_config;
+    safeUpdates.join_config =
+      existing && typeof existing === 'object' && !Array.isArray(existing)
+        ? { ...(existing as Record<string, unknown>), ...(updates.join_config as Record<string, unknown>) }
+        : updates.join_config;
+  }
+
+  const locked = lockedMoneyFieldChange(
+    currentStatus,
+    (campaign ?? {}) as Record<string, unknown>,
+    safeUpdates,
+  );
+  if (locked) {
+    return NextResponse.json(
+      { error: `${locked.replaceAll('_', ' ')} cannot be changed after the campaign is live.` },
+      { status: 409 },
+    );
+  }
+
   if (
     campaignNeedsCompletenessGate({
       currentStatus,
-      nextStatus: updates.status,
+      nextStatus: safeUpdates.status,
       readyForFunding: body.readyForFunding,
     })
   ) {
@@ -111,32 +138,36 @@ export async function PATCH(
       vendors?: unknown;
     };
     void _vendors;
-    const merged = { ...currentRow, ...updates };
+    const merged = { ...currentRow, ...safeUpdates };
     const ready = assertCampaignReadyForFunding(merged);
     if (!ready.success) {
       return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
     }
   }
 
-  // Escrow Gate Logic: You cannot activate a campaign without deposited funds 
-  if (updates.status === 'active') {
+  // Escrow Gate Logic: You cannot activate a campaign without deposited funds
+  if (safeUpdates.status === 'active' && currentStatus !== 'active') {
     const { data: escrow } = await db.from('ugc_campaign_escrow')
       .select('id')
       .eq('campaign_id', id)
       .eq('status', 'held')
       .maybeSingle();
 
-    if (!escrow) {
+    const adminResume = mayResumeWithoutEscrow(
+      currentStatus,
+      campaign?.activated_by_admin === true,
+    );
+    if (!escrow && !adminResume) {
       return NextResponse.json(
         { error: 'You must deposit the required campaign budget in escrow before activating.' },
-        { status: 402 } 
+        { status: 402 }
       );
     }
   }
 
   const { data: updated, error } = await db
     .from('ugc_campaigns')
-    .update(updates)
+    .update(safeUpdates)
     .eq('id', id)
     .select()
     .single();

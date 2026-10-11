@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
       `
       *,
       media:ugc_submission_media(*),
-      campaign:ugc_campaigns!campaign_id (id, title, rate_per_1k_views, status),
+      campaign:ugc_campaigns!campaign_id (
+        id, title, rate_per_1k_views, status, campaign_type, payment_model, fixed_rate, description,
+        vendor:vendors!brand_id (business_name, business_logo, verification_status)
+      ),
       influencer:influencers!influencer_id (id, display_name, profile_image)
     `,
       { count: 'exact' }
@@ -45,14 +48,18 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
+  let countScope: "all" | { influencerId?: string; campaignIds?: string[] } = {};
+
   if (adminRole) {
-    // admin sees all
+    countScope = "all";
   } else if (campaignId) {
     const access = await requireCampaignPermission(user.id, campaignId, 'campaigns.review');
     if (access.ok) {
       query = query.eq('campaign_id', campaignId);
+      countScope = { campaignIds: [campaignId] };
     } else if (influencer) {
       query = query.eq('influencer_id', influencer.id).eq('campaign_id', campaignId);
+      countScope = { influencerId: influencer.id, campaignIds: [campaignId] };
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -62,10 +69,20 @@ export async function GET(req: NextRequest) {
       .select('id')
       .in('brand_id', reviewBrandIds);
     const ids = (myCampaigns ?? []).map((c: { id: string }) => c.id);
-    if (ids.length === 0) return NextResponse.json({ data: [], total: 0, page, limit });
+    if (ids.length === 0) {
+      return NextResponse.json({
+        data: [],
+        total: 0,
+        page,
+        limit,
+        counts: { pending: 0, revision_requested: 0, approved: 0, rejected: 0 },
+      });
+    }
     query = query.in('campaign_id', ids);
+    countScope = { campaignIds: ids };
   } else if (influencer) {
     query = query.eq('influencer_id', influencer.id);
+    countScope = { influencerId: influencer.id };
   } else {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -76,7 +93,9 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ data, total: count ?? 0, page, limit });
+  const counts = await submissionStatusCounts(db, countScope);
+
+  return NextResponse.json({ data, total: count ?? 0, page, limit, counts });
 }
 
 // ─── POST /api/ugc/submissions ───────────────────────────────────────────────
@@ -173,4 +192,24 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ submission }, { status: 201 });
+}
+
+const SUBMISSION_COUNT_STATUSES = ["pending", "revision_requested", "approved", "rejected"] as const;
+
+async function submissionStatusCounts(
+  db: ReturnType<typeof createServiceRoleClient>,
+  scope: "all" | { influencerId?: string; campaignIds?: string[] },
+) {
+  const entries = await Promise.all(
+    SUBMISSION_COUNT_STATUSES.map(async (status) => {
+      let q = db.from("ugc_submissions").select("id", { count: "exact", head: true }).eq("status", status);
+      if (scope !== "all") {
+        if (scope.influencerId) q = q.eq("influencer_id", scope.influencerId);
+        if (scope.campaignIds?.length) q = q.in("campaign_id", scope.campaignIds);
+      }
+      const { count } = await q;
+      return [status, count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as Record<(typeof SUBMISSION_COUNT_STATUSES)[number], number>;
 }

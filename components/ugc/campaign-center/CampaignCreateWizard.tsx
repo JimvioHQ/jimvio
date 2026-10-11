@@ -73,6 +73,7 @@ type FormState = {
   creator_limit: number;
   countries: string;
   languages: string;
+  join_mode: "instant" | "application" | "invite_only" | "hybrid";
 };
 
 const DEFAULT_FORM: FormState = {
@@ -97,11 +98,17 @@ const DEFAULT_FORM: FormState = {
   promotion_target_url: "",
   media: [],
   creator_limit: 50,
+  join_mode: "instant",
   countries: "",
   languages: "",
 };
 
 const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
+
+function briefFromStored(description: string): string {
+  const cut = description.search(/\n\n(?:Countries|Languages|Creator limit):/);
+  return (cut === -1 ? description : description.slice(0, cut)).trim();
+}
 
 type CampaignCreateWizardProps = {
   editId?: string;
@@ -135,7 +142,9 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   const [autoSavedAt, setAutoSavedAt] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState({ hashtag: "", mention: "", keyword: "" });
   const [activeCampaignId, setActiveCampaignId] = useState<string | undefined>(editId);
+  const [persistedStatus, setPersistedStatus] = useState("draft");
   const hydrated = useRef(false);
+  const moneyLocked = persistedStatus === "active" || persistedStatus === "paused" || persistedStatus === "completed";
 
   const set = useCallback(<K extends keyof FormState>(key: K, val: FormState[K]) => {
     setForm((p) => ({ ...p, [key]: val }));
@@ -150,7 +159,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     const next: FormState = {
       ...DEFAULT_FORM,
       title: String(c.title ?? ""),
-      description: String(c.description ?? ""),
+      description: briefFromStored(String(c.description ?? "")),
       campaign_type: loadedType,
       payment_model: c.payment_model === "fixed_per_content" ? "fixed_per_content" : "per_views",
       rate_per_1k_views: coerceFiniteNumber(c.rate_per_1k_views) ?? 0,
@@ -166,6 +175,19 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       required_mentions: Array.isArray(c.required_mentions) ? (c.required_mentions as string[]) : [],
       required_keywords: Array.isArray(c.required_keywords) ? (c.required_keywords as string[]) : [],
       requires_face: Boolean(c.requires_face),
+      join_mode: ["instant", "application", "invite_only", "hybrid"].includes(String(c.join_mode))
+        ? (c.join_mode as FormState["join_mode"])
+        : "instant",
+      creator_limit:
+        Number.isFinite(Number(c.max_participants)) && Number(c.max_participants) > 0
+          ? Math.floor(Number(c.max_participants))
+          : 0,
+      countries: Array.isArray((c.join_config as { countries?: unknown } | null)?.countries)
+        ? ((c.join_config as { countries: string[] }).countries).join(", ")
+        : "",
+      languages: Array.isArray((c.join_config as { languages?: unknown } | null)?.languages)
+        ? ((c.join_config as { languages: string[] }).languages).join(", ")
+        : "",
       music_track_url: String(c.music_track_url ?? ""),
       music_artist_name: String(c.music_artist_name ?? ""),
       promotion_target: String(c.promotion_target ?? ""),
@@ -210,7 +232,13 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           const c = json.campaign;
           if (!c || cancelled) return;
           const next = applyCampaign(c);
-          setActiveCampaignId(String(c.id ?? sourceId));
+          if (editId) {
+            setActiveCampaignId(String(c.id ?? editId));
+            setPersistedStatus(typeof c.status === "string" ? c.status : "draft");
+          } else {
+            setActiveCampaignId(undefined);
+            setPersistedStatus("draft");
+          }
           restoreStep(next);
         } catch {
           toast.error(t("couldNotLoadCampaign"));
@@ -239,7 +267,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return () => {
       cancelled = true;
     };
-  }, [sourceId, applyCampaign, stepParam, ugcFetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- locale helper is stable for this load
+  }, [sourceId, applyCampaign, stepParam, ugcFetch, editId]);
 
   // Autosave to localStorage
   useEffect(() => {
@@ -358,30 +387,39 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           .map((s) => s.trim())
           .filter(Boolean),
       },
+      join_mode: form.join_mode,
+      max_participants: form.creator_limit > 0 ? Math.floor(form.creator_limit) : null,
       brand_id: brandId || undefined,
     };
   }, [form, brandId]);
 
-  const serverDraftPatch = (extra: Record<string, unknown> = {}) => ({
-    title: payload.title,
-    description: payload.description,
-    campaign_type: payload.campaign_type,
-    payment_model: payload.payment_model,
-    rate_per_1k_views: payload.rate_per_1k_views,
-    fixed_rate: payload.fixed_rate,
-    total_budget: payload.total_budget,
-    max_payout_per_sub: payload.max_payout_per_sub,
-    allowed_platforms: payload.allowed_platforms,
-    min_duration: payload.min_duration,
-    max_duration: payload.max_duration,
-    required_hashtags: payload.required_hashtags,
-    required_mentions: payload.required_mentions,
-    required_keywords: payload.required_keywords,
-    requires_face: payload.requires_face,
-    join_config: payload.join_config,
-    status: "draft" as const,
-    ...extra,
-  });
+  const serverDraftPatch = (extra: Record<string, unknown> = {}) => {
+    const patch: Record<string, unknown> = {
+      title: payload.title,
+      description: payload.description,
+      campaign_type: payload.campaign_type,
+      allowed_platforms: payload.allowed_platforms,
+      min_duration: payload.min_duration,
+      max_duration: payload.max_duration,
+      required_hashtags: payload.required_hashtags,
+      required_mentions: payload.required_mentions,
+      required_keywords: payload.required_keywords,
+      requires_face: payload.requires_face,
+      join_config: payload.join_config,
+      join_mode: payload.join_mode,
+      max_participants: payload.max_participants,
+      ...extra,
+    };
+    if (!moneyLocked) {
+      patch.payment_model = payload.payment_model;
+      patch.rate_per_1k_views = payload.rate_per_1k_views;
+      patch.fixed_rate = payload.fixed_rate;
+      patch.total_budget = payload.total_budget;
+      patch.max_payout_per_sub = payload.max_payout_per_sub;
+    }
+    if (persistedStatus === "draft") patch.status = "draft";
+    return patch;
+  };
 
   const persistServerDraft = async (): Promise<boolean> => {
     if (!activeCampaignId) return true;
@@ -567,9 +605,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             Campaign Center
           </p>
           <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
-            {activeCampaignId && !duplicateId && !templateId
-              ? t("createCampaign")
-              : t("createCampaign")}
+            {editId ? "Edit Campaign" : t("createCampaign")}
           </h1>
           <p className="mt-1 text-[13px] text-[#6B7280]">
             Professional multi-step setup with autosave and validation.
@@ -663,7 +699,12 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
+          <fieldset disabled={moneyLocked} className="space-y-4 disabled:opacity-70">
+            {moneyLocked ? (
+              <p className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2 text-[12.5px] text-[#4B5563]">
+                Reward amounts stay locked after the campaign is live so escrow and payouts are not reset.
+              </p>
+            ) : null}
             <Field label={t("wizardRewardModel")}>
               <div className="grid grid-cols-2 gap-2">
                 {(
@@ -747,7 +788,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 }}
               />
             </Field>
-          </div>
+          </fieldset>
         )}
 
         {step === 3 && (
@@ -797,6 +838,18 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             </div>
+            <Field label="How creators join">
+              <select
+                value={form.join_mode}
+                onChange={(e) => set("join_mode", e.target.value as FormState["join_mode"])}
+                className={inputCls}
+              >
+                <option value="instant">Join immediately</option>
+                <option value="application">Application review</option>
+                <option value="hybrid">Auto-accept strong matches</option>
+                <option value="invite_only">Invite only</option>
+              </select>
+            </Field>
             <Field label={t("wizardCreatorLimit")}>
               <input
                 type="number"
@@ -1006,7 +1059,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   : "—"
               }
             />
-            <ReviewRow label={t("wizardCreatorLimit")} value={String(form.creator_limit)} />
+            <ReviewRow label="Join mode" value={form.join_mode.replaceAll("_", " ")} />
+            <ReviewRow label={t("wizardCreatorLimit")} value={form.creator_limit > 0 ? String(form.creator_limit) : "No limit"} />
             <ReviewRow
               label={t("wizardHashtags")}
               value={form.required_hashtags.length ? form.required_hashtags.map((t) => `#${t}`).join(" ") : "None"}

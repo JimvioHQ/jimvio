@@ -144,6 +144,21 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
     return { ok: false as const, status: 400, error: eligibility.blockReason ?? "Not eligible" };
   }
 
+  if (mode === "invite_only" && existingParticipant?.status !== "invited") {
+    await logJoinAudit(db, {
+      campaignId,
+      influencerId,
+      actorUserId: userId,
+      action: "join_attempt",
+      metadata: { success: false, reason: "invite_only" },
+    });
+    return {
+      ok: false as const,
+      status: 403,
+      error: "This campaign is invite-only.",
+    };
+  }
+
   if (existingParticipant) {
     const terminal = ["accepted", "pending", "waitlisted", "invited"];
     if (terminal.includes(existingParticipant.status)) {

@@ -75,7 +75,8 @@ export async function GET(req: NextRequest) {
         vendor:vendors!brand_id (
           business_name,
           business_logo,
-          business_slug
+          business_slug,
+          verification_status
         )
       )
     `,

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 import { assertCampaignReadyForFunding } from "@/lib/ugc/campaign-wizard-validation";
 import { paidAmountCoversEscrow } from "@/lib/ugc/escrow-amount";
+import { escrowMayActivateCampaign } from "@/lib/ugc/campaign-edit-guard";
 
 const MIN_FUNDING_USD = 1;
 
@@ -81,7 +82,9 @@ export async function confirmUgcEscrowPayment(
   if (!escrow) return { handled: false };
 
   const ready = assertCampaignReadyForFunding(campaign);
-  const canActivate = ready.success;
+  const canActivate =
+    ready.success &&
+    (campaign.status === "active" || escrowMayActivateCampaign(campaign.status));
 
   const expected = Number(escrow.amount ?? 0);
   const escrowCurrency = String(escrow.currency ?? "USD").toUpperCase();

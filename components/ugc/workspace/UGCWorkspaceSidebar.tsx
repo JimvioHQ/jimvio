@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Compass,
-  FolderOpen,
+  FileCheck2,
+  FolderKanban,
   LayoutDashboard,
   PlusCircle,
-  Upload,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -25,15 +25,15 @@ type NavItem = {
 /** Canonical creator Work nav — Discover / My Campaigns / Submissions only. */
 const CREATOR_WORK: NavItem[] = [
   { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
-  { id: "campaigns", href: "/ugc/campaigns", label: "My Campaigns", icon: FolderOpen },
-  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
+  { id: "campaigns", href: "/ugc/campaigns", label: "My Campaigns", icon: FolderKanban },
+  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: FileCheck2 },
 ];
 
 const BRAND_WORK: NavItem[] = [
   { id: "overview", href: "/ugc/campaign-center", label: "Overview", icon: LayoutDashboard },
   { id: "discover", href: "/ugc", label: "Discover Campaigns", icon: Compass },
-  { id: "campaigns", href: "/ugc/campaign-center/campaigns", label: "My Campaigns", icon: FolderOpen },
-  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: Upload },
+  { id: "campaigns", href: "/ugc/campaign-center/campaigns", label: "My Campaigns", icon: FolderKanban },
+  { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: FileCheck2 },
 ];
 
 const MANAGE: NavItem[] = [
@@ -85,7 +85,8 @@ function NavLink({
       href={href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors",
+        "flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors",
+        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]",
         active
           ? "bg-[#FFF4EF] font-semibold text-[#FF5A1F]"
           : "font-medium text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
@@ -94,14 +95,6 @@ function NavLink({
       <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.1 : 1.75} aria-hidden />
       <span className="truncate">{item.label}</span>
     </Link>
-  );
-}
-
-function SectionLabel({ children }: { children: string }) {
-  return (
-    <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-      {children}
-    </p>
   );
 }
 
@@ -119,36 +112,16 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
         </p>
       </div>
 
-      <nav className="flex-1 space-y-4 overflow-y-auto px-2 pb-4">
-        <div>
-          <SectionLabel>Work</SectionLabel>
-          <div className="space-y-0.5">
-            {work.map((item) => (
-              <NavLink
-                key={item.id}
-                item={item}
-                active={isActive(pathname, item, brandMode)}
-                href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <SectionLabel>Manage</SectionLabel>
-          <div className="space-y-0.5">
-            {MANAGE.map((item) => (
-              <NavLink
-                key={item.id}
-                item={item}
-                active={isActive(pathname, item, brandMode)}
-                href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </div>
-        </div>
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4" aria-label="UGC and Clipping">
+        {[...work, ...MANAGE].map((item) => (
+          <NavLink
+            key={item.id}
+            item={item}
+            active={isActive(pathname, item, brandMode)}
+            href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
+            onNavigate={onNavigate}
+          />
+        ))}
       </nav>
       {brandMode ? <UgcWorkspaceSwitcher /> : null}
     </div>
