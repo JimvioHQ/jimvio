@@ -1,8 +1,13 @@
 export const GEMINI_API_KEY_ENV = "GOOGLE_GENERATIVE_AI_API_KEY";
 export const GEMINI_MODEL_ENV = "GEMINI_MODEL";
 
-/** Cost-efficient stable Flash-Lite model verified in scripts/models_data.json. */
+/**
+ * Preferred cost-efficient model. Production listModels for this key may not
+ * include it; the chat route then tries GEMINI_FALLBACK_MODEL.
+ */
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite";
+/** Previously configured stable Gemini model. Used when Flash-Lite is unavailable. */
+export const GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
 
 const RETIRED_GEMINI_MODELS = new Set([
   "gemini-1.0-pro",

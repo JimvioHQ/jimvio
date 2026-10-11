@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { prepareChatTurn } from "./chat-turn.ts";
-import { DEFAULT_GEMINI_MODEL, GEMINI_API_KEY_ENV, GEMINI_MODEL_ENV, isUsableApiKey, resolveGeminiModel } from "./gemini-model.ts";
+import { DEFAULT_GEMINI_MODEL, GEMINI_API_KEY_ENV, GEMINI_FALLBACK_MODEL, GEMINI_MODEL_ENV, isUsableApiKey, resolveGeminiModel } from "./gemini-model.ts";
 import { retrieveJimvioKnowledge } from "./knowledge.ts";
 import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
 import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode } from "./sse.ts";
@@ -131,6 +131,7 @@ describe("gemini configuration", () => {
   it("uses Flash-Lite and remaps retired models", () => {
     assert.equal(resolveGeminiModel(undefined).model, DEFAULT_GEMINI_MODEL);
     assert.equal(DEFAULT_GEMINI_MODEL, "gemini-2.5-flash-lite");
+    assert.equal(GEMINI_FALLBACK_MODEL, "gemini-2.5-flash");
     assert.equal(resolveGeminiModel("gemini-2.0-flash").model, DEFAULT_GEMINI_MODEL);
     assert.equal(resolveGeminiModel("gemini-2.0-flash").remapped, true);
     assert.equal(GEMINI_API_KEY_ENV, "GOOGLE_GENERATIVE_AI_API_KEY");
@@ -152,6 +153,7 @@ describe("copilot route safety", () => {
     const geminiAt = route.indexOf("openGeminiResponse(messages");
     assert.ok(guardAt > 0 && geminiAt > guardAt);
     assert.match(route, /rateLimit\(`ai-chat:/);
+    assert.match(route, /GEMINI_FALLBACK_MODEL/);
     assert.equal(route.includes("openai"), false);
     assert.equal(route.includes("OPENAI"), false);
     assert.equal(route.includes("service_role"), false);

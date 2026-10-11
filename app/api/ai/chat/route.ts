@@ -10,8 +10,8 @@ import {
 } from "@/lib/ai/chat-shared";
 import { EARNING_GUIDE_SYSTEM_RULES, buildEarningGuideReply } from "@/lib/ai/earning-guide";
 import {
-  DEFAULT_GEMINI_MODEL,
   GEMINI_API_KEY_ENV,
+  GEMINI_FALLBACK_MODEL,
   isUsableApiKey,
   resolveGeminiModel,
 } from "@/lib/ai/gemini-model";
@@ -279,8 +279,9 @@ export async function POST(req: NextRequest) {
     const live = await openGeminiResponse(messages, gemini.model, cacheKey);
     if (live) return live;
 
-    if (gemini.model !== DEFAULT_GEMINI_MODEL) {
-      const retry = await openGeminiResponse(messages, DEFAULT_GEMINI_MODEL, cacheKey);
+    if (gemini.model !== GEMINI_FALLBACK_MODEL) {
+      logAiFailure("gemini", "retired_model");
+      const retry = await openGeminiResponse(messages, GEMINI_FALLBACK_MODEL, cacheKey);
       if (retry) return retry;
     }
 
