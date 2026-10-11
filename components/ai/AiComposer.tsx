@@ -21,6 +21,8 @@ type AiComposerProps = {
   disabled?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
+  /** When false, a parent shell already offsets the panel for the mobile keyboard. */
+  reserveKeyboardInset?: boolean;
 };
 
 export function AiComposer({
@@ -30,6 +32,7 @@ export function AiComposer({
   disabled = false,
   placeholder = "Ask about products, campaigns, or communities...",
   autoFocus = false,
+  reserveKeyboardInset = true,
 }: AiComposerProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [keyboardInset, setKeyboardInset] = useState(0);
@@ -64,7 +67,7 @@ export function AiComposer({
   return (
     <div
       className="shrink-0 bg-transparent px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] sm:px-4"
-      style={{ marginBottom: keyboardInset ? keyboardInset : undefined }}
+      style={{ marginBottom: reserveKeyboardInset && keyboardInset ? keyboardInset : undefined }}
     >
       <form
         className="mx-auto flex w-full max-w-3xl items-end gap-2"
@@ -88,6 +91,7 @@ export function AiComposer({
               syncComposerHeight(event.currentTarget);
             }}
             onFocus={(event) => {
+              if (!reserveKeyboardInset) return;
               const node = event.currentTarget;
               window.setTimeout(() => {
                 node.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -105,7 +109,7 @@ export function AiComposer({
             enterKeyHint="send"
             autoComplete="off"
             autoCorrect="on"
-            className="jimvio-ai-composer max-h-32 min-h-12 w-full resize-none overflow-x-hidden overflow-y-auto rounded-full border border-[#F0C2AE] bg-white py-3 pl-11 pr-4 text-base leading-6 text-[#111827] outline-none placeholder:text-[#889096] focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/20 focus-visible:outline-none disabled:opacity-60"
+            className="jimvio-ai-composer max-h-32 min-h-12 w-full resize-none overflow-x-hidden overflow-y-auto rounded-full border border-[#F0C2AE] bg-white py-3 pl-11 pr-4 text-base leading-6 text-[#111827] outline-none placeholder:truncate placeholder:text-[#889096] focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/20 focus-visible:outline-none disabled:opacity-60"
           />
         </div>
         <button

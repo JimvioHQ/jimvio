@@ -110,7 +110,7 @@ export function JimvioCopilot() {
       role="dialog"
       aria-modal="false"
       aria-label="Jimvio AI"
-      className="fixed right-3 z-[9999] flex w-[min(420px,calc(100vw-24px))] flex-col overflow-hidden border border-[#F3D2C4] bg-[#FFFCF9] text-[#111827] shadow-2xl sm:right-4"
+      className="fixed right-3 z-[9999] flex w-[min(400px,calc(100vw-16px))] max-w-[calc(100vw-16px)] flex-col overflow-hidden overscroll-contain border border-[#F3D2C4] bg-[#FFFCF9] text-[#111827] shadow-2xl sm:right-4 sm:w-[min(400px,calc(100vw-24px))]"
       style={{
         borderRadius: 20,
         bottom: `max(76px, calc(env(safe-area-inset-bottom, 0px) + 76px + ${keyboardInset}px))`,
@@ -119,13 +119,13 @@ export function JimvioCopilot() {
         animation: reducedMotion ? undefined : "jimvio-copilot-enter 280ms ease-out",
       }}
     >
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F3E6DE] bg-white/80 px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-[#F3E6DE] bg-white/80 px-2.5 py-2 sm:px-3">
+        <div className="flex min-w-0 items-center gap-2">
           <span
-            className="grid size-9 shrink-0 place-items-center rounded-xl text-white"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-white"
             style={{ background: `linear-gradient(135deg, ${JIMVIO_ORANGE}, #ff7a45)` }}
           >
-            <Sparkles className="size-4" />
+            <Sparkles className="size-3.5" />
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-[14px] font-bold text-[#111827]">Jimvio AI</h2>

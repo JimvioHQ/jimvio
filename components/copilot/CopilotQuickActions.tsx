@@ -8,7 +8,6 @@ import {
   Percent,
   Scale,
   Search,
-  ChevronRight,
   Sparkles,
   TrendingUp,
   Users,
@@ -76,7 +75,7 @@ export function CopilotQuickActions({
 
   return (
     <div
-      className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+      className="grid grid-cols-2 gap-1.5"
       role="list"
       aria-label="Quick actions"
     >
@@ -90,24 +89,22 @@ export function CopilotQuickActions({
             disabled={disabled}
             onClick={() => onSelect(action)}
             className={cn(
-              "flex items-center gap-3 rounded-full border border-[#F3D2C4] bg-white px-4 py-3 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
-              "transition-[transform,border-color,background-color] duration-200",
-              "hover:border-[#FF5A1F]/50 hover:bg-[#FFF8F5]",
+              "flex min-h-11 items-center gap-1.5 rounded-xl border border-[#F3D2C4] bg-white px-2 py-1.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
+              "transition-[border-color,background-color] duration-200",
+              "hover:border-[#FF5A1F]/45 hover:bg-[#FFF8F5]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
               "disabled:opacity-50",
             )}
-            style={{ willChange: "transform" }}
           >
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#FF5A1F]/10"
+              className="grid size-6 shrink-0 place-items-center rounded-md bg-[#FF5A1F]/10"
               aria-hidden
             >
-              <Icon className="size-4 text-[#FF5A1F]" />
+              <Icon className="size-3.5 text-[#FF5A1F]" />
             </span>
-            <span className="min-w-0 flex-1 text-[13px] font-semibold text-[#1F2937]">
+            <span className="min-w-0 flex-1 text-[11.5px] font-semibold leading-4 text-[#111827] [overflow-wrap:normal] [word-break:normal] sm:text-[12px]">
               {action.label}
             </span>
-            <ChevronRight className="size-4 shrink-0 text-[#C4C4C4]" aria-hidden />
           </button>
         );
       })}

@@ -15,6 +15,7 @@ import { EARNING_OPTIONS, EARNING_WELCOME } from "@/lib/ai/earning-guide";
 import { loadCopilotDraft, loadCopilotReturnPath, saveCopilotDraft } from "@/lib/ai/copilot/session";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
+import { cn } from "@/lib/utils";
 
 type JimvioAiExperienceProps = {
   variant?: "page" | "dock";
@@ -118,18 +119,40 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
         </div>
       ) : null}
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div
+        ref={scrollRef}
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+          variant === "dock" ? "px-3 py-2.5" : "px-4 py-4",
+        )}
+      >
+        <div className={cn("mx-auto flex w-full max-w-3xl flex-col", variant === "dock" ? "gap-3" : "gap-4")}>
           {messages.length === 0 ? (
-            <div className="px-1 pb-2 pt-2 text-center sm:pt-6">
-              <JimvioAIMascot size={variant === "page" ? "md" : "sm"} showRings className="mx-auto mb-3" />
-              <h1 className="text-[1.65rem] font-black tracking-tight text-[#1A1D23] sm:text-4xl">
+            <div className={cn("text-center", variant === "dock" ? "px-0.5 pb-0.5 pt-1" : "px-1 pb-2 pt-2 sm:pt-6")}>
+              <JimvioAIMascot
+                size={variant === "page" ? "md" : "xs"}
+                showRings={variant === "page"}
+                className={cn("mx-auto", variant === "dock" ? "mb-2" : "mb-3")}
+              />
+              <h1
+                className={cn(
+                  "tracking-tight text-[#111827]",
+                  variant === "dock"
+                    ? "text-[1.05rem] font-bold leading-snug"
+                    : "text-[1.65rem] font-black sm:text-4xl",
+                )}
+              >
                 How can I help you on <span style={{ color: JIMVIO_ORANGE }}>Jimvio</span>?
               </h1>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[#6B7280] sm:text-[15px]">
+              <p
+                className={cn(
+                  "mx-auto max-w-xl text-[#6B7280]",
+                  variant === "dock" ? "mt-1.5 text-[12px] leading-5" : "mt-3 text-sm leading-6 sm:text-[15px]",
+                )}
+              >
                 Ask about selling, affiliates, UGC, dropshipping, communities, or live sessions. Earnings are not guaranteed.
               </p>
-              <div className="mt-6 text-left">
+              <div className={cn("text-left", variant === "dock" ? "mt-3" : "mt-6")}>
                 <CopilotQuickActions
                   actions={quickActions}
                   disabled={isSending}
@@ -153,15 +176,17 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
         </div>
       </div>
 
-      <div className="shrink-0 pb-2">
-        <div className="mx-auto mb-2 w-full max-w-3xl px-4">
-          <CopilotQuickActions
-            actions={messages.length === 0 && variant === "dock" ? [] : chips}
-            disabled={isSending}
-            variant="chips"
-            onSelect={(action) => handleSend(action.prompt, action.id)}
-          />
-        </div>
+      <div className={cn("shrink-0", variant === "dock" ? "pb-1" : "pb-2")}>
+        {messages.length === 0 && variant === "dock" ? null : (
+          <div className="mx-auto mb-2 w-full max-w-3xl px-3 sm:px-4">
+            <CopilotQuickActions
+              actions={chips}
+              disabled={isSending}
+              variant="chips"
+              onSelect={(action) => handleSend(action.prompt, action.id)}
+            />
+          </div>
+        )}
         <AiComposer
           value={query}
           onChange={(next) => {
@@ -176,6 +201,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
               : contextMeta.placeholder
           }
           autoFocus={variant === "dock"}
+          reserveKeyboardInset={variant !== "dock"}
         />
       </div>
     </div>

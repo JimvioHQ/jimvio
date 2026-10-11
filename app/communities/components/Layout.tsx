@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-    Sparkles,
     Menu,
     Users,
 } from "lucide-react";
@@ -12,11 +11,9 @@ import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
 import { CommunitySidebar } from "@/components/shell/CommunitySidebar";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 import { useCartStore } from "@/lib/store/use-cart-store";
-import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath, isHubAuthRequired } from "@/lib/community/hub-auth";
-import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
@@ -78,37 +75,6 @@ function usePageTitle(pathname: string): string {
     return staticTitle;
 }
 
-function useCommunityIdFromPath(pathname: string): string | null {
-    const slug = getCommunitySlugFromPath(pathname);
-    const [communityId, setCommunityId] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (!slug) {
-            setCommunityId(null);
-            return;
-        }
-        if (/\/manage(?:\/|$)/.test(pathname)) {
-            setCommunityId(null);
-            return;
-        }
-        let cancelled = false;
-        (async () => {
-            const supabase = createClient();
-            const { data } = await supabase
-                .from("communities")
-                .select("id")
-                .eq("slug", slug)
-                .maybeSingle();
-            if (!cancelled) setCommunityId(data?.id ?? null);
-        })();
-        return () => {
-            cancelled = true;
-        };
-    }, [slug, pathname]);
-
-    return communityId;
-}
-
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -124,12 +90,10 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
-    const [aiOpen, setAiOpen] = useState(false);
     const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
 
     const pageTitle = usePageTitle(pathname);
     const communitySlug = getCommunitySlugFromPath(pathname);
-    const communityId = useCommunityIdFromPath(pathname);
     const isCommunityWorkspace = Boolean(communitySlug);
     const isLiveStudio =
       pathname.startsWith("/communities/live") ||
@@ -138,7 +102,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const isCommunityManager =
       /\/communities\/[^/]+\/manage(?:\/|$)/.test(pathname);
     const { refreshCounts } = useCartStore();
-    const { openAssistant } = useAIStore();
 
     // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
@@ -330,19 +293,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                           ]
                         : undefined
                 }
-                extraActions={
-                    <button
-                        type="button"
-                        onClick={() => {
-                            if (pathname.startsWith("/communities")) setAiOpen(true);
-                            else openAssistant();
-                        }}
-                        aria-label="AI assistant"
-                        className="hidden h-9 w-9 shrink-0 place-items-center rounded-lg text-[#fd5000] transition-colors hover:bg-[#fd5000]/10 sm:grid"
-                    >
-                        <Sparkles className="h-[18px] w-[18px]" />
-                    </button>
-                }
             />
 
             {/* ── Body row: sidebar + content ── */}
@@ -444,12 +394,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             {!isLiveStudio && !isCommunityWorkspace && (
                 <MobilePrimaryBottomNav isAuthenticated={isAuthenticated} />
             )}
-
-            <CommunityAiPanel
-                open={aiOpen}
-                onClose={() => setAiOpen(false)}
-                communityId={communityId}
-            />
         </div>
     );
 }
