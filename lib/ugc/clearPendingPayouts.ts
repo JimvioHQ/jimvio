@@ -42,6 +42,12 @@ export async function releasePendingPayouts(): Promise<{
 
       if (payoutErr) throw new Error(`Payout ${payout.id} upate err: ${payoutErr.message}`);
 
+      await db
+        .from("ugc_payouts")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("payout_id", payout.id)
+        .eq("status", "pending");
+
       // 3. Move funds in wallets
       const { data: wallet } = await db
         .from('wallets')

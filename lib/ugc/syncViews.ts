@@ -148,6 +148,7 @@ export async function syncAllApprovedSubmissions(): Promise<{
       platform,
       total_views_earned,
       total_earnings,
+      accepted_views,
       is_suspicious,
       ugc_campaigns!inner (
         id,
@@ -212,6 +213,12 @@ export async function syncAllApprovedSubmissions(): Promise<{
 
       // EXCLUSIVE LOGIC: Skip campaigns that are strictly "fixed_per_content" because they are paid on approval!
       if (campaign.payment_model === 'fixed_per_content') {
+        skipped++;
+        continue;
+      }
+
+      // Owner-reviewed CPM is settled once on approval. Do not pay it again from platform sync.
+      if ((sub as { accepted_views?: number | null }).accepted_views != null) {
         skipped++;
         continue;
       }

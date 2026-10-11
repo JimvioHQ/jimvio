@@ -11761,8 +11761,10 @@ export type Database = {
       ugc_submissions: {
         Row: {
           ai_review: Json | null
+          accepted_views: number | null
           campaign_id: string
           caption: string | null
+          claimed_views: number | null
           created_at: string | null
           fraud_score: number | null
           id: string
@@ -11781,11 +11783,15 @@ export type Database = {
           total_earnings: number | null
           total_views_earned: number | null
           updated_at: string | null
+          views_reviewed_at: string | null
+          views_reviewed_by: string | null
         }
         Insert: {
+          accepted_views?: number | null
           ai_review?: Json | null
           campaign_id: string
           caption?: string | null
+          claimed_views?: number | null
           created_at?: string | null
           fraud_score?: number | null
           id?: string
@@ -11804,11 +11810,15 @@ export type Database = {
           total_earnings?: number | null
           total_views_earned?: number | null
           updated_at?: string | null
+          views_reviewed_at?: string | null
+          views_reviewed_by?: string | null
         }
         Update: {
+          accepted_views?: number | null
           ai_review?: Json | null
           campaign_id?: string
           caption?: string | null
+          claimed_views?: number | null
           created_at?: string | null
           fraud_score?: number | null
           id?: string
@@ -11827,6 +11837,8 @@ export type Database = {
           total_earnings?: number | null
           total_views_earned?: number | null
           updated_at?: string | null
+          views_reviewed_at?: string | null
+          views_reviewed_by?: string | null
         }
         Relationships: [
           {

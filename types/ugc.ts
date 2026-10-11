@@ -137,6 +137,8 @@ export interface UGCSubmission {
   reviewed_at: string | null;
   total_views_earned: number;
   total_earnings: number;
+  claimed_views?: number | null;
+  accepted_views?: number | null;
   
   // Fraud & Tracking
   is_suspicious: boolean;

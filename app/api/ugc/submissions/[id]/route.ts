@@ -109,6 +109,17 @@ export async function PATCH(
   }
 
   if (status === 'approved') {
+    const { data: payCampaign } = await db
+      .from('ugc_campaigns')
+      .select('payment_model')
+      .eq('id', sub.campaign_id)
+      .maybeSingle();
+    if (payCampaign?.payment_model === 'per_views') {
+      return NextResponse.json(
+        { error: 'Per-view campaigns must be approved with accepted views.' },
+        { status: 400 },
+      );
+    }
     const { data: updated, error } = await db
       .from('ugc_submissions')
       .update({

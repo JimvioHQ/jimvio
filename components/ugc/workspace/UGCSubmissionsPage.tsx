@@ -327,6 +327,19 @@ function SubmissionDrawer({
                     ? "Payout pending"
                     : "No payout yet"}
             </p>
+            <p>Claimed views: {detail.claimed_views == null ? "Not available" : detail.claimed_views.toLocaleString()}</p>
+            <p>
+              Platform views: {detail.last_synced_at ? (detail.total_views_earned ?? 0).toLocaleString() : "Not verified"}
+            </p>
+            <p>
+              Accepted views: {detail.accepted_views == null ? "Not reviewed" : detail.accepted_views.toLocaleString()}
+            </p>
+            <p>
+              Eligible reward:{" "}
+              {detail.status === "approved"
+                ? formatMoney(Number(detail.total_earnings ?? 0), "USD")
+                : "Not approved yet"}
+            </p>
             {detail.status === "approved" && payout?.status !== "paid" ? (
               <p>Approved does not mean paid. Payout follows the campaign reward rules.</p>
             ) : null}

@@ -1643,21 +1643,13 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
   }
 }
 
-/* Discover masthead: white dominant, Jimvio orange only as a light tint. */
-.ugc-discover-masthead {
-  background: linear-gradient(
-    165deg,
-    #ffffff 0%,
-    #ffffff 62%,
-    rgba(255, 90, 31, 0.055) 100%
-  );
+/* Left heading only. Search and filters stay on the page surface. */
+.ugc-discover-heading {
+  background: linear-gradient(100deg, rgba(255, 90, 31, 0.08) 0%, rgba(255, 90, 31, 0.035) 46%, #ffffff 100%);
+  border-radius: 16px;
+  padding: 12px 16px;
 }
 
-.dark .ugc-discover-masthead {
-  background: linear-gradient(
-    165deg,
-    #111827 0%,
-    #111827 68%,
-    rgba(255, 90, 31, 0.14) 100%
-  );
+.dark .ugc-discover-heading {
+  background: linear-gradient(100deg, rgba(255, 90, 31, 0.16) 0%, rgba(255, 90, 31, 0.05) 48%, #111827 100%);
 }

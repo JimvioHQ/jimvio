@@ -7,6 +7,7 @@ import { listAccessibleBrandIds, requireCampaignPermission } from '@/lib/ugc/ent
 import { filterBrandIdsByPermission } from '@/lib/ugc/enterprise/permissions';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import { creatorProfileRequiredPayload, requireInfluencer } from '@/lib/ugc/platform/auth';
+import { parseClaimedViews } from '@/lib/ugc/submission-reward';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -110,8 +111,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
   }
 
-  const body: CreateSubmissionPayload = await req.json();
+  const body: CreateSubmissionPayload & { claimed_views?: unknown } = await req.json();
   const { campaign_id, post_url, platform, caption } = body;
+  const claimed = parseClaimedViews(body.claimed_views);
+  if (!claimed.ok) return NextResponse.json({ error: claimed.error }, { status: 400 });
 
   if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
   if (!post_url?.trim()) return NextResponse.json({ error: 'post_url required' }, { status: 400 });
@@ -167,6 +170,7 @@ export async function POST(req: NextRequest) {
       platform,
       caption,
       status: 'pending',
+      claimed_views: claimed.views,
     })
     .select()
     .single();

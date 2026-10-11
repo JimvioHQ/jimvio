@@ -59,6 +59,7 @@ export default function PublicUGCSubmitPage() {
   const [platform, setPlatform] = useState<string>('');
   const [postUrl, setPostUrl] = useState('');
   const [caption, setCaption] = useState('');
+  const [claimedViews, setClaimedViews] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +138,7 @@ export default function PublicUGCSubmitPage() {
           post_url: postUrl.trim(),
           platform,
           caption,
+          claimed_views: claimedViews.trim() === '' ? undefined : Number(claimedViews),
         }),
       });
 
@@ -383,6 +385,17 @@ export default function PublicUGCSubmitPage() {
               </div>
             </div>
           ) : null}
+
+          <label className="block">
+            <span className="text-[12px] font-semibold text-[#374151]">Claimed views (optional)</span>
+            <input
+              inputMode="numeric"
+              value={claimedViews}
+              onChange={(e) => setClaimedViews(e.target.value)}
+              placeholder="Not used as payment until the brand accepts them"
+              className="mt-1 h-11 w-full rounded-xl border border-[#E5E7EB] px-3 text-[13px] outline-none focus:border-[#FF5A1F]"
+            />
+          </label>
 
           <div className="border-t border-[#F3F4F6] pt-4">
             <Button

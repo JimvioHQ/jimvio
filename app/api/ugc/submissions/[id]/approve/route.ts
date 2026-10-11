@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
+import { creditOwnerReviewedCpm } from '@/lib/ugc/credit-owner-cpm';
+import { centsToUsd, parseAcceptedViews, quoteSubmissionReward } from '@/lib/ugc/submission-reward';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
 
@@ -9,7 +11,7 @@ const REVIEWABLE = ['pending', 'revision_requested'];
 
 // PATCH /api/ugc/submissions/[id]/approve
 export async function PATCH(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -40,6 +42,43 @@ export async function PATCH(
   const access = await requireCampaignPermission(user.id, submission.campaign_id, 'campaigns.review');
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
+  const body = await req.json().catch(() => ({}));
+  const preview = Boolean((body as { preview?: boolean }).preview);
+  const { data: campaign } = await db
+    .from('ugc_campaigns')
+    .select('payment_model, rate_per_1k_views, fixed_rate, max_payout_per_sub, spent_budget, total_budget, status')
+    .eq('id', submission.campaign_id)
+    .maybeSingle();
+  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (campaign.status !== 'active' && campaign.status !== 'paused') {
+    return NextResponse.json({ error: 'This campaign is not open for review payouts.' }, { status: 409 });
+  }
+
+  const acceptedRaw = (body as { acceptedViews?: unknown }).acceptedViews;
+  const accepted = campaign.payment_model === 'per_views' ? parseAcceptedViews(acceptedRaw) : null;
+  if (campaign.payment_model === 'per_views' && accepted && !accepted.ok) {
+    return NextResponse.json({ error: accepted.error }, { status: 400 });
+  }
+  const quote = quoteSubmissionReward({
+    paymentModel: campaign.payment_model,
+    ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
+    fixedRate: Number(campaign.fixed_rate ?? 0),
+    maxPayoutPerSub: campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub),
+    acceptedViews: accepted && accepted.ok ? accepted.views : null,
+    remainingBudget: Math.max(0, Number(campaign.total_budget ?? 0) - Number(campaign.spent_budget ?? 0)),
+  });
+  if (!quote.ok) return NextResponse.json({ error: quote.error }, { status: 400 });
+  if (preview) {
+    return NextResponse.json({
+      preview: true,
+      paymentModel: quote.paymentModel,
+      gross: centsToUsd(quote.grossCents),
+      payable: centsToUsd(quote.payableCents),
+      cappedBy: quote.cappedBy,
+      viewsSource: quote.paymentModel === 'per_views' ? 'owner_reviewed' : null,
+    });
+  }
+
   const { data: updated, error } = await db
     .from('ugc_submissions')
     .update({
@@ -57,11 +96,19 @@ export async function PATCH(
     return NextResponse.json({ error: 'Already approved' }, { status: 409 });
   }
 
-  const credit = await creditFixedPayoutIfNeeded(db, {
-    submissionId: id,
-    campaignId: submission.campaign_id,
-    influencerId: submission.influencer_id,
-  });
+  const credit = campaign.payment_model === 'per_views'
+    ? await creditOwnerReviewedCpm(db, {
+        submissionId: id,
+        campaignId: submission.campaign_id,
+        influencerId: submission.influencer_id,
+        reviewerId: user.id,
+        acceptedViews: accepted && accepted.ok ? accepted.views : null,
+      })
+    : await creditFixedPayoutIfNeeded(db, {
+        submissionId: id,
+        campaignId: submission.campaign_id,
+        influencerId: submission.influencer_id,
+      });
 
   if (!credit.ok) {
     await db

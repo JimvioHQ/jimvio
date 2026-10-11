@@ -167,8 +167,7 @@ export async function creditFixedPayoutIfNeeded(
       influencer_id: opts.influencerId,
       submission_id: opts.submissionId,
       amount: payout,
-      status: "paid",
-      paid_at: new Date().toISOString(),
+      status: "pending",
       is_fixed_one_shot: true,
     } as Record<string, unknown>)
     .select("id")
@@ -221,9 +220,15 @@ export async function creditFixedPayoutIfNeeded(
     .select("id")
     .maybeSingle();
 
-  if (payoutRow?.id) {
-    await db.from("ugc_payouts").update({ payout_id: payoutRow.id }).eq("submission_id", opts.submissionId);
-  }
+  await db
+    .from("ugc_payouts")
+    .update({
+      status: "paid",
+      paid_at: new Date().toISOString(),
+      ...(payoutRow?.id ? { payout_id: payoutRow.id } : {}),
+    })
+    .eq("id", ugcPay.id)
+    .eq("status", "pending");
 
   await db.from("notifications").insert({
     user_id: infData.user_id,

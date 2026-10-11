@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Pill } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
+import { SubmissionReviewDrawer } from "@/components/ugc/workspace/SubmissionReviewDrawer";
 import { useLocale } from "@/context/LocaleContext";
 
 type SubmissionRow = {
@@ -69,6 +70,7 @@ export default function CampaignSubmissionsPage() {
   });
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
 
   const [modalMode, setModalMode] = useState<ModalMode>("reject");
   const [modalOpen, setModalOpen] = useState(false);
@@ -158,24 +160,6 @@ export default function CampaignSubmissionsPage() {
     if (!q) return submissions;
     return submissions.filter((s) => (s.influencer?.display_name ?? "").toLowerCase().includes(q));
   }, [search, submissions]);
-
-  const approve = useCallback(
-    async (submissionId: string) => {
-      setBusy(submissionId);
-      try {
-        const res = await fetch(`/api/ugc/submissions/${submissionId}/approve`, { method: "PATCH" });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json.error ?? "Approval failed");
-        toast.success(t("submissionApproved"));
-        await load();
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Approval failed");
-      } finally {
-        setBusy(null);
-      }
-    },
-    [load],
-  );
 
   const openModal = useCallback((mode: ModalMode, submissionId: string) => {
     setModalMode(mode);
@@ -459,7 +443,7 @@ export default function CampaignSubmissionsPage() {
                             size="sm"
                             className="rounded-xl bg-emerald-600 hover:bg-emerald-700"
                             disabled={isBusy}
-                            onClick={() => void approve(s.id)}
+                            onClick={() => setReviewId(s.id)}
                           >
                             <Check className="mr-2 h-4 w-4" />
                             {t("approveAction")}
@@ -545,6 +529,13 @@ export default function CampaignSubmissionsPage() {
               </div>
             </div>
           </div>
+        ) : null}
+        {reviewId ? (
+          <SubmissionReviewDrawer
+            id={reviewId}
+            onClose={() => setReviewId(null)}
+            onDone={() => void load()}
+          />
         ) : null}
       </div>
     </UGCPageShell>
