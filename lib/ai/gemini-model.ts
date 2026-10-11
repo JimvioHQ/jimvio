@@ -97,7 +97,7 @@ export function classifyProviderError(error: unknown): Exclude<GeminiFailureCate
   const name = error instanceof Error ? error.name : "";
   const message = redactProviderMessage(error);
   if (name === "TimeoutError" || name === "AbortError" || /timeout|timed out|aborted/i.test(message)) return "timeout";
-  if (/429|rate limit|resource exhausted|quota|insufficient_quota/i.test(message)) return "rate_limit";
+  if (/429|503|rate limit|resource exhausted|quota|insufficient_quota|high demand/i.test(message)) return "rate_limit";
   if (/api_key_invalid|api key expired|invalid api key|unauthenticated|permission denied|401|403/i.test(message)) {
     return "authentication";
   }

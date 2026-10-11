@@ -15,25 +15,25 @@ const ARTICLES: Article[] = [
     id: "marketplace",
     title: "Marketplace",
     keywords: ["marketplace", "buy", "shop", "product", "listing", "sell", "physical", "digital"],
-    body: "People discover and buy listings on /marketplace. Sellers add and manage products at /seller/products. A listing needs the title, price, and details the seller provides. Physical products can include variants where the product form has them. Digital listings such as downloads or courses do not ship as a package. Creating an account is free. Jimvio AI cannot publish a listing from chat.",
+    body: "People discover and buy listings on /marketplace. Sellers create and manage products at /seller/products. A listing needs the title, price, and details the seller provides. Physical products can include variants where the product form has them. Digital listings such as downloads or courses do not ship as a package. Creating an account is free. Jimvio AI cannot publish a listing or see a private catalog from chat.",
   },
   {
     id: "orders",
     title: "Orders, shipping, and fulfillment",
-    keywords: ["order", "shipping", "fulfillment", "delivery", "tracking", "inventory"],
-    body: "Store orders are reviewed in Commerce at /commerce/orders. Fulfillment status is managed at /commerce/fulfillment, and shipping zones at /commerce/shipping. Buyers review an order from the store account orders page after checkout. Tracking and delivery state are whatever that order already shows. Do not invent a tracking number or claim an order changed.",
+    keywords: ["order", "orders", "shipping", "fulfillment", "delivery", "tracking", "inventory", "delayed", "delay"],
+    body: "Marketplace buyers review their own orders at /orders. The page shows the status already stored on the order, such as pending, confirmed, processing, shipped, delivered, completed, cancelled, or refunded, and the payment state already stored, such as awaiting payment, processing, paid, failed, refunded, or cancelled. If an order is delayed, open that order and use only the status and tracking it already shows. Store operators review store orders at /commerce/orders, fulfillment at /commerce/fulfillment, and shipping zones at /commerce/shipping. Do not invent a tracking number, a delivery date, or claim the order changed.",
   },
   {
     id: "affiliate",
     title: "Affiliates",
-    keywords: ["affiliate", "referral", "commission", "promote", "tracked"],
-    body: "Affiliate marketing uses a tracked link from the affiliate area at /affiliates. Commission is set on the program or product, not as one platform-wide percentage. Recorded earnings are reviewed in the affiliate tools and the wallet. Do not quote a percentage or payout date.",
+    keywords: ["affiliate", "referral", "commission", "commissions", "promote", "tracked", "payout"],
+    body: "The affiliate area is at /affiliates. Tracked referral links are at /affiliates/links. Payout records are at /affiliates/payouts. Commission amounts, and whether a commission can be paid, are whatever that program or those screens already show. Do not quote a percentage, a payout date, or say a commission is eligible unless that screen already says so.",
   },
   {
     id: "ugc",
     title: "UGC and clipping",
-    keywords: ["ugc", "clip", "clipping", "campaign", "creator", "brief"],
-    body: "UGC and clipping campaigns are briefs at /ugc. A creator reads a brief, joins it, and submits the content it asks for. Brands create briefs from the campaign center. Pay depends on that brief. Browsing does not require inventing a store.",
+    keywords: ["ugc", "clip", "clipping", "campaign", "creator", "brief", "submit", "submission", "approval", "reward"],
+    body: "Discover UGC campaigns at /ugc and clipping at /ugc/clipping. Open a campaign to join it, then submit from that campaign's submit page using a link the brief accepts. Submitted work is listed at /ugc/submissions. Approval, requirements, and rewards are only what that campaign brief already says. Do not invent a campaign, a reward amount, or an approval.",
   },
   {
     id: "community",
@@ -45,13 +45,13 @@ const ARTICLES: Article[] = [
     id: "wallet",
     title: "Wallet and payments",
     keywords: ["wallet", "payout", "withdraw", "payment", "transaction", "balance", "flutterwave", "binance"],
-    body: "The wallet is at /wallet, with transactions at /wallet/transactions, withdrawals at /wallet/withdrawals, and payout methods at /wallet/payout-methods. Checkout methods that exist are Flutterwave card checkout, mobile money, Binance Pay, and NOWPayments. Wallet withdrawal choices that can be selected are bank transfer, mobile money, cryptocurrency, and Binance ID. Do not claim a payment, payout, or refund succeeded from chat.",
+    body: "The wallet is at /wallet, with transactions at /wallet/transactions, withdrawals at /wallet/withdrawals, and payout methods at /wallet/payout-methods. Checkout methods that exist in the product are Flutterwave card checkout, mobile money, Binance Pay, and NOWPayments. Availability still depends on the checkout already shown for that order and country. Wallet withdrawal choices that can be selected are bank transfer, mobile money, cryptocurrency, and Binance ID. A pending or failed payment is the status already shown on the order or transaction. Do not claim a payment, payout, or refund succeeded, and do not say which method a specific account can use.",
   },
   {
     id: "account",
     title: "Account, profile, and verification",
-    keywords: ["account", "profile", "settings", "password", "security", "verification", "identity", "sign"],
-    body: "New accounts start at /register and sign-in at /login. Profile and identity settings are at /identity/settings. Identity verification is at /identity/verification. Notification settings are at /settings/notifications. Jimvio AI cannot see another person's account and cannot confirm verification or a password reset unless that page says so.",
+    keywords: ["account", "profile", "settings", "password", "security", "verification", "identity", "sign", "rejected", "pending"],
+    body: "New accounts start at /register and sign-in at /login. Profile details are edited at /identity/edit. Account settings are at /identity/settings. Identity verification is at /identity/verification. A verification request can be pending, approved, or rejected. Pending means it is not approved yet. Rejected means it was not approved. Notification settings are at /settings/notifications. Jimvio AI cannot see another person's account and cannot confirm verification, a password change, or a review result from chat.",
   },
   {
     id: "copilot",
@@ -61,7 +61,12 @@ const ARTICLES: Article[] = [
   },
 ];
 
-const STOP_WORDS = new Set(["how", "what", "when", "where", "does", "have", "with", "that", "this", "from", "your", "about", "want"]);
+const STOP_WORDS = new Set([
+  "how", "what", "when", "where", "does", "have", "with", "that", "this", "from", "your", "about", "want",
+  "view", "check", "find", "open", "start", "join", "create", "manage", "update", "complete", "mean",
+  "should", "could", "would", "please", "help", "page", "using", "used", "make", "take", "show", "tell",
+  "need", "they", "them", "into", "which", "actually", "supported", "system", "information",
+]);
 
 function score(article: Article, query: string): number {
   const haystack = query.toLowerCase();

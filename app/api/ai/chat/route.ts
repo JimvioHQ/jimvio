@@ -20,7 +20,7 @@ import {
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
-import { buildGroundedPrompt } from "@/lib/ai/knowledge";
+import { buildGroundedPrompt, retrieveJimvioKnowledge } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseMode } from "@/lib/ai/sse";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
@@ -79,7 +79,13 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 function buildGuideResponse(messages: ChatMessage[]): string {
   const last = messages[messages.length - 1]?.content ?? "";
   const history = messages.slice(0, -1).map((item) => item.content);
-  return `This is a Jimvio earning guide. The live model did not answer this turn.\n\n${buildEarningGuideReply(last, history)}`;
+  const earned = buildEarningGuideReply(last, history);
+  const knowledge = retrieveJimvioKnowledge(last);
+  const specificEarningPath = !earned.includes("Welcome to Jimvio AI");
+  const body = specificEarningPath
+    ? earned
+    : `${knowledge}\n\nI can't see this account, its orders, payments, or verification from chat.`;
+  return `This is a Jimvio earning guide. The live model did not answer this turn.\n\n${body}`;
 }
 
 function streamText(text: string, mode: "live" | "guide" = "guide") {

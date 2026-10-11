@@ -132,6 +132,24 @@ describe("jimvio knowledge", () => {
     assert.equal(market.includes("%"), false);
   });
 
+  it("answers the product question matrix from real routes", () => {
+    const orders = retrieveJimvioKnowledge("Where can I view my orders?");
+    assert.match(orders, /\/orders/);
+    assert.match(orders, /\/commerce\/orders/);
+    assert.equal(orders.includes("tracking number"), true);
+    const affiliate = retrieveJimvioKnowledge("When are affiliate commissions eligible for payout?");
+    assert.match(affiliate, /\/affiliates\/payouts/);
+    assert.match(affiliate, /Do not quote a percentage/);
+    const ugc = retrieveJimvioKnowledge("How do I submit UGC campaign content?");
+    assert.match(ugc, /\/ugc\/submissions/);
+    const verification = retrieveJimvioKnowledge("What does a rejected identity verification mean?");
+    assert.match(verification, /\/identity\/verification/);
+    assert.match(verification, /cannot confirm verification/);
+    const wallet = retrieveJimvioKnowledge("What should I do when a payment fails?");
+    assert.match(wallet, /\/wallet\/transactions/);
+    assert.match(wallet, /Do not claim a payment/);
+  });
+
   it("refuses to invent an unverified feature", () => {
     const unknown = retrieveJimvioKnowledge("Does Jimvio have a Mars colony shipping perk?");
     assert.match(unknown, /cannot verify/i);
@@ -188,6 +206,7 @@ describe("gemini configuration", () => {
     assert.equal(classifyProviderError(new Error("404 Not Found This model is not found")), "retired_model");
     assert.equal(classifyProviderError(new Error("403 permission denied")), "authentication");
     assert.equal(classifyProviderError(new Error("429 quota exceeded")), "rate_limit");
+    assert.equal(classifyProviderError(new Error("503 Service Unavailable high demand")), "rate_limit");
     const timeout = new Error("timed out");
     timeout.name = "TimeoutError";
     assert.equal(classifyProviderError(timeout), "timeout");
