@@ -2,7 +2,19 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { prepareChatTurn } from "./chat-turn.ts";
-import { DEFAULT_GEMINI_MODEL, GEMINI_API_KEY_ENV, GEMINI_FALLBACK_MODEL, GEMINI_MODEL_ENV, isUsableApiKey, resolveGeminiModel } from "./gemini-model.ts";
+import {
+  DEFAULT_GEMINI_MODEL,
+  GEMINI_API_KEY_ENV,
+  GEMINI_FALLBACK_MODEL,
+  GEMINI_MODEL_ENV,
+  classifyProviderError,
+  geminiAttemptOrder,
+  isUsableApiKey,
+  iterateGeminiText,
+  modelsFromListPayload,
+  redactProviderMessage,
+  resolveGeminiModel,
+} from "./gemini-model.ts";
 import { retrieveJimvioKnowledge } from "./knowledge.ts";
 import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
 import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode } from "./sse.ts";
@@ -144,6 +156,45 @@ describe("gemini configuration", () => {
     assert.equal(isUsableApiKey("your-gemini-key"), false);
     assert.equal(isUsableApiKey("AIzaSyEXAMPLEKEY123456"), true);
   });
+
+  it("selects only models the key can generate with", () => {
+    const available = modelsFromListPayload({
+      models: [
+        { name: "models/gemini-2.5-flash-lite", supportedGenerationMethods: ["generateContent"] },
+        { name: "models/gemini-2.5-flash", supportedGenerationMethods: ["generateContent"] },
+        { name: "models/gemini-embedding", supportedGenerationMethods: ["embedContent"] },
+      ],
+    });
+    assert.deepEqual(geminiAttemptOrder(available, "gemini-2.5-flash-lite"), [
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash",
+    ]);
+    assert.deepEqual(geminiAttemptOrder(["gemini-2.5-flash"], "gemini-2.5-flash-lite"), ["gemini-2.5-flash"]);
+    assert.deepEqual(geminiAttemptOrder([], "gemini-2.5-flash"), []);
+  });
+
+  it("joins multiple upstream text chunks", async () => {
+    async function* parts() {
+      yield { text: () => "Hel" };
+      yield { text: () => "lo" };
+      yield { text: () => " there" };
+    }
+    const seen: string[] = [];
+    for await (const part of iterateGeminiText(parts())) seen.push(part);
+    assert.deepEqual(seen, ["Hel", "lo", " there"]);
+  });
+
+  it("classifies model, permission, quota, and timeout errors without keeping secrets", () => {
+    assert.equal(classifyProviderError(new Error("404 Not Found This model is not found")), "retired_model");
+    assert.equal(classifyProviderError(new Error("403 permission denied")), "authentication");
+    assert.equal(classifyProviderError(new Error("429 quota exceeded")), "rate_limit");
+    const timeout = new Error("timed out");
+    timeout.name = "TimeoutError";
+    assert.equal(classifyProviderError(timeout), "timeout");
+    const redacted = redactProviderMessage(new Error("bad key=AIzaSySECRETVALUE123456"));
+    assert.equal(redacted.includes("AIza"), false);
+    assert.equal(redacted.includes("key=[redacted]"), true);
+  });
 });
 
 describe("copilot route safety", () => {
@@ -153,7 +204,10 @@ describe("copilot route safety", () => {
     const geminiAt = route.indexOf("openGeminiResponse(messages");
     assert.ok(guardAt > 0 && geminiAt > guardAt);
     assert.match(route, /rateLimit\(`ai-chat:/);
-    assert.match(route, /GEMINI_FALLBACK_MODEL/);
+    assert.match(route, /geminiAttemptOrder/);
+    assert.match(route, /v1beta\/models/);
+    assert.match(route, /category: "fallback"|\"fallback\"/);
+    assert.match(route, /This is a Jimvio earning guide/);
     assert.equal(route.includes("openai"), false);
     assert.equal(route.includes("OPENAI"), false);
     assert.equal(route.includes("service_role"), false);

@@ -11,9 +11,14 @@ import {
 import { EARNING_GUIDE_SYSTEM_RULES, buildEarningGuideReply } from "@/lib/ai/earning-guide";
 import {
   GEMINI_API_KEY_ENV,
-  GEMINI_FALLBACK_MODEL,
+  GEMINI_MODEL_ENV,
+  classifyProviderError,
+  geminiAttemptOrder,
   isUsableApiKey,
-  resolveGeminiModel,
+  iterateGeminiText,
+  modelsFromListPayload,
+  redactProviderMessage,
+  type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseMode } from "@/lib/ai/sse";
@@ -26,15 +31,9 @@ const MAX_MESSAGE_CHARS = 2_000;
 
 const responseCache = new Map<string, { text: string; mode: "live" | "guide"; ts: number }>();
 
-type AiFailureCategory =
-  | "unconfigured"
-  | "authentication"
-  | "rate_limit"
-  | "timeout"
-  | "empty_output"
-  | "malformed"
-  | "retired_model"
-  | "provider";
+type AiFailureCategory = GeminiFailureCategory;
+
+let modelCatalog: { at: number; models: string[] } | null = null;
 
 function clientIp(request: Request): string {
   return (
@@ -44,29 +43,16 @@ function clientIp(request: Request): string {
   );
 }
 
-function redactProviderMessage(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error ?? "");
-  return raw.replace(/AIza[\w-]*/g, "[redacted]").replace(/sk-[A-Za-z0-9_-]+/g, "[redacted]").slice(0, 180);
-}
-
-function classifyProviderError(error: unknown): AiFailureCategory {
-  const name = error instanceof Error ? error.name : "";
-  const message = redactProviderMessage(error);
-  if (name === "TimeoutError" || name === "AbortError" || /timeout|timed out|aborted/i.test(message)) return "timeout";
-  if (/429|rate limit|resource exhausted|quota|insufficient_quota/i.test(message)) return "rate_limit";
-  if (/api_key_invalid|api key expired|invalid api key|unauthenticated|permission denied|401|403/i.test(message)) {
-    return "authentication";
-  }
-  if (/not found|deprecated|no longer available|retired/i.test(message)) return "retired_model";
-  if (/unexpected token|malformed|invalid json/i.test(message)) return "malformed";
-  return "provider";
-}
-
-function logAiFailure(provider: string, category: AiFailureCategory, error?: unknown) {
+function logAiResult(
+  category: AiFailureCategory,
+  extra?: { model?: string; chunks?: number; detail?: string },
+) {
   console.warn("[Jimvio AI] provider result", {
-    provider,
+    provider: "gemini",
     category,
-    detail: error ? redactProviderMessage(error) : undefined,
+    model: extra?.model,
+    chunks: extra?.chunks,
+    detail: extra?.detail,
   });
 }
 
@@ -124,6 +110,36 @@ function remember(cacheKey: string, text: string, mode: "live" | "guide") {
   }
 }
 
+async function accessibleGeminiModels(key: string): Promise<{ models: string[]; category?: AiFailureCategory; detail?: string }> {
+  if (modelCatalog && Date.now() - modelCatalog.at < 10 * 60_000) {
+    return { models: modelCatalog.models };
+  }
+  try {
+    const models: string[] = [];
+    let pageToken = "";
+    for (let page = 0; page < 3; page += 1) {
+      const url = new URL("https://generativelanguage.googleapis.com/v1beta/models");
+      url.searchParams.set("pageSize", "100");
+      url.searchParams.set("key", key);
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const response = await withTimeout(fetch(url), 8_000);
+      const payload = await response.json().catch(() => null) as { nextPageToken?: string; error?: { message?: string } } | null;
+      if (!response.ok) {
+        const message = redactProviderMessage(new Error(payload?.error?.message || String(response.status)));
+        const category = response.status === 429 ? "rate_limit" : response.status === 401 || response.status === 403 ? "authentication" : "provider";
+        return { models: [], category, detail: message };
+      }
+      models.push(...modelsFromListPayload(payload));
+      pageToken = payload?.nextPageToken ?? "";
+      if (!pageToken) break;
+    }
+    modelCatalog = { at: Date.now(), models };
+    return { models };
+  } catch (error) {
+    return { models: [], category: classifyProviderError(error), detail: redactProviderMessage(error) };
+  }
+}
+
 /**
  * Opens the Gemini stream and forwards each text part as SSE.
  * Returns null when Gemini produces nothing, so the caller can send the guide.
@@ -131,7 +147,7 @@ function remember(cacheKey: string, text: string, mode: "live" | "guide") {
 async function openGeminiResponse(messages: ChatMessage[], modelName: string, cacheKey: string): Promise<Response | null> {
   const geminiKey = process.env[GEMINI_API_KEY_ENV];
   if (!isUsableApiKey(geminiKey)) {
-    logAiFailure("gemini", "unconfigured");
+    logAiResult("unconfigured");
     return null;
   }
 
@@ -163,31 +179,35 @@ async function openGeminiResponse(messages: ChatMessage[], modelName: string, ca
     );
     stream = result.stream;
   } catch (error) {
-    logAiFailure("gemini", error instanceof Error && error.name === "EmptyOutput" ? "empty_output" : classifyProviderError(error), error);
+    logAiResult(error instanceof Error && error.name === "EmptyOutput" ? "empty_output" : classifyProviderError(error), {
+      model: modelName,
+      detail: redactProviderMessage(error),
+    });
     return null;
   }
 
-  const iterator = stream[Symbol.asyncIterator]();
+  const iterator = iterateGeminiText(stream)[Symbol.asyncIterator]();
   let first = "";
   try {
     const deadline = Date.now() + FIRST_TOKEN_MS;
     while (!first && Date.now() < deadline) {
       const step = await withTimeout(iterator.next(), Math.max(1_000, deadline - Date.now()));
       if (step.done) break;
-      first += step.value.text() ?? "";
+      first += step.value ?? "";
     }
   } catch (error) {
-    logAiFailure("gemini", classifyProviderError(error), error);
+    logAiResult(classifyProviderError(error), { model: modelName, detail: redactProviderMessage(error) });
     return null;
   }
 
   if (!first.trim()) {
-    logAiFailure("gemini", "empty_output");
+    logAiResult("empty_output", { model: modelName });
     return null;
   }
 
   const encoder = new TextEncoder();
   let accumulated = first;
+  let chunks = 1;
   const body = new ReadableStream({
     async start(controller) {
       controller.enqueue(encoder.encode(sseMode("live")));
@@ -197,15 +217,17 @@ async function openGeminiResponse(messages: ChatMessage[], modelName: string, ca
         while (accumulated.length < MAX_OUTPUT_CHARS && Date.now() - started < STREAM_DEADLINE_MS) {
           const step = await iterator.next();
           if (step.done) break;
-          const next = step.value.text();
+          const next = step.value;
           if (!next) continue;
+          chunks += 1;
           accumulated += next;
           controller.enqueue(encoder.encode(sseChunk(next)));
         }
         const finalText = accumulated.trim();
         if (finalText) remember(cacheKey, finalText, "live");
+        logAiResult("success", { model: modelName, chunks });
       } catch (error) {
-        logAiFailure("gemini", classifyProviderError(error), error);
+        logAiResult(classifyProviderError(error), { model: modelName, detail: redactProviderMessage(error) });
       } finally {
         controller.enqueue(encoder.encode(sseDone()));
         controller.close();
@@ -273,18 +295,33 @@ export async function POST(req: NextRequest) {
       return streamText(cached.text, cached.mode);
     }
 
-    const gemini = resolveGeminiModel();
-    if (gemini.remapped) logAiFailure("gemini", "retired_model");
-
-    const live = await openGeminiResponse(messages, gemini.model, cacheKey);
-    if (live) return live;
-
-    if (gemini.model !== GEMINI_FALLBACK_MODEL) {
-      logAiFailure("gemini", "retired_model");
-      const retry = await openGeminiResponse(messages, GEMINI_FALLBACK_MODEL, cacheKey);
-      if (retry) return retry;
+    const geminiKey = process.env[GEMINI_API_KEY_ENV];
+    if (!isUsableApiKey(geminiKey)) {
+      logAiResult("unconfigured");
+      logAiResult("fallback", { detail: "unconfigured" });
+      return streamText(buildGuideResponse(messages), "guide");
     }
 
+    const catalog = await accessibleGeminiModels(geminiKey!);
+    if (catalog.category) {
+      logAiResult(catalog.category, { detail: catalog.detail });
+      logAiResult("fallback", { detail: catalog.category });
+      return streamText(buildGuideResponse(messages), "guide");
+    }
+
+    const attempts = geminiAttemptOrder(catalog.models, process.env[GEMINI_MODEL_ENV]);
+    if (!attempts.length) {
+      logAiResult("retired_model", { detail: "no generateContent model in models.list" });
+      logAiResult("fallback", { detail: "no_accessible_model" });
+      return streamText(buildGuideResponse(messages), "guide");
+    }
+
+    for (const modelName of attempts) {
+      const live = await openGeminiResponse(messages, modelName, cacheKey);
+      if (live) return live;
+    }
+
+    logAiResult("fallback", { detail: "models_failed", model: attempts.join(",") });
     return streamText(buildGuideResponse(messages), "guide");
   } catch {
     console.error("[Jimvio AI] Critical error");
