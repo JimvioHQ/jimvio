@@ -98,6 +98,7 @@ export function UGCMyCampaignsPage() {
   const [rows, setRows] = useState<ParticipantRow[]>([]);
   const [subs, setSubs] = useState<SubmissionLite[]>([]);
   const [payouts, setPayouts] = useState<PayoutLite[]>([]);
+  const [submissionCounts, setSubmissionCounts] = useState<{ pending: number; approved: number } | null>(null);
   const [totalJoined, setTotalJoined] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,6 +143,14 @@ export function UGCMyCampaignsPage() {
             status: s.status,
           })),
         );
+        const counts = sJson.counts as { pending?: number; approved?: number } | undefined;
+        setSubmissionCounts(
+          counts
+            ? { pending: Number(counts.pending ?? 0), approved: Number(counts.approved ?? 0) }
+            : null,
+        );
+      } else {
+        setSubmissionCounts(null);
       }
       if (payRes.ok) {
         const payJson = await payRes.json();
@@ -316,8 +325,8 @@ export function UGCMyCampaignsPage() {
   const paidEarnings = payouts.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
   const pendingEarnings = payouts.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0);
   const approvedEarnings = payouts.filter((p) => p.status === "approved").reduce((s, p) => s + p.amount, 0);
-  const awaitingReview = subs.filter((s) => s.status === "pending").length;
-  const approvedSubs = subs.filter((s) => s.status === "approved").length;
+  const awaitingReview = submissionCounts?.pending ?? subs.filter((s) => s.status === "pending").length;
+  const approvedSubs = submissionCounts?.approved ?? subs.filter((s) => s.status === "approved").length;
 
   return (
     <UGCPageShell

@@ -114,6 +114,7 @@ export function UGCSubmissionsPage() {
       title="Submissions"
       subtitle="Track content you submitted, brand feedback, revisions, and payout status."
     >
+      {!loading && !error ? (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {[
           ["Under review", counts.pending],
@@ -128,6 +129,7 @@ export function UGCSubmissionsPage() {
           </div>
         ))}
       </div>
+      ) : null}
       <UGCFilterBar search={search} onSearchChange={setSearch}>
         <select
           value={status}
