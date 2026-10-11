@@ -21,7 +21,7 @@ describe("ai confidentiality guard", () => {
   it("checks the request before calling the model", () => {
     const route = readFileSync(new URL("../../app/api/ai/chat/route.ts", import.meta.url), "utf8");
     const guardAt = route.indexOf("isConfidentialAiRequest");
-    const geminiAt = route.indexOf("tryGemini(messages)");
+    const geminiAt = route.indexOf("openGeminiResponse(messages");
     assert.ok(guardAt > 0);
     assert.ok(geminiAt > guardAt);
     assert.equal(route.includes("buildMockResponse"), false);

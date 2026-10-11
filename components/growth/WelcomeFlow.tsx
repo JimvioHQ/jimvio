@@ -189,9 +189,10 @@ export function WelcomeFlow() {
   function send(text = query, actionId?: string) {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
+    const accepted = sendMessage(trimmed, { actionId });
+    if (!accepted) return;
     setQuery("");
     saveCopilotDraft("");
-    void sendMessage(trimmed, { actionId });
   }
 
   return (
@@ -285,7 +286,7 @@ export function WelcomeFlow() {
           saveCopilotDraft(next);
         }}
         onSubmit={() => send()}
-        disabled={isSending}
+        sending={isSending}
         placeholder="Ask about products, campaigns, or communities..."
       />
     </div>

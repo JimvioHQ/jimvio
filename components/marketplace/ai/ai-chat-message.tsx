@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import type { ParsedCampaign, ParsedCommunity, ParsedLink, ParsedProduct } from "@/lib/ai/chat-shared";
+import { stabilizeStreamingMarkdown } from "@/lib/ai/markdown-stream";
 import { AiMessageMarkdown } from "./ai-message-markdown";
 import { AiRecommendationCards } from "./ai-recommendation-cards";
 import { AiEarningsCalculator } from "./ai-earnings-calculator";
@@ -32,6 +33,8 @@ export interface AiChatMessageData {
   feedback?: "up" | "down" | null;
   /** True when the reply is the earning guide because the live model did not answer. */
   fallback?: boolean;
+  /** True while Gemini chunks are still arriving. */
+  streaming?: boolean;
 }
 
 function ThinkingBubble() {
@@ -41,7 +44,7 @@ function ThinkingBubble() {
         {[0, 120, 240].map((delay) => (
           <span
             key={delay}
-            className="size-1.5 rounded-full animate-bounce"
+            className="size-1.5 rounded-full animate-bounce motion-reduce:animate-none"
             style={{ background: JIMVIO_ORANGE, animationDelay: `${delay}ms` }}
           />
         ))}
@@ -112,13 +115,16 @@ export function AiChatMessage({
             style={msg.role === "user" ? { background: JIMVIO_ORANGE } : undefined}
           >
             {msg.role === "ai" ? (
-              <AiMessageMarkdown content={msg.content} onNavigate={onNavigate} />
+              <AiMessageMarkdown
+                content={msg.streaming ? stabilizeStreamingMarkdown(msg.content) : msg.content}
+                onNavigate={onNavigate}
+              />
             ) : (
-              <p className="text-[14px] leading-relaxed">{msg.content}</p>
+              <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed [overflow-wrap:anywhere]">{msg.content}</p>
             )}
             {msg.role === "ai" && msg.thinking && (
               <span
-                className="ml-0.5 inline-block h-4 w-0.5 animate-pulse"
+                className="ml-0.5 inline-block h-4 w-0.5 animate-pulse motion-reduce:animate-none"
                 style={{ background: JIMVIO_ORANGE }}
               />
             )}

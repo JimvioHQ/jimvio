@@ -3,7 +3,6 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 
@@ -15,7 +14,7 @@ interface AiMessageMarkdownProps {
 
 export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageMarkdownProps) {
   return (
-    <div className={cn("jimvio-ai-md space-y-2 text-[14px] leading-relaxed", className)}>
+    <div className={cn("jimvio-ai-md max-w-full space-y-2 break-words text-[14px] leading-relaxed [overflow-wrap:anywhere]", className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -74,7 +73,7 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
           const isBlock = codeClass?.includes("language-");
           if (isBlock) {
             return (
-              <pre className="overflow-x-auto rounded-lg border border-[#FFE0D1] bg-[#FFFDFB] p-3 text-[12px]">
+              <pre className="max-w-full overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-[#FFE0D1] bg-[#FFFDFB] p-3 text-[12px] [overflow-wrap:anywhere]">
                 <code>{children}</code>
               </pre>
             );

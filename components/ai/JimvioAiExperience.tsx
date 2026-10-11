@@ -35,6 +35,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   const processedEarn = useRef(0);
   const [query, setQuery] = useState(() => loadCopilotDraft());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
   const reducedMotion = usePrefersReducedMotion();
   const contextMeta = useMemo(() => getCopilotContextMeta(pageContext), [pageContext]);
   const quickActions = useMemo(() => getQuickActionsForContext("home", 8), []);
@@ -70,7 +71,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
 
   useEffect(() => {
     const node = scrollRef.current;
-    if (!node || messages.length === 0) return;
+    if (!node || messages.length === 0 || !stickToBottomRef.current) return;
     node.scrollTo({ top: node.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
   }, [messages, isSending, reducedMotion]);
 
@@ -78,9 +79,11 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
     (text = query, actionId?: string) => {
       const trimmed = text.trim();
       if (!trimmed || isSending) return;
+      const accepted = sendMessage(trimmed, { actionId });
+      if (!accepted) return;
+      stickToBottomRef.current = true;
       setQuery("");
       saveCopilotDraft("");
-      void sendMessage(trimmed, { actionId });
     },
     [isSending, query, sendMessage],
   );
@@ -121,6 +124,10 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
 
       <div
         ref={scrollRef}
+        onScroll={(event) => {
+          const node = event.currentTarget;
+          stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+        }}
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
           variant === "dock" ? "px-3 py-2.5" : "px-4 py-4",
@@ -194,7 +201,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
             saveCopilotDraft(next);
           }}
           onSubmit={() => handleSend()}
-          disabled={isSending}
+          sending={isSending}
           placeholder={
             messages.length === 0
               ? "Ask about products, campaigns, or communities..."

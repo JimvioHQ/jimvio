@@ -1,0 +1,180 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+import { prepareChatTurn } from "./chat-turn.ts";
+import { DEFAULT_GEMINI_MODEL, GEMINI_API_KEY_ENV, GEMINI_MODEL_ENV, isUsableApiKey, resolveGeminiModel } from "./gemini-model.ts";
+import { retrieveJimvioKnowledge } from "./knowledge.ts";
+import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
+import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode } from "./sse.ts";
+import { clearRateLimitsForTests, rateLimit } from "../ops/rate-limit.ts";
+
+const root = new URL("../../", import.meta.url);
+
+describe("gemini sse parsing", () => {
+  it("joins split chunks and stops on the finish event", () => {
+    const payload = `${sseMode("live")}${sseChunk("Hel")}${sseChunk("lo")}${sseDone()}`;
+    const splitAt = payload.indexOf("lo");
+    const first = parseSseBuffer(payload.slice(0, splitAt));
+    const second = parseSseBuffer(first.rest + payload.slice(splitAt));
+    assert.equal(first.text + second.text, "Hello");
+    assert.equal(second.done, true);
+    assert.equal(second.fallback, false);
+  });
+
+  it("ignores malformed events and keeps a partial event buffered", () => {
+    const partial = parseSseBuffer('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\ndata: {not-json}\n\ndata: {"choi');
+    assert.equal(partial.text, "Hi");
+    assert.match(partial.rest, /choi/);
+    assert.equal(partial.done, false);
+  });
+
+  it("reads provider error events without treating them as answer text", () => {
+    const parsed = parseSseBuffer(`${sseError("rate_limit")}${sseDone()}`);
+    assert.equal(parsed.text, "");
+    assert.equal(parsed.errorCode, "rate_limit");
+    assert.equal(parsed.done, true);
+  });
+
+  it("keeps multibyte characters inside one JSON chunk", () => {
+    const parsed = parseSseBuffer(`${sseChunk("Café — 日本語")}${sseDone()}`);
+    assert.equal(parsed.text, "Café — 日本語");
+  });
+});
+
+describe("chat turn ordering", () => {
+  it("shows the customer message immediately and blocks a second send", () => {
+    const first = prepareChatTurn({
+      messages: [],
+      text: "How do I sell?",
+      busy: false,
+      now: 10,
+    });
+    assert.equal(first.accepted, true);
+    if (!first.accepted) return;
+    assert.deepEqual(
+      first.messages.map((message) => message.role),
+      ["user", "ai"],
+    );
+    assert.equal(first.messages[0]?.content, "How do I sell?");
+    assert.equal(first.messages[1]?.thinking, true);
+    assert.equal(first.history.length, 0);
+
+    const duplicate = prepareChatTurn({
+      messages: first.messages,
+      text: "How do I sell?",
+      busy: true,
+      now: 11,
+    });
+    assert.deepEqual(duplicate, { accepted: false, reason: "busy" });
+  });
+
+  it("retries the same customer message without duplicating it", () => {
+    const start = prepareChatTurn({
+      messages: [{ id: "1-user", role: "user", content: "Where is the wallet?" }],
+      text: "",
+      busy: false,
+      now: 20,
+      regenerateFromId: "1-ai",
+    });
+    assert.equal(start.accepted, false);
+
+    const retry = prepareChatTurn({
+      messages: [
+        { id: "1-user", role: "user", content: "Where is the wallet?" },
+        { id: "1-ai", role: "ai", content: "Checking.", thinking: false },
+      ],
+      text: "",
+      busy: false,
+      now: 21,
+      regenerateFromId: "1-ai",
+    });
+    assert.equal(retry.accepted, true);
+    if (!retry.accepted) return;
+    assert.equal(retry.messages.filter((message) => message.role === "user").length, 1);
+    assert.equal(retry.requestText, "Where is the wallet?");
+    assert.equal(retry.messages.at(-1)?.thinking, true);
+    assert.equal(retry.history.length, 0);
+  });
+});
+
+describe("streaming markdown", () => {
+  it("closes an unfinished fence and bold marker", () => {
+    const stable = stabilizeStreamingMarkdown("**Steps\n```ts\nconst x = 1");
+    assert.equal((stable.match(/```/g) ?? []).length % 2, 0);
+    assert.equal((stable.match(/\*\*/g) ?? []).length % 2, 0);
+  });
+
+  it("leaves complete markdown unchanged aside from null bytes", () => {
+    const source = "**Done**\n\n- one\n\n```js\nconst ok = true\n```";
+    assert.equal(stabilizeStreamingMarkdown(source), source);
+  });
+});
+
+describe("jimvio knowledge", () => {
+  it("grounds marketplace and wallet answers in real routes", () => {
+    const market = retrieveJimvioKnowledge("How do I list a product on the marketplace?");
+    assert.match(market, /\/marketplace/);
+    assert.match(market, /\/seller\/products/);
+    const wallet = retrieveJimvioKnowledge("Where are wallet withdrawals?");
+    assert.match(wallet, /\/wallet\/withdrawals/);
+    assert.equal(market.includes("%"), false);
+  });
+
+  it("refuses to invent an unverified feature", () => {
+    const unknown = retrieveJimvioKnowledge("Does Jimvio have a Mars colony shipping perk?");
+    assert.match(unknown, /cannot verify/i);
+    assert.equal(unknown.includes("/mars"), false);
+  });
+});
+
+describe("gemini configuration", () => {
+  it("uses Flash-Lite and remaps retired models", () => {
+    assert.equal(resolveGeminiModel(undefined).model, DEFAULT_GEMINI_MODEL);
+    assert.equal(DEFAULT_GEMINI_MODEL, "gemini-2.5-flash-lite");
+    assert.equal(resolveGeminiModel("gemini-2.0-flash").model, DEFAULT_GEMINI_MODEL);
+    assert.equal(resolveGeminiModel("gemini-2.0-flash").remapped, true);
+    assert.equal(GEMINI_API_KEY_ENV, "GOOGLE_GENERATIVE_AI_API_KEY");
+    assert.equal(GEMINI_MODEL_ENV, "GEMINI_MODEL");
+  });
+
+  it("rejects missing and placeholder keys", () => {
+    assert.equal(isUsableApiKey(undefined), false);
+    assert.equal(isUsableApiKey("xxx"), false);
+    assert.equal(isUsableApiKey("your-gemini-key"), false);
+    assert.equal(isUsableApiKey("AIzaSyEXAMPLEKEY123456"), true);
+  });
+});
+
+describe("copilot route safety", () => {
+  it("keeps Gemini, rate limits, and does not fall back to another provider", () => {
+    const route = readFileSync(new URL("app/api/ai/chat/route.ts", root), "utf8");
+    const guardAt = route.indexOf("isConfidentialAiRequest");
+    const geminiAt = route.indexOf("openGeminiResponse(messages");
+    assert.ok(guardAt > 0 && geminiAt > guardAt);
+    assert.match(route, /rateLimit\(`ai-chat:/);
+    assert.equal(route.includes("openai"), false);
+    assert.equal(route.includes("OPENAI"), false);
+    assert.equal(route.includes("service_role"), false);
+    assert.equal(route.includes("body.userId"), false);
+  });
+
+  it("wraps long text in the message renderer", () => {
+    const markdown = readFileSync(new URL("components/marketplace/ai/ai-message-markdown.tsx", root), "utf8");
+    const bubble = readFileSync(new URL("components/marketplace/ai/ai-chat-message.tsx", root), "utf8");
+    assert.match(markdown, /overflow-wrap:anywhere/);
+    assert.match(markdown, /whitespace-pre-wrap/);
+    assert.match(bubble, /overflow-wrap:anywhere/);
+    assert.match(bubble, /stabilizeStreamingMarkdown/);
+  });
+});
+
+describe("ai chat rate limit", () => {
+  it("stops accepting after the window is exhausted", () => {
+    clearRateLimitsForTests();
+    for (let i = 0; i < 20; i += 1) {
+      assert.equal(rateLimit("ai-chat:test", 20, 60_000, 1_000).allowed, true);
+    }
+    assert.equal(rateLimit("ai-chat:test", 20, 60_000, 1_000).allowed, false);
+    clearRateLimitsForTests();
+  });
+});

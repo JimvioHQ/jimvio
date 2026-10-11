@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiChatMessageData } from "@/components/marketplace/ai/ai-chat-message";
 import { planGuideTurn, writePendingAction } from "@/lib/ai/action-guide";
-import { MAX_CHAT_HISTORY, parseAiTriggers, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
+import { prepareChatTurn } from "@/lib/ai/chat-turn";
+import { parseAiTriggers, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
 import { getCopilotProvider } from "@/lib/ai/copilot/provider";
-import { loadCopilotSession, saveCopilotDraft, saveCopilotSession } from "@/lib/ai/copilot/session";
+import { loadCopilotSession, saveCopilotSession } from "@/lib/ai/copilot/session";
 import type { CopilotPageContext } from "@/lib/store/use-ai-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 
@@ -31,6 +32,19 @@ function setStoredMessages(
   messageCache = next;
   saveCopilotSession(next);
   messageListeners.forEach((listener) => listener());
+}
+
+function settleStopped(messages: AiChatMessageData[]) {
+  return messages.map((message) =>
+    message.thinking || message.streaming
+      ? {
+          ...message,
+          thinking: false,
+          streaming: false,
+          content: message.content.trim() || "This reply was stopped.",
+        }
+      : message,
+  );
 }
 
 export function useCopilotChat() {
@@ -67,29 +81,30 @@ export function useCopilotChat() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      generationRef.current += 1;
+      sendingRef.current = false;
       if (streamRaf.current != null) cancelAnimationFrame(streamRaf.current);
+      setStoredMessages((prev) => settleStopped(prev));
     };
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, options?: { regenerateFromId?: string; actionId?: string }) => {
-      if (sendingRef.current) return;
+    (text: string, options?: { regenerateFromId?: string; actionId?: string }): boolean => {
+      if (sendingRef.current) return false;
 
-      let baseMessages = messages;
+      let baseMessages = readMessages();
       let messageText = text.trim();
 
       if (options?.regenerateFromId) {
-        const idx = messages.findIndex((m) => m.id === options.regenerateFromId);
-        if (idx > 0) {
-          const userBefore = messages[idx - 1];
-          if (userBefore?.role === "user") {
-            baseMessages = messages.slice(0, idx);
-            messageText = userBefore.content;
-          }
-        }
+        const current = readMessages();
+        const idx = current.findIndex((m) => m.id === options.regenerateFromId);
+        const userBefore = idx > 0 ? current[idx - 1] : undefined;
+        if (userBefore?.role !== "user" || !userBefore.content.trim()) return false;
+        baseMessages = current;
+        messageText = userBefore.content.trim();
       }
 
-      if (!messageText) return;
+      if (!messageText) return false;
 
       const guided = planGuideTurn(messageText);
       if (guided) {
@@ -107,87 +122,89 @@ export function useCopilotChat() {
           return [...prev, userMsg];
         };
         setMessages(withUser);
-        saveCopilotDraft("");
 
         if (guided.execute) {
+          const execute = guided.execute;
           sendingRef.current = true;
           setIsSending(true);
           setStatus("thinking");
           const aiId = `${Date.now()}-ai`;
           setMessages((prev) => [...prev, { id: aiId, role: "ai", content: "", thinking: true }]);
-          try {
-            const response = await fetch("/api/ai/actions", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                operation: guided.execute.operation,
-                confirm: true,
-                name: guided.execute.name,
-                description: guided.execute.description,
-              }),
-            });
-            const data = (await response.json().catch(() => null)) as {
-              error?: string;
-              href?: string;
-              manageHref?: string;
-              community?: { name?: string; slug?: string };
-            } | null;
-            if (!response.ok || !data?.href || !data.community?.slug) {
-              const signedOut = response.status === 401;
+          void (async () => {
+            try {
+              const response = await fetch("/api/ai/actions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  operation: execute.operation,
+                  confirm: true,
+                  name: execute.name,
+                  description: execute.description,
+                }),
+              });
+              const data = (await response.json().catch(() => null)) as {
+                error?: string;
+                href?: string;
+                manageHref?: string;
+                community?: { name?: string; slug?: string };
+              } | null;
+              if (!response.ok || !data?.href || !data.community?.slug) {
+                const signedOut = response.status === 401;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiId
+                      ? {
+                          ...m,
+                          thinking: false,
+                          content: signedOut
+                            ? "Sign in to create this community. Nothing was created."
+                            : data?.error || "The community was not created. Nothing was published.",
+                          links: signedOut
+                            ? [{ label: "Sign in", href: "/login?next=/communities/create" }]
+                            : [{ label: "Open the full form", href: "/communities/create" }],
+                        }
+                      : m,
+                  ),
+                );
+                setStatus(signedOut ? "ready" : "offline");
+              } else {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === aiId
+                      ? {
+                          ...m,
+                          thinking: false,
+                          content: `Created the free public community “${data.community?.name || execute.name}”.`,
+                          links: [
+                            { label: "Open community", href: data.href! },
+                            ...(data.manageHref ? [{ label: "Manage community", href: data.manageHref }] : []),
+                          ],
+                        }
+                      : m,
+                  ),
+                );
+                setStatus("ready");
+              }
+            } catch {
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === aiId
                     ? {
                         ...m,
                         thinking: false,
-                        content: signedOut
-                          ? "Sign in to create this community. Nothing was created."
-                          : data?.error || "The community was not created. Nothing was published.",
-                        links: signedOut
-                          ? [{ label: "Sign in", href: "/login?next=/communities/create" }]
-                          : [{ label: "Open the full form", href: "/communities/create" }],
+                        content: "Jimvio AI could not reach the server. The community was not created.",
+                        links: [{ label: "Try the form", href: "/communities/create" }],
                       }
                     : m,
                 ),
               );
-              setStatus(signedOut ? "ready" : "offline");
-            } else {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === aiId
-                    ? {
-                        ...m,
-                        thinking: false,
-                        content: `Created the free public community “${data.community?.name || guided.execute?.name}”.`,
-                        links: [
-                          { label: "Open community", href: data.href! },
-                          ...(data.manageHref ? [{ label: "Manage community", href: data.manageHref }] : []),
-                        ],
-                      }
-                    : m,
-                ),
-              );
-              setStatus("ready");
+              setStatus("offline");
+            } finally {
+              sendingRef.current = false;
+              setIsSending(false);
             }
-          } catch {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.id === aiId
-                  ? {
-                      ...m,
-                      thinking: false,
-                      content: "Jimvio AI could not reach the server. The community was not created.",
-                      links: [{ label: "Try the form", href: "/communities/create" }],
-                    }
-                  : m,
-              ),
-            );
-            setStatus("offline");
-          } finally {
-            sendingRef.current = false;
-            setIsSending(false);
-          }
-          return;
+          })();
+          return true;
         }
 
         setMessages((prev) => [
@@ -201,45 +218,35 @@ export function useCopilotChat() {
           },
         ]);
         setStatus("ready");
-        return;
+        return true;
       }
 
-      saveCopilotDraft("");
+      const prepared = prepareChatTurn({
+        messages: baseMessages,
+        text: messageText,
+        busy: false,
+        regenerateFromId: options?.regenerateFromId,
+      });
+      if (!prepared.accepted) return false;
 
-      sendingRef.current = true;
       abortRef.current?.abort();
       const request = new AbortController();
       abortRef.current = request;
       const generation = generationRef.current + 1;
       generationRef.current = generation;
+      sendingRef.current = true;
 
-      const userMsg: AiChatMessageData = {
-        id: `${Date.now()}-user`,
-        role: "user",
-        content: messageText,
-      };
-
-      const history = baseMessages
-        .filter((m) => m.content.trim() && !m.thinking)
-        .map((m) => ({
-          role: (m.role === "ai" ? "assistant" : "user") as "assistant" | "user",
-          content: m.content,
-        }))
-        .slice(-MAX_CHAT_HISTORY);
-
-      setMessages((prev) => {
-        if (options?.regenerateFromId) {
-          return prev.slice(0, prev.findIndex((m) => m.id === options.regenerateFromId));
-        }
-        return [...prev, userMsg];
-      });
+      const history = prepared.history;
+      const aiId = prepared.assistantId;
+      setMessages(prepared.messages);
       setIsSending(true);
       setStatus("thinking");
 
-      const aiId = `${Date.now()}-ai`;
-      setMessages((prev) => [...prev, { id: aiId, role: "ai", content: "", thinking: true }]);
-
       const flushStream = () => {
+        if (generation !== generationRef.current) {
+          streamRaf.current = null;
+          return;
+        }
         const content = pendingContent.current;
         setMessages((prev) =>
           prev.map((m) =>
@@ -248,6 +255,7 @@ export function useCopilotChat() {
                   ...m,
                   content: stripTriggersForDisplay(content),
                   thinking: !content.trim(),
+                  streaming: Boolean(content.trim()),
                 }
               : m,
           ),
@@ -262,79 +270,87 @@ export function useCopilotChat() {
         }
       };
 
-      try {
-        const provider = getCopilotProvider("jimvio-ai");
-        let fullContent = "";
-        let metadata: Partial<AiChatMessageData> = {};
+      void (async () => {
+        try {
+          const provider = getCopilotProvider("jimvio-ai");
+          let fullContent = "";
+          let metadata: Partial<AiChatMessageData> = {};
 
-        if (request.signal.aborted) return;
+          for await (const chunk of provider.send({
+            message: messageText,
+            history,
+            context: pageContext as CopilotPageContext,
+            pathname,
+            actionId: options?.actionId,
+            signal: request.signal,
+          })) {
+            if (request.signal.aborted || generation !== generationRef.current) return;
+            if (chunk.type === "text-delta" && chunk.text) {
+              fullContent += chunk.text;
+              setStatus("streaming");
+              scheduleStreamUpdate(fullContent);
+            } else if (chunk.type === "metadata" && chunk.message) {
+              metadata = chunk.message;
+            }
+          }
 
-        for await (const chunk of provider.send({
-          message: messageText,
-          history,
-          context: pageContext as CopilotPageContext,
-          pathname,
-          actionId: options?.actionId,
-          signal: request.signal,
-        })) {
-          if (request.signal.aborted) return;
-          if (chunk.type === "text-delta" && chunk.text) {
-            fullContent += chunk.text;
-            setStatus("streaming");
-            scheduleStreamUpdate(fullContent);
-          } else if (chunk.type === "metadata" && chunk.message) {
-            metadata = chunk.message;
+          if (streamRaf.current != null) {
+            cancelAnimationFrame(streamRaf.current);
+            streamRaf.current = null;
+          }
+
+          if (generation !== generationRef.current) return;
+          const parsed = parseAiTriggers(fullContent);
+          const content = metadata.content || parsed.cleaned || stripTriggersForDisplay(fullContent);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiId
+                ? {
+                    ...m,
+                    ...metadata,
+                    content,
+                    thinking: false,
+                    streaming: false,
+                    followups: parsed.followups ?? metadata.followups,
+                    links: parsed.links ?? metadata.links,
+                    fallback: metadata.fallback || content.startsWith("This is a Jimvio earning guide."),
+                  }
+                : m,
+            ),
+          );
+          setStatus("ready");
+        } catch {
+          if (generation !== generationRef.current) return;
+          const timedOut = request.signal.aborted;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === aiId
+                ? {
+                    ...m,
+                    thinking: false,
+                    streaming: false,
+                    content: m.content.trim()
+                      ? m.content
+                      : timedOut
+                        ? "Jimvio AI took too long. Your message is still here."
+                        : "Jimvio AI could not finish that reply. Your message is still here.",
+                    fallback: true,
+                  }
+                : m,
+            ),
+          );
+          setStatus("offline");
+        } finally {
+          if (generation === generationRef.current) {
+            sendingRef.current = false;
+            setIsSending(false);
+            pendingContent.current = "";
           }
         }
-
-        if (streamRaf.current != null) {
-          cancelAnimationFrame(streamRaf.current);
-          streamRaf.current = null;
-        }
-
-        if (generation !== generationRef.current) return;
-        const parsed = parseAiTriggers(fullContent);
-        const content = metadata.content || parsed.cleaned || stripTriggersForDisplay(fullContent);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiId
-              ? {
-                  ...m,
-                  ...metadata,
-                  content,
-                  thinking: false,
-                  followups: parsed.followups ?? metadata.followups,
-                  links: parsed.links ?? metadata.links,
-                  fallback: metadata.fallback || content.startsWith("This is a Jimvio earning guide."),
-                }
-              : m,
-          ),
-        );
-        setStatus("ready");
-      } catch {
-        if (generation !== generationRef.current || request.signal.aborted) return;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === aiId
-              ? {
-                  ...m,
-                  thinking: false,
-                  content: "Jimvio AI could not finish that reply. Your message is still here.",
-                  fallback: true,
-                }
-              : m,
-          ),
-        );
-        setStatus("offline");
-      } finally {
-        if (generation === generationRef.current) {
-          sendingRef.current = false;
-          setIsSending(false);
-          pendingContent.current = "";
-        }
-      }
+      })();
+      return true;
     },
-    [messages, pageContext, pathname, setMessages, setStatus],
+    [pageContext, pathname, setMessages, setStatus],
   );
 
   const clearHistory = useCallback(() => {

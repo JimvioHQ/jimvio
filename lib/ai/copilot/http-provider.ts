@@ -1,40 +1,8 @@
 import { parseAiTriggers } from "@/lib/ai/chat-shared";
+import { parseSseBuffer } from "@/lib/ai/sse";
 import type { CopilotProvider, CopilotSendInput, CopilotStreamChunk } from "./types";
 
-const TIMEOUT_MS = 25_000;
-
-function parseSse(buffer: string): { text: string; rest: string; done: boolean; fallback: boolean } {
-  const parts = buffer.split("\n\n");
-  const rest = parts.pop() ?? "";
-  let text = "";
-  let done = false;
-  let fallback = false;
-  for (const part of parts) {
-    const line = part
-      .split("\n")
-      .map((row) => row.trim())
-      .find((row) => row.startsWith("data:"));
-    if (!line) continue;
-    const data = line.slice(5).trim();
-    if (data === "[DONE]") {
-      done = true;
-      continue;
-    }
-    let json: {
-      choices?: Array<{ delta?: { content?: string } }>;
-      jimvio?: { mode?: string };
-    };
-    try {
-      json = JSON.parse(data) as typeof json;
-    } catch {
-      continue;
-    }
-    if (json.jimvio?.mode === "guide") fallback = true;
-    const delta = json.choices?.[0]?.delta?.content;
-    if (typeof delta === "string") text += delta;
-  }
-  return { text, rest, done, fallback };
-}
+const TIMEOUT_MS = 45_000;
 
 async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncGenerator<CopilotStreamChunk> {
   const messages = [
@@ -61,14 +29,25 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      const parsed = parseSse(buffer);
+      const parsed = parseSseBuffer(buffer);
       buffer = parsed.rest;
       fallback = fallback || parsed.fallback;
+      if (parsed.errorCode && !full && !parsed.text) {
+        throw new Error("Jimvio AI is unavailable right now.");
+      }
       if (parsed.text) {
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
       }
       if (parsed.done) break;
+    }
+    buffer += decoder.decode();
+    if (buffer.trim()) {
+      const parsed = parseSseBuffer(`${buffer}\n\n`);
+      if (parsed.text) {
+        full += parsed.text;
+        yield { type: "text-delta", text: parsed.text };
+      }
     }
   } finally {
     reader.releaseLock();

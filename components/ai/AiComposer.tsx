@@ -19,6 +19,8 @@ type AiComposerProps = {
   onChange: (value: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
+  /** Blocks sending while a reply is in progress. The field stays editable. */
+  sending?: boolean;
   placeholder?: string;
   autoFocus?: boolean;
   /** When false, a parent shell already offsets the panel for the mobile keyboard. */
@@ -30,6 +32,7 @@ export function AiComposer({
   onChange,
   onSubmit,
   disabled = false,
+  sending = false,
   placeholder = "Ask about products, campaigns, or communities...",
   autoFocus = false,
   reserveKeyboardInset = true,
@@ -73,7 +76,7 @@ export function AiComposer({
         className="mx-auto flex w-full max-w-3xl items-end gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!disabled && value.trim()) onSubmit();
+          if (!disabled && !sending && value.trim()) onSubmit();
         }}
       >
         <div className="relative min-w-0 flex-1">
@@ -100,7 +103,7 @@ export function AiComposer({
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
-                if (!disabled && value.trim()) onSubmit();
+                if (!disabled && !sending && value.trim()) onSubmit();
               }
             }}
             disabled={disabled}
@@ -109,17 +112,18 @@ export function AiComposer({
             enterKeyHint="send"
             autoComplete="off"
             autoCorrect="on"
+            maxLength={4000}
             className="jimvio-ai-composer max-h-32 min-h-12 w-full resize-none overflow-x-hidden overflow-y-auto rounded-full border border-[#F0C2AE] bg-white py-3 pl-11 pr-4 text-base leading-6 text-[#111827] outline-none placeholder:truncate placeholder:text-[#889096] focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/20 focus-visible:outline-none disabled:opacity-60"
           />
         </div>
         <button
           type="submit"
-          disabled={!value.trim() || disabled}
+          disabled={!value.trim() || disabled || sending}
           aria-label="Send message"
           className="grid size-12 shrink-0 place-items-center rounded-full text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50 disabled:opacity-50"
           style={{ background: JIMVIO_ORANGE }}
         >
-          {disabled ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+          {sending ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> : <Send className="size-4" />}
         </button>
       </form>
       <p className="mx-auto mt-2 max-w-3xl px-2 text-center text-[11px] leading-4 text-[#9AA0A6] sm:text-xs">
