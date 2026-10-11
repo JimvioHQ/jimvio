@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { jimvioAiAvailabilityLabel } from "@/lib/ai/chat-shared";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "./os-ui";
 
@@ -43,7 +44,7 @@ export const OsStatusBar = memo(function OsStatusBar({ notificationsCount, class
   const aiStatus = useAIStore((s) => s.status);
   const aiBusy = aiStatus === "thinking" || aiStatus === "streaming";
   const aiOffline = aiStatus === "offline";
-  const aiLabel = aiBusy ? "Thinking" : aiOffline ? "Offline" : "Ready";
+  const aiLabel = jimvioAiAvailabilityLabel(aiStatus);
   const aiTone: StatusTone = aiBusy ? "busy" : aiOffline ? "idle" : "ready";
 
   return (

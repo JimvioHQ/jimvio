@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
+import { fallbackNotice } from "@/lib/ai/chat-turn";
 import type { ParsedCampaign, ParsedCommunity, ParsedLink, ParsedProduct } from "@/lib/ai/chat-shared";
 import { stabilizeStreamingMarkdown } from "@/lib/ai/markdown-stream";
 import { AiMessageMarkdown } from "./ai-message-markdown";
@@ -144,9 +145,9 @@ export function AiChatMessage({
               {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
               {copied ? "Copied" : "Copy"}
             </button>
-            {msg.fallback ? (
+            {msg.fallback && fallbackNotice(msg.content) ? (
               <p className="w-full text-[11px] font-medium text-[#9A3412]" role="status">
-                The live model did not answer. This guide did not complete an action. Retry asks the model again.
+                {fallbackNotice(msg.content)}
               </p>
             ) : null}
             {onRegenerate && (

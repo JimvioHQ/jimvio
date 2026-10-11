@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { jimvioAiAvailabilityLabel } from "./chat-shared.ts";
 import {
   assistantActionLabel,
   completeAssistantTurn,
   failAssistantTurn,
+  fallbackNotice,
+  GUIDE_PREFIX,
+  isAppOfflineError,
   isCurrentGeneration,
+  isJimvioGuide,
+  MODEL_UNAVAILABLE_REPLY,
   prepareChatTurn,
 } from "./chat-turn.ts";
 import {
@@ -178,7 +184,9 @@ describe("chat turn ordering", () => {
     });
     assert.equal(failed[0]?.content, "Where is the wallet?");
     assert.equal(failed[1]?.content, "Open /wallet.");
+    assert.equal(failed[1]?.fallback, true);
     assert.equal(failed[1]?.thinking, false);
+    assert.match(fallbackNotice(failed[1]?.content ?? "") ?? "", /couldn't finish/);
     assert.equal(failed.filter((message) => message.role === "ai").length, 1);
   });
 
@@ -196,7 +204,7 @@ describe("chat turn ordering", () => {
       previous: null,
     });
     assert.equal(failed[0]?.content, "Where is the wallet?");
-    assert.match(failed[1]?.content ?? "", /could not finish/);
+    assert.equal(failed[1]?.content, MODEL_UNAVAILABLE_REPLY);
     assert.equal(failed[1]?.fallback, true);
     assert.equal(failed[1]?.thinking, false);
   });
@@ -214,7 +222,7 @@ describe("chat turn ordering", () => {
       content: "   ",
       fallback: false,
     });
-    assert.match(done[1]?.content ?? "", /did not answer/);
+    assert.equal(done[1]?.content, MODEL_UNAVAILABLE_REPLY);
     assert.equal(done[1]?.fallback, true);
     assert.equal(assistantActionLabel(true), "Retry");
     assert.equal(assistantActionLabel(false), "Regenerate");
@@ -238,12 +246,61 @@ describe("chat turn ordering", () => {
     assert.equal(live[1]?.fallback, false);
     assert.equal(assistantActionLabel(live[1]?.fallback), "Regenerate");
     const guide = completeAssistantTurn(started.messages, started.assistantId, {
-      content: "This is a Jimvio earning guide. The live model did not answer this turn.\n\nOpen /orders.",
+      content: `${GUIDE_PREFIX}\n\nOpen /orders.`,
       fallback: true,
     });
     assert.equal(guide[1]?.fallback, true);
-    assert.match(guide[1]?.content ?? "", /\/orders/);
+    assert.equal(isJimvioGuide(guide[1]?.content ?? ""), true);
+    assert.equal(fallbackNotice(guide[1]?.content ?? ""), null);
     assert.equal(assistantActionLabel(guide[1]?.fallback), "Retry");
+    assert.match(guide[1]?.content ?? "", /\/orders/);
+  });
+
+  it("uses one friendly message for timeout, rate limit, and an empty reply", () => {
+    const started = prepareChatTurn({
+      messages: [],
+      text: "Where can I view my orders?",
+      busy: false,
+      now: 44,
+    });
+    assert.equal(started.accepted, true);
+    if (!started.accepted) return;
+    const timedOut = failAssistantTurn(started.messages, started.assistantId, {
+      timedOut: true,
+      previous: null,
+    });
+    const rejected = failAssistantTurn(started.messages, started.assistantId, {
+      timedOut: false,
+      previous: null,
+    });
+    assert.equal(timedOut[1]?.content, MODEL_UNAVAILABLE_REPLY);
+    assert.equal(rejected[1]?.content, MODEL_UNAVAILABLE_REPLY);
+    assert.equal(timedOut[0]?.content, "Where can I view my orders?");
+    assert.equal(fallbackNotice(MODEL_UNAVAILABLE_REPLY), null);
+    assert.equal(fallbackNotice("Partial"), "Jimvio AI couldn't finish this response. Please try again.");
+    assert.equal(isJimvioGuide("This is a Jimvio earning guide. The live model did not answer."), true);
+    assert.equal(isAppOfflineError(new TypeError("Failed to fetch")), true);
+    assert.equal(isAppOfflineError(new Error("503 Service Unavailable")), false);
+    const abort = new Error("aborted");
+    abort.name = "AbortError";
+    assert.equal(isAppOfflineError(abort), false);
+  });
+});
+
+describe("jimvio ai availability label", () => {
+  it("says Online while the app is up and Offline only when disconnected", () => {
+    assert.equal(jimvioAiAvailabilityLabel("ready"), "Online");
+    assert.equal(jimvioAiAvailabilityLabel("streaming"), "Responding");
+    assert.equal(jimvioAiAvailabilityLabel("thinking"), "Thinking");
+    assert.equal(jimvioAiAvailabilityLabel("offline"), "Offline");
+    const header = readFileSync(new URL("components/copilot/JimvioCopilot.tsx", root), "utf8");
+    const footer = readFileSync(new URL("components/ai/AiComposer.tsx", root), "utf8");
+    assert.match(header, /jimvioAiAvailabilityLabel/);
+    assert.equal(header.includes('"Ready"'), false);
+    assert.match(footer, /jimvio-ai-footer/);
+    assert.match(footer, /text-\[10px\]/);
+    assert.match(footer, /text-center/);
+    assert.equal(footer.includes("sm:text-xs"), false);
   });
 });
 
@@ -364,7 +421,8 @@ describe("copilot route safety", () => {
     assert.match(route, /geminiAttemptOrder/);
     assert.match(route, /v1beta\/models/);
     assert.match(route, /category: "fallback"|\"fallback\"/);
-    assert.match(route, /This is a Jimvio earning guide/);
+    assert.match(route, /GUIDE_PREFIX/);
+    assert.equal(route.includes("The live model did not answer"), false);
     assert.equal(route.includes("openai"), false);
     assert.equal(route.includes("OPENAI"), false);
     assert.equal(route.includes("service_role"), false);

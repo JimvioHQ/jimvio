@@ -53,6 +53,7 @@ import {
   Wand2,
   type LucideIcon,
 } from "lucide-react";
+import { MODEL_UNAVAILABLE_REPLY } from "@/lib/ai/chat-turn";
 import { cn } from "@/lib/utils";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
@@ -664,7 +665,7 @@ function AiPanel({
               ) : null}
               {asked && aiStatus === "offline" ? (
                 <p role="alert" className="flex flex-wrap items-center gap-2 text-[12.5px] font-medium text-[#9A3412]">
-                  Jimvio AI could not finish that reply.
+                  {MODEL_UNAVAILABLE_REPLY}
                   <button
                     type="button"
                     onClick={() => ask(query)}

@@ -7,7 +7,7 @@ import { Maximize2, Minus, Sparkles, Trash2, X } from "lucide-react";
 import { JimvioAiExperience } from "@/components/ai/JimvioAiExperience";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
-import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
+import { JIMVIO_ORANGE, jimvioAiAvailabilityLabel } from "@/lib/ai/chat-shared";
 import { getCopilotContextMeta } from "@/lib/ai/copilot/context";
 import { saveCopilotReturnPath } from "@/lib/ai/copilot/session";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -19,14 +19,7 @@ function CopilotStatusDot({ status }: { status: string }) {
       : status === "offline"
         ? "bg-red-500"
         : "bg-emerald-500";
-  const label =
-    status === "streaming"
-      ? "Responding"
-      : status === "thinking"
-        ? "Thinking"
-        : status === "offline"
-          ? "Offline"
-          : "Ready";
+  const label = jimvioAiAvailabilityLabel(status);
 
   return (
     <span className="flex items-center gap-1.5 text-[11px] text-[#6B7280]">

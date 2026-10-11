@@ -126,7 +126,7 @@ export function AiComposer({
           {sending ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" /> : <Send className="size-4" />}
         </button>
       </form>
-      <p className="mx-auto mt-2 max-w-3xl px-2 text-center text-[11px] leading-4 text-[#9AA0A6] sm:text-xs">
+      <p className="jimvio-ai-footer mx-auto mt-1.5 max-w-3xl px-2 text-center text-[10px] leading-3 text-[#9AA0A6]">
         {JIMVIO_AI_FOOTER}
       </p>
     </div>

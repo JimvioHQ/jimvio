@@ -24,6 +24,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
   let buffer = "";
   let full = "";
   let fallback = false;
+  let sawDone = false;
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -39,11 +40,16 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
       }
-      if (parsed.done) break;
+      if (parsed.done) {
+        sawDone = true;
+        break;
+      }
     }
     buffer += decoder.decode();
     if (buffer.trim()) {
       const parsed = parseSseBuffer(`${buffer}\n\n`);
+      fallback = fallback || parsed.fallback;
+      if (parsed.done) sawDone = true;
       if (parsed.text) {
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
@@ -53,6 +59,10 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
     reader.releaseLock();
   }
 
+  if (!sawDone) fallback = true;
+  if (!full.trim()) {
+    throw new Error("Jimvio AI is unavailable right now.");
+  }
   const triggers = parseAiTriggers(full);
   yield {
     type: "metadata",

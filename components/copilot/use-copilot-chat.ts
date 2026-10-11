@@ -6,7 +6,9 @@ import { planGuideTurn, writePendingAction } from "@/lib/ai/action-guide";
 import {
   completeAssistantTurn,
   failAssistantTurn,
+  isAppOfflineError,
   isCurrentGeneration,
+  isJimvioGuide,
   prepareChatTurn,
 } from "@/lib/ai/chat-turn";
 import { parseAiTriggers, stripTriggersForDisplay } from "@/lib/ai/chat-shared";
@@ -311,8 +313,7 @@ export function useCopilotChat() {
           if (!isCurrentGeneration(generationRef.current, generation)) return;
           const parsed = parseAiTriggers(fullContent);
           const content = metadata.content || parsed.cleaned || stripTriggersForDisplay(fullContent);
-          const guide =
-            Boolean(metadata.fallback) || content.startsWith("This is a Jimvio earning guide.");
+          const guide = Boolean(metadata.fallback) || isJimvioGuide(content);
           setMessages((prev) =>
             completeAssistantTurn(prev, aiId, { content, fallback: guide }).map((m) =>
               m.id === aiId
@@ -330,13 +331,13 @@ export function useCopilotChat() {
             ),
           );
           setStatus("ready");
-        } catch {
+        } catch (error) {
           if (!isCurrentGeneration(generationRef.current, generation)) return;
           const timedOut = request.signal.aborted;
           setMessages((prev) =>
             failAssistantTurn(prev, aiId, { timedOut, previous: replaced }),
           );
-          setStatus("offline");
+          setStatus(isAppOfflineError(error) ? "offline" : "ready");
         } finally {
           if (isCurrentGeneration(generationRef.current, generation)) {
             sendingRef.current = false;

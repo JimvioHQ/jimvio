@@ -71,7 +71,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
                 {
                   delta: {
                     content:
-                      "This is a Jimvio earning guide. The live model did not answer this turn.\n\nBuyers review orders at /orders.",
+                      "Jimvio guide. This is not a live answer.\n\nBuyers review orders at /orders.",
                   },
                 },
               ],
@@ -103,7 +103,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
     await expect(retry).toBeVisible();
     await retry.focus();
     await expect(retry).toBeFocused();
-    await expect(page.getByRole("status")).toContainText("The live model did not answer");
+    await expect(page.getByText("Jimvio guide. This is not a live answer.")).toBeVisible();
     await expect(page.getByText("/orders")).toBeVisible();
 
     await retry.click();
@@ -159,11 +159,13 @@ test.describe("Jimvio AI retry and regenerate", () => {
     await expect(regenerate).toBeEnabled();
     await ask(page, "Where can I view my orders?");
     await expect(regenerate).toBeDisabled();
-    await expect(page.getByText("Jimvio AI is unavailable right now")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Jimvio AI couldn't generate a response right now. Please try again.")).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByText("Open /wallet for the balance already shown.")).toBeVisible();
     await expect(page.getByText("Where can I view my wallet?", { exact: true })).toHaveCount(1);
     await expect(page.getByText("Where can I view my orders?", { exact: true })).toHaveCount(1);
-    await expect(page.getByText("could not finish that reply")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry this answer" })).toBeVisible();
 
     await regenerate.click();
     await expect(page.getByText("Open /wallet for the balance already shown.")).toBeVisible();
@@ -183,6 +185,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
     await ask(page, "How do I check shipping?");
     await expect(page.getByText("Partial")).toBeVisible();
     await expect(page.getByText("Jimvio AI is typing")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Regenerate this answer" })).toBeVisible();
+    await expect(page.getByText("Jimvio AI couldn't finish this response. Please try again.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry this answer" })).toBeVisible();
   });
 });

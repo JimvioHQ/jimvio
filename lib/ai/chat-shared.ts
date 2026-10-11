@@ -1,6 +1,14 @@
 export const JIMVIO_ORANGE = "#FF5A1F";
 export const JIMVIO_AI_FOOTER =
   "Your Growth, Powered by Jimvio AI. Discover opportunities. Make smarter moves. Grow with confidence.";
+
+/** Widget availability. A model miss does not make the app offline. */
+export function jimvioAiAvailabilityLabel(status: string): "Online" | "Thinking" | "Responding" | "Offline" {
+  if (status === "streaming") return "Responding";
+  if (status === "thinking") return "Thinking";
+  if (status === "offline") return "Offline";
+  return "Online";
+}
 export const MAX_CHAT_HISTORY = 10;
 export const AI_CACHE_TTL_MS = 5 * 60 * 1000;
 

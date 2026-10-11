@@ -18,9 +18,30 @@ export type PreparedTurn =
       assistantId: string;
     };
 
-export const EMPTY_REPLY = "The live model did not answer. Your question is still here.";
-export const TIMEOUT_REPLY = "Jimvio AI took too long. Your message is still here.";
-export const FAILED_REPLY = "Jimvio AI could not finish that reply. Your message is still here.";
+export const MODEL_UNAVAILABLE_REPLY =
+  "Jimvio AI couldn't generate a response right now. Please try again.";
+export const GUIDE_PREFIX = "Jimvio guide. This is not a live answer.";
+export const INTERRUPTED_REPLY = "Jimvio AI couldn't finish this response. Please try again.";
+export const EMPTY_REPLY = MODEL_UNAVAILABLE_REPLY;
+export const TIMEOUT_REPLY = MODEL_UNAVAILABLE_REPLY;
+export const FAILED_REPLY = MODEL_UNAVAILABLE_REPLY;
+
+export function isJimvioGuide(content: string): boolean {
+  const text = content.trimStart();
+  return text.startsWith(GUIDE_PREFIX) || text.startsWith("This is a Jimvio earning guide.");
+}
+
+/** Extra note for a partial reply. A full guide or the standard failure already says what happened. */
+export function fallbackNotice(content: string): string | null {
+  const text = content.trim();
+  if (!text || text === MODEL_UNAVAILABLE_REPLY || isJimvioGuide(text)) return null;
+  return INTERRUPTED_REPLY;
+}
+
+export function isAppOfflineError(error: unknown): boolean {
+  if (!(error instanceof Error) || error.name === "AbortError") return false;
+  return error instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(error.message);
+}
 
 export function assistantActionLabel(fallback: boolean | undefined): "Retry" | "Regenerate" {
   return fallback ? "Retry" : "Regenerate";
@@ -61,6 +82,7 @@ export function failAssistantTurn<T extends TurnMessage & { fallback?: boolean }
         id: message.id,
         thinking: false,
         streaming: false,
+        fallback: true,
       };
     }
     return {

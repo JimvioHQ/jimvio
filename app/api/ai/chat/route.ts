@@ -20,6 +20,7 @@ import {
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
+import { GUIDE_PREFIX } from "@/lib/ai/chat-turn";
 import { buildGroundedPrompt, retrieveJimvioKnowledge } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseMode } from "@/lib/ai/sse";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -85,7 +86,7 @@ function buildGuideResponse(messages: ChatMessage[]): string {
   const body = specificEarningPath
     ? earned
     : `${knowledge}\n\nI can't see this account, its orders, payments, or verification from chat.`;
-  return `This is a Jimvio earning guide. The live model did not answer this turn.\n\n${body}`;
+  return `${GUIDE_PREFIX}\n\n${body}`;
 }
 
 function streamText(text: string, mode: "live" | "guide" = "guide") {
