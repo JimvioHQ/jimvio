@@ -152,7 +152,7 @@ function FeaturedCopy({
       <div className="flex flex-wrap gap-1.5 sm:gap-2">
         {canJoin ? (
           <JoinCampaignGateLink
-            href={`/ugc/${campaign.id}/join`}
+            href={`/ugc/${campaign.id}`}
             data-hero-action
             onClick={(e) => e.stopPropagation()}
           >

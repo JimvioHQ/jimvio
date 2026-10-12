@@ -137,3 +137,23 @@ describe("ugc campaign detail honesty", () => {
     assert.doesNotMatch(header, />\s*[<>]\s*</);
   });
 });
+
+describe("ugc discover campaign navigation", () => {
+  it("sends featured and card Join campaign actions to details without a join mutation", () => {
+    const featured = readFileSync(
+      join(process.cwd(), "components/ugc/workspace/UGCFeaturedHeader.tsx"),
+      "utf8",
+    );
+    const card = readFileSync(
+      join(process.cwd(), "components/ugc/workspace/UGCPremiumCampaignCard.tsx"),
+      "utf8",
+    );
+    assert.match(featured, /href=\{`\/ugc\/\$\{campaign\.id\}`\}/);
+    assert.doesNotMatch(featured, /\/ugc\/\$\{campaign\.id\}\/join/);
+    assert.doesNotMatch(featured, /\/api\/ugc\/campaigns\//);
+    assert.match(card, /const joinHref = briefHref/);
+    assert.match(card, /const briefHref = `\/ugc\/\$\{c\.id\}`/);
+    assert.doesNotMatch(card, /\/ugc\/\$\{c\.id\}\/join/);
+    assert.doesNotMatch(card, /\/api\/ugc\/campaigns\//);
+  });
+});

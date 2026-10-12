@@ -71,8 +71,8 @@ function UGCPremiumCampaignCardInner({
   const isVerified = c.vendor?.verification_status === "verified";
   const brand = c.vendor?.business_name ?? "Brand";
   const canJoin = c.status === "active" && lifecycle !== "ended";
-  const joinHref = `/ugc/${c.id}/join`;
   const briefHref = `/ugc/${c.id}`;
+  const joinHref = briefHref;
   const totalBudget = Number(c.total_budget ?? 0);
   const spentBudget = Number(c.spent_budget ?? 0);
   const showBudget = totalBudget > 0;
