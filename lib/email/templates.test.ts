@@ -144,8 +144,9 @@ describe("Jimvio email templates", () => {
     assert.match(reset, /Reset your /);
     assert.match(reset, /10 minutes/);
     assert.match(reset, /Reset Password/);
-    assert.match(confirm, /jimvio-logo-mark\.png/);
-    assert.match(confirm, /alt="Jimvio"/);
+    assert.equal(confirm.includes("jimvio-logo-mark.png"), false);
+    assert.equal(reset.includes("jimvio-logo-mark.png"), false);
+    assert.match(confirm, /email\/icons\//);
     assert.match(confirm, /https:\/\/www\.instagram\.com\/jimvioofficial\?dlrf=/);
     assert.match(confirm, /https:\/\/www\.tiktok\.com\/@jimvioofficial/);
     assert.match(confirm, /https:\/\/www\.linkedin\.com\/company\/jimvio\//);

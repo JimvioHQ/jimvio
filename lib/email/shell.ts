@@ -1,5 +1,4 @@
 import {
-  EMAIL_ASSET_ORIGIN,
   EMAIL_COLORS as C,
   EMAIL_SOCIAL,
   emailIconUrl,
@@ -73,12 +72,6 @@ function safeHttpUrl(url: string, trusted = false): string | null {
 function img(base: string, name: EmailIconName, size: number, alt: string): string {
   const src = escapeAttr(emailIconUrl(base, name));
   return `<img src="${src}" width="${size}" height="${size}" alt="${escapeAttr(alt)}" style="display:block;border:0;outline:none;text-decoration:none;width:${size}px;height:${size}px;" />`;
-}
-
-function logoMark(base: string): string {
-  const origin = base.startsWith("https://") ? base : EMAIL_ASSET_ORIGIN;
-  const src = escapeAttr(`${origin}/jimvio-logo-mark.png`);
-  return `<img src="${src}" width="48" height="48" alt="Jimvio" style="display:block;border:0;outline:none;text-decoration:none;width:48px;height:48px;border-radius:12px;" />`;
 }
 
 function supabaseOtpRow(): string {
@@ -276,12 +269,6 @@ export function renderJimvioEmail(input: JimvioEmailContent): { html: string; te
     <tr><td align="center" style="padding:28px 12px;">
       <table role="presentation" class="card" width="600" cellspacing="0" cellpadding="0" style="width:600px;max-width:600px;background:${C.white};border-radius:28px;border:1px solid #EEF2F6;">
         <tr><td align="center" style="padding:36px 28px 8px;">
-          <table role="presentation" cellspacing="0" cellpadding="0" align="center" style="margin:0 auto 8px;">
-            <tr>
-              <td valign="middle">${logoMark(base)}</td>
-              <td valign="middle" style="padding-left:10px;font-size:18px;line-height:1;font-weight:800;letter-spacing:-0.03em;color:${C.navy};">Jimvio</td>
-            </tr>
-          </table>
           <table role="presentation" cellspacing="0" cellpadding="0" align="center">
             <tr>
               <td width="36" valign="middle" align="center" style="color:${C.orange};font-size:14px;line-height:1;">&#10022;</td>
