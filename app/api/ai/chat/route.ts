@@ -20,6 +20,7 @@ import {
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
+import { greetingReply, isSimpleGreeting } from "@/lib/ai/guide-copy";
 import { buildGuideResponse } from "@/lib/ai/guide-reply";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseError, sseMode } from "@/lib/ai/sse";
@@ -285,6 +286,11 @@ export async function POST(req: NextRequest) {
 
     if (messages.some((item) => isConfidentialAiRequest(item.content))) {
       return streamText(CONFIDENTIAL_AI_REFUSAL, "guide");
+    }
+
+    const latest = messages[messages.length - 1]?.content ?? "";
+    if (isSimpleGreeting(latest)) {
+      return streamText(greetingReply(latest), "live");
     }
 
     const cacheKey = buildCacheKey(messages);

@@ -541,8 +541,9 @@ describe("copilot route safety", () => {
   it("keeps Gemini, rate limits, and does not fall back to another provider", () => {
     const route = readFileSync(new URL("app/api/ai/chat/route.ts", root), "utf8");
     const guardAt = route.indexOf("isConfidentialAiRequest");
+    const greetingAt = route.indexOf("isSimpleGreeting");
     const geminiAt = route.indexOf("openGeminiResponse(messages");
-    assert.ok(guardAt > 0 && geminiAt > guardAt);
+    assert.ok(guardAt > 0 && greetingAt > guardAt && geminiAt > greetingAt);
     assert.match(route, /rateLimit\(`ai-chat:/);
     assert.match(route, /geminiAttemptOrder/);
     assert.match(route, /v1beta\/models/);
