@@ -571,12 +571,27 @@ const rewardOut = path.join(os.tmpdir(), `submission-reward-final-prod-${process
   });
   fs.writeFileSync(rewardOut, outputText);
 }
+const notifyOut = path.join(os.tmpdir(), `notify-user-final-prod-${process.pid}.mjs`);
+fs.writeFileSync(
+  notifyOut,
+  `export const calls = [];
+export async function notifyUser(_db, input) {
+  calls.push(input);
+  return { ok: true, emailed: false };
+}
+`,
+);
 const creditMod = await loadTs("lib/ugc/credit-fixed-payout.ts", [
   [
     /from ["']@\/lib\/ugc\/submission-reward["']/,
     `from ${JSON.stringify(pathToFileURL(rewardOut).href)}`,
   ],
+  [
+    /import\(["']@\/lib\/notifications\/notify-user["']\)/,
+    `import(${JSON.stringify(pathToFileURL(notifyOut).href)})`,
+  ],
 ]);
+const notifyMod = await import(pathToFileURL(notifyOut).href);
 
 {
   const db = createMemDb(seedMoney());
@@ -592,6 +607,9 @@ const creditMod = await loadTs("lib/ugc/credit-fixed-payout.ts", [
   assert.equal(db._tables.ugc_payouts.length, 1);
   assert.equal(db._tables.influencers[0].available_balance, 60);
   assert.equal(db._tables.wallets[0].available_balance, 70);
+  assert.equal(notifyMod.calls.length, 1);
+  assert.equal(notifyMod.calls[0].email.kind, "creator_reward_paid");
+  assert.equal(notifyMod.calls[0].email.idempotencyKey, "ugc.reward.paid:sub-1");
 
   const second = await creditMod.creditFixedPayoutIfNeeded(db, {
     submissionId: "sub-1",
