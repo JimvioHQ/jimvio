@@ -1,7 +1,13 @@
 "use server";
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { setReferralCookies, resolveReferralCode } from "@/lib/affiliate/attribution";
+import { cookies } from "next/headers";
+import {
+  AFFILIATE_REF_COOKIE,
+  setReferralCookies,
+  resolveReferralCode,
+} from "@/lib/affiliate/attribution";
+import { isRepeatReferralHit } from "@/lib/affiliate/tracking-guard";
 
 /**
  * Captures a referral visit, sets first/last-touch cookies, and records a click when possible.
@@ -39,31 +45,21 @@ export async function recordReferralVisit(code: string, pathname?: string) {
     }
   }
 
-  if (linkId) {
+  const jar = await cookies();
+  const repeat = isRepeatReferralHit(jar.get(AFFILIATE_REF_COOKIE)?.value, resolved.referralCode);
+  if (linkId && !repeat) {
     const { error: clickError } = await supabase.rpc("record_affiliate_click", {
       p_link_id: linkId,
       p_affiliate_id: resolved.affiliateId,
       p_campaign_id: resolved.campaignId,
       p_ip: null,
       p_user_agent: null,
-      p_referrer: pathname ?? null,
+      p_referrer: pathname?.slice(0, 500) ?? null,
       p_device_type: null,
-      p_session_key: null,
+      p_session_key: jar.get("jimvio_sid")?.value ?? null,
     });
     if (clickError) {
       console.warn("[recordReferralVisit] click RPC failed:", clickError.message);
-    }
-  } else {
-    const { data: aff } = await supabase
-      .from("affiliates")
-      .select("total_clicks")
-      .eq("id", resolved.affiliateId)
-      .maybeSingle();
-    if (aff) {
-      await supabase
-        .from("affiliates")
-        .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
-        .eq("id", resolved.affiliateId);
     }
   }
 

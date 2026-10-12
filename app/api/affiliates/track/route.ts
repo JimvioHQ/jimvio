@@ -8,6 +8,11 @@ import {
   attributionCookieOptions,
   DEFAULT_ATTRIBUTION_WINDOW_DAYS,
 } from "@/lib/affiliate/attribution";
+import {
+  isLikelyAutomatedClick,
+  isRepeatReferralHit,
+  safeAffiliateDestination,
+} from "@/lib/affiliate/tracking-guard";
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,37 +27,46 @@ export async function GET(req: NextRequest) {
 
     const { data: link } = await supabase
       .from("affiliate_links")
-      .select("id, affiliate_id, campaign_id, destination_url, product_id, is_active")
+      .select("id, affiliate_id, campaign_id, destination_url, product_id, is_active, expires_at")
       .eq("link_code", linkCode)
       .single();
 
     if (!link || !link.is_active) {
       return NextResponse.redirect(new URL("/marketplace", req.url));
     }
+    if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
+      return NextResponse.redirect(new URL("/marketplace", req.url));
+    }
 
-    const ip =
+    const rawIp =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip");
+      req.headers.get("x-real-ip") ||
+      "";
+    const ipv4 = rawIp.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    const ip = ipv4 ? `${ipv4[1]}.${ipv4[2]}.${ipv4[3]}.0` : null;
     const userAgent = req.headers.get("user-agent") || "";
     const referer = req.headers.get("referer") || "";
     const deviceType = /mobile|android|iphone|ipad/i.test(userAgent) ? "mobile" : "desktop";
-    const sessionKey =
-      req.cookies.get("jimvio_sid")?.value ||
-      ip ||
-      null;
+    const sessionKey = req.cookies.get("jimvio_sid")?.value || ip;
+    const repeat = isRepeatReferralHit(req.cookies.get(AFFILIATE_REF_COOKIE)?.value, linkCode);
 
-    await supabase.rpc("record_affiliate_click", {
-      p_link_id: link.id,
-      p_affiliate_id: link.affiliate_id,
-      p_campaign_id: link.campaign_id,
-      p_ip: ip,
-      p_user_agent: userAgent,
-      p_referrer: referer,
-      p_device_type: deviceType,
-      p_session_key: sessionKey,
-    });
+    if (!repeat && !isLikelyAutomatedClick(userAgent)) {
+      const { error: clickError } = await supabase.rpc("record_affiliate_click", {
+        p_link_id: link.id,
+        p_affiliate_id: link.affiliate_id,
+        p_campaign_id: link.campaign_id,
+        p_ip: ip,
+        p_user_agent: userAgent.slice(0, 400),
+        p_referrer: referer.slice(0, 500),
+        p_device_type: deviceType,
+        p_session_key: sessionKey,
+      });
+      if (clickError) {
+        console.warn("[affiliate-track] click recording failed:", clickError.message || clickError);
+      }
+    }
 
-    const redirectUrl = new URL(link.destination_url, req.url);
+    const redirectUrl = new URL(safeAffiliateDestination(link.destination_url, req.url), req.url);
     redirectUrl.searchParams.set("_aff", linkCode);
 
     const response = NextResponse.redirect(redirectUrl);

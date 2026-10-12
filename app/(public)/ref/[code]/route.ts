@@ -8,6 +8,11 @@ import {
   attributionCookieOptions,
   DEFAULT_ATTRIBUTION_WINDOW_DAYS,
 } from "@/lib/affiliate/attribution";
+import {
+  isLikelyAutomatedClick,
+  isRepeatReferralHit,
+  safeAffiliateDestination,
+} from "@/lib/affiliate/tracking-guard";
 
 /** Privacy-safe IP retention: IPv4 /24 only (inet-safe). */
 function truncateIpForPrivacy(ip: string | null | undefined): string | null {
@@ -52,7 +57,7 @@ export async function GET(
     linkId = link.id;
     affiliateId = link.affiliate_id;
     campaignId = link.campaign_id;
-    destination = link.destination_url || "/marketplace";
+    destination = safeAffiliateDestination(link.destination_url, request.url);
     cookieCode = link.link_code || code;
   } else if (code.startsWith("CMP-")) {
     const { data: campaign } = await supabase
@@ -83,7 +88,7 @@ export async function GET(
       linkId = link.id;
       affiliateId = link.affiliate_id;
       campaignId = link.campaign_id;
-      destination = link.destination_url || "/marketplace";
+      destination = safeAffiliateDestination(link.destination_url, request.url);
       cookieCode = link.link_code || code;
     } else {
       const { data: aff } = await supabase
@@ -116,8 +121,11 @@ export async function GET(
     ) ||
     null;
 
+  const repeat = isRepeatReferralHit(request.cookies.get(AFFILIATE_REF_COOKIE)?.value, cookieCode);
+  const automated = isLikelyAutomatedClick(userAgent);
+
   try {
-    if (linkId && affiliateId) {
+    if (linkId && affiliateId && !repeat && !automated) {
       const { error: clickError } = await supabase.rpc("record_affiliate_click", {
         p_link_id: linkId,
         p_affiliate_id: affiliateId,
@@ -130,41 +138,6 @@ export async function GET(
       });
       if (clickError) {
         console.warn("[ref] record_affiliate_click failed:", clickError.message || clickError);
-        // Fallback: still increment denormalized counters if RPC is unavailable.
-        const { data: link } = await supabase
-          .from("affiliate_links")
-          .select("total_clicks")
-          .eq("id", linkId)
-          .maybeSingle();
-        if (link) {
-          await supabase
-            .from("affiliate_links")
-            .update({ total_clicks: Number(link.total_clicks ?? 0) + 1 })
-            .eq("id", linkId);
-        }
-        const { data: aff } = await supabase
-          .from("affiliates")
-          .select("total_clicks")
-          .eq("id", affiliateId)
-          .maybeSingle();
-        if (aff) {
-          await supabase
-            .from("affiliates")
-            .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
-            .eq("id", affiliateId);
-        }
-      }
-    } else if (affiliateId) {
-      const { data: aff } = await supabase
-        .from("affiliates")
-        .select("total_clicks")
-        .eq("id", affiliateId)
-        .maybeSingle();
-      if (aff) {
-        await supabase
-          .from("affiliates")
-          .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
-          .eq("id", affiliateId);
       }
     }
   } catch (err) {
@@ -172,7 +145,7 @@ export async function GET(
     console.warn("[ref] click recording failed:", err);
   }
 
-  const response = NextResponse.redirect(new URL(destination, request.url));
+  const response = NextResponse.redirect(new URL(safeAffiliateDestination(destination, request.url), request.url));
   const opts = attributionCookieOptions(windowDays * 24 * 60 * 60);
   if (!request.cookies.get(AFFILIATE_REF_FIRST_COOKIE)?.value) {
     response.cookies.set(AFFILIATE_REF_FIRST_COOKIE, cookieCode, opts);

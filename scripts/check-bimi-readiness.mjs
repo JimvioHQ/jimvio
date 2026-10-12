@@ -44,6 +44,27 @@ function checkSvg(text) {
 
 checkSvg(readFileSync(svgPath, "utf8"));
 
+record(
+  "logo-public-use-12-months",
+  "UNVERIFIED",
+  "human evidence required: exact orange square mark publicly used on or before 2025-10-12",
+);
+record(
+  "dmarc-enforcement-age",
+  "UNVERIFIED",
+  "human or historical DNS evidence required: GlobalSign asks for 30 days at quarantine or reject",
+);
+record(
+  "organization-and-logo-ownership",
+  "UNVERIFIED",
+  "human evidence required: organization identity and logo-rights documents",
+);
+record(
+  "received-message-alignment",
+  "UNVERIFIED",
+  "human evidence required: Authentication-Results from a received Jimvio message",
+);
+
 if (live) {
   const resolver = new Resolver();
   resolver.setServers(["8.8.8.8", "1.1.1.1"]);

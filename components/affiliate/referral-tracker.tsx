@@ -14,8 +14,6 @@ function ReferralCapture() {
 
   useEffect(() => {
     if (ref) {
-      console.log(`[ReferralCapture] Found ref: ${ref}, pathname: ${window.location.pathname}`);
-      // 1. Record visit via server action (sets cookie internally)
       recordReferralVisit(ref, window.location.pathname);
       
       // 2. Clean up URL (optional but cleaner)
