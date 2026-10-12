@@ -8,7 +8,6 @@ import {
   resolveJoinMode,
   resolveJoinOutcome,
   type JoinConfig,
-  type UGCJoinMode,
 } from "@/lib/ugc/join-engine";
 import { logJoinAudit } from "@/lib/ugc/join-audit";
 import {
@@ -96,6 +95,34 @@ type ProcessJoinInput = {
   existingParticipant?: { id: string; status: string } | null;
 };
 
+/** Pre-insert guard. Withdrawn and rejected creators may apply again. */
+export function blockExistingParticipant(
+  status: string | null | undefined,
+): { status: 409; error: string } | null {
+  if (!status) return null;
+  if (status === "withdrawn" || status === "rejected") return null;
+  if (status === "accepted") {
+    return { status: 409, error: "You are already a participant in this campaign." };
+  }
+  if (status === "pending" || status === "waitlisted" || status === "invited") {
+    return {
+      status: 409,
+      error: "You already have an active application for this campaign.",
+    };
+  }
+  return { status: 409, error: "You are already a participant in this campaign." };
+}
+
+/** Unique participant row. Same message as the pre-insert guard. */
+export function participantConflictFromDb(
+  error: { code?: string } | null | undefined,
+): { status: 409; error: string } | null {
+  if (error?.code === "23505") {
+    return { status: 409, error: "You are already a participant in this campaign." };
+  }
+  return null;
+}
+
 function isCapacityFullError(err: { message?: string; code?: string; hint?: string } | null | undefined): boolean {
   if (!err) return false;
   const msg = `${err.message ?? ""} ${err.hint ?? ""}`.toLowerCase();
@@ -159,24 +186,8 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
     };
   }
 
-  if (existingParticipant) {
-    const terminal = ["accepted", "pending", "waitlisted", "invited"];
-    if (terminal.includes(existingParticipant.status)) {
-      return {
-        ok: false as const,
-        status: 409,
-        error:
-          existingParticipant.status === "accepted"
-            ? "You are already a participant in this campaign."
-            : "You already have an active application for this campaign.",
-      };
-    }
-    if (existingParticipant.status === "withdrawn" || existingParticipant.status === "rejected") {
-      // allow re-apply by updating row below
-    } else {
-      return { ok: false as const, status: 409, error: "You are already a participant in this campaign." };
-    }
-  }
+  const duplicate = blockExistingParticipant(existingParticipant?.status);
+  if (duplicate) return { ok: false as const, ...duplicate };
 
   const outcome = resolveJoinOutcome(
     mode,
@@ -232,13 +243,8 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
       if (isCapacityFullError(error)) {
         return { ok: false as const, status: 409, error: "Campaign is full." };
       }
-      if (error.code === "23505") {
-        return {
-          ok: false as const,
-          status: 409,
-          error: "You are already a participant in this campaign.",
-        };
-      }
+      const conflict = participantConflictFromDb(error);
+      if (conflict) return { ok: false as const, ...conflict };
       const { data: fallback, error: fallbackErr } = await db
         .from("ugc_campaign_participants")
         .insert({
@@ -253,13 +259,8 @@ export async function processCampaignJoin(input: ProcessJoinInput) {
         if (isCapacityFullError(fallbackErr)) {
           return { ok: false as const, status: 409, error: "Campaign is full." };
         }
-        if (fallbackErr.code === "23505") {
-          return {
-            ok: false as const,
-            status: 409,
-            error: "You are already a participant in this campaign.",
-          };
-        }
+        const fallbackConflict = participantConflictFromDb(fallbackErr);
+        if (fallbackConflict) return { ok: false as const, ...fallbackConflict };
         return { ok: false as const, status: 500, error: fallbackErr.message };
       }
       participantId = fallback.id;

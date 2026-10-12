@@ -25,9 +25,8 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
 import { ProgressBar } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { useLocale } from "@/context/LocaleContext";
-import {
-  getCampaignRewardLine,
-} from "@/components/ugc/workspace/ugc-campaign-utils";
+import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
+import { campaignAgreementLines } from "@/lib/ugc/campaign-detail";
 import { createClient } from "@/lib/supabase/client";
 import {
   loginUrlForReturnPath,
@@ -53,7 +52,7 @@ export function CampaignJoinFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [understood, setUnderstood] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<null | { title: string; body: string; href: string }>(null);
   const [termsAccepted, setTermsAccepted] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState<Record<string, string>>({});
 
@@ -165,11 +164,24 @@ export function CampaignJoinFlow() {
         toast.error(json.error ?? t("couldNotJoinCampaign"));
         return;
       }
+      const accepted = json.status === "accepted" || json.autoApproved === true;
+      const href =
+        typeof json.redirectTo === "string" && json.redirectTo.startsWith("/")
+          ? json.redirectTo
+          : accepted
+            ? `/ugc/${id}/dashboard`
+            : `/ugc/${id}/application`;
       setConfirmOpen(false);
-      setSuccess(true);
-      toast.success(json.message ?? t("applicationSubmitted"));
+      setSuccess({
+        title: accepted ? t("youreIn") : json.message || t("applicationSubmitted"),
+        body: accepted
+          ? "You are on this campaign. Open it to continue work. This is not a payout."
+          : "The brand still has to review this application. Submitting is not acceptance or payment.",
+        href,
+      });
+      toast.success(json.message ?? (accepted ? t("youreIn") : t("applicationSubmitted")));
       window.setTimeout(() => {
-        router.push("/ugc/campaigns");
+        router.push(href);
       }, 1600);
     } catch {
       toast.error(t("networkRetry"));
@@ -207,19 +219,8 @@ export function CampaignJoinFlow() {
           ? t("smartApply")
           : t("applicationRequired");
 
-  const reqLines = [
-    campaign.min_duration || campaign.max_duration
-      ? t("durationRange", {
-          min: campaign.min_duration ?? 0,
-          max: campaign.max_duration ?? "∞",
-        })
-      : t("flexibleDuration"),
-    (campaign.allowed_platforms ?? []).join(", ") || t("anyPlatform"),
-    campaign.requires_face ? t("onCameraRequired") : t("faceOptional"),
-    campaign.ends_at
-      ? t("completeBy", { date: new Date(campaign.ends_at).toLocaleDateString() })
-      : t("flexibleTimeline"),
-  ];
+  const reqLines = campaignAgreementLines(campaign);
+  const campaignOpen = campaign.status === "active";
 
   const eligibilityLabel =
     ctx.eligibility.level === "eligible"
@@ -261,10 +262,8 @@ export function CampaignJoinFlow() {
             >
               <Check className="h-8 w-8" strokeWidth={2.5} />
             </motion.div>
-            <h1 className="mt-5 text-[24px] font-bold text-[#111827]">{t("youreIn")}</h1>
-            <p className="mt-2 text-[14px] text-[#6B7280]">
-              {t("takingYouToApplications")}
-            </p>
+            <h1 className="mt-5 text-[24px] font-bold text-[#111827]">{success.title}</h1>
+            <p className="mt-2 text-[14px] text-[#6B7280]">{success.body}</p>
           </motion.div>
         ) : (
           <motion.div
@@ -273,6 +272,12 @@ export function CampaignJoinFlow() {
             animate={{ opacity: 1, y: 0 }}
             className="mx-auto max-w-3xl min-w-0 space-y-5 px-4 py-6"
           >
+            {!campaignOpen ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] text-amber-900" role="status">
+                This campaign is {campaign.status}. Joining is closed.
+              </p>
+            ) : null}
+
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
               <h1 className="break-words text-xl font-bold text-[#111827]">{campaign.title}</h1>
               <p className="mt-1 text-sm text-[#6B7280]">
@@ -381,16 +386,34 @@ export function CampaignJoinFlow() {
               </div>
             </div>
 
+            {reqLines.length > 0 ? (
+              <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
+                <h2 className="text-[15px] font-bold text-[#111827]">What you are agreeing to</h2>
+                <ul className="mt-3 space-y-1.5">
+                  {reqLines.map((line) => (
+                    <li key={line} className="text-[13px] leading-relaxed text-[#374151]">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-[12px] text-[#6B7280]">
+                  {needsApplication
+                    ? "This sends an application. The brand decides whether to accept you."
+                    : "Instant join still requires the brand to approve each submission before a reward is quoted."}
+                </p>
+              </div>
+            ) : null}
+
             <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
               <p className="text-[12px] leading-relaxed text-emerald-800">
-                {t("escrowProtectsJoin")}
+                {t("escrowProtectsJoin")} Approval comes before any reward. This page does not promise a payout date.
               </p>
             </div>
 
             <button
               type="button"
-              disabled={!canOpenConfirm || ctx.joinMode === "invite_only"}
+              disabled={!campaignOpen || !canOpenConfirm || ctx.joinMode === "invite_only" || submitting}
               onClick={() => {
                 setUnderstood(false);
                 setConfirmOpen(true);

@@ -229,13 +229,13 @@ export function UGCDiscoverPage() {
   const showFeaturedSkeleton = !hasFilters && featuredLoading;
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10 pt-1">
-      <div className="mb-4 min-w-0 max-w-full">
-      <header className="ugc-discover-heading mb-3 min-w-0 max-w-full sm:mb-4 sm:max-w-md">
-        <h1 className="max-w-full break-words text-[22px] font-semibold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[28px] lg:text-[30px] dark:text-[#F9FAFB]">
+    <div className="ugc-discover-page mx-auto w-full min-w-0 max-w-[1440px] overflow-x-clip pb-10">
+      <div className="mb-5 min-w-0 max-w-full">
+      <header className="ugc-discover-heading mb-4 min-w-0 max-w-full sm:mb-5">
+        <h1 className="max-w-full break-words text-[28px] font-bold leading-tight tracking-[-0.03em] text-[#111827] sm:text-[32px] dark:text-[#F9FAFB]">
           UGC & Clipping
         </h1>
-        <p className="mt-1 max-w-full break-words text-[13px] leading-snug text-[#64748B] sm:text-[14px] dark:text-[#D1D5DB]">
+        <p className="mt-1 max-w-full break-words text-[14px] leading-snug text-[#9CA3AF] sm:text-[15px]">
           Featured campaigns / creator opportunities
         </p>
       </header>

@@ -16,7 +16,6 @@ import {
   buildFaqs,
   buildResources,
   buildTimeline,
-  getAspectRatioForPlatform,
   getCampaignCategory,
   getRewardType,
   type CreatorProfileSnapshot,
@@ -91,6 +90,11 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           <Pill tone="neutral">{getCampaignCategory(campaign)}</Pill>
         </div>
         <p className="text-[22px] font-bold tabular-nums text-[#111827]">{rewardLine}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-[#64748B]">
+          {campaign.payment_model === "per_views"
+            ? "Paid on approved views, per 1,000. This rate is not money already earned."
+            : "Paid per approved clip. This rate is not money already earned."}
+        </p>
         {campaign.max_payout_per_sub ? (
           <p className="mt-1 text-[13px] text-[#64748B]">
             Cap per submission: {formatMoney(campaign.max_payout_per_sub, "USD")}
@@ -122,65 +126,29 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           {eligibility.requirements.map((r) => (
             <ChecklistItem key={r.id} label={r.label} met={r.met} detail={r.detail} />
           ))}
-          <ChecklistItem
-            label="Followers"
-            met={!profile?.hasProfile || (profile.totalFollowers ?? 0) >= 0}
-            detail={
-              profile?.totalFollowers != null
-                ? `${profile.totalFollowers.toLocaleString()} followers`
-                : "No minimum disclosed"
-            }
-          />
-          <ChecklistItem
-            label="Category match"
-            met={
-              !profile?.niche?.length ||
-              profile.niche.some((n) =>
-                getCampaignCategory(campaign).toLowerCase().includes(n.toLowerCase()),
-              )
-            }
-            detail={profile?.niche?.join(", ") || "Open to all niches"}
-          />
-          <ChecklistItem
-            label="Account age"
-            met={!profile?.accountAgeDays || profile.accountAgeDays >= 7}
-            detail={
-              profile?.accountAgeDays != null
-                ? `${profile.accountAgeDays} days on Jimvio`
-                : "Sign in to evaluate"
-            }
-          />
         </div>
+        {!profile ? (
+          <p className="mt-3 text-[12px] text-[#6B7280]">Sign in to check creator-specific rules.</p>
+        ) : null}
       </SectionCard>
 
       <SectionCard id="requirements">
         <SectionTitle>Content requirements</SectionTitle>
         <div className="grid gap-1 sm:grid-cols-2">
+          {campaign.min_duration || campaign.max_duration ? (
           <ChecklistItem
             label="Video length"
-            met={Boolean(campaign.min_duration || campaign.max_duration)}
-            detail={
-              campaign.min_duration || campaign.max_duration
-                ? `${campaign.min_duration ?? 0}s – ${campaign.max_duration ?? "∞"}s`
-                : "Flexible"
-            }
+            met
+            detail={`${campaign.min_duration ?? 0}s – ${campaign.max_duration ?? "—"}s`}
           />
-          <ChecklistItem
-            label="Face on camera"
-            met={!campaign.requires_face}
-            detail={campaign.requires_face ? "On-camera required" : "Not required"}
-          />
+          ) : null}
+          {(campaign.allowed_platforms ?? []).length > 0 ? (
           <ChecklistItem
             label="Platforms"
-            met={(campaign.allowed_platforms ?? []).length > 0}
-            detail={
-              (campaign.allowed_platforms ?? []).length > 0 ? (
-                <UGCPlatformMarks platforms={campaign.allowed_platforms ?? []} />
-              ) : (
-                "Any approved platform"
-              )
-            }
+            met
+            detail={<UGCPlatformMarks platforms={campaign.allowed_platforms ?? []} />}
           />
+          ) : null}
         </div>
         {(campaign.required_hashtags?.length ?? 0) > 0 && (
           <div className="mt-3">
@@ -208,12 +176,9 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         )}
       </SectionCard>
 
-      {/* Section 7 — Resources */}
+      {resources.length > 0 ? (
       <SectionCard id="resources">
         <SectionTitle sub="Download and preview brand assets">Resources</SectionTitle>
-        {resources.length === 0 ? (
-          <p className="text-[13px] text-[#9CA3AF]">No resources uploaded yet.</p>
-        ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {resources.map((r) => (
               <div
@@ -248,7 +213,6 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
               </div>
             ))}
           </div>
-        )}
         {previewUrl ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
             <div className="relative max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-black">
@@ -269,34 +233,52 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           </div>
         ) : null}
       </SectionCard>
+      ) : null}
 
-      {/* Section 8 — Deliverables */}
+      {(campaign.allowed_platforms ?? []).length > 0 ||
+      campaign.min_duration ||
+      campaign.max_duration ||
+      campaign.ends_at ||
+      campaign.requires_face ||
+      campaign.content_guidelines ? (
       <SectionCard id="deliverables">
         <SectionTitle>Deliverables</SectionTitle>
+        {campaign.content_guidelines ? (
+          <p className="mb-3 whitespace-pre-line text-[13px] leading-relaxed text-[#4B5563]">
+            {campaign.content_guidelines}
+          </p>
+        ) : null}
         <div className="space-y-2">
-          {(campaign.allowed_platforms ?? []).length === 0 ? (
-            <p className="text-[13px] text-[#6B7280]">Publish on any approved campaign platform.</p>
-          ) : null}
           {(campaign.allowed_platforms ?? []).map((platform) => (
             <div key={platform} className="rounded-[12px] border border-[#EEF0F2] p-3">
               <div className="flex items-center gap-2">
                 <UGCPlatformMarks platforms={[platform]} />
                 <p className="text-[13px] font-semibold capitalize text-[#111827]">{platform}</p>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] text-[#6B7280]">
-                <span>Aspect: {getAspectRatioForPlatform(platform)}</span>
-                <span>
-                  Duration: {campaign.min_duration ?? "—"}s – {campaign.max_duration ?? "—"}s
-                </span>
-                <span>Deadline: {campaign.ends_at ? new Date(campaign.ends_at).toLocaleDateString() : "TBD"}</span>
-                <span>Quality: HD, native upload</span>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6B7280]">
+                {campaign.min_duration || campaign.max_duration ? (
+                  <span>
+                    Duration: {campaign.min_duration ?? "—"}s – {campaign.max_duration ?? "—"}s
+                  </span>
+                ) : null}
+                {campaign.ends_at ? (
+                  <span>Deadline: {new Date(campaign.ends_at).toLocaleDateString()}</span>
+                ) : null}
+                {campaign.requires_face ? <span>On-camera required</span> : null}
               </div>
             </div>
           ))}
+          {(campaign.allowed_platforms ?? []).length === 0 && (campaign.ends_at || campaign.requires_face) ? (
+            <p className="text-[13px] text-[#6B7280]">
+              {campaign.ends_at ? `Deadline ${new Date(campaign.ends_at).toLocaleDateString()}. ` : ""}
+              {campaign.requires_face ? "On-camera appearance is required." : ""}
+            </p>
+          ) : null}
         </div>
       </SectionCard>
+      ) : null}
 
-      {/* Section 9 — Timeline */}
+      {timeline.length > 0 ? (
       <SectionCard id="timeline">
         <SectionTitle sub="Click a date to see the full campaign brief">Campaign timeline</SectionTitle>
         <ol className="space-y-2">
@@ -347,23 +329,20 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           </div>
         ) : null}
       </SectionCard>
+      ) : null}
 
-      {/* Section 10 — FAQ */}
+      {faqs.length > 0 ? (
       <SectionCard id="faq">
-        <SectionTitle>Frequently asked questions</SectionTitle>
+        <SectionTitle>How rewards work</SectionTitle>
         {faqs.map((f) => (
           <AccordionItem key={f.q} q={f.q} a={f.a} />
         ))}
       </SectionCard>
+      ) : null}
 
-      {/* Content examples */}
+      {resources.some((r) => r.previewable) ? (
       <SectionCard id="examples">
-        <SectionTitle sub="Reference style and brand tone">Content examples</SectionTitle>
-        {resources.filter((r) => r.previewable).length === 0 ? (
-          <p className="text-[13px] text-[#6B7280]">
-            Follow the brief above. Brand example assets will appear here when uploaded.
-          </p>
-        ) : (
+        <SectionTitle sub="Uploaded by the brand">Content examples</SectionTitle>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {resources
               .filter((r) => r.previewable)
@@ -387,46 +366,23 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
                 </button>
               ))}
           </div>
-        )}
       </SectionCard>
+      ) : null}
 
-      {/* Creator tips */}
-      <SectionCard id="tips">
-        <SectionTitle>Creator tips</SectionTitle>
-        <ul className="space-y-2 text-[13px] text-[#4B5563]">
-          {[
-            "Hook viewers in the first 2 seconds with motion or a clear promise.",
-            "Keep captions on-screen — most views are sound-off.",
-            "Use required hashtags and mentions exactly as listed.",
-            "Submit native platform posts (not reuploads) for better reach tracking.",
-            "Review brand resources before filming to match product framing.",
-          ].map((tip) => (
-            <li
-              key={tip}
-              className="rounded-xl border border-[#EEF0F2] bg-[#FAFAFA] px-3 py-2.5 leading-relaxed"
-            >
-              {tip}
-            </li>
-          ))}
-        </ul>
-      </SectionCard>
-
-      {/* Brand contact */}
+      {campaign.vendor?.business_slug ? (
       <SectionCard id="contact">
         <SectionTitle sub="If enabled by the brand">Brand contact</SectionTitle>
         <p className="text-[13px] leading-relaxed text-[#6B7280]">
-          After you join, message the brand from your active project for clarifications.
-          Public contact details are only shown when the brand enables them.
+          Public contact details are limited to the brand page the vendor published.
         </p>
-        {campaign.vendor?.business_slug ? (
-          <Link
-            href={`/vendors/${campaign.vendor.business_slug}`}
-            className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
-          >
-            Visit brand page <ExternalLink className="h-3.5 w-3.5" />
-          </Link>
-        ) : null}
+        <Link
+          href={`/vendors/${campaign.vendor.business_slug}`}
+          className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
+        >
+          Visit brand page <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
       </SectionCard>
+      ) : null}
 
       {similar.length > 0 ? (
         <SectionCard id="similar">

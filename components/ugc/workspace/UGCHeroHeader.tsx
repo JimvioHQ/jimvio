@@ -71,8 +71,8 @@ export function UGCHeroHeader({
   }, [searchRef]);
 
   return (
-    <div className="mb-4 min-w-0 max-w-full sm:mb-5">
-      <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-center lg:gap-3">
+    <div className="mb-5 min-w-0 max-w-full sm:mb-6">
+      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:gap-3">
         <div className="relative min-w-0 flex-1">
           <Search
             className="pointer-events-none absolute left-3.5 top-1/2 h-[16px] w-[16px] -translate-y-1/2 text-[#94A3B8]"
@@ -87,8 +87,8 @@ export function UGCHeroHeader({
             placeholder="Search brands, campaigns, products..."
             aria-label={t("searchPlaceholder")}
             className={cn(
-              "h-11 w-full rounded-xl border border-[#E5E7EB] bg-white pl-10 pr-11 text-[14px] text-[#111827]",
-              "shadow-[0_1px_2px_rgba(17,24,39,0.04)] outline-none placeholder:text-[#94A3B8]",
+              "h-12 w-full rounded-full border border-[#E5E7EB] bg-white pl-11 pr-11 text-[14px] text-[#111827]",
+              "shadow-none outline-none placeholder:text-[#9CA3AF]",
               "focus:border-[#FF5A1F]/50 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.1)]",
             )}
           />
@@ -109,7 +109,7 @@ export function UGCHeroHeader({
           role="group"
           aria-label="Filter by platform"
         >
-          <div className="flex w-max items-center gap-1.5 px-0.5">
+          <div className="flex w-max items-center gap-2 px-0.5">
             {PLATFORM_FILTERS.map((p) => {
               const active = platform === p.key;
               return (
@@ -121,7 +121,7 @@ export function UGCHeroHeader({
                   aria-label={platformLabel(p.key)}
                   title={platformLabel(p.key)}
                   className={cn(
-                    "grid h-10 w-10 shrink-0 place-items-center rounded-full border transition-colors",
+                    "grid h-11 w-11 shrink-0 place-items-center rounded-full border bg-white transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]",
                     active
                       ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#111827]"
@@ -136,8 +136,8 @@ export function UGCHeroHeader({
         </div>
       </div>
 
-      <div className="mt-2.5 min-w-0 max-w-full overflow-x-auto [scrollbar-width:none]">
-        <div className="flex w-max items-center gap-1.5 px-0.5 pb-0.5">
+      <div className="mt-3 min-w-0 max-w-full overflow-x-auto [scrollbar-width:none]">
+        <div className="flex w-max items-center gap-2 px-0.5 pb-0.5">
           <FilterSelect
             label="Type"
             value={contentType}
@@ -165,7 +165,7 @@ export function UGCHeroHeader({
               value={country}
               onChange={(e) => onCountryChange(e.target.value)}
               placeholder="Country"
-              className="h-9 w-[100px] rounded-lg border border-[#E5E7EB] bg-white px-3 text-[12px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 sm:w-[108px]"
+              className="h-10 w-[108px] rounded-full border border-[#E5E7EB] bg-white px-3.5 text-[13px] font-medium text-[#374151] outline-none placeholder:text-[#6B7280] focus:border-[#FF5A1F]/40 focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 sm:w-[116px]"
             />
           </label>
           <FilterSelect
@@ -179,8 +179,8 @@ export function UGCHeroHeader({
             onClick={onClearAll}
             disabled={!hasFilters}
             className={cn(
-              "h-9 shrink-0 px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:underline",
-              hasFilters ? "text-[#FF5A1F] hover:underline" : "cursor-default text-[#D1D5DB]",
+              "h-10 shrink-0 px-2 text-[13px] font-medium focus-visible:outline-none focus-visible:underline",
+              hasFilters ? "text-[#6B7280] hover:text-[#111827]" : "cursor-default text-[#9CA3AF]",
             )}
           >
             Clear all filters
@@ -211,8 +211,8 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={cn(
-          "h-9 appearance-none rounded-lg border bg-white pl-3 pr-7",
-          "text-[12px] font-medium outline-none",
+          "h-10 appearance-none rounded-full border bg-white pl-3.5 pr-8",
+          "text-[13px] font-medium outline-none",
           "focus:border-[#FF5A1F]/40 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.08)]",
           active ? "border-[#FF5A1F]/50 text-[#111827]" : "border-[#E5E7EB] text-[#374151]",
         )}

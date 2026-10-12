@@ -16,15 +16,12 @@ import {
   formatCountdown,
   getCampaignBanner,
   getCampaignCategory,
-  getCampaignTags,
   getDaysRemaining,
   isFeaturedCampaign,
 } from "@/lib/ugc/campaign-detail";
 import { getCampaignOwnerAvatar } from "@/components/ugc/workspace/ugc-campaign-utils";
 import { UGCVerifiedBadge } from "@/components/ugc/workspace/UGCVerifiedBadge";
 import { Pill } from "./campaign-detail-ui";
-import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
-
 type CampaignDetailHeroProps = {
   campaign: UGCCampaign;
   campaignId: string;
@@ -41,13 +38,8 @@ type CampaignDetailHeroProps = {
 
 export function CampaignDetailHero({
   campaign,
-  campaignId,
-  isJoined,
-  isPending = false,
   isBookmarked,
   isActive,
-  joinHref,
-  joinLabel,
   onShare,
   onCopyLink,
   onToggleBookmark,
@@ -63,44 +55,63 @@ export function CampaignDetailHero({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const brandName = campaign.vendor?.business_name?.trim() || null;
+  const country = campaign.vendor?.business_country?.trim() || null;
+  const metaChips = [
+    getCampaignCategory(campaign),
+    ...(campaign.allowed_platforms ?? []).slice(0, 3),
+    ...(country ? [country] : []),
+    campaign.created_at
+      ? `Published ${new Date(campaign.created_at).toLocaleDateString()}`
+      : null,
+  ].filter((chip): chip is string => Boolean(chip));
+
   return (
     <div className="relative overflow-hidden border-b border-[#EEF0F2] bg-white">
-      <div className="relative h-[200px] sm:h-[240px] lg:h-[280px]">
-        {banner ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
-          </>
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{ background: "linear-gradient(135deg, #FFF4EF 0%, #F9FAFB 55%, #EEF2FF 100%)" }}
-          />
-        )}
-
-        <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-4 py-4 sm:px-6">
+      {banner ? (
+        <div className="relative h-[200px] sm:h-[240px] lg:h-[280px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={banner} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
+          <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-4 py-4 sm:px-6">
+            <Link
+              href="/ugc"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur-sm transition hover:bg-black/30"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Discover
+            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              {isFeaturedCampaign(campaign) ? (
+                <Pill tone="brand">
+                  <Sparkles className="h-3 w-3" />
+                  Featured
+                </Pill>
+              ) : null}
+              <Pill tone={isActive ? "success" : "neutral"}>{campaign.status}</Pill>
+              {countdown ? (
+                <Pill tone={daysLeft !== null && daysLeft <= 3 ? "danger" : "warning"}>{countdown}</Pill>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 pb-1 pt-4 sm:px-6">
           <Link
             href="/ugc"
-            className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-black/20 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur-sm transition hover:bg-black/30"
+            className="inline-flex w-fit items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#111827] transition hover:border-[#FF5A1F]/40"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Discover
           </Link>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {isFeaturedCampaign(campaign) ? (
-              <Pill tone="brand">
-                <Sparkles className="h-3 w-3" />
-                Featured
-              </Pill>
-            ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Pill tone={isActive ? "success" : "neutral"}>{campaign.status}</Pill>
-            <Pill tone="info">{getCampaignCategory(campaign)}</Pill>
-            {countdown ? <Pill tone={daysLeft !== null && daysLeft <= 3 ? "danger" : "warning"}>{countdown}</Pill> : null}
+            {countdown ? (
+              <Pill tone={daysLeft !== null && daysLeft <= 3 ? "danger" : "warning"}>{countdown}</Pill>
+            ) : null}
           </div>
         </div>
-      </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 pb-5 pt-4 sm:px-6 sm:pb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -108,30 +119,32 @@ export function CampaignDetailHero({
             <div className="relative shrink-0">
               {(() => {
                 const ownerAvatar = getCampaignOwnerAvatar(campaign);
-                const brandName = campaign.vendor?.business_name ?? "Brand";
+                const avatarName = brandName ?? campaign.title;
                 return ownerAvatar ? (
                   <Image
                     src={ownerAvatar}
-                    alt={brandName}
+                    alt={avatarName}
                     width={64}
                     height={64}
                     className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md sm:h-16 sm:w-16"
                   />
                 ) : (
                   <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#FF5A1F] to-[#FF7A45] text-lg font-bold text-white shadow-md sm:h-16 sm:w-16">
-                    {brandName[0]?.toUpperCase() ?? "B"}
+                    {avatarName[0]?.toUpperCase() ?? "J"}
                   </div>
                 );
               })()}
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#6B7280]">
-                <span className="font-semibold text-[#111827]">{campaign.vendor?.business_name ?? "Brand"}</span>
-                {campaign.vendor?.verification_status === "verified" ? (
-                  <UGCVerifiedBadge className="h-3.5 w-3.5" />
-                ) : null}
-              </p>
+              {brandName ? (
+                <p className="flex flex-wrap items-center gap-1.5 text-[12px] text-[#6B7280]">
+                  <span className="font-semibold text-[#111827]">{brandName}</span>
+                  {campaign.vendor?.verification_status === "verified" ? (
+                    <UGCVerifiedBadge className="h-3.5 w-3.5" />
+                  ) : null}
+                </p>
+              ) : null}
               <h1 className="mt-1 text-[22px] font-bold leading-tight tracking-tight text-[#111827] sm:text-[28px]">
                 {campaign.title}
               </h1>
@@ -142,23 +155,14 @@ export function CampaignDetailHero({
               ) : null}
 
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {getCampaignTags(campaign).map((tag) => (
+                {metaChips.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]"
+                    className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-medium capitalize text-[#4B5563]"
                   >
                     {tag}
                   </span>
                 ))}
-                <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
-                  Global
-                </span>
-                <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
-                  English
-                </span>
-                <span className="rounded-full bg-[#F3F4F6] px-2.5 py-1 text-[11px] font-medium text-[#4B5563]">
-                  Published {new Date(campaign.created_at).toLocaleDateString()}
-                </span>
               </div>
             </div>
           </div>
@@ -194,29 +198,6 @@ export function CampaignDetailHero({
               <Copy className="h-4 w-4" />
               {copied ? "Copied" : "Copy link"}
             </button>
-            {isActive && !isPending && campaign.join_mode !== "invite_only" ? (
-              <JoinCampaignGateLink
-                href={joinHref}
-                className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,90,31,0.28)] transition hover:bg-[#E54E18]"
-              >
-                {joinLabel}
-              </JoinCampaignGateLink>
-            ) : isPending ? (
-              <JoinCampaignGateLink
-                href={joinHref}
-                className="inline-flex h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-5 text-[13px] font-bold text-amber-800"
-              >
-                {joinLabel}
-              </JoinCampaignGateLink>
-            ) : campaign.join_mode === "invite_only" ? (
-              <span className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-5 text-[13px] font-semibold text-[#6B7280]">
-                Invite only
-              </span>
-            ) : (
-              <span className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-5 text-[13px] font-semibold text-[#9CA3AF]">
-                Unavailable
-              </span>
-            )}
           </div>
         </div>
       </div>

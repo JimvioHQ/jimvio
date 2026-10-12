@@ -65,17 +65,59 @@ describe("ugc submission rewards", () => {
 });
 
 describe("ugc discover heading", () => {
-  it("keeps the orange tint on the heading and not the search row", () => {
+  it("places the heading on a white page, not inside a card or color wash", () => {
     const page = readFileSync(
       join(process.cwd(), "components/ugc/workspace/UGCDiscoverPage.tsx"),
       "utf8",
     );
+    const css = readFileSync(join(process.cwd(), "styles/globals.css"), "utf8");
+    assert.match(page, /ugc-discover-page/);
     assert.match(page, /ugc-discover-heading/);
-    assert.doesNotMatch(page, /ugc-discover-masthead/);
+    assert.doesNotMatch(page, /ugc-discover-surface/);
+    const pageAt = page.indexOf("ugc-discover-page");
     const headingAt = page.indexOf("ugc-discover-heading");
     const heroAt = page.indexOf("<UGCHeroHeader");
-    assert.ok(headingAt > 0 && heroAt > headingAt);
-    const between = page.slice(headingAt, heroAt);
-    assert.match(between, /<\/header>/);
+    assert.ok(pageAt > 0 && headingAt > pageAt && heroAt > headingAt);
+    const headingRule = css.slice(css.indexOf(".ugc-discover-heading {"), css.indexOf(".ugc-discover-heading {") + 180);
+    assert.match(headingRule, /background:\s*none/);
+    assert.match(headingRule, /border-radius:\s*0/);
+    const surface = css.slice(css.indexOf(".ugc-discover-page {"), css.indexOf(".ugc-discover-page {") + 220);
+    assert.match(surface, /background:\s*#ffffff/);
+    assert.doesNotMatch(surface, /linear-gradient|fff3df|ffe4c8/i);
+  });
+});
+
+describe("ugc campaign detail honesty", () => {
+  it("does not invent location, language, review time, or a payout guarantee", () => {
+    const hero = readFileSync(
+      join(process.cwd(), "components/ugc/campaign-detail/CampaignDetailHero.tsx"),
+      "utf8",
+    );
+    const faqs = readFileSync(join(process.cwd(), "lib/ugc/campaign-detail.ts"), "utf8");
+    const sidebar = readFileSync(
+      join(process.cwd(), "components/ugc/campaign-detail/CampaignDetailSidebar.tsx"),
+      "utf8",
+    );
+    assert.doesNotMatch(hero, />\s*Global\s*</);
+    assert.doesNotMatch(hero, />\s*English\s*</);
+    assert.doesNotMatch(faqs, /1–4 business days/);
+    assert.doesNotMatch(faqs, /Is payment guaranteed/);
+    assert.doesNotMatch(sidebar, /rate_per_1k_views \* 10/);
+    assert.match(sidebar, /not your current earnings/);
+  });
+
+  it("styles featured carousel controls as buttons with labels", () => {
+    const header = readFileSync(
+      join(process.cwd(), "components/ugc/workspace/UGCFeaturedHeader.tsx"),
+      "utf8",
+    );
+    assert.match(header, /aria-label="Previous campaign"/);
+    assert.match(header, /aria-label="Next campaign"/);
+    assert.match(header, /e\.key === "ArrowLeft"/);
+    assert.match(header, /e\.key === "ArrowRight"/);
+    assert.match(header, /focus-visible:ring-2/);
+    assert.match(header, /bg-white text-\[#111827\]/);
+    assert.doesNotMatch(header, /linear-gradient\(145deg, #FF5A1F/);
+    assert.doesNotMatch(header, />\s*[<>]\s*</);
   });
 });

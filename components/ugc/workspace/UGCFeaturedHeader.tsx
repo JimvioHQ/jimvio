@@ -26,13 +26,9 @@ const MOBILE_TEXT =
 /** Flat featured fallback — never hue/radial decorative plates. */
 const FEATURED_FALLBACK_BG = { background: "#FFFFFF" } as const;
 
-/**
- * Icon-only carousel control.
- * Large transparent hit target; visual = chevron only.
- * Keyboard focus uses ink→orange color (no circular ring/outline).
- */
+/** Small white controls. Hidden until hover or keyboard focus so the card matches the clean reference. */
 const CAROUSEL_CTRL =
-  "absolute top-1/2 z-20 hidden min-h-11 min-w-11 -translate-y-1/2 appearance-none items-center justify-center rounded-none border-0 bg-transparent p-0 text-[#111827]/55 shadow-none outline-none ring-0 ring-offset-0 transition-colors hover:text-[#111827] focus:outline-none focus:ring-0 focus-visible:bg-transparent focus-visible:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:inline-flex";
+  "absolute top-1/2 z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_8px_rgba(17,24,39,0.08)] opacity-0 transition hover:bg-[#F9FAFB] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 group-hover:opacity-100 [@media(hover:none)]:opacity-100";
 
 function FeaturedStage({
   banner,
@@ -142,7 +138,7 @@ function FeaturedCopy({
 
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
         {rate ? (
-          <span className="text-[17px] font-black leading-none tracking-tight text-[#FF5A1F] sm:text-2xl">
+          <span className="text-[15px] font-black leading-none tracking-tight text-[#FF5A1F] sm:text-2xl">
             {rate}
           </span>
         ) : null}
@@ -261,12 +257,12 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
       >
         <div className="relative flex h-full flex-row sm:hidden">
           <div
-            className="relative z-10 flex h-full w-[55%] min-w-0 flex-col justify-center p-3 pr-2"
+            className="relative z-10 flex h-full w-[58%] min-w-0 flex-col justify-center p-3 pr-2"
             style={{ background: MOBILE_TEXT }}
           >
             <FeaturedCopy campaign={c} variant="mobile" />
           </div>
-          <div className="relative z-[15] h-full w-[45%] shrink-0 self-stretch">
+          <div className="relative z-[15] h-full w-[42%] shrink-0 self-stretch">
             <FeaturedStage banner={banner} brand={brand} mobile />
           </div>
         </div>
@@ -278,8 +274,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
 
         <div
           className={cn(
-            "absolute inset-0 z-10 hidden flex-col justify-center p-3 sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7",
-            multi && "sm:pl-11 lg:pl-12",
+            "absolute inset-0 z-10 hidden flex-col justify-center p-3 sm:flex sm:max-w-[48%] sm:p-7 sm:pr-8 lg:max-w-[46%] lg:p-8",
           )}
         >
           <FeaturedCopy campaign={c} variant="desktop" />
@@ -292,18 +287,18 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
               data-hero-action
               onClick={() => go(-1)}
               aria-label="Previous campaign"
-              className={cn(CAROUSEL_CTRL, "left-2 sm:left-3")}
+              className={cn(CAROUSEL_CTRL, "left-3")}
             >
-              <ChevronLeft className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              <ChevronLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
             </button>
             <button
               type="button"
               data-hero-action
               onClick={() => go(1)}
               aria-label="Next campaign"
-              className={cn(CAROUSEL_CTRL, "right-2 sm:right-3")}
+              className={cn(CAROUSEL_CTRL, "right-3")}
             >
-              <ChevronRight className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+              <ChevronRight className="h-4 w-4" strokeWidth={2} aria-hidden />
             </button>
             {/* Bare dots — no pill/box container chrome */}
             <div

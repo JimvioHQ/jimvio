@@ -40,7 +40,7 @@ export function CampaignDetailView() {
     return <CampaignDetailError state={state} onRetry={retry} />;
   }
 
-  const { campaign, isJoined, isBookmarked, profile, similar, isPending } = state;
+  const { campaign, isJoined, isBookmarked, profile, similar, isPending, participantStatus } = state;
   const isActive = campaign.status === "active";
   const joinHref = isJoined
     ? `/ugc/${id}/dashboard`
@@ -80,6 +80,7 @@ export function CampaignDetailView() {
           campaignId={id}
           isJoined={isJoined}
           isPending={isPending}
+          participantStatus={participantStatus}
           isBookmarked={isBookmarked}
           isActive={isActive}
           joinHref={joinHref}

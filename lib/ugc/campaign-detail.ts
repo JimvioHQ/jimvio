@@ -212,14 +212,6 @@ export function buildEligibility(
   };
   requirements.push(profileReq);
 
-  const faceReq: EligibilityRequirement = {
-    id: "face",
-    label: "On-camera requirement",
-    met: !campaign.requires_face || (profile?.hasProfile ?? false),
-    detail: campaign.requires_face ? "Face required on camera" : "Not required",
-  };
-  requirements.push(faceReq);
-
   const joinConfig = campaign.join_config;
   const minFollowersRaw =
     joinConfig && typeof joinConfig === "object"
@@ -389,40 +381,67 @@ export function buildResources(campaign: UGCCampaign): ResourceItem[] {
   return items;
 }
 
+/** Facts a creator can verify from campaign fields. No review-time or payout promises. */
+export function campaignAgreementLines(campaign: UGCCampaign): string[] {
+  const lines: string[] = [];
+  if (campaign.payment_model === "per_views" && campaign.rate_per_1k_views > 0) {
+    lines.push(
+      `$${campaign.rate_per_1k_views} USD per 1,000 approved views. Submitted views are not paid until they are accepted.`,
+    );
+  }
+  if (campaign.payment_model === "fixed_per_content" && (campaign.fixed_rate ?? 0) > 0) {
+    lines.push(`$${campaign.fixed_rate} USD per approved clip.`);
+  }
+  if (campaign.max_payout_per_sub != null && campaign.max_payout_per_sub > 0) {
+    lines.push(`Maximum $${campaign.max_payout_per_sub} USD per submission.`);
+  }
+  if ((campaign.allowed_platforms ?? []).length > 0) {
+    lines.push(`Platforms: ${(campaign.allowed_platforms ?? []).join(", ")}.`);
+  }
+  if (campaign.min_duration || campaign.max_duration) {
+    lines.push(
+      `Duration ${campaign.min_duration ?? "—"}s–${campaign.max_duration ?? "—"}s.`,
+    );
+  }
+  if (campaign.requires_face) lines.push("On-camera appearance is required.");
+  if ((campaign.required_hashtags ?? []).length > 0) {
+    lines.push(`Hashtags: ${campaign.required_hashtags.join(", ")}.`);
+  }
+  if ((campaign.required_mentions ?? []).length > 0) {
+    lines.push(`Mentions: ${campaign.required_mentions.join(", ")}.`);
+  }
+  if (campaign.ends_at) {
+    lines.push(`Deadline ${new Date(campaign.ends_at).toLocaleDateString()}.`);
+  }
+  return lines;
+}
+
 export function buildFaqs(campaign: UGCCampaign): { q: string; a: string }[] {
-  const reward = getRewardType(campaign);
-  const platforms = (campaign.allowed_platforms ?? []).join(", ") || "approved platforms";
-  return [
-    {
-      q: "How do I get paid?",
-      a:
-        reward === "Fixed"
-          ? `You earn ${campaign.fixed_rate ?? 0} USD per approved submission, paid after manual review.`
-          : reward === "CPM"
-            ? `You earn $${campaign.rate_per_1k_views} per 1,000 verified views on approved content.`
-            : `Earnings combine performance metrics and approved deliverables up to $${campaign.max_payout_per_sub ?? 400} per submission.`,
-    },
-    {
-      q: "Which platforms are allowed?",
-      a: `Post on ${platforms}. Submissions on other platforms will be rejected.`,
-    },
-    {
-      q: "How long does review take?",
-      a: "Most submissions are reviewed within 1–4 business days. You'll be notified when your content is approved or needs changes.",
-    },
-    {
-      q: "Can I submit multiple videos?",
-      a: "Yes, unless the campaign budget is fully allocated. Each submission is reviewed independently.",
-    },
-    {
-      q: "What happens if my content is rejected?",
-      a: "You'll receive feedback when possible. Rejected submissions don't earn payouts but you may submit again if the campaign is still active.",
-    },
-    {
-      q: "Is payment guaranteed?",
-      a: "Payouts are escrow-protected for approved content that meets all requirements. Fraudulent or non-compliant submissions are not paid.",
-    },
-  ];
+  const faqs: { q: string; a: string }[] = [];
+  if (campaign.payment_model === "fixed_per_content" && (campaign.fixed_rate ?? 0) > 0) {
+    faqs.push({
+      q: "How is the reward calculated?",
+      a: `An approved clip is quoted at $${campaign.fixed_rate} USD. The brand still has to approve the submission, and the campaign must have budget left. This is not a payment date or a guarantee.`,
+    });
+  } else if (campaign.payment_model === "per_views" && campaign.rate_per_1k_views > 0) {
+    faqs.push({
+      q: "How is the reward calculated?",
+      a: `The rate is $${campaign.rate_per_1k_views} USD per 1,000 approved views. Views you submit are not the same as views the brand accepts. Nothing is paid before approval.`,
+    });
+  }
+  if ((campaign.allowed_platforms ?? []).length > 0) {
+    faqs.push({
+      q: "Which platforms are listed?",
+      a: `This campaign lists ${(campaign.allowed_platforms ?? []).join(", ")}.`,
+    });
+  }
+  if (campaign.max_payout_per_sub != null && campaign.max_payout_per_sub > 0) {
+    faqs.push({
+      q: "Is there a per-submission cap?",
+      a: `The campaign sets a maximum of $${campaign.max_payout_per_sub} USD per submission.`,
+    });
+  }
+  return faqs;
 }
 
 export function scoreSimilarCampaign(current: UGCCampaign, other: UGCCampaign): number {
