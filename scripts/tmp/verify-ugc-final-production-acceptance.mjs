@@ -348,7 +348,8 @@ assert.doesNotMatch(referrals, /body\.reward_amount/);
 assert.match(referrals, /reward_amount: 5/);
 assert.match(insights, /showEarnings/);
 assert.match(campaigns, /query = query\.eq\('status', 'active'\)/);
-assert.doesNotMatch(wizardSrc, /facebook/);
+assert.match(wizardSrc, /"facebook"/);
+assert.doesNotMatch(wizardSrc, /"x"/);
 
 assert.match(workflowRun, /completed_with_skipped/);
 assert.doesNotMatch(workflowRun, /setTimeout/);
@@ -381,7 +382,23 @@ const topNav = read("components/shell/AppTopNav.tsx");
 assert.match(topNav, /ProfileAccountMenu/);
 assert.match(fund, /t\("insufficientWalletEscrow"\)/);
 
-const wizard = await loadTs("lib/ugc/campaign-wizard-validation.ts");
+const wizard = await (async () => {
+  const require = createRequire(import.meta.url);
+  const ts = require("typescript");
+  const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 };
+  const compile = (rel) => ts.transpileModule(read(rel), { compilerOptions, fileName: rel }).outputText;
+  const geoOut = path.join(os.tmpdir(), `buyer-country-prod-${process.pid}.mjs`);
+  const briefOut = path.join(os.tmpdir(), `campaign-brief-prod-${process.pid}.mjs`);
+  fs.writeFileSync(geoOut, compile("lib/geo/buyer-country.ts"));
+  fs.writeFileSync(briefOut, compile("lib/ugc/campaign-brief.ts").replace(
+    /from\s+["']@\/lib\/geo\/buyer-country["']/g,
+    `from ${JSON.stringify(pathToFileURL(geoOut).href)}`,
+  ));
+  return loadTs("lib/ugc/campaign-wizard-validation.ts", [[
+    /from\s+["']@\/lib\/ugc\/campaign-brief["']/g,
+    `from ${JSON.stringify(pathToFileURL(briefOut).href)}`,
+  ]]);
+})();
 assert.equal(
   wizard.assertCampaignReadyForFunding({
     title: "x",
@@ -420,6 +437,10 @@ assert.equal(
 );
 assert.equal(
   wizard.validateCampaignStep("targeting", { allowed_platforms: ["facebook"] }).success,
+  true,
+);
+assert.equal(
+  wizard.validateCampaignStep("targeting", { allowed_platforms: ["x"] }).success,
   false,
 );
 assert.equal(

@@ -92,8 +92,8 @@ assert.doesNotMatch(deposit, /if \(campaign\.status === "draft"\)/);
 // 3–7 wizard: requirements, visited != complete, draft != ready, fixed vs per-view, invalid platform
 assert.match(wizardSrc, /min_duration/);
 assert.match(wizardSrc, /max_duration/);
-assert.match(wizardSrc, /CAMPAIGN_PLATFORMS = \["tiktok", "instagram", "youtube", "x"\]/);
-assert.doesNotMatch(wizardSrc, /facebook/);
+assert.match(wizardSrc, /CAMPAIGN_PLATFORMS = \["tiktok", "instagram", "youtube", "facebook"\]/);
+assert.doesNotMatch(wizardSrc, /"x"/);
 
 // 8 anonymous users only see active
 assert.match(campaigns, /query = query\.eq\('status', 'active'\)/);
@@ -142,8 +142,8 @@ assert.match(referrals, /reward_amount: 5/);
 // 29–30 public search / Facebook
 assert.match(campaigns, /searchParams\.get\('q'\)/);
 assert.match(campaigns, /searchParams\.get\('platform'\)/);
-assert.equal(wizardSrc.includes("facebook"), false);
-assert.doesNotMatch(submitPage, /Facebook/);
+assert.equal(wizardSrc.includes('"facebook"'), true);
+assert.match(submitPage, /Facebook/);
 
 // 31 i18n locale
 assert.match(layout, /UGC_LOCALE_COOKIE/);
@@ -154,7 +154,24 @@ assert.match(workflowRun, /completed_with_skipped/);
 assert.doesNotMatch(workflowRun, /setTimeout/);
 assert.doesNotMatch(vercel, /ugc\/workflows/);
 
-const wizard = await loadTs("lib/ugc/campaign-wizard-validation.ts");
+const wizard = await (async () => {
+  const require = createRequire(import.meta.url);
+  const ts = require("typescript");
+  const compilerOptions = { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 };
+  const compile = (rel) => ts.transpileModule(read(rel), { compilerOptions, fileName: rel }).outputText;
+  const geoOut = path.join(os.tmpdir(), `buyer-country-final-${process.pid}.mjs`);
+  const briefOut = path.join(os.tmpdir(), `campaign-brief-final-${process.pid}.mjs`);
+  fs.writeFileSync(geoOut, compile("lib/geo/buyer-country.ts"));
+  const brief = compile("lib/ugc/campaign-brief.ts").replace(
+    /from\s+["']@\/lib\/geo\/buyer-country["']/g,
+    `from ${JSON.stringify(pathToFileURL(geoOut).href)}`,
+  );
+  fs.writeFileSync(briefOut, brief);
+  return loadTs("lib/ugc/campaign-wizard-validation.ts", [[
+    /from\s+["']@\/lib\/ugc\/campaign-brief["']/g,
+    `from ${JSON.stringify(pathToFileURL(briefOut).href)}`,
+  ]]);
+})();
 const incomplete = {
   title: "x",
   campaign_type: "ugc",
@@ -180,8 +197,13 @@ const fixed = {
 assert.equal(wizard.assertCampaignReadyForFunding(fixed).success, true, "6 fixed does not require per-view");
 assert.equal(
   wizard.validateCampaignStep("targeting", { ...fixed, allowed_platforms: ["facebook"] }).success,
+  true,
+  "7 facebook is a supported platform",
+);
+assert.equal(
+  wizard.validateCampaignStep("targeting", { ...fixed, allowed_platforms: ["x"] }).success,
   false,
-  "7 invalid platform rejected",
+  "7 x is not a new campaign platform",
 );
 
 const perms = await loadTs("lib/ugc/enterprise/permissions.ts");

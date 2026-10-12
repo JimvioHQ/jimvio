@@ -97,7 +97,7 @@ assert.match(webhooks, /X-Jimvio-Signature/);
 assert.doesNotMatch(webhooks, /Date\.now\(\)/);
 assert.doesNotMatch(webhooks, /"X-Jimvio-Signature": sub\.secret/);
 
-assert.doesNotMatch(submitPage, /facebook/);
+assert.match(submitPage, /facebook/);
 assert.match(submissionsPage, /revision_requested/);
 assert.match(submissionsPage, /\/api\/ugc\/submissions\/\$\{submissionId\}\/revision/);
 assert.doesNotMatch(submissionsPage, /Facebook, and X/);
@@ -110,7 +110,7 @@ assert.match(insights, /showEarnings/);
 assert.match(revision, /status !== "revision_requested"/);
 
 const urlMod = await loadTs("lib/ugc/normalize-post-url.ts");
-assert.equal(urlMod.isUgcSubmitPlatform("facebook"), false);
+assert.equal(urlMod.isUgcSubmitPlatform("facebook"), true);
 assert.equal(urlMod.isUgcSubmitPlatform("tiktok"), true);
 assert.equal(
   urlMod.normalizePostUrl("https://www.tiktok.com/@u/video/1/?utm_source=x#frag"),

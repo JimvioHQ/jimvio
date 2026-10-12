@@ -89,24 +89,41 @@ assert.doesNotMatch(copilotLib, /readyForFunding/);
 async function loadCanonical() {
   const require = createRequire(import.meta.url);
   const ts = require("typescript");
-  const src = validationSrc;
-  const { outputText } = ts.transpileModule(src, {
-    compilerOptions: {
-      module: ts.ModuleKind.ESNext,
-      target: ts.ScriptTarget.ES2022,
-      moduleResolution: ts.ModuleResolutionKind.Bundler,
-    },
-    fileName: "campaign-wizard-validation.ts",
-  });
-  const out = path.join(os.tmpdir(), `campaign-wizard-validation-${process.pid}.mjs`);
-  fs.writeFileSync(out, outputText);
+  const compilerOptions = {
+    module: ts.ModuleKind.ESNext,
+    target: ts.ScriptTarget.ES2022,
+  };
+  function transpile(rel) {
+    return ts.transpileModule(read(rel), {
+      compilerOptions,
+      fileName: rel,
+    }).outputText;
+  }
+  const geoOut = path.join(os.tmpdir(), `buyer-country-${process.pid}.mjs`);
+  const briefOut = path.join(os.tmpdir(), `campaign-brief-${process.pid}.mjs`);
+  const valOut = path.join(os.tmpdir(), `campaign-wizard-validation-${process.pid}.mjs`);
+  const geoUrl = JSON.stringify(pathToFileURL(geoOut).href);
+  const briefUrl = JSON.stringify(pathToFileURL(briefOut).href);
+  const brief = transpile("lib/ugc/campaign-brief.ts").replace(
+    /from\s+["']@\/lib\/geo\/buyer-country["']/g,
+    `from ${geoUrl}`,
+  );
+  const validation = transpile("lib/ugc/campaign-wizard-validation.ts").replace(
+    /from\s+["']@\/lib\/ugc\/campaign-brief["']/g,
+    `from ${briefUrl}`,
+  );
+  fs.writeFileSync(geoOut, transpile("lib/geo/buyer-country.ts"));
+  fs.writeFileSync(briefOut, brief);
+  fs.writeFileSync(valOut, validation);
   try {
-    return await import(pathToFileURL(out).href + `?t=${Date.now()}`);
+    return await import(pathToFileURL(valOut).href + `?t=${Date.now()}`);
   } finally {
-    try {
-      fs.unlinkSync(out);
-    } catch {
-      /* ignore */
+    for (const file of [geoOut, briefOut, valOut]) {
+      try {
+        fs.unlinkSync(file);
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

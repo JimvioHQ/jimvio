@@ -128,7 +128,7 @@ assert.doesNotMatch(
 );
 
 assert.match(submitPage, /t\("submitUrlHint"\)/);
-assert.doesNotMatch(submitPage, /Facebook/);
+assert.match(submitPage, /Facebook/);
 
 assert.match(confirm, /paidAmountCoversEscrow/);
 assert.match(confirm, /MIN_FUNDING_USD/);

@@ -75,7 +75,8 @@ assert.match(templatesId, /campaigns\.manage/);
 assert.match(templatesId, /requireBrandWorkspacePermission/);
 
 assert.match(campaignsList, /CAMPAIGN_PLATFORMS/);
-assert.doesNotMatch(tokens, /label: "Facebook"/);
+assert.match(tokens, /label: "Facebook"/);
+assert.doesNotMatch(tokens, /label: "X"/);
 assert.doesNotMatch(hero, /facebook/);
 assert.doesNotMatch(recruitment, /facebook/);
 
