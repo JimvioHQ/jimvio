@@ -32,6 +32,7 @@
     "test:auth": "cross-env VERIFY_FILTER=auth,recovery,privilege,phase6,phase8 node scripts/run-verifies.mjs",
     "smoke:critical": "node scripts/smoke/critical-flows.mjs",
     "release:verify-migrations": "node scripts/release/verify-migrations.mjs",
+    "release:verify-auth-email-templates": "node scripts/release/verify-auth-email-templates.mjs",
     "release:verify-env": "node scripts/release/verify-env.mjs",
     "release:health": "node scripts/release/post-deploy-health.mjs",
     "release:perf": "node scripts/release/performance-budget.mjs",

@@ -278,6 +278,9 @@ function main() {
   scanServerClientBoundaries();
   scanEnvExample();
   run("migrations", process.execPath, [join(root, "scripts", "release", "verify-migrations.mjs")]);
+  run("auth-email-templates", process.execPath, [
+    join(root, "scripts", "release", "verify-auth-email-templates.mjs"),
+  ]);
   timedBuild();
   run("perf", process.execPath, [join(root, "scripts", "release", "performance-budget.mjs")]);
   run("lint", "npm", ["run", "lint"]);
