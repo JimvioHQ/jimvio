@@ -93,6 +93,15 @@ export function isAuthMailDeliveryFailure(error: AuthErrorLike): boolean {
 export const AUTH_MAIL_DELIVERY_ERROR =
   "We couldn't send the email. Please try again in a moment.";
 
+export function isMissingAuthAccount(error: AuthErrorLike): boolean {
+  const { code, lower } = errorParts(error);
+  return (
+    code === "user_not_found" ||
+    lower.includes("user not found") ||
+    lower.includes("user does not exist")
+  );
+}
+
 export function isCaptchaAuthError(error: AuthErrorLike): boolean {
   const { code, lower } = errorParts(error);
   return (
@@ -295,3 +304,6 @@ export const GENERIC_RESET_SENT =
 
 export const GENERIC_CONFIRMATION_SENT =
   "If that email can receive mail, a 6-digit confirmation code is on the way.";
+
+export const SIGNUP_RESEND_SENT =
+  "If that email can receive mail, a new 6-digit code is on the way. It replaces the previous code.";

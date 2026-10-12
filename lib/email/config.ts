@@ -16,7 +16,7 @@ export function getAppBaseUrl(): string {
 }
 
 export function getEmailFromAddress(): string {
-    return process.env.EMAIL_FROM ?? "Jimvio <notifications@jimvio.com>";
+    return process.env.EMAIL_FROM ?? "Jimvio <info@jimvio.com>";
 }
 
 export function isEmailEnabled(): boolean {

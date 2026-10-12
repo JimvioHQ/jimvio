@@ -32,9 +32,11 @@ import {
   AUTH_MAIL_DELIVERY_ERROR,
   GENERIC_CONFIRMATION_SENT,
   GENERIC_RESET_SENT,
+  SIGNUP_RESEND_SENT,
   isAuthMailDeliveryFailure,
   isCaptchaAuthError,
   isExistingAccountAuthError,
+  isMissingAuthAccount,
   isRateLimitAuthError,
   isUnconfirmedDuplicateSignUp,
   isValidAuthEmail,
@@ -52,6 +54,8 @@ import {
 import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin"
 import { validateNewPassword } from "@/lib/auth/password-rules"
 import { mapSignupOtpError, normalizeOtpToken, OTP_LIFETIME_MS } from "@/lib/auth/email-otp"
+import { allowAuthEmailSend } from "@/lib/auth/email-send-guard-store"
+import { AUTH_RESEND_COOLDOWN_MESSAGE } from "@/lib/auth/email-send-guard"
 import { rateLimit } from "@/lib/ops/rate-limit"
 import { canConfirmFreshStoreSignup } from "@/lib/auth/merchant-store-signup"
 import {
@@ -387,6 +391,14 @@ export async function resendSignUpConfirmation(formData: FormData) {
       emailNext,
     )
     const captchaToken = captchaTokenFromForm(formData)
+    const hdrs = await headers()
+    const ip =
+      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      hdrs.get("x-real-ip")?.trim() ||
+      null
+    const allowed = await allowAuthEmailSend(email, ip || null)
+    if (!allowed) return { error: AUTH_RESEND_COOLDOWN_MESSAGE }
+
     const { error } = await supabase.auth.resend({
       type: "signup",
       email,
@@ -396,7 +408,7 @@ export async function resendSignUpConfirmation(formData: FormData) {
       },
     })
     if (error && isRateLimitAuthError(error)) {
-      return { error: "Please wait a moment before requesting another email." }
+      return { error: AUTH_RESEND_COOLDOWN_MESSAGE }
     }
     if (error && isCaptchaAuthError(error)) {
       return { error: "Security check failed. Refresh the page and try again." }
@@ -408,13 +420,14 @@ export async function resendSignUpConfirmation(formData: FormData) {
       })
       return { error: AUTH_MAIL_DELIVERY_ERROR }
     }
-    if (error) {
+    if (error && !isMissingAuthAccount(error)) {
       console.error("[auth] resendSignUpConfirmation", {
         code: error.code ?? null,
         status: error.status ?? null,
       })
+      return { error: AUTH_MAIL_DELIVERY_ERROR }
     }
-    return { success: "Confirmation email sent. Check your inbox and spam folder." }
+    return { success: SIGNUP_RESEND_SENT }
   } catch {
     console.error("[auth] resendSignUpConfirmation failed")
     return { error: AUTH_MAIL_DELIVERY_ERROR }
@@ -906,13 +919,20 @@ export async function resetPassword(formData: FormData) {
     const supabase = await createClient()
     const redirectTo = buildAuthCallbackUrl(await getPublicAppUrl(), "/reset-password")
     const captchaToken = captchaTokenFromForm(formData)
+    const hdrs = await headers()
+    const ip =
+      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      hdrs.get("x-real-ip")?.trim() ||
+      null
+    const allowed = await allowAuthEmailSend(email, ip || null)
+    if (!allowed) return { error: AUTH_RESEND_COOLDOWN_MESSAGE }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
       ...(captchaToken ? { captchaToken } : {}),
     })
     if (error && isRateLimitAuthError(error)) {
-      return { error: "Too many attempts. Please wait a moment and try again." }
+      return { error: AUTH_RESEND_COOLDOWN_MESSAGE }
     }
     if (error && isCaptchaAuthError(error)) {
       return { error: "Security check failed. Refresh the page and try again." }

@@ -55,6 +55,8 @@ export function EmailOtpEntry({
   const [pending, startTransition] = useTransition();
   const inputs = useRef<Array<HTMLInputElement | null>>([]);
   const submitting = useRef(false);
+  const resending = useRef(false);
+  const [captchaReset, setCaptchaReset] = useState(0);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -193,14 +195,15 @@ export function EmailOtpEntry({
       </form>
 
       <div className="mt-5 space-y-3">
-        <TurnstileWidget onToken={setCaptcha} className="flex justify-center" />
+        <TurnstileWidget onToken={setCaptcha} resetSignal={captchaReset} className="flex justify-center" />
         <Button
           type="button"
           variant="outline"
           className="h-11 w-full rounded-lg"
           disabled={pending || coolingDown || !captcha}
           onClick={() => {
-            if (coolingDown || !captcha || pending) return;
+            if (coolingDown || !captcha || pending || resending.current) return;
+            resending.current = true;
             setError(null);
             setNotice(null);
             const fd = new FormData();
@@ -208,19 +211,28 @@ export function EmailOtpEntry({
             fd.set("captchaToken", captcha);
             if (next) fd.set("next", next);
             startTransition(async () => {
-              const res = await resendSignUpConfirmation(fd);
-              if (res.error) {
-                setError(res.error);
-                setCooldownUntil(Date.now() + OTP_RESEND_COOLDOWN_MS);
-                return;
+              try {
+                const res = await resendSignUpConfirmation(fd);
+                if (res.error) {
+                  setError(res.error);
+                  setCooldownUntil(Date.now() + OTP_RESEND_COOLDOWN_MS);
+                  setCaptcha(null);
+                  setCaptchaReset((value) => value + 1);
+                  return;
+                }
+                const issued = Date.now();
+                setStartedAt(issued);
+                setCooldownUntil(issued + OTP_RESEND_COOLDOWN_MS);
+                storeSignupOtp({ email, issuedAt: issued, next });
+                setDigits(Array(6).fill(""));
+                setNotice(res.success ?? "If that email can receive mail, a new 6-digit code is on the way. It replaces the previous code.");
+                setCaptcha(null);
+                setCaptchaReset((value) => value + 1);
+              } catch {
+                setError("We couldn't reach the verification service. Try again.");
+              } finally {
+                resending.current = false;
               }
-              const issued = Date.now();
-              setStartedAt(issued);
-              setCooldownUntil(issued + OTP_RESEND_COOLDOWN_MS);
-              storeSignupOtp({ email, issuedAt: issued, next });
-              setDigits(Array(6).fill(""));
-              setNotice("A new code is on the way. Check your inbox and spam folder.");
-              setCaptcha(null);
             });
           }}
         >

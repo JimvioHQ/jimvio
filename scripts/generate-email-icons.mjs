@@ -122,7 +122,11 @@ const ICONS = {
 
 await mkdir(outDir, { recursive: true });
 for (const [name, svg] of Object.entries(ICONS)) {
-  const png = await sharp(Buffer.from(svg)).resize(160, 160).png().toBuffer();
+  const png = await sharp(Buffer.from(svg))
+    .resize(160, 160)
+    .flatten({ background: "#ffffff" })
+    .png()
+    .toBuffer();
   await writeFile(join(outDir, `${name}.png`), png);
 }
 console.log(`Wrote ${Object.keys(ICONS).length} icons to ${outDir}`);

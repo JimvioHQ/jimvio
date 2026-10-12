@@ -144,15 +144,22 @@ describe("Jimvio email templates", () => {
     assert.match(reset, /Reset your /);
     assert.match(reset, /10 minutes/);
     assert.match(reset, /Reset Password/);
+    assert.match(confirm, /jimvio-logo-mark\.png/);
+    assert.match(confirm, /alt="Jimvio"/);
+    assert.match(confirm, /https:\/\/www\.instagram\.com\/jimvioofficial\?dlrf=/);
+    assert.match(confirm, /https:\/\/www\.tiktok\.com\/@jimvioofficial/);
+    assert.match(confirm, /https:\/\/www\.linkedin\.com\/company\/jimvio\//);
+    assert.equal(confirm.includes("jimvio_official"), false);
+    assert.equal(confirm.includes("localhost"), false);
     const onDisk = readFileSync(join(root, "supabase/templates/recovery.html"), "utf8");
     assert.match(onDisk, /\{\{ \.ConfirmationURL \}\}/);
     assert.match(onDisk, /Reset Password/);
   });
 
-  it("reads the sender from EMAIL_FROM and keeps the notifications default", () => {
+  it("reads the sender from EMAIL_FROM and defaults to the Jimvio mailbox", () => {
     const previous = process.env.EMAIL_FROM;
     delete process.env.EMAIL_FROM;
-    assert.equal(getEmailFromAddress(), "Jimvio <notifications@jimvio.com>");
+    assert.equal(getEmailFromAddress(), "Jimvio <info@jimvio.com>");
     process.env.EMAIL_FROM = "Jimvio <info@jimvio.com>";
     assert.equal(getEmailFromAddress(), "Jimvio <info@jimvio.com>");
     const sendSource = readFileSync(join(root, "lib/email/send.ts"), "utf8");

@@ -81,6 +81,9 @@ describe("signup email OTP", () => {
       actions.indexOf("export async function verifySignUpOtp"),
     );
     const reset = actions.slice(actions.indexOf("export async function resetPassword"));
+    assert.match(resend, /allowAuthEmailSend/);
+    assert.match(resend, /SIGNUP_RESEND_SENT/);
+    assert.equal(resend.includes("Confirmation email sent"), false);
     assert.match(resend, /isAuthMailDeliveryFailure/);
     assert.match(reset, /isAuthMailDeliveryFailure/);
     assert.equal(resend.includes("error.message"), false);

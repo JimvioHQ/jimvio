@@ -1,5 +1,6 @@
 ﻿import { Organization, WebSite } from "schema-dts";
 import { SITE } from "@/lib/seo";
+import { JIMVIO_INSTAGRAM_URL, JIMVIO_LINKEDIN_URL, JIMVIO_TIKTOK_URL } from "@/lib/brand/social";
 
 const orgId = `${SITE.url}/#organization`;
 const websiteId = `${SITE.url}/#website`;
@@ -13,11 +14,11 @@ const organization: Organization = {
   url: SITE.url,
   logo: {
     "@type": "ImageObject",
-    url: `${SITE.url}/icons/icon-512.png`,
+    url: `${SITE.url}/jimvio-logo-mark.png`,
     width: "512",
     height: "512",
   },
-  image: `${SITE.url}/icons/icon-512.png`,
+  image: `${SITE.url}/jimvio-logo-mark.png`,
   description: SITE.description,
   contactPoint: {
     "@type": "ContactPoint",
@@ -28,10 +29,10 @@ const organization: Organization = {
   },
   sameAs: [
     "https://x.com/Jimvio_Official",
-    "https://www.linkedin.com/company/jimvio",
+    JIMVIO_LINKEDIN_URL,
     "https://www.youtube.com/@jimvio",
-    "https://www.tiktok.com/@jimvio_official",
-    "https://www.instagram.com/jimvio_official",
+    JIMVIO_TIKTOK_URL,
+    JIMVIO_INSTAGRAM_URL,
   ],
 };
 

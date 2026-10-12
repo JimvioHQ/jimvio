@@ -37,18 +37,18 @@ export const EMAIL_COLORS = {
   link: "#2563EB",
 } as const;
 
-export const EMAIL_SOCIAL = [
-  { name: "instagram" as const, label: "Instagram", href: "https://www.instagram.com/jimvio_official" },
-  { name: "tiktok" as const, label: "TikTok", href: "https://www.tiktok.com/@jimvio_official" },
-  { name: "linkedin" as const, label: "LinkedIn", href: "https://www.linkedin.com/company/jimvio/" },
-] as const;
+export { JIMVIO_SOCIAL_LINKS as EMAIL_SOCIAL } from "../brand/social";
+
+/** Public origin for images inside email HTML. Never a deployment URL or localhost. */
+export const EMAIL_ASSET_ORIGIN = "https://www.jimvio.com";
 
 export function emailAssetBase(explicit?: string): string {
+  if (explicit?.trim()) return explicit.trim().replace(/\/$/, "");
+  if (process.env.NODE_ENV === "production") return EMAIL_ASSET_ORIGIN;
   const raw =
-    explicit ??
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.NODE_ENV === "production" ? "https://www.jimvio.com" : "http://localhost:3000");
+    "http://localhost:3000";
   return raw.replace(/\/$/, "");
 }
 
