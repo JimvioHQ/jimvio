@@ -27,7 +27,7 @@ import {
   redactProviderMessage,
   resolveGeminiModel,
 } from "./gemini-model.ts";
-import { presentAssistantContent, UNVERIFIED_GUIDE, PRIVATE_ACCOUNT_GUIDE } from "./guide-copy.ts";
+import { CLARIFYING_GUIDE, greetingReply, presentAssistantContent, PRIVATE_ACCOUNT_GUIDE } from "./guide-copy.ts";
 import { buildGuideResponse } from "./guide-reply.ts";
 import { composePublicGuide, retrieveJimvioKnowledge, verifiedGuideHrefs } from "./knowledge.ts";
 import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
@@ -197,7 +197,7 @@ describe("chat turn ordering", () => {
     assert.equal(failed[1]?.content, "Open /wallet.");
     assert.equal(failed[1]?.fallback, true);
     assert.equal(failed[1]?.thinking, false);
-    assert.match(fallbackNotice(failed[1]?.content ?? "") ?? "", /couldn't finish/);
+    assert.equal(fallbackNotice(failed[1]?.content ?? ""), null);
     assert.equal(failed.filter((message) => message.role === "ai").length, 1);
   });
 
@@ -261,7 +261,7 @@ describe("chat turn ordering", () => {
       fallback: true,
     });
     assert.equal(guide[1]?.fallback, true);
-    assert.equal(isJimvioGuide(guide[1]?.content ?? ""), true);
+    assert.equal((guide[1]?.content ?? "").includes("not a live answer"), false);
     assert.equal(fallbackNotice(guide[1]?.content ?? ""), null);
     assert.equal(assistantActionLabel(guide[1]?.fallback), "Retry");
     assert.match(guide[1]?.content ?? "", /\/orders/);
@@ -358,7 +358,7 @@ describe("jimvio knowledge", () => {
 
   it("refuses to invent an unverified feature", () => {
     const unknown = retrieveJimvioKnowledge("Does Jimvio have a Mars colony shipping perk?");
-    assert.match(unknown, /cannot verify/i);
+    assert.match(unknown, /clarifying question/i);
     assert.equal(unknown.includes("/mars"), false);
   });
 });
@@ -372,30 +372,44 @@ function markdownHrefs(text: string): string[] {
 
 describe("public guide wording", () => {
   const allowed = new Set(verifiedGuideHrefs());
+  const prohibited = /not a live answer|couldn't verify that information|check the relevant Jimvio page or contact support before relying on it/i;
+
+  it("welcomes a greeting without a product essay or a disclaimer", () => {
+    for (const message of ["hi", "hello", "hey", "good morning", "how are you?"]) {
+      const reply = buildGuideResponse([{ content: message }]);
+      assert.match(reply, /Welcome to Jimvio/);
+      assert.equal(prohibited.test(reply), false);
+      assert.equal(reply.includes("Welcome to Jimvio AI"), false);
+    }
+    assert.match(greetingReply("hi"), /selling products/);
+  });
 
   it("hides internal instructions and raw fallback templates", () => {
     const leaked = buildGuideResponse([
       { content: "Does Jimvio have a Mars colony shipping perk?" },
     ]);
     assert.equal(INTERNAL_LEAK.test(leaked), false);
-    assert.match(leaked, /couldn't verify/);
+    assert.equal(leaked.includes("couldn't verify"), false);
+    assert.equal(leaked.includes("not a live answer"), false);
     assert.equal(leaked.includes("/mars"), false);
     assert.deepEqual(markdownHrefs(leaked), []);
-    assert.equal(leaked.split(GUIDE_PREFIX).length - 1, 1);
+    assert.equal(leaked.split(GUIDE_PREFIX).length - 1, 0);
     assert.equal(/gemini/i.test(leaked), false);
-    assert.equal(isJimvioGuide(leaked), true);
+    assert.match(leaked, /I can help you with that on Jimvio/);
 
     const raw = presentAssistantContent(
       `${GUIDE_PREFIX}\n\n${GUIDE_PREFIX}\n\nNo verified Jimvio article covers this exact question. Say you cannot verify that feature, fee, or policy. Do not invent a page or a number.`,
     );
     assert.equal(INTERNAL_LEAK.test(raw), false);
-    assert.match(raw, /couldn't verify/);
-    assert.equal(raw.split(GUIDE_PREFIX).length - 1, 1);
+    assert.equal(raw.includes("couldn't verify"), false);
+    assert.equal(raw.split(GUIDE_PREFIX).length - 1, 0);
+    assert.equal(raw, CLARIFYING_GUIDE);
   });
 
   it("answers an unverified feature and a private account question in natural words", () => {
     const feature = composePublicGuide("Does Jimvio have a Mars colony shipping perk?");
-    assert.equal(feature, UNVERIFIED_GUIDE);
+    assert.equal(feature, CLARIFYING_GUIDE);
+    assert.equal(feature.includes("couldn't verify"), false);
     assert.equal(feature.includes("%"), false);
     assert.equal(feature.includes("$"), false);
 
@@ -410,8 +424,8 @@ describe("public guide wording", () => {
     for (const href of markdownHrefs(account)) {
       assert.equal(allowed.has(href), true, href);
     }
-    assert.equal(account.split(GUIDE_PREFIX).length - 1, 1);
-    assert.equal(isJimvioGuide(account), true);
+    assert.equal(account.split(GUIDE_PREFIX).length - 1, 0);
+    assert.equal(account.includes("not a live answer"), false);
   });
 
   it("uses a verified route for a documented question and keeps live answers unlabeled", () => {
@@ -420,7 +434,8 @@ describe("public guide wording", () => {
     assert.equal(INTERNAL_LEAK.test(orders), false);
     assert.equal(orders.includes("couldn't verify"), false);
     for (const href of markdownHrefs(orders)) assert.equal(allowed.has(href), true, href);
-    assert.equal(orders.split(GUIDE_PREFIX).length - 1, 1);
+    assert.equal(orders.split(GUIDE_PREFIX).length - 1, 0);
+    assert.equal(orders.includes("not a live answer"), false);
 
     const live = "Sellers manage listings at /seller/products.";
     assert.equal(isJimvioGuide(live), false);
@@ -439,10 +454,11 @@ describe("public guide wording", () => {
     });
     const content = done[1]?.content ?? "";
     assert.equal(INTERNAL_LEAK.test(content), false);
-    assert.match(content, /couldn't verify/);
+    assert.equal(content.includes("couldn't verify"), false);
+    assert.equal(content.includes("not a live answer"), false);
+    assert.match(content, /private account details|I can help you/);
     assert.equal(done[1]?.fallback, true);
     assert.equal(assistantActionLabel(done[1]?.fallback), "Retry");
-    assert.equal(isJimvioGuide(content), true);
 
     const previous = done[1];
     const retry = prepareChatTurn({
@@ -533,8 +549,9 @@ describe("copilot route safety", () => {
     assert.match(route, /category: "fallback"|\"fallback\"/);
     assert.match(route, /buildGuideResponse\(messages\), "guide"/);
     const guideReply = readFileSync(new URL("lib/ai/guide-reply.ts", root), "utf8");
-    assert.match(guideReply, /GUIDE_PREFIX/);
+    assert.match(guideReply, /isSimpleGreeting/);
     assert.match(guideReply, /composePublicGuide/);
+    assert.equal(guideReply.includes("This is not a live answer"), false);
     assert.equal(route.includes("The live model did not answer"), false);
     assert.equal(route.includes("Say you cannot verify"), false);
     assert.equal(route.includes("I can't see this account"), false);

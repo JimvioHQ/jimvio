@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, User, CheckCircle, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { resendSignUpConfirmation, signUp } from "@/lib/auth/actions";
+import { signUp } from "@/lib/auth/actions";
+import { EmailOtpEntry, readStoredSignupOtp, storeSignupOtp } from "@/components/auth/email-otp-entry";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
 import { GoogleAuthButton } from "@/components/auth/google-button";
 import { TurnstileWidget } from "@/components/auth/turnstile-widget";
@@ -44,13 +45,18 @@ export function RegisterForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submittedEmail, setSubmittedEmail] = useState("");
-  const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const [issuedAt, setIssuedAt] = useState(0);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
-  const [resendCaptcha, setResendCaptcha] = useState<string | null>(null);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
   const [pending, startTransition] = useTransition();
-  const coolingDown = Date.now() < cooldownUntil;
+
+  useEffect(() => {
+    const stored = readStoredSignupOtp();
+    if (!stored) return;
+    setSubmittedEmail(stored.email);
+    setIssuedAt(stored.issuedAt);
+    setSuccess("pending");
+  }, []);
 
   function bumpCaptcha() {
     setCaptchaToken(null);
@@ -82,7 +88,10 @@ export function RegisterForm({
           bumpCaptcha();
         }
         if (res?.success) {
+          const issued = Date.now();
           setSubmittedEmail(email);
+          setIssuedAt(issued);
+          storeSignupOtp({ email, issuedAt: issued, next });
           setSuccess(res.success);
         }
       } catch (err: unknown) {
@@ -98,96 +107,14 @@ export function RegisterForm({
     ? `${loginBase}${loginBase.includes("?") ? "&" : "?"}next=${encodeURIComponent(next)}`
     : loginBase;
 
-  if (success) {
+  if (success && submittedEmail.includes("@") && issuedAt > 0) {
     return (
-      <div className="w-full">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div
-            className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FF5A1F]/20 bg-[#FF5A1F]/[0.08]"
-            aria-hidden
-          >
-            <CheckCircle className="h-6 w-6 text-[#FF5A1F]" strokeWidth={2} />
-          </div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#FF5A1F]">
-            Account created
-          </p>
-          <h1 className="mb-3 text-[1.65rem] font-black tracking-tight text-zinc-900 dark:text-white">
-            Check your email
-          </h1>
-          <p className="max-w-sm text-[14px] leading-relaxed text-zinc-500">
-            Confirm your email before signing in with email and password.
-            {submittedEmail.includes("@") ? (
-              <>
-                {" "}
-                We sent a confirmation link to{" "}
-                <span className="inline-block rounded-md border border-zinc-200 bg-white px-2 py-0.5 font-semibold text-zinc-800 dark:border-border dark:bg-surface dark:text-zinc-200">
-                  {submittedEmail}
-                </span>
-                .
-              </>
-            ) : (
-              <> {success}</>
-            )}
-          </p>
-        </div>
-
-        <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-[0_1px_2px_rgba(17,24,39,0.04)] dark:border-border dark:bg-surface-secondary/40">
-          <p className="text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            Didn&apos;t get it? Check spam or promotions, then resend below.
-          </p>
-          {resendNotice && <AuthAlert tone="success">{resendNotice}</AuthAlert>}
-          <TurnstileWidget
-            onToken={setResendCaptcha}
-            className="flex justify-center"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending || coolingDown || !resendCaptcha}
-            className="h-11 w-full rounded-lg border-zinc-200 text-[14px] font-bold hover:bg-zinc-50"
-            onClick={() => {
-              if (!resendCaptcha || coolingDown) {
-                if (coolingDown) {
-                  setResendNotice(
-                    "Please wait a moment before requesting another email.",
-                  );
-                }
-                return;
-              }
-              const fd = new FormData();
-              fd.set("email", submittedEmail);
-              fd.set("captchaToken", resendCaptcha);
-              if (next) fd.set("next", next);
-              startTransition(async () => {
-                const res = await resendSignUpConfirmation(fd);
-                if (res.error) {
-                  setResendNotice(res.error);
-                  setCooldownUntil(Date.now() + 30_000);
-                } else {
-                  setResendNotice(
-                    res.success ??
-                      "Confirmation email sent. Check your inbox and spam folder.",
-                  );
-                  setCooldownUntil(Date.now() + 45_000);
-                }
-                setResendCaptcha(null);
-              });
-            }}
-          >
-            {pending
-              ? "Sending…"
-              : coolingDown
-                ? "Please wait…"
-                : "Resend confirmation email"}
-          </Button>
-        </div>
-
-        <Link href={loginHref} className="mt-6 block">
-          <Button className="h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none hover:bg-zinc-800">
-            Back to sign in
-          </Button>
-        </Link>
-      </div>
+      <EmailOtpEntry
+        email={submittedEmail}
+        next={next}
+        issuedAt={issuedAt}
+        loginHref={loginHref}
+      />
     );
   }
 

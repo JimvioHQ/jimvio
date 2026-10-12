@@ -37,6 +37,7 @@ export function isJimvioGuide(content: string): boolean {
 export function fallbackNotice(content: string): string | null {
   const text = content.trim();
   if (!text || text === MODEL_UNAVAILABLE_REPLY || isJimvioGuide(text)) return null;
+  if (text.length >= 24 || /[.!?]/.test(text) || text.includes("/")) return null;
   return INTERRUPTED_REPLY;
 }
 

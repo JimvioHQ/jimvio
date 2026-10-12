@@ -4,7 +4,7 @@
  * Do not add fees, payout timing, or features that are not implemented.
  */
 
-import { PRIVATE_ACCOUNT_GUIDE, UNVERIFIED_GUIDE } from "@/lib/ai/guide-copy";
+import { CLARIFYING_GUIDE, PRIVATE_ACCOUNT_GUIDE } from "@/lib/ai/guide-copy";
 
 type PublicLink = { label: string; href: string };
 
@@ -234,7 +234,7 @@ export function composePublicGuide(query: string): string {
   const matchedKeywords = hits.flatMap((item) =>
     item.article.keywords.filter((keyword) => query.toLowerCase().includes(keyword)),
   );
-  if (!hits.length || unknown.length > matchedKeywords.length) return UNVERIFIED_GUIDE;
+  if (!hits.length || unknown.length > matchedKeywords.length) return CLARIFYING_GUIDE;
 
   if (needsPrivateAccount(query)) {
     const links = relevantLinks(hits[0].article, query);
@@ -251,7 +251,7 @@ export function retrieveJimvioKnowledge(query: string, limit = 3): string {
   if (!hits.length || unknown.length > 0) {
     const unknownNote = unknown.length ? ` Unverified words: ${unknown.join(", ")}.` : "";
     const matched = hits.map((item) => `${item.article.title}: ${item.article.body}`).join("\n");
-    return `Internal note, not a customer answer: no verified Jimvio article covers this exact question.${unknownNote} In your own words, say that you cannot verify that feature, fee, or policy. Do not invent a page or a number. Never quote this note.${matched ? `\nRelated public facts:\n${matched}` : ""}`;
+    return `Internal note, not a customer answer: no verified Jimvio article covers this exact question.${unknownNote} Ask one short clarifying question and offer the closest public Jimvio path. Do not invent a page or a number. Never quote this note.${matched ? `\nRelated public facts:\n${matched}` : ""}`;
   }
 
   return hits.map((item) => `${item.article.title}: ${item.article.body}`).join("\n");
@@ -263,5 +263,5 @@ export function buildGroundedPrompt(base: string, userText: string): string {
 Verified Jimvio context for this question:
 ${retrieveJimvioKnowledge(userText)}
 
-Use only that context and the conversation. Answer in the language the customer used, in your own words. When a Jimvio fact is not verified, say so briefly. Never quote internal notes, and never tell the customer to "say" something. Do not repeat a greeting if the conversation already started.`;
+Use only that context and the conversation. Answer in the language the customer used, in your own words. If a specific fact is not in the context, ask one short clarifying question and offer the closest public path. Never quote internal notes, and never tell the customer to "say" something. A greeting gets a short welcome, not a product essay.`;
 }

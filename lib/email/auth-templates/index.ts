@@ -40,7 +40,7 @@ export function confirmSignupHtml(): string {
     code: { label: "YOUR VERIFICATION CODE", supabaseOtp: true },
     notice: {
       icon: "clock",
-      title: "This code expires soon",
+      title: "This code expires in 10 minutes",
       body: "For your security, this code can only be used once. If you didn't create a Jimvio account, you can safely ignore this email.",
     },
     cta: { label: "Confirm Email", url: "{{ .ConfirmationURL }}", trusted: true },

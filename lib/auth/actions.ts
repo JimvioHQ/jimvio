@@ -48,6 +48,8 @@ import {
 } from "@/lib/auth/ensure-user-profile"
 import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin"
 import { validateNewPassword } from "@/lib/auth/password-rules"
+import { mapSignupOtpError, normalizeOtpToken, OTP_LIFETIME_MS } from "@/lib/auth/email-otp"
+import { rateLimit } from "@/lib/ops/rate-limit"
 import { canConfirmFreshStoreSignup } from "@/lib/auth/merchant-store-signup"
 import {
   PASSWORD_RECOVERY_COOKIE,
@@ -400,6 +402,53 @@ export async function resendSignUpConfirmation(formData: FormData) {
   } catch (err) {
     console.error("[auth] resendSignUpConfirmation error:", err)
     return { success: "Confirmation email sent. Check your inbox and spam folder." }
+  }
+}
+
+export async function verifySignUpOtp(formData: FormData) {
+  try {
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
+    const token = normalizeOtpToken(String(formData.get("token") ?? ""))
+    if (!isValidAuthEmail(email) || token.length !== 6) {
+      return { error: "Enter the 6-digit code from your email." }
+    }
+
+    const limited = rateLimit(`signup-otp:${email}`, 8, OTP_LIFETIME_MS)
+    if (!limited.allowed) {
+      return { error: "Too many attempts. Please wait a moment and try again." }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "signup",
+    })
+    if (error) {
+      console.error("[auth] verifySignUpOtp", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
+      return { error: mapSignupOtpError(error) }
+    }
+
+    const confirmedAt = data.user?.email_confirmed_at || data.user?.confirmed_at
+    if (!data.user || !confirmedAt) {
+      return { error: "That code could not be confirmed. Request a new one." }
+    }
+
+    if (data.session) {
+      await registerLoginSession(data.user.id)
+      const next = (formData.get("next") as string)?.trim()
+      const path = await resolveLandingPath(data.user.id, next)
+      redirect(path)
+    }
+
+    return { success: "Email verified. You can sign in." }
+  } catch (err) {
+    rethrowIfNextNavigation(err)
+    console.error("[auth] verifySignUpOtp failed")
+    return { error: "We couldn't reach the verification service. Try again." }
   }
 }
 

@@ -137,7 +137,7 @@ export function mapSignUpAuthError(error: AuthErrorLike): string {
     return "Too many attempts. Please wait a moment and try again.";
   }
   if (code === "email_not_confirmed" || lower.includes("email not confirmed")) {
-    return "Please confirm your email before continuing. Check your inbox for the confirmation link.";
+    return "Please confirm your email before continuing. Enter the 6-digit code from your inbox.";
   }
   if (
     code === "unexpected_failure" ||
@@ -238,7 +238,7 @@ const AUTH_STATUS_MESSAGES: Record<string, string> = {
   email_verified: "Email verified. You can continue.",
   already_verified: "This email is already verified. You can sign in.",
   password_updated: "Password updated. Sign in with your new password.",
-  confirmation_sent: "Check your email for the confirmation link.",
+  confirmation_sent: "Check your email for the 6-digit confirmation code.",
   email_updated: "Your email address has been updated.",
 };
 
@@ -272,4 +272,4 @@ export const GENERIC_RESET_SENT =
   "If an account exists for that email, a reset link is on the way.";
 
 export const GENERIC_CONFIRMATION_SENT =
-  "If that email can receive mail, a confirmation link is on the way.";
+  "If that email can receive mail, a 6-digit confirmation code is on the way.";

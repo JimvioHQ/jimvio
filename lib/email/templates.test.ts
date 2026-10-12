@@ -138,6 +138,8 @@ describe("Jimvio email templates", () => {
       assert.equal(html.includes("736291"), false);
     }
     assert.match(confirm, /Confirm your /);
+    assert.match(confirm, /10 minutes/);
+    assert.equal(confirm.includes("482916"), false);
     assert.match(reset, /Reset your /);
     const onDisk = readFileSync(join(root, "supabase/templates/recovery.html"), "utf8");
     assert.match(onDisk, /\{\{ \.ConfirmationURL \}\}/);

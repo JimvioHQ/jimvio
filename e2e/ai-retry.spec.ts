@@ -103,7 +103,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
     await expect(retry).toBeVisible();
     await retry.focus();
     await expect(retry).toBeFocused();
-    await expect(page.getByText("Jimvio guide. This is not a live answer.")).toBeVisible();
+    await expect(page.getByText("Jimvio guide. This is not a live answer.")).toHaveCount(0);
     await expect(page.getByText("/orders")).toBeVisible();
 
     await retry.click();

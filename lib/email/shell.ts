@@ -336,7 +336,7 @@ export function renderJimvioEmail(input: JimvioEmailContent): { html: string; te
     input.details?.paragraph ?? "",
     ...(input.details?.stats ?? []).map((stat) => `${stat.label}: ${stat.value}`),
     ...(input.items?.rows ?? []).map((row) => `${row.name}${row.detail ? ` (${row.detail})` : ""} · Qty ${row.quantity}`),
-    input.code?.supabaseOtp ? `${input.code.label}: use the code in this email` : "",
+    input.code?.supabaseOtp ? `${input.code.label}: {{ .Token }}` : "",
     input.code?.digits?.length ? `${input.code.label}: ${input.code.digits.join(" ")}` : "",
     input.notice ? `${input.notice.title} ${input.notice.body}` : "",
     ctaUrl && input.cta ? `${input.cta.label}: ${ctaUrl}` : "",
