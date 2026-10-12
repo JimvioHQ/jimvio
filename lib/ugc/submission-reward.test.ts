@@ -110,16 +110,16 @@ describe("ugc campaign detail honesty", () => {
       "utf8",
     );
     const faqs = readFileSync(join(process.cwd(), "lib/ugc/campaign-detail.ts"), "utf8");
-    const sidebar = readFileSync(
-      join(process.cwd(), "components/ugc/campaign-detail/CampaignDetailSidebar.tsx"),
+    const summary = readFileSync(
+      join(process.cwd(), "components/ugc/campaign-detail/CampaignDetailSummary.tsx"),
       "utf8",
     );
     assert.doesNotMatch(hero, />\s*Global\s*</);
     assert.doesNotMatch(hero, />\s*English\s*</);
     assert.doesNotMatch(faqs, /1–4 business days/);
     assert.doesNotMatch(faqs, /Is payment guaranteed/);
-    assert.doesNotMatch(sidebar, /rate_per_1k_views \* 10/);
-    assert.match(sidebar, /not your current earnings/);
+    assert.match(summary, /not your current earnings/);
+    assert.match(summary, /not your wallet/);
   });
 
   it("styles featured carousel controls as buttons with labels", () => {

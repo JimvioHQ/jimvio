@@ -8,6 +8,8 @@ import { filterBrandIdsByPermission } from '@/lib/ugc/enterprise/permissions';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import { creatorProfileRequiredPayload, requireInfluencer } from '@/lib/ugc/platform/auth';
 import { parseClaimedViews } from '@/lib/ugc/submission-reward';
+import { countryPolicyFromJoinConfig, creatorCountryDecision } from '@/lib/ugc/campaign-brief';
+import { loadCreatorProfile } from '@/lib/ugc/join-service';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -118,9 +120,9 @@ export async function POST(req: NextRequest) {
 
   if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
   if (!post_url?.trim()) return NextResponse.json({ error: 'post_url required' }, { status: 400 });
-  if (!isUgcSubmitPlatform(platform)) {
+  if (!isUgcSubmitPlatform(platform) || platform === 'x') {
     return NextResponse.json(
-      { error: 'platform must be tiktok, instagram, youtube, or x' },
+      { error: 'platform must be tiktok, instagram, youtube, or facebook' },
       { status: 400 }
     );
   }
@@ -129,7 +131,7 @@ export async function POST(req: NextRequest) {
   // Verify campaign exists and is active
   const { data: campaign } = await db
     .from('ugc_campaigns')
-    .select('status, allowed_platforms, ends_at, brand_id')
+    .select('status, allowed_platforms, ends_at, brand_id, join_config')
     .eq('id', campaign_id)
     .single();
 
@@ -145,6 +147,24 @@ export async function POST(req: NextRequest) {
       { error: `Platform ${platform} is not allowed for this campaign` },
       { status: 400 }
     );
+  }
+
+  const countryPolicy = countryPolicyFromJoinConfig(campaign.join_config);
+  if (countryPolicy.mode === "restricted") {
+    const creator = await loadCreatorProfile(db, user.id);
+    const country = creatorCountryDecision(countryPolicy, creator.country);
+    if (country === "unknown") {
+      return NextResponse.json(
+        { error: "Add a country to your profile before submitting to this campaign." },
+        { status: 403 },
+      );
+    }
+    if (country === "blocked") {
+      return NextResponse.json(
+        { error: "This campaign is not open in your country." },
+        { status: 403 },
+      );
+    }
   }
 
   const { data: participation } = await db

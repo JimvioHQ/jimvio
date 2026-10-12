@@ -17,6 +17,7 @@ import {
   CAMPAIGN_PLATFORMS,
 } from '@/lib/ugc/campaign-wizard-validation';
 import { countryDisplayName, normalizeCountryCode } from '@/lib/geo/buyer-country';
+import { sanitizeCampaignMedia, sanitizeStoredJoinConfig } from '@/lib/ugc/campaign-brief';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -255,7 +256,9 @@ export async function POST(req: NextRequest) {
       fixed_rate: fixed_rate ?? 0,
       total_budget,
       max_payout_per_sub: max_payout_per_sub ?? 400,
-      allowed_platforms: allowed_platforms ?? ['tiktok', 'instagram', 'youtube', 'x'],
+      allowed_platforms: (allowed_platforms ?? ['tiktok', 'instagram', 'youtube', 'facebook']).filter(
+        (platform: string) => platform !== 'x' && platform !== 'twitter',
+      ),
       
       // New Structured Fields
       min_duration,
@@ -273,7 +276,7 @@ export async function POST(req: NextRequest) {
       review_starts_at: review_starts_at ?? null,
       review_ends_at: review_ends_at ?? null,
       payment_at: payment_at ?? null,
-      join_config: join_config && typeof join_config === "object" ? join_config : {},
+      join_config: sanitizeStoredJoinConfig(join_config),
       join_mode:
         typeof join_mode === "string" &&
         (["instant", "application", "invite_only", "hybrid"] as string[]).includes(join_mode)
@@ -298,13 +301,14 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: "Could not create campaign." }, { status: 500 });
 
   // Handle Initial Media
-  if (media && media.length > 0) {
-    const mediaToInsert = media.map((m: { type?: string; url?: string; thumbnail_url?: string | null; usage?: string }, i: number) => ({
+  const cleanMedia = sanitizeCampaignMedia(media);
+  if (cleanMedia.length > 0) {
+    const mediaToInsert = cleanMedia.map((m, i) => ({
       campaign_id: campaign.id,
-      type: m.type || 'image',
+      type: m.type,
       url: m.url,
-      thumbnail_url: m.thumbnail_url || null,
-      usage: m.usage || 'example',
+      thumbnail_url: m.thumbnail_url,
+      usage: m.usage,
       order_index: i,
     }));
     const { error: mErr } = await db.from('ugc_campaign_media').insert(mediaToInsert);

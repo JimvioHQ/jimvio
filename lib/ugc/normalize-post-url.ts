@@ -10,7 +10,7 @@ const TRACKING_PARAMS = [
   "igshid",
 ];
 
-export const UGC_SUBMIT_PLATFORMS = ["tiktok", "instagram", "youtube", "x"] as const;
+export const UGC_SUBMIT_PLATFORMS = ["tiktok", "instagram", "youtube", "facebook", "x"] as const;
 export type UgcSubmitPlatform = (typeof UGC_SUBMIT_PLATFORMS)[number];
 
 export function isUgcSubmitPlatform(value: unknown): value is UgcSubmitPlatform {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -9,7 +9,7 @@ import {
   Globe,
   Video,
   Instagram,
-  Twitter,
+  Facebook,
   AlertCircle,
   Loader2,
   ExternalLink,
@@ -22,7 +22,7 @@ const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok', icon: Video, hostHint: 'tiktok.com' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, hostHint: 'instagram.com' },
   { id: 'youtube', name: 'YouTube', icon: Globe, hostHint: 'youtube.com|youtu.be' },
-  { id: 'x', name: 'X', icon: Twitter, hostHint: 'x.com|twitter.com' },
+  { id: 'facebook', name: 'Facebook', icon: Facebook, hostHint: 'facebook.com|fb.watch' },
 ] as const;
 
 function validateUrl(platform: string, url: string): string | null {
@@ -42,7 +42,7 @@ function validateUrl(platform: string, url: string): string | null {
     tiktok: /(tiktok\.com|vm\.tiktok\.com)$/i,
     instagram: /(instagram\.com|instagr\.am)$/i,
     youtube: /(youtube\.com|youtu\.be)$/i,
-    x: /(x\.com|twitter\.com)$/i,
+    facebook: /(facebook\.com|fb\.watch|fb\.com)$/i,
   };
   const re = rules[platform];
   if (re && !re.test(host)) {
@@ -53,7 +53,6 @@ function validateUrl(platform: string, url: string): string | null {
 
 export default function PublicUGCSubmitPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { t } = useLocale();
 
   const [platform, setPlatform] = useState<string>('');
@@ -66,6 +65,10 @@ export default function PublicUGCSubmitPage() {
   const [success, setSuccess] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
   const [aiReviewing, setAiReviewing] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [campaignTitle, setCampaignTitle] = useState("");
+  const [requirementLines, setRequirementLines] = useState<string[]>([]);
+  const [allowed, setAllowed] = useState<string[] | null>(null);
   const [aiReview, setAiReview] = useState<{
     overallScore?: number;
     riskLevel?: string;
@@ -73,6 +76,36 @@ export default function PublicUGCSubmitPage() {
     suggestions?: string[];
     dimensions?: Array<{ label: string; score: number; status: string; notes: string }>;
   } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const res = await fetch(`/api/ugc/campaigns/${id}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const json = await res.json();
+      const campaign = json.campaign;
+      if (!campaign || cancelled) return;
+      const { readCampaignBrief, contentFormatLabel, displayPlatforms, platformLabel } = await import("@/lib/ugc/campaign-brief");
+      const brief = readCampaignBrief(campaign);
+      const lines = [
+        contentFormatLabel(brief.contentFormat),
+        brief.deliverableLabel,
+        ...brief.keyRequirements,
+        brief.submissionInstructions,
+      ].filter((line): line is string => Boolean(line));
+      setCampaignTitle(String(campaign.title ?? ""));
+      setRequirementLines(lines);
+      const platforms = displayPlatforms(campaign.allowed_platforms).filter((item) =>
+        PLATFORMS.some((platform) => platform.id === item),
+      );
+      setAllowed(platforms.length ? platforms : PLATFORMS.map((item) => item.id));
+      if (platforms.length === 1) setPlatform(platforms[0]);
+      void platformLabel;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   async function runAiReview() {
     if (!platform || !postUrl.trim()) {
@@ -115,6 +148,10 @@ export default function PublicUGCSubmitPage() {
       setError('Please select a platform and enter your post URL.');
       return;
     }
+    if (!confirmed) {
+      setError("Confirm that you reviewed the campaign requirements.");
+      return;
+    }
     const v = validateUrl(platform, postUrl);
     if (v) {
       setError(v);
@@ -151,9 +188,6 @@ export default function PublicUGCSubmitPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        router.push(`/ugc/${id}/`);
-      }, 1800);
     } catch (err: unknown) {
       window.clearInterval(tick);
       setProgress(0);
@@ -169,8 +203,13 @@ export default function PublicUGCSubmitPage() {
         <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-100 shadow-[0_12px_32px_rgba(5,150,105,0.25)]">
           <CheckCircle className="h-10 w-10 text-emerald-600" />
         </div>
-        <h2 className="text-2xl font-bold text-[#111827]">Submitted</h2>
-        <p className="text-sm text-[#6B7280]">Opening your active project…</p>
+        <h2 className="text-2xl font-bold text-[#111827]">Submission received</h2>
+        <p className="max-w-md text-center text-sm text-[#6B7280]">
+          The campaign owner has this for review. Status: pending review. Approval is not automatic.
+        </p>
+        <Link href={`/ugc/${id}/dashboard`} className="text-sm font-semibold text-[#FF5A1F]">
+          View submission status
+        </Link>
       </div>
     );
   }
@@ -195,10 +234,17 @@ export default function PublicUGCSubmitPage() {
 
       <div className="overflow-hidden rounded-[24px] border border-[#EEF0F2] bg-white shadow-[0_12px_40px_rgba(17,24,39,0.06)]">
         <div className="border-b border-[#F3F4F6] bg-gradient-to-r from-[#FFF8F5] to-white px-6 py-5 sm:px-8">
-          <h1 className="text-2xl font-bold text-[#111827]">Submit your content</h1>
+          <h1 className="text-2xl font-bold text-[#111827]">Create submission</h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            {t("submitUrlHint")}
+            {campaignTitle ? campaignTitle : t("submitUrlHint")}
           </p>
+          {requirementLines.length > 0 ? (
+            <ul className="mt-3 list-disc space-y-1 pl-4 text-[13px] text-[#4B5563]">
+              {requirementLines.slice(0, 6).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-7 px-6 py-6 sm:px-8">
@@ -213,8 +259,8 @@ export default function PublicUGCSubmitPage() {
             <label className="text-[11px] font-bold uppercase tracking-wider text-[#9CA3AF]">
               1. Platform
             </label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              {PLATFORMS.map((p) => {
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {PLATFORMS.filter((item) => !allowed || allowed.includes(item.id)).map((p) => {
                 const Icon = p.icon;
                 const selected = platform === p.id;
                 return (
@@ -397,10 +443,20 @@ export default function PublicUGCSubmitPage() {
             />
           </label>
 
+          <label className="flex items-start gap-2 text-[13px] text-[#374151]">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(event) => setConfirmed(event.target.checked)}
+              className="mt-0.5"
+            />
+            I reviewed this against the campaign requirements. Submitting does not approve it or pay it.
+          </label>
+
           <div className="border-t border-[#F3F4F6] pt-4">
             <Button
               type="submit"
-              disabled={loading || !platform || !postUrl || Boolean(validationError)}
+              disabled={loading || !platform || !postUrl || Boolean(validationError) || !confirmed}
               className="h-12 w-full rounded-full bg-[#FF5A1F] text-base font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.3)] hover:bg-[#E04E1A] disabled:opacity-50"
             >
               {loading ? (

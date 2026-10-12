@@ -25,6 +25,8 @@ export type CreatorProfileSnapshot = {
   niche: string[];
   accountAgeDays: number | null;
   isVerified: boolean;
+  /** ISO code or the profile country text. Missing means the country is not verified. */
+  country?: string | null;
 };
 
 export type CampaignInsights = {

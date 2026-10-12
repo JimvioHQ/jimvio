@@ -18,6 +18,7 @@ export type CampaignDetailState =
       isJoined: boolean;
       isPending: boolean;
       participantStatus: string | null;
+      submissionStatus: string | null;
       isBookmarked: boolean;
       profile: CreatorProfileSnapshot | null;
       similar: UGCCampaign[];
@@ -99,12 +100,25 @@ export function useCampaignDetail(campaignId: string) {
         let isJoined = false;
         let isPending = false;
         let participantStatus: string | null = null;
+        let submissionStatus: string | null = null;
         if (pRes.ok) {
           const pJson = await pRes.json();
           const status = pJson.status as string | null;
           participantStatus = status;
           isJoined = status === "accepted";
           isPending = status === "pending" || status === "waitlisted";
+        }
+
+        if (isJoined) {
+          const subRes = await fetch(`/api/ugc/submissions?campaignId=${encodeURIComponent(campaignId)}&limit=10`, {
+            cache: "no-store",
+          });
+          if (subRes.ok) {
+            const subJson = (await subRes.json()) as { data?: { status?: string; created_at?: string }[] };
+            const rows = subJson.data ?? [];
+            const latest = [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))[0];
+            submissionStatus = latest?.status ?? null;
+          }
         }
 
         let similar: UGCCampaign[] = [];
@@ -119,11 +133,15 @@ export function useCampaignDetail(campaignId: string) {
           const supabase = createClient();
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
-            const { data: inf } = await supabase
-              .from("influencers")
-              .select("id, total_followers, social_platforms, niche, created_at, is_verified")
-              .eq("user_id", user.id)
-              .maybeSingle();
+            const [{ data: inf }, { data: profileRow }] = await Promise.all([
+              supabase
+                .from("influencers")
+                .select("id, total_followers, social_platforms, niche, created_at, is_verified")
+                .eq("user_id", user.id)
+                .maybeSingle(),
+              supabase.from("profiles").select("country").eq("id", user.id).maybeSingle(),
+            ]);
+            const country = profileRow?.country ?? null;
 
             if (inf) {
               const platformsRaw = inf.social_platforms;
@@ -144,9 +162,18 @@ export function useCampaignDetail(campaignId: string) {
                 niche: (inf.niche as string[]) ?? [],
                 accountAgeDays: ageDays,
                 isVerified: Boolean(inf.is_verified),
+                country,
               };
             } else {
-              profile = { hasProfile: false, totalFollowers: null, platforms: [], niche: [], accountAgeDays: null, isVerified: false };
+              profile = {
+                hasProfile: false,
+                totalFollowers: null,
+                platforms: [],
+                niche: [],
+                accountAgeDays: null,
+                isVerified: false,
+                country,
+              };
             }
           }
         } catch {
@@ -161,6 +188,7 @@ export function useCampaignDetail(campaignId: string) {
           isJoined,
           isPending,
           participantStatus,
+          submissionStatus,
           isBookmarked: getBookmarkedIds().has(campaign.id),
           profile,
           similar,

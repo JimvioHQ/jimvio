@@ -13,7 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { UGCCampaignType, UGCPlatform } from "@/types/ugc";
+import type { UGCCampaignType } from "@/types/ugc";
 import { cloudinaryService } from "@/services/media/cloudinary";
 import { cn } from "@/lib/utils";
 import {
@@ -31,6 +31,17 @@ import {
 } from "@/lib/ugc/campaign-wizard-validation";
 import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 import { useLocale } from "@/context/LocaleContext";
+import { CountryMultiSelect } from "@/components/ugc/campaign-center/CountryMultiSelect";
+import {
+  CONTENT_FORMATS,
+  countryPolicyFromJoinConfig,
+  mediaFromBrief,
+  mergeJoinConfigBrief,
+  platformLabel,
+  readCampaignBrief,
+  type BriefLink,
+  type ContentFormat,
+} from "@/lib/ugc/campaign-brief";
 
 const STEP_KEY = "jimvio-campaign-center-step-v1";
 
@@ -45,7 +56,7 @@ const TYPES: {
   { value: "promotion", labelKey: "typePromotion", descKey: "typePromotionDesc" },
 ];
 
-const PLATFORMS: UGCPlatform[] = ["tiktok", "instagram", "youtube", "x"];
+const PLATFORMS = ["tiktok", "instagram", "youtube", "facebook"] as const;
 
 type MediaItem = { type: string; url: string; usage: string };
 
@@ -71,9 +82,21 @@ type FormState = {
   promotion_target_url: string;
   media: MediaItem[];
   creator_limit: number;
-  countries: string;
-  languages: string;
   join_mode: "instant" | "application" | "invite_only" | "hybrid";
+  content_format: ContentFormat;
+  deliverable_count: number;
+  deliverable_label: string;
+  key_requirements: string;
+  product_visibility: string;
+  caption_notes: string;
+  language: string;
+  restrictions: string;
+  submission_instructions: string;
+  all_countries: boolean;
+  country_codes: string[];
+  references: BriefLink[];
+  resources: BriefLink[];
+  assets: BriefLink[];
 };
 
 const DEFAULT_FORM: FormState = {
@@ -99,8 +122,20 @@ const DEFAULT_FORM: FormState = {
   media: [],
   creator_limit: 50,
   join_mode: "instant",
-  countries: "",
-  languages: "",
+  content_format: "vertical_video",
+  deliverable_count: 1,
+  deliverable_label: "Original UGC video",
+  key_requirements: "Be authentic and natural\nShow the product clearly\nUse the brand's key message\nHigh-quality video and clear audio",
+  product_visibility: "Show the product clearly",
+  caption_notes: "",
+  language: "",
+  restrictions: "",
+  submission_instructions: "",
+  all_countries: true,
+  country_codes: [],
+  references: [],
+  resources: [],
+  assets: [],
 };
 
 const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
@@ -156,6 +191,11 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       : typeof c.campaign_type === "string" && c.campaign_type
         ? (c.campaign_type as FormState["campaign_type"])
         : "ugc";
+    const brief = readCampaignBrief({
+      join_config: c.join_config as never,
+      media: Array.isArray(c.media) ? (c.media as never) : [],
+    });
+    const policy = countryPolicyFromJoinConfig(c.join_config);
     const next: FormState = {
       ...DEFAULT_FORM,
       title: String(c.title ?? ""),
@@ -167,7 +207,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       total_budget: coerceFiniteNumber(c.total_budget) ?? 0,
       max_payout_per_sub: coerceFiniteNumber(c.max_payout_per_sub) ?? 0,
       allowed_platforms: Array.isArray(c.allowed_platforms)
-        ? (c.allowed_platforms as string[])
+        ? (c.allowed_platforms as string[]).filter((platform) => platform !== "x" && platform !== "twitter")
         : [],
       min_duration: coerceFiniteNumber(c.min_duration) ?? 0,
       max_duration: coerceFiniteNumber(c.max_duration) ?? 0,
@@ -182,12 +222,22 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         Number.isFinite(Number(c.max_participants)) && Number(c.max_participants) > 0
           ? Math.floor(Number(c.max_participants))
           : 0,
-      countries: Array.isArray((c.join_config as { countries?: unknown } | null)?.countries)
-        ? ((c.join_config as { countries: string[] }).countries).join(", ")
-        : "",
-      languages: Array.isArray((c.join_config as { languages?: unknown } | null)?.languages)
-        ? ((c.join_config as { languages: string[] }).languages).join(", ")
-        : "",
+      content_format:
+        brief.contentFormat ??
+        (Number(c.min_duration) > 0 || Number(c.max_duration) > 0 ? "vertical_video" : "other"),
+      deliverable_count: brief.deliverableCount ?? 0,
+      deliverable_label: brief.deliverableLabel,
+      key_requirements: brief.keyRequirements.join("\n"),
+      product_visibility: brief.productVisibility,
+      caption_notes: brief.captionNotes,
+      language: brief.language,
+      restrictions: brief.restrictions,
+      submission_instructions: brief.submissionInstructions,
+      all_countries: policy.mode === "all",
+      country_codes: policy.codes,
+      references: brief.references,
+      resources: brief.resources,
+      assets: brief.assets,
       music_track_url: String(c.music_track_url ?? ""),
       music_artist_name: String(c.music_artist_name ?? ""),
       promotion_target: String(c.promotion_target ?? ""),
@@ -344,14 +394,95 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     }
   };
 
+  const uploadBriefFile = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    bucket: "references" | "resources" | "assets",
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    const max = isVideo ? 80_000_000 : isPdf ? 15_000_000 : 8_000_000;
+    if (!isVideo && !isImage && !isPdf) {
+      toast.error("Use an image, video, or PDF.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > max) {
+      toast.error("That file is too large.");
+      e.target.value = "";
+      return;
+    }
+    setUploading(true);
+    try {
+      const sigRes = await fetch("/api/uploads/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder: "jimvio/ugc" }),
+      });
+      if (!sigRes.ok) throw new Error("Failed to get signature");
+      const { data: sig } = await sigRes.json();
+      const res = await cloudinaryService.uploadDirect(
+        file,
+        sig,
+        isVideo ? "video" : isImage ? "image" : "raw",
+      );
+      if (!res.success || !res.data) throw new Error(res.error || "Upload failed");
+      const link: BriefLink = {
+        id: crypto.randomUUID(),
+        title: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || "Untitled",
+        url: res.data.secure_url,
+        note: "",
+        kind: isVideo ? "video" : isImage ? "image" : "file",
+        fileType: isPdf ? "PDF" : isVideo ? "VIDEO" : "IMAGE",
+      };
+      setForm((prev) => ({ ...prev, [bucket]: [...prev[bucket], link] }));
+      toast.success(t("assetUploaded"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("uploadFailed"));
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const addBriefLink = (bucket: "references" | "resources" | "assets", url: string) => {
+    const safe = url.trim();
+    if (!/^https?:\/\//i.test(safe)) {
+      toast.error("Enter an https link.");
+      return;
+    }
+    const link: BriefLink = {
+      id: crypto.randomUUID(),
+      title: bucket === "references" ? "Reference" : bucket === "resources" ? "Resource" : "Brand asset",
+      url: safe,
+      note: "",
+      kind: "link",
+      fileType: "LINK",
+    };
+    setForm((prev) => ({ ...prev, [bucket]: [...prev[bucket], link] }));
+  };
+
   const payload = useMemo(() => {
-    const guidelines: string[] = [];
-    if (form.countries.trim()) guidelines.push(`Countries: ${form.countries.trim()}`);
-    if (form.languages.trim()) guidelines.push(`Languages: ${form.languages.trim()}`);
-    if (form.creator_limit > 0) guidelines.push(`Creator limit: ${form.creator_limit}`);
-    const description = [form.description.trim(), ...guidelines]
-      .filter(Boolean)
-      .join("\n\n");
+    const description = form.description.trim();
+    const briefInput = {
+      contentFormat: form.content_format,
+      deliverableCount: form.deliverable_count > 0 ? form.deliverable_count : null,
+      deliverableLabel: form.deliverable_label,
+      keyRequirements: form.key_requirements,
+      productVisibility: form.product_visibility,
+      captionNotes: form.caption_notes,
+      language: form.language,
+      restrictions: form.restrictions,
+      submissionInstructions: form.submission_instructions,
+      allCountries: form.all_countries,
+      countryCodes: form.country_codes,
+      references: form.references,
+      resources: form.resources,
+      assets: form.assets,
+    };
+    const video = form.content_format === "vertical_video" || form.content_format === "horizontal_video";
 
     return {
       title: form.title.trim(),
@@ -366,8 +497,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       total_budget: form.total_budget,
       max_payout_per_sub: form.max_payout_per_sub,
       allowed_platforms: form.allowed_platforms,
-      min_duration: form.min_duration,
-      max_duration: form.max_duration,
+      min_duration: video && form.min_duration > 0 ? form.min_duration : null,
+      max_duration: video && form.max_duration > 0 ? form.max_duration : null,
       required_hashtags: form.required_hashtags,
       required_mentions: form.required_mentions,
       required_keywords: form.required_keywords,
@@ -376,20 +507,37 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       music_artist_name: form.music_artist_name || undefined,
       promotion_target: form.promotion_target || undefined,
       promotion_target_url: form.promotion_target_url || undefined,
-      media: form.media,
-      join_config: {
-        countries: form.countries
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        languages: form.languages
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-      },
+      media: mediaFromBrief(
+        form.media
+          .filter((item) => item.usage === "banner")
+          .map((item) => ({
+            type: item.type === "video" || item.type === "file" ? item.type : "image",
+            url: item.url,
+            usage: "banner" as const,
+            thumbnail_url: null,
+          })),
+        {
+          contentFormat: form.content_format,
+          deliverableCount: briefInput.deliverableCount,
+          deliverableLabel: form.deliverable_label,
+          keyRequirements: form.key_requirements.split("\n").map((line) => line.trim()).filter(Boolean),
+          productVisibility: form.product_visibility,
+          captionNotes: form.caption_notes,
+          language: form.language,
+          restrictions: form.restrictions,
+          submissionInstructions: form.submission_instructions,
+          references: form.references,
+          resources: form.resources,
+          assets: form.assets,
+        },
+      ),
+      join_config: mergeJoinConfigBrief({}, briefInput),
       join_mode: form.join_mode,
       max_participants: form.creator_limit > 0 ? Math.floor(form.creator_limit) : null,
       brand_id: brandId || undefined,
+      content_format: form.content_format,
+      all_countries: form.all_countries,
+      country_codes: form.country_codes,
     };
   }, [form, brandId]);
 
@@ -408,6 +556,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       join_config: payload.join_config,
       join_mode: payload.join_mode,
       max_participants: payload.max_participants,
+      media: payload.media,
       ...extra,
     };
     if (!moneyLocked) {
@@ -829,30 +978,29 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                         on ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#4B5563]",
                       )}
                     >
-                      {p === "x" ? "X" : p}
+                      {platformLabel(p)}
                     </button>
                   );
                 })}
               </div>
             </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("wizardCountries")}>
-                <input
-                  value={form.countries}
-                  onChange={(e) => set("countries", e.target.value)}
-                  placeholder={t("wizardPhCountries")}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label={t("wizardLanguages")}>
-                <input
-                  value={form.languages}
-                  onChange={(e) => set("languages", e.target.value)}
-                  placeholder={t("wizardPhLanguages")}
-                  className={inputCls}
-                />
-              </Field>
-            </div>
+            <CountryMultiSelect
+              allCountries={form.all_countries}
+              codes={form.country_codes}
+              onAllCountries={(value) => set("all_countries", value)}
+              onCodes={(codes) => set("country_codes", codes)}
+            />
+            {fieldErrors.country_codes ? (
+              <p className="text-[12px] font-medium text-red-600">{fieldErrors.country_codes}</p>
+            ) : null}
+            <Field label={t("wizardLanguages")}>
+              <input
+                value={form.language}
+                onChange={(e) => set("language", e.target.value)}
+                placeholder={t("wizardPhLanguages")}
+                className={inputCls}
+              />
+            </Field>
             <Field label="How creators join">
               <select
                 value={form.join_mode}
@@ -879,6 +1027,26 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 4 && (
           <div className="space-y-4">
+            <Field label="Content format">
+              <select
+                value={form.content_format}
+                onChange={(e) => set("content_format", e.target.value as ContentFormat)}
+                className={inputCls}
+              >
+                {CONTENT_FORMATS.map((format) => (
+                  <option key={format} value={format}>
+                    {format === "vertical_video"
+                      ? "Vertical video (9:16)"
+                      : format === "horizontal_video"
+                        ? "Horizontal video (16:9)"
+                        : format === "image"
+                          ? "Image / photo"
+                          : "Other"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            {form.content_format === "vertical_video" || form.content_format === "horizontal_video" ? (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("wizardMinDuration")} required error={fieldErrors.min_duration}>
                 <input
@@ -903,6 +1071,52 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             </div>
+            ) : (
+              <p className="text-[12px] text-[#6B7280]">Video length is not required for this format.</p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Number of deliverables">
+                <input
+                  type="number"
+                  min={1}
+                  value={form.deliverable_count > 0 ? form.deliverable_count : ""}
+                  onChange={(e) => set("deliverable_count", e.target.value === "" ? 0 : Number(e.target.value))}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Deliverable">
+                <input
+                  value={form.deliverable_label}
+                  onChange={(e) => set("deliverable_label", e.target.value)}
+                  className={inputCls}
+                  placeholder="Original UGC video"
+                />
+              </Field>
+            </div>
+            <Field label="Key requirements">
+              <textarea
+                value={form.key_requirements}
+                onChange={(e) => set("key_requirements", e.target.value)}
+                rows={4}
+                className={inputCls}
+                placeholder="One requirement per line"
+              />
+            </Field>
+            <Field label="Product visibility">
+              <input
+                value={form.product_visibility}
+                onChange={(e) => set("product_visibility", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Caption, hashtags, mentions, and calls to action">
+              <textarea
+                value={form.caption_notes}
+                onChange={(e) => set("caption_notes", e.target.value)}
+                rows={3}
+                className={inputCls}
+              />
+            </Field>
             <TagField
               label={t("wizardHashtags")}
               value={tagInput.hashtag}
@@ -953,6 +1167,22 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 )
               }
             />
+            <Field label="Restrictions and brand safety">
+              <textarea
+                value={form.restrictions}
+                onChange={(e) => set("restrictions", e.target.value)}
+                rows={3}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Submission instructions">
+              <textarea
+                value={form.submission_instructions}
+                onChange={(e) => set("submission_instructions", e.target.value)}
+                rows={3}
+                className={inputCls}
+              />
+            </Field>
             <label className="flex items-center gap-2 text-[13px] font-medium text-[#374151]">
               <input
                 type="checkbox"
@@ -1026,6 +1256,34 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   ))}
               </div>
             </Field>
+            <BriefList
+              label="References"
+              hint="Example videos, images, or links, plus what the creator should learn."
+              items={form.references}
+              uploading={uploading}
+              onUpload={(e) => void uploadBriefFile(e, "references")}
+              onAddLink={(url) => addBriefLink("references", url)}
+              onChange={(items) => set("references", items)}
+            />
+            <BriefList
+              label="Resources"
+              hint="Briefs, guidelines, scripts, and other documents."
+              items={form.resources}
+              uploading={uploading}
+              accept="image/*,video/*,application/pdf"
+              onUpload={(e) => void uploadBriefFile(e, "resources")}
+              onAddLink={(url) => addBriefLink("resources", url)}
+              onChange={(items) => set("resources", items)}
+            />
+            <BriefList
+              label="Brand assets"
+              hint="Logo, product photos, and other files creators may use."
+              items={form.assets}
+              uploading={uploading}
+              onUpload={(e) => void uploadBriefFile(e, "assets")}
+              onAddLink={(url) => addBriefLink("assets", url)}
+              onChange={(items) => set("assets", items)}
+            />
           </div>
         )}
 
@@ -1070,7 +1328,12 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   : `$${form.fixed_rate}/post · Budget $${form.total_budget}`
               }
             />
-            <ReviewRow label={t("reviewPlatforms")} value={form.allowed_platforms.join(", ") || "—"} />
+            <ReviewRow label={t("reviewPlatforms")} value={form.allowed_platforms.map(platformLabel).join(", ") || "—"} />
+            <ReviewRow
+              label="Countries"
+              value={form.all_countries ? "All countries" : form.country_codes.join(", ") || "—"}
+            />
+            <ReviewRow label="Content format" value={form.content_format.replaceAll("_", " ")} />
             <ReviewRow
               label={t("reviewDuration")}
               value={
@@ -1238,5 +1501,102 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
       <span className="text-[12px] font-semibold text-[#9CA3AF]">{label}</span>
       <span className="text-right font-medium capitalize">{value}</span>
     </div>
+  );
+}
+
+function BriefList({
+  label,
+  hint,
+  items,
+  uploading,
+  accept = "image/*,video/*",
+  onUpload,
+  onAddLink,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  items: BriefLink[];
+  uploading: boolean;
+  accept?: string;
+  onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onAddLink: (url: string) => void;
+  onChange: (items: BriefLink[]) => void;
+}) {
+  const [url, setUrl] = useState("");
+  const move = (index: number, direction: -1 | 1) => {
+    const next = index + direction;
+    if (next < 0 || next >= items.length) return;
+    const copy = [...items];
+    const [item] = copy.splice(index, 1);
+    copy.splice(next, 0, item);
+    onChange(copy);
+  };
+  return (
+    <Field label={label}>
+      <p className="mb-2 text-[12px] text-[#6B7280]">{hint}</p>
+      <div className="flex flex-wrap gap-2">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E5E7EB] px-3 py-2 text-[12px] font-semibold">
+          <Upload className="h-3.5 w-3.5" />
+          {uploading ? "Uploading…" : "Upload"}
+          <input type="file" accept={accept} className="hidden" onChange={onUpload} />
+        </label>
+        <input
+          value={url}
+          onChange={(event) => setUrl(event.target.value)}
+          placeholder="https://"
+          aria-label={`${label} link`}
+          className="min-w-[180px] flex-1 rounded-xl border border-[#E5E7EB] px-3 py-2 text-[13px]"
+        />
+        <button
+          type="button"
+          className="rounded-full bg-[#111827] px-3 text-[12px] font-bold text-white"
+          onClick={() => {
+            onAddLink(url);
+            setUrl("");
+          }}
+        >
+          Add link
+        </button>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {items.map((item, index) => (
+          <li key={item.id} className="rounded-xl border border-[#EEF0F2] p-3">
+            <div className="flex items-start justify-between gap-2">
+              <input
+                value={item.title}
+                aria-label={`${label} title`}
+                onChange={(event) =>
+                  onChange(items.map((row) => (row.id === item.id ? { ...row, title: event.target.value } : row)))
+                }
+                className="w-full text-[13px] font-semibold outline-none"
+              />
+              <button type="button" className="text-[12px] text-[#9CA3AF]" onClick={() => move(index, -1)} aria-label="Move up">
+                Up
+              </button>
+              <button type="button" className="text-[12px] text-[#9CA3AF]" onClick={() => move(index, 1)} aria-label="Move down">
+                Down
+              </button>
+              <button
+                type="button"
+                className="text-[12px] font-semibold text-red-600"
+                onClick={() => onChange(items.filter((row) => row.id !== item.id))}
+              >
+                Remove
+              </button>
+            </div>
+            <input
+              value={item.note}
+              aria-label={`${label} note`}
+              placeholder="What should the creator learn from this?"
+              onChange={(event) =>
+                onChange(items.map((row) => (row.id === item.id ? { ...row, note: event.target.value } : row)))
+              }
+              className="mt-1 w-full text-[12px] text-[#6B7280] outline-none"
+            />
+          </li>
+        ))}
+      </ul>
+    </Field>
   );
 }

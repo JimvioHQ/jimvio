@@ -13092,7 +13092,7 @@ export type Database = {
         | "withdrawn"
       ugc_payment_model: "per_views" | "fixed_per_content"
       ugc_payout_status: "pending" | "approved" | "paid"
-      ugc_platform: "tiktok" | "instagram" | "youtube" | "x"
+      ugc_platform: "tiktok" | "instagram" | "youtube" | "facebook" | "x"
       ugc_platform_format:
         | "reels"
         | "tiktok_video"
@@ -13308,7 +13308,7 @@ export const Constants = {
       ],
       ugc_payment_model: ["per_views", "fixed_per_content"],
       ugc_payout_status: ["pending", "approved", "paid"],
-      ugc_platform: ["tiktok", "instagram", "youtube", "x"],
+      ugc_platform: ["tiktok", "instagram", "youtube", "facebook", "x"],
       ugc_platform_format: [
         "reels",
         "tiktok_video",

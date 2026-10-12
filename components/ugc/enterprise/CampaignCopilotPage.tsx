@@ -17,7 +17,7 @@ import {
   fieldClass,
 } from "./enterprise-ui";
 
-const PLATFORMS = ["tiktok", "instagram", "youtube", "x"] as const;
+const PLATFORMS = ["tiktok", "instagram", "youtube", "facebook"] as const;
 const TYPES = ["ugc", "clipping", "music_clipping", "promotion"] as const;
 const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
 

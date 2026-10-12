@@ -16,6 +16,7 @@ import {
   requireCampaignMember,
   requireCampaignPermission,
 } from '@/lib/ugc/enterprise/brand-access';
+import { sanitizeCampaignMedia, sanitizeStoredJoinConfig } from '@/lib/ugc/campaign-brief';
 
 // ─── GET /api/ugc/campaigns/[id] ────────────────────────────────────────────
 export async function GET(
@@ -109,10 +110,11 @@ export async function PATCH(
 
   if (updates.join_config && typeof updates.join_config === 'object' && !Array.isArray(updates.join_config)) {
     const existing = campaign?.join_config;
-    safeUpdates.join_config =
+    const merged =
       existing && typeof existing === 'object' && !Array.isArray(existing)
         ? { ...(existing as Record<string, unknown>), ...(updates.join_config as Record<string, unknown>) }
         : updates.join_config;
+    safeUpdates.join_config = sanitizeStoredJoinConfig(merged);
   }
 
   const locked = lockedMoneyFieldChange(
@@ -173,6 +175,31 @@ export async function PATCH(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (Array.isArray(body.media)) {
+    const cleanMedia = sanitizeCampaignMedia(body.media);
+    const { data: existingMedia } = await db
+      .from('ugc_campaign_media')
+      .select('id')
+      .eq('campaign_id', id);
+    if (cleanMedia.length > 0) {
+      const inserted = cleanMedia.map((m, i) => ({
+        campaign_id: id,
+        type: m.type,
+        url: m.url,
+        thumbnail_url: m.thumbnail_url,
+        usage: m.usage,
+        order_index: i,
+      }));
+      const { error: mediaError } = await db.from('ugc_campaign_media').insert(inserted);
+      if (mediaError) return NextResponse.json({ error: 'Could not save campaign files.' }, { status: 500 });
+    }
+    const staleIds = (existingMedia ?? []).map((row) => row.id);
+    if (staleIds.length > 0) {
+      await db.from('ugc_campaign_media').delete().in('id', staleIds);
+    }
+  }
+
   return NextResponse.json({ campaign: updated });
 }
 

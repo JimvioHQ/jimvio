@@ -10,11 +10,13 @@
  *   Basics       — title (UI required). description optional
  *   Rewards      — total_budget (UI required) + rate/fixed (existing validateStep)
  *   Targeting    — at least one platform (existing validateStep). geo/limit optional
- *   Requirements — min/max duration must be valid numbers with min <= max.
- *                  hashtags / mentions / keywords / face-on-camera are optional
+ *   Requirements — video campaigns require min/max duration with min <= max.
+ *                  Image campaigns do not. Other brief fields are optional.
  *   Assets       — all optional (empty is valid)
  *   Review       — complete only when every prior step is complete
  */
+
+import { contentFormatNeedsDuration, type ContentFormat } from "@/lib/ugc/campaign-brief";
 
 export const CAMPAIGN_WIZARD_STEPS = [
   { id: "type", index: 0, label: "Type" },
@@ -29,7 +31,7 @@ export const CAMPAIGN_WIZARD_STEPS = [
 export type CampaignWizardStepId = (typeof CAMPAIGN_WIZARD_STEPS)[number]["id"];
 
 export const CAMPAIGN_TYPES = ["ugc", "clipping", "music_clipping", "promotion"] as const;
-export const CAMPAIGN_PLATFORMS = ["tiktok", "instagram", "youtube", "x"] as const;
+export const CAMPAIGN_PLATFORMS = ["tiktok", "instagram", "youtube", "facebook"] as const;
 
 export type CampaignWizardDraft = {
   title?: string | null;
@@ -49,6 +51,9 @@ export type CampaignWizardDraft = {
   requires_face?: boolean | null;
   media?: unknown[] | null;
   creator_limit?: number | null;
+  content_format?: string | null;
+  all_countries?: boolean | null;
+  country_codes?: string[] | null;
 };
 
 export type CampaignWizardFieldError = {
@@ -106,7 +111,37 @@ export function toCampaignWizardDraft(row: Record<string, unknown> | null | unde
     requires_face: typeof row.requires_face === "boolean" ? row.requires_face : null,
     media: Array.isArray(row.media) ? row.media : null,
     creator_limit: coerceFiniteNumber(row.creator_limit),
+    content_format: contentFormatFromRow(row),
+    all_countries: allCountriesFromRow(row),
+    country_codes: countryCodesFromRow(row),
   };
+}
+
+function contentFormatFromRow(row: Record<string, unknown>): string | null {
+  if (typeof row.content_format === "string") return row.content_format;
+  const join = row.join_config;
+  if (!join || typeof join !== "object" || Array.isArray(join)) return null;
+  const brief = (join as { brief?: { contentFormat?: unknown } }).brief;
+  return typeof brief?.contentFormat === "string" ? brief.contentFormat : null;
+}
+
+function joinBrief(row: Record<string, unknown>): { allCountries?: unknown; countryCodes?: unknown } | null {
+  const join = row.join_config;
+  if (!join || typeof join !== "object" || Array.isArray(join)) return null;
+  const brief = (join as { brief?: { allCountries?: unknown; countryCodes?: unknown } }).brief;
+  return brief ?? null;
+}
+
+function allCountriesFromRow(row: Record<string, unknown>): boolean | null {
+  if (typeof row.all_countries === "boolean") return row.all_countries;
+  const flag = joinBrief(row)?.allCountries;
+  return typeof flag === "boolean" ? flag : null;
+}
+
+function countryCodesFromRow(row: Record<string, unknown>): string[] | null {
+  if (Array.isArray(row.country_codes)) return row.country_codes.map(String);
+  const codes = joinBrief(row)?.countryCodes;
+  return Array.isArray(codes) ? codes.map(String) : null;
 }
 
 function ownStepErrors(step: CampaignWizardStepId, draft: CampaignWizardDraft): CampaignWizardFieldError[] {
@@ -154,20 +189,26 @@ function ownStepErrors(step: CampaignWizardStepId, draft: CampaignWizardDraft): 
     if (platforms.length === 0) {
       errors.push(tag("allowed_platforms", "Select at least one platform."));
     }
+    if (draft.all_countries === false && (draft.country_codes ?? []).length === 0) {
+      errors.push(tag("country_codes", "Select at least one country or choose all countries."));
+    }
     return errors;
   }
 
   if (step === "requirements") {
-    const min = coerceFiniteNumber(draft.min_duration);
-    const max = coerceFiniteNumber(draft.max_duration);
-    if (min == null || min <= 0) {
-      errors.push(tag("min_duration", "Minimum duration is required."));
-    }
-    if (max == null || max <= 0) {
-      errors.push(tag("max_duration", "Maximum duration is required."));
-    }
-    if (min != null && max != null && min > 0 && max > 0 && min > max) {
-      errors.push(tag("max_duration", "Maximum duration must be greater than or equal to minimum duration."));
+    const format = draft.content_format as ContentFormat | null | undefined;
+    if (contentFormatNeedsDuration(format)) {
+      const min = coerceFiniteNumber(draft.min_duration);
+      const max = coerceFiniteNumber(draft.max_duration);
+      if (min == null || min <= 0) {
+        errors.push(tag("min_duration", "Minimum duration is required."));
+      }
+      if (max == null || max <= 0) {
+        errors.push(tag("max_duration", "Maximum duration is required."));
+      }
+      if (min != null && max != null && min > 0 && max > 0 && min > max) {
+        errors.push(tag("max_duration", "Maximum duration must be greater than or equal to minimum duration."));
+      }
     }
     return errors;
   }

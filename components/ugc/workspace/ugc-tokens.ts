@@ -22,7 +22,7 @@ export type PlatformKey =
   | "tiktok"
   | "instagram"
   | "youtube"
-  | "x";
+  | "facebook";
 
 export type SortKey = "newest" | "budget" | "payout" | "popular" | "deadline";
 export type CompensationFilter = "all" | "per_views" | "fixed_per_content";
@@ -39,14 +39,14 @@ export const PLATFORM_FILTERS: { key: PlatformKey; label: string }[] = [
   { key: "youtube", label: "YouTube" },
   { key: "tiktok", label: "TikTok" },
   { key: "instagram", label: "Instagram" },
-  { key: "x", label: "X" },
+  { key: "facebook", label: "Facebook" },
 ];
 
 export const PLATFORMS: { key: PlatformKey; label: string; apiKey?: string }[] = [
   { key: "tiktok", label: "TikTok", apiKey: "tiktok" },
   { key: "instagram", label: "Instagram", apiKey: "instagram" },
   { key: "youtube", label: "YouTube", apiKey: "youtube" },
-  { key: "x", label: "X", apiKey: "x" },
+  { key: "facebook", label: "Facebook", apiKey: "facebook" },
 ];
 
 export const SORT_OPTIONS: { value: SortKey; label: string }[] = [

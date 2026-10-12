@@ -1,6 +1,7 @@
 import type { UGCCampaign } from "@/types/ugc";
 import type { CreatorProfileSnapshot } from "@/lib/ugc/campaign-detail";
 import { buildEligibility } from "@/lib/ugc/campaign-detail";
+import { countryPolicyFromJoinConfig, creatorCountryDecision } from "@/lib/ugc/campaign-brief";
 
 export type UGCJoinMode = "instant" | "application" | "invite_only" | "hybrid";
 
@@ -173,6 +174,20 @@ export function evaluateJoinEligibility(
     });
   }
 
+  const countryPolicy = countryPolicyFromJoinConfig(campaign.join_config);
+  const countryDecision = creatorCountryDecision(countryPolicy, profile?.country ?? null);
+  if (countryPolicy.mode === "restricted" && countryDecision !== "allowed") {
+    reasons.push({
+      id: "country",
+      label: "Eligible country",
+      met: false,
+      detail:
+        countryDecision === "unknown"
+          ? "Profile country is not verified"
+          : "Outside the campaign country list",
+    });
+  }
+
   const metCount = reasons.filter((r) => r.met).length;
   const score = reasons.length ? Math.round((metCount / reasons.length) * 100) : base.score;
 
@@ -181,8 +196,10 @@ export function evaluateJoinEligibility(
   else if (score >= 55) level = "almost";
 
   const capacityBlocked = campaign.max_participants != null && participantCount >= campaign.max_participants;
+  const countryBlocked = countryPolicy.mode === "restricted" && countryDecision !== "allowed";
   const blocked =
     capacityBlocked ||
+    countryBlocked ||
     campaign.status !== "active" ||
     (campaign.ends_at && new Date(campaign.ends_at) < new Date()) ||
     level === "not_eligible";
@@ -191,6 +208,9 @@ export function evaluateJoinEligibility(
   if (campaign.status !== "active") blockReason = "Campaign is not active";
   else if (campaign.ends_at && new Date(campaign.ends_at) < new Date()) blockReason = "Campaign has ended";
   else if (capacityBlocked) blockReason = "Campaign is full";
+  else if (countryDecision === "unknown" && countryBlocked) {
+    blockReason = "Add a country to your profile before joining this campaign.";
+  } else if (countryBlocked) blockReason = "This campaign is not open in your country.";
   else if (level === "not_eligible") blockReason = "Eligibility requirements not met";
 
   return { level, score, reasons, blocked, blockReason };

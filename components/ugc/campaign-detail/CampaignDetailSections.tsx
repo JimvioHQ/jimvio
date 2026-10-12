@@ -1,399 +1,325 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
+  Clock,
   Download,
-  ExternalLink,
+  FileText,
+  Globe,
+  List,
   Play,
+  Video,
 } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
-import { useCurrency } from "@/context/CurrencyContext";
-import { UGCPremiumCampaignCard } from "@/components/ugc/workspace/UGCPremiumCampaignCard";
 import { UGCPlatformMarks } from "@/components/ugc/workspace/UGCPlatformMarks";
 import {
-  buildEligibility,
-  buildFaqs,
-  buildResources,
-  buildTimeline,
-  getCampaignCategory,
-  getRewardType,
-  type CreatorProfileSnapshot,
-} from "@/lib/ugc/campaign-detail";
-import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
-import { localDateKey, parseCalendarDate } from "@/lib/ugc/calendar";
-import { UGCDateDetailPanel } from "@/components/ugc/workspace/UGCDateDetailPanel";
-import { buildCampaignSchedule } from "@/lib/ugc/campaign-schedule";
-import {
-  AccordionItem,
-  ChecklistItem,
-  Pill,
-  SectionCard,
-  SectionTitle,
-} from "./campaign-detail-ui";
+  contentFormatLabel,
+  countryChipLabel,
+  countryPolicyFromJoinConfig,
+  displayPlatforms,
+  fileTypeLabel,
+  flagEmoji,
+  isDirectMedia,
+  platformLabel,
+  readCampaignBrief,
+  safeHttpUrl,
+  type BriefLink,
+} from "@/lib/ugc/campaign-brief";
+import { SectionCard, SectionTitle } from "./campaign-detail-ui";
 
-type CampaignDetailSectionsProps = {
-  campaign: UGCCampaign;
-  profile: CreatorProfileSnapshot | null;
-  similar: UGCCampaign[];
-};
+function ReqRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex gap-3 py-3">
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F4F5F7] text-[#4B5563]">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[13px] font-semibold text-[#111827]">{label}</p>
+        <p className="text-[13px] text-[#6B7280]">{value}</p>
+      </div>
+    </div>
+  );
+}
 
-export function CampaignDetailSections({ campaign, profile, similar }: CampaignDetailSectionsProps) {
-  const { formatMoney } = useCurrency();
-  const [expandedDesc, setExpandedDesc] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+function EmptyNote({ children }: { children: string }) {
+  return <p className="text-[13px] text-[#6B7280]">{children}</p>;
+}
 
-  const rewardType = getRewardType(campaign);
-  const eligibility = buildEligibility(campaign, profile);
-  const timeline = buildTimeline(campaign);
-  const resources = buildResources(campaign);
-  const faqs = buildFaqs(campaign);
-  const scheduleEvents = buildCampaignSchedule(campaign);
-
-  const desc = campaign.description ?? "";
-  const descLong = desc.length > 320;
-  const rewardLine = getCampaignRewardLine(campaign, formatMoney);
+export function CampaignDetailSections({ campaign }: { campaign: UGCCampaign }) {
+  const brief = readCampaignBrief(campaign);
+  const policy = countryPolicyFromJoinConfig(campaign.join_config);
+  const [preview, setPreview] = useState<BriefLink | null>(null);
+  const format = contentFormatLabel(brief.contentFormat);
+  const duration =
+    brief.contentFormat === "image"
+      ? null
+      : campaign.min_duration || campaign.max_duration
+        ? `${campaign.min_duration ?? "—"}s – ${campaign.max_duration ?? "—"}s`
+        : null;
+  const deliverable =
+    brief.deliverableLabel ||
+    (brief.deliverableCount ? `${brief.deliverableCount} deliverable${brief.deliverableCount === 1 ? "" : "s"}` : "");
+  const platforms = displayPlatforms(campaign.allowed_platforms);
+  const hasRequirements = Boolean(
+    format ||
+      duration ||
+      deliverable ||
+      brief.keyRequirements.length ||
+      brief.productVisibility ||
+      brief.captionNotes ||
+      brief.language ||
+      brief.restrictions ||
+      brief.submissionInstructions ||
+      (campaign.required_hashtags ?? []).length ||
+      (campaign.required_mentions ?? []).length ||
+      platforms.length,
+  );
+  const countries =
+    policy.mode === "all"
+      ? []
+      : [...policy.codes.map((code) => ({ code, label: countryChipLabel(code) })), ...policy.legacyLabels.map((label) => ({ code: "", label }))];
 
   return (
-    <div className="space-y-4 sm:space-y-5">
+    <div className="space-y-3">
       <SectionCard id="about">
         <SectionTitle>About this campaign</SectionTitle>
-        {desc ? (
-          <>
-            <p
-              className={`text-[14px] leading-relaxed text-[#4B5563] whitespace-pre-line ${
-                !expandedDesc && descLong ? "line-clamp-5" : ""
-              }`}
-            >
-              {desc}
-            </p>
-            {descLong ? (
-              <button
-                type="button"
-                onClick={() => setExpandedDesc((e) => !e)}
-                className="mt-2 text-[12px] font-semibold text-[#FF5A1F]"
-              >
-                {expandedDesc ? "Show less" : "Read full description"}
-              </button>
-            ) : null}
-          </>
+        {campaign.description ? (
+          <p className="whitespace-pre-line text-[14px] leading-relaxed text-[#4B5563]">{campaign.description}</p>
         ) : (
-          <p className="text-[13px] text-[#9CA3AF]">No extended description provided.</p>
+          <EmptyNote>No description has been added.</EmptyNote>
         )}
-      </SectionCard>
-
-      <SectionCard id="reward">
-        <SectionTitle>Compensation</SectionTitle>
-        <div className="mb-3 flex flex-wrap gap-2">
-          <Pill tone="brand">{rewardType}</Pill>
-          <Pill tone="neutral">{getCampaignCategory(campaign)}</Pill>
-        </div>
-        <p className="text-[22px] font-bold tabular-nums text-[#111827]">{rewardLine}</p>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#64748B]">
-          {campaign.payment_model === "per_views"
-            ? "Paid on approved views, per 1,000. This rate is not money already earned."
-            : "Paid per approved clip. This rate is not money already earned."}
-        </p>
-        {campaign.max_payout_per_sub ? (
-          <p className="mt-1 text-[13px] text-[#64748B]">
-            Cap per submission: {formatMoney(campaign.max_payout_per_sub, "USD")}
-          </p>
-        ) : null}
-      </SectionCard>
-
-      <SectionCard id="eligibility">
-        <SectionTitle sub="See if you qualify before applying">Creator eligibility</SectionTitle>
-        <div className="mb-4 flex items-center gap-3">
-          <div className="text-[32px] font-bold tabular-nums text-[#FF5A1F]">{eligibility.score}%</div>
-          <Pill
-            tone={
-              eligibility.level === "eligible"
-                ? "success"
-                : eligibility.level === "almost"
-                  ? "warning"
-                  : "danger"
-            }
-          >
-            {eligibility.level === "eligible"
-              ? "Eligible"
-              : eligibility.level === "almost"
-                ? "Almost eligible"
-                : "Not eligible"}
-          </Pill>
-        </div>
-        <div className="divide-y divide-[#EEF0F2]">
-          {eligibility.requirements.map((r) => (
-            <ChecklistItem key={r.id} label={r.label} met={r.met} detail={r.detail} />
-          ))}
-        </div>
-        {!profile ? (
-          <p className="mt-3 text-[12px] text-[#6B7280]">Sign in to check creator-specific rules.</p>
+        {campaign.max_participants ? (
+          <p className="mt-3 text-[13px] text-[#6B7280]">Creator limit: {campaign.max_participants}</p>
         ) : null}
       </SectionCard>
 
       <SectionCard id="requirements">
-        <SectionTitle>Content requirements</SectionTitle>
-        <div className="grid gap-1 sm:grid-cols-2">
-          {campaign.min_duration || campaign.max_duration ? (
-          <ChecklistItem
-            label="Video length"
-            met
-            detail={`${campaign.min_duration ?? 0}s – ${campaign.max_duration ?? "—"}s`}
-          />
-          ) : null}
-          {(campaign.allowed_platforms ?? []).length > 0 ? (
-          <ChecklistItem
-            label="Platforms"
-            met
-            detail={<UGCPlatformMarks platforms={campaign.allowed_platforms ?? []} />}
-          />
-          ) : null}
-        </div>
-        {(campaign.required_hashtags?.length ?? 0) > 0 && (
-          <div className="mt-3">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Hashtags</p>
-            <div className="flex flex-wrap gap-1.5">
-              {campaign.required_hashtags.map((h) => (
-                <span key={h} className="rounded-lg bg-[#FFF4EF] px-2 py-1 text-[11px] font-semibold text-[#FF5A1F]">
-                  {h.startsWith("#") ? h : `#${h}`}
-                </span>
-              ))}
-            </div>
+        <SectionTitle sub="Follow the requirements below to create your content">Content requirements</SectionTitle>
+        {hasRequirements ? (
+          <div className="divide-y divide-[#F3F4F6]">
+            {format ? <ReqRow icon={<Video className="h-4 w-4" />} label="Content format" value={format} /> : null}
+            {duration ? <ReqRow icon={<Clock className="h-4 w-4" />} label="Video length" value={duration} /> : null}
+            {deliverable ? (
+              <ReqRow icon={<FileText className="h-4 w-4" />} label="Deliverables" value={deliverable} />
+            ) : null}
+            {brief.keyRequirements.length > 0 ? (
+              <div className="flex gap-3 py-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#F4F5F7] text-[#4B5563]">
+                  <List className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#111827]">Key requirements</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] text-[#6B7280]">
+                    {brief.keyRequirements.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            ) : null}
+            {brief.productVisibility ? (
+              <ReqRow icon={<Video className="h-4 w-4" />} label="Product visibility" value={brief.productVisibility} />
+            ) : null}
+            {brief.captionNotes ? (
+              <ReqRow icon={<FileText className="h-4 w-4" />} label="Caption and calls to action" value={brief.captionNotes} />
+            ) : null}
+            {brief.language ? <ReqRow icon={<Globe className="h-4 w-4" />} label="Language" value={brief.language} /> : null}
+            {brief.restrictions ? (
+              <ReqRow icon={<List className="h-4 w-4" />} label="Restrictions" value={brief.restrictions} />
+            ) : null}
+            {brief.submissionInstructions ? (
+              <ReqRow icon={<FileText className="h-4 w-4" />} label="Submission instructions" value={brief.submissionInstructions} />
+            ) : null}
+            {(campaign.required_hashtags ?? []).length > 0 ? (
+              <ReqRow
+                icon={<List className="h-4 w-4" />}
+                label="Hashtags"
+                value={(campaign.required_hashtags ?? []).map((tag) => (tag.startsWith("#") ? tag : `#${tag}`)).join(" ")}
+              />
+            ) : null}
+            {(campaign.required_mentions ?? []).length > 0 ? (
+              <ReqRow
+                icon={<List className="h-4 w-4" />}
+                label="Mentions"
+                value={(campaign.required_mentions ?? []).map((tag) => `@${tag.replace(/^@/, "")}`).join(" ")}
+              />
+            ) : null}
+            {platforms.length > 0 ? (
+              <div className="flex items-center gap-3 py-3">
+                <UGCPlatformMarks platforms={platforms} />
+                <p className="text-[13px] text-[#6B7280]">{platforms.map(platformLabel).join(", ")}</p>
+              </div>
+            ) : null}
           </div>
-        )}
-        {(campaign.required_mentions?.length ?? 0) > 0 && (
-          <div className="mt-3">
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Brand mentions</p>
-            <div className="flex flex-wrap gap-1.5">
-              {campaign.required_mentions.map((m) => (
-                <span key={m} className="rounded-lg bg-[#F3F4F6] px-2 py-1 text-[11px] font-semibold text-[#374151]">
-                  @{m.replace(/^@/, "")}
-                </span>
-              ))}
-            </div>
-          </div>
+        ) : (
+          <EmptyNote>The brand has not added content requirements yet.</EmptyNote>
         )}
       </SectionCard>
 
-      {resources.length > 0 ? (
-      <SectionCard id="resources">
-        <SectionTitle sub="Download and preview brand assets">Resources</SectionTitle>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {resources.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-2 rounded-[12px] border border-[#EEF0F2] p-3"
+      <SectionCard id="countries">
+        <SectionTitle sub="Content is eligible from the following countries">Eligible countries</SectionTitle>
+        {policy.mode === "all" ? (
+          <EmptyNote>All countries</EmptyNote>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {countries.map((country) => (
+              <span
+                key={`${country.code}-${country.label}`}
+                className="inline-flex items-center gap-2 rounded-full border border-[#E7E9EE] bg-[#FAFAFA] px-3 py-1.5 text-[13px] font-medium text-[#111827]"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-[#111827]">{r.label}</p>
-                  <p className="text-[11px] text-[#9CA3AF]">{r.source}</p>
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  {r.previewable ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewUrl(r.url)}
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-[#E5E7EB]"
-                      aria-label={`Preview ${r.label}`}
-                    >
-                      <Play className="h-3.5 w-3.5" />
-                    </button>
-                  ) : null}
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="grid h-8 w-8 place-items-center rounded-lg border border-[#E5E7EB]"
-                    aria-label={`Open ${r.label}`}
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </a>
-                </div>
-              </div>
+                <span aria-hidden>{country.code ? flagEmoji(country.code) : "•"}</span>
+                {country.label}
+              </span>
             ))}
           </div>
-        {previewUrl ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="relative max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-black">
-              <button
-                type="button"
-                onClick={() => setPreviewUrl(null)}
-                className="absolute right-3 top-3 z-10 rounded-full bg-black/50 px-3 py-1 text-xs text-white"
-              >
-                Close
-              </button>
-              {/\.(mp4|webm|mov)/i.test(previewUrl) ? (
-                <video src={previewUrl} controls className="max-h-[80vh] w-full" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={previewUrl} alt="Preview" className="max-h-[80vh] w-full object-contain" />
-              )}
-            </div>
-          </div>
-        ) : null}
+        )}
       </SectionCard>
-      ) : null}
 
-      {(campaign.allowed_platforms ?? []).length > 0 ||
-      campaign.min_duration ||
-      campaign.max_duration ||
-      campaign.ends_at ||
-      campaign.requires_face ||
-      campaign.content_guidelines ? (
-      <SectionCard id="deliverables">
-        <SectionTitle>Deliverables</SectionTitle>
-        {campaign.content_guidelines ? (
-          <p className="mb-3 whitespace-pre-line text-[13px] leading-relaxed text-[#4B5563]">
-            {campaign.content_guidelines}
-          </p>
-        ) : null}
-        <div className="space-y-2">
-          {(campaign.allowed_platforms ?? []).map((platform) => (
-            <div key={platform} className="rounded-[12px] border border-[#EEF0F2] p-3">
-              <div className="flex items-center gap-2">
-                <UGCPlatformMarks platforms={[platform]} />
-                <p className="text-[13px] font-semibold capitalize text-[#111827]">{platform}</p>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#6B7280]">
-                {campaign.min_duration || campaign.max_duration ? (
-                  <span>
-                    Duration: {campaign.min_duration ?? "—"}s – {campaign.max_duration ?? "—"}s
-                  </span>
-                ) : null}
-                {campaign.ends_at ? (
-                  <span>Deadline: {new Date(campaign.ends_at).toLocaleDateString()}</span>
-                ) : null}
-                {campaign.requires_face ? <span>On-camera required</span> : null}
-              </div>
-            </div>
-          ))}
-          {(campaign.allowed_platforms ?? []).length === 0 && (campaign.ends_at || campaign.requires_face) ? (
-            <p className="text-[13px] text-[#6B7280]">
-              {campaign.ends_at ? `Deadline ${new Date(campaign.ends_at).toLocaleDateString()}. ` : ""}
-              {campaign.requires_face ? "On-camera appearance is required." : ""}
-            </p>
-          ) : null}
-        </div>
-      </SectionCard>
-      ) : null}
-
-      {timeline.length > 0 ? (
-      <SectionCard id="timeline">
-        <SectionTitle sub="Click a date to see the full campaign brief">Campaign timeline</SectionTitle>
-        <ol className="space-y-2">
-          {timeline.map((e) => {
-            const parsed = e.date ? parseCalendarDate(e.date) : null;
-            const key = parsed ? localDateKey(parsed) : null;
-            return (
-              <li key={e.id}>
-                <button
-                  type="button"
-                  disabled={!key}
-                  onClick={() => key && setSelectedDate(key)}
-                  className="flex w-full gap-3 rounded-[12px] px-2 py-2 text-left hover:bg-[#F8FAFC] disabled:hover:bg-transparent"
-                >
-                  <span
-                    className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                      e.status === "done"
-                        ? "bg-emerald-500"
-                        : e.status === "current"
-                          ? "bg-[#FF5A1F]"
-                          : "bg-[#D1D5DB]"
-                    }`}
-                  />
-                  <div>
-                    <p className="text-[13px] font-semibold text-[#111827]">{e.label}</p>
-                    <p className="text-[11px] text-[#9CA3AF]">
-                      {e.date ? new Date(e.date).toLocaleString() : "TBD"}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-        {selectedDate ? (
-          <div className="mt-4">
-            <UGCDateDetailPanel
-              dateKey={selectedDate}
-              dateLabel={new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-              campaigns={[campaign]}
-              eventsByCampaign={{ [campaign.id]: scheduleEvents }}
-              onClose={() => setSelectedDate(null)}
-            />
-          </div>
-        ) : null}
-      </SectionCard>
-      ) : null}
-
-      {faqs.length > 0 ? (
-      <SectionCard id="faq">
-        <SectionTitle>How rewards work</SectionTitle>
-        {faqs.map((f) => (
-          <AccordionItem key={f.q} q={f.q} a={f.a} />
-        ))}
-      </SectionCard>
-      ) : null}
-
-      {resources.some((r) => r.previewable) ? (
-      <SectionCard id="examples">
-        <SectionTitle sub="Uploaded by the brand">Content examples</SectionTitle>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {resources
-              .filter((r) => r.previewable)
-              .slice(0, 6)
-              .map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setPreviewUrl(r.url)}
-                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#EEF0F2] bg-[#F3F4F6]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={r.url}
-                    alt=""
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
-                  />
-                  <span className="absolute inset-0 grid place-items-center bg-black/0 transition group-hover:bg-black/25">
-                    <Play className="h-8 w-8 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />
-                  </span>
-                </button>
-              ))}
-          </div>
-      </SectionCard>
-      ) : null}
-
-      {campaign.vendor?.business_slug ? (
-      <SectionCard id="contact">
-        <SectionTitle sub="If enabled by the brand">Brand contact</SectionTitle>
-        <p className="text-[13px] leading-relaxed text-[#6B7280]">
-          Public contact details are limited to the brand page the vendor published.
-        </p>
-        <Link
-          href={`/vendors/${campaign.vendor.business_slug}`}
-          className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
-        >
-          Visit brand page <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
-      </SectionCard>
-      ) : null}
-
-      {similar.length > 0 ? (
-        <SectionCard id="similar">
-          <SectionTitle sub="Recommended for you">Similar campaigns</SectionTitle>
+      <SectionCard id="references">
+        <SectionTitle sub="Use these examples as inspiration">References</SectionTitle>
+        {brief.references.length === 0 ? (
+          <EmptyNote>No reference examples have been added.</EmptyNote>
+        ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {similar.map((c, i) => (
-              <UGCPremiumCampaignCard key={c.id} campaign={c} index={i} />
+            {brief.references.map((item) => (
+              <article key={item.id} className="overflow-hidden rounded-xl border border-[#EEF0F2]">
+                <LinkPreview item={item} onPlay={() => setPreview(item)} />
+                <div className="px-3 py-2">
+                  <p className="truncate text-[13px] font-semibold text-[#111827]">{item.title}</p>
+                  {item.note ? <p className="mt-0.5 text-[12px] text-[#6B7280]">{item.note}</p> : null}
+                </div>
+              </article>
             ))}
           </div>
-        </SectionCard>
+        )}
+      </SectionCard>
+
+      <SectionCard id="resources">
+        <SectionTitle sub="Helpful links and documents">Resources</SectionTitle>
+        {brief.resources.length === 0 ? (
+          <EmptyNote>No resources have been added.</EmptyNote>
+        ) : (
+          <ul className="divide-y divide-[#F3F4F6]">
+            {brief.resources.map((item) => (
+              <li key={item.id} className="flex items-center gap-3 py-3">
+                <FileText className="h-4 w-4 shrink-0 text-[#FF5A1F]" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-[#111827]">{item.title}</p>
+                  <p className="text-[11px] text-[#9CA3AF]">{fileTypeLabel(item)}</p>
+                </div>
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-[#E5E7EB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]"
+                  aria-label={`Open ${item.title}`}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
+
+      <SectionCard id="assets">
+        <SectionTitle sub="Use these official assets in your content">Brand assets</SectionTitle>
+        {brief.assets.length === 0 && !safeHttpUrl(campaign.vendor?.business_logo ?? "") ? (
+          <EmptyNote>No brand assets have been added.</EmptyNote>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {safeHttpUrl(campaign.vendor?.business_logo ?? "") &&
+            !brief.assets.some((asset) => asset.url === campaign.vendor?.business_logo) ? (
+              <AssetCard
+                item={{
+                  id: "vendor-logo",
+                  title: "Brand logo",
+                  url: safeHttpUrl(campaign.vendor?.business_logo ?? "")!,
+                  note: "",
+                  kind: "image",
+                  fileType: "IMAGE",
+                }}
+              />
+            ) : null}
+            {brief.assets.map((item) => (
+              <AssetCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {preview && isDirectMedia(preview) ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-2xl bg-black">
+            <button
+              type="button"
+              onClick={() => setPreview(null)}
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1 text-xs text-white"
+            >
+              Close
+            </button>
+            {preview.kind === "video" ? (
+              <video src={preview.url} controls className="max-h-[80vh] w-full" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview.url} alt={preview.title} className="max-h-[80vh] w-full object-contain" />
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
+  );
+}
+
+function LinkPreview({ item, onPlay }: { item: BriefLink; onPlay: () => void }) {
+  if (item.kind === "image") {
+    return (
+      <button type="button" onClick={onPlay} className="relative block aspect-video w-full bg-[#F3F4F6]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.url} alt="" className="h-full w-full object-cover" />
+      </button>
+    );
+  }
+  if (item.kind === "video") {
+    return (
+      <button type="button" onClick={onPlay} className="relative grid aspect-video w-full place-items-center bg-[#111827]">
+        <Play className="h-8 w-8 text-white" />
+      </button>
+    );
+  }
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="grid aspect-video w-full place-items-center bg-[#F8FAFC] text-[12px] font-semibold text-[#FF5A1F]"
+    >
+      Open reference
+    </a>
+  );
+}
+
+function AssetCard({ item }: { item: BriefLink }) {
+  return (
+    <a href={item.url} target="_blank" rel="noopener noreferrer" className="block min-w-0">
+      <div className="aspect-[4/3] overflow-hidden rounded-xl border border-[#EEF0F2] bg-[#F8FAFC]">
+        {item.kind === "image" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full place-items-center text-[11px] font-semibold text-[#6B7280]">{fileTypeLabel(item)}</div>
+        )}
+      </div>
+      <p className="mt-1.5 truncate text-[12px] font-semibold text-[#111827]">{item.title}</p>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-[#9CA3AF]">{fileTypeLabel(item)}</p>
+    </a>
   );
 }

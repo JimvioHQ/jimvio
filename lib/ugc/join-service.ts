@@ -15,6 +15,7 @@ import {
   notifyCreatorProjectCreated,
   notifyVendorNewApplication,
 } from "@/lib/ugc/join-notifications";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import type { UGCCampaign } from "@/types/ugc";
 
 export type CampaignJoinRow = UGCCampaign & {
@@ -39,8 +40,19 @@ export async function loadCreatorProfile(
     .eq("user_id", userId)
     .maybeSingle();
 
+  const { data: profileRow } = await db.from("profiles").select("country").eq("id", userId).maybeSingle();
+  const country = normalizeCountryCode(profileRow?.country) ?? profileRow?.country?.trim() ?? null;
+
   if (!inf || !isCreatorWorkspaceReady(completion, inf)) {
-    return { hasProfile: false, totalFollowers: null, platforms: [], niche: [], accountAgeDays: null, isVerified: false };
+    return {
+      hasProfile: false,
+      totalFollowers: null,
+      platforms: [],
+      niche: [],
+      accountAgeDays: null,
+      isVerified: false,
+      country,
+    };
   }
 
   const platformsRaw = inf.social_platforms;
@@ -59,6 +71,7 @@ export async function loadCreatorProfile(
       ? Math.floor((Date.now() - new Date(inf.created_at).getTime()) / 86400000)
       : null,
     isVerified: Boolean(inf.is_verified),
+    country,
   };
 }
 
