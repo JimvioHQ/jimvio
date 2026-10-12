@@ -22,7 +22,7 @@ import {
 } from "@/lib/ai/gemini-model";
 import { buildGuideResponse } from "@/lib/ai/guide-reply";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
-import { sseChunk, sseDone, sseMode } from "@/lib/ai/sse";
+import { sseChunk, sseDone, sseError, sseMode } from "@/lib/ai/sse";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 const FIRST_TOKEN_MS = 18_000;
@@ -208,6 +208,7 @@ async function openGeminiResponse(messages: ChatMessage[], modelName: string, ca
       controller.enqueue(encoder.encode(sseMode("live")));
       controller.enqueue(encoder.encode(sseChunk(first)));
       const started = Date.now();
+      let failed = false;
       try {
         while (accumulated.length < MAX_OUTPUT_CHARS && Date.now() - started < STREAM_DEADLINE_MS) {
           const step = await iterator.next();
@@ -222,9 +223,11 @@ async function openGeminiResponse(messages: ChatMessage[], modelName: string, ca
         if (finalText) remember(cacheKey, finalText, "live");
         logAiResult("success", { model: modelName, chunks });
       } catch (error) {
+        failed = true;
         logAiResult(classifyProviderError(error), { model: modelName, detail: redactProviderMessage(error) });
       } finally {
-        controller.enqueue(encoder.encode(sseDone()));
+        if (failed) controller.enqueue(encoder.encode(sseError("unavailable")));
+        else controller.enqueue(encoder.encode(sseDone()));
         controller.close();
       }
     },

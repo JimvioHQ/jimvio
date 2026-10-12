@@ -38,7 +38,10 @@ export async function POST(req: NextRequest) {
     .select("id, mode, created_at")
     .single();
 
-  if (saveErr) return NextResponse.json({ error: saveErr.message }, { status: 500 });
+  if (saveErr) {
+    console.error("[ugc campaign copilot] session was not saved", { code: saveErr.code });
+    return NextResponse.json({ error: "The campaign draft was not saved." }, { status: 500 });
+  }
 
   return NextResponse.json({ session, output }, { status: 201 });
 }

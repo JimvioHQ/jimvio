@@ -27,6 +27,15 @@ export function sseDone(): string {
   return "data: [DONE]\n\n";
 }
 
+/** A live answer is complete only when the stream finishes with no provider error. */
+export function streamNeedsFallback(input: {
+  sawDone: boolean;
+  fallback: boolean;
+  errorCode?: ParsedSse["errorCode"];
+}): boolean {
+  return input.fallback || !input.sawDone || Boolean(input.errorCode);
+}
+
 /** Parse complete SSE events. Incomplete trailing bytes stay in `rest`. */
 export function parseSseBuffer(buffer: string): ParsedSse {
   const parts = buffer.split("\n\n");

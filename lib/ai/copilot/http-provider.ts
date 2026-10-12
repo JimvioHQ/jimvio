@@ -1,5 +1,5 @@
 import { parseAiTriggers } from "@/lib/ai/chat-shared";
-import { parseSseBuffer } from "@/lib/ai/sse";
+import { parseSseBuffer, streamNeedsFallback, type ParsedSse } from "@/lib/ai/sse";
 import type { CopilotProvider, CopilotSendInput, CopilotStreamChunk } from "./types";
 
 const TIMEOUT_MS = 45_000;
@@ -25,6 +25,12 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
   let full = "";
   let fallback = false;
   let sawDone = false;
+  let errorCode: ParsedSse["errorCode"];
+  const absorb = (parsed: ReturnType<typeof parseSseBuffer>) => {
+    fallback = fallback || parsed.fallback;
+    if (parsed.errorCode) errorCode = parsed.errorCode;
+    if (parsed.done) sawDone = true;
+  };
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -32,7 +38,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
       buffer += decoder.decode(value, { stream: true });
       const parsed = parseSseBuffer(buffer);
       buffer = parsed.rest;
-      fallback = fallback || parsed.fallback;
+      absorb(parsed);
       if (parsed.errorCode && !full && !parsed.text) {
         throw new Error("Jimvio AI is unavailable right now.");
       }
@@ -40,16 +46,15 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
       }
-      if (parsed.done) {
-        sawDone = true;
-        break;
-      }
+      if (parsed.done) break;
     }
     buffer += decoder.decode();
     if (buffer.trim()) {
       const parsed = parseSseBuffer(`${buffer}\n\n`);
-      fallback = fallback || parsed.fallback;
-      if (parsed.done) sawDone = true;
+      absorb(parsed);
+      if (parsed.errorCode && !full && !parsed.text) {
+        throw new Error("Jimvio AI is unavailable right now.");
+      }
       if (parsed.text) {
         full += parsed.text;
         yield { type: "text-delta", text: parsed.text };
@@ -59,7 +64,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
     reader.releaseLock();
   }
 
-  if (!sawDone) fallback = true;
+  fallback = streamNeedsFallback({ sawDone, fallback, errorCode });
   if (!full.trim()) {
     throw new Error("Jimvio AI is unavailable right now.");
   }

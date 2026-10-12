@@ -31,7 +31,7 @@ import { presentAssistantContent, UNVERIFIED_GUIDE, PRIVATE_ACCOUNT_GUIDE } from
 import { buildGuideResponse } from "./guide-reply.ts";
 import { composePublicGuide, retrieveJimvioKnowledge, verifiedGuideHrefs } from "./knowledge.ts";
 import { stabilizeStreamingMarkdown } from "./markdown-stream.ts";
-import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode } from "./sse.ts";
+import { parseSseBuffer, sseChunk, sseDone, sseError, sseMode, streamNeedsFallback } from "./sse.ts";
 import { clearRateLimitsForTests, rateLimit } from "../ops/rate-limit.ts";
 
 const root = new URL("../../", import.meta.url);
@@ -59,6 +59,15 @@ describe("gemini sse parsing", () => {
     assert.equal(parsed.text, "");
     assert.equal(parsed.errorCode, "rate_limit");
     assert.equal(parsed.done, true);
+    assert.equal(streamNeedsFallback({ sawDone: true, fallback: false, errorCode: parsed.errorCode }), true);
+    const partial = parseSseBuffer(`${sseMode("live")}${sseChunk("Partial")}${sseError("unavailable")}`);
+    assert.equal(partial.text, "Partial");
+    assert.equal(partial.done, false);
+    assert.equal(
+      streamNeedsFallback({ sawDone: partial.done, fallback: partial.fallback, errorCode: partial.errorCode }),
+      true,
+    );
+    assert.equal(streamNeedsFallback({ sawDone: true, fallback: false }), false);
   });
 
   it("marks a guide stream as fallback and leaves an interrupted stream unfinished", () => {
@@ -536,6 +545,9 @@ describe("copilot route safety", () => {
     assert.equal(route.includes("OPENAI"), false);
     assert.equal(route.includes("service_role"), false);
     assert.equal(route.includes("body.userId"), false);
+    assert.equal(route.includes("@/lib/supabase"), false);
+    assert.match(route, /sseError\("unavailable"\)/);
+    assert.match(route, /if \(failed\)/);
   });
 
   it("wraps long text in the message renderer", () => {
