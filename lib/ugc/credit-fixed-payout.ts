@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { centsToUsd, quoteSubmissionReward } from "@/lib/ugc/submission-reward";
 
 type CreditResult =
   | { ok: true; credited: boolean; amount: number }
@@ -64,7 +65,8 @@ async function casCreditCreatorBalances(
 
 /**
  * Credits a fixed-rate UGC payout exactly once per submission.
- * Per-views campaigns are skipped (view-sync owns those earnings).
+ * The amount is the quoted payable total, including the per-submission cap.
+ * Per-views campaigns are rejected here; owner-accepted views settle those.
  * Campaign spent_budget is incremented with compare-and-swap so concurrent
  * approvals of different submissions cannot overspend.
  */
@@ -78,24 +80,11 @@ export async function creditFixedPayoutIfNeeded(
 ): Promise<CreditResult> {
   const { data: campaign } = await db
     .from("ugc_campaigns")
-    .select("payment_model, fixed_rate, spent_budget, approved_count, total_budget")
+    .select("payment_model, fixed_rate, rate_per_1k_views, max_payout_per_sub, spent_budget, approved_count, total_budget, status")
     .eq("id", opts.campaignId)
     .maybeSingle();
 
   if (!campaign) return { ok: false, error: "Campaign not found", status: 404 };
-
-  const isFixed = campaign.payment_model === "fixed_per_content";
-  const payout = isFixed ? Number(campaign.fixed_rate ?? 0) : 0;
-
-  if (!isFixed || !(payout > 0)) {
-    const priorApproved = campaign.approved_count ?? 0;
-    await db
-      .from("ugc_campaigns")
-      .update({ approved_count: priorApproved + 1 })
-      .eq("id", opts.campaignId)
-      .eq("approved_count", priorApproved);
-    return { ok: true, credited: false, amount: 0 };
-  }
 
   const { data: existingRows } = await db
     .from("ugc_payouts")
@@ -108,11 +97,39 @@ export async function creditFixedPayoutIfNeeded(
     return { ok: true, credited: false, amount: Number(existingRows[0].amount ?? 0) };
   }
 
-  const spent = Number(campaign.spent_budget ?? 0);
-  const budget = Number(campaign.total_budget ?? 0);
-  if (budget > 0 && spent + payout > budget) {
-    return { ok: false, error: "Campaign budget is exhausted.", status: 409 };
+  if (campaign.status !== "active" && campaign.status !== "paused") {
+    return { ok: false, error: "This campaign is not open for review payouts.", status: 409 };
   }
+
+  const quote = quoteSubmissionReward({
+    paymentModel: campaign.payment_model,
+    ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
+    fixedRate: Number(campaign.fixed_rate ?? 0),
+    maxPayoutPerSub: campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub),
+    acceptedViews: null,
+    remainingBudget: Math.max(0, Number(campaign.total_budget ?? 0) - Number(campaign.spent_budget ?? 0)),
+  });
+  if (!quote.ok || quote.paymentModel !== "fixed_per_content") {
+    const error = !quote.ok
+      ? quote.error === "Campaign budget is exhausted."
+        ? "Campaign budget is exhausted."
+        : quote.error
+      : "This payment model is not supported for automatic rewards. Review it manually.";
+    return { ok: false, error, status: 409 };
+  }
+
+  const payout = centsToUsd(quote.payableCents);
+  if (!(payout > 0)) {
+    const priorApproved = campaign.approved_count ?? 0;
+    await db
+      .from("ugc_campaigns")
+      .update({ approved_count: priorApproved + 1 })
+      .eq("id", opts.campaignId)
+      .eq("approved_count", priorApproved);
+    return { ok: true, credited: false, amount: 0 };
+  }
+
+  const spent = Number(campaign.spent_budget ?? 0);
 
   const nextSpent = spent + payout;
   const priorApproved = campaign.approved_count ?? 0;

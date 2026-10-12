@@ -104,7 +104,8 @@ assert.doesNotMatch(submissionsPage, /Facebook, and X/);
 assert.match(applicationsPage, /application\/withdraw/);
 assert.match(joinEngine, /profile\?\.totalFollowers \?\? 0/);
 assert.match(detail, /id: "min_followers"/);
-assert.match(syncViews, /from\('ugc_payouts'\)\.insert/);
+assert.doesNotMatch(syncViews, /from\('ugc_payouts'\)\.insert/);
+assert.match(syncViews, /syncedViewsMayCreateReward/);
 assert.match(insights, /showEarnings/);
 assert.match(revision, /status !== "revision_requested"/);
 

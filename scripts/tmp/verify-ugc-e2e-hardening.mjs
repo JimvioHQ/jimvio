@@ -69,11 +69,9 @@ assert.match(joinService, /reviewableFrom/);
 assert.match(joinService, /\.in\("status", reviewableFrom\)/);
 assert.doesNotMatch(participants, /profile_image, user_id/);
 
-const casIdx = syncViews.indexOf(".eq('spent_budget', spent)");
-const snapIdx = syncViews.indexOf("ugc_view_snapshots");
-assert.ok(casIdx > 0 && snapIdx > casIdx, "budget CAS must happen before snapshot insert");
-assert.match(syncViews, /remainingBudget/);
-assert.match(syncViews, /revertBudget/);
+assert.doesNotMatch(syncViews, /ugc_view_snapshots/);
+assert.doesNotMatch(syncViews, /ugc_payouts/);
+assert.match(syncViews, /syncedViewsMayCreateReward/);
 
 assert.match(credit, /\.eq\("spent_budget", spent\)/);
 assert.match(credit, /existingRows/);

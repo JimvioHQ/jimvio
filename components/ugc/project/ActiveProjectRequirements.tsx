@@ -47,7 +47,7 @@ export function ActiveProjectRequirements({ campaign }: ActiveProjectRequirement
 
       <ReqRow label="Video length" value={duration} />
       <ReqRow label="Platforms" value={platforms} />
-      <ReqRow label="Audience" value={campaign.vendor?.business_country ?? "Global creators"} />
+      <ReqRow label="Audience" value={campaign.vendor?.business_country} />
       <ReqRow label="Hashtags" value={hashtags || null} />
       <ReqRow label="Mentions" value={mentions || null} />
       <ReqRow label="CTA" value={campaign.promotion_target ?? campaign.promotion_target_url} />

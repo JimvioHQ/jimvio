@@ -1,9 +1,34 @@
-import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export type PendingReleaseBalance =
+  | { ok: true; pending: number; available: number }
+  | { ok: false; reason: "insufficient_pending" | "invalid_amount" };
+
+/** Move a pending payout into available balance without minting funds. */
+export function balancesAfterPendingRelease(
+  pending: number,
+  available: number,
+  amount: number,
+): PendingReleaseBalance {
+  if (!Number.isFinite(pending) || !Number.isFinite(available) || !Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, reason: "invalid_amount" };
+  }
+  const pendingCents = Math.round(pending * 100);
+  const availableCents = Math.round(available * 100);
+  const amountCents = Math.round(amount * 100);
+  if (amountCents <= 0) return { ok: false, reason: "invalid_amount" };
+  if (pendingCents < amountCents) return { ok: false, reason: "insufficient_pending" };
+  return {
+    ok: true,
+    pending: (pendingCents - amountCents) / 100,
+    available: (availableCents + amountCents) / 100,
+  };
+}
 
 /**
- * Sweeps through the payouts table and shifts funds from
- * pending_balance to available_balance if the 48-hour fraud delay has elapsed.
- * Usually invoked via a secondary Vercel Cron.
+ * Moves ripe UGC earnings from pending balance to available balance.
+ * "paid" here means the in-app hold elapsed. It is not an external bank transfer.
+ * The status claim is compare-and-swap so two workers cannot release the same row.
  */
 export async function releasePendingPayouts(): Promise<{
   released: number;
@@ -13,68 +38,134 @@ export async function releasePendingPayouts(): Promise<{
   const errors: string[] = [];
   let released = 0;
 
-  // 1. Find all ripe pending payouts
   const { data: payouts, error: fetchErr } = await db
-    .from('payouts')
-    .select('*')
-    .eq('status', 'pending')
-    .eq('type', 'ugc_earnings')
-    .lte('release_date', new Date().toISOString());
+    .from("payouts")
+    .select("*")
+    .eq("status", "pending")
+    .eq("type", "ugc_earnings")
+    .lte("release_date", new Date().toISOString());
 
   if (fetchErr) {
     throw new Error(`Failed fetching pending payouts: ${fetchErr.message}`);
   }
-
   if (!payouts || payouts.length === 0) {
     return { released: 0, errors: [] };
   }
 
   for (const payout of payouts) {
     try {
-      // 2. Mark this payout as cleared
-      const { error: payoutErr } = await db
-        .from('payouts')
-        .update({ 
-          status: 'paid',
-          notes: payout.notes?.replace('(Clears in 48h)', '(Cleared)') 
+      const notes = typeof payout.notes === "string" ? payout.notes : null;
+      const { data: claimed, error: claimErr } = await db
+        .from("payouts")
+        .update({
+          status: "paid",
+          notes: notes?.replace("(Clears in 48h)", "(Cleared)") ?? notes,
         })
-        .eq('id', payout.id);
+        .eq("id", payout.id)
+        .eq("status", "pending")
+        .select("id")
+        .maybeSingle();
+      if (claimErr) throw new Error(`Payout ${payout.id} update err: ${claimErr.message}`);
+      if (!claimed) continue;
 
-      if (payoutErr) throw new Error(`Payout ${payout.id} upate err: ${payoutErr.message}`);
+      const revertClaim = async () => {
+        await db
+          .from("payouts")
+          .update({ status: "pending", notes })
+          .eq("id", payout.id)
+          .eq("status", "paid");
+      };
+
+      const { data: wallet } = await db
+        .from("wallets")
+        .select("pending_balance, available_balance")
+        .eq("user_id", payout.user_id)
+        .maybeSingle();
+      const { data: influencer } = await db
+        .from("influencers")
+        .select("id, pending_balance, available_balance")
+        .eq("user_id", payout.user_id)
+        .maybeSingle();
+
+      if (!wallet && !influencer) {
+        await revertClaim();
+        errors.push(`Payout ${payout.id} has no wallet or creator balance to release`);
+        continue;
+      }
+
+      const amount = Number(payout.amount);
+      const walletNext = wallet
+        ? balancesAfterPendingRelease(
+            Number(wallet.pending_balance ?? 0),
+            Number(wallet.available_balance ?? 0),
+            amount,
+          )
+        : null;
+      const influencerNext = influencer
+        ? balancesAfterPendingRelease(
+            Number(influencer.pending_balance ?? 0),
+            Number(influencer.available_balance ?? 0),
+            amount,
+          )
+        : null;
+
+      if ((wallet && !walletNext?.ok) || (influencer && !influencerNext?.ok)) {
+        await revertClaim();
+        errors.push(`Payout ${payout.id} was not released because the pending balance is short`);
+        continue;
+      }
+
+      if (wallet && walletNext?.ok) {
+        const { data: walletRow } = await db
+          .from("wallets")
+          .update({
+            pending_balance: walletNext.pending,
+            available_balance: walletNext.available,
+          })
+          .eq("user_id", payout.user_id)
+          .eq("pending_balance", wallet.pending_balance)
+          .select("user_id")
+          .maybeSingle();
+        if (!walletRow) {
+          await revertClaim();
+          errors.push(`Payout ${payout.id} wallet update raced and was left pending`);
+          continue;
+        }
+      }
+
+      if (influencer && influencerNext?.ok) {
+        const { data: influencerRow } = await db
+          .from("influencers")
+          .update({
+            pending_balance: influencerNext.pending,
+            available_balance: influencerNext.available,
+          })
+          .eq("id", influencer.id)
+          .eq("pending_balance", influencer.pending_balance)
+          .select("id")
+          .maybeSingle();
+        if (!influencerRow) {
+          if (wallet && walletNext?.ok) {
+            await db
+              .from("wallets")
+              .update({
+                pending_balance: wallet.pending_balance,
+                available_balance: wallet.available_balance,
+              })
+              .eq("user_id", payout.user_id)
+              .eq("pending_balance", walletNext.pending);
+          }
+          await revertClaim();
+          errors.push(`Payout ${payout.id} creator balance update raced and was left pending`);
+          continue;
+        }
+      }
 
       await db
         .from("ugc_payouts")
         .update({ status: "paid", paid_at: new Date().toISOString() })
         .eq("payout_id", payout.id)
         .eq("status", "pending");
-
-      // 3. Move funds in wallets
-      const { data: wallet } = await db
-        .from('wallets')
-        .select('pending_balance, available_balance')
-        .eq('user_id', payout.user_id)
-        .single();
-        
-      if (wallet) {
-        await db.from('wallets').update({
-          pending_balance: Math.max(0, (wallet.pending_balance ?? 0) - payout.amount),
-          available_balance: (wallet.available_balance ?? 0) + payout.amount
-        }).eq('user_id', payout.user_id);
-      }
-
-      // 4. Move funds in influencers profile
-      const { data: influencer } = await db
-        .from('influencers')
-        .select('id, pending_balance, available_balance')
-        .eq('user_id', payout.user_id)
-        .single();
-        
-      if (influencer) {
-        await db.from('influencers').update({
-          pending_balance: Math.max(0, (influencer.pending_balance ?? 0) - payout.amount),
-          available_balance: (influencer.available_balance ?? 0) + payout.amount
-        }).eq('id', influencer.id);
-      }
 
       released++;
     } catch (err: unknown) {

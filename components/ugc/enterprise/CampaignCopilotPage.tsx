@@ -239,8 +239,8 @@ export function CampaignCopilotPage() {
                 <p className="text-lg font-bold text-[#111827]">~{output.estimatedCreators}</p>
               </div>
               <div className="rounded-xl bg-[#FFF8F5] p-3">
-                <p className="text-[11px] font-bold text-[#9CA3AF]">Predicted reach</p>
-                <p className="text-lg font-bold text-[#111827]">{output.predictedReach.toLocaleString()}</p>
+                <p className="text-[11px] font-bold text-[#9CA3AF]">Estimated reach</p>
+                <p className="text-lg font-bold text-[#111827]">~{output.predictedReach.toLocaleString()}</p>
               </div>
             </div>
           </div>

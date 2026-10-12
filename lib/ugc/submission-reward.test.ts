@@ -51,6 +51,22 @@ describe("ugc submission rewards", () => {
     assert.equal(quote.ok, false);
   });
 
+  it("caps a fixed reward at the per-submission maximum", () => {
+    const quote = quoteSubmissionReward({
+      paymentModel: "fixed_per_content",
+      ratePer1k: 9,
+      fixedRate: 50,
+      maxPayoutPerSub: 20,
+      acceptedViews: null,
+      remainingBudget: 100,
+    });
+    assert.equal(quote.ok, true);
+    if (!quote.ok) return;
+    assert.equal(quote.payableCents, 2000);
+    assert.equal(quote.cappedBy, "max_payout");
+    assert.equal(centsToUsd(quote.payableCents), 20);
+  });
+
   it("does not invent a formula for an unknown payment model", () => {
     const quote = quoteSubmissionReward({
       paymentModel: "revenue_share",

@@ -184,6 +184,7 @@ function seedMoney(overrides = {}) {
         spent_budget: 0,
         approved_count: 0,
         total_budget: 100,
+        status: "active",
         ...overrides.campaign,
       },
     ],
@@ -539,7 +540,22 @@ assert.equal(nowpMod.verifyNowPaymentsSignature(JSON.stringify({ a: 1 }), validS
 if (prevIpn == null) delete process.env.NOWPAYMENTS_IPN_SECRET;
 else process.env.NOWPAYMENTS_IPN_SECRET = prevIpn;
 
-const creditMod = await loadTs("lib/ugc/credit-fixed-payout.ts");
+const rewardOut = path.join(os.tmpdir(), `submission-reward-final-prod-${process.pid}.mjs`);
+{
+  const require = createRequire(import.meta.url);
+  const ts = require("typescript");
+  const { outputText } = ts.transpileModule(read("lib/ugc/submission-reward.ts"), {
+    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+    fileName: "submission-reward.ts",
+  });
+  fs.writeFileSync(rewardOut, outputText);
+}
+const creditMod = await loadTs("lib/ugc/credit-fixed-payout.ts", [
+  [
+    /from ["']@\/lib\/ugc\/submission-reward["']/,
+    `from ${JSON.stringify(pathToFileURL(rewardOut).href)}`,
+  ],
+]);
 
 {
   const db = createMemDb(seedMoney());

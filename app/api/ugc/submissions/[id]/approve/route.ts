@@ -131,7 +131,9 @@ export async function PATCH(
         user_id: influencer.user_id,
         type: 'influencer',
         title: 'Submission Approved! 🎉',
-        message: 'Your content submission has been approved and will start earning views-based payouts.',
+        message: credit.amount > 0
+          ? 'Your submission was approved. The existing payout was left unchanged.'
+          : 'Your submission was approved. No payout was created.',
         data: { submission_id: id },
       });
     }

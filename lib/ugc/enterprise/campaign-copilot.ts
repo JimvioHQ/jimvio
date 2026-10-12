@@ -35,7 +35,7 @@ export function generateCampaignCopilot(input: CampaignCopilotInput): CampaignCo
   const goal = (input.goal || "drive awareness and conversions").trim();
   const budget = Math.max(100, Number(input.budget) || 1000);
   const platforms = input.platforms?.length ? input.platforms : ["tiktok", "instagram"];
-  const countries = input.countries?.length ? input.countries : ["Global"];
+  const countries = (input.countries ?? []).map((c) => c.trim()).filter(Boolean);
   const type = input.campaignType || "ugc";
   const tone = input.tone || "energetic and authentic";
 
@@ -58,16 +58,27 @@ export function generateCampaignCopilot(input: CampaignCopilotInput): CampaignCo
   ].map((h) => h.replace(/[^a-zA-Z0-9]/g, "")).filter(Boolean).slice(0, 8);
 
   const title = `${product} ${type === "clipping" ? "Clipping" : "UGC"} Campaign`;
+  const marketLine = countries.length ? `Target markets: ${countries.join(", ")}.` : null;
   const description = [
     `We're looking for creators in ${niche} to promote ${product}.`,
     `Goal: ${goal}.`,
     `Tone: ${tone}.`,
-    `Target markets: ${countries.join(", ")}.`,
+    marketLine,
     `Platforms: ${platforms.join(", ")}.`,
     "Submit original content that follows the brief. Revisions may be requested.",
-  ].join("\n\n");
-
-  const brief = `Campaign Brief for ${product}\n\nObjective: ${goal}\nAudience: ${niche} creators in ${countries.join(", ")}\nCreative direction: ${tone}\nDeliverables: Short-form video (15–60s) with clear hook in first 3 seconds.\nMust include required hashtags and mentions.\nBudget envelope: $${budget}.`;
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n\n");
+  const brief = [
+    `Campaign Brief for ${product}`,
+    "",
+    `Objective: ${goal}`,
+    `Audience: ${niche} creators${countries.length ? ` in ${countries.join(", ")}` : ""}`,
+    `Creative direction: ${tone}`,
+    "Deliverables: Short-form video (15–60s) with clear hook in first 3 seconds.",
+    "Must include required hashtags and mentions.",
+    `Budget envelope: $${budget}.`,
+  ].join("\n");
 
   const draftForm = {
     title,
@@ -124,9 +135,9 @@ export function generateCampaignCopilot(input: CampaignCopilotInput): CampaignCo
       "Pin comment with CTA when possible",
     ],
     faqs: [
-      { q: "Who owns the content?", a: "Creators retain ownership; brand receives a paid usage license for ads." },
-      { q: "How are payouts handled?", a: "Funds are escrowed and released after approval / eligible views." },
-      { q: "Can I request revisions?", a: "Yes — one structured revision round is available before rejection." },
+      { q: "Who owns the content?", a: "Usage rights follow the campaign brief you publish. This draft does not set a license by itself." },
+      { q: "How are payouts handled?", a: "A payout is calculated from the published payment model after brand review. Approval is not a bank transfer." },
+      { q: "Can I request revisions?", a: "Brands can request a revision while a submission is still pending review." },
     ],
     improvedTitle: title,
     improvedDescription: description,

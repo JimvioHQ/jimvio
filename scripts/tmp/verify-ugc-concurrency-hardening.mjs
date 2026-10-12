@@ -39,10 +39,10 @@ assert.match(joinService, /isCapacityFullError/);
 assert.match(joinService, /Campaign is full/);
 assert.match(joinService, /23505/);
 
-// Per-views must NOT set is_fixed_one_shot
+// Platform view sync must not create payouts.
 assert.doesNotMatch(syncViews, /is_fixed_one_shot:\s*true/);
-assert.match(syncViews, /remainingBudget/);
-assert.match(syncViews, /revertBudget/);
+assert.doesNotMatch(syncViews, /ugc_payouts/);
+assert.match(syncViews, /syncedViewsMayCreateReward/);
 
 assert.match(activate, /ugc\.campaign\.activate_override/);
 assert.doesNotMatch(activate, /from\("ugc_campaign_escrow"\)\.insert/);
