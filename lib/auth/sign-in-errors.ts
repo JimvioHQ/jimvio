@@ -71,6 +71,28 @@ export function isUnconfirmedDuplicateSignUp(user: {
   return Boolean(user && Array.isArray(user.identities) && user.identities.length === 0);
 }
 
+/**
+ * True when Auth tried to send mail and the provider or mailer failed.
+ * Missing accounts stay false so callers can keep an enumeration-safe success.
+ */
+export function isAuthMailDeliveryFailure(error: AuthErrorLike): boolean {
+  if (isRateLimitAuthError(error) || isCaptchaAuthError(error)) return false;
+  const { code, lower, status } = errorParts(error);
+  return (
+    code === "unexpected_failure" ||
+    status === 500 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    lower.includes("error sending") ||
+    lower.includes("unable to send") ||
+    lower.includes("smtp")
+  );
+}
+
+export const AUTH_MAIL_DELIVERY_ERROR =
+  "We couldn't send the email. Please try again in a moment.";
+
 export function isCaptchaAuthError(error: AuthErrorLike): boolean {
   const { code, lower } = errorParts(error);
   return (

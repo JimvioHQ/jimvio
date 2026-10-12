@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { EMAIL_CATALOG } from "./catalog.ts";
 import { confirmSignupHtml, resetPasswordHtml } from "./auth-templates/index.ts";
 import { renderTransactionalEmail } from "./render-transactional.ts";
+import { getEmailFromAddress } from "./config.ts";
 import { normalizeIdempotencyKey, redactEmailLog, shouldRetryEmailStatus } from "./send.ts";
 import { renderJimvioEmail } from "./shell.ts";
 
@@ -144,6 +145,19 @@ describe("Jimvio email templates", () => {
     const onDisk = readFileSync(join(root, "supabase/templates/recovery.html"), "utf8");
     assert.match(onDisk, /\{\{ \.ConfirmationURL \}\}/);
     assert.match(onDisk, /Reset Password/);
+  });
+
+  it("reads the sender from EMAIL_FROM and keeps the notifications default", () => {
+    const previous = process.env.EMAIL_FROM;
+    delete process.env.EMAIL_FROM;
+    assert.equal(getEmailFromAddress(), "Jimvio <notifications@jimvio.com>");
+    process.env.EMAIL_FROM = "Jimvio <info@jimvio.com>";
+    assert.equal(getEmailFromAddress(), "Jimvio <info@jimvio.com>");
+    const sendSource = readFileSync(join(root, "lib/email/send.ts"), "utf8");
+    assert.match(sendSource, /getEmailFromAddress\(\)/);
+    assert.equal(sendSource.includes("info@jimvio.com"), false);
+    if (previous === undefined) delete process.env.EMAIL_FROM;
+    else process.env.EMAIL_FROM = previous;
   });
 
   it("rejects unsafe links and retries only transient provider statuses", () => {

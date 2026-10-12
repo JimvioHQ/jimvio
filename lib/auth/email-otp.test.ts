@@ -11,6 +11,7 @@ import {
   normalizeOtpToken,
   otpRemainingMs,
 } from "./email-otp.ts";
+import { isAuthMailDeliveryFailure } from "./sign-in-errors.ts";
 
 const root = new URL("../../", import.meta.url);
 
@@ -61,5 +62,25 @@ describe("signup email OTP", () => {
     assert.match(mapSignupOtpError({ status: 429 }), /Too many attempts/);
     assert.match(mapSignupOtpError({ message: "Token has expired or is invalid" }), /not valid|expired/);
     assert.match(mapSignupOtpError({ message: "Failed to fetch" }), /couldn't reach/);
+  });
+
+  it("reports Auth mailer failures instead of a successful send", () => {
+    assert.equal(isAuthMailDeliveryFailure({ code: "unexpected_failure", status: 500 }), true);
+    assert.equal(isAuthMailDeliveryFailure({ message: "Error sending confirmation email", status: 500 }), true);
+    assert.equal(isAuthMailDeliveryFailure({ code: "user_not_found" }), false);
+    assert.equal(isAuthMailDeliveryFailure({ status: 429, message: "email rate limit" }), false);
+    const actions = readFileSync(new URL("lib/auth/actions.ts", root), "utf8");
+    const resend = actions.slice(
+      actions.indexOf("export async function resendSignUpConfirmation"),
+      actions.indexOf("export async function verifySignUpOtp"),
+    );
+    const reset = actions.slice(actions.indexOf("export async function resetPassword"));
+    assert.match(resend, /isAuthMailDeliveryFailure/);
+    assert.match(reset, /isAuthMailDeliveryFailure/);
+    assert.equal(resend.includes("error.message"), false);
+    assert.equal(reset.includes("error.message"), false);
+    const resendCatch = resend.slice(resend.lastIndexOf("catch"));
+    assert.match(resendCatch, /AUTH_MAIL_DELIVERY_ERROR/);
+    assert.equal(resendCatch.includes("Confirmation email sent"), false);
   });
 });

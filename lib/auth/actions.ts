@@ -29,8 +29,11 @@ import {
   repairBrokenTwoFactorState,
 } from "@/lib/auth/repair-broken-2fa"
 import {
+  AUTH_MAIL_DELIVERY_ERROR,
   GENERIC_CONFIRMATION_SENT,
   GENERIC_RESET_SENT,
+  isAuthMailDeliveryFailure,
+  isCaptchaAuthError,
   isExistingAccountAuthError,
   isRateLimitAuthError,
   isUnconfirmedDuplicateSignUp,
@@ -395,13 +398,26 @@ export async function resendSignUpConfirmation(formData: FormData) {
     if (error && isRateLimitAuthError(error)) {
       return { error: "Please wait a moment before requesting another email." }
     }
+    if (error && isCaptchaAuthError(error)) {
+      return { error: "Security check failed. Refresh the page and try again." }
+    }
+    if (error && isAuthMailDeliveryFailure(error)) {
+      console.error("[auth] resendSignUpConfirmation", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
+      return { error: AUTH_MAIL_DELIVERY_ERROR }
+    }
     if (error) {
-      console.error("[auth] resendSignUpConfirmation supabase:", error.message)
+      console.error("[auth] resendSignUpConfirmation", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
     }
     return { success: "Confirmation email sent. Check your inbox and spam folder." }
-  } catch (err) {
-    console.error("[auth] resendSignUpConfirmation error:", err)
-    return { success: "Confirmation email sent. Check your inbox and spam folder." }
+  } catch {
+    console.error("[auth] resendSignUpConfirmation failed")
+    return { error: AUTH_MAIL_DELIVERY_ERROR }
   }
 }
 
@@ -832,11 +848,19 @@ export async function signInWithMagicLink(formData: FormData): Promise<{
         cooldownSeconds: 60,
       }
     }
+    if (error && isCaptchaAuthError(error)) {
+      return { error: "Security check failed. Refresh the page and try again." }
+    }
     if (error) {
-      console.error("[auth] signInWithMagicLink:", error.message)
-      // Still return generic success to avoid enumeration — except hard config failures
+      console.error("[auth] signInWithMagicLink", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
       if (error.message.toLowerCase().includes("signups not allowed")) {
         return { error: "Email sign-in is temporarily unavailable. Try Google instead." }
+      }
+      if (isAuthMailDeliveryFailure(error)) {
+        return { error: AUTH_MAIL_DELIVERY_ERROR }
       }
     }
 
@@ -844,12 +868,9 @@ export async function signInWithMagicLink(formData: FormData): Promise<{
       success: "Check your email for a secure link to join this Live.",
       cooldownSeconds: 45,
     }
-  } catch (err) {
-    console.error("[auth] signInWithMagicLink error:", err)
-    return {
-      success: "Check your email for a secure link to join this Live.",
-      cooldownSeconds: 45,
-    }
+  } catch {
+    console.error("[auth] signInWithMagicLink failed")
+    return { error: AUTH_MAIL_DELIVERY_ERROR }
   }
 }
 
@@ -893,10 +914,26 @@ export async function resetPassword(formData: FormData) {
     if (error && isRateLimitAuthError(error)) {
       return { error: "Too many attempts. Please wait a moment and try again." }
     }
+    if (error && isCaptchaAuthError(error)) {
+      return { error: "Security check failed. Refresh the page and try again." }
+    }
+    if (error && isAuthMailDeliveryFailure(error)) {
+      console.error("[auth] resetPassword", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
+      return { error: AUTH_MAIL_DELIVERY_ERROR }
+    }
+    if (error) {
+      console.error("[auth] resetPassword", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
+    }
     return { success: GENERIC_RESET_SENT }
-  } catch (err) {
-    console.error("[auth] resetPassword error:", err)
-    return { success: GENERIC_RESET_SENT }
+  } catch {
+    console.error("[auth] resetPassword failed")
+    return { error: AUTH_MAIL_DELIVERY_ERROR }
   }
 }
 

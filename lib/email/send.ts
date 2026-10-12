@@ -11,6 +11,7 @@ export type SendEmailInput = {
 };
 
 export type SendEmailResult =
+  /** `sent` means the provider accepted the API request. It does not mean the inbox received it. */
   | { ok: true; id?: string; status: "sent" }
   | { ok: false; error: string; skipped?: boolean; status: "failed" | "skipped" };
 
