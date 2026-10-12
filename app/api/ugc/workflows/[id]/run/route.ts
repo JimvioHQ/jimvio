@@ -67,6 +67,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             type: "system",
             title: workflow.name || "UGC workflow",
             message: `Workflow step ${type} ran.`,
+            actionUrl: "/ugc/campaign-center",
+            email: {
+              kind: "account_notice",
+              subject: workflow.name || "Jimvio workflow update",
+              titleLead: "Workflow ",
+              titleAccent: "update",
+              subtitle: `${workflow.name || "A workflow"} ran a notification step.`,
+              noticeTitle: "Step",
+              noticeBody: `Workflow step ${type} ran.`,
+              ctaLabel: "Open campaigns",
+              actionPath: "/ugc/campaign-center",
+              icon: "compass",
+            },
             data: { workflowId: id, campaignId, node: node.id ?? type },
           });
         }

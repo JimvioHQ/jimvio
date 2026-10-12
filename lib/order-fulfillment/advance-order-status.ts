@@ -119,6 +119,7 @@ export async function advanceOrderFulfillment(
             title: "Order Shipped 📦",
             message: `Your order #${orderNumber} is on the way.${trackingNumber ? ` Tracking: ${trackingNumber}` : ""}`,
             actionUrl: `/orders/${orderId}`,
+            eventKey: `order.shipped:${orderId}`,
             data: {
                 order_id: orderId,
                 status: "shipped",
@@ -131,6 +132,52 @@ export async function advanceOrderFulfillment(
                 orderNumber,
                 trackingNumber,
                 trackingUrl,
+                actionPath: `/orders/${orderId}`,
+                idempotencyKey: `order.shipped:${orderId}`,
+            },
+        });
+    }
+
+    if (
+        targetStatus === "delivered" &&
+        previousStatus !== "delivered" &&
+        order.buyer_id
+    ) {
+        await notifyUser(db, {
+            userId: order.buyer_id,
+            type: "order",
+            title: "Order delivered",
+            message: `Your order #${String(order.order_number ?? orderId)} is marked delivered.`,
+            actionUrl: `/orders/${orderId}`,
+            eventKey: `order.delivered:${orderId}`,
+            email: {
+                kind: "order_delivered",
+                orderId,
+                orderNumber: String(order.order_number ?? orderId),
+                actionPath: `/orders/${orderId}`,
+                idempotencyKey: `order.delivered:${orderId}`,
+            },
+        });
+    }
+
+    if (
+        targetStatus === "cancelled" &&
+        previousStatus !== "cancelled" &&
+        order.buyer_id
+    ) {
+        await notifyUser(db, {
+            userId: order.buyer_id,
+            type: "order",
+            title: "Order cancelled",
+            message: `Your order #${String(order.order_number ?? orderId)} was cancelled.`,
+            actionUrl: `/orders/${orderId}`,
+            eventKey: `order.cancelled:${orderId}`,
+            email: {
+                kind: "order_cancelled",
+                orderId,
+                orderNumber: String(order.order_number ?? orderId),
+                actionPath: `/orders/${orderId}`,
+                idempotencyKey: `order.cancelled:${orderId}`,
             },
         });
     }

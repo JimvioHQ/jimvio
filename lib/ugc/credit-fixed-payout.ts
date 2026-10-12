@@ -230,13 +230,26 @@ export async function creditFixedPayoutIfNeeded(
     .eq("id", ugcPay.id)
     .eq("status", "pending");
 
-  await db.from("notifications").insert({
-    user_id: infData.user_id,
-    type: "influencer",
-    title: "Fixed Reward Approved!",
-    message: `You earned $${payout.toFixed(2)} from your approved submission.`,
-    data: { submission_id: opts.submissionId, earnings: payout },
-  });
+  try {
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    await notifyUser(db, {
+      userId: infData.user_id,
+      type: "influencer",
+      title: "Fixed Reward Approved!",
+      message: `You earned $${payout.toFixed(2)} from your approved submission.`,
+      actionUrl: "/ugc/earnings",
+      data: { submission_id: opts.submissionId, earnings: payout },
+      eventKey: `ugc.reward.paid:${opts.submissionId}`,
+      email: {
+        kind: "creator_reward_paid",
+        amount: payout,
+        currency: "USD",
+        idempotencyKey: `ugc.reward.paid:${opts.submissionId}`,
+      },
+    });
+  } catch (err) {
+    console.warn("[ugc] reward email skipped", err);
+  }
 
   return { ok: true, credited: true, amount: payout };
 }

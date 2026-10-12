@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const { data: order } = await db
     .from("orders")
     .select(
-      "id, jimvio_store_id, payment_status, status, total_amount, currency, metadata",
+      "id, jimvio_store_id, payment_status, status, total_amount, currency, metadata, buyer_id, order_number",
     )
     .eq("id", body.orderId)
     .eq("jimvio_store_id", body.storeId)
@@ -140,6 +140,27 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", order.id)
         .eq("jimvio_store_id", body.storeId);
+
+      if (order.buyer_id) {
+        const { notifyUser } = await import("@/lib/notifications/notify-user");
+        await notifyUser(db, {
+          userId: order.buyer_id,
+          type: "order",
+          title: "Refund completed",
+          message: `A refund for order #${order.order_number ?? order.id} was confirmed.`,
+          actionUrl: `/orders/${order.id}`,
+          eventKey: `refund.completed:${order.id}`,
+          email: {
+            kind: "refund_completed",
+            orderId: order.id,
+            orderNumber: String(order.order_number ?? order.id),
+            amount: typeof body.amount === "number" ? body.amount : Number(order.total_amount ?? 0),
+            currency: String(order.currency ?? "USD"),
+            actionPath: `/orders/${order.id}`,
+            idempotencyKey: `refund.completed:${order.id}`,
+          },
+        });
+      }
 
       return NextResponse.json({
         ok: true,

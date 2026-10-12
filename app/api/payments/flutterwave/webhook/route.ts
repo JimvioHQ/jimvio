@@ -299,11 +299,14 @@ export async function POST(req: NextRequest) {
             message: "Your payment could not be processed. Please try again.",
             actionUrl: `/checkout?order=${orderId}`,
             data: { order_id: orderId },
+            eventKey: `payment.failed:${orderId}`,
             email: {
               kind: "payment_failed",
               orderId,
               orderNumber: String(existingOrder.order_number ?? orderId),
               reason: "Payment was declined or cancelled.",
+              actionPath: `/checkout?order=${orderId}`,
+              idempotencyKey: `payment.failed:${orderId}`,
             },
           });
         }

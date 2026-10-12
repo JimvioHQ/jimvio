@@ -8,9 +8,9 @@ Authentication and security emails are sent by **Supabase Auth (GoTrue)**, not R
 |------|--------|
 | Confirm signup, invite, magic link, recovery, email change, reauthentication | Supabase Auth templates |
 | Password / email / phone / MFA / identity notifications | Supabase Auth notification templates |
-| Order, payout, welcome product mail | Resend via `lib/email/*` |
+| Orders, payouts, welcome, support, and other product mail | Resend via `lib/email/*` |
 
-Hosted Jimvio Auth templates are **Dashboard-managed**. Pushing this repo does **not** update live Auth HTML unless you paste templates into the Dashboard (or sync via Management API).
+Hosted Jimvio Auth templates are **Dashboard-managed**. Pushing this repo does **not** update live Auth HTML unless you paste templates into the Dashboard (or sync via Management API). Product mail uses `lib/email/shell.ts`. The event list is `lib/email/catalog.ts`.
 
 ## Repo source of truth
 
@@ -25,11 +25,11 @@ Hosted Jimvio Auth templates are **Dashboard-managed**. Pushing this repo does *
 
 | Dashboard template | File | Subject |
 |--------------------|------|---------|
-| Confirm signup | `confirmation.html` | Confirm your Jimvio account |
+| Confirm signup | `confirmation.html` | Confirm your email |
 | Invite user | `invite.html` | You're invited to Jimvio |
-| Magic Link | `magic_link.html` | Your Jimvio sign-in link |
+| Magic Link | `magic_link.html` | Your Jimvio sign-in code |
 | Change Email Address | `email_change.html` | Confirm your new email address |
-| Reset Password | `recovery.html` | Reset your Jimvio password |
+| Reset Password | `recovery.html` | Reset your password |
 
 3. Under **Authentication → Emails / Notifications** (wording varies by Dashboard version), enable and paste:
 
@@ -40,7 +40,7 @@ Hosted Jimvio Auth templates are **Dashboard-managed**. Pushing this repo does *
 | Phone changed | `phone_changed.html` |
 | MFA enrolled / unenrolled | `mfa_factor_enrolled.html` / `mfa_factor_unenrolled.html` |
 | Identity linked / unlinked | `identity_linked.html` / `identity_unlinked.html` |
-| Reauthentication | `reauthentication.html` |
+| Reauthentication | `reauthentication.html` (subject: Your Jimvio verification code) |
 
 4. Align Auth password policy with the app: **min 8**, require lower + upper + digit + symbol, leaked password protection ON.
 5. Confirm Site URL / redirect URLs use `https://www.jimvio.com` (and auth callback).

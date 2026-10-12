@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await db
     .from("orders")
-    .select("id, jimvio_store_id, payment_status, status, tracking_number")
+    .select("id, jimvio_store_id, payment_status, status, tracking_number, buyer_id, order_number")
     .eq("id", body.orderId)
     .eq("jimvio_store_id", body.storeId)
     .maybeSingle();
@@ -94,6 +94,26 @@ export async function POST(req: NextRequest) {
     .update({ status: "released", updated_at: new Date().toISOString() })
     .eq("order_id", order.id)
     .eq("status", "reserved");
+
+  if (order.buyer_id) {
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    await notifyUser(db, {
+      userId: order.buyer_id,
+      type: "order",
+      title: "Order cancelled",
+      message: `Order #${order.order_number ?? order.id} was cancelled.`,
+      actionUrl: `/orders/${order.id}`,
+      eventKey: `order.cancelled:${order.id}`,
+      email: {
+        kind: "order_cancelled",
+        orderId: order.id,
+        orderNumber: String(order.order_number ?? order.id),
+        reason: typeof body.reason === "string" ? body.reason.slice(0, 200) : undefined,
+        actionPath: `/orders/${order.id}`,
+        idempotencyKey: `order.cancelled:${order.id}`,
+      },
+    });
+  }
 
   return NextResponse.json({
     ok: true,

@@ -459,6 +459,16 @@ async function createVendorOrder(
       orderNumber: String(order.order_number),
       totalAmount: Number(order.total_amount ?? subtotal),
       currency: String(order.currency ?? safeCurrency),
+      paymentLabel: "Pending",
+      statusLabel: "Order Created",
+      itemCount: orderItemsPayload.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+      items: orderItemsPayload.map((item) => ({
+        name: String(item.product_name),
+        quantity: Number(item.quantity || 1),
+        imageUrl: typeof item.product_image === "string" ? item.product_image : null,
+      })),
+      actionPath: jimvioStoreId ? `/account/orders/${order.id}` : `/checkout?order=${order.id}`,
+      idempotencyKey: `order.created:buyer:${order.id}`,
     },
   });
 
@@ -484,6 +494,21 @@ async function createVendorOrder(
           jimvio_store_id: jimvioStoreId,
         },
         eventKey: `order.created:merchant:${order.id}`,
+        email: {
+          kind: "seller_new_order",
+          orderId: order.id,
+          orderNumber: String(order.order_number),
+          currency: String(order.currency ?? safeCurrency),
+          paymentLabel: "Pending",
+          statusLabel: "Order Created",
+          itemCount: orderItemsPayload.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+          items: orderItemsPayload.map((item) => ({
+            name: String(item.product_name),
+            quantity: Number(item.quantity || 1),
+          })),
+          actionPath: `/commerce/orders/${order.id}`,
+          idempotencyKey: `order.created:merchant:${order.id}`,
+        },
       });
     }
   } catch (merchantNotifyErr) {

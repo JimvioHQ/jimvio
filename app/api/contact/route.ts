@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isContactTopic } from "@/lib/contact/topics";
 import { sendEmail } from "@/lib/email/send";
+import { wrapEmailHtml } from "@/lib/email/layout";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
@@ -73,15 +74,18 @@ export async function POST(request: Request) {
     message,
   ].join("\n");
 
-  const html = `
-    <div style="font-family:Inter,Arial,sans-serif;line-height:1.5;color:#111827">
+  const html = wrapEmailHtml({
+    preview: `New ${topic} message from the Jimvio contact form.`,
+    heading: "New contact message",
+    icon: "chat",
+    help: "Reply directly to the sender. This message was submitted on jimvio.com.",
+    bodyHtml: `
       <p><strong>Topic:</strong> ${escapeHtml(topic)}</p>
       <p><strong>Name:</strong> ${escapeHtml(name)}</p>
       <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <hr style="border:none;border-top:1px solid #E5E7EB;margin:16px 0" />
       <p style="white-space:pre-wrap">${escapeHtml(message)}</p>
-    </div>
-  `;
+    `,
+  });
 
   const result = await sendEmail({ to, subject, html, text, replyTo: email });
   if (!result.ok) {

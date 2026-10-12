@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-import type { TransactionalEmailKind } from "@/lib/email/transactional";
+import type { EmailPayload } from "@/lib/email/transactional";
 import {
   publishNotification,
   type PublishNotificationInput,
@@ -10,20 +10,7 @@ import type { NotificationCategory } from "@/lib/notifications/categories";
 
 type NotificationType = Database["public"]["Enums"]["notification_type"];
 
-type EmailPayload = {
-  kind: TransactionalEmailKind;
-  orderNumber?: string;
-  orderId?: string;
-  totalAmount?: number;
-  amount?: number;
-  currency?: string;
-  providerLabel?: string;
-  reason?: string;
-  trackingNumber?: string | null;
-  trackingUrl?: string | null;
-  destinationLabel?: string;
-  intent?: string | null;
-};
+export type { EmailPayload };
 
 export type NotifyUserInput = {
   userId: string;

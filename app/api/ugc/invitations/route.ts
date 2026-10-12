@@ -268,6 +268,20 @@ export async function POST(req: NextRequest) {
         event: "campaign_invite",
       },
       actorId: user.id,
+      eventKey: `ugc.invite:${invitation.id}`,
+      email: {
+        kind: "account_notice",
+        subject: `You're invited — ${campaignTitle}`,
+        titleLead: "You're ",
+        titleAccent: "invited",
+        subtitle: `You're invited to join "${campaignTitle}".`,
+        noticeTitle: "Invitation",
+        noticeBody: message?.trim() || "Open the campaign to accept or decline.",
+        ctaLabel: "View invitation",
+        actionPath: `/ugc/${campaignId}`,
+        icon: "compass",
+        idempotencyKey: `ugc.invite:${invitation.id}`,
+      },
     });
   }
 

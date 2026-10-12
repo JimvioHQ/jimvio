@@ -192,7 +192,7 @@ describe("support tickets", () => {
         requesterEmail: "person@example.com",
         supportEmail: "info@jimvio.com",
       },
-      { enabled: false, send: async () => { called = true; return { ok: true }; } },
+      { enabled: false, send: async () => { called = true; return { ok: true, status: "sent" as const }; } },
     );
     assert.deepEqual(result, { sent: false, reason: "not_configured" });
     assert.equal(called, false);
@@ -209,7 +209,7 @@ describe("support tickets", () => {
         enabled: true,
         send: async (input) => {
           payloads.push(input);
-          return { ok: true, id: "mail_1" };
+          return { ok: true, id: "mail_1", status: "sent" as const };
         },
       },
     );
@@ -231,7 +231,7 @@ describe("support tickets", () => {
         enabled: true,
         send: async (input) => {
           payloads.push(input);
-          return { ok: true, id: "mail_2" };
+          return { ok: true, id: "mail_2", status: "sent" as const };
         },
       },
     );
@@ -369,7 +369,7 @@ describe("support tickets", () => {
     let called = false;
     const skipped = await deliverConversationReply(
       { publicRef: "SC-test", subject: "Help", requesterEmail: "person@example.com", reply: "Saved reply" },
-      { enabled: false, send: async () => { called = true; return { ok: true }; } },
+      { enabled: false, send: async () => { called = true; return { ok: true, status: "sent" as const }; } },
     );
     assert.deepEqual(skipped, { sent: false, reason: "not_configured" });
     assert.equal(called, false);

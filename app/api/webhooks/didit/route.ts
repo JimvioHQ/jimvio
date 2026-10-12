@@ -200,5 +200,26 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (status === "Approved" || status === "Declined") {
+    const { notifyUser } = await import("@/lib/notifications/notify-user");
+    await notifyUser(admin, {
+      userId,
+      type: "system",
+      title: status === "Approved" ? "Verification approved" : "Verification update",
+      message:
+        status === "Approved"
+          ? "Your verification was approved."
+          : "Your verification was not approved.",
+      actionUrl: "/identity/verification",
+      eventKey: `verification.${businessSession ? "business" : "personal"}.${status}:${sessionId}`,
+      email: {
+        kind: "verification_decision",
+        decision: status === "Approved" ? "approved" : "rejected",
+        scope: businessSession ? "business" : "personal",
+        idempotencyKey: `verification.${businessSession ? "business" : "personal"}.${status}:${sessionId}`,
+      },
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }

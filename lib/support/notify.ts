@@ -1,4 +1,5 @@
 import { customerSupportEmail } from "@/lib/contact-email";
+import { createHash } from "node:crypto";
 import { getAppBaseUrl, isEmailEnabled } from "@/lib/email/config";
 import { wrapEmailHtml } from "@/lib/email/layout";
 import { sendEmail, type SendEmailResult } from "@/lib/email/send";
@@ -10,6 +11,7 @@ type Mailer = (input: {
   html: string;
   text?: string;
   replyTo?: string;
+  idempotencyKey?: string;
 }) => Promise<SendEmailResult>;
 
 export type SupportNotice = {
@@ -51,6 +53,8 @@ export async function deliverSupportNotice(
     bodyHtml: body,
     ctaLabel: "Open ticket",
     ctaUrl: ticketUrl,
+    icon: "chat",
+    help: "If you have any questions about this request, contact our support team.",
   });
   const text = `${heading}\n${input.subject}\n${ticketUrl}`;
   const recipients = [input.requesterEmail, input.reply ? null : input.supportEmail].filter(
@@ -61,7 +65,13 @@ export async function deliverSupportNotice(
 
   let sent = false;
   for (const to of unique) {
-    const result = await send({ to, subject, html, text });
+    const result = await send({
+      to,
+      subject,
+      html,
+      text,
+      idempotencyKey: `support.${input.reply ? "reply" : "received"}.${input.publicRef}.${createHash("sha256").update(`${to}:${input.reply ?? ""}`).digest("hex").slice(0, 12)}`,
+    });
     if (result.ok) sent = true;
   }
   return sent
@@ -84,16 +94,19 @@ export async function deliverConversationReply(
   const subject = customerReplySubject(agent);
   const html = wrapEmailHtml({
     preview: `${agent} replied in your Jimvio support conversation.`,
-    heading: `${escapeHtml(agent)} replied`,
+    heading: `${agent} replied`,
     bodyHtml: `<p>${escapeHtml(agent)} replied in your support conversation.</p><p style="white-space:pre-wrap">${escapeHtml(input.reply.slice(0, 2000))}</p><p style="font-size:13px;color:#6B7280;">Reference ${escapeHtml(input.publicRef)}. You can also reach ${escapeHtml(customerSupportEmail())}.</p>`,
     ctaLabel: "Continue the conversation",
     ctaUrl: href,
+    icon: "chat",
+    help: "If you have any questions about this conversation, contact our support team.",
   });
   const result = await send({
     to: input.requesterEmail,
     subject,
     html,
     text: `${subject}\n${input.reply.slice(0, 2000)}\nReference ${input.publicRef}\n${href}\n${customerSupportEmail()}`,
+    idempotencyKey: `support.conversation.${input.publicRef}.${createHash("sha256").update(input.reply).digest("hex").slice(0, 12)}`,
   });
   return result.ok
     ? { sent: true as const, reason: "sent" as const, id: result.id }
@@ -117,12 +130,15 @@ export async function deliverStaffHandoffNotice(
     bodyHtml: `<p>A customer asked to talk with a person.</p><p>${escapeHtml(input.subject)}</p><p style="white-space:pre-wrap">${escapeHtml(safePreview)}</p><p style="font-size:13px;color:#6B7280;">Reference ${escapeHtml(input.publicRef)}</p>`,
     ctaLabel: "Open the inbox",
     ctaUrl: href,
+    icon: "chat",
+    help: "This message was sent to the Jimvio support inbox.",
   });
   const result = await send({
     to: input.supportEmail,
     subject,
     html,
     text: `${subject}\n${input.publicRef}\n${input.subject}\n${safePreview}\n${href}`,
+    idempotencyKey: `support.handoff.${input.publicRef}.${createHash("sha256").update(safePreview).digest("hex").slice(0, 12)}`,
   });
   return result.ok
     ? { sent: true as const, reason: "sent" as const, id: result.id }

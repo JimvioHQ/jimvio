@@ -108,6 +108,20 @@ export async function POST(
         event: "revision_requested",
       },
       actorId: user.id,
+      eventKey: `ugc.revision.requested:${revision.id}`,
+      email: {
+        kind: "account_notice",
+        subject: `Changes requested — ${campaign?.title ?? "your campaign"}`,
+        titleLead: "Changes ",
+        titleAccent: "requested",
+        subtitle: `A brand requested changes on "${campaign?.title ?? "your campaign"}".`,
+        noticeTitle: "Feedback",
+        noticeBody: notes,
+        ctaLabel: "View submission",
+        actionPath: `/ugc/${submission.campaign_id}/submissions/${id}`,
+        icon: "alert",
+        idempotencyKey: `ugc.revision.requested:${revision.id}`,
+      },
     });
   }
 
@@ -244,6 +258,20 @@ export async function PATCH(
           event: "revision_submitted",
         },
         actorId: user.id,
+        eventKey: `ugc.revision.submitted:${openRevision.id}`,
+        email: {
+          kind: "account_notice",
+          subject: `Revision submitted — ${campaign.title}`,
+          titleLead: "Revision ",
+          titleAccent: "submitted",
+          subtitle: `A creator resubmitted content for "${campaign.title}".`,
+          noticeTitle: "Review",
+          noticeBody: "Open the submission to approve it or request another change.",
+          ctaLabel: "Review submission",
+          actionPath: `/ugc/campaign-center/${submission.campaign_id}/submissions`,
+          icon: "box",
+          idempotencyKey: `ugc.revision.submitted:${openRevision.id}`,
+        },
       });
     }
   }

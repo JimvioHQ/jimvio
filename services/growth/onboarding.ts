@@ -60,7 +60,7 @@ async function maybeSendWelcomeEmail(
       title: "Welcome to Jimvio",
       message: "Your account is ready. Open your dashboard to continue setup.",
       actionUrl: "/",
-      email: { kind: "welcome", intent },
+      email: { kind: "welcome", intent, idempotencyKey: `welcome:${userId}`, actionPath: "/" },
     });
     await db()
       .from("user_onboarding")

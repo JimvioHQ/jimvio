@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdmin } from "@/lib/auth/api-helpers";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 const service = () =>
@@ -172,6 +173,25 @@ export async function PATCH(req: NextRequest) {
         .in("id", matchingTxIds);
     }
   }
+
+  await notifyUser(db, {
+    userId: payout.user_id,
+    type: "payment",
+    title: action === "approve" ? "Payout sent" : "Payout update",
+    message:
+      action === "approve"
+        ? "Your payout was marked paid."
+        : "Your payout was not sent. Reserved funds were returned to your available balance.",
+    actionUrl: "/wallet/withdrawals",
+    eventKey: `payout.${newStatus}:${payoutId}`,
+    email: {
+      kind: action === "approve" ? "payout_sent" : "payout_failed",
+      amount: Number(payout.amount),
+      currency: String(payout.currency ?? "USD"),
+      reason: action === "reject" ? body.rejectReason?.trim() || undefined : undefined,
+      idempotencyKey: `payout.${newStatus}:${payoutId}`,
+    },
+  });
 
   return NextResponse.json({ success: true, status: newStatus });
 }

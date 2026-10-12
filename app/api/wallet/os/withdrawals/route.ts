@@ -22,6 +22,7 @@ import {
   WITHDRAWAL_FEE_RULES,
 } from "@/lib/payments/withdrawal-fees";
 import { safeWithdrawalError } from "@/lib/payments/safe-payment-error";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 export const dynamic = "force-dynamic";
 
@@ -401,6 +402,22 @@ export async function POST(req: NextRequest) {
         db,
       });
 
+      await notifyUser(db, {
+        userId: user.id,
+        type: "payment",
+        title: "Withdrawal requested",
+        message: "Your withdrawal request was received and is pending. It has not been paid.",
+        actionUrl: "/wallet/withdrawals",
+        eventKey: `withdrawal.requested:${inserted.id}`,
+        email: {
+          kind: "withdrawal_requested",
+          amount,
+          currency: PLATFORM_CURRENCY,
+          destinationLabel: walletWithdrawalMethodLabel(canonicalMethod),
+          idempotencyKey: `withdrawal.requested:${inserted.id}`,
+        },
+      });
+
       return NextResponse.json({
         payout,
         duplicate: false,
@@ -494,6 +511,24 @@ export async function POST(req: NextRequest) {
       metadata: { payout, resolvedMethod },
       db,
     });
+
+    const payoutId = (payout as { id?: string } | null)?.id;
+    if (payoutId) {
+      await notifyUser(db, {
+        userId: user.id,
+        type: "payment",
+        title: "Withdrawal requested",
+        message: "Your withdrawal request was received and is pending. It has not been paid.",
+        actionUrl: "/wallet/withdrawals",
+        eventKey: `withdrawal.requested:${payoutId}`,
+        email: {
+          kind: "withdrawal_requested",
+          amount,
+          currency: PLATFORM_CURRENCY,
+          idempotencyKey: `withdrawal.requested:${payoutId}`,
+        },
+      });
+    }
 
     return NextResponse.json({ payout, duplicate: false });
   } catch (err) {

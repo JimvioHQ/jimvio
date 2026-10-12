@@ -760,6 +760,7 @@ interface CJOrderItem {
   product_id: string | null;
   vendor_id: string;
   product_name: string;
+  product_image?: string | null;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -1054,6 +1055,7 @@ export async function finalizeOrderPayment(
         product_id,
         vendor_id,
         product_name,
+        product_image,
         quantity,
         unit_price,
         total_price,
@@ -1302,6 +1304,7 @@ export async function finalizeOrderPayment(
         message: `Your payment${paidLabel ? ` of ${paidLabel}` : ""} has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         actionUrl: buyerOrderUrl,
+        eventKey: `order.received:buyer:${orderId}`,
         email: {
           kind: "payment_success",
           orderId,
@@ -1309,8 +1312,54 @@ export async function finalizeOrderPayment(
           amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
           currency: orderCurrency,
           providerLabel: getPaymentProviderLabel(ctx.paymentProvider),
+          paymentLabel: "Completed",
+          statusLabel: "Processing",
+          itemCount: orderItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+          items: orderItems.map((item) => ({
+            name: String(item.product_name ?? "Item"),
+            quantity: Number(item.quantity || 1),
+            imageUrl: typeof item.product_image === "string" ? item.product_image : null,
+          })),
+          actionPath: buyerOrderUrl,
+          idempotencyKey: `order.received:buyer:${orderId}`,
         },
       });
+    }
+
+    const paidVendorId = typeof order.vendor_id === "string" ? order.vendor_id : null;
+    if (paidVendorId) {
+      const { data: paidVendor } = await db
+        .from("vendors")
+        .select("user_id")
+        .eq("id", paidVendorId)
+        .maybeSingle();
+      if (paidVendor?.user_id && paidVendor.user_id !== ctx.notifyUserId) {
+        await notifyUser(db, {
+          userId: paidVendor.user_id,
+          type: "order",
+          title: "Order paid",
+          message: `Order #${String(order.order_number ?? orderId)} is paid and ready to fulfill.`,
+          actionUrl: `/commerce/orders/${orderId}`,
+          eventKey: `order.received:merchant:${orderId}`,
+          data: { order_id: orderId, payment_status: "paid" },
+          email: {
+            kind: "seller_order_paid",
+            orderId,
+            orderNumber: String(order.order_number ?? orderId),
+            currency: String(order.currency ?? "USD").toUpperCase(),
+            amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
+            paymentLabel: "Completed",
+            statusLabel: "Ready to fulfill",
+            itemCount: orderItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+            items: orderItems.map((item) => ({
+              name: String(item.product_name ?? "Item"),
+              quantity: Number(item.quantity || 1),
+            })),
+            actionPath: `/commerce/orders/${orderId}`,
+            idempotencyKey: `order.received:merchant:${orderId}`,
+          },
+        });
+      }
     }
 
     return { type: "regular" };
@@ -1427,6 +1476,7 @@ export async function finalizeOrderPayment(
           } is being fulfilled by the merchant.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
         actionUrl: `/orders/${orderId}`,
+        eventKey: `order.received:buyer:${orderId}`,
         email: {
           kind: "payment_success",
           orderId,
@@ -1434,8 +1484,48 @@ export async function finalizeOrderPayment(
           amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
           currency: String(order.currency ?? "RWF").toUpperCase(),
           providerLabel: getPaymentProviderLabel(ctx.paymentProvider),
+          paymentLabel: "Completed",
+          statusLabel: "Processing",
+          actionPath: `/orders/${orderId}`,
+          idempotencyKey: `order.received:buyer:${orderId}`,
         },
       });
+    }
+
+    const shopifyVendorId = typeof order.vendor_id === "string" ? order.vendor_id : null;
+    if (shopifyVendorId) {
+      const { data: shopifyVendor } = await db
+        .from("vendors")
+        .select("user_id")
+        .eq("id", shopifyVendorId)
+        .maybeSingle();
+      if (shopifyVendor?.user_id && shopifyVendor.user_id !== ctx.notifyUserId) {
+        await notifyUser(db, {
+          userId: shopifyVendor.user_id,
+          type: "order",
+          title: "Order paid",
+          message: `Order #${String(order.order_number ?? orderId)} is paid and ready to fulfill.`,
+          actionUrl: `/commerce/orders/${orderId}`,
+          eventKey: `order.received:merchant:${orderId}`,
+          data: { order_id: orderId, payment_status: "paid" },
+          email: {
+            kind: "seller_order_paid",
+            orderId,
+            orderNumber: String(order.order_number ?? orderId),
+            currency: String(order.currency ?? "USD").toUpperCase(),
+            amount: Number(ctx.amountForMessage ?? order.total_amount ?? 0),
+            paymentLabel: "Completed",
+            statusLabel: "Ready to fulfill",
+            itemCount: orderItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+            items: orderItems.map((item) => ({
+              name: String(item.product_name ?? "Item"),
+              quantity: Number(item.quantity || 1),
+            })),
+            actionPath: `/commerce/orders/${orderId}`,
+            idempotencyKey: `order.received:merchant:${orderId}`,
+          },
+        });
+      }
     }
   }
 

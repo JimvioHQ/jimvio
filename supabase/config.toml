@@ -245,15 +245,15 @@ subject = "You're invited to Jimvio"
 content_path = "./templates/invite.html"
 
 [auth.email.template.confirmation]
-subject = "Confirm your Jimvio account"
+subject = "Confirm your email"
 content_path = "./templates/confirmation.html"
 
 [auth.email.template.recovery]
-subject = "Reset your Jimvio password"
+subject = "Reset your password"
 content_path = "./templates/recovery.html"
 
 [auth.email.template.magic_link]
-subject = "Your Jimvio sign-in link"
+subject = "Your Jimvio sign-in code"
 content_path = "./templates/magic_link.html"
 
 [auth.email.template.email_change]
@@ -261,7 +261,7 @@ subject = "Confirm your new email address"
 content_path = "./templates/email_change.html"
 
 [auth.email.template.reauthentication]
-subject = "Verify your identity to continue"
+subject = "Your Jimvio verification code"
 content_path = "./templates/reauthentication.html"
 
 [auth.email.notification.password_changed]

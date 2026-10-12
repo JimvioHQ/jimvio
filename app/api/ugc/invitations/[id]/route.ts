@@ -113,6 +113,20 @@ export async function PATCH(
           actionUrl: `/ugc/campaign-center/${invitation.campaign_id}`,
           data: { campaignId: invitation.campaign_id, invitationId: id, event: "invite_accepted" },
           actorId: user.id,
+          eventKey: `ugc.invite.accepted:${id}`,
+          email: {
+            kind: "account_notice",
+            subject: `Invitation accepted — ${campaign.title ?? "your campaign"}`,
+            titleLead: "Invitation ",
+            titleAccent: "accepted",
+            subtitle: `A creator accepted your invite to "${campaign.title ?? "your campaign"}".`,
+            noticeTitle: "Next step",
+            noticeBody: "Open the campaign to continue with this creator.",
+            ctaLabel: "Open campaign",
+            actionPath: `/ugc/campaign-center/${invitation.campaign_id}`,
+            icon: "shield-check",
+            idempotencyKey: `ugc.invite.accepted:${id}`,
+          },
         });
       }
     }
