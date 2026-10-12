@@ -7,13 +7,14 @@ import { CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink } from "luc
 import { cn } from "@/lib/utils";
 import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 import { Th } from "@/components/ui/admin";
+import type { UGCPlatform } from "@/types/ugc";
 
 type UGCSubmission = {
     id: string;
     campaign_id: string;
     influencer_id: string;
     post_url: string;
-    platform: "tiktok" | "instagram" | "youtube" | "x";
+    platform: UGCPlatform;
     caption?: string | null;
     status: "pending" | "approved" | "rejected" | "removed" | "revision_requested";
     rejection_reason?: string | null;
@@ -62,10 +63,11 @@ const PLATFORM_STYLES: Record<string, string> = {
     tiktok:    "bg-slate-100 text-slate-700 ring-slate-300/60 dark:bg-slate-800 dark:text-slate-300",
     instagram: "bg-pink-50 text-pink-700 ring-pink-300/40 dark:bg-pink-950/30 dark:text-pink-400",
     youtube:   "bg-rose-50 text-rose-700 ring-rose-300/40 dark:bg-rose-950/30 dark:text-rose-400",
+    facebook:  "bg-blue-50 text-blue-700 ring-blue-300/40 dark:bg-blue-950/30 dark:text-blue-400",
     x:         "bg-sky-50 text-sky-700 ring-sky-300/40 dark:bg-sky-950/30 dark:text-sky-400",
 };
 const PLATFORM_LABELS: Record<string, string> = {
-    tiktok: "TikTok", instagram: "Instagram", youtube: "YouTube", x: "X",
+    tiktok: "TikTok", instagram: "Instagram", youtube: "YouTube", facebook: "Facebook", x: "X",
 };
 
 function PlatformBadge({ platform }: { platform: string }) {

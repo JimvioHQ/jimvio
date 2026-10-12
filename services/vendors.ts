@@ -771,7 +771,7 @@ export async function getPendingCreators(opts?: {
 // UGC SUBMISSION REVIEW QUERIES
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Platform = "tiktok" | "instagram" | "youtube" | "x";
+type Platform = "tiktok" | "instagram" | "youtube" | "facebook" | "x";
 
 export async function getPendingUGCSubmissions(opts?: {
   q?: string;

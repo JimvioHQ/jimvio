@@ -34,9 +34,9 @@ export default async function AdminVerificationsPage({
     const sp = await searchParams;
     const tab = sp.tab ?? "vendors";
 
-    const allowedPlatforms = ["all", "tiktok", "instagram", "youtube", "x"];
+    const allowedPlatforms = ["all", "tiktok", "instagram", "youtube", "facebook", "x"];
     const platformFilter = allowedPlatforms.includes(sp.platform ?? "")
-        ? (sp.platform as "all" | "tiktok" | "instagram" | "youtube" | "x")
+        ? (sp.platform as "all" | "tiktok" | "instagram" | "youtube" | "facebook" | "x")
         : undefined;
 
     const [counts, countries, vendorData, creatorData, ugcData, reportData] =
