@@ -8,6 +8,7 @@ import {
   creatorCountryDecision,
   displayPlatforms,
   isSafeHttpUrl,
+  listIsoCountries,
   mergeJoinConfigBrief,
   readCampaignBrief,
   sanitizeCampaignMedia,
@@ -31,6 +32,13 @@ describe("campaign country policy", () => {
     assert.equal(creatorCountryDecision(policy, "UG"), "blocked");
     assert.equal(creatorCountryDecision(policy, null), "unknown");
     assert.equal(creatorCountryDecision(policy, "somewhere"), "unknown");
+  });
+
+  it("lists real ISO countries from the runtime region catalog", () => {
+    const rows = listIsoCountries();
+    const kenya = rows.find((row) => row.code === "KE");
+    assert.equal(kenya?.name.includes("Kenya"), true);
+    assert.equal(rows.some((row) => !/^[A-Z]{2}$/.test(row.code)), false);
   });
 
   it("keeps an explicit all-countries choice distinct from a saved list", () => {

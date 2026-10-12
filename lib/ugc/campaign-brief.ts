@@ -81,9 +81,27 @@ export function safeHttpUrl(raw: string): string | null {
   return parsed.toString();
 }
 
+function supportedRegionCodes(): string[] {
+  try {
+    // TypeScript's Intl key union in this repo omits "region". Some engines reject it too.
+    const list = Intl.supportedValuesOf as (key: string) => string[];
+    const regions = list("region");
+    if (regions.length > 0) return regions;
+  } catch {
+    // Fall through to the ISO alpha-2 scan below.
+  }
+  const codes: string[] = [];
+  for (let first = 65; first <= 90; first++) {
+    for (let second = 65; second <= 90; second++) {
+      codes.push(String.fromCharCode(first, second));
+    }
+  }
+  return codes;
+}
+
 export function listIsoCountries(locale = "en"): { code: string; name: string }[] {
   const names = new Intl.DisplayNames([locale], { type: "region" });
-  const regions = Intl.supportedValuesOf("region");
+  const regions = supportedRegionCodes();
   const rows: { code: string; name: string }[] = [];
   for (const code of regions) {
     if (!/^[A-Za-z]{2}$/.test(code)) continue;
