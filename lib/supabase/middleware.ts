@@ -264,6 +264,13 @@ export async function updateSession(request: NextRequest) {
       }
 
       if (user && isGuestAuth) {
+        const recoveryCookie = request.cookies.get(PASSWORD_RECOVERY_COOKIE)?.value;
+        if (cookieMatchesUser(recoveryCookie, user.id)) {
+          const resetUrl = request.nextUrl.clone();
+          resetUrl.pathname = "/reset-password";
+          resetUrl.search = "";
+          return NextResponse.redirect(resetUrl);
+        }
         const next =
           request.nextUrl.searchParams.get("next") ??
           request.nextUrl.searchParams.get("redirect");

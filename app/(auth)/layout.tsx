@@ -51,27 +51,6 @@ export default async function AuthLayout({
           </div>
 
           {children}
-
-          <div className="mt-10 border-t border-zinc-200 pt-6 dark:border-border lg:hidden">
-            <p className="text-[15px] font-black tracking-tight text-zinc-900 dark:text-white">
-              Create. Sell. Promote. Earn. Grow.
-            </p>
-            <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-              Discover products, sell digital and physical goods, earn through affiliate promotions, join UGC and clipping campaigns, create content, and build communities — all on Jimvio.
-            </p>
-            <dl className="mt-4 grid grid-cols-3 gap-3">
-              {[
-                ["108,211", "Creators & users"],
-                ["23,429", "Businesses"],
-                ["1,134,150", "Products & listings"],
-              ].map(([value, label]) => (
-                <div key={label}>
-                  <dt className="text-[15px] font-black tracking-tight text-zinc-900 dark:text-white">{value}</dt>
-                  <dd className="mt-1 text-[11px] font-medium leading-snug text-zinc-500">{label}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
         </div>
       </div>
 

@@ -937,7 +937,48 @@ export async function resetPassword(formData: FormData) {
   }
 }
 
-export async function beginPasswordRecovery(): Promise<{ ok: boolean; error?: string }> {
+export async function verifyRecoveryOtp(formData: FormData) {
+  try {
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
+    const token = normalizeOtpToken(String(formData.get("token") ?? ""))
+    if (!isValidAuthEmail(email) || token.length !== 6) {
+      return { error: "Enter the 6-digit code from your email." }
+    }
+
+    const limited = rateLimit(`recovery-otp:${email}`, 8, OTP_LIFETIME_MS)
+    if (!limited.allowed) {
+      return { error: "Too many attempts. Please wait a moment and try again." }
+    }
+
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "recovery",
+    })
+    if (error) {
+      console.error("[auth] verifyRecoveryOtp", {
+        code: error.code ?? null,
+        status: error.status ?? null,
+      })
+      return { error: mapSignupOtpError(error) }
+    }
+
+    const userId = data.session?.user?.id
+    if (!userId || !accessTokenHasRecoveryAmr(data.session?.access_token)) {
+      return { error: "That code is not valid. Check the email and try again." }
+    }
+
+    const cookieStore = await cookies()
+    cookieStore.set(PASSWORD_RECOVERY_COOKIE, userId, passwordRecoveryCookieOptions())
+    return { success: "Code verified. Choose a new password." }
+  } catch {
+    console.error("[auth] verifyRecoveryOtp failed")
+    return { error: "We couldn't reach the verification service. Try again." }
+  }
+}
+
+export async function beginPasswordRecovery() {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

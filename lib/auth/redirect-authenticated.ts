@@ -10,6 +10,7 @@ import { resolveMerchantAuthRedirect } from "@/lib/auth/merchant-auth-redirect";
 import { isMerchantAuthContext } from "@/lib/auth/merchant-auth-context";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import { TWO_FA_PENDING_COOKIE, cookieMatchesUser } from "@/lib/auth/two-fa-session";
+import { PASSWORD_RECOVERY_COOKIE } from "@/lib/auth/recovery-session";
 
 /**
  * If the visitor already has a valid session, send them to their home (or `next`).
@@ -24,6 +25,11 @@ export async function redirectIfAuthenticated(
   } = await supabase.auth.getUser();
 
   if (!user) return;
+
+  const recovery = (await cookies()).get(PASSWORD_RECOVERY_COOKIE)?.value;
+  if (cookieMatchesUser(recovery, user.id)) {
+    redirect("/reset-password");
+  }
 
   const merchantStorefront = await isMerchantAuthContext();
   const fallback = merchantStorefront

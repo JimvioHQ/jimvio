@@ -123,8 +123,8 @@ export function resetPasswordHtml(): string {
     code: { label: "YOUR VERIFICATION CODE", supabaseOtp: true },
     notice: {
       icon: "clock",
-      title: "This code expires soon",
-      body: "For your security, this code can only be used once. If you didn't request a password reset, you can safely ignore this email.",
+      title: "This code expires in 10 minutes",
+      body: "For your security, this code can only be used once. You can also use the Reset Password button. If you didn't request a password reset, you can safely ignore this email.",
     },
     cta: { label: "Reset Password", url: "{{ .ConfirmationURL }}", trusted: true },
     help: "If you're having trouble resetting your password, contact our support team.",

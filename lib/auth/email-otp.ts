@@ -3,6 +3,7 @@
 export const OTP_LIFETIME_MS = 10 * 60 * 1000;
 export const OTP_RESEND_COOLDOWN_MS = 60_000;
 export const SIGNUP_OTP_STORAGE_KEY = "jimvio-signup-otp";
+export const RECOVERY_OTP_STORAGE_KEY = "jimvio-recovery-otp";
 
 export function normalizeOtpToken(value: string): string {
   return value.replace(/\D/g, "").slice(0, 6);

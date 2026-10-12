@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Mail, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/lib/auth/actions";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 import { AuthAlert } from "@/components/auth/auth-alert";
+import { RecoveryOtpEntry, readStoredRecoveryOtp, storeRecoveryOtp } from "@/components/auth/recovery-otp-entry";
 
 export function ForgotPasswordForm({
   storefront,
@@ -20,11 +21,20 @@ export function ForgotPasswordForm({
   };
 } = {}) {
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [issuedAt, setIssuedAt] = useState<number | null>(null);
+  const [sentNotice, setSentNotice] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
   const [isPending, startTransition] = useTransition();
   const loginHref = storefront?.loginHref || "/login";
+
+  useEffect(() => {
+    const stored = readStoredRecoveryOtp();
+    if (!stored) return;
+    setPendingEmail(stored.email);
+    setIssuedAt(stored.issuedAt);
+  }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,6 +44,7 @@ export function ForgotPasswordForm({
       return;
     }
     const formData = new FormData(e.currentTarget);
+    const email = String(formData.get("email") || "").trim();
     formData.set("captchaToken", captchaToken);
     startTransition(async () => {
       const result = await resetPassword(formData);
@@ -41,35 +52,26 @@ export function ForgotPasswordForm({
         setError(result.error);
         setCaptchaToken(null);
         setCaptchaReset((n) => n + 1);
+        return;
       }
-      if (result?.success) setSuccess(result.success);
+      if (result?.success && email) {
+        const issued = Date.now();
+        storeRecoveryOtp({ email, issuedAt: issued });
+        setPendingEmail(email);
+        setIssuedAt(issued);
+        setSentNotice(result.success);
+      }
     });
   }
 
-  if (success) {
+  if (pendingEmail && issuedAt) {
     return (
-      <div className="w-full text-center">
-        <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 ring-4 ring-emerald-50 dark:bg-emerald-500/10 dark:ring-emerald-500/10">
-          <CheckCircle className="h-7 w-7 text-emerald-500" aria-hidden />
-        </div>
-        {storefront?.hideHeader ? (
-          <p className="mx-auto mb-2 text-base font-semibold text-zinc-900 dark:text-white">
-            Check your email
-          </p>
-        ) : (
-          <h1 className="mb-2 text-[1.65rem] font-black tracking-tight text-zinc-900 dark:text-white">
-            Check your email
-          </h1>
-        )}
-        <p className="mx-auto mb-8 max-w-sm text-[14px] leading-relaxed text-zinc-500">
-          {success}
-        </p>
-        <Link href={loginHref}>
-          <Button className="h-12 w-full rounded-lg bg-zinc-900 text-[14px] font-bold text-white shadow-none hover:bg-zinc-800">
-            <ArrowLeft className="h-4 w-4" aria-hidden /> Back to sign in
-          </Button>
-        </Link>
-      </div>
+      <RecoveryOtpEntry
+        email={pendingEmail}
+        issuedAt={issuedAt}
+        loginHref={loginHref}
+        notice={sentNotice}
+      />
     );
   }
 
@@ -81,7 +83,7 @@ export function ForgotPasswordForm({
             Forgot password?
           </h1>
           <p className="text-[14px] leading-relaxed text-zinc-500">
-            Enter your email and we&apos;ll send a reset link if an account exists.
+            Enter your email and we&apos;ll send a 6-digit reset code if an account exists.
           </p>
         </header>
       )}
@@ -121,7 +123,7 @@ export function ForgotPasswordForm({
               Sending…
             </span>
           ) : (
-            "Send reset link"
+            "Send reset email"
           )}
         </Button>
       </form>

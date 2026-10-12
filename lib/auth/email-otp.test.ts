@@ -40,8 +40,14 @@ describe("signup email OTP", () => {
 
   it("verifies signup codes with the provider token type and never logs the code", () => {
     const actions = readFileSync(new URL("lib/auth/actions.ts", root), "utf8");
-    const verify = actions.slice(actions.indexOf("export async function verifySignUpOtp"));
+    const verify = actions.slice(
+      actions.indexOf("export async function verifySignUpOtp"),
+      actions.indexOf("export async function resendSignUpConfirmation") > actions.indexOf("export async function verifySignUpOtp")
+        ? actions.indexOf("export async function resendSignUpConfirmation")
+        : actions.indexOf("export async function verifyRecoveryOtp"),
+    );
     assert.match(verify, /type:\s*"signup"/);
+    assert.equal(verify.includes('type: "email"'), false);
     assert.match(verify, /verifyOtp\(/);
     assert.equal(verify.includes("console.log"), false);
     assert.match(verify, /token,/);

@@ -291,7 +291,7 @@ export function formatAuthQueryStatus(raw: string): string | null {
 }
 
 export const GENERIC_RESET_SENT =
-  "If an account exists for that email, a reset link is on the way.";
+  "If an account exists for that email, a 6-digit reset code is on the way. The email also includes a Reset Password button.";
 
 export const GENERIC_CONFIRMATION_SENT =
   "If that email can receive mail, a 6-digit confirmation code is on the way.";
