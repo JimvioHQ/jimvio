@@ -119,6 +119,20 @@ describe("campaign resources and actions", () => {
     );
     assert.equal(resolveCampaignPrimaryAction({ ...base, status: "paused" }).enabled, false);
     assert.equal(
+      resolveCampaignPrimaryAction({
+        ...base,
+        endsAt: "2000-01-01T00:00:00.000Z",
+      }).label,
+      "Campaign closed",
+    );
+    assert.equal(
+      resolveCampaignPrimaryAction({
+        ...base,
+        endsAt: "2099-01-01T00:00:00.000Z",
+      }).label,
+      "Join campaign",
+    );
+    assert.equal(
       resolveCampaignPrimaryAction({ ...base, countryDecision: "blocked" }).enabled,
       false,
     );

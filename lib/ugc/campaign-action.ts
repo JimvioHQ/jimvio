@@ -24,7 +24,7 @@ export function resolveCampaignPrimaryAction(input: CampaignActionInput): Campai
   if (input.status === "paused") {
     return { label: "Campaign paused", href: null, enabled: false };
   }
-  if (input.status === "completed" || input.status === "cancelled" || input.ended) {
+  if (input.status === "completed" || input.status === "cancelled" || ended) {
     return { label: "Campaign closed", href: null, enabled: false };
   }
   if (input.status !== "active") {
