@@ -188,9 +188,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/.well-known/bimi/jimvio-bimi.svg",
+        headers: [
+          { key: "Content-Type", value: "image/svg+xml" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
         // Ensure HTML navigations are revalidated so clients never keep
         // stale references to deleted /_next/static chunks after deploys.
-        source: "/((?!_next/static|_next/image|favicon.ico|icons|images|hero|sw.js).*)",
+        source: "/((?!_next/static|_next/image|favicon.ico|icons|images|hero|sw.js|\\.well-known/bimi).*)",
         headers: [
           {
             key: "Cache-Control",
