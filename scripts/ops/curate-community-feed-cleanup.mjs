@@ -247,6 +247,12 @@ async function ensureBackupTable(db) {
         restored_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now()
       );
+      ALTER TABLE public.jimvio_ops_post_cleanup_20261005 ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE public.jimvio_ops_post_cleanup_20261005 FORCE ROW LEVEL SECURITY;
+      REVOKE ALL ON TABLE public.jimvio_ops_post_cleanup_20261005 FROM PUBLIC;
+      REVOKE ALL ON TABLE public.jimvio_ops_post_cleanup_20261005 FROM anon;
+      REVOKE ALL ON TABLE public.jimvio_ops_post_cleanup_20261005 FROM authenticated;
+      GRANT ALL ON TABLE public.jimvio_ops_post_cleanup_20261005 TO service_role;
     `,
   });
   // rpc may not exist — fall back to direct insert-only backup via JSON file + optional table create through REST is limited.
