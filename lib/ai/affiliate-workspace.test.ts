@@ -11,6 +11,8 @@ import {
 } from "./affiliate-task-token.ts";
 import {
   affiliatePromotionUsesLiveModel,
+  affiliateWorkspaceRecoveryCopy,
+  sanitizeAffiliateAiCopy,
   affiliateWorkspaceUserPrompt,
   beginAffiliateWorkspaceHandoff,
   consumeAffiliateAutoStart,
@@ -53,6 +55,18 @@ describe("affiliate workspace fallback", () => {
     assert.equal(chat.includes("openai"), false);
     const hook = readFileSync(join(root, "components/copilot/use-copilot-chat.ts"), "utf8");
     assert.match(hook, /affiliatePromotionUsesLiveModel/);
+  });
+
+  it("hides provider names from affiliate recovery copy", () => {
+    const copy = affiliateWorkspaceRecoveryCopy(
+      "Could not reach Gemini. Check the connection and retry.",
+    );
+    assert.equal(copy.title, "Jimvio AI can continue this promotion");
+    assert.doesNotMatch(copy.detail, /Gemini|OpenAI|Invalid request/i);
+    assert.equal(
+      sanitizeAffiliateAiCopy("AI provider has no credits remaining"),
+      "Jimvio AI couldn't finish these promotion assets just now.",
+    );
   });
 
   it("sends a promotion handoff to Gemini instead of the affiliate help guide", () => {
@@ -147,7 +161,7 @@ describe("affiliate workspace fallback", () => {
     );
     assert.ok(context);
     assert.equal(context?.price, 42);
-    assert.equal(context?.commissionPercent, 20);
+    assert.equal(context?.commissionPercent, 13.4);
     assert.equal(context?.productUrl, "https://www.jimvio.com/marketplace/platform-boots");
     assert.equal(context?.trackingUrl, "https://www.jimvio.com/ref/abc");
     assert.equal(context?.imageUrls[0], "https://cdn.example.com/boot.jpg");
@@ -178,7 +192,7 @@ describe("affiliate workspace fallback", () => {
       const verified = verifyAffiliatePromotionTask(token, 1_000);
       assert.equal(verified?.productId, "prod-1");
       assert.match(verified?.addendum ?? "", /USD 42/);
-      assert.match(verified?.addendum ?? "", /20%/);
+      assert.match(verified?.addendum ?? "", /13\.4%/);
       const [body, sig] = token!.split(".");
       assert.equal(verifyAffiliatePromotionTask(`${body}x.${sig}`, 1_000), null);
       assert.equal(verifyAffiliatePromotionTask(token, 1_000 + 31 * 60 * 1000), null);

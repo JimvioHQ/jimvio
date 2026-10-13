@@ -18,6 +18,7 @@ import {
   consumeAffiliateAutoStart,
   decideAffiliateAutoStart,
   readAffiliateHandoff,
+  sanitizeAffiliateAiCopy,
   readConsumedAffiliateAutoStarts,
 } from "@/lib/ai/affiliate-workspace";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -100,7 +101,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
           body: JSON.stringify({
             productId: handoff.productId,
             assetTypes: handoff.assetTypes,
-            platform: handoff.platform,
+            ...(handoff.platform ? { platform: handoff.platform } : {}),
           }),
         });
         const data = (await response.json().catch(() => null)) as {
@@ -115,7 +116,9 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
           setAffiliateNotice({
             name: null,
             manual: true,
-            detail: data?.error || "Jimvio AI could not load this product yet. Your selection is still saved.",
+            detail: sanitizeAffiliateAiCopy(
+              data?.error || "Jimvio AI could not load this product yet. Your selection is still saved.",
+            ),
           });
           return;
         }

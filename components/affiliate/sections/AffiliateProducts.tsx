@@ -31,6 +31,7 @@ import {
   type AffiliateSpotlightProduct,
 } from "./shared";
 import { cn } from "@/lib/utils";
+import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import {
   AFFILIATE_CATALOG_PAGE_SIZE,
   canLoadMoreAffiliateProducts,
@@ -58,10 +59,8 @@ const ProductCard = memo(function ProductCard({
   const [pending, startTransition] = useTransition();
   const commissionPct =
     typeof product.rate === "number" && Number.isFinite(product.rate) && product.rate > 0
-      ? Math.round(product.rate)
-      : product.price > 0 && product.avgEarning > 0
-        ? Math.round((product.avgEarning / product.price) * 100)
-        : null;
+      ? formatAffiliateRate(product.rate)
+      : null;
 
   const onWishlist = useCallback(
     (e: MouseEvent) => {
@@ -174,7 +173,7 @@ const ProductCard = memo(function ProductCard({
           </p>
           {commissionPct != null ? (
             <span className="mt-2 inline-flex rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FF5A1F] ring-1 ring-[#FF5A1F]/20">
-              {commissionPct}% Commission
+              {commissionPct}% commission
             </span>
           ) : null}
           <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">

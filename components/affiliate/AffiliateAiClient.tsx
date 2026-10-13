@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, Copy, Loader2, Sparkles } from "lucide-react";
 import {
   AffiliateEmptyState,
@@ -13,8 +13,9 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
-import { shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
-import { AffiliateAiRecovery } from "./AffiliateAiRecovery";
+import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
+import { sanitizeAffiliateAiCopy, shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { AffiliateAiRecovery, persistAffiliateHandoff } from "./AffiliateAiRecovery";
 
 type ProductOpt = {
   id: string;
@@ -58,6 +59,7 @@ const FIELDS: Array<{ key: keyof PromoResult; label: string }> = [
 
 export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
   const pathname = usePathname() ?? "/affiliates/ai";
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState(products[0]?.id ?? "");
   const [result, setResult] = useState<PromoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,28 +90,48 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          const message =
+          const message = sanitizeAffiliateAiCopy(
             data?.error ||
-            (res.status === 401
-              ? "Sign in to generate promotion assets."
-              : res.status === 503
-                ? "AI provider is not configured."
-                : "AI generation failed");
+              (res.status === 401
+                ? "Sign in to generate promotion assets."
+                : "Jimvio AI couldn't finish these promotion assets just now."),
+          );
+          if (
+            selected &&
+            shouldOfferAffiliateWorkspace(res.status, data?.code) &&
+            persistAffiliateHandoff({
+              productId: selected.id,
+              returnPath: pathname,
+            })
+          ) {
+            router.push("/ai");
+            return;
+          }
           setError(message);
           setOfferWorkspace(shouldOfferAffiliateWorkspace(res.status, data?.code));
           return;
         }
         if (!data?.data) {
-          setError("AI returned an empty response. Retry generation.");
+          setError("Jimvio AI returned an empty response. Retry generation.");
           return;
         }
         setResult(data.data);
       } catch {
-        setError("Could not reach Jimvio AI");
+        if (
+          selected &&
+          persistAffiliateHandoff({
+            productId: selected.id,
+            returnPath: pathname,
+          })
+        ) {
+          router.push("/ai");
+          return;
+        }
+        setError("Jimvio AI couldn't finish these promotion assets just now.");
         setOfferWorkspace(true);
       }
     });
-  }, [selected]);
+  }, [pathname, router, selected]);
 
   const copyText = async (key: string, text: string) => {
     try {
@@ -155,7 +177,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} · {Math.round(p.rate)}%
+                  {p.name} · {formatAffiliateRate(p.rate)}%
                 </option>
               ))}
             </select>
@@ -163,7 +185,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
               <p className="mt-2 text-[12.5px] text-[#6B7280]">
                 {selected.category} ·{" "}
                 {formatAffiliateMoney(selected.price, "USD")} ·{" "}
-                {Math.round(selected.rate)}% commission
+                {formatAffiliateRate(selected.rate)}% commission
               </p>
             ) : null}
             {error && offerWorkspace && selected ? (

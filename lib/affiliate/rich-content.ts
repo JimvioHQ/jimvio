@@ -68,12 +68,14 @@ export function decodeHtmlEntitiesOnce(
 }
 
 function unwrapImportedHtml(raw: string): string {
-  const trimmed = raw.replace(/^\uFEFF/, "").trim();
-  if (!trimmed) return "";
-  const hasRawTags = /<\/?[a-z][^>\n]*>/i.test(trimmed);
-  const hasEscapedTags = /&lt;\s*\/?[a-z]/i.test(trimmed);
-  if (!hasRawTags && hasEscapedTags) return decodeHtmlEntitiesOnce(trimmed);
-  return decodeHtmlEntitiesOnce(trimmed, { keepLtGt: true });
+  let value = raw.replace(/^\uFEFF/, "").trim();
+  if (!value) return "";
+  for (let pass = 0; pass < 3 && /&(?:amp;)*lt;\s*\/?[a-z]/i.test(value); pass += 1) {
+    const next = decodeHtmlEntitiesOnce(value);
+    if (next === value) break;
+    value = next;
+  }
+  return decodeHtmlEntitiesOnce(value, { keepLtGt: true });
 }
 
 export function isSafeProductImageUrl(url: string): boolean {

@@ -65,15 +65,22 @@ export function shouldAutoRetryAffiliateProvider(): boolean {
   return false;
 }
 
+export function sanitizeAffiliateAiCopy(message: string): string {
+  const text = message.replace(/\s+/g, " ").trim();
+  if (!text || /gemini|openai|api key|quota|invalid request|credits? remaining|credit balance|AIza/i.test(text)) {
+    return "Jimvio AI couldn't finish these promotion assets just now.";
+  }
+  return text;
+}
+
 export function affiliateWorkspaceRecoveryCopy(providerMessage: string): {
   title: string;
   detail: string;
   action: "Continue in Jimvio AI";
 } {
-  const detail = providerMessage.trim() || "Gemini couldn't finish these promotion assets.";
   return {
     title: "Jimvio AI can continue this promotion",
-    detail,
+    detail: sanitizeAffiliateAiCopy(providerMessage),
     action: "Continue in Jimvio AI",
   };
 }

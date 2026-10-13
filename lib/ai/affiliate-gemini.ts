@@ -13,13 +13,13 @@ import { affiliatePlainText } from "@/lib/affiliate/rich-content";
 
 export const AFFILIATE_AI_PROVIDER = "gemini" as const;
 
-const QUOTA_MESSAGE = "Gemini has no quota remaining for AI promotion. Try again after the quota resets.";
-const RATE_MESSAGE = "Gemini is temporarily rate limited. Wait a moment and retry.";
-const NETWORK_MESSAGE = "Could not reach Gemini. Check the connection and retry.";
-const AUTH_MESSAGE = "Gemini rejected the server credentials. AI promotion is unavailable.";
-const UNCONFIGURED_MESSAGE = "AI promotion is unavailable because Google Gemini is not configured on the server.";
-const INVALID_MESSAGE = "Gemini returned an incomplete promotion kit. Retry generation.";
-const PROVIDER_MESSAGE = "Gemini could not generate promotion assets. Retry in a moment.";
+const QUOTA_MESSAGE = "Jimvio AI promotion is temporarily unavailable. Try again in a little while.";
+const RATE_MESSAGE = "Jimvio AI is busy right now. Wait a moment and retry.";
+const NETWORK_MESSAGE = "Jimvio AI couldn't finish these promotion assets just now.";
+const AUTH_MESSAGE = "Jimvio AI promotion is temporarily unavailable.";
+const UNCONFIGURED_MESSAGE = "Jimvio AI promotion is temporarily unavailable.";
+const INVALID_MESSAGE = "Jimvio AI returned an incomplete promotion kit. Retry generation.";
+const PROVIDER_MESSAGE = "Jimvio AI couldn't finish these promotion assets just now.";
 
 const REQUIRED_FIELDS = [
   "tiktokCaption",
@@ -41,6 +41,7 @@ export type AffiliatePromotionInput = {
   commissionRate: number;
   features?: string[];
   description?: string;
+  trackingUrl?: string | null;
 };
 
 export type AffiliatePromotionKit = {
@@ -177,10 +178,11 @@ Product: ${clip(params.productName, 180)}
 Category: ${clip(params.category, 80)}
 Price: ${params.currency || "USD"} ${Number.isFinite(params.price) ? params.price : 0}
 Commission: ${Number.isFinite(params.commissionRate) ? params.commissionRate : 0}%
+Tracked link: ${params.trackingUrl?.startsWith("https://") ? params.trackingUrl : "the creator's existing Jimvio tracked link"}
 Features: ${features || "n/a"}
 Description: ${description || "n/a"}
 
-Write platform-ready affiliate promotion assets. Keep the copy specific to this product. Include a call to action to shop through the creator's tracked link. Do not invent URLs, prices, or commission rates.
+Write platform-ready affiliate promotion assets for TikTok, Instagram, YouTube, Facebook, Threads, and X. Keep the copy specific to this product. Tell the creator to use the tracked link above and not to invent a different URL. Do not invent specifications, discounts, guarantees, prices, or commission rates.
 
 Return ONLY JSON with these exact keys:
 {
@@ -284,24 +286,24 @@ export async function createAffiliatePromotionResponse(
   let models = [config.model];
   if (!models.includes(GEMINI_FALLBACK_MODEL)) models.push(GEMINI_FALLBACK_MODEL);
   if (deps.listModels) {
-    let listed: GeminiCatalogResult;
     try {
-      listed = await deps.listModels();
+      const listed = await deps.listModels();
+      if (listed.category === "authentication" || listed.category === "rate_limit") {
+        const failure = catalogFailure(listed);
+        console.error("[affiliate-ai]", { code: failure.code, status: failure.status });
+        return failureBody(failure, failure.code !== "authentication");
+      }
+      if (!listed.category && listed.models.length > 0) {
+        const ordered = geminiAttemptOrder(listed.models, config.model);
+        if (ordered.length) models = ordered;
+      }
     } catch (error) {
-      return failureBody(classifyAffiliateProviderFailure(error), true);
+      const failure = classifyAffiliateProviderFailure(error);
+      console.error("[affiliate-ai]", { code: failure.code, status: failure.status });
+      if (failure.code === "authentication" || failure.code === "quota" || failure.code === "rate_limit") {
+        return failureBody(failure, failure.code !== "authentication");
+      }
     }
-    if (listed.category) {
-      const failure = catalogFailure(listed);
-      return failureBody(failure, failure.code !== "authentication" && failure.code !== "unconfigured");
-    }
-    if (listed.models.length === 0) {
-      return failureBody(new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502), true);
-    }
-    const ordered = geminiAttemptOrder(listed.models, config.model);
-    if (!ordered.length) {
-      return failureBody(new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502), true);
-    }
-    models = ordered;
   }
   const prompt = promotionPrompt(params);
   const complete = deps.complete ?? ((request) => completeWithGemini(request.model, request.prompt, key));
@@ -324,7 +326,9 @@ export async function createAffiliatePromotionResponse(
         if (lastError.code === "retired_model") break;
         const allowed = attemptsFor(lastError.code);
         if (attempt >= allowed) {
-          return failureBody(lastError, true);
+          if (lastError.code === "network" || lastError.code === "provider") break;
+          console.error("[affiliate-ai]", { code: lastError.code, status: lastError.status });
+          return failureBody(lastError, lastError.code !== "authentication");
         }
         await sleep(backoffMs(attempt));
       }
@@ -335,5 +339,6 @@ export async function createAffiliatePromotionResponse(
     lastError.code === "retired_model"
       ? new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502)
       : lastError;
+  console.error("[affiliate-ai]", { code: terminal.code, status: terminal.status });
   return failureBody(terminal, true);
 }

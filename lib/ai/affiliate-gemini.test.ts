@@ -117,8 +117,7 @@ describe("affiliate Gemini provider", () => {
     assert.equal(calls, 1);
     assert.equal(result.status, 429);
     assert.equal(result.body.code, "quota");
-    assert.match(String(result.body.error), /Gemini/);
-    assert.doesNotMatch(String(result.body.error), /OpenAI|AI_GATEWAY|AIza/);
+    assert.doesNotMatch(String(result.body.error), /Gemini|OpenAI|AI_GATEWAY|AIza/);
     assert.equal(JSON.stringify(result).includes(FIXTURE_KEY), false);
   });
 
@@ -135,7 +134,7 @@ describe("affiliate Gemini provider", () => {
     assert.equal(calls, 0);
     assert.equal(result.status, 503);
     assert.equal(result.body.code, "unconfigured");
-    assert.match(String(result.body.error), /Gemini/);
+    assert.doesNotMatch(String(result.body.error), /Gemini|OpenAI/);
     assert.equal(result.body.providerReady, false);
   });
 
@@ -179,7 +178,7 @@ describe("affiliate Gemini provider", () => {
     });
     assert.equal(limited, 2);
     assert.equal(rateLimited.body.code, "rate_limit");
-    assert.match(String(rateLimited.body.error), /Gemini/);
+    assert.doesNotMatch(String(rateLimited.body.error), /Gemini|OpenAI/);
 
     let invalid = 0;
     const bad = await createAffiliatePromotionResponse(params, {
@@ -227,5 +226,19 @@ describe("affiliate Gemini provider", () => {
     assert.deepEqual(models, ["gemini-2.5-flash"]);
     assert.equal(selected.status, 200);
     assert.equal(selected.body.workspaceFallback, undefined);
+
+    let timedOut = 0;
+    const afterTimeout = await createAffiliatePromotionResponse(params, {
+      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      sleep: noWait(),
+      listModels: async () => ({ models: [], category: "timeout", detail: "The model timed out" }),
+      complete: async () => {
+        timedOut += 1;
+        return JSON.stringify(kit);
+      },
+    });
+    assert.equal(timedOut, 1);
+    assert.equal(afterTimeout.status, 200);
+    assert.doesNotMatch(String(afterTimeout.body.error ?? ""), /Gemini|OpenAI/);
   });
 });

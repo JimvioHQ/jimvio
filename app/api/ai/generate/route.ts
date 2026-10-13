@@ -142,12 +142,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid request", details: error.errors },
+        { error: "Jimvio AI could not use that request. Check the product and retry." },
         { status: 400 }
       );
     }
-    console.error("AI generation error:", error);
     const described = describeAiError(error);
+    console.error("[ai-generate]", {
+      code: described.code ?? null,
+      status: described.status,
+    });
     return NextResponse.json(
       {
         error: described.message,

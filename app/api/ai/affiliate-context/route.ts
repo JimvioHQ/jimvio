@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loadAffiliateProductContext } from "@/lib/ai/affiliate-product-context";
 import { signAffiliatePromotionTask } from "@/lib/ai/affiliate-task-token";
-import { affiliateWorkspaceUserPrompt } from "@/lib/ai/affiliate-workspace";
+import { affiliateWorkspaceUserPrompt, sanitizeAffiliateAiCopy } from "@/lib/ai/affiliate-workspace";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
 const schema = z.object({
   productId: z.string().trim().min(1).max(80),
   assetTypes: z.array(z.string().trim().min(1).max(40)).max(16).optional(),
-  platform: z.string().trim().max(40).optional(),
+  platform: z.string().trim().max(40).nullish(),
 });
 
 /** Authoritative product context for the existing Jimvio AI workspace. */
@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Jimvio AI could not open this promotion. Choose the product again." },
+      { status: 400 },
+    );
   }
 
   const context = await loadAffiliateProductContext(parsed.data.productId, {

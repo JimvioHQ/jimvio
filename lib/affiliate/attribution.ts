@@ -5,9 +5,9 @@
 
 import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
 import {
   DEFAULT_AFFILIATE_COMMISSION_PERCENT,
-  estimateAffiliateCommissionUsd,
   resolveCommissionRatePercent,
 } from "@/lib/currency/platform";
 import {
@@ -303,7 +303,7 @@ export async function buildLineAttribution(input: {
   if (!resolved) return null;
   if (isSelfReferral(input.buyerUserId, resolved.affiliateUserId)) return null;
 
-  const usedRate = resolveCommissionRatePercent({
+  const rawRate = resolveCommissionRatePercent({
     linkRate: resolved.commissionRate,
     campaignRate: resolved.commissionRate,
     productRate: input.productCommissionRate,
@@ -316,16 +316,16 @@ export async function buildLineAttribution(input: {
   });
 
   const qty = Math.max(1, Number(input.quantity) || 1);
-  let amount: number;
-  if (
-    input.affiliateFixedAmountUsd != null &&
-    Number.isFinite(input.affiliateFixedAmountUsd) &&
-    input.affiliateFixedAmountUsd > 0
-  ) {
-    amount = Math.round(input.affiliateFixedAmountUsd * qty * 100) / 100;
-  } else {
-    amount = estimateAffiliateCommissionUsd(input.lineTotal, usedRate).amount;
-  }
+  const unitPrice = qty > 0 ? Number(input.lineTotal) / qty : 0;
+  const offer = resolveAffiliateOffer({
+    priceUsd: unitPrice,
+    configuredPercent: rawRate,
+    fallbackPercent: rawRate,
+    fixedEarningUsd: input.affiliateFixedAmountUsd,
+  });
+  if (offer.rate == null) return null;
+  const usedRate = offer.rate;
+  const amount = Math.round(offer.earningUsd * qty * 100) / 100;
   if (amount <= 0) return null;
 
   return {

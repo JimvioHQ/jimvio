@@ -22,8 +22,10 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
-import { shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
-import { AffiliateAiRecovery } from "./AffiliateAiRecovery";
+import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
+import { sanitizeAffiliateAiCopy, shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { AffiliateAiRecovery, persistAffiliateHandoff } from "./AffiliateAiRecovery";
+import { useRouter } from "next/navigation";
 import {
   affiliateContentNeedsDisclosure,
   affiliatePlainText,
@@ -101,6 +103,7 @@ export function AffiliatePromoteProductClient({
   activateHref,
   loginHref,
 }: AffiliatePromoteProductClientProps) {
+  const router = useRouter();
   const [activeImage, setActiveImage] = useState(0);
   const [affiliateLink, setAffiliateLink] = useState(initialLink);
   const [linkCode, setLinkCode] = useState(initialCode);
@@ -118,6 +121,7 @@ export function AffiliatePromoteProductClient({
   const [promoBusy, setPromoBusy] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [offerWorkspace, setOfferWorkspace] = useState(false);
+  const [openingAi, setOpeningAi] = useState(false);
   const [track, setTrack] = useState<{ clicks: number; conversions: number; earnings: number } | null>(
     null
   );
@@ -327,13 +331,37 @@ export function AffiliatePromoteProductClient({
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          setAiError(data?.error ?? "AI generation failed — sign in to continue");
+          const message = sanitizeAffiliateAiCopy(
+            data?.error || "Jimvio AI couldn't finish these promotion assets just now.",
+          );
+          if (
+            shouldOfferAffiliateWorkspace(res.status, data?.code) &&
+            persistAffiliateHandoff({
+              productId: product.id,
+              returnPath: `/affiliates/promote/${product.slug}`,
+            })
+          ) {
+            setOpeningAi(true);
+            router.push("/ai");
+            return;
+          }
+          setAiError(message);
           setOfferWorkspace(shouldOfferAffiliateWorkspace(res.status, data?.code));
           return;
         }
         setPromo(data?.data ?? null);
       } catch {
-        setAiError("Could not generate AI assets");
+        if (
+          persistAffiliateHandoff({
+            productId: product.id,
+            returnPath: `/affiliates/promote/${product.slug}`,
+          })
+        ) {
+          setOpeningAi(true);
+          router.push("/ai");
+          return;
+        }
+        setAiError("Jimvio AI couldn't finish these promotion assets just now.");
         setOfferWorkspace(true);
       } finally {
         setPromoBusy(false);
@@ -365,7 +393,7 @@ export function AffiliatePromoteProductClient({
               unoptimized
             />
             <span className="absolute left-3 top-3 rounded-lg bg-black/55 px-2 py-1 text-[12px] font-bold text-white backdrop-blur-sm">
-              {Math.round(product.rate)}% commission
+              {formatAffiliateRate(product.rate)}% commission
             </span>
           </div>
           {images.length > 1 ? (
@@ -407,7 +435,7 @@ export function AffiliatePromoteProductClient({
             html={descriptionHtml}
             empty="No description is available for this product."
             expandLabel="View Full Description"
-            collapseLabel="Show less"
+            collapseLabel="Show Less"
           />
 
           {product.benefits.length > 0 ? (
@@ -464,7 +492,7 @@ export function AffiliatePromoteProductClient({
             <div className="rounded-2xl border border-[#FFE4D6] bg-[#FFF8F5] p-4 shadow-sm">
               <p className="text-[11px] font-medium text-[#FF5A1F]">Commission rate</p>
               <p className="mt-1 text-[18px] font-bold tabular-nums text-[#FF5A1F]">
-                {Math.round(product.rate)}%
+                {formatAffiliateRate(product.rate)}%
               </p>
               <p className="mt-0.5 text-[11px] text-[#6B7280]">
                 {formatAffiliateMoney(product.avgEarning, product.currency)} / sale
@@ -488,7 +516,7 @@ export function AffiliatePromoteProductClient({
               {formatAffiliateMoney(estimated, product.currency)}
             </p>
             <p className="text-[11px] text-[#9CA3AF]">
-              Based on {Math.round(product.rate)}% commission × {sales} sales
+              Based on {formatAffiliateRate(product.rate)}% commission × {sales} sales
             </p>
           </Section>
 
@@ -642,6 +670,11 @@ export function AffiliatePromoteProductClient({
               {promoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Generate captions, hashtags, hooks & scripts
             </button>
+            {openingAi ? (
+              <p className="mt-2 text-[12.5px] font-medium text-[#6B7280]" role="status">
+                Opening Jimvio AI with this product ready.
+              </p>
+            ) : null}
             {aiError && offerWorkspace ? (
               <AffiliateAiRecovery
                 message={aiError}
@@ -696,7 +729,7 @@ export function AffiliatePromoteProductClient({
             ) : (
               <ul className="mt-3 space-y-1.5 text-[12.5px] text-[#4B5563]">
                 <li>• Use gallery images in posts and stories</li>
-                <li>• Lead with the {Math.round(product.rate)}% commission angle</li>
+                <li>• Lead with the {formatAffiliateRate(product.rate)}% commission angle</li>
                 <li>• Pair short captions with your tracked link / QR</li>
               </ul>
             )}
@@ -734,7 +767,7 @@ export function AffiliatePromoteProductClient({
             <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[12.5px] leading-relaxed text-[#4B5563]">
               <li>Copy your affiliate link or QR above.</li>
               <li>Use AI captions/hooks on social and communities.</li>
-              <li>Earn {Math.round(product.rate)}% when someone buys through your link.</li>
+              <li>Earn {formatAffiliateRate(product.rate)}% when someone buys through your link.</li>
               <li>Track performance in Dashboard and Link Manager.</li>
             </ol>
             <Link
@@ -823,7 +856,7 @@ function BenefitCopy({ benefits }: { benefits: string[] }) {
           onClick={() => setExpanded((open) => !open)}
           className="mt-2 text-[12.5px] font-semibold text-[#FF5A1F] hover:underline"
         >
-          {expanded ? "Show less" : "View full benefits"}
+          {expanded ? "Show Less" : "View Full Benefits"}
         </button>
       ) : null}
     </Section>

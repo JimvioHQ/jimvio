@@ -13,6 +13,27 @@ import {
 import { saveCopilotReturnPath } from "@/lib/ai/copilot/session";
 import { cn } from "@/lib/utils";
 
+export function persistAffiliateHandoff(input: {
+  productId: string;
+  returnPath: string;
+  platform?: string | null;
+}): boolean {
+  const storage = browserSessionStorage();
+  const handoff = beginAffiliateWorkspaceHandoff({
+    succeeded: false,
+    productId: input.productId,
+    assetTypes: [...AFFILIATE_PROMOTION_ASSETS],
+    platform: input.platform,
+    returnPath: input.returnPath,
+    now: Date.now(),
+    id: `aff-${input.productId}-${Date.now()}`,
+  });
+  if (!handoff || !storage) return false;
+  writeAffiliateHandoff(handoff, storage);
+  saveCopilotReturnPath(input.returnPath);
+  return true;
+}
+
 export function AffiliateAiRecovery({
   message,
   productId,
@@ -30,19 +51,7 @@ export function AffiliateAiRecovery({
   const copy = affiliateWorkspaceRecoveryCopy(message);
 
   const continueInWorkspace = () => {
-    const storage = browserSessionStorage();
-    const handoff = beginAffiliateWorkspaceHandoff({
-      succeeded: false,
-      productId,
-      assetTypes: [...AFFILIATE_PROMOTION_ASSETS],
-      platform: null,
-      returnPath,
-      now: Date.now(),
-      id: `aff-${productId}-${Date.now()}`,
-    });
-    if (!handoff || !storage) return;
-    writeAffiliateHandoff(handoff, storage);
-    saveCopilotReturnPath(returnPath);
+    if (!persistAffiliateHandoff({ productId, returnPath })) return;
     router.push("/ai");
   };
 

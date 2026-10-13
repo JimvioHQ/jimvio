@@ -299,7 +299,9 @@ export async function getProducts(query: ProductQuery = {}) {
   if (catalog === "shopify") q = q.eq("source", "shopify");
   if (vendorId) q = q.eq("vendor_id", vendorId);
   if (featured) q = q.eq("is_featured", true);
-  if (affiliate) q = q.eq("affiliate_enabled", true);
+  if (affiliate) {
+    q = q.eq("affiliate_enabled", true).is("deleted_at", null);
+  }
   if (type) q = q.eq("product_type", type as any);
   if (category) q = q.eq("product_categories.slug", category);
   if (search) q = q.ilike("name", `%${search}%`);
@@ -322,14 +324,16 @@ export async function getProducts(query: ProductQuery = {}) {
 
   const { data, count } = await q.range(offset, offset + limit - 1);
   const products = data ?? [];
-  const videoMap = await fetchProductVideosByProductIds(
-    db,
-    products.map((p) => p.id),
-  );
+  const videoMap = affiliate
+    ? null
+    : await fetchProductVideosByProductIds(
+        db,
+        products.map((p) => p.id),
+      );
   return {
     products: products.map((p) => ({
       ...p,
-      product_videos: videoMap.get(p.id) ?? [],
+      product_videos: videoMap?.get(p.id) ?? [],
     })),
     total: count ?? 0,
   };

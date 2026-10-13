@@ -51,7 +51,8 @@ describe("affiliate rich content", () => {
     assert.match(plain, /Hello\s+world/);
     assert.match(plain, /Next/);
     const doubled = prepareAffiliateRichHtml("&amp;lt;p&amp;gt;Hidden&amp;lt;/p&amp;gt;");
-    assert.doesNotMatch(doubled, /<p>Hidden<\/p>/);
+    assert.match(doubled, /<p>Hidden<\/p>/);
+    assert.doesNotMatch(doubled, /&lt;/);
   });
 
   it("keeps readable text from malformed markup", () => {

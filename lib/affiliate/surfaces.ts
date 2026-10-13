@@ -10,6 +10,7 @@ import {
   isSelfReferral,
 } from "@/lib/affiliate/attribution";
 import { createPendingCommission } from "@/lib/affiliate/commissions";
+import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
 
 function db() {
   return createServiceRoleClient() as any;
@@ -35,8 +36,14 @@ export async function attributeNonOrderConversion(input: {
     return { attributed: false };
   }
 
-  const rate = resolved.commissionRate ?? input.commissionRate ?? 10;
-  const commissionAmount = Math.round(((input.amount * rate) / 100) * 100) / 100;
+  const offer = resolveAffiliateOffer({
+    priceUsd: input.amount,
+    configuredPercent: resolved.commissionRate ?? input.commissionRate,
+    fallbackPercent: input.commissionRate ?? 10,
+  });
+  if (offer.rate == null) return { attributed: false };
+  const rate = offer.rate;
+  const commissionAmount = offer.earningUsd;
   if (commissionAmount <= 0) return { attributed: false };
 
   // Store attribution event for future subscription engine / analytics

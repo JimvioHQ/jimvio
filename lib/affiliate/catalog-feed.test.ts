@@ -106,5 +106,7 @@ describe("affiliate catalog pagination", () => {
   it("keeps affiliate sales pages stable with an id tie-break", () => {
     const source = readFileSync(join(root, "services/products.ts"), "utf8");
     assert.match(source, /if \(affiliate\) q = q\.order\("id", \{ ascending: true \}\)/);
+    assert.match(source, /affiliate_enabled", true\)\.is\("deleted_at", null\)/);
+    assert.match(source, /const videoMap = affiliate/);
   });
 });

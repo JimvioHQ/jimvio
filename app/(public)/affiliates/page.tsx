@@ -12,6 +12,7 @@ import {
 } from "@/lib/platform-settings";
 import { createClient } from "@/lib/supabase/server";
 import { pageMetadata } from "@/lib/seo";
+import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
 
 export const metadata: Metadata = pageMetadata("affiliates");
@@ -32,21 +33,17 @@ export default async function AffiliatesPage() {
     ]);
 
   const spotlight = spotlightRes.products ?? [];
-  const maxRate = spotlight.reduce(
-    (m, p) =>
-      Math.max(
-        m,
-        Number(
-          (p as { affiliate_commission_rate?: number | null })
-            .affiliate_commission_rate ?? 0
-        )
-      ),
-    0
+  const topProducts = spotlight.map((p) =>
+    mapAffiliateSpotlightProduct(
+      p as Parameters<typeof mapAffiliateSpotlightProduct>[0],
+      settings.fees.default_affiliate_commission_percent
+    )
   );
+  const maxRate = topProducts.reduce((m, p) => Math.max(m, p.rate), 0);
   const heroRate =
     maxRate > 0
-      ? Math.round(maxRate)
-      : Math.round(settings.fees.default_affiliate_commission_percent);
+      ? maxRate
+      : settings.fees.default_affiliate_commission_percent;
 
   const statsRow = [
     {
@@ -59,20 +56,13 @@ export default async function AffiliatesPage() {
     },
     {
       label: "Top commission",
-      value: maxRate > 0 ? `${Math.round(maxRate)}%` : `${heroRate}%`,
+      value: `${formatAffiliateRate(heroRate)}%`,
     },
     {
       label: "Live products",
       value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : "—",
     },
   ];
-
-  const topProducts = spotlight.map((p) =>
-    mapAffiliateSpotlightProduct(
-      p as Parameters<typeof mapAffiliateSpotlightProduct>[0],
-      settings.fees.default_affiliate_commission_percent
-    )
-  );
 
   const maxEarning =
     topEarners.length > 0

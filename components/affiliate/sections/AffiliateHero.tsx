@@ -11,6 +11,7 @@ import {
   fadeUp,
   staggerContainer,
 } from "./shared";
+import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import { cn } from "@/lib/utils";
 import "../affiliate-polish.css";
 
@@ -73,6 +74,7 @@ function AnimatedChart({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) {
+  const rateLabel = formatAffiliateRate(heroRate);
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
@@ -133,7 +135,7 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
               <span className="text-[#FF5A1F]">Affiliate Program</span>
             </h1>
             <p className="mt-3.5 max-w-md text-[15px] leading-relaxed text-[#6B7280]">
-              Earn up to {heroRate}% commission by promoting products you love
+              Earn up to {rateLabel}% commission by promoting products you love
               and trust.
             </p>
 
@@ -200,7 +202,7 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
                 Top commission
               </p>
               <p className="mt-0.5 text-[20px] font-bold tabular-nums leading-none text-[#FF5A1F]">
-                {heroRate}%
+                {rateLabel}%
               </p>
               <div className="mt-2">
                 <AnimatedChart reduceMotion={reduceMotion} />

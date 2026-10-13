@@ -77,29 +77,32 @@ export function describeAiError(error: unknown): {
   if (
     code === "credit_balance_exhausted" ||
     code === "insufficient_quota" ||
-    /no credits remaining|insufficient_quota|credit_balance_exhausted/i.test(raw)
+    /no credits remaining|insufficient_quota|credit_balance_exhausted|quota/i.test(raw)
   ) {
     return {
-      message:
-        "AI provider has no credits remaining. Add OpenAI billing credits or configure AI_GATEWAY_API_KEY with available quota.",
+      message: "Jimvio AI is temporarily unavailable. Try again in a little while.",
       code: "insufficient_quota",
       status: 502,
     };
   }
   if (status === 429 || /rate limit/i.test(raw)) {
     return {
-      message: "AI provider rate limit reached. Wait a moment and retry.",
+      message: "Jimvio AI is busy right now. Wait a moment and retry.",
       code: "rate_limit",
       status: 429,
     };
   }
-  if (/OPENAI_API_KEY is not set|No AI provider/i.test(raw)) {
-    return { message: raw, code: "provider_unconfigured", status: 503 };
+  if (/API_KEY is not set|No AI provider|not configured/i.test(raw)) {
+    return {
+      message: "Jimvio AI is temporarily unavailable.",
+      code: "provider_unconfigured",
+      status: 503,
+    };
   }
   return {
-    message: raw,
+    message: "Jimvio AI couldn't finish that request just now.",
     code: typeof code === "string" ? code : undefined,
-    status: 500,
+    status: typeof status === "number" ? status : 500,
   };
 }
 

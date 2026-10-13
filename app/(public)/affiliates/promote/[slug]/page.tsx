@@ -10,11 +10,8 @@ import {
   AffiliatePromoteProductClient,
   type AffiliatePromoteProductView,
 } from "@/components/affiliate/AffiliatePromoteProductClient";
-import {
-  estimateAffiliateCommissionUsd,
-  PLATFORM_CURRENCY,
-  toPlatformUsd,
-} from "@/lib/currency/platform";
+import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
+import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 import {
   affiliatePlainText,
   deriveAffiliateBenefits,
@@ -97,10 +94,6 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     data: { user },
   } = await supabase.auth.getUser();
 
-  const rate = Number(
-    (product as { affiliate_commission_rate?: number | null }).affiliate_commission_rate ??
-      settings.fees.default_affiliate_commission_percent
-  );
   const storedCurrency =
     (product as { currency?: string | null }).currency || PLATFORM_CURRENCY;
   const price = toPlatformUsd(Number(product.price ?? 0), storedCurrency);
@@ -109,10 +102,14 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     affiliatePriceRaw != null && Number(affiliatePriceRaw) > 0
       ? toPlatformUsd(Number(affiliatePriceRaw), storedCurrency)
       : null;
-  const avgEarning =
-    fixedEarn != null && fixedEarn > 0
-      ? fixedEarn
-      : estimateAffiliateCommissionUsd(price, rate).amount;
+  const offer = resolveAffiliateOffer({
+    priceUsd: price,
+    configuredPercent: (product as { affiliate_commission_rate?: number | null }).affiliate_commission_rate,
+    fallbackPercent: settings.fees.default_affiliate_commission_percent,
+    fixedEarningUsd: fixedEarn,
+  });
+  const rate = offer.rate ?? 0;
+  const avgEarning = offer.earningUsd;
   const currency = PLATFORM_CURRENCY;
   const description = String(
     (product as { description?: string | null }).description ?? ""
