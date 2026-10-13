@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
 import { FeedDiscoverRail } from "@/components/feed/FeedDiscoverRail";
 import { FeedPostCard, type ApiPost } from "@/components/feed/FeedPostCard";
@@ -33,10 +34,12 @@ export function FeedPageContent({
   initialCommunities = [],
   initialPosts = [],
   initialNextCursor = null,
+  tag = null,
 }: {
   initialCommunities?: TrendingCommunity[];
   initialPosts?: ApiPost[];
   initialNextCursor?: string | null;
+  tag?: string | null;
 }) {
   const [feedTab, setFeedTab] = useState<FeedTab>("For You");
 
@@ -49,10 +52,21 @@ export function FeedPageContent({
             <StoriesRail />
             <PostComposer />
             <FeedDiscoverRail initialCommunities={initialCommunities} />
+            {tag ? (
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[13px]">
+                <p className="min-w-0 text-[var(--color-text-primary)]">
+                  Posts tagged <span className="font-semibold text-[#fd5000]">#{tag}</span>
+                </p>
+                <Link href="/communities" className="shrink-0 font-semibold text-[#fd5000] hover:underline">
+                  Clear
+                </Link>
+              </div>
+            ) : null}
             <div className="space-y-0">
               <FeedTabs value={feedTab} onChange={setFeedTab} />
               <FeedPostCard
                 tab={feedTab}
+                tag={tag}
                 initialPosts={feedTab === "For You" ? initialPosts : []}
                 initialNextCursor={feedTab === "For You" ? initialNextCursor : null}
               />

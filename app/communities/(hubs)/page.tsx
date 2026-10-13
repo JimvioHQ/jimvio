@@ -1,4 +1,5 @@
 import { FeedPageContent } from "@/components/feed/FeedPageContent";
+import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 import type { ApiPost } from "@/components/feed/FeedPostCard";
 import { isCommunityVerified } from "@/lib/community/trending-score";
@@ -7,7 +8,12 @@ import { getHomepageCommunities } from "@/services/platform";
 
 export const dynamic = "force-dynamic";
 
-export default async function FeedPage() {
+export default async function FeedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>;
+}) {
+  const tag = normalizeHashtagQuery((await searchParams).tag);
   let initialCommunities: TrendingCommunity[] = [];
   let initialPosts: ApiPost[] = [];
   let initialNextCursor: string | null = null;
@@ -39,7 +45,7 @@ export default async function FeedPage() {
   }
 
   try {
-    const feed = await loadHubFeedSsr({ filter: "for-you", limit: 20 });
+    const feed = await loadHubFeedSsr({ filter: "for-you", limit: 20, tag });
     initialPosts = feed.posts;
     initialNextCursor = feed.next_cursor;
   } catch (err) {
@@ -51,6 +57,7 @@ export default async function FeedPage() {
       initialCommunities={initialCommunities}
       initialPosts={initialPosts}
       initialNextCursor={initialNextCursor}
+      tag={tag}
     />
   );
 }

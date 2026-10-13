@@ -59,6 +59,7 @@ import {
 } from "@/lib/feed/composer-utils";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { jimvioPromotionLabel } from "@/lib/community/editorial-origin";
+import { PostRichText } from "@/components/feed/PostRichText";
 import {
     consumeSessionBoostPost,
     prependUniqueById,
@@ -1525,9 +1526,10 @@ function PostCard({
                         {post.title.trim()}
                     </h3>
                 )}
-                <p className="min-w-0 break-words text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap">
-                    {post.body}
-                </p>
+                <PostRichText
+                    text={post.body}
+                    className="min-w-0 break-words text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap"
+                />
             </div>
             )}
 

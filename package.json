@@ -44,7 +44,10 @@
     "demo:youtube-oauth-validate-chrome": "node scripts/google-oauth-verification/validate-chrome.mjs",
     "seed:community-content": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/seed-community-content.ts",
     "seed:community-content:dry": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/seed-community-content.ts --dry-run",
-    "test:photo-content": "tsx scripts/verify-community-photo-content.ts"
+    "seed:feed-editorial": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/seed-feed-editorial.ts",
+    "seed:feed-editorial:dry": "cross-env NODE_OPTIONS=--use-system-ca tsx scripts/seed-feed-editorial.ts --dry-run",
+    "test:photo-content": "tsx scripts/verify-community-photo-content.ts",
+    "test:feed-editorial": "tsx scripts/verify-feed-editorial.ts"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

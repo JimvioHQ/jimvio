@@ -31,6 +31,7 @@ import {
 import { sessionStartCursorFrom } from "@/lib/feed/global-feed-exclusions";
 import { usePostViewTracker } from "@/lib/feed/use-post-view-tracker";
 import { FeedCommentSheet } from "@/components/feed/FeedCommentSheet";
+import { PostRichText } from "@/components/feed/PostRichText";
 import { PostShareMenu } from "@/components/feed/PostShareMenu";
 import {
   FeedInlineModule,
@@ -326,9 +327,10 @@ function HubFeedArticle({
           </h3>
         )}
         {post.body ? (
-          <p className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
-            {post.body}
-          </p>
+          <PostRichText
+            text={post.body}
+            className="mb-2.5 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap"
+          />
         ) : null}
 
         {post.media?.type === "video" && (
@@ -418,10 +420,12 @@ export function FeedPostCard({
   tab = "For You",
   initialPosts = [],
   initialNextCursor = null,
+  tag = null,
 }: {
   tab?: FeedTab;
   initialPosts?: ApiPost[];
   initialNextCursor?: string | null;
+  tag?: string | null;
 }) {
   const router = useRouter();
   const { isAuthenticated } = useFeedUser();
@@ -474,6 +478,7 @@ export function FeedPostCard({
     }
     try {
       const params = new URLSearchParams({ limit: "20", filter });
+      if (tag) params.set("tag", tag);
       if (nextCursor) params.set("cursor", nextCursor);
       const res = await fetch(`/api/posts/feed?${params}`, {
         cache: "no-store",
@@ -502,7 +507,7 @@ export function FeedPostCard({
       setLoadError(false);
       setPosts((prev) => {
         if (!isMore) {
-          const boostRaw = consumeSessionBoostPost<ApiPost>();
+          const boostRaw = tag ? null : consumeSessionBoostPost<ApiPost>();
           const boost = boostRaw ? mapApiPost(boostRaw) : null;
           const next = prependUniqueById(mapped, boost);
           knownIdsRef.current = new Set(next.map((p) => p.id));
@@ -532,12 +537,17 @@ export function FeedPostCard({
       refreshingRef.current = false;
       setPullDistance(0);
     }
-  }, [filter]);
+  }, [filter, tag]);
 
   useEffect(() => {
     // Soft-refresh with the SSR session seed so the first page does not
     // reshuffle (and hide) posts under a newly minted ranking bucket.
     // If SSR exhausted the pool (no next_cursor), keep SSR posts — do not remint.
+    // Hashtag views are a filtered keyset, not a ranked session.
+    if (tag) {
+      if (initialPosts.length === 0) void load();
+      return;
+    }
     if (initialPosts.length > 0 && filter === FEED_TAB_FILTERS["For You"]) {
       const seed = sessionStartCursorFrom(initialNextCursor);
       if (seed) void load(seed, { soft: true });

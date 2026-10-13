@@ -11,6 +11,8 @@ import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert
 import { requireCommunityMember } from "@/lib/community/rbac";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
+import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
+import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 import {
   isUpstreamUnavailable,
@@ -57,6 +59,7 @@ async function getPublicDiscoveryFeed(
     filter: searchParams.get("filter") ?? "for-you",
     communityId: searchParams.get("community_id"),
     draftsOnly: searchParams.get("drafts") === "1",
+    tag: searchParams.get("tag"),
   });
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
@@ -84,6 +87,7 @@ export async function GET(req: NextRequest) {
   const filter = FEED_FILTERS.has(requestedFilter) ? requestedFilter : "for-you";
   const communityId = searchParams.get("community_id");
   const draftsOnly = searchParams.get("drafts") === "1";
+  const tag = normalizeHashtagQuery(searchParams.get("tag"));
 
   const { data: memberships, error: membershipError } = await supabase
     .from("community_memberships")
@@ -96,6 +100,30 @@ export async function GET(req: NextRequest) {
   }
 
   const membershipIds = (memberships ?? []).map((m) => m.community_id);
+
+  if (tag && !communityId && !draftsOnly) {
+    try {
+      const tagged = await loadHashtagFeed(supabase, {
+        tag,
+        limit,
+        cursor,
+        memberCommunityIds: membershipIds,
+      });
+      return NextResponse.json(
+        { posts: tagged.posts, next_cursor: tagged.next_cursor },
+        { headers: { "Cache-Control": "private, no-store, max-age=0, must-revalidate" } },
+      );
+    } catch (err) {
+      if (isUpstreamUnavailable(err)) {
+        return NextResponse.json({ error: "Feed is temporarily unavailable" }, { status: 503 });
+      }
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Failed to load hashtag feed" },
+        { status: 500 },
+      );
+    }
+  }
+
   if (communityId && !membershipIds.includes(communityId)) {
     return getPublicDiscoveryFeed(req, supabase);
   }

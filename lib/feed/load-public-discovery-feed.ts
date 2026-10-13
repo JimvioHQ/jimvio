@@ -6,6 +6,8 @@ import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
 import { isGuestVisiblePublicPost } from "@/lib/feed/public-post-visibility";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
+import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
+import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import {
   isUpstreamUnavailable,
   UpstreamUnavailableError,
@@ -94,6 +96,7 @@ export type PublicDiscoveryFeedParams = {
   filter?: string | null;
   communityId?: string | null;
   draftsOnly?: boolean;
+  tag?: string | null;
 };
 
 export type PublicDiscoveryFeedOk = {
@@ -125,6 +128,38 @@ export async function loadPublicDiscoveryFeed(
 
   if (draftsOnly) {
     return { ok: false, status: 401, error: "Unauthorized" };
+  }
+
+  const tag = normalizeHashtagQuery(params.tag);
+  if (tag && !communityId) {
+    try {
+      const feedDb = hasSupabaseSecretKey()
+        ? (createServiceRoleClient() as Parameters<typeof loadHashtagFeed>[0])
+        : db;
+      const tagged = await loadHashtagFeed(feedDb, {
+        tag,
+        limit,
+        cursor,
+      });
+      return {
+        ok: true,
+        posts: tagged.posts.map((post) => ({
+          ...post,
+          user_has_liked: false,
+          user_reaction: null,
+        })),
+        next_cursor: tagged.next_cursor,
+      };
+    } catch (err) {
+      if (isUpstreamUnavailable(err)) {
+        return { ok: false, status: 503, error: "Feed is temporarily unavailable" };
+      }
+      return {
+        ok: false,
+        status: 500,
+        error: err instanceof Error ? err.message : "Failed to load hashtag feed",
+      };
+    }
   }
 
   // Personalized filters need an account — surface public discovery instead.

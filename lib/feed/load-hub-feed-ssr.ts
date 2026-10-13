@@ -2,6 +2,8 @@ import "server-only";
 
 import type { ApiPost } from "@/components/feed/FeedPostCard";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
+import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
+import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import { loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,16 +14,18 @@ import { createClient } from "@/lib/supabase/server";
 export async function loadHubFeedSsr(opts?: {
   filter?: string;
   limit?: number;
+  tag?: string | null;
 }): Promise<{ posts: ApiPost[]; next_cursor: string | null }> {
   const filter = opts?.filter ?? "for-you";
   const limit = opts?.limit ?? 20;
+  const tag = normalizeHashtagQuery(opts?.tag);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const feed = await loadPublicDiscoveryFeed(supabase, { filter, limit });
+    const feed = await loadPublicDiscoveryFeed(supabase, { filter, limit, tag });
     if (!feed.ok) throw new Error(feed.error);
     return {
       posts: feed.posts as ApiPost[],
@@ -48,7 +52,13 @@ export async function loadHubFeedSsr(opts?: {
     (followResult.data ?? []).map((row) => row.following_id),
   );
 
-  const global = await loadGlobalCommunityFeed(supabase, {
+  const global = tag
+    ? await loadHashtagFeed(supabase, {
+        tag,
+        limit,
+        memberCommunityIds: membershipIds,
+      })
+    : await loadGlobalCommunityFeed(supabase, {
     limit,
     filter,
     viewerId: user.id,
