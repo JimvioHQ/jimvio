@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import { FEED_EDITORIAL_POSTS, feedEditorialKey } from "../community/feed-editorial/collection.ts";
 import {
@@ -108,6 +111,24 @@ describe("editorial attribution plan", () => {
     const profile = plan.filter((row) => row.publishAs === "profile").length;
     assert.equal(community, 39);
     assert.equal(profile, 39);
+  });
+});
+
+describe("composer and public profile", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
+  const composer = readFileSync(join(root, "components/feed/PostComposer.tsx"), "utf8");
+  const profile = readFileSync(join(root, "components/identity/IdentityProfileView.tsx"), "utf8");
+
+  it("keeps a single Post as selector", () => {
+    assert.match(composer, /aria-label="Post as"/);
+    assert.doesNotMatch(composer, />\s*Community\s*<select/);
+  });
+
+  it("does not render the public book button or audience stat cards", () => {
+    assert.doesNotMatch(profile, /IdentityStatsGrid/);
+    assert.doesNotMatch(profile, /bookLabel/);
+    assert.doesNotMatch(profile, /Audience reach/);
+    assert.match(profile, /IdentityProfileActions/);
   });
 });
 

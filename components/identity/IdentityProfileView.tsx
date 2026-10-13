@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Briefcase,
   Calendar,
@@ -20,7 +20,6 @@ import { formatNumber } from "@/lib/utils";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { IdentityButton, IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
 import { IdentityTabNav, type IdentityTab } from "@/components/identity/IdentityTabNav";
-import { computeIdentityStats, IdentityStatsGrid } from "@/components/identity/IdentityStatsGrid";
 import { IdentityOverviewPanel } from "@/components/identity/IdentityOverviewPanel";
 import { IdentityModulePanel, type IdentitySurface } from "@/components/identity/IdentityModulePanel";
 import { IdentityAnalyticsPanel } from "@/components/identity/IdentityAnalyticsPanel";
@@ -46,8 +45,7 @@ const DEFAULT_TAB = "overview";
 const MODULE_SURFACES: IdentitySurface[] = ["ugc", "affiliate", "marketplace", "community"];
 
 export function IdentityProfileView({ payload }: { payload: IdentityProfilePayload }) {
-  const { profile, isOwner, canBook, levelProgress } = payload;
-  const router = useRouter();
+  const { profile, isOwner, levelProgress } = payload;
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || DEFAULT_TAB;
@@ -60,21 +58,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
   const jimvioFollowers = payload.jimvioFollowers ?? 0;
   const jimvioFollowing = payload.jimvioFollowing ?? 0;
   const totalReach = socialFollowers + jimvioFollowers;
-
-  const stats = useMemo(
-    () =>
-      computeIdentityStats({
-        totalFollowers: jimvioFollowers,
-        avgEngagementRate:
-          payload.social.length > 0
-            ? payload.social.reduce((sum, s) => sum + s.engagementRate, 0) / payload.social.length
-            : 0,
-        portfolioCount: payload.portfolio.length,
-        joinedAt: profile.joinedAt,
-        stats: payload.stats,
-      }),
-    [payload.social, payload.portfolio.length, profile.joinedAt, payload.stats, jimvioFollowers],
-  );
 
   const tabs: IdentityTab[] = useMemo(() => {
     const list: IdentityTab[] = [
@@ -94,14 +77,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
     if (isOwner) list.push({ id: "settings", label: "Settings", href: "/identity/settings" });
     return list;
   }, [isOwner]);
-
-  function goToBookings() {
-    if (isOwner) {
-      router.push("/identity/bookings");
-      return;
-    }
-    router.push(`${pathname}?tab=bookings`, { scroll: false });
-  }
 
   if (payload.restricted) {
     return (
@@ -163,9 +138,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
               <IdentityProfileActions
                 userId={profile.userId}
                 username={profile.username}
-                canBook={canBook}
-                onBook={goToBookings}
-                bookLabel={`Book ${profile.fullName?.split(" ")[0] || "them"}`}
               />
             )}
             {isOwner && (
@@ -248,9 +220,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
           </div>
         </div>
       </IdentityCard>
-
-      {/* ── Stats ── */}
-      <IdentityStatsGrid stats={stats} className="mt-5" />
 
       {/* ── Tabbed body ── */}
       <div className="mt-6">

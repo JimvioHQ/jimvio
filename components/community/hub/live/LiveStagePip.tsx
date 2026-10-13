@@ -56,7 +56,7 @@ export function LiveStagePipTile({
   return (
     <div
       className={cn(
-        "group relative w-[84px] overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] transition-[box-shadow,transform] duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200 sm:w-[112px] sm:rounded-2xl",
+        "group relative w-[84px] shrink-0 overflow-hidden rounded-xl bg-white shadow-[0_8px_28px_rgba(15,23,42,0.18)] ring-1 ring-black/[0.08] transition-[box-shadow,transform] duration-200 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-200 sm:w-[112px] sm:rounded-2xl",
         (speaking || selected) && "ring-2 ring-[#FF5A1F]",
         sharing && "ring-2 ring-[#7C3AED]/70"
       )}
@@ -194,13 +194,12 @@ export function LiveStagePipStack({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute bottom-[4.25rem] right-1.5 z-[5] flex max-h-[38%] flex-col-reverse items-end gap-1.5 overflow-y-auto sm:bottom-4 sm:right-4 sm:max-h-[72%] sm:gap-2",
-        "pb-[env(safe-area-inset-bottom)]",
+        "relative z-[1] w-full shrink-0",
         className
       )}
       aria-label="Participant tiles"
     >
-      <div className="pointer-events-auto flex max-w-[calc(100vw-1.5rem)] flex-row-reverse flex-wrap items-end justify-end gap-1.5 sm:max-w-none sm:flex-col-reverse sm:gap-2">
+      <div className="flex w-full gap-2 overflow-x-auto overscroll-x-contain px-0.5 pb-1 scrollbar-hide">
         {children}
       </div>
     </div>

@@ -147,6 +147,8 @@ export function HubLivePage({
   const [layout, setLayout] = useState<(typeof LAYOUTS)[number]>("Presentation");
   const [activity, setActivity] = useState<ActivityMode>("live");
   const [focusMode, setFocusMode] = useState(false);
+  const [documentFullscreen, setDocumentFullscreen] = useState(false);
+  const stageRootRef = useRef<HTMLElement | null>(null);
   const [stageFrame, setStageFrame] = useState<{ width: number; height: number } | null>(null);
   const clearedStageRef = useRef<string | null>(null);
   const seenScreenSharesRef = useRef<Set<string>>(new Set());
@@ -1366,6 +1368,40 @@ export function HubLivePage({
     communitySlugProp,
     draftTitle,
   ]);
+
+  const toggleLiveFullscreen = useCallback(async () => {
+    const root = stageRootRef.current;
+    const active = document.fullscreenElement;
+    if (active) {
+      await document.exitFullscreen().catch(() => setFocusMode(false));
+      return;
+    }
+    const candidate = root as
+      | (HTMLElement & { webkitRequestFullscreen?: () => void })
+      | null;
+    if (candidate?.requestFullscreen) {
+      try {
+        await candidate.requestFullscreen();
+        return;
+      } catch {
+        setFocusMode(true);
+        return;
+      }
+    }
+    if (candidate?.webkitRequestFullscreen) {
+      candidate.webkitRequestFullscreen();
+      return;
+    }
+    setFocusMode((open) => !open);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      setDocumentFullscreen(document.fullscreenElement === stageRootRef.current);
+    };
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -2828,6 +2864,7 @@ export function HubLivePage({
 
         {/* Stage — light chrome; video occupies the canvas */}
         <main
+          ref={stageRootRef}
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden",
             "bg-[#F8FAFC]"
@@ -2909,7 +2946,7 @@ export function HubLivePage({
                     <div className="pointer-events-auto flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setFocusMode(true)}
+                        onClick={() => void toggleLiveFullscreen()}
                         className={cn(
                           "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-black/35 text-white/75 shadow-sm backdrop-blur-md hover:bg-black/50 hover:text-white",
                           FOCUS_RING_DARK
@@ -2964,109 +3001,24 @@ export function HubLivePage({
                     </>
                   )}
 
-                  {focusMode && (
+                  {(focusMode || documentFullscreen) && (
                     <button
                       type="button"
-                      onClick={() => setFocusMode(false)}
+                      onClick={() => {
+                        if (document.fullscreenElement) {
+                          void document.exitFullscreen().catch(() => undefined);
+                        }
+                        setFocusMode(false);
+                      }}
                       className={cn(
                         "absolute right-4 top-4 z-20 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm backdrop-blur-md hover:bg-black/70",
                         MOTION_COLORS,
                         FOCUS_RING_DARK
                       )}
                     >
-                      Exit Focus
+                      Exit Fullscreen
                     </button>
                   )}
-
-                  {showSpeakers && galleryParticipants.length > 0 ? (
-                    <LiveStagePipStack>
-                      {galleryParticipants.map((p) => {
-                        const ui = speakerUi[p.id];
-                        const remote = livekit.remotes.find(
-                          (r) => r.identity === p.id
-                        );
-                        const isYou = p.id === live.userId;
-                        const sharing = Boolean(
-                          isYou ? media.sharing : ui?.sharing ?? remote?.sharing
-                        );
-                        const stream = participantStreams[p.id] ?? null;
-                        const canManageStage =
-                          live.myRole === "host" || live.myRole === "cohost";
-                        return (
-                          <LiveStagePipTile
-                            key={p.id}
-                            name={p.name}
-                            avatarUrl={p.avatar_url}
-                            stream={stream}
-                            camOn={Boolean(
-                              isYou ? camOn : ui?.camOn ?? remote?.camOn
-                            )}
-                            micOn={Boolean(
-                              isYou ? micOn : ui?.micOn ?? remote?.micOn
-                            )}
-                            sharing={sharing}
-                            isYou={isYou}
-                            speaking={Boolean(ui?.speaking)}
-                            selected={activeSpeakerId === p.id}
-                            canManage={canManageStage}
-                            onSelect={() => setActiveSpeakerId(p.id)}
-                            onViewFull={
-                              stream
-                                ? () =>
-                                    setViewFull({
-                                      name: p.name,
-                                      stream,
-                                    })
-                                : undefined
-                            }
-                            onMoveToStage={
-                              canManageStage
-                                ? () => {
-                                    void live
-                                      .setStageFocus({
-                                        identity: p.id,
-                                        kind: sharing ? "screen" : "participant",
-                                      })
-                                      .then(() =>
-                                        showToast(
-                                          sharing ? "Screen is on the main stage" : "Moved to stage",
-                                        ),
-                                      )
-                                      .catch((e) =>
-                                        showToast(
-                                          e instanceof Error
-                                            ? e.message
-                                            : "Could not move to stage"
-                                        )
-                                      );
-                                  }
-                                : undefined
-                            }
-                            onStopShare={
-                              canManageStage && sharing && !isYou
-                                ? () => {
-                                    void live
-                                      .forceMedia(p.id, { sharing: false })
-                                      .then(() =>
-                                        showToast("Asked to stop sharing")
-                                      )
-                                      .catch((e) =>
-                                        showToast(
-                                          e instanceof Error
-                                            ? e.message
-                                            : "Could not stop share"
-                                        )
-                                      );
-                                  }
-                                : canManageStage && sharing && isYou
-                                  ? () => stopShare()
-                                  : undefined
-                            }
-                          />
-                        );
-                      })}
-                    </LiveStagePipStack>
-                  ) : null}
 
                   {viewFull ? (
                     <LiveViewFullOverlay
@@ -3138,6 +3090,97 @@ export function HubLivePage({
               )}
             </div>
 
+            {showSpeakers && galleryParticipants.length > 0 ? (
+              <LiveStagePipStack>
+                {galleryParticipants.map((p) => {
+                  const ui = speakerUi[p.id];
+                  const remote = livekit.remotes.find(
+                    (r) => r.identity === p.id
+                  );
+                  const isYou = p.id === live.userId;
+                  const sharing = Boolean(
+                    isYou ? media.sharing : ui?.sharing ?? remote?.sharing
+                  );
+                  const stream = participantStreams[p.id] ?? null;
+                  const canManageStage =
+                    live.myRole === "host" || live.myRole === "cohost";
+                  return (
+                    <LiveStagePipTile
+                      key={p.id}
+                      name={p.name}
+                      avatarUrl={p.avatar_url}
+                      stream={stream}
+                      camOn={Boolean(
+                        isYou ? camOn : ui?.camOn ?? remote?.camOn
+                      )}
+                      micOn={Boolean(
+                        isYou ? micOn : ui?.micOn ?? remote?.micOn
+                      )}
+                      sharing={sharing}
+                      isYou={isYou}
+                      speaking={Boolean(ui?.speaking)}
+                      selected={activeSpeakerId === p.id}
+                      canManage={canManageStage}
+                      onSelect={() => setActiveSpeakerId(p.id)}
+                      onViewFull={
+                        stream
+                          ? () =>
+                              setViewFull({
+                                name: p.name,
+                                stream,
+                              })
+                          : undefined
+                      }
+                      onMoveToStage={
+                        canManageStage
+                          ? () => {
+                              void live
+                                .setStageFocus({
+                                  identity: p.id,
+                                  kind: sharing ? "screen" : "participant",
+                                })
+                                .then(() =>
+                                  showToast(
+                                    sharing ? "Screen is on the main stage" : "Moved to stage",
+                                  ),
+                                )
+                                .catch((e) =>
+                                  showToast(
+                                    e instanceof Error
+                                      ? e.message
+                                      : "Could not move to stage"
+                                  )
+                                );
+                            }
+                          : undefined
+                      }
+                      onStopShare={
+                        canManageStage && sharing && !isYou
+                          ? () => {
+                              void live
+                                .forceMedia(p.id, { sharing: false })
+                                .then(() =>
+                                  showToast("Asked to stop sharing")
+                                )
+                                .catch((e) =>
+                                  showToast(
+                                    e instanceof Error
+                                      ? e.message
+                                      : "Could not stop share"
+                                  )
+                                );
+                            }
+                          : canManageStage && sharing && isYou
+                            ? () => stopShare()
+                            : undefined
+                      }
+                    />
+                  );
+                })}
+              </LiveStagePipStack>
+            ) : null}
+
+
             {hasSession && screenShareTiles.length > 0 ? (
               <LiveScreenShareStrip
                 shares={screenShareTiles}
@@ -3185,7 +3228,7 @@ export function HubLivePage({
                     setReactionPickerOpen(true);
                   }}
                   onCopyLink={openShareSheet}
-                  onFullscreen={() => setFocusMode(true)}
+                  onFullscreen={() => void toggleLiveFullscreen()}
                   onEnd={() => setConfirmDialog("end")}
                   onLeave={() => setConfirmDialog("leave")}
                   canEnd={canEndLive(live.myRole)}

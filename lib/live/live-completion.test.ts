@@ -43,13 +43,18 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.doesNotMatch(fallback, /Camera off/);
   });
 
-  it("guest PIP tiles render inside the host stage", () => {
+  it("guest tiles sit below the stage and fullscreen uses the browser API", () => {
     const page = read("components/community/hub/hub-live-page.tsx");
     const pip = read("components/community/hub/live/LiveStagePip.tsx");
     assert.match(page, /LiveStagePipStack/);
     assert.match(page, /LiveStagePipTile/);
     assert.match(pip, /\(You\)/);
     assert.match(pip, /Screen/);
+    assert.match(pip, /overflow-x-auto/);
+    assert.match(pip, /aria-label="Participant tiles"/);
+    assert.doesNotMatch(pip, /absolute bottom-\[4\.25rem\]/);
+    assert.match(page, /requestFullscreen/);
+    assert.match(page, /Exit Fullscreen/);
     assert.match(page, /setStageFocus/);
     assert.match(page, /onViewFull/);
     assert.doesNotMatch(page, /LiveParticipantGallery/);

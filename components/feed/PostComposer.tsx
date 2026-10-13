@@ -477,22 +477,6 @@ export function PostComposer({
                 ))}
               </select>
             </label>
-            {communities.length > 0 && (
-              <label className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                Community
-                <select
-                  value={communityId ?? ""}
-                  onChange={(e) => setCommunityId(e.target.value || null)}
-                  className="max-w-[12rem] truncate rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
-                >
-                  {communities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
             <button
               type="button"
               onClick={() => setPreview((v) => !v)}
