@@ -6,6 +6,10 @@ import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
 import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import { loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
 import { createClient } from "@/lib/supabase/server";
+import {
+  createServiceRoleClient,
+  hasSupabaseSecretKey,
+} from "@/lib/supabase/service-role";
 
 /**
  * Auth-aware SSR preload for /communities hub feed.
@@ -52,8 +56,11 @@ export async function loadHubFeedSsr(opts?: {
     (followResult.data ?? []).map((row) => row.following_id),
   );
 
+  const tagDb = hasSupabaseSecretKey()
+    ? (createServiceRoleClient() as Parameters<typeof loadHashtagFeed>[0])
+    : supabase;
   const global = tag
-    ? await loadHashtagFeed(supabase, {
+    ? await loadHashtagFeed(tagDb, {
         tag,
         limit,
         memberCommunityIds: membershipIds,

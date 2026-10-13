@@ -103,7 +103,12 @@ export async function GET(req: NextRequest) {
 
   if (tag && !communityId && !draftsOnly) {
     try {
-      const tagged = await loadHashtagFeed(supabase, {
+      // Same read path as guest discovery: service role plus app visibility
+      // filters. The member client re-checks RLS on the body scan and times out.
+      const feedDb = hasSupabaseSecretKey()
+        ? (createServiceRoleClient() as Parameters<typeof loadHashtagFeed>[0])
+        : supabase;
+      const tagged = await loadHashtagFeed(feedDb, {
         tag,
         limit,
         cursor,
