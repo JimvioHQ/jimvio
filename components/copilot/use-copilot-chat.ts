@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiChatMessageData } from "@/components/marketplace/ai/ai-chat-message";
+import { affiliatePromotionUsesLiveModel } from "@/lib/ai/affiliate-workspace";
 import { planGuideTurn, writePendingAction } from "@/lib/ai/action-guide";
 import {
   completeAssistantTurn,
@@ -117,7 +118,12 @@ export function useCopilotChat() {
         ? baseMessages.find((message) => message.id === options.regenerateFromId)
         : undefined;
 
-      const guided = planGuideTurn(messageText);
+      const guided = affiliatePromotionUsesLiveModel({
+        message: messageText,
+        affiliateTask: options?.affiliateTask,
+      })
+        ? null
+        : planGuideTurn(messageText);
       if (guided) {
         writePendingAction(guided.pending);
         const userMsg: AiChatMessageData = {

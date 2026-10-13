@@ -270,7 +270,13 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
                 message={message}
                 onNavigate={navigateTo}
                 onRegenerate={
-                  message.role === "ai" ? (id) => void sendMessage("", { regenerateFromId: id }) : undefined
+                  message.role === "ai"
+                    ? (id) =>
+                        void sendMessage("", {
+                          regenerateFromId: id,
+                          affiliateTask: affiliateTaskRef.current ?? undefined,
+                        })
+                    : undefined
                 }
                 actionsDisabled={isSending}
                 onFollowup={(text) => handleSend(text)}

@@ -141,6 +141,19 @@ export function affiliateWorkspaceAddendum(context: AffiliateAuthoritativeContex
   return lines.join("\n").slice(0, 3500);
 }
 
+/**
+ * Promotion handoff must reach Gemini. The general affiliate guide matches any
+ * message that says "affiliate", which would replace the product task with a
+ * canned help reply and never send the signed product facts.
+ */
+export function affiliatePromotionUsesLiveModel(input: {
+  message: string;
+  affiliateTask?: string | null;
+}): boolean {
+  if (input.affiliateTask?.trim()) return true;
+  return /\baffiliate promotion assets\b/i.test(input.message);
+}
+
 export function decideAffiliateAutoStart(input: {
   handoff: { id: string; autoGenerate: boolean } | null;
   consumedIds: string[];

@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
+import { planGuideTurn } from "./action-guide.ts";
 import { assembleAffiliateProductContext } from "./affiliate-product-facts.ts";
 import {
   signAffiliatePromotionTask,
   verifyAffiliatePromotionTask,
 } from "./affiliate-task-token.ts";
 import {
+  affiliatePromotionUsesLiveModel,
+  affiliateWorkspaceUserPrompt,
   beginAffiliateWorkspaceHandoff,
   consumeAffiliateAutoStart,
   decideAffiliateAutoStart,
@@ -48,6 +51,21 @@ describe("affiliate workspace fallback", () => {
     assert.doesNotMatch(client, /openai|OPENAI/);
     assert.match(chat, /verifyAffiliatePromotionTask/);
     assert.equal(chat.includes("openai"), false);
+    const hook = readFileSync(join(root, "components/copilot/use-copilot-chat.ts"), "utf8");
+    assert.match(hook, /affiliatePromotionUsesLiveModel/);
+  });
+
+  it("sends a promotion handoff to Gemini instead of the affiliate help guide", () => {
+    const prompt = affiliateWorkspaceUserPrompt({ name: "Gradient Phone Case", platform: "TikTok" });
+    assert.match(prompt, /affiliate promotion assets/);
+    assert.equal(
+      affiliatePromotionUsesLiveModel({ message: prompt, affiliateTask: "signed-task" }),
+      true,
+    );
+    assert.equal(affiliatePromotionUsesLiveModel({ message: prompt }), true);
+    const general = "How do affiliate earnings get paid?";
+    assert.equal(affiliatePromotionUsesLiveModel({ message: general }), false);
+    assert.match(planGuideTurn(general, null)?.content ?? "", /Affiliates/i);
   });
 
   it("preserves the product id and skips automatic handoff after a successful generation", () => {
