@@ -21,7 +21,7 @@ import {
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import {
   clearLocalDraft,
@@ -35,6 +35,8 @@ import {
 } from "@/lib/feed/composer-utils";
 import { stashSessionBoostPost } from "@/lib/feed/session-boost-post";
 import { toast } from "sonner";
+import { PersonAvatar } from "@/components/feed/PersonAvatar";
+import { canPublishAsCommunity } from "@/lib/feed/post-identity";
 
 type Audience = "public" | "followers" | "community" | "private";
 type MediaItem = {
@@ -48,7 +50,13 @@ type MediaItem = {
   file?: File;
   alt?: string;
 };
-type CommunityOption = { id: string; name: string; slug: string };
+type CommunityOption = {
+  id: string;
+  name: string;
+  slug: string;
+  avatarUrl: string | null;
+  role: string;
+};
 
 const AUDIENCE_OPTIONS: { id: Audience; label: string }[] = [
   { id: "public", label: "Public" },
@@ -95,6 +103,7 @@ export function PostComposer({
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [communityId, setCommunityId] = useState<string | null>(null);
+  const [postAs, setPostAs] = useState<string>("profile");
   const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -119,6 +128,8 @@ export function PostComposer({
               id: string;
               name: string;
               slug: string;
+              avatarUrl?: string | null;
+              role?: string;
             }>)
           : [];
         // Unique by id (server already dedupes; belt-and-suspenders).
@@ -127,7 +138,13 @@ export function PostComposer({
         for (const d of destinations) {
           if (!d?.id || seen.has(d.id)) continue;
           seen.add(d.id);
-          options.push({ id: d.id, name: d.name, slug: d.slug });
+          options.push({
+            id: d.id,
+            name: d.name,
+            slug: d.slug,
+            avatarUrl: d.avatarUrl ?? null,
+            role: d.role ?? "member",
+          });
         }
         setCommunities(options);
         const preferredSlug = initialCommunitySlug?.trim().toLowerCase() ?? "";
@@ -300,7 +317,8 @@ export function PostComposer({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          community_id: communityId,
+          community_id: postingAsCommunity?.id ?? communityId,
+          publish_as: postingAsCommunity ? "community" : "profile",
           body: trimmed || (mode === "poll" ? "Poll" : ""),
           post_type: postType === "carousel" || postType === "mixed" || postType === "photo" || postType === "video"
             ? "discussion"
@@ -367,6 +385,20 @@ export function PostComposer({
   }
 
   const selectedCommunity = communities.find((c) => c.id === communityId) ?? null;
+  const publisherCommunities = communities.filter((community) =>
+    canPublishAsCommunity(community.role),
+  );
+  const postingAsCommunity =
+    postAs !== "profile"
+      ? publisherCommunities.find((community) => community.id === postAs) ?? null
+      : null;
+  const composerName = postingAsCommunity?.name ?? avatarLabel;
+  const composerAvatar = postingAsCommunity?.avatarUrl ?? user?.avatarUrl ?? null;
+  const composerHandle = postingAsCommunity
+    ? "Community"
+    : user?.username
+      ? `@${user.username}`
+      : "";
   const readyMedia = media.filter((m) => m.status === "ready" && m.url);
 
   function openComposer(nextMode?: "discussion" | "poll") {
@@ -421,7 +453,30 @@ export function PostComposer({
               Text, photo, video, carousel, or poll
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
+              Post as
+              <select
+                aria-label="Post as"
+                value={postingAsCommunity?.id ?? "profile"}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPostAs(next);
+                  if (next !== "profile") setCommunityId(next);
+                }}
+                className="max-w-[14rem] truncate rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
+              >
+                <option value="profile">
+                  {avatarLabel}
+                  {user?.username ? ` — @${user.username}` : ""}
+                </option>
+                {publisherCommunities.map((community) => (
+                  <option key={community.id} value={community.id}>
+                    {community.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             {communities.length > 0 && (
               <label className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
                 Community
@@ -457,20 +512,12 @@ export function PostComposer({
       {preview && isAuthenticated ? (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            {user?.avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={user.avatarUrl}
-                alt={avatarLabel}
-                className="h-10 w-10 rounded-full object-cover"
-              />
-            ) : (
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fd5000] text-sm font-semibold text-white">
-                {getInitials(avatarLabel)}
-              </span>
-            )}
+            <PersonAvatar name={composerName} url={composerAvatar} className="h-10 w-10" />
             <div className="min-w-0">
-              <p className="text-[13px] font-semibold text-gray-900">{avatarLabel}</p>
+              <p className="text-[13px] font-semibold text-gray-900">{composerName}</p>
+              {composerHandle ? (
+                <p className="text-[11px] text-gray-500">{composerHandle}</p>
+              ) : null}
               <p className="text-[11px] text-gray-500">
                 {selectedCommunity?.name ?? "Community"} · Preview
               </p>
@@ -545,16 +592,12 @@ export function PostComposer({
       <div className="flex items-start gap-3">
         {isLoading ? (
           <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-gray-100" />
-        ) : user?.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={avatarLabel}
-            className="h-10 w-10 shrink-0 rounded-full object-cover"
-          />
         ) : (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fd5000] text-sm font-semibold text-white">
-            {getInitials(isAuthenticated ? avatarLabel : "?")}
-          </span>
+          <PersonAvatar
+            name={isAuthenticated ? composerName : "Sign in"}
+            url={isAuthenticated ? composerAvatar : null}
+            className="h-10 w-10 shrink-0"
+          />
         )}
 
         <div className="min-w-0 flex-1">
@@ -601,6 +644,31 @@ export function PostComposer({
 
       {expanded && isAuthenticated && (
         <div className="mt-3 space-y-3">
+          {!isPage && (
+            <label className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
+              Post as
+              <select
+                aria-label="Post as"
+                value={postingAsCommunity?.id ?? "profile"}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPostAs(next);
+                  if (next !== "profile") setCommunityId(next);
+                }}
+                className="max-w-[16rem] truncate rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
+              >
+                <option value="profile">
+                  {avatarLabel}
+                  {user?.username ? ` — @${user.username}` : ""}
+                </option>
+                {publisherCommunities.map((community) => (
+                  <option key={community.id} value={community.id}>
+                    {community.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {mode === "poll" && (
             <div className="space-y-2 rounded-xl border border-gray-100 p-3">
               {pollOptions.map((opt, i) => (

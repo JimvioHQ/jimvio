@@ -246,7 +246,7 @@ export async function loadPublicDiscoveryFeed(
   let query = db
     .from("community_posts")
     .select(
-      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, is_private)",
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, avatar_url, is_private)",
     )
     .in("community_id", publicCommunityIds)
     .eq("is_published", true)

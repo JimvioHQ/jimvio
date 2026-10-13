@@ -60,6 +60,7 @@ export type GlobalCommunityFeedPost = Record<string, unknown> & {
   communities?: {
     slug?: string | null;
     name?: string | null;
+    avatar_url?: string | null;
     is_private?: boolean | null;
     is_active?: boolean | null;
     visibility?: string | null;
@@ -122,7 +123,7 @@ async function hydratePosts(
     ? db
         .from("communities")
         .select(
-          "id, slug, name, is_private, is_active, visibility, visibility_mode, archived_at",
+          "id, slug, name, avatar_url, is_private, is_active, visibility, visibility_mode, archived_at",
         )
         .in("id", communityIds)
     : null;
@@ -154,6 +155,7 @@ async function hydratePosts(
       id: string;
       slug: string | null;
       name: string | null;
+      avatar_url: string | null;
       is_private: boolean | null;
       is_active: boolean | null;
       visibility: string | null;
@@ -179,6 +181,7 @@ async function hydratePosts(
         ? {
             slug: community.slug,
             name: community.name,
+            avatar_url: community.avatar_url,
             is_private: community.is_private,
             is_active: community.is_active,
             visibility: community.visibility,

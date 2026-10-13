@@ -12,6 +12,8 @@ import { requireCommunityMember } from "@/lib/community/rbac";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
 import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
+import { assertCommunityPublish, withPublishAs, type PublishAs } from "@/lib/feed/post-identity";
+import { getAuthorizedPostDestinations } from "@/lib/community/post-destinations";
 import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 import {
@@ -452,6 +454,8 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json()) as {
     community_id?: string;
+    author_id?: string;
+    publish_as?: string;
     room_id?: string;
     space_id?: string;
     title?: string | null;
@@ -486,6 +490,22 @@ export async function POST(req: NextRequest) {
   const memberGate = await requireCommunityMember(supabase, user.id, communityId);
   if (!memberGate.ok) {
     return NextResponse.json({ error: memberGate.error }, { status: memberGate.status });
+  }
+
+  const publishAs: PublishAs = body.publish_as === "community" ? "community" : "profile";
+  let publisherRole: string | null = memberGate.ctx.role ?? null;
+  if (publishAs === "community") {
+    const destinations = await getAuthorizedPostDestinations(supabase, user.id);
+    publisherRole = destinations.find((destination) => destination.id === communityId)?.role ?? null;
+  }
+  const identityGate = assertCommunityPublish({
+    publishAs,
+    role: publisherRole,
+    requestedAuthorId: body.author_id,
+    actorId: user.id,
+  });
+  if (!identityGate.ok) {
+    return NextResponse.json({ error: identityGate.error }, { status: identityGate.status });
   }
 
   let roomId = body.room_id?.trim() || "";
@@ -562,6 +582,9 @@ export async function POST(req: NextRequest) {
   // GIF-ready / scheduling / long-form flags for future clients
   if (attachments.gif == null) attachments.gif_ready = true;
   if (content.length > 800) attachments.long_form = true;
+
+  const attributed = withPublishAs(attachments, publishAs);
+  Object.assign(attachments, attributed);
 
   if (postType === "poll") {
     attachments.poll = {

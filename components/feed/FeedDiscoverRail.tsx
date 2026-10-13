@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Flame, Hash, Pin } from "lucide-react";
+import { BadgeCheck, Flame, Pin } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 import { CommunityAvatarImage, CommunityCoverImage } from "@/components/community/community-media";
@@ -25,15 +25,6 @@ export type TrendingCommunity = {
   is_free?: boolean;
   monthly_price?: number | null;
   currency?: string | null;
-};
-
-type TrendingTopic = {
-  topic: string;
-  post_count: number;
-  community_count: number;
-  growth_pct: number;
-  active_users: number;
-  live_discussions: number;
 };
 
 type PinnedRow = {
@@ -189,7 +180,6 @@ export function FeedDiscoverRail({
   const [data, setData] = useState<DiscoverPayload | null>(
     initialCommunities.length ? { communities: initialCommunities } : null,
   );
-  const [topics, setTopics] = useState<TrendingTopic[]>([]);
   const [pins, setPins] = useState<PinnedRow[]>([]);
 
   useEffect(() => {
@@ -198,14 +188,11 @@ export function FeedDiscoverRail({
       fetch("/api/c/hub/discover", { cache: "no-store" }).then((r) =>
         r.ok ? r.json() : null
       ),
-      fetch("/api/c/hub/topics?limit=12", { cache: "no-store" }).then((r) =>
-        r.ok ? r.json() : null
-      ),
       fetch("/api/c/pins", { cache: "no-store" }).then((r) =>
         r.status === 401 ? null : r.ok ? r.json() : null
       ),
     ])
-      .then(([discover, topicPayload, pinPayload]) => {
+      .then(([discover, pinPayload]) => {
         if (cancelled) return;
         if (discover) {
           // Prefer discover payload even when empty — never fall back to
@@ -216,7 +203,6 @@ export function FeedDiscoverRail({
               : [],
           });
         }
-        setTopics(topicPayload?.topics ?? []);
         setPins(pinPayload?.pins ?? []);
       })
       .catch(() => undefined);
@@ -226,10 +212,7 @@ export function FeedDiscoverRail({
   }, []);
 
   const communities = data?.communities ?? [];
-  const hasAny =
-    pins.length > 0 ||
-    communities.length > 0 ||
-    topics.length > 0;
+  const hasAny = pins.length > 0 || communities.length > 0;
   if (!hasAny) return null;
 
   return (
@@ -284,58 +267,6 @@ export function FeedDiscoverRail({
                 monthlyPrice={community.monthly_price}
                 currency={community.currency}
               />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {topics.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2.5">
-            <Hash className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
-              Trending Topics
-            </h2>
-          </div>
-          <div className="flex gap-2 overflow-x-auto px-3 py-3 scrollbar-hide">
-            {topics.map((topic) => (
-              <Link
-                key={topic.topic}
-                href={`/communities/explore?search=${encodeURIComponent(`#${topic.topic}`)}`}
-                className={cn(
-                  "w-[148px] min-w-0 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-3",
-                  "transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
-                )}
-              >
-                <p className="min-w-0 break-words text-[13px] font-bold text-[var(--color-text-primary)]">
-                  #{topic.topic}
-                </p>
-                <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
-                  {formatNumber(topic.post_count)} posts ·{" "}
-                  {formatNumber(topic.community_count)} communities
-                </p>
-                <div className="mt-2 flex flex-wrap gap-1 text-[9px] font-semibold">
-                  <span
-                    className={cn(
-                      "rounded-md px-1.5 py-0.5",
-                      topic.growth_pct >= 0
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-rose-50 text-rose-700"
-                    )}
-                  >
-                    {topic.growth_pct >= 0 ? "+" : ""}
-                    {Math.round(topic.growth_pct)}%
-                  </span>
-                  <span className="rounded-md bg-[#EEE] px-1.5 py-0.5 text-[#4B5563]">
-                    {formatNumber(topic.active_users)} active
-                  </span>
-                  {topic.live_discussions > 0 ? (
-                    <span className="rounded-md bg-orange-50 px-1.5 py-0.5 text-[#fd5000]">
-                      {formatNumber(topic.live_discussions)} live
-                    </span>
-                  ) : null}
-                </div>
-              </Link>
             ))}
           </div>
         </section>

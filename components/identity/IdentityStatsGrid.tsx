@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Briefcase, Calendar, DollarSign, TrendingUp, Users } from "lucide-react";
+import { Briefcase, DollarSign, TrendingUp, Users } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 import type { IdentityCreatorStatsSnapshot } from "@/lib/identity/types";
 import { cn } from "@/components/identity/identity-ui";
@@ -23,10 +23,6 @@ export function computeIdentityStats(input: {
   /** Cross-surface earnings snapshot — when present and non-zero, replaces "Portfolio items" with "Total earned". */
   stats?: IdentityCreatorStatsSnapshot | null;
 }): IdentityStatItem[] {
-  const joined = input.joinedAt
-    ? new Date(input.joinedAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })
-    : "—";
-
   const totalEarned = input.stats
     ? input.stats.ugc.earningsPaid + input.stats.affiliate.totalEarnings + input.stats.marketplace.totalRevenue
     : 0;
@@ -45,8 +41,6 @@ export function computeIdentityStats(input: {
   } else {
     items.push({ label: "Portfolio items", value: String(input.portfolioCount), icon: Briefcase });
   }
-
-  items.push({ label: "Member since", value: joined, icon: Calendar });
 
   return items;
 }

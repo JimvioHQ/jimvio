@@ -16,8 +16,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { cn, getInitials } from "@/lib/utils";
-import { communityProfileHref } from "@/lib/community/profile-href";
+import { cn } from "@/lib/utils";
+import { PersonAvatar } from "@/components/feed/PersonAvatar";
+import { resolveFeedPublisher } from "@/lib/feed/post-identity";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 import type { FeedTab } from "@/lib/feed/mock-data";
@@ -60,7 +61,11 @@ export type ApiPost = {
   user_has_liked?: boolean | null;
   community_id?: string | null;
   attachments?: Record<string, unknown> | null;
-  communities?: { slug?: string | null; name?: string | null } | null;
+  communities?: {
+    slug?: string | null;
+    name?: string | null;
+    avatar_url?: string | null;
+  } | null;
   profiles?: {
     full_name?: string | null;
     avatar_url?: string | null;
@@ -77,6 +82,7 @@ type DisplayPost = {
     profileHref: string | null;
     verified: boolean;
     avatar: string | null;
+    kind: "profile" | "community";
   };
   timestamp: string;
   pinned: boolean;
@@ -124,15 +130,32 @@ function mapApiPost(post: ApiPost): DisplayPost {
     media = { type: "image", thumbnail: images[0] };
   }
 
+  const publisher = resolveFeedPublisher({
+    attachments: post.attachments,
+    profile: {
+      name,
+      username: username ?? null,
+      avatar: post.profiles?.avatar_url ?? null,
+    },
+    community: post.communities
+      ? {
+          name: post.communities.name ?? null,
+          slug: post.communities.slug ?? null,
+          avatar: post.communities.avatar_url ?? null,
+        }
+      : null,
+  });
+
   return {
     id: post.id,
     author: {
-      name,
-      handle: username ? `@${username}` : "@member",
-      username: username ?? null,
-      profileHref: communityProfileHref(username),
+      name: publisher.name,
+      handle: publisher.handle,
+      username: publisher.kind === "profile" ? (username ?? null) : null,
+      profileHref: publisher.href,
       verified: false,
-      avatar: post.profiles?.avatar_url ?? null,
+      avatar: publisher.avatar,
+      kind: publisher.kind,
     },
     timestamp: post.created_at
       ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
@@ -190,22 +213,7 @@ function AuthorAvatar({
   url: string | null;
   className?: string;
 }) {
-  if (url) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={url} alt="" className={cn("h-10 w-10 rounded-full object-cover", className)} />
-    );
-  }
-  return (
-    <span
-      className={cn(
-        "flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600",
-        className,
-      )}
-    >
-      {getInitials(name)}
-    </span>
-  );
+  return <PersonAvatar name={name} url={url} className={cn("h-10 w-10", className)} />;
 }
 
 function HubFeedArticle({
@@ -243,7 +251,11 @@ function HubFeedArticle({
           {post.author.profileHref ? (
             <Link
               href={post.author.profileHref}
-              aria-label={`View ${post.author.name}'s profile`}
+              aria-label={
+                post.author.kind === "community"
+                  ? `Open ${post.author.name}`
+                  : `View ${post.author.name}'s profile`
+              }
               className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
               onClick={(e) => e.stopPropagation()}
             >
@@ -257,7 +269,11 @@ function HubFeedArticle({
               {post.author.profileHref ? (
                 <Link
                   href={post.author.profileHref}
-                  aria-label={`View ${post.author.name}'s profile`}
+                  aria-label={
+                    post.author.kind === "community"
+                      ? `Open ${post.author.name}`
+                      : `View ${post.author.name}'s profile`
+                  }
                   className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -288,7 +304,7 @@ function HubFeedArticle({
               <span className="text-[12px] text-gray-400">{post.timestamp}</span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              {post.communitySlug && post.communityName ? (
+              {post.author.kind !== "community" && post.communitySlug && post.communityName ? (
                 <Link
                   href={`/communities/${post.communitySlug}`}
                   className="text-[12px] font-medium text-[#fd5000] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"

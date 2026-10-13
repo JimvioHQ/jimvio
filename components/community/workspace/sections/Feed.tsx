@@ -9,6 +9,7 @@ import {
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
 import { toast } from "sonner";
+import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import {
     Image as ImageIcon,
     Send,
@@ -1266,41 +1267,10 @@ function PostCard({
                         className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {profile?.avatar_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                                src={profile.avatar_url}
-                                alt=""
-                                loading="lazy"
-                                decoding="async"
-                                className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
-                            />
-                        ) : (
-                            <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                                style={{ background: "#fd5000" }}
-                                aria-hidden
-                            >
-                                {name[0]?.toUpperCase()}
-                            </div>
-                        )}
+                        <PersonAvatar name={name} url={profile?.avatar_url} className="h-10 w-10 ring-1 ring-border" />
                     </Link>
-                ) : profile?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={profile.avatar_url}
-                        alt={name}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
-                    />
                 ) : (
-                    <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                        style={{ background: "#fd5000" }}
-                    >
-                        {name[0]?.toUpperCase()}
-                    </div>
+                    <PersonAvatar name={name} url={profile?.avatar_url} className="h-10 w-10 ring-1 ring-border" />
                 )}
                 <div className="flex-1 min-w-0">
                     {authorProfileHref ? (
@@ -2203,21 +2173,7 @@ function CommentItem({
 
     return (
         <div className="flex gap-2">
-            {profile?.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                    src={profile.avatar_url}
-                    alt={name}
-                    className="w-7 h-7 rounded-full object-cover ring-1 ring-border shrink-0"
-                />
-            ) : (
-                <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: "#fd5000" }}
-                >
-                    {name[0]?.toUpperCase()}
-                </div>
-            )}
+            <PersonAvatar name={name} url={profile?.avatar_url} className="h-7 w-7 shrink-0 ring-1 ring-border" />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="min-w-0 break-words text-[12px] font-semibold text-text-primary">{name}</span>

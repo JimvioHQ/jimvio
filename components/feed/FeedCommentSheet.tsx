@@ -13,7 +13,8 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, MessageCircle, Send, X } from "lucide-react";
 import { toast } from "sonner";
-import { cn, getInitials } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -51,21 +52,7 @@ function CommentAvatar({
   name: string;
   url?: string | null;
 }) {
-  if (url) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={url}
-        alt=""
-        className="h-8 w-8 shrink-0 rounded-full object-cover"
-      />
-    );
-  }
-  return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-stone-200 text-[11px] font-semibold text-stone-600">
-      {getInitials(name)}
-    </span>
-  );
+  return <PersonAvatar name={name} url={url} className="h-8 w-8 shrink-0" />;
 }
 
 /**

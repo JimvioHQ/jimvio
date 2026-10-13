@@ -100,7 +100,7 @@ export async function loadHashtagFeed(
     communityIds.length
       ? db
           .from("communities")
-          .select("id, slug, name, is_private, is_active, visibility, visibility_mode, archived_at")
+          .select("id, slug, name, avatar_url, is_private, is_active, visibility, visibility_mode, archived_at")
           .in("id", communityIds)
       : Promise.resolve({ data: [], error: null }),
     authorIds.length
@@ -134,6 +134,7 @@ export async function loadHashtagFeed(
         ? {
             slug: (community.slug as string | null) ?? null,
             name: (community.name as string | null) ?? null,
+            avatar_url: (community.avatar_url as string | null) ?? null,
             is_private: (community.is_private as boolean | null) ?? null,
             is_active: (community.is_active as boolean | null) ?? null,
             visibility: (community.visibility as string | null) ?? null,

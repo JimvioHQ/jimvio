@@ -1,19 +1,12 @@
-import { Award, Briefcase, Building2, ShoppingBag, Sparkles, Star, Users2, Video } from "lucide-react";
+import { Briefcase, Building2, ShoppingBag, Star } from "lucide-react";
 import type { IdentityProfilePayload } from "@/lib/identity/types";
 import { formatNumber } from "@/lib/utils";
-import { IdentityCard, IdentityEmptyState, IdentitySectionHeading, cn } from "@/components/identity/identity-ui";
-
-function formatMoney(value: number): string {
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-}
+import { IdentityCard, IdentityEmptyState, IdentitySectionHeading } from "@/components/identity/identity-ui";
 
 export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePayload }) {
   const { profile, stats } = payload;
   const brands = payload.resume.filter((r) => r.entryType === "brand");
   const categories = Array.from(new Set([...profile.specialties, ...profile.industries]));
-
-  const overallEarnings =
-    (stats?.ugc.earningsPaid ?? 0) + (stats?.affiliate.totalEarnings ?? 0) + (stats?.marketplace.totalRevenue ?? 0);
 
   return (
     <div className="space-y-6">
@@ -73,25 +66,7 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
         </IdentityCard>
       )}
 
-      <div>
-        <IdentitySectionHeading eyebrow="Performance" title="Cross-platform earnings" className="mb-4" />
-        {!stats ? (
-          <IdentityEmptyState
-            icon={<Sparkles className="h-6 w-6" />}
-            title="No performance data yet"
-            description="Earnings and campaign stats will appear here once activity starts."
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <MetricTile icon={Video} label="UGC earned" value={formatMoney(stats.ugc.earningsPaid)} sub={`${stats.ugc.campaignsCompleted} campaigns completed`} />
-            <MetricTile icon={Users2} label="Affiliate earned" value={formatMoney(stats.affiliate.totalEarnings)} sub={`${stats.affiliate.totalConversions} conversions`} />
-            <MetricTile icon={ShoppingBag} label="Marketplace revenue" value={formatMoney(stats.marketplace.totalRevenue)} sub={`${stats.marketplace.totalSales} sales`} />
-            <MetricTile icon={Sparkles} label="Overall earned" value={formatMoney(overallEarnings)} sub="Across all surfaces" accent />
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-2.5 sm:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-2">
         <StatPill
           icon={Star}
           label="Avg. rating"
@@ -104,12 +79,6 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
           value={stats ? formatNumber(stats.marketplace.totalSales) : "0"}
           sub={stats?.marketplace.isVendor ? `${stats.marketplace.productsCount} listed` : "Not a vendor"}
         />
-        <StatPill
-          icon={Award}
-          label="Community reputation"
-          value={stats ? formatNumber(stats.community.totalPoints) : "0"}
-          sub={stats && stats.community.communitiesJoined > 0 ? `${stats.community.communitiesJoined} communities` : "Not joined yet"}
-        />
       </div>
 
       {payload.portfolio.length === 0 && brands.length === 0 && !profile.bio && (
@@ -119,34 +88,6 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
           description="Once this creator adds a bio, skills and work, it'll show up here."
         />
       )}
-    </div>
-  );
-}
-
-function MetricTile({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-2xl border p-4",
-        accent ? "border-[#FFDCC7] bg-[#FFF1EA]" : "border-black/[0.06] bg-white",
-      )}
-    >
-      <Icon className={cn("mb-2 h-4 w-4", accent ? "text-[#D6480F]" : "text-[#FF5A1F]")} />
-      <p className="font-[var(--font-identity-serif)] text-[19px] font-medium text-[#161512]">{value}</p>
-      <p className="mt-0.5 text-[11px] text-[#9A9388]">{label}</p>
-      {sub && <p className="mt-1 text-[10.5px] text-[#B9B3A6]">{sub}</p>}
     </div>
   );
 }

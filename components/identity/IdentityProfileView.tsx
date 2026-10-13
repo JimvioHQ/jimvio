@@ -7,20 +7,17 @@ import {
   Briefcase,
   Calendar,
   Clock,
-  Gauge,
   Globe,
   Languages,
   Lock,
-  MapPin,
   Pencil,
-  ShieldCheck,
-  Sparkles,
   Star,
   Trophy,
   Users,
 } from "lucide-react";
 import type { IdentityProfilePayload } from "@/lib/identity/types";
-import { formatNumber, getInitials } from "@/lib/utils";
+import { formatNumber } from "@/lib/utils";
+import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { IdentityButton, IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
 import { IdentityTabNav, type IdentityTab } from "@/components/identity/IdentityTabNav";
 import { computeIdentityStats, IdentityStatsGrid } from "@/components/identity/IdentityStatsGrid";
@@ -146,16 +143,11 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
         <div className="relative px-5 pb-6 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="-mt-12 flex items-end gap-4 sm:-mt-14">
-              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[26px] border-4 border-white bg-[#FF5A1F] shadow-lg sm:h-28 sm:w-28">
-                {profile.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={profile.avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[22px] font-semibold text-white">
-                    {getInitials(displayName)}
-                  </div>
-                )}
-              </div>
+              <PersonAvatar
+                name={displayName}
+                url={profile.avatarUrl}
+                className="h-24 w-24 rounded-[26px] border-4 border-white shadow-lg sm:h-28 sm:w-28"
+              />
               <div className="pb-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h1 className="font-[var(--font-identity-serif)] text-[22px] font-medium tracking-tight text-[#161512] sm:text-[26px]">
@@ -192,11 +184,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <IdentityPill tone="accent">{levelProgress.levelLabel} Creator</IdentityPill>
             <IdentityPill tone={availability.tone}>{availability.label}</IdentityPill>
-            {(profile.city || profile.country) && (
-              <IdentityPill tone="neutral" icon={<MapPin className="h-3 w-3" />}>
-                {[profile.city, profile.country].filter(Boolean).join(", ")}
-              </IdentityPill>
-            )}
             {profile.languages.length > 0 && (
               <IdentityPill tone="neutral" icon={<Languages className="h-3 w-3" />}>
                 {profile.languages.slice(0, 3).join(", ")}
@@ -230,9 +217,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
 
           {/* ── Mini scores + meta strip ── */}
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2.5 border-t border-black/[0.06] pt-4">
-            <MiniScore icon={ShieldCheck} label="Trust" value={profile.trustScore} />
-            <MiniScore icon={Sparkles} label="AI" value={profile.aiScore} color="#8A6DF0" />
-            <MiniScore icon={Gauge} label="Reputation" value={profile.reputationScore} color="#1C8A44" />
             {profile.overallRank && (
               <MetaChip icon={Trophy}>
                 Rank <span className="font-semibold text-[#1C1B19]">#{profile.overallRank}</span>
@@ -259,14 +243,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
             {profile.responseTimeHours != null && (
               <MetaChip icon={Clock}>
                 Responds in <span className="font-semibold text-[#1C1B19]">{Math.round(profile.responseTimeHours)}h</span>
-              </MetaChip>
-            )}
-            {profile.joinedAt && (
-              <MetaChip icon={Calendar}>
-                Joined{" "}
-                <span className="font-semibold text-[#1C1B19]">
-                  {new Date(profile.joinedAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}
-                </span>
               </MetaChip>
             )}
           </div>
@@ -329,32 +305,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function MiniScore({
-  icon: Icon,
-  label,
-  value,
-  color = "#FF5A1F",
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: number;
-  color?: string;
-}) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div
-        className="flex h-6 w-6 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${color}18`, color }}
-      >
-        <Icon className="h-3 w-3" />
-      </div>
-      <span className="text-[12px] text-[#7C766B]">
-        {label} <span className="font-semibold text-[#1C1B19]">{Math.round(value)}</span>
-      </span>
     </div>
   );
 }
