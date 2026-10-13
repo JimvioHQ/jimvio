@@ -39,6 +39,7 @@ const navSections = [
       { label: "Vendors",   href: "/admin/vendors",  icon: Store },
       { label: "Products",  href: "/admin/products", icon: Boxes },
       { label: "Import Intel", href: "/admin/products/import/cj", icon: Sparkles },
+      { label: "CJ operations", href: "/admin/cj/operations", icon: Sparkles },
       { label: "Orders",    href: "/admin/orders",   icon: ClipboardList },
       { label: "Dropshipping", href: "/admin/dropshipping", icon: Store },
       { label: "Commerce", href: "/admin/commerce", icon: Store },

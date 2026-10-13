@@ -406,17 +406,23 @@ async function syncVariantByVid(
 
     if (params.variantSellPrice !== null && params.variantSellPrice !== undefined) {
         // ✅ Tier-based pricing — keeps price, affiliate_price, and commission in sync
-        const { price, affiliate_price, affiliate_commission_rate } = await
-            calculateCJPricing(params.variantSellPrice);
+        const priced = await calculateCJPricing(params.variantSellPrice);
 
-        updates.price = price;
-        updates.affiliate_price = affiliate_price;
-        updates.affiliate_commission_rate = affiliate_commission_rate;
+        updates.price = priced.price;
+        updates.affiliate_price = priced.affiliate_price;
+        updates.affiliate_commission_rate = priced.affiliate_commission_rate;
 
-        // Merge price_usd into source_metadata safely
+        // price_usd stays the supplier cost. Order economics reads that field.
         const { error: rpcErr } = await supabase.rpc("merge_variant_source_metadata", {
             p_cj_vid: params.vid,
-            p_patch: { price_usd: params.variantSellPrice },
+            p_patch: {
+                price_usd: params.variantSellPrice,
+                supplier_cost_usd: priced.supplier_cost_usd,
+                jimvio_base_price_usd: priced.price_usd,
+                jimvio_markup_rate: priced.markup_percent / 100,
+                jimvio_tier_id: priced.tier_id,
+                jimvio_price_calculated_at: priced.calculated_at,
+            },
         });
         if (rpcErr) {
             console.warn(

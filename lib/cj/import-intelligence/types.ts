@@ -145,6 +145,8 @@ export type HealthLabel = "excellent" | "good" | "warning" | "poor";
 export interface ProfitMetrics {
   cjCost: number;
   shippingCost: number;
+  /** False when no destination quote exists. shippingCost is then not a price. */
+  shippingQuoted?: boolean;
   suggestedSelling: number;
   estimatedProfit: number;
   marginPercent: number;

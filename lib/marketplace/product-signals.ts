@@ -20,21 +20,17 @@ function readMeta(meta: unknown): Record<string, unknown> {
 export function productHasVerifiedSupplier(product: SignalProduct): boolean {
   if (product.vendors?.verification_status === "verified") return true;
   const meta = readMeta(product.source_metadata);
-  if (meta.cj_supplier_verified === true) return true;
-  return Number(meta.cj_verified_warehouse) === 1;
+  return meta.cj_supplier_verified === true;
 }
 
 export function productHasTrendingSignal(product: SignalProduct): boolean {
   const meta = readMeta(product.source_metadata);
-  if (meta.cj_trending === true) return true;
-  const views = Number(product.view_count ?? 0);
-  const sales = Number(product.sale_count ?? product.sold_count ?? 0);
-  return views >= 500 || sales >= 50;
+  return meta.cj_trending === true && meta.trend_classification !== "cj_order_count";
 }
 
 export function productIsInStock(product: SignalProduct): boolean {
   if (product.in_stock === false) return false;
-  if (product.inventory_quantity == null) return true;
+  if (product.inventory_quantity == null) return false;
   return Number(product.inventory_quantity) > 0;
 }
 

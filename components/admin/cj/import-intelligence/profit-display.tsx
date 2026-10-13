@@ -21,7 +21,10 @@ export function ProfitDisplay({
     >
       <div className={cn("grid gap-x-2 gap-y-0.5", compact ? "grid-cols-2 text-[9px]" : "grid-cols-2 text-[10px]")}>
         <ProfitRow label="CJ Cost" value={`$${profit.cjCost.toFixed(2)}`} />
-        <ProfitRow label="Shipping" value={`$${profit.shippingCost.toFixed(2)}`} />
+        <ProfitRow
+          label="Shipping"
+          value={profit.shippingQuoted === false ? "At checkout" : `$${profit.shippingCost.toFixed(2)}`}
+        />
         <ProfitRow label="Sell at" value={`$${profit.suggestedSelling.toFixed(2)}`} highlight />
         <ProfitRow
           label="Profit"

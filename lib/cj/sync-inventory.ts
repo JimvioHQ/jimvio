@@ -41,6 +41,10 @@ export async function fetchCJVariantStock(token: string, vid: string): Promise<n
         { maxRetries: 5, baseDelayMs: 1200 }
     );
 
+    if (!Array.isArray(res.data)) {
+        throw new Error("CJ stock response did not include inventory rows");
+    }
+
     return sumCJStockRows(res.data);
 }
 
@@ -200,6 +204,8 @@ export async function refreshCJProductStockBatch(
     const rows = (variants ?? []).filter((v) => normalizeCjVid(v.cj_vid));
     let variantsUpdated = 0;
     let variantsFailed = 0;
+    const failedProductIds = new Set<string>();
+    const checkedAt = new Date().toISOString();
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i]!;
@@ -208,6 +214,7 @@ export async function refreshCJProductStockBatch(
 
         try {
             const qty = await fetchCJVariantStock(token, vid);
+            let stockWriteFailed = false;
             if (qty !== row.inventory_quantity) {
                 const { error } = await supabase
                     .from("product_variants")
@@ -215,7 +222,9 @@ export async function refreshCJProductStockBatch(
                     .eq("id", row.id);
 
                 if (error) {
+                    stockWriteFailed = true;
                     variantsFailed += 1;
+                    failedProductIds.add(String(row.product_id));
                     console.warn(
                         `[CJ stock] Variant update failed id=${row.id}:`,
                         error.message
@@ -224,8 +233,27 @@ export async function refreshCJProductStockBatch(
                     variantsUpdated += 1;
                 }
             }
+            if (!stockWriteFailed) {
+                const { data: variantRow } = await supabase
+                    .from("product_variants")
+                    .select("source_metadata")
+                    .eq("id", row.id)
+                    .maybeSingle();
+                const meta =
+                    variantRow?.source_metadata &&
+                    typeof variantRow.source_metadata === "object" &&
+                    !Array.isArray(variantRow.source_metadata)
+                        ? { ...(variantRow.source_metadata as Record<string, unknown>) }
+                        : {};
+                meta.cj_stock_checked_at = checkedAt;
+                await supabase
+                    .from("product_variants")
+                    .update({ source_metadata: meta })
+                    .eq("id", row.id);
+            }
         } catch (err) {
             variantsFailed += 1;
+            failedProductIds.add(String(row.product_id));
             console.warn(
                 `[CJ stock] Fetch failed vid=${vid}:`,
                 err instanceof Error ? err.message : String(err)
@@ -239,6 +267,27 @@ export async function refreshCJProductStockBatch(
 
     for (const productId of productIds) {
         await syncProductInventoryFromVariants(supabase, productId);
+        const { data: product } = await supabase
+            .from("products")
+            .select("source_metadata")
+            .eq("id", productId)
+            .maybeSingle();
+        const meta =
+            product?.source_metadata &&
+            typeof product.source_metadata === "object" &&
+            !Array.isArray(product.source_metadata)
+                ? { ...(product.source_metadata as Record<string, unknown>) }
+                : {};
+        const failed = failedProductIds.has(productId);
+        if (!failed) meta.cj_stock_checked_at = checkedAt;
+        meta.cj_stock_sync_status = failed ? "partial_failure" : "ok";
+        await supabase
+            .from("products")
+            .update({
+                source_metadata: meta,
+                ...(failed ? {} : { cj_last_synced_at: checkedAt }),
+            })
+            .eq("id", productId);
     }
 
     const nextOffset = offset + productIds.length;

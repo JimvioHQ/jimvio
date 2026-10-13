@@ -17,6 +17,7 @@ import {
 } from "@/lib/cj/product-videos";
 import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { syncProductVideos } from "@/lib/product-videos";
+import { classifyTrend } from "@/lib/cj/trend-classification";
 
 export const QUALIFIED_PUBLISH_TARGET = 1000;
 export const QUALIFIED_PUBLISH_BATCH_SIZE = 100;
@@ -144,7 +145,7 @@ function isVerified(row: CandidateRow): boolean {
 }
 
 function isTrending(row: CandidateRow): boolean {
-  return row.trending === true || Number(row.orders ?? 0) >= 50;
+  return row.trending === true;
 }
 
 function diversifyCandidates(
@@ -438,8 +439,16 @@ async function mergeIntelligenceFlags(productId: string, candidate: CandidateRow
     product?.source_metadata && typeof product.source_metadata === "object" && !Array.isArray(product.source_metadata)
       ? { ...(product.source_metadata as Record<string, unknown>) }
       : {};
-  if (isVerified(candidate)) meta.cj_supplier_verified = true;
-  if (candidate.trending === true) meta.cj_trending = true;
+  if (candidate.supplier_verified === true) meta.cj_supplier_verified = true;
+  if (candidate.verified_warehouse === 1) meta.cj_verified_warehouse = 1;
+  const trend = classifyTrend({
+    supplierTrendingFlag: candidate.trending === true,
+    cjOrderCount: Number(candidate.orders ?? 0),
+  });
+  meta.trend_classification = trend.classification;
+  meta.trend_evidence = trend.evidence;
+  if (trend.verifiedTrending) meta.cj_trending = true;
+  else delete meta.cj_trending;
   await supabase.from("products").update({ source_metadata: meta }).eq("id", productId);
 }
 

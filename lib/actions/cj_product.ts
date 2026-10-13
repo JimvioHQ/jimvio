@@ -15,6 +15,11 @@ import {
     normalizeCjVid,
     withCjVariantSourceMetadata,
 } from "@/lib/cj/variant-vid";
+import {
+    isJimvioPriceLocked,
+    quoteJimvioBasePrice,
+    usdToRwf,
+} from "@/lib/pricing/jimvio-base-price";
 
 type SupabaseLike = SupabaseClient<any, any, any>;
 
@@ -123,6 +128,19 @@ export interface CJSourceMetadata {
         markup_percent: number;
         commission_percent: number;
     };
+    jimvio_pricing?: {
+        policy_id: string;
+        supplier_cost_usd: number;
+        tier_id: string | null;
+        markup_rate: number;
+        jimvio_base_price_usd: number;
+        calculated_at: string;
+        shipping_excluded: true;
+        transaction_fees_excluded: true;
+    };
+    jimvio_price_locked?: boolean;
+    price_admin_locked?: boolean;
+    jimvio_pricing_conflict?: Record<string, unknown>;
     options?: {
         keys: string[];
         values: {
@@ -144,25 +162,20 @@ const RWF_CURRENCY = "RWF";
 const MAX_IMAGES = 9;
 
 
-interface PricingTier {
-    maxCostUsd: number; // upper bound, exclusive (Infinity for last tier)
-    markupPercent: number; // % added on top of cost
-    commissionPercent: number; // affiliate's % of the markup amount
-}
-
-const PRICING_TIERS: PricingTier[] = [
-    { maxCostUsd: 10, markupPercent: 90, commissionPercent: 20 },
-    { maxCostUsd: 30, markupPercent: 65, commissionPercent: 25 },
-    { maxCostUsd: 70, markupPercent: 45, commissionPercent: 30 },
-    { maxCostUsd: 150, markupPercent: 35, commissionPercent: 25 },
-    { maxCostUsd: Infinity, markupPercent: 25, commissionPercent: 20 },
+/** Affiliate share of the Jimvio markup. Not a second product markup. */
+const AFFILIATE_COMMISSION_BANDS = [
+    { maxCostUsd: 10, commissionPercent: 20 },
+    { maxCostUsd: 30, commissionPercent: 25 },
+    { maxCostUsd: 70, commissionPercent: 30 },
+    { maxCostUsd: 150, commissionPercent: 25 },
+    { maxCostUsd: Infinity, commissionPercent: 20 },
 ];
 
-function getTier(costUsd: number): PricingTier {
+function affiliateCommissionPercent(costUsd: number): number {
     return (
-        PRICING_TIERS.find((t) => costUsd < t.maxCostUsd) ??
-        PRICING_TIERS[PRICING_TIERS.length - 1]
-    );
+        AFFILIATE_COMMISSION_BANDS.find((band) => costUsd < band.maxCostUsd) ??
+        AFFILIATE_COMMISSION_BANDS[AFFILIATE_COMMISSION_BANDS.length - 1]
+    ).commissionPercent;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -274,39 +287,49 @@ async function persistCJProductVideos(
  * @returns price (rounded up to 100 RWF), affiliate_price (rounded down to 10 RWF),
  *          plus tier metadata for storage/audit.
  */
-export async function calculateCJPricing(costUsd: number): Promise<{
+export function calculateCJPricingAtRate(costUsd: number, exchangeRate: number): {
     price: number;
+    price_usd: number;
     affiliate_price: number;
     affiliate_commission_rate: number;
     markup_percent: number;
     compare_at_price: number | null;
-}> {
-    if (costUsd <= 0) {
-        return {
-            price: 0,
-            affiliate_price: 0,
-            affiliate_commission_rate: 0,
-            markup_percent: 0,
-            compare_at_price: null,
-        };
-    }
-
-    const exchangeRate = await getUSDToRWFRate();
-    const tier = getTier(costUsd);
-
-    const markupAmountUsd = costUsd * (tier.markupPercent / 100);
-    const retailUsd = costUsd + markupAmountUsd;
-    const affiliateUsd = markupAmountUsd * (tier.commissionPercent / 100);
-
-    const price = Math.ceil((retailUsd * exchangeRate) / 100) * 100;
-    const affiliate_price = Math.floor((affiliateUsd * exchangeRate) / 10) * 10;
-    return {
-        price,
-        affiliate_price,
-        affiliate_commission_rate: tier.commissionPercent,
-        markup_percent: tier.markupPercent,
+    supplier_cost_usd: number;
+    tier_id: string | null;
+    calculated_at: string | null;
+} {
+    const empty = {
+        price: 0,
+        price_usd: 0,
+        affiliate_price: 0,
+        affiliate_commission_rate: 0,
+        markup_percent: 0,
         compare_at_price: null,
+        supplier_cost_usd: 0,
+        tier_id: null,
+        calculated_at: null,
     };
+    const quote = quoteJimvioBasePrice(costUsd);
+    if (!quote.ok) return empty;
+
+    const commissionPercent = affiliateCommissionPercent(quote.supplierCostUsd);
+    const affiliateUsd = quote.markupAmountUsd * (commissionPercent / 100);
+
+    return {
+        price: usdToRwf(quote.jimvioBasePriceUsd, exchangeRate),
+        price_usd: quote.jimvioBasePriceUsd,
+        affiliate_price: Math.floor((affiliateUsd * exchangeRate) / 10) * 10,
+        affiliate_commission_rate: commissionPercent,
+        markup_percent: quote.markupRate * 100,
+        compare_at_price: null,
+        supplier_cost_usd: quote.supplierCostUsd,
+        tier_id: quote.tierId,
+        calculated_at: quote.calculatedAt,
+    };
+}
+
+export async function calculateCJPricing(costUsd: number) {
+    return calculateCJPricingAtRate(costUsd, await getUSDToRWFRate());
 }
 
 // ── Category Handler ──────────────────────────────────────────────────────────
@@ -442,8 +465,8 @@ export async function mapCJProductToJimvio(
     const productVideos = extractCJProductVideoUrls(cjProduct);
 
     const {
-        price, affiliate_price, affiliate_commission_rate,
-        markup_percent, compare_at_price,
+        price, price_usd, affiliate_price, affiliate_commission_rate,
+        markup_percent, compare_at_price, supplier_cost_usd, tier_id, calculated_at,
     } = await calculateCJPricing(costUsd);
 
 
@@ -472,8 +495,8 @@ export async function mapCJProductToJimvio(
         is_digital: false,
         requires_shipping: true,
         price,
-        price_usd: costUsd,
-        cost_price: costUsd,
+        price_usd,
+        cost_price: supplier_cost_usd || costUsd,
         compare_at_price,
         currency: RWF_CURRENCY,
         pricing_type: "one_time",
@@ -515,6 +538,20 @@ export async function mapCJProductToJimvio(
                 markup_percent,
                 commission_percent: affiliate_commission_rate,
             },
+            ...(calculated_at
+                ? {
+                    jimvio_pricing: {
+                        policy_id: "jimvio-cj-markup-2026-10",
+                        supplier_cost_usd,
+                        tier_id,
+                        markup_rate: markup_percent / 100,
+                        jimvio_base_price_usd: price_usd,
+                        calculated_at,
+                        shipping_excluded: true,
+                        transaction_fees_excluded: true,
+                    },
+                }
+                : {}),
             ...(productOptions ? { options: productOptions } : {}),
             ...(productVideos.length
                 ? { cj_videos: productVideos, cj_has_video: true }
@@ -532,8 +569,10 @@ export async function mapCJVariantToJimvio(
     const priceUsd = parseFloat(cjVariant.variantSellPrice);
 
     // ✅ Tier pricing applied per-variant too
-    const { price, affiliate_price, affiliate_commission_rate } = await
-        calculateCJPricing(priceUsd);
+    const {
+        price, price_usd: jimvioBaseUsd, affiliate_price, affiliate_commission_rate,
+        supplier_cost_usd, tier_id, markup_percent, calculated_at,
+    } = await calculateCJPricing(priceUsd);
 
     const weightGrams = parseFloat(cjVariant.variantWeight) || 0;
 
@@ -581,6 +620,11 @@ export async function mapCJVariantToJimvio(
                 cj_sku: cjVariant.variantSku,
                 cj_property: cjVariant.variantProperty,
                 price_usd: priceUsd,
+                supplier_cost_usd,
+                jimvio_base_price_usd: jimvioBaseUsd,
+                jimvio_markup_rate: markup_percent / 100,
+                jimvio_tier_id: tier_id,
+                jimvio_price_calculated_at: calculated_at,
             },
             cjVid,
             cjVariant.pid ?? null
@@ -807,6 +851,97 @@ export async function upsertCJProductVariants(
     return { upserted, skipped };
 }
 
+type ExistingCjListing = {
+    status?: string | null;
+    is_active?: boolean | null;
+    slug?: string | null;
+    vendor_id?: string | null;
+    price?: number | null;
+    price_usd?: number | null;
+    affiliate_price?: number | null;
+    affiliate_commission_rate?: number | null;
+    images?: unknown;
+    source_metadata?: unknown;
+};
+
+function asMeta(value: unknown): Record<string, unknown> {
+    return value && typeof value === "object" && !Array.isArray(value)
+        ? { ...(value as Record<string, unknown>) }
+        : {};
+}
+
+/**
+ * Refresh supplier content without unpublishing, changing the URL, or
+ * overwriting an authorized admin price lock.
+ */
+export function mergeExistingCjListing(
+    mapped: JimvioProduct,
+    current: ExistingCjListing | null,
+): JimvioProduct {
+    if (!current) return mapped;
+    const currentMeta = asMeta(current.source_metadata);
+    const locked = isJimvioPriceLocked(currentMeta);
+    const nextMeta: Record<string, unknown> = {
+        ...currentMeta,
+        ...mapped.source_metadata,
+    };
+    if (currentMeta.jimvio_price_locked === true) nextMeta.jimvio_price_locked = true;
+    if (currentMeta.price_admin_locked === true) nextMeta.price_admin_locked = true;
+
+    const images = Array.isArray(mapped.images) && mapped.images.length > 0
+        ? mapped.images
+        : Array.isArray(current.images)
+            ? current.images.filter((url): url is string => typeof url === "string")
+            : mapped.images;
+
+    const merged: JimvioProduct = {
+        ...mapped,
+        status: (current.status as JimvioProduct["status"]) || mapped.status,
+        is_active: current.is_active ?? mapped.is_active,
+        slug: current.slug || mapped.slug,
+        vendor_id: current.vendor_id || mapped.vendor_id,
+        images,
+        source_metadata: nextMeta as JimvioProduct["source_metadata"],
+    };
+
+    if (locked) {
+        const listed = Number(current.price_usd);
+        const cost = Number(mapped.cost_price);
+        merged.price = Number(current.price ?? mapped.price);
+        merged.price_usd = Number.isFinite(listed) ? listed : mapped.price_usd;
+        merged.affiliate_price = Number(current.affiliate_price ?? mapped.affiliate_price);
+        merged.affiliate_commission_rate = Number(
+            current.affiliate_commission_rate ?? mapped.affiliate_commission_rate,
+        );
+        const quote = quoteJimvioBasePrice(cost);
+        if (quote.ok && Math.abs(merged.price_usd - quote.jimvioBasePriceUsd) > 0.01) {
+            nextMeta.jimvio_pricing_conflict = {
+                listed_base_price_usd: merged.price_usd,
+                policy_base_price_usd: quote.jimvioBasePriceUsd,
+                supplier_cost_usd: quote.supplierCostUsd,
+                tier_id: quote.tierId,
+                markup_rate: quote.markupRate,
+                detected_at: quote.calculatedAt,
+            };
+            merged.source_metadata = nextMeta as JimvioProduct["source_metadata"];
+        }
+    }
+
+    return merged;
+}
+
+async function loadExistingCjListing(
+    supabase: SupabaseLike,
+    productId: string,
+): Promise<ExistingCjListing | null> {
+    const { data } = await supabase
+        .from("products")
+        .select("status, is_active, slug, vendor_id, price, price_usd, affiliate_price, affiliate_commission_rate, images, source_metadata")
+        .eq("id", productId)
+        .maybeSingle();
+    return (data as ExistingCjListing | null) ?? null;
+}
+
 // ── Upsert Single Product ─────────────────────────────────────────────────────
 
 export async function upsertCJProduct(
@@ -836,10 +971,10 @@ export async function upsertCJProduct(
 
             if (mapRow?.product_id) {
                 const productId = mapRow.product_id as string;
-                // Update existing product but keep it draft/inactive for review
+                const existing = await loadExistingCjListing(supabase, productId);
                 const { error: updErr } = await supabase
                     .from("products")
-                    .update({ ...mapped, status: "draft", is_active: false })
+                    .update(mergeExistingCjListing(mapped, existing))
                     .eq("id", productId);
 
                 if (updErr) {
@@ -861,9 +996,10 @@ export async function upsertCJProduct(
 
             if (existing?.id) {
                 const productId = existing.id as string;
+                const current = await loadExistingCjListing(supabase, productId);
                 const { error: updErr } = await supabase
                     .from("products")
-                    .update({ ...mapped, status: "draft", is_active: false })
+                    .update(mergeExistingCjListing(mapped, current))
                     .eq("id", productId);
 
                 if (updErr) {

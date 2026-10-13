@@ -1,4 +1,5 @@
 import type { CurrencyCode } from "@/lib/currency/config";
+import { quoteJimvioBasePrice } from "@/lib/pricing/jimvio-base-price";
 
 export interface PricingTier {
     minCostUSD: number;
@@ -67,13 +68,13 @@ export interface SellPriceResult {
 
 export function computeSellPrice({ productCostUSD, shippingCostUSD }: SellPriceInput): SellPriceResult {
     const tier = getTier(productCostUSD);
-    const totalCostUSD = productCostUSD + shippingCostUSD;
-    const rawPriceUSD = totalCostUSD * (1 + tier.markupPct);
+    const quote = quoteJimvioBasePrice(productCostUSD);
+    const sellPriceUSD = quote.ok ? quote.jimvioBasePriceUsd : 0;
     return {
         tier,
-        totalCostUSD,
-        rawPriceUSD,
-        sellPriceUSD: roundTo99(rawPriceUSD),
+        totalCostUSD: productCostUSD + shippingCostUSD,
+        rawPriceUSD: sellPriceUSD,
+        sellPriceUSD,
     };
 }
 

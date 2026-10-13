@@ -1,54 +1,27 @@
 import type { CJProduct, HealthLabel } from "./types";
 import { normalizeCjVideoUrls } from "@/lib/cj/product-videos";
-
-const PRICING_TIERS = [
-  { maxCostUsd: 10, markupPercent: 90 },
-  { maxCostUsd: 30, markupPercent: 65 },
-  { maxCostUsd: 70, markupPercent: 45 },
-  { maxCostUsd: 150, markupPercent: 35 },
-  { maxCostUsd: Infinity, markupPercent: 25 },
-];
-
-function getTier(costUsd: number) {
-  return (
-    PRICING_TIERS.find((t) => costUsd < t.maxCostUsd) ??
-    PRICING_TIERS[PRICING_TIERS.length - 1]
-  );
-}
+import { quoteJimvioBasePrice } from "@/lib/pricing/jimvio-base-price";
 
 export function productCostUsd(p: CJProduct): number {
   return parseFloat(p.discountPrice || p.nowPrice || p.sellPrice || "0") || 0;
 }
 
-export function estimateShippingCost(p: CJProduct): number {
-  if (p.isFreeShipping || p.addMarkStatus === 1) return 0;
-  const code = (p.countryCode ?? "CN").toUpperCase();
-  if (code === "US") return 2.5;
-  if (code === "GB") return 3.0;
-  if (["DE", "FR", "EU"].includes(code)) return 3.5;
-  const weight = p.productWeight ?? 200;
-  if (weight < 100) return 2.8;
-  if (weight < 500) return 3.8;
-  return 5.5;
-}
-
 export function calculateProfitMetrics(p: CJProduct) {
   const cjCost = productCostUsd(p);
-  const shippingCost = estimateShippingCost(p);
-  const totalCost = cjCost + shippingCost;
-  const tier = getTier(cjCost);
-  const suggestedSelling = Math.round((cjCost * (1 + tier.markupPercent / 100)) * 100) / 100;
-  const estimatedProfit = Math.round((suggestedSelling - totalCost) * 100) / 100;
+  const quote = quoteJimvioBasePrice(cjCost);
+  const suggestedSelling = quote.ok ? quote.jimvioBasePriceUsd : 0;
+  const estimatedProfit = Math.round((suggestedSelling - cjCost) * 100) / 100;
   const marginPercent =
     suggestedSelling > 0
       ? Math.round((estimatedProfit / suggestedSelling) * 100)
       : 0;
   const roi =
-    totalCost > 0 ? Math.round((estimatedProfit / totalCost) * 100) : 0;
+    cjCost > 0 ? Math.round((estimatedProfit / cjCost) * 100) : 0;
 
   return {
     cjCost,
-    shippingCost,
+    shippingCost: 0,
+    shippingQuoted: false as const,
     suggestedSelling,
     estimatedProfit,
     marginPercent,

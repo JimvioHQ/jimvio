@@ -6,6 +6,7 @@ import { claimIdempotency, completeIdempotency } from "../api/idempotency";
 import { logIntegration } from "../observability/log";
 import { usableCjVid } from "@/lib/cj/variant-vid";
 import { enqueueSyncJob } from "../sync/engine";
+import { getUSDToRWFRate } from "@/lib/actions/cj_product";
 
 export type ImportProductInput = {
   vendorId: string;
@@ -110,9 +111,17 @@ export async function importProductToStore(
     return { ok: false, error: "Store connector could not be loaded.", code: "CONNECTOR_MISSING" };
   }
 
+  const listingCurrency = String(product.currency || "USD").toUpperCase();
+  const usdToRwfRate = listingCurrency === "RWF" ? await getUSDToRWFRate() : 1;
   const publishVariants = variantRows.map((v) => {
     const meta = (v.source_metadata as Record<string, unknown>) || {};
-    const supplierCost = Number(v.price ?? product.price);
+    const supplierCostUsd = Number(meta.supplier_cost_usd ?? meta.price_usd ?? 0);
+    const supplierCost =
+      product.source === "cj" && Number.isFinite(supplierCostUsd) && supplierCostUsd > 0
+        ? listingCurrency === "RWF"
+          ? Math.round(supplierCostUsd * usdToRwfRate)
+          : supplierCostUsd
+        : Number(v.price ?? product.price);
     const rule =
       pickPriceRule((ruleRows ?? []) as PriceRuleRow[], {
         storeId: input.storeId,
