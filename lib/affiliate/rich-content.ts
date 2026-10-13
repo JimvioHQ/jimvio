@@ -157,7 +157,9 @@ function allowlistHtml(html: string): string {
     .replace(/(?:<br>\s*){3,}/gi, "<br><br>")
     .replace(/<(p|div|span|blockquote|h[234]|li)>\s*<\/\1>/gi, "")
     .replace(/<(p|div)>(\s|<br>)*<\/\1>/gi, "")
-    .replace(/<(?!\/?(?:p|br|b|strong|i|em|u|ul|ol|li|h2|h3|h4|blockquote|div|span)\b)/gi, "");
+    .replace(/<(?!\/?(?:p|br|b|strong|i|em|u|ul|ol|li|h2|h3|h4|blockquote|div|span)\b)/gi, "")
+    .replace(/<(b|strong|h[234])>\s*Product Images?:?\s*<\/\1>/gi, "")
+    .replace(/(^|<br>)\s*Product Images?:?\s*(?=<br>|<\/p>|$)/gi, "$1");
 
   return out.replace(/[ \t]+\n/g, "\n").trim();
 }

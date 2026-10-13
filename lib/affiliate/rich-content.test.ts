@@ -8,7 +8,7 @@ import {
   prepareAffiliateRichHtml,
 } from "./rich-content";
 
-const CJ_SAMPLE = `<p><b>Product information</b><br/>Lining material: imitation leather<br/>Color: Black<br/>Heel height: mid heel (3-5CM)<br/><br/><br/><br/>Packing list: Boots*1pairs&nbsp;</p><p><img src="https://cf.cjdropshipping.com/quick/product/one.jpg"><img src="https://cf.cjdropshipping.com/quick/product/two.jpg"><img src="https://cf.cjdropshipping.com/quick/product/one.jpg"></p>`;
+const CJ_SAMPLE = `<p><b>Product information</b><br/>Lining material: imitation leather<br/>Color: Black<br/>Heel height: mid heel (3-5CM)<br/><br/><br/><br/>Packing list: Boots*1pairs&nbsp;</p><p><b>Product Image: </b><img src="https://cf.cjdropshipping.com/quick/product/one.jpg"><img src="https://cf.cjdropshipping.com/quick/product/two.jpg"><img src="https://cf.cjdropshipping.com/quick/product/one.jpg"></p>`;
 
 describe("affiliate rich content", () => {
   it("renders plain text as paragraphs", () => {
@@ -33,6 +33,7 @@ describe("affiliate rich content", () => {
     const html = prepareAffiliateRichHtml(CJ_SAMPLE);
     assert.doesNotMatch(html, /<img/i);
     assert.doesNotMatch(html, /cjdropshipping\.com/);
+    assert.doesNotMatch(html, /Product Image/i);
     assert.match(html, /imitation leather/);
     assert.deepEqual(extractSafeDescriptionImages(CJ_SAMPLE), [
       "https://cf.cjdropshipping.com/quick/product/one.jpg",
