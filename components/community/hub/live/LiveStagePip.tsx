@@ -149,8 +149,12 @@ export function LiveStagePipTile({
           {onMoveToStage && canManage ? (
             <button
               type="button"
-              title="Move to stage"
-              aria-label="Move to stage"
+              title={sharing ? "Show on main stage" : "Move to stage"}
+              aria-label={
+                sharing
+                  ? `Show ${name}'s screen on the main stage`
+                  : `Move ${name} to the main stage`
+              }
               onClick={onMoveToStage}
               className={cn(
                 "inline-flex h-7 flex-1 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800",

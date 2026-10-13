@@ -546,7 +546,9 @@ describe("copilot route safety", () => {
     assert.ok(guardAt > 0 && greetingAt > guardAt && geminiAt > greetingAt);
     assert.match(route, /rateLimit\(`ai-chat:/);
     assert.match(route, /geminiAttemptOrder/);
-    assert.match(route, /v1beta\/models/);
+    assert.match(route, /listAccessibleGeminiModels/);
+    const catalog = readFileSync(new URL("lib/ai/gemini-catalog.ts", root), "utf8");
+    assert.match(catalog, /v1beta\/models/);
     assert.match(route, /category: "fallback"|\"fallback\"/);
     assert.match(route, /buildGuideResponse\(messages\), "guide"/);
     const guideReply = readFileSync(new URL("lib/ai/guide-reply.ts", root), "utf8");

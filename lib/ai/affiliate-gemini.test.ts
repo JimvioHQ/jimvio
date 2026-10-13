@@ -57,8 +57,18 @@ describe("affiliate Gemini provider", () => {
     const studio = readFileSync(join(root, "components/affiliate/AffiliateAiClient.tsx"), "utf8");
     const route = readFileSync(join(root, "app/api/ai/generate/route.ts"), "utf8");
     assert.match(promote, /type: "affiliate_promotion"/);
+    assert.match(promote, /productId: product.id/);
     assert.match(studio, /type: "affiliate_promotion"/);
+    assert.match(studio, /productId: selected.id/);
+    assert.match(studio, /Continue in Jimvio AI|AffiliateAiRecovery/);
+    assert.match(promote, /AffiliateAiRecovery/);
     assert.match(route, /createAffiliatePromotionResponse/);
+    assert.match(route, /loadAffiliateProductContext/);
+    const affiliateBranch = route.slice(
+      route.indexOf('params.type === "affiliate_promotion"'),
+      route.indexOf("const provider = getAiProviderStatus"),
+    );
+    assert.doesNotMatch(affiliateBranch, /params\.price|openai|aiService/);
     assert.doesNotMatch(
       route.slice(0, route.indexOf("const provider = getAiProviderStatus")),
       /getAiProviderStatus\(/,
@@ -183,7 +193,39 @@ describe("affiliate Gemini provider", () => {
     assert.equal(invalid, 1);
     assert.equal(bad.status, 502);
     assert.equal(bad.body.code, "invalid_output");
+    assert.equal(bad.body.workspaceFallback, true);
     assert.equal(bad.body.data, undefined);
     assert.doesNotMatch(String(bad.body.error), /not json|stack/i);
+  });
+
+  it("uses the workspace model catalog once and offers Jimvio AI after quota or provider failure", async () => {
+    let calls = 0;
+    const quota = await createAffiliatePromotionResponse(params, {
+      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      sleep: noWait(),
+      listModels: async () => ({ models: [], category: "rate_limit", detail: "quota exceeded" }),
+      complete: async () => {
+        calls += 1;
+        return JSON.stringify(kit);
+      },
+    });
+    assert.equal(calls, 0);
+    assert.equal(quota.body.code, "quota");
+    assert.equal(quota.body.workspaceFallback, true);
+    assert.doesNotMatch(String(quota.body.error), /OpenAI/);
+
+    const models: string[] = [];
+    const selected = await createAffiliatePromotionResponse(params, {
+      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      sleep: noWait(),
+      listModels: async () => ({ models: ["gemini-2.5-flash"] }),
+      complete: async (request) => {
+        models.push(request.model);
+        return JSON.stringify(kit);
+      },
+    });
+    assert.deepEqual(models, ["gemini-2.5-flash"]);
+    assert.equal(selected.status, 200);
+    assert.equal(selected.body.workspaceFallback, undefined);
   });
 });

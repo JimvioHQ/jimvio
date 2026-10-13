@@ -1,8 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { GeminiCatalogResult } from "@/lib/ai/gemini-catalog";
 import {
   GEMINI_API_KEY_ENV,
   GEMINI_FALLBACK_MODEL,
   GEMINI_MODEL_ENV,
+  geminiAttemptOrder,
   isUsableApiKey,
   redactProviderMessage,
   resolveGeminiModel,
@@ -228,7 +230,34 @@ export type AffiliateGeminiDeps = {
   env?: Record<string, string | undefined>;
   complete?: (request: { model: string; prompt: string }) => Promise<string>;
   sleep?: (ms: number) => Promise<void>;
+  /** Same catalog the Jimvio AI workspace uses. Tests omit this and keep the static model list. */
+  listModels?: () => Promise<GeminiCatalogResult>;
 };
+
+function failureBody(error: AffiliateAiError, providerReady: boolean) {
+  return {
+    status: error.status,
+    body: {
+      error: error.message,
+      code: error.code,
+      provider: AFFILIATE_AI_PROVIDER,
+      providerReady,
+      workspaceFallback: true as const,
+    },
+  };
+}
+
+function catalogFailure(listed: GeminiCatalogResult): AffiliateAiError {
+  const detail = listed.detail ?? "";
+  if (listed.category === "authentication") return new AffiliateAiError(AUTH_MESSAGE, "authentication", 503);
+  if (listed.category === "rate_limit" && /quota|billing|credit/i.test(detail)) {
+    return new AffiliateAiError(QUOTA_MESSAGE, "quota", 429);
+  }
+  if (listed.category === "rate_limit") return new AffiliateAiError(RATE_MESSAGE, "rate_limit", 429);
+  if (listed.category === "retired_model") return new AffiliateAiError(PROVIDER_MESSAGE, "retired_model", 404);
+  if (listed.category === "timeout") return new AffiliateAiError(NETWORK_MESSAGE, "network", 503);
+  return new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502);
+}
 
 export async function createAffiliatePromotionResponse(
   params: AffiliatePromotionInput,
@@ -242,25 +271,38 @@ export async function createAffiliatePromotionResponse(
     code?: string;
     provider: typeof AFFILIATE_AI_PROVIDER;
     providerReady?: boolean;
+    workspaceFallback?: boolean;
   };
 }> {
   const env = deps.env ?? process.env;
   const config = affiliateGeminiConfig(env);
   if (!config.configured) {
-    return {
-      status: 503,
-      body: {
-        error: UNCONFIGURED_MESSAGE,
-        code: "unconfigured",
-        provider: AFFILIATE_AI_PROVIDER,
-        providerReady: false,
-      },
-    };
+    return failureBody(new AffiliateAiError(UNCONFIGURED_MESSAGE, "unconfigured", 503), false);
   }
 
   const key = env[GEMINI_API_KEY_ENV]?.trim() ?? "";
-  const models = [config.model];
+  let models = [config.model];
   if (!models.includes(GEMINI_FALLBACK_MODEL)) models.push(GEMINI_FALLBACK_MODEL);
+  if (deps.listModels) {
+    let listed: GeminiCatalogResult;
+    try {
+      listed = await deps.listModels();
+    } catch (error) {
+      return failureBody(classifyAffiliateProviderFailure(error), true);
+    }
+    if (listed.category) {
+      const failure = catalogFailure(listed);
+      return failureBody(failure, failure.code !== "authentication" && failure.code !== "unconfigured");
+    }
+    if (listed.models.length === 0) {
+      return failureBody(new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502), true);
+    }
+    const ordered = geminiAttemptOrder(listed.models, config.model);
+    if (!ordered.length) {
+      return failureBody(new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502), true);
+    }
+    models = ordered;
+  }
   const prompt = promotionPrompt(params);
   const complete = deps.complete ?? ((request) => completeWithGemini(request.model, request.prompt, key));
   const sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -282,28 +324,16 @@ export async function createAffiliatePromotionResponse(
         if (lastError.code === "retired_model") break;
         const allowed = attemptsFor(lastError.code);
         if (attempt >= allowed) {
-          return {
-            status: lastError.status,
-            body: {
-              error: lastError.message,
-              code: lastError.code,
-              provider: AFFILIATE_AI_PROVIDER,
-              providerReady: true,
-            },
-          };
+          return failureBody(lastError, true);
         }
         await sleep(backoffMs(attempt));
       }
     }
   }
 
-  return {
-    status: lastError.status === 404 ? 502 : lastError.status,
-    body: {
-      error: lastError.code === "retired_model" ? PROVIDER_MESSAGE : lastError.message,
-      code: lastError.code === "retired_model" ? "provider" : lastError.code,
-      provider: AFFILIATE_AI_PROVIDER,
-      providerReady: true,
-    },
-  };
+  const terminal =
+    lastError.code === "retired_model"
+      ? new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502)
+      : lastError;
+  return failureBody(terminal, true);
 }

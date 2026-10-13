@@ -211,7 +211,7 @@ const FAQS: Record<FaqTopicId, { q: string; a: string }[]> = {
     },
     {
       q: "Can I share my screen while streaming?",
-      a: "Yes. Live includes screen sharing. While a screen share is active, it is shown on the main stage.",
+      a: "Yes. Live includes screen sharing. A new share appears as a preview, and the host chooses which screen is on the main stage.",
     },
     {
       q: "Can viewers interact with me during a live?",

@@ -6,6 +6,7 @@ import {
   type LiveKitRemoteMedia,
   type LiveKitRoomSnapshot,
 } from "@/lib/live/livekit-room";
+import type { RoomStageFocus } from "@/lib/live/stage-selection";
 
 const INITIAL: LiveKitRoomSnapshot = {
   connected: false,
@@ -16,6 +17,8 @@ const INITIAL: LiveKitRoomSnapshot = {
   remotes: [],
   stageStream: null,
   activeScreenShareIdentity: null,
+  stageKind: "camera",
+  screenShares: [],
   activeSpeakerId: null,
   resyncGeneration: 0,
 };
@@ -55,12 +58,12 @@ export function useLiveKitRoom(opts: {
   /** Screen share stream from media plane. */
   shareStream?: MediaStream | null;
   sharing?: boolean;
-  /** Prefer local preview on stage when hosting. */
-  preferLocalStage?: boolean;
-  /** Host user id — viewers always see host on main stage. */
+  /** Prefer the local camera when this participant is hosting and no screen is selected. */
+  preferLocalCamera?: boolean;
+  /** Host user id — viewers see the host when no screen is selected. */
   hostIdentity?: string | null;
-  /** Host-promoted participant (Move to Stage). */
-  stagePinIdentity?: string | null;
+  /** Host-selected main stage. Does not restart media tracks. */
+  stageFocus?: RoomStageFocus | null;
 }) {
   const {
     sessionId,
@@ -73,9 +76,9 @@ export function useLiveKitRoom(opts: {
     micOn = false,
     shareStream = null,
     sharing = false,
-    preferLocalStage = true,
+    preferLocalCamera = true,
     hostIdentity = null,
-    stagePinIdentity = null,
+    stageFocus = null,
   } = opts;
 
   const transportRef = useRef<LiveKitRoomTransport | null>(null);
@@ -228,28 +231,24 @@ export function useLiveKitRoom(opts: {
     userId,
   ]);
 
-  /* Stage composition: local screen/camera preferred when hosting or while sharing.
-     Mic-only must NOT attach an audio MediaStream to the video stage (black tile).
-     Screen share always becomes the local stage preview so the shared screen stays
-     main even if the sharer later enables their camera. */
+  /* Local screen and camera stay published independently of which source is featured. */
   useEffect(() => {
-    let localStage: MediaStream | null = null;
-    const wantLocal = preferLocalStage || sharing;
-    if (wantLocal) {
-      if (sharing) localStage = shareStream ?? null;
-      else if (camOn && localAvStream) localStage = localAvStream;
-    }
-    transportRef.current?.setPreferLocalStage(wantLocal);
-    transportRef.current?.setLocalPreview(localStage);
-  }, [preferLocalStage, sharing, shareStream, localAvStream, camOn]);
+    const screen = sharing ? shareStream ?? null : null;
+    const camera = camOn && localAvStream ? localAvStream : null;
+    const transport = transportRef.current;
+    transport?.setPreferLocalCamera(preferLocalCamera);
+    transport?.setLocalScreen(screen);
+    transport?.setLocalCamera(camera);
+  }, [preferLocalCamera, sharing, shareStream, localAvStream, camOn]);
 
   useEffect(() => {
     transportRef.current?.setHostIdentity(hostIdentity ?? null);
-  }, [hostIdentity]);
+    transportRef.current?.setLocalIdentity(userId);
+  }, [hostIdentity, userId]);
 
   useEffect(() => {
-    transportRef.current?.setStagePinIdentity(stagePinIdentity ?? null);
-  }, [stagePinIdentity]);
+    transportRef.current?.setStageFocus(stageFocus ?? null);
+  }, [stageFocus]);
 
   const reconnect = useCallback(async () => {
     if (!sessionId) return;

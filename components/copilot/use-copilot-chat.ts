@@ -96,7 +96,7 @@ export function useCopilotChat() {
   }, []);
 
   const sendMessage = useCallback(
-    (text: string, options?: { regenerateFromId?: string; actionId?: string }): boolean => {
+    (text: string, options?: { regenerateFromId?: string; actionId?: string; affiliateTask?: string }): boolean => {
       if (sendingRef.current) return false;
 
       let baseMessages = readMessages();
@@ -293,6 +293,7 @@ export function useCopilotChat() {
             context: pageContext as CopilotPageContext,
             pathname,
             actionId: options?.actionId,
+            affiliateTask: options?.affiliateTask,
             signal: request.signal,
           })) {
             if (request.signal.aborted || !isCurrentGeneration(generationRef.current, generation)) return;

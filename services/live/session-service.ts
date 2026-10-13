@@ -19,6 +19,12 @@ import {
   type LiveStageRole,
 } from "@/lib/live/roles";
 import {
+  canControlRoomStage,
+  nextStageFocus,
+  readStageFocus,
+  type RoomStageFocus,
+} from "@/lib/live/stage-selection";
+import {
   mergeParticipantPermissions,
   parseParticipantPermissions,
   participantMediaPublishAllowed,
@@ -1860,12 +1866,9 @@ export async function updateParticipantPermissions(
   return { session: data as LiveSessionRow, permissions: nextPerms };
 }
 
-export type LiveStageFocus = {
-  identity: string | null;
-  kind: "default" | "participant" | "screen";
-};
+export type LiveStageFocus = RoomStageFocus;
 
-/** Host/cohost promotes a participant (or their screen) to the main stage. */
+/** Host or cohost promotes a participant camera or screen to the main stage. */
 export async function updateStageFocus(
   sessionId: string,
   userId: string,
@@ -1875,7 +1878,7 @@ export async function updateStageFocus(
   if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
   const me = await getParticipant(sessionId, userId);
   const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
-  if (role !== "host" && role !== "cohost") {
+  if (!canControlRoomStage(role)) {
     return { error: "Not allowed", status: 403 };
   }
 
@@ -1890,14 +1893,11 @@ export async function updateStageFocus(
     }
   }
 
-  const stageFocus: LiveStageFocus = {
+  const stageFocus = nextStageFocus({
+    previous: readStageFocus(session.settings),
     identity,
-    kind: identity
-      ? focus.kind === "screen"
-        ? "screen"
-        : "participant"
-      : "default",
-  };
+    kind: focus.kind,
+  });
 
   const prev = (session.settings ?? {}) as Record<string, unknown>;
   const next = {

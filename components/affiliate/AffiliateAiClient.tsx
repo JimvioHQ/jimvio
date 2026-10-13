@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
 import { Check, Copy, Loader2, Sparkles } from "lucide-react";
 import {
   AffiliateEmptyState,
@@ -12,7 +13,8 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
-import { affiliatePlainText } from "@/lib/affiliate/rich-content";
+import { shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { AffiliateAiRecovery } from "./AffiliateAiRecovery";
 
 type ProductOpt = {
   id: string;
@@ -55,9 +57,11 @@ const FIELDS: Array<{ key: keyof PromoResult; label: string }> = [
 ];
 
 export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
+  const pathname = usePathname() ?? "/affiliates/ai";
   const [selectedId, setSelectedId] = useState(products[0]?.id ?? "");
   const [result, setResult] = useState<PromoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offerWorkspace, setOfferWorkspace] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -71,6 +75,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
     if (!selected) return;
     startTransition(async () => {
       setError(null);
+      setOfferWorkspace(false);
       setResult(null);
       try {
         const res = await fetch("/api/ai/generate", {
@@ -78,23 +83,20 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "affiliate_promotion",
-            productName: selected.name,
-            category: selected.category,
-            price: selected.price,
-            currency: "USD",
-            commissionRate: selected.rate,
-            features: (selected.features ?? []).map((feature) => affiliatePlainText(feature)).filter(Boolean),
-            description: affiliatePlainText(selected.description ?? "").slice(0, 700),
+            productId: selected.id,
           }),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          setError(
+          const message =
             data?.error ||
-              (res.status === 503
+            (res.status === 401
+              ? "Sign in to generate promotion assets."
+              : res.status === 503
                 ? "AI provider is not configured."
-                : "AI generation failed")
-          );
+                : "AI generation failed");
+          setError(message);
+          setOfferWorkspace(shouldOfferAffiliateWorkspace(res.status, data?.code));
           return;
         }
         if (!data?.data) {
@@ -104,6 +106,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
         setResult(data.data);
       } catch {
         setError("Could not reach Jimvio AI");
+        setOfferWorkspace(true);
       }
     });
   }, [selected]);
@@ -163,18 +166,18 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                 {Math.round(selected.rate)}% commission
               </p>
             ) : null}
-            {error ? (
-              <div className="mt-3 rounded-[10px] border border-red-200 bg-red-50 px-3 py-2.5">
-                <p className="text-[12px] font-medium text-red-700">{error}</p>
-                <button
-                  type="button"
-                  onClick={generate}
-                  disabled={pending}
-                  className={cn(AFFILIATE_BTN_SECONDARY, "mt-2 h-8 px-2.5 text-[11px]")}
-                >
-                  Retry
-                </button>
-              </div>
+            {error && offerWorkspace && selected ? (
+              <AffiliateAiRecovery
+                message={error}
+                productId={selected.id}
+                returnPath={pathname}
+                pending={pending}
+                onRetry={generate}
+              />
+            ) : error ? (
+              <p className="mt-3 text-[12px] font-medium text-red-700" role="alert">
+                {error}
+              </p>
             ) : null}
           </div>
 

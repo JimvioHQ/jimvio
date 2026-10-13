@@ -91,19 +91,22 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.doesNotMatch(nearby, /setStageFocus/);
   });
 
-  it("screen share becomes main stage while sharer camera stays in PIP", () => {
+  it("screen share stays a host-controlled stage while cameras stay in PIP", () => {
     const room = read("lib/live/livekit-room.ts");
     const page = read("components/community/hub/hub-live-page.tsx");
     const pip = read("components/community/hub/live/LiveStagePip.tsx");
     const layout = read("lib/live/stage-share-layout.ts");
+    const strip = read("components/community/hub/live/LiveScreenShareStrip.tsx");
     assert.match(room, /activeScreenShareIdentity/);
-    assert.match(room, /lastRemoteScreenIdentity/);
-    assert.match(room, /remoteScreenOrder/);
+    assert.match(room, /setStageFocus/);
     assert.match(room, /selectStageShareLayout/);
-    assert.match(room, /selectLatestScreenShareIdentity/);
-    assert.match(layout, /SCREEN SHARE > CAMERA/);
+    assert.doesNotMatch(room, /selectLatestScreenShareIdentity/);
+    assert.match(layout, /does not replace/);
     assert.match(page, /activeScreenShareIdentity/);
-    assert.match(page, /Never put the screen track in PIP/);
+    assert.match(page, /LiveScreenShareStrip/);
+    assert.match(page, /Show on main stage|setStageFocus/);
+    assert.match(strip, /Show on main stage/);
+    assert.match(strip, /On main stage/);
     assert.match(pip, /stream && camOn/);
     assert.doesNotMatch(pip, /camOn \|\| sharing/);
   });
@@ -122,12 +125,14 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.ok(leaveIdx > 0 && discIdx > leaveIdx);
   });
 
-  it("livekit stage promotes active screen share over host camera", () => {
+  it("livekit stage keeps the host screen until the host promotes another share", () => {
     const room = read("lib/live/livekit-room.ts");
     const layout = read("lib/live/stage-share-layout.ts");
+    const selection = read("lib/live/stage-selection.ts");
     assert.match(room, /selectStageShareLayout/);
     assert.match(room, /localSharing/);
-    assert.match(layout, /SCREEN SHARE > CAMERA/);
+    assert.match(layout, /resolveStageSource/);
+    assert.match(selection, /canControlRoomStage/);
     assert.match(layout, /activeScreenShareIdentity/);
   });
 

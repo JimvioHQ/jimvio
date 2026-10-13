@@ -14,8 +14,8 @@ import {
   type Participant,
 } from "livekit-client";
 import type { LiveStageRole } from "@/lib/live/roles";
-import { selectLatestScreenShareIdentity } from "@/lib/live/livekit-presence";
 import { selectStageShareLayout } from "@/lib/live/stage-share-layout";
+import type { RoomStageFocus } from "@/lib/live/stage-selection";
 
 export type LiveKitRemoteMedia = {
   identity: string;
@@ -38,12 +38,14 @@ export type LiveKitRoomSnapshot = {
   error: string | null;
   remotes: LiveKitRemoteMedia[];
   /**
-   * Dominant stage media. Active screen share always wins over cameras so the
-   * shared screen stays main while the sharer's camera stays in PIP.
+   * Dominant stage media. The host-selected screen stays featured.
+   * Other screen tracks remain available as previews.
    */
   stageStream: MediaStream | null;
   /** Identity of the participant whose screen is currently on the main stage. */
   activeScreenShareIdentity: string | null;
+  stageKind: "screen" | "camera";
+  screenShares: Array<{ identity: string; stream: MediaStream; onStage: boolean }>;
   activeSpeakerId: string | null;
   /** Bumps after LiveKit auto-reconnect so publishers re-sync tracks. */
   resyncGeneration: number;
@@ -141,19 +143,17 @@ export class LiveKitRoomTransport {
   private publishedScreen: LocalTrack | null = null;
   private publishedScreenAudio: LocalTrack | null = null;
   private disposed = false;
-  private localPreview: MediaStream | null = null;
-  private preferLocalStage = false;
+  private localScreen: MediaStream | null = null;
+  private localCamera: MediaStream | null = null;
+  private preferLocalCamera = false;
   /** True while this client is publishing a live screen-share track. */
   private localSharing = false;
   /** Session host user id — stage prioritizes this participant for cameras. */
   private hostIdentity: string | null = null;
-  /** Host-promoted participant identity (Move to Stage). Null = host owns stage. */
-  private stagePinIdentity: string | null = null;
-  /** Most recently published/subscribed remote screen-share identity (handoff). */
-  private lastRemoteScreenIdentity: string | null = null;
-  /** Monotonic publication order for remote screen shares (B → C → B). */
-  private remoteScreenOrder = new Map<string, number>();
-  private remoteScreenSeq = 0;
+  /** Jimvio user id for this client, used before the room reports localParticipant. */
+  private localIdentity: string | null = null;
+  /** Host-selected room stage. Participant shares do not replace this on their own. */
+  private stageFocus: RoomStageFocus | null = null;
   private resyncGeneration = 0;
   private remoteStreamCache = new Map<string, MediaStream>();
   private syncQueue: Promise<void> = Promise.resolve();
@@ -169,18 +169,16 @@ export class LiveKitRoomTransport {
     const hostRemote = this.hostIdentity
       ? remotes.find((r) => r.identity === this.hostIdentity)
       : null;
-    const localIdentity =
-      this.room?.localParticipant?.identity ?? this.hostIdentity;
-
+    const localIdentity = this.room?.localParticipant?.identity ?? this.localIdentity;
     const layout = selectStageShareLayout({
       remotes,
       hostIdentity: this.hostIdentity,
-      stagePinIdentity: this.stagePinIdentity,
+      stageFocus: this.stageFocus,
       localSharing: this.localSharing,
-      localPreview: this.localPreview,
+      localScreen: this.localScreen,
+      localCamera: this.localCamera,
       localIdentity,
-      preferLocalStage: this.preferLocalStage,
-      lastRemoteScreenIdentity: this.lastRemoteScreenIdentity,
+      preferLocalCamera: this.preferLocalCamera,
     });
 
     const active =
@@ -203,20 +201,30 @@ export class LiveKitRoomTransport {
       remotes,
       stageStream: layout.stageStream,
       activeScreenShareIdentity: layout.activeScreenShareIdentity,
+      stageKind: layout.stageKind,
+      screenShares: layout.screenShares,
       activeSpeakerId: active,
       resyncGeneration: this.resyncGeneration,
     };
   }
 
-  setLocalPreview(stream: MediaStream | null): void {
-    if (this.localPreview === stream) return;
-    this.localPreview = stream;
+  setLocalScreen(stream: MediaStream | null): void {
+    const sharing = Boolean(stream);
+    if (this.localScreen === stream && this.localSharing === sharing) return;
+    this.localScreen = stream;
+    this.localSharing = sharing;
     this.emit();
   }
 
-  setPreferLocalStage(prefer: boolean): void {
-    if (this.preferLocalStage === prefer) return;
-    this.preferLocalStage = prefer;
+  setLocalCamera(stream: MediaStream | null): void {
+    if (this.localCamera === stream) return;
+    this.localCamera = stream;
+    this.emit();
+  }
+
+  setPreferLocalCamera(prefer: boolean): void {
+    if (this.preferLocalCamera === prefer) return;
+    this.preferLocalCamera = prefer;
     this.emit();
   }
 
@@ -226,9 +234,21 @@ export class LiveKitRoomTransport {
     this.emit();
   }
 
-  setStagePinIdentity(identity: string | null): void {
-    if (this.stagePinIdentity === identity) return;
-    this.stagePinIdentity = identity;
+  setLocalIdentity(identity: string | null): void {
+    if (this.localIdentity === identity) return;
+    this.localIdentity = identity;
+    this.emit();
+  }
+
+  setStageFocus(focus: RoomStageFocus | null): void {
+    if (
+      this.stageFocus?.identity === focus?.identity &&
+      this.stageFocus?.kind === focus?.kind &&
+      this.stageFocus?.version === focus?.version
+    ) {
+      return;
+    }
+    this.stageFocus = focus;
     this.emit();
   }
 
@@ -296,9 +316,7 @@ export class LiveKitRoomTransport {
     this.speakingIds.clear();
     this.remoteStreamCache.clear();
     this.localSharing = false;
-    this.lastRemoteScreenIdentity = null;
-    this.remoteScreenOrder.clear();
-    this.remoteScreenSeq = 0;
+    this.localScreen = null;
     this.emit();
   }
 
@@ -465,58 +483,16 @@ export class LiveKitRoomTransport {
 
   private bindRoom(room: Room): void {
     const refresh = () => this.emit();
-    const noteRemoteScreen = (identity: string) => {
-      this.remoteScreenSeq += 1;
-      this.remoteScreenOrder.set(identity, this.remoteScreenSeq);
-      this.lastRemoteScreenIdentity = identity;
-    };
-    const clearRemoteScreen = (identity: string) => {
-      this.remoteScreenOrder.delete(identity);
-      const stillSharing = this.listRemotes()
-        .filter((r) => r.sharing && r.screenStream)
-        .map((r) => r.identity);
-      this.lastRemoteScreenIdentity = selectLatestScreenShareIdentity({
-        screenIdentities: stillSharing,
-        order: this.remoteScreenOrder,
-      });
-    };
 
     room.on(RoomEvent.ConnectionStateChanged, refresh);
     room.on(RoomEvent.ParticipantConnected, refresh);
-    room.on(RoomEvent.ParticipantDisconnected, (p) => {
-      clearRemoteScreen(p.identity);
+    room.on(RoomEvent.ParticipantDisconnected, () => {
       refresh();
     });
-    room.on(RoomEvent.TrackSubscribed, (_track, pub, participant) => {
-      if (
-        pub.source === Track.Source.ScreenShare &&
-        pub.kind === Track.Kind.Video
-      ) {
-        noteRemoteScreen(participant.identity);
-      }
-      refresh();
-    });
-    room.on(RoomEvent.TrackUnsubscribed, (_track, pub, participant) => {
-      if (pub.source === Track.Source.ScreenShare && pub.kind === Track.Kind.Video) {
-        clearRemoteScreen(participant.identity);
-      }
-      refresh();
-    });
-    room.on(RoomEvent.TrackPublished, (pub, participant) => {
-      if (
-        pub.source === Track.Source.ScreenShare &&
-        pub.kind === Track.Kind.Video
-      ) {
-        noteRemoteScreen(participant.identity);
-      }
-      refresh();
-    });
-    room.on(RoomEvent.TrackUnpublished, (pub, participant) => {
-      if (pub.source === Track.Source.ScreenShare && pub.kind === Track.Kind.Video) {
-        clearRemoteScreen(participant.identity);
-      }
-      refresh();
-    });
+    room.on(RoomEvent.TrackSubscribed, refresh);
+    room.on(RoomEvent.TrackUnsubscribed, refresh);
+    room.on(RoomEvent.TrackPublished, refresh);
+    room.on(RoomEvent.TrackUnpublished, refresh);
     room.on(RoomEvent.TrackMuted, refresh);
     room.on(RoomEvent.TrackUnmuted, refresh);
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {

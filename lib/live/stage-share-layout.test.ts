@@ -4,193 +4,163 @@ import {
   pipStreamForParticipant,
   selectStageShareLayout,
 } from "./stage-share-layout.ts";
+import type { RoomStageFocus } from "./stage-selection.ts";
 
 function fakeStream(label: string): MediaStream {
-  // Minimal stand-in — identity by object reference is enough for layout tests.
   return { __label: label } as unknown as MediaStream;
 }
 
+function focus(partial: Partial<RoomStageFocus> & Pick<RoomStageFocus, "identity" | "kind">): RoomStageFocus {
+  return {
+    owner: partial.identity,
+    version: partial.version ?? 1,
+    identity: partial.identity,
+    kind: partial.kind,
+  };
+}
+
 describe("stage-share-layout", () => {
-  it("puts guest screen on main stage and keeps camera for PIP", () => {
-    const screen = fakeStream("screen");
-    const cam = fakeStream("cam");
-    const layout = selectStageShareLayout({
-      remotes: [
-        {
-          identity: "guest-b",
-          role: "speaker",
-          screenStream: screen,
-          cameraStream: cam,
-        },
-      ],
-      hostIdentity: "host-a",
-      preferLocalStage: true,
-      localPreview: fakeStream("host-cam"),
-    });
-    assert.equal(layout.stageStream, screen);
-    assert.equal(layout.activeScreenShareIdentity, "guest-b");
-    assert.equal(
-      pipStreamForParticipant({
-        cameraStream: cam,
-        screenStream: screen,
-        sharing: true,
-      }),
-      cam
-    );
-  });
-
-  it("keeps screen main when sharer enables camera", () => {
-    const screen = fakeStream("screen");
-    const cam = fakeStream("cam");
-    const layout = selectStageShareLayout({
-      remotes: [
-        {
-          identity: "guest-b",
-          role: "speaker",
-          screenStream: screen,
-          cameraStream: cam,
-        },
-      ],
-      hostIdentity: "host-a",
-      preferLocalStage: true,
-      localPreview: fakeStream("host-cam"),
-      stagePinIdentity: "guest-b",
-    });
-    assert.equal(layout.stageStream, screen);
-    assert.equal(layout.activeScreenShareIdentity, "guest-b");
-  });
-
-  it("does not let Move-to-Stage camera replace an active screen", () => {
-    const screen = fakeStream("screen-b");
-    const camC = fakeStream("cam-c");
-    const layout = selectStageShareLayout({
-      remotes: [
-        {
-          identity: "guest-b",
-          role: "speaker",
-          screenStream: screen,
-          cameraStream: null,
-        },
-        {
-          identity: "guest-c",
-          role: "speaker",
-          screenStream: null,
-          cameraStream: camC,
-        },
-      ],
-      hostIdentity: "host-a",
-      stagePinIdentity: "guest-c",
-    });
-    assert.equal(layout.stageStream, screen);
-    assert.equal(layout.activeScreenShareIdentity, "guest-b");
-  });
-
-  it("hands off main stage to the latest remote screen share", () => {
-    const screenB = fakeStream("screen-b");
-    const screenC = fakeStream("screen-c");
-    const layout = selectStageShareLayout({
-      remotes: [
-        {
-          identity: "guest-b",
-          role: "speaker",
-          screenStream: screenB,
-          cameraStream: null,
-        },
-        {
-          identity: "guest-c",
-          role: "speaker",
-          screenStream: screenC,
-          cameraStream: null,
-        },
-      ],
-      hostIdentity: "host-a",
-      lastRemoteScreenIdentity: "guest-c",
-    });
-    assert.equal(layout.stageStream, screenC);
-    assert.equal(layout.activeScreenShareIdentity, "guest-c");
-  });
-
-  it("hands off back to B when B publishes screen again", () => {
-    const screenB = fakeStream("screen-b");
-    const screenC = fakeStream("screen-c");
-    const layout = selectStageShareLayout({
-      remotes: [
-        {
-          identity: "guest-b",
-          role: "speaker",
-          screenStream: screenB,
-          cameraStream: fakeStream("cam-b"),
-        },
-        {
-          identity: "guest-c",
-          role: "speaker",
-          screenStream: screenC,
-          cameraStream: null,
-        },
-      ],
-      hostIdentity: "host-a",
-      lastRemoteScreenIdentity: "guest-b",
-    });
-    assert.equal(layout.stageStream, screenB);
-    assert.equal(layout.activeScreenShareIdentity, "guest-b");
-  });
-
-  it("does not promote a speaker camera to main stage without pin or share", () => {
-    const camA = fakeStream("cam-a");
-    const camB = fakeStream("cam-b");
-    const sel = selectStageShareLayout({
-      remotes: [
-        { identity: "host-a", role: "host", screenStream: null, cameraStream: camA },
-        { identity: "guest-b", role: "speaker", screenStream: null, cameraStream: camB },
-      ],
-      hostIdentity: "host-a",
-      preferLocalStage: false,
-    });
-    assert.equal(sel.activeScreenShareIdentity, null);
-    assert.equal(sel.stageStream, camA);
-  });
-
-  it("restores host camera stage when screen share stops", () => {
+  it("keeps the host camera on stage when a participant starts sharing", () => {
     const hostCam = fakeStream("host-cam");
+    const guestScreen = fakeStream("guest-screen");
     const layout = selectStageShareLayout({
       remotes: [
         {
           identity: "guest-b",
           role: "speaker",
-          screenStream: null,
+          screenStream: guestScreen,
           cameraStream: fakeStream("guest-cam"),
         },
-        {
-          identity: "host-a",
-          role: "host",
-          screenStream: null,
-          cameraStream: hostCam,
-        },
       ],
       hostIdentity: "host-a",
+      localIdentity: "host-a",
+      localCamera: hostCam,
+      preferLocalCamera: true,
     });
     assert.equal(layout.stageStream, hostCam);
     assert.equal(layout.activeScreenShareIdentity, null);
+    assert.equal(layout.screenShares[0]?.identity, "guest-b");
+    assert.equal(layout.screenShares[0]?.stream, guestScreen);
+    assert.equal(layout.screenShares[0]?.onStage, false);
+  });
+
+  it("does not replace the host screen when another participant starts sharing", () => {
+    const hostScreen = fakeStream("host-screen");
+    const guestScreen = fakeStream("guest-screen");
+    const layout = selectStageShareLayout({
+      remotes: [
+        {
+          identity: "guest-b",
+          role: "speaker",
+          screenStream: guestScreen,
+          cameraStream: null,
+        },
+      ],
+      hostIdentity: "host-a",
+      localIdentity: "host-a",
+      localSharing: true,
+      localScreen: hostScreen,
+      stageFocus: focus({ identity: "host-a", kind: "screen", version: 2 }),
+    });
+    assert.equal(layout.stageStream, hostScreen);
+    assert.equal(layout.activeScreenShareIdentity, "host-a");
+    assert.equal(layout.screenShares.find((share) => share.identity === "guest-b")?.onStage, false);
+  });
+
+  it("promotes the host-selected screen without changing the underlying stream", () => {
+    const guestScreen = fakeStream("guest-screen");
+    const layout = selectStageShareLayout({
+      remotes: [
+        {
+          identity: "guest-b",
+          role: "speaker",
+          screenStream: guestScreen,
+          cameraStream: fakeStream("guest-cam"),
+        },
+      ],
+      hostIdentity: "host-a",
+      localCamera: fakeStream("host-cam"),
+      stageFocus: focus({ identity: "guest-b", kind: "screen", version: 4 }),
+    });
+    assert.equal(layout.stageStream, guestScreen);
+    assert.equal(layout.activeScreenShareIdentity, "guest-b");
+    assert.equal(layout.screenShares[0]?.onStage, true);
+    assert.equal(
+      pipStreamForParticipant({
+        cameraStream: fakeStream("guest-cam"),
+        screenStream: guestScreen,
+        sharing: true,
+      }) === guestScreen,
+      false,
+    );
+  });
+
+  it("falls back to the host screen when the selected share stops", () => {
+    const hostScreen = fakeStream("host-screen");
+    const layout = selectStageShareLayout({
+      remotes: [],
+      hostIdentity: "host-a",
+      localIdentity: "host-a",
+      localSharing: true,
+      localScreen: hostScreen,
+      stageFocus: focus({ identity: "guest-b", kind: "screen", version: 3 }),
+    });
+    assert.equal(layout.stageStream, hostScreen);
+    assert.equal(layout.activeScreenShareIdentity, "host-a");
+    assert.equal(layout.screenShares.some((share) => share.identity === "guest-b"), false);
+  });
+
+  it("falls back to the host camera when no screen remains", () => {
+    const hostCam = fakeStream("host-cam");
+    const layout = selectStageShareLayout({
+      remotes: [
+        { identity: "host-a", role: "host", screenStream: null, cameraStream: hostCam },
+        { identity: "guest-b", role: "speaker", screenStream: null, cameraStream: fakeStream("guest-cam") },
+      ],
+      hostIdentity: "host-a",
+      stageFocus: focus({ identity: "guest-b", kind: "screen", version: 3 }),
+    });
+    assert.equal(layout.stageStream, hostCam);
+    assert.equal(layout.activeScreenShareIdentity, null);
+  });
+
+  it("does not duplicate previews when the same share is reported twice", () => {
+    const screen = fakeStream("guest-screen");
+    const layout = selectStageShareLayout({
+      remotes: [
+        { identity: "guest-b", role: "speaker", screenStream: screen, cameraStream: null },
+        { identity: "guest-b", role: "speaker", screenStream: screen, cameraStream: null },
+      ],
+      hostIdentity: "host-a",
+    });
+    assert.equal(layout.screenShares.length, 1);
+  });
+
+  it("keeps a pinned camera when nobody is selected as a screen", () => {
+    const guestCam = fakeStream("guest-cam");
+    const layout = selectStageShareLayout({
+      remotes: [
+        { identity: "guest-b", role: "speaker", screenStream: null, cameraStream: guestCam },
+      ],
+      hostIdentity: "host-a",
+      localCamera: fakeStream("host-cam"),
+      preferLocalCamera: true,
+      stageFocus: focus({ identity: "guest-b", kind: "participant", version: 2 }),
+    });
+    assert.equal(layout.stageStream, guestCam);
+    assert.equal(layout.stageKind, "camera");
   });
 
   it("PIP helper never returns the screen track", () => {
     const screen = fakeStream("screen");
     const cam = fakeStream("cam");
     assert.equal(
-      pipStreamForParticipant({
-        cameraStream: null,
-        screenStream: screen,
-        sharing: true,
-      }),
-      null
+      pipStreamForParticipant({ cameraStream: null, screenStream: screen, sharing: true }),
+      null,
     );
     assert.equal(
-      pipStreamForParticipant({
-        cameraStream: cam,
-        screenStream: screen,
-        sharing: true,
-      }),
-      cam
+      pipStreamForParticipant({ cameraStream: cam, screenStream: screen, sharing: true }),
+      cam,
     );
   });
 });

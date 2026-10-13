@@ -13,6 +13,13 @@ import { getCopilotContextMeta } from "@/lib/ai/copilot/context";
 import { getQuickActionsForContext } from "@/lib/ai/copilot/quick-actions";
 import { EARNING_OPTIONS, EARNING_WELCOME } from "@/lib/ai/earning-guide";
 import { loadCopilotDraft, loadCopilotReturnPath, saveCopilotDraft } from "@/lib/ai/copilot/session";
+import {
+  browserSessionStorage,
+  consumeAffiliateAutoStart,
+  decideAffiliateAutoStart,
+  readAffiliateHandoff,
+  readConsumedAffiliateAutoStarts,
+} from "@/lib/ai/affiliate-workspace";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
@@ -33,7 +40,14 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   const { messages, isSending, sendMessage, clearHistory, setMessages } = useCopilotChat();
   const processedInitial = useRef("");
   const processedEarn = useRef(0);
+  const affiliateBootRef = useRef<string | null>(null);
+  const affiliateTaskRef = useRef<string | null>(null);
   const [query, setQuery] = useState(() => loadCopilotDraft());
+  const [affiliateNotice, setAffiliateNotice] = useState<{
+    name: string | null;
+    manual: boolean;
+    detail: string;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const reducedMotion = usePrefersReducedMotion();
@@ -70,6 +84,85 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   }, [initialQuery, sendMessage]);
 
   useEffect(() => {
+    if (variant !== "page") return;
+    const storage = browserSessionStorage();
+    if (!storage) return;
+    const handoff = readAffiliateHandoff(storage);
+    if (!handoff || affiliateBootRef.current === handoff.id) return;
+    let cancelled = false;
+    let finished = false;
+    affiliateBootRef.current = handoff.id;
+    void (async () => {
+      try {
+        const response = await fetch("/api/ai/affiliate-context", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId: handoff.productId,
+            assetTypes: handoff.assetTypes,
+            platform: handoff.platform,
+          }),
+        });
+        const data = (await response.json().catch(() => null)) as {
+          prompt?: string;
+          taskToken?: string | null;
+          context?: { name?: string };
+          error?: string;
+        } | null;
+        if (cancelled) return;
+        finished = true;
+        if (!response.ok || !data?.prompt || !data.context?.name) {
+          setAffiliateNotice({
+            name: null,
+            manual: true,
+            detail: data?.error || "Jimvio AI could not load this product yet. Your selection is still saved.",
+          });
+          return;
+        }
+        affiliateTaskRef.current = typeof data.taskToken === "string" ? data.taskToken : null;
+        setQuery(data.prompt);
+        saveCopilotDraft(data.prompt);
+        const decision = decideAffiliateAutoStart({
+          handoff,
+          consumedIds: readConsumedAffiliateAutoStarts(storage),
+          contextReady: Boolean(data.taskToken),
+          sending: false,
+        });
+        if (decision !== "start" || !data.taskToken) {
+          setAffiliateNotice({
+            name: data.context.name,
+            manual: true,
+            detail: "This product is ready. Generate when you want the promotion assets.",
+          });
+          return;
+        }
+        consumeAffiliateAutoStart(handoff.id, storage);
+        const started = sendMessage(data.prompt, { affiliateTask: data.taskToken });
+        setAffiliateNotice({
+          name: data.context.name,
+          manual: !started,
+          detail: started
+            ? "Generating promotion assets in Jimvio AI."
+            : "This product is ready. Generate when you want the promotion assets.",
+        });
+      } catch {
+        if (!cancelled) {
+          finished = true;
+          setAffiliateNotice({
+            name: null,
+            manual: true,
+            detail: "Jimvio AI could not load this product yet. Your selection is still saved.",
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (!finished) affiliateBootRef.current = null;
+    };
+  }, [sendMessage, variant]);
+
+  useEffect(() => {
     const node = scrollRef.current;
     if (!node || messages.length === 0 || !stickToBottomRef.current) return;
     node.scrollTo({ top: node.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
@@ -79,7 +172,10 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
     (text = query, actionId?: string) => {
       const trimmed = text.trim();
       if (!trimmed || isSending) return;
-      const accepted = sendMessage(trimmed, { actionId });
+      const accepted = sendMessage(trimmed, {
+        actionId,
+        affiliateTask: affiliateTaskRef.current ?? undefined,
+      });
       if (!accepted) return;
       stickToBottomRef.current = true;
       setQuery("");
@@ -195,6 +291,26 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
             />
           </div>
         )}
+        {affiliateNotice ? (
+          <div className="mx-auto mb-2 w-full max-w-3xl px-3 sm:px-4">
+            <div className="rounded-2xl border border-[#F3D2C4] bg-[#FFF8F5] px-3 py-2.5" role="status">
+              <p className="text-[13px] font-bold text-[#111827]">
+                {affiliateNotice.name ? `Promotion for ${affiliateNotice.name}` : "Affiliate promotion"}
+              </p>
+              <p className="mt-0.5 text-[12px] leading-5 text-[#6B7280]">{affiliateNotice.detail}</p>
+              {affiliateNotice.manual ? (
+                <button
+                  type="button"
+                  onClick={() => handleSend()}
+                  disabled={isSending || !query.trim()}
+                  className="mt-2 inline-flex h-9 items-center rounded-[10px] bg-[#FF5A1F] px-3 text-[12px] font-bold text-white disabled:opacity-60"
+                >
+                  Generate
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <AiComposer
           value={query}
           onChange={(next) => {

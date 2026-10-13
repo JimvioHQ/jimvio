@@ -12,7 +12,10 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
   const response = await fetch("/api/ai/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({
+      messages,
+      ...(input.affiliateTask ? { affiliateTask: input.affiliateTask } : {}),
+    }),
     signal,
   });
   if (!response.ok || !response.body) {

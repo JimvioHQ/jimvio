@@ -44,6 +44,8 @@ import {
   LIVEKIT_JOIN_GRACE_MS,
 } from "@/lib/live/livekit-presence";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
+import { describeVideoFrame, sharedStageLayout } from "@/lib/live/screen-frame";
+import { canControlRoomStage, readStageFocus } from "@/lib/live/stage-selection";
 import { isAnonymousLiveIdentity } from "@/lib/live/livekit-token";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
 import { LivePrepareStage } from "./live/LivePrepareStage";
@@ -62,6 +64,7 @@ import { LiveContextNav } from "./live/LiveContextNav";
 import { LiveMorePanel, type LiveMoreActionId } from "./live/LiveMorePanel";
 import { LiveShareSheet } from "./live/LiveShareSheet";
 import { StageMediaPreview } from "./live/StageMediaPreview";
+import { LiveScreenShareStrip } from "./live/LiveScreenShareStrip";
 import { RemoteAudioSink } from "./live/RemoteAudioSink";
 import {
   AnalyticsPanel,
@@ -144,6 +147,9 @@ export function HubLivePage({
   const [layout, setLayout] = useState<(typeof LAYOUTS)[number]>("Presentation");
   const [activity, setActivity] = useState<ActivityMode>("live");
   const [focusMode, setFocusMode] = useState(false);
+  const [stageFrame, setStageFrame] = useState<{ width: number; height: number } | null>(null);
+  const clearedStageRef = useRef<string | null>(null);
+  const seenScreenSharesRef = useRef<Set<string>>(new Set());
   const [confirmDialog, setConfirmDialog] = useState<null | "end" | "leave" | "back">(null);
   const [endLiveBusy, setEndLiveBusy] = useState(false);
   const [leaveLiveBusy, setLeaveLiveBusy] = useState(false);
@@ -242,33 +248,19 @@ export function HubLivePage({
     micOn: media.micOn && canUseMic && !isAnonymousViewer,
     shareStream: media.shareStream,
     sharing: media.sharing && canUseScreen && !isAnonymousViewer,
-    preferLocalStage:
+    preferLocalCamera:
       !isAnonymousViewer &&
       (live.myRole === "host" || live.myRole === "cohost"),
     hostIdentity: hostUserId,
-    stagePinIdentity: (() => {
-      const settings = (live.session?.settings ?? {}) as Record<string, unknown>;
-      const focus = settings.stage_focus as
-        | { identity?: string | null }
-        | undefined;
-      return typeof focus?.identity === "string" ? focus.identity : null;
-    })(),
+    stageFocus: readStageFocus(live.session?.settings),
   });
 
   const micOn = media.micOn;
   const camOn = media.camOn;
   const recording = media.recordingState === "recording" || media.recordingState === "paused";
-  // Never feed mic-only MediaStreams into the video stage (black rectangle).
-  // Active screen share always owns the main stage; cameras stay in PIP.
+  // Camera tiles never receive a mic-only stream. Screen selection comes from the host.
   const stageStream = (() => {
-    if (media.sharing && media.shareStream) {
-      return livekit.stageStream ?? media.shareStream;
-    }
-    const candidate =
-      livekit.stageStream ??
-      ((live.myRole === "host" || live.myRole === "cohost") && camOn
-        ? media.previewStream
-        : null);
+    const candidate = livekit.stageStream;
     if (!candidate) return null;
     const hasLiveVideo = candidate
       .getVideoTracks()
@@ -276,13 +268,44 @@ export function HubLivePage({
     return hasLiveVideo ? candidate : null;
   })();
 
-  const activeScreenShareIdentity = (() => {
-    if (media.sharing && live.userId) return live.userId;
-    if (livekit.activeScreenShareIdentity) return livekit.activeScreenShareIdentity;
-    const remoteSharer = livekit.remotes.find((r) => r.sharing);
-    return remoteSharer?.identity ?? null;
-  })();
-  const screenShareActive = Boolean(activeScreenShareIdentity);
+  const activeScreenShareIdentity = livekit.activeScreenShareIdentity;
+  const screenShareActive = livekit.stageKind === "screen" && Boolean(activeScreenShareIdentity);
+  const sharedLayout = sharedStageLayout(
+    describeVideoFrame(stageFrame?.width ?? 0, stageFrame?.height ?? 0),
+  );
+  const onStageFrame = useCallback((frame: { width: number; height: number }) => {
+    setStageFrame((prev) =>
+      prev && prev.width === frame.width && prev.height === frame.height ? prev : frame,
+    );
+  }, []);
+
+  useEffect(() => {
+    setStageFrame(null);
+  }, [activeScreenShareIdentity]);
+
+  useEffect(() => {
+    for (const share of livekit.screenShares) seenScreenSharesRef.current.add(share.identity);
+    if (media.sharing && live.userId) seenScreenSharesRef.current.add(live.userId);
+  }, [live.userId, livekit.screenShares, media.sharing]);
+
+  useEffect(() => {
+    if (!livekit.connected || !canControlRoomStage(live.myRole)) return;
+    const focus = readStageFocus(live.session?.settings);
+    if (!focus || focus.kind !== "screen" || !focus.identity) return;
+    const liveIds = new Set(livekit.screenShares.map((share) => share.identity));
+    if (media.sharing && live.userId) liveIds.add(live.userId);
+    if (liveIds.has(focus.identity)) return;
+    if (!seenScreenSharesRef.current.has(focus.identity)) return;
+    const key = `${focus.version}:${focus.identity}`;
+    if (clearedStageRef.current === key) return;
+    clearedStageRef.current = key;
+    void live.setStageFocus({ identity: null, kind: "default" }).catch(() => undefined);
+  }, [
+    live,
+    livekit.connected,
+    livekit.screenShares,
+    media.sharing,
+  ]);
 
   const loadDashboard = useCallback(async (opts?: { soft?: boolean }) => {
     const soft = Boolean(opts?.soft);
@@ -2198,7 +2221,7 @@ export function HubLivePage({
   const participantStreams = useMemo(() => {
     const map: Record<string, MediaStream | null> = {};
     for (const r of livekit.remotes) {
-      // Never put the screen track in PIP; sharer's camera (or avatar) belongs there.
+      // Camera PIP stays a camera. Screen tracks render in the share strip and main stage.
       map[r.identity] = r.cameraStream;
     }
     if (live.userId) {
@@ -2291,6 +2314,45 @@ export function HubLivePage({
     selfProfile?.name,
     selfProfile?.avatar_url,
     livekit.remotes,
+  ]);
+
+  const screenShareTiles = useMemo(() => {
+    const items = [...livekit.screenShares];
+    if (
+      media.sharing &&
+      media.shareStream &&
+      live.userId &&
+      !items.some((share) => share.identity === live.userId)
+    ) {
+      items.push({
+        identity: live.userId,
+        stream: media.shareStream,
+        onStage: activeScreenShareIdentity === live.userId,
+      });
+    }
+    const source = peopleList.length ? peopleList : speakers;
+    return items.map((share) => {
+      const person = source.find((item) => item.id === share.identity);
+      const remote = livekit.remotes.find((item) => item.identity === share.identity);
+      const isYou = share.identity === live.userId;
+      return {
+        identity: share.identity,
+        name: isYou ? selfProfile?.name || "You" : person?.name || remote?.name || "Participant",
+        stream: share.stream,
+        onStage: share.onStage,
+        isYou,
+      };
+    });
+  }, [
+    livekit.screenShares,
+    livekit.remotes,
+    media.sharing,
+    media.shareStream,
+    live.userId,
+    activeScreenShareIdentity,
+    peopleList,
+    speakers,
+    selfProfile?.name,
   ]);
 
   const participantCountLabel = useMemo(() => {
@@ -2788,12 +2850,24 @@ export function HubLivePage({
                 "relative w-full cursor-default overflow-hidden",
                 immersive
                   ? "min-h-0 flex-1 rounded-none border-0 bg-transparent"
-                  : hasSession
-                    ? "aspect-[4/5] min-h-0 shrink-0 rounded-2xl sm:aspect-video sm:flex-1"
-                    : "min-h-[min(78vh,700px)] shrink-0 rounded-none bg-transparent",
+                  : screenShareActive
+                    ? "mx-auto min-h-[220px] max-h-[min(72vh,860px)] w-full shrink-0 rounded-2xl bg-neutral-950 sm:flex-1"
+                    : hasSession
+                      ? "aspect-[4/5] min-h-0 shrink-0 rounded-2xl sm:aspect-video sm:flex-1"
+                      : "min-h-[min(78vh,700px)] shrink-0 rounded-none bg-transparent",
                 activity === "share" && "ring-2 ring-[#FF5A1F]/35",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
+              style={
+                screenShareActive
+                  ? {
+                      aspectRatio: sharedLayout.aspectRatio ?? "16 / 9",
+                      maxWidth: sharedLayout.maxWidth,
+                      width: "100%",
+                      marginInline: "auto",
+                    }
+                  : undefined
+              }
             >
               <div
                 className={cn(
@@ -2805,9 +2879,8 @@ export function HubLivePage({
               />
               <StageMediaPreview
                 stream={stageStream}
-                cover={
-                  !screenShareActive && Boolean(stageStream)
-                }
+                cover={!screenShareActive && Boolean(stageStream)}
+                onFrame={screenShareActive ? onStageFrame : undefined}
               />
               {screenShareActive ? (
                 <div className="pointer-events-none absolute left-3 top-3 z-[4]">
@@ -2949,27 +3022,15 @@ export function HubLivePage({
                             onMoveToStage={
                               canManageStage
                                 ? () => {
-                                    // While any screen share is active, keep screen as main stage.
-                                    // Camera "Move to Stage" would incorrectly replace the shared screen.
-                                    if (screenShareActive && !sharing) {
-                                      showToast(
-                                        "Screen share stays on stage — use View Full for their camera"
-                                      );
-                                      return;
-                                    }
                                     void live
                                       .setStageFocus({
                                         identity: p.id,
-                                        kind: sharing || screenShareActive
-                                          ? "screen"
-                                          : "participant",
+                                        kind: sharing ? "screen" : "participant",
                                       })
                                       .then(() =>
                                         showToast(
-                                          sharing || screenShareActive
-                                            ? "Screen featured on stage"
-                                            : "Moved to stage"
-                                        )
+                                          sharing ? "Screen is on the main stage" : "Moved to stage",
+                                        ),
                                       )
                                       .catch((e) =>
                                         showToast(
@@ -3076,6 +3137,21 @@ export function HubLivePage({
                 </div>
               )}
             </div>
+
+            {hasSession && screenShareTiles.length > 0 ? (
+              <LiveScreenShareStrip
+                shares={screenShareTiles}
+                canPromote={canControlRoomStage(live.myRole)}
+                onPromote={(identity) => {
+                  void live
+                    .setStageFocus({ identity, kind: "screen" })
+                    .then(() => showToast("Screen is on the main stage"))
+                    .catch((error) =>
+                      showToast(error instanceof Error ? error.message : "Could not show that screen"),
+                    );
+                }}
+              />
+            ) : null}
 
             {hasSession && !isAnonymousViewer ? (
               <div className="hidden lg:block">

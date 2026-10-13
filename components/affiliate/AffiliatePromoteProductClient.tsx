@@ -22,6 +22,8 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
+import { shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { AffiliateAiRecovery } from "./AffiliateAiRecovery";
 import {
   affiliateContentNeedsDisclosure,
   affiliatePlainText,
@@ -114,6 +116,8 @@ export function AffiliatePromoteProductClient({
   const [ensuring, setEnsuring] = useState(false);
   const [promo, setPromo] = useState<PromoKit | null>(null);
   const [promoBusy, setPromoBusy] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [offerWorkspace, setOfferWorkspace] = useState(false);
   const [track, setTrack] = useState<{ clicks: number; conversions: number; earnings: number } | null>(
     null
   );
@@ -310,29 +314,27 @@ export function AffiliatePromoteProductClient({
     startTransition(async () => {
       setPromoBusy(true);
       setError(null);
+      setAiError(null);
+      setOfferWorkspace(false);
       try {
         const res = await fetch("/api/ai/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "affiliate_promotion",
-            productName: product.name,
-            category: product.category,
-            price: product.price,
-            currency: "USD",
-            commissionRate: product.rate,
-            features: product.features,
-            description: descriptionPlain.slice(0, 700),
+            productId: product.id,
           }),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
-          setError(data?.error ?? "AI generation failed — sign in to continue");
+          setAiError(data?.error ?? "AI generation failed — sign in to continue");
+          setOfferWorkspace(shouldOfferAffiliateWorkspace(res.status, data?.code));
           return;
         }
         setPromo(data?.data ?? null);
       } catch {
-        setError("Could not generate AI assets");
+        setAiError("Could not generate AI assets");
+        setOfferWorkspace(true);
       } finally {
         setPromoBusy(false);
       }
@@ -640,6 +642,19 @@ export function AffiliatePromoteProductClient({
               {promoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Generate captions, hashtags, hooks & scripts
             </button>
+            {aiError && offerWorkspace ? (
+              <AffiliateAiRecovery
+                message={aiError}
+                productId={product.id}
+                returnPath={`/affiliates/promote/${product.slug}`}
+                pending={promoBusy}
+                onRetry={generateAi}
+              />
+            ) : aiError ? (
+              <p className="mt-2 text-[12px] font-medium text-red-600" role="alert">
+                {aiError}
+              </p>
+            ) : null}
             {promo ? (
               <div className="mt-3 space-y-3">
                 {(promo.tiktokCaption || promo.instagramCaption) && (

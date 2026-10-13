@@ -19,6 +19,7 @@ import {
   type PresenceSystemEvent,
 } from "@/lib/live/presence-events";
 import type { LiveParticipantRow, LiveSessionRow } from "@/services/live/session-service";
+import { mergeLiveSessionSettings } from "@/lib/live/stage-selection";
 
 type ProfileCacheEntry = {
   display_name: string | null;
@@ -380,7 +381,14 @@ export function useLiveSession(initialSessionId?: string | null) {
         (payload) => {
           const row = payload?.new as LiveSessionRow | null;
           if (row && typeof row === "object" && "id" in row) {
-            setSession((prev) => (prev ? { ...prev, ...row } : row));
+            setSession((prev) => {
+              if (!prev) return row;
+              return {
+                ...prev,
+                ...row,
+                settings: mergeLiveSessionSettings(prev.settings, row.settings),
+              };
+            });
           }
           if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },

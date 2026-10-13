@@ -6,6 +6,12 @@ import {
   getAiProviderStatus,
 } from "@/services/ai/openai";
 import { createAffiliatePromotionResponse } from "@/lib/ai/affiliate-gemini";
+import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
+import { GEMINI_API_KEY_ENV } from "@/lib/ai/gemini-model";
+import {
+  loadAffiliateProductContext,
+  promotionInputFromContext,
+} from "@/lib/ai/affiliate-product-context";
 import { z } from "zod";
 
 const generateSchema = z.discriminatedUnion("type", [
@@ -57,13 +63,9 @@ const generateSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("affiliate_promotion"),
-    productName: z.string().min(1),
-    category: z.string().min(1),
-    price: z.number().finite(),
-    currency: z.string().optional(),
-    commissionRate: z.number().finite(),
-    features: z.array(z.string()).optional(),
-    description: z.string().optional(),
+    productId: z.string().trim().min(1).max(80),
+    assetTypes: z.array(z.string().trim().min(1).max(40)).max(16).optional(),
+    platform: z.string().trim().max(40).optional(),
   }),
 ]);
 
@@ -79,16 +81,23 @@ export async function POST(req: NextRequest) {
     const params = generateSchema.parse(body);
 
     if (params.type === "affiliate_promotion") {
-      const result = await createAffiliatePromotionResponse({
-        productName: params.productName,
-        category: params.category,
-        price: params.price,
-        currency: params.currency || "USD",
-        commissionRate: params.commissionRate,
-        features: params.features,
-        description: params.description,
+      const context = await loadAffiliateProductContext(params.productId, {
+        assetTypes: params.assetTypes,
+        platform: params.platform,
       });
-      return NextResponse.json(result.body, { status: result.status });
+      if (!context) {
+        return NextResponse.json(
+          { error: "That product is not available for affiliate promotion.", code: "not_found" },
+          { status: 404 },
+        );
+      }
+      const result = await createAffiliatePromotionResponse(promotionInputFromContext(context), {
+        listModels: () => listAccessibleGeminiModels(process.env[GEMINI_API_KEY_ENV] ?? ""),
+      });
+      return NextResponse.json(
+        { ...result.body, productId: context.productId },
+        { status: result.status },
+      );
     }
 
     const provider = getAiProviderStatus();

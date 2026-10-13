@@ -16,7 +16,6 @@ import {
   geminiAttemptOrder,
   isUsableApiKey,
   iterateGeminiText,
-  modelsFromListPayload,
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
@@ -24,6 +23,8 @@ import { greetingReply, isSimpleGreeting } from "@/lib/ai/guide-copy";
 import { buildGuideResponse } from "@/lib/ai/guide-reply";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
 import { sseChunk, sseDone, sseError, sseMode } from "@/lib/ai/sse";
+import { verifyAffiliatePromotionTask } from "@/lib/ai/affiliate-task-token";
+import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 const FIRST_TOKEN_MS = 18_000;
@@ -34,8 +35,6 @@ const MAX_MESSAGE_CHARS = 2_000;
 const responseCache = new Map<string, { text: string; mode: "live" | "guide"; ts: number }>();
 
 type AiFailureCategory = GeminiFailureCategory;
-
-let modelCatalog: { at: number; models: string[] } | null = null;
 
 function clientIp(request: Request): string {
   return (
@@ -106,41 +105,16 @@ function remember(cacheKey: string, text: string, mode: "live" | "guide") {
   }
 }
 
-async function accessibleGeminiModels(key: string): Promise<{ models: string[]; category?: AiFailureCategory; detail?: string }> {
-  if (modelCatalog && Date.now() - modelCatalog.at < 10 * 60_000) {
-    return { models: modelCatalog.models };
-  }
-  try {
-    const models: string[] = [];
-    let pageToken = "";
-    for (let page = 0; page < 3; page += 1) {
-      const url = new URL("https://generativelanguage.googleapis.com/v1beta/models");
-      url.searchParams.set("pageSize", "100");
-      url.searchParams.set("key", key);
-      if (pageToken) url.searchParams.set("pageToken", pageToken);
-      const response = await withTimeout(fetch(url), 8_000);
-      const payload = await response.json().catch(() => null) as { nextPageToken?: string; error?: { message?: string } } | null;
-      if (!response.ok) {
-        const message = redactProviderMessage(new Error(payload?.error?.message || String(response.status)));
-        const category = response.status === 429 ? "rate_limit" : response.status === 401 || response.status === 403 ? "authentication" : "provider";
-        return { models: [], category, detail: message };
-      }
-      models.push(...modelsFromListPayload(payload));
-      pageToken = payload?.nextPageToken ?? "";
-      if (!pageToken) break;
-    }
-    modelCatalog = { at: Date.now(), models };
-    return { models };
-  } catch (error) {
-    return { models: [], category: classifyProviderError(error), detail: redactProviderMessage(error) };
-  }
-}
-
 /**
  * Opens the Gemini stream and forwards each text part as SSE.
  * Returns null when Gemini produces nothing, so the caller can send the guide.
  */
-async function openGeminiResponse(messages: ChatMessage[], modelName: string, cacheKey: string): Promise<Response | null> {
+async function openGeminiResponse(
+  messages: ChatMessage[],
+  modelName: string,
+  cacheKey: string,
+  productAddendum?: string,
+): Promise<Response | null> {
   const geminiKey = process.env[GEMINI_API_KEY_ENV];
   if (!isUsableApiKey(geminiKey)) {
     logAiResult("unconfigured");
@@ -148,12 +122,16 @@ async function openGeminiResponse(messages: ChatMessage[], modelName: string, ca
   }
 
   const lastMessage = messages[messages.length - 1]?.content ?? "";
+  const grounded = buildGroundedPrompt(`${JIMVIO_AI_SYSTEM_PROMPT}\n\n${EARNING_GUIDE_SYSTEM_RULES}`, lastMessage);
+  const systemText = productAddendum
+    ? `${grounded}\n\n${productAddendum.slice(0, 3500)}`
+    : grounded;
   const genAI = new GoogleGenerativeAI(geminiKey!);
   const model = genAI.getGenerativeModel({
     model: modelName,
     systemInstruction: {
       role: "system",
-      parts: [{ text: buildGroundedPrompt(`${JIMVIO_AI_SYSTEM_PROMPT}\n\n${EARNING_GUIDE_SYSTEM_RULES}`, lastMessage) }],
+      parts: [{ text: systemText }],
     },
     generationConfig: {
       maxOutputTokens: 700,
@@ -256,9 +234,9 @@ export async function POST(req: NextRequest) {
       return streamText("That conversation is too long to send. Start a shorter question and try again.", "guide");
     }
 
-    let body: { messages?: ChatMessage[] } = {};
+    let body: { messages?: ChatMessage[]; affiliateTask?: string } = {};
     try {
-      body = JSON.parse(rawBody) as { messages?: ChatMessage[] };
+      body = JSON.parse(rawBody) as { messages?: ChatMessage[]; affiliateTask?: string };
     } catch {
       return streamText("Jimvio AI could not read that message. Try sending it again.", "guide");
     }
@@ -306,7 +284,7 @@ export async function POST(req: NextRequest) {
       return streamText(buildGuideResponse(messages), "guide");
     }
 
-    const catalog = await accessibleGeminiModels(geminiKey!);
+    const catalog = await listAccessibleGeminiModels(geminiKey!);
     if (catalog.category) {
       logAiResult(catalog.category, { detail: catalog.detail });
       logAiResult("fallback", { detail: catalog.category });
@@ -320,8 +298,11 @@ export async function POST(req: NextRequest) {
       return streamText(buildGuideResponse(messages), "guide");
     }
 
+    const affiliateTask =
+      typeof body.affiliateTask === "string" ? verifyAffiliatePromotionTask(body.affiliateTask) : null;
+
     for (const modelName of attempts) {
-      const live = await openGeminiResponse(messages, modelName, cacheKey);
+      const live = await openGeminiResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
       if (live) return live;
     }
 

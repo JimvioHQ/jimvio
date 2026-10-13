@@ -18,6 +18,8 @@ export type CopilotSendInput = {
   pathname: string;
   actionId?: string;
   signal?: AbortSignal;
+  /** Signed server task. The workspace does not send product prices in this field. */
+  affiliateTask?: string;
 };
 
 export type CopilotQuickAction = {

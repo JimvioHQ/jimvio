@@ -1,7 +1,15 @@
 /**
- * Pure stage composition helpers for screen-share + sharer PIP behavior.
- * Kept separate from LiveKit transport so layout rules are unit-testable.
+ * Stage composition for LiveKit screen share.
+ * Each participant can publish one screen track. Those tracks stay available
+ * as previews until the host promotes one. A new share does not replace the
+ * host's current main-stage source.
  */
+
+import {
+  dedupeByIdentity,
+  resolveStageSource,
+  type RoomStageFocus,
+} from "@/lib/live/stage-selection";
 
 export type StageShareCandidate = {
   identity: string;
@@ -10,117 +18,115 @@ export type StageShareCandidate = {
   cameraStream: MediaStream | null;
 };
 
-export type StageShareSelection = {
-  stageStream: MediaStream | null;
-  /** Participant whose screen owns the main stage (null when camera/host stage). */
-  activeScreenShareIdentity: string | null;
+export type StageScreenPreview = {
+  identity: string;
+  stream: MediaStream;
+  onStage: boolean;
 };
 
-/**
- * SCREEN SHARE > CAMERA.
- * When anyone is sharing, their screen is the dominant stage. Cameras never
- * replace an active screen share (sharer camera belongs in PIP).
- */
+export type StageShareSelection = {
+  stageStream: MediaStream | null;
+  /** Participant whose screen owns the main stage, or null when the stage is a camera. */
+  activeScreenShareIdentity: string | null;
+  stageKind: "screen" | "camera";
+  screenShares: StageScreenPreview[];
+};
+
 export function selectStageShareLayout(input: {
   remotes: StageShareCandidate[];
   hostIdentity?: string | null;
-  stagePinIdentity?: string | null;
+  stageFocus?: RoomStageFocus | null;
   localSharing?: boolean;
-  localPreview?: MediaStream | null;
+  localScreen?: MediaStream | null;
+  localCamera?: MediaStream | null;
   localIdentity?: string | null;
-  preferLocalStage?: boolean;
-  lastRemoteScreenIdentity?: string | null;
+  preferLocalCamera?: boolean;
 }): StageShareSelection {
   const {
     remotes,
     hostIdentity = null,
-    stagePinIdentity = null,
+    stageFocus = null,
     localSharing = false,
-    localPreview = null,
+    localScreen = null,
+    localCamera = null,
     localIdentity = null,
-    preferLocalStage = false,
-    lastRemoteScreenIdentity = null,
+    preferLocalCamera = false,
   } = input;
 
-  const pinned = stagePinIdentity
-    ? remotes.find((r) => r.identity === stagePinIdentity) ?? null
-    : null;
-  const hostRemote = hostIdentity
-    ? remotes.find((r) => r.identity === hostIdentity) ?? null
-    : null;
+  const screenItems = dedupeByIdentity([
+    ...remotes
+      .filter((remote) => remote.screenStream)
+      .map((remote) => ({ identity: remote.identity, stream: remote.screenStream as MediaStream })),
+    ...(localSharing && localScreen && localIdentity
+      ? [{ identity: localIdentity, stream: localScreen }]
+      : []),
+  ]);
+  const screenByIdentity = new Map(screenItems.map((item) => [item.identity, item.stream]));
+  const hostSharing = Boolean(hostIdentity && screenByIdentity.has(hostIdentity));
+  const resolved = resolveStageSource({
+    focus: stageFocus,
+    hostIdentity,
+    screenIdentities: [...screenByIdentity.keys()],
+    hostSharing,
+  });
 
-  const remoteScreens = remotes.filter((r) => r.screenStream);
-  let remoteScreen: StageShareCandidate | null = null;
-  if (pinned?.screenStream) remoteScreen = pinned;
-  else if (lastRemoteScreenIdentity) {
-    remoteScreen =
-      remoteScreens.find((r) => r.identity === lastRemoteScreenIdentity) ?? null;
-  }
-  if (!remoteScreen) {
-    remoteScreen =
-      remoteScreens.find(
-        (r) => r.identity === hostIdentity || r.role === "host"
-      ) ??
-      remoteScreens.find((r) => r.role === "cohost") ??
-      remoteScreens[0] ??
-      null;
-  }
+  const screenShares = screenItems.map((item) => ({
+    identity: item.identity,
+    stream: item.stream,
+    onStage: resolved.kind === "screen" && resolved.identity === item.identity,
+  }));
 
-  const localScreen = localSharing && localPreview ? localPreview : null;
-
-  if (remoteScreen?.screenStream && localScreen) {
-    if (
-      lastRemoteScreenIdentity &&
-      remoteScreen.identity === lastRemoteScreenIdentity
-    ) {
+  if (resolved.kind === "screen" && resolved.identity) {
+    const stream = screenByIdentity.get(resolved.identity) ?? null;
+    if (stream) {
       return {
-        stageStream: remoteScreen.screenStream,
-        activeScreenShareIdentity: remoteScreen.identity,
+        stageStream: stream,
+        activeScreenShareIdentity: resolved.identity,
+        stageKind: "screen",
+        screenShares,
       };
     }
-    if (preferLocalStage) {
-      return {
-        stageStream: localScreen,
-        activeScreenShareIdentity: localIdentity,
-      };
-    }
-    return {
-      stageStream: remoteScreen.screenStream,
-      activeScreenShareIdentity: remoteScreen.identity,
-    };
   }
 
-  if (remoteScreen?.screenStream) {
+  const cameraFor = (identity: string | null): MediaStream | null => {
+    if (!identity) return null;
+    if (identity === localIdentity && localCamera) return localCamera;
+    return remotes.find((remote) => remote.identity === identity)?.cameraStream ?? null;
+  };
+
+  const pinnedCamera =
+    stageFocus?.kind === "participant" && stageFocus.identity ? cameraFor(stageFocus.identity) : null;
+  if (pinnedCamera) {
     return {
-      stageStream: remoteScreen.screenStream,
-      activeScreenShareIdentity: remoteScreen.identity,
+      stageStream: pinnedCamera,
+      activeScreenShareIdentity: null,
+      stageKind: "camera",
+      screenShares,
     };
   }
-
-  if (localScreen) {
+  if (preferLocalCamera && localCamera) {
     return {
-      stageStream: localScreen,
-      activeScreenShareIdentity: localIdentity,
+      stageStream: localCamera,
+      activeScreenShareIdentity: null,
+      stageKind: "camera",
+      screenShares,
     };
   }
-
-  // No screen share — cameras / pin / host preview.
-  if (pinned?.cameraStream) {
-    return { stageStream: pinned.cameraStream, activeScreenShareIdentity: null };
-  }
-  if (preferLocalStage && localPreview) {
-    return { stageStream: localPreview, activeScreenShareIdentity: null };
-  }
-  const hostCam =
-    hostRemote?.cameraStream ??
-    remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
-    remotes.find((r) => r.role === "cohost" && r.cameraStream)?.cameraStream ??
-    localPreview ??
+  const hostCamera =
+    cameraFor(hostIdentity) ??
+    remotes.find((remote) => remote.role === "host" && remote.cameraStream)?.cameraStream ??
+    remotes.find((remote) => remote.role === "cohost" && remote.cameraStream)?.cameraStream ??
+    localCamera ??
     null;
-  return { stageStream: hostCam, activeScreenShareIdentity: null };
+  return {
+    stageStream: hostCamera,
+    activeScreenShareIdentity: null,
+    stageKind: "camera",
+    screenShares,
+  };
 }
 
-/** PIP should receive camera only — never the screen track. */
+/** PIP should receive camera only — screen tracks render in the share strip and main stage. */
 export function pipStreamForParticipant(input: {
   cameraStream: MediaStream | null;
   screenStream: MediaStream | null;

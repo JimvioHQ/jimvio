@@ -8,10 +8,12 @@ export function StageMediaPreview({
   stream,
   cover = false,
   className,
+  onFrame,
 }: {
   stream: MediaStream | null;
   cover?: boolean;
   className?: string;
+  onFrame?: (frame: { width: number; height: number }) => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -19,8 +21,20 @@ export function StageMediaPreview({
     const el = ref.current;
     if (!el) return;
     el.srcObject = stream;
+    const publish = () => {
+      const width = el.videoWidth;
+      const height = el.videoHeight;
+      if (width >= 2 && height >= 2) onFrame?.({ width, height });
+    };
+    el.addEventListener("loadedmetadata", publish);
+    el.addEventListener("resize", publish);
     if (stream) void el.play().catch(() => undefined);
-  }, [stream]);
+    publish();
+    return () => {
+      el.removeEventListener("loadedmetadata", publish);
+      el.removeEventListener("resize", publish);
+    };
+  }, [onFrame, stream]);
 
   if (!stream) return null;
 
