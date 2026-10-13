@@ -17,7 +17,6 @@ import { activateVendorRole } from "@/lib/actions/activate-vendor-role";
 import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
-import { JIMVIO_SUPPORT_EMAIL } from "@/lib/contact-email";
 import { cn } from "@/lib/utils";
 
 function slugify(text: string) {
@@ -66,7 +65,6 @@ export default function ActivateVendorPage() {
    const [otherCategoryInput, setOtherCategoryInput] = useState("");
    const [categorySearch, setCategorySearch] = useState("");
    const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-   const supportEmail = JIMVIO_SUPPORT_EMAIL;
 
    const filteredCategories = existingCategories.filter(c =>
       !categorySearch.trim() ||
@@ -385,7 +383,7 @@ export default function ActivateVendorPage() {
                         </Link>
                         {isRejected && (
                            <Link
-                              href={`mailto:${supportEmail}`}
+                              href="/help"
                               className="flex-1 h-10 flex items-center justify-center rounded-xl text-xs font-semibold transition-all"
                               style={{ border: "1px solid var(--color-border)", background: "var(--color-surface-secondary)", color: "var(--color-text-primary)" }}
                               onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--color-border-strong)")}

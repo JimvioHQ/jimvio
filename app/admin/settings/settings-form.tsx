@@ -178,8 +178,8 @@ const DEMO_INITIAL: ResolvedPlatformSettings = {
     social_facebook: "",
     social_linkedin: "",
     social_whatsapp: "",
-    hq_line1: "KG 7 Ave, Kigali",
-    hq_line2: "Rwanda",
+    hq_line1: "",
+    hq_line2: "",
   },
   features: {
     affiliate_enabled: true,

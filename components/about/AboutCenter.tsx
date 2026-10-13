@@ -793,7 +793,7 @@ export function AboutCenter() {
                     Download logo SVG
                   </a>
                   <Link
-                    href="/contact"
+                    href="/contact?topic=partnerships"
                     className="inline-flex h-11 items-center rounded-[12px] border border-[var(--color-border)] px-5 text-sm font-bold"
                   >
                     Partnerships

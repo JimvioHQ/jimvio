@@ -19,7 +19,6 @@ const FACTS = [
   { label: "Company", value: "Jimvio Inc." },
   { label: "Product", value: SITE.tagline },
   { label: "Website", value: "www.jimvio.com" },
-  { label: "Headquarters", value: "Kigali, Rwanda" },
 ];
 
 export default async function PressPage() {
@@ -111,9 +110,7 @@ export default async function PressPage() {
                       {fact.label}
                     </dt>
                     <dd className="mt-0.5 text-sm font-medium text-[#111827] dark:text-[var(--color-text-primary)]">
-                      {fact.label === "Headquarters"
-                        ? `${contact.hq_line1}, ${contact.hq_line2}`
-                        : fact.value}
+                      {fact.value}
                     </dd>
                   </div>
                 ))}

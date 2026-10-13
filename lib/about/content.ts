@@ -439,7 +439,7 @@ export const LOGO_MISUSE = [
 ];
 
 export const ABOUT_RESOURCE_LINKS = [
-  { href: "/contact", label: "Contact & partnerships" },
+  { href: "/contact?topic=partnerships", label: "Contact & partnerships" },
   { href: "/careers", label: "Careers" },
   { href: "/help", label: "Help Center" },
   { href: "/legal", label: "Legal Center" },

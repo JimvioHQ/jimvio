@@ -120,6 +120,23 @@ const nextConfig: NextConfig = {
       { source: "/vendors/jimvio-dropshipping", destination: "/vendors/jimvio-store", permanent: true },
       // Company IA — no public IR dossier; keep bookmarks from 404ing.
       { source: "/investor-relations", destination: "/contact?topic=investors", permanent: false },
+      // Canonical support form. Topic queries stay on /contact for vendor,
+      // creator, press, partnership, and investor inquiries. Host-scoped so
+      // merchant storefronts can keep /contact → /pages/contact.
+      {
+        source: "/contact",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        missing: [{ type: "query", key: "topic" }],
+        destination: "/help/contact",
+        permanent: true,
+      },
+      {
+        source: "/contact",
+        has: [{ type: "host", value: "localhost" }],
+        missing: [{ type: "query", key: "topic" }],
+        destination: "/help/contact",
+        permanent: false,
+      },
 
       // Canonical Physical Marketplace (avoid duplicate ?type=physical indexation)
       {

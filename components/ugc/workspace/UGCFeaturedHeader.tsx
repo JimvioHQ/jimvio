@@ -28,7 +28,7 @@ const FEATURED_FALLBACK_BG = { background: "#FFFFFF" } as const;
 
 /** Small white controls. Hidden until hover or keyboard focus so the card matches the clean reference. */
 const CAROUSEL_CTRL =
-  "absolute top-1/2 z-30 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_8px_rgba(17,24,39,0.08)] opacity-0 transition hover:bg-[#F9FAFB] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 group-hover:opacity-100 [@media(hover:none)]:opacity-100";
+  "absolute top-1/2 z-30 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#111827] shadow-[0_2px_8px_rgba(17,24,39,0.08)] opacity-0 transition hover:bg-[#F9FAFB] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 group-hover:opacity-100 sm:inline-flex sm:[@media(hover:none)]:opacity-100";
 
 function FeaturedStage({
   banner,
@@ -86,9 +86,13 @@ function FeaturedStage({
 function FeaturedCopy({
   campaign,
   variant,
+  joinVisible,
+  onRevealJoin,
 }: {
   campaign: UGCCampaign;
   variant: "mobile" | "desktop";
+  joinVisible?: boolean;
+  onRevealJoin?: () => void;
 }) {
   const { t } = useLocale();
   const brand = campaign.vendor?.business_name ?? "Brand";
@@ -154,7 +158,11 @@ function FeaturedCopy({
           <JoinCampaignGateLink
             href={`/ugc/${campaign.id}`}
             data-hero-action
+            onFocus={() => onRevealJoin?.()}
             onClick={(e) => e.stopPropagation()}
+            className={cn(
+              mobile && !joinVisible && "absolute m-[-1px] h-px w-px overflow-hidden whitespace-nowrap border-0 p-0 [clip:rect(0,0,0,0)]",
+            )}
           >
             <span
               className="inline-flex items-center rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:brightness-[0.97] sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
@@ -193,7 +201,9 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
     });
   })();
   const [index, setIndex] = useState(0);
+  const [joinCampaignId, setJoinCampaignId] = useState<string | null>(null);
   const touchX = useRef<number | null>(null);
+  const ignoreClickAfterSwipe = useRef(false);
   const count = list.length;
   const multi = count > 1;
 
@@ -204,6 +214,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
   const go = useCallback(
     (dir: -1 | 1) => {
       if (!multi) return;
+      setJoinCampaignId(null);
       setIndex((i) => (i + dir + count) % count);
     },
     [count, multi],
@@ -229,6 +240,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
   if (!count) return null;
 
   const c = list[Math.min(index, count - 1)]!;
+  const mobileJoinOpen = joinCampaignId === c.id;
   const banner = getCampaignBanner(c);
   const brand = c.vendor?.business_name ?? "Brand";
 
@@ -251,8 +263,19 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
           touchX.current = null;
           if (start == null) return;
           const dx = (e.changedTouches[0]?.clientX ?? start) - start;
+          if (Math.abs(dx) > 40) ignoreClickAfterSwipe.current = true;
           if (dx > 40) go(-1);
           if (dx < -40) go(1);
+        }}
+        onClick={(e) => {
+          if (ignoreClickAfterSwipe.current) {
+            ignoreClickAfterSwipe.current = false;
+            return;
+          }
+          if (window.matchMedia("(min-width: 640px)").matches) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("[data-hero-action]")) return;
+          setJoinCampaignId(c.id);
         }}
       >
         <div className="relative flex h-full flex-row sm:hidden">
@@ -260,7 +283,12 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
             className="relative z-10 flex h-full w-[58%] min-w-0 flex-col justify-center p-3 pr-2"
             style={{ background: MOBILE_TEXT }}
           >
-            <FeaturedCopy campaign={c} variant="mobile" />
+            <FeaturedCopy
+              campaign={c}
+              variant="mobile"
+              joinVisible={mobileJoinOpen}
+              onRevealJoin={() => setJoinCampaignId(c.id)}
+            />
           </div>
           <div className="relative z-[15] h-full w-[42%] shrink-0 self-stretch">
             <FeaturedStage banner={banner} brand={brand} mobile />
@@ -277,7 +305,7 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
             "absolute inset-0 z-10 hidden flex-col justify-center p-3 sm:flex sm:max-w-[48%] sm:p-7 sm:pr-8 lg:max-w-[46%] lg:p-8",
           )}
         >
-          <FeaturedCopy campaign={c} variant="desktop" />
+          <FeaturedCopy campaign={c} variant="desktop" joinVisible />
         </div>
 
         {multi ? (
@@ -314,7 +342,10 @@ export function UGCFeaturedHeader({ campaigns }: { campaigns: UGCCampaign[] }) {
                   role="tab"
                   aria-selected={i === index}
                   aria-label={`Show featured campaign ${i + 1}`}
-                  onClick={() => setIndex(i)}
+                  onClick={() => {
+                    setJoinCampaignId(null);
+                    setIndex(i);
+                  }}
                   className={cn(
                     "appearance-none rounded-full border-0 bg-transparent p-0 shadow-none outline-none ring-0 ring-offset-0 transition-all",
                     "focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0",

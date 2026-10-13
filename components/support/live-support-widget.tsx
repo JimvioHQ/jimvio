@@ -277,7 +277,7 @@ function TicketPeek() {
     return (
       <p className="p-4 text-sm text-[#374151]">
         No tickets yet.{" "}
-        <Link href="/help/tickets/new" className="font-semibold text-[#FF5A1F]">
+        <Link href="/help" className="font-semibold text-[#FF5A1F]">
           Contact support
         </Link>
         .

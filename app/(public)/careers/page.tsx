@@ -77,7 +77,7 @@ const FAQS = [
   },
   {
     q: "Where is Jimvio based?",
-    a: "Jimvio’s headquarters address is published on our Contact page in Kigali, Rwanda. The team itself works remotely across regions.",
+    a: "Jimvio is a globally distributed, remote-first team and does not publish a headquarters address.",
   },
   {
     q: "Do you list every open role here?",

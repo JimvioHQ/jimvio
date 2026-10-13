@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState, type MouseEvent } from "react";
 import Link from "next/link";
 import type { UGCCampaign } from "@/types/ugc";
 import { cn } from "@/lib/utils";
@@ -35,16 +35,21 @@ function JoinButton({
   title,
   label,
   className,
+  onFocus,
 }: {
   href: string;
   title: string;
   label: string;
   className?: string;
+  onFocus?: () => void;
 }) {
   return (
     <JoinCampaignGateLink
       href={href}
+      data-join-campaign
       aria-label={`Join campaign ${title}`}
+      onFocus={onFocus}
+      onClick={(e) => e.stopPropagation()}
       className={cn(
         "inline-flex h-7 w-full items-center justify-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white shadow-sm",
         "transition-[background-color,box-shadow,opacity] duration-200 hover:bg-[#E54E18] hover:shadow-[0_4px_14px_rgba(255,90,31,0.35)]",
@@ -80,6 +85,14 @@ function UGCPremiumCampaignCardInner({
   const descId = description ? `ugc-card-desc-${c.id}` : undefined;
   const joinLabel = t("joinCampaign");
   const compact = density === "compact";
+  const [joinRevealed, setJoinRevealed] = useState(false);
+
+  function revealJoinFromCard(event: MouseEvent<HTMLElement>) {
+    if (window.matchMedia("(min-width: 640px)").matches) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-join-campaign], [data-view-brief]")) return;
+    setJoinRevealed(true);
+  }
 
   return (
     <article
@@ -88,6 +101,7 @@ function UGCPremiumCampaignCardInner({
       aria-describedby={descId}
     >
       <div
+        onClick={revealJoinFromCard}
         className={cn(
           "relative flex h-full flex-col overflow-hidden rounded-[14px] border border-[#E8EAED] bg-white",
           "shadow-[0_1px_3px_rgba(17,24,39,0.05)] transition-[transform,box-shadow] duration-[220ms] ease-out",
@@ -107,8 +121,14 @@ function UGCPremiumCampaignCardInner({
         >
           <Link
             href={briefHref}
+            data-view-brief
             className="absolute inset-0 block"
             aria-label={`View campaign brief: ${c.title}`}
+            onClick={(event) => {
+              if (window.matchMedia("(min-width: 640px)").matches || joinRevealed) return;
+              event.preventDefault();
+              setJoinRevealed(true);
+            }}
           >
             {banner ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -146,20 +166,23 @@ function UGCPremiumCampaignCardInner({
             <div
               className={cn(
                 "absolute inset-x-1.5 bottom-1.5 z-[1] transition-opacity duration-200 sm:inset-x-2 sm:bottom-2",
-                /* Featured homepage rail: keep Join CTA always visible (no hover-gate) */
                 featured
-                  ? "opacity-100"
+                  ? "sm:opacity-100"
                   : cn(
-                      "opacity-100 sm:pointer-events-none sm:opacity-0",
+                      "sm:pointer-events-none sm:opacity-0",
                       "sm:group-hover/card:pointer-events-auto sm:group-hover/card:opacity-100",
                       "sm:group-focus-within/card:pointer-events-auto sm:group-focus-within/card:opacity-100",
                     ),
+                joinRevealed
+                  ? "max-sm:pointer-events-auto max-sm:opacity-100"
+                  : "max-sm:pointer-events-none max-sm:opacity-0 max-sm:focus-within:pointer-events-auto max-sm:focus-within:opacity-100",
               )}
             >
               <JoinButton
                 href={joinHref}
                 title={c.title}
                 label={joinLabel}
+                onFocus={() => setJoinRevealed(true)}
                 className={cn(compact && "h-6 px-2 text-[10px] sm:h-7 sm:px-2.5 sm:text-[11px]")}
               />
             </div>
@@ -233,6 +256,7 @@ function UGCPremiumCampaignCardInner({
             >
               <Link
                 href={briefHref}
+                data-view-brief
                 className="line-clamp-2 [@media(hover:hover)]:group-hover/card:line-clamp-1 sm:group-focus-within/card:line-clamp-1 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:underline"
               >
                 {c.title}

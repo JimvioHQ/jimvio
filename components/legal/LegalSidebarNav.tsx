@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ChevronRight, Headphones, Search, X } from "lucide-react";
 import {
   LEGAL_CATEGORIES,
-  LEGAL_CONTACT,
   LEGAL_DOCUMENTS,
   type LegalCategoryId,
   type LegalDocumentId,
@@ -155,7 +154,7 @@ export function LegalSidebarNav({ activeId, className, onNavigate }: Props) {
             Questions about our policies? Contact support.
           </p>
           <Link
-            href={LEGAL_CONTACT.contactPath}
+            href="/help"
             onClick={onNavigate}
             className="inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-[#FF5A1F] text-sm font-bold text-white transition hover:bg-[#e04e18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
           >

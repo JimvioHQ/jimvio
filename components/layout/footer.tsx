@@ -48,7 +48,6 @@ const footerLinks = {
     { label: "Press", href: "/press" },
     { label: "Trust & Safety", href: "/community-guidelines" },
     { label: "Legal Center", href: "/legal" },
-    { label: "Prohibited Products", href: "/prohibited-products" },
     { label: "Contact", href: "/contact" },
   ],
 };

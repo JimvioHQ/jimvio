@@ -549,7 +549,7 @@ export default function ActivateRolePage() {
           <p className="text-center text-[11px] text-[var(--color-text-muted)] pt-2 border-t border-[var(--color-border)]">
             Questions?{" "}
             <Link
-              href="/support"
+              href="/help"
               className="text-[var(--color-accent)] font-semibold hover:underline"
             >
               Contact support

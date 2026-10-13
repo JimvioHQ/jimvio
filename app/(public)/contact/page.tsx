@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import { permanentRedirect } from "next/navigation";
 import {
   ArrowRight,
   Briefcase,
@@ -6,16 +7,25 @@ import {
   Handshake,
   HelpCircle,
   Mail,
-  MapPin,
   Megaphone,
   Scale,
   Store,
   Users,
 } from "lucide-react";
 import { ContactForm } from "@/components/contact/ContactForm";
-import { normalizeContactTopic } from "@/lib/contact/topics";
+import { normalizeContactTopic, type ContactTopic } from "@/lib/contact/topics";
 import { customerSupportEmail, supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
+
+/** Inquiry topics that stay on this page. General visits redirect to Help. */
+const DEDICATED_INQUIRY_TOPICS = new Set<ContactTopic>([
+  "business",
+  "partnerships",
+  "creator",
+  "vendor",
+  "press",
+  "investors",
+]);
 
 const CHANNELS = [
   {
@@ -65,11 +75,27 @@ const CHANNELS = [
 export default async function ContactPage({
   searchParams,
 }: {
-  searchParams: Promise<{ topic?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { contact } = await getResolvedPlatformSettings();
   const params = await searchParams;
-  const initialTopic = normalizeContactTopic(params.topic);
+  const rawTopic = typeof params.topic === "string" ? params.topic : undefined;
+  const initialTopic = normalizeContactTopic(rawTopic);
+
+  if (!rawTopic || !DEDICATED_INQUIRY_TOPICS.has(initialTopic) || rawTopic !== initialTopic) {
+    const sp = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (key === "topic" && rawTopic === "support") continue;
+      if (typeof value === "string") sp.append(key, value);
+      else if (Array.isArray(value)) for (const item of value) sp.append(key, item);
+    }
+    const query = sp.toString();
+    if (rawTopic === "support") {
+      permanentRedirect(query ? `/help?${query}` : "/help");
+    }
+    permanentRedirect(query ? `/help/contact?${query}` : "/help/contact");
+  }
+
+  const { contact } = await getResolvedPlatformSettings();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[var(--color-bg)]">
@@ -162,22 +188,6 @@ export default async function ContactPage({
                     >
                       {supportNotificationRecipient(contact.info_email)}
                     </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] border border-[var(--color-border)] bg-[#F8FAFC] text-[#111827] dark:bg-[var(--color-bg)] dark:text-[var(--color-text-primary)]">
-                    <MapPin className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <h3 className="text-base font-bold text-[#111827] dark:text-[var(--color-text-primary)]">
-                      Headquarters
-                    </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                      {contact.hq_line1}
-                      <br />
-                      {contact.hq_line2}
-                    </p>
                   </div>
                 </div>
 

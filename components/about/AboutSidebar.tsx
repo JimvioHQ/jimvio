@@ -93,7 +93,7 @@ export function AboutSidebar({ activeId, onNavigate, className }: Props) {
             Questions about our brand? We&apos;re here to help.
           </p>
           <Link
-            href="/contact"
+            href="/contact?topic=partnerships"
             onClick={onNavigate}
             className="inline-flex h-10 w-full items-center justify-center rounded-[10px] bg-[#FF5A1F] text-sm font-bold text-white transition hover:bg-[#e04e18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
           >

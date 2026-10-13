@@ -132,8 +132,8 @@ export default function TradeAssurancePage() {
             <Button size="xl" className="bg-white dark:bg-surface text-blue-600 hover:bg-white dark:bg-surface/90 font-black rounded-sm h-16 px-10">
               Create Secure Account
             </Button>
-            <Button size="xl" variant="outline" className="text-white border-white/20 hover:bg-white dark:bg-surface/5 font-black rounded-sm h-16 px-10">
-               Contact Support
+            <Button asChild size="xl" variant="outline" className="text-white border-white/20 hover:bg-white dark:bg-surface/5 font-black rounded-sm h-16 px-10">
+              <Link href="/help">Contact Support</Link>
             </Button>
           </div>
         </div>

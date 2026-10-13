@@ -189,8 +189,8 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     social_facebook: "",
     social_linkedin: "https://www.linkedin.com/company/jimvio/",
     social_whatsapp: "",
-    hq_line1: "Kigali Heights, 4th Floor",
-    hq_line2: "KG 7 Ave, Kigali, Rwanda",
+    hq_line1: "",
+    hq_line2: "",
   },
 };
 
