@@ -106,4 +106,65 @@ describe("checkout quote token", () => {
       null
     );
   });
+
+  it("binds the signed amount to the order and destination and rejects an expired quote", () => {
+    process.env.CHECKOUT_QUOTE_SECRET = "test-quote-secret";
+    const orderId = "33333333-3333-3333-3333-333333333333";
+    const rates = [
+      {
+        optionId: "ILL",
+        channelId: "ILL",
+        name: "International Liquid Line",
+        arrivalDays: "20-60",
+        priceUSD: 26.94,
+      },
+    ];
+    const token = createCheckoutQuoteToken({
+      destCountryCode: "RW",
+      orderCurrency: "USD",
+      products: [{ vid: "VID-9", quantity: 1 }],
+      rates,
+      orderIds: [orderId],
+    });
+
+    const trusted = resolveTrustedRateFromQuoteToken({
+      token,
+      selection: { name: "International Liquid Line", optionId: "ILL", priceUSD: 1 },
+      products: [],
+      destCountryCode: "RW",
+      orderIds: [orderId],
+    });
+    assert.equal(trusted?.priceUSD, 26.94);
+
+    assert.equal(
+      resolveTrustedRateFromQuoteToken({
+        token,
+        selection: { name: "International Liquid Line", optionId: "ILL", priceUSD: 26.94 },
+        products: [],
+        destCountryCode: "US",
+        orderIds: [orderId],
+      }),
+      null
+    );
+    assert.equal(
+      resolveTrustedRateFromQuoteToken({
+        token,
+        selection: { name: "International Liquid Line", optionId: "ILL", priceUSD: 26.94 },
+        products: [],
+        destCountryCode: "RW",
+        orderIds: ["44444444-4444-4444-4444-444444444444"],
+      }),
+      null
+    );
+
+    const expired = createCheckoutQuoteToken({
+      destCountryCode: "RW",
+      orderCurrency: "USD",
+      products: [{ vid: "VID-9", quantity: 1 }],
+      rates,
+      orderIds: [orderId],
+      ttlMs: -(3 * 60 * 60 * 1000),
+    });
+    assert.equal(verifyCheckoutQuoteToken(expired), null);
+  });
 });

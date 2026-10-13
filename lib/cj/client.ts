@@ -248,6 +248,7 @@ export async function cjFetchWithRetry<T = unknown>(
 
         const res = await fetch(url, {
             ...init,
+            signal: init.signal ?? AbortSignal.timeout(20_000),
             headers: {
                 "Content-Type": "application/json",
                 "CJ-Access-Token": token,

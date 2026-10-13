@@ -59,7 +59,7 @@ async function getAdmin() {
 
 async function readCircuitFromDb(): Promise<number> {
   const now = Date.now();
-  if (now - lastDbReadAt < DB_READ_TTL_MS && memoryOpenUntil > now) {
+  if (lastDbReadAt > 0 && now - lastDbReadAt < DB_READ_TTL_MS) {
     return memoryOpenUntil;
   }
   lastDbReadAt = now;

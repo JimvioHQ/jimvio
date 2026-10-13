@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { usableCjVid } from "@/lib/cj/variant-vid";
+import { revalidateCjLineStock } from "@/lib/cj/revalidate-cart-stock";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 export type CjOrderLine = {
@@ -186,6 +187,22 @@ export async function submitCjOrderForLines(
 
     if (productLines.length === 0) {
         return { ok: false, error: "No valid CJ VIDs found in order items — check product_variants.cj_vid" };
+    }
+
+    const stockCheck = await revalidateCjLineStock(
+        _db,
+        accessToken,
+        lines.map((line) => ({
+            name: line.orderItemId,
+            quantity: line.quantity,
+            vid:
+                usableCjVid(line.cjVid) ??
+                usableCjVid(line.sourceMetadata?.vid) ??
+                usableCjVid(line.sourceMetadata?.cj_vid),
+        })),
+    );
+    if (stockCheck.errors.length > 0) {
+        return { ok: false, error: stockCheck.errors.join("; ") };
     }
 
     // ── Resolve logistics ──────────────────────────────────────────────────────

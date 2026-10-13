@@ -24,6 +24,8 @@ import { cosTable } from "@/lib/commerce-os/db";
 import { resolveJimvioStoreCheckoutTotals } from "@/lib/commerce-os/checkout/totals";
 import { shouldScopeCartSyncToCatalogVendor } from "@/lib/commerce-os/checkout/cart-sync-scope";
 import { resolveTrustedRateFromQuoteToken } from "@/lib/cj/checkout-quote-token";
+import { revalidateCjLineStockWithToken, revalidatePendingCjOrders } from "@/lib/cj/revalidate-cart-stock";
+import { usableCjVid } from "@/lib/cj/variant-vid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -187,6 +189,7 @@ type CartItem = {
     inventory_quantity: number;
     is_active: boolean;
     image_url: string | null;
+    cj_vid?: string | null;
   } | null;
 };
 
@@ -897,6 +900,28 @@ export async function updatePendingOrdersShipping(
         return err(message);
       }
     } else {
+      const { data: lineRows } = await admin
+        .from("order_items")
+        .select("product_source")
+        .eq("order_id", order.id);
+      const supplier = (lineRows ?? []).some((line) => line.product_source === "cj");
+      if (supplier) {
+        const trusted = resolveTrustedRateFromQuoteToken({
+          token: payload.quoteToken,
+          selection: {
+            optionId: payload.shippingOptionId,
+            name: payload.shippingOptionName || "",
+            priceUSD: payload.shippingAmount,
+          },
+          products: [],
+          destCountryCode: payload.countryCode,
+          orderIds: [order.id],
+        });
+        if (!trusted || !Number.isFinite(Number(trusted.priceUSD))) {
+          return err("Select a delivery method before paying.");
+        }
+        shippingAmount = Number(trusted.priceUSD);
+      }
       const taxEstimate = estimateOrderTax({
         subtotal,
         shippingAmount,
@@ -1026,6 +1051,12 @@ export async function startCheckout(
   }
 
   if (existingOrders && existingOrders.length > 0) {
+    const stockError = await revalidatePendingCjOrders(
+      admin,
+      existingOrders.map((order) => order.id),
+    );
+    if (stockError) return err(stockError);
+
     const failedOrders = existingOrders.filter((o) => o.payment_status === "failed");
 
     if (failedOrders.length > 0) {
@@ -1083,7 +1114,7 @@ export async function startCheckout(
         images, pricing_type, billing_period,
         affiliate_enabled, affiliate_commission_rate, affiliate_price
       ),
-      product_variants(id, name, price, inventory_quantity, is_active, image_url)
+      product_variants(id, name, price, inventory_quantity, is_active, image_url, cj_vid)
     `)
     .eq("cart_id", cartId);
 
@@ -1101,6 +1132,27 @@ export async function startCheckout(
       ? item.product_variants[0] ?? null
       : item.product_variants,
   })) as CartItem[];
+
+  const supplierLines = items.filter((item) => item.product_source === "cj");
+  if (supplierLines.length > 0) {
+    const stockCheck = await revalidateCjLineStockWithToken(
+      admin,
+      supplierLines.map((item) => ({
+        name: item.products?.name ?? "Item",
+        quantity: item.quantity,
+        vid: usableCjVid(item.product_variants?.cj_vid),
+      })),
+    );
+    for (const item of supplierLines) {
+      const vid = usableCjVid(item.product_variants?.cj_vid);
+      if (vid && item.product_variants && stockCheck.quantities[vid] != null) {
+        item.product_variants.inventory_quantity = stockCheck.quantities[vid]!;
+      }
+    }
+    if (stockCheck.errors.length > 0) {
+      return err(stockCheck.errors.join("; "));
+    }
+  }
 
   // ── Validate ───────────────────────────────────────────────────────────────
   const validationErrors = validateCartItems(items);
