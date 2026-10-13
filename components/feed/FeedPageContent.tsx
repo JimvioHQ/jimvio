@@ -65,6 +65,7 @@ export function FeedPageContent({
             <div className="space-y-0">
               <FeedTabs value={feedTab} onChange={setFeedTab} />
               <FeedPostCard
+                key={tag ?? "feed"}
                 tab={feedTab}
                 tag={tag}
                 initialPosts={feedTab === "For You" ? initialPosts : []}
