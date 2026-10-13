@@ -901,7 +901,7 @@ export function mergeExistingCjListing(
         slug: current.slug || mapped.slug,
         vendor_id: current.vendor_id || mapped.vendor_id,
         images,
-        source_metadata: nextMeta as JimvioProduct["source_metadata"],
+        source_metadata: nextMeta as unknown as JimvioProduct["source_metadata"],
     };
 
     if (locked) {
@@ -923,7 +923,7 @@ export function mergeExistingCjListing(
                 markup_rate: quote.markupRate,
                 detected_at: quote.calculatedAt,
             };
-            merged.source_metadata = nextMeta as JimvioProduct["source_metadata"];
+            merged.source_metadata = nextMeta as unknown as JimvioProduct["source_metadata"];
         }
     }
 
