@@ -84,6 +84,7 @@ export default async function AffiliatesPage() {
       heroRate={heroRate}
       statsRow={statsRow}
       topProducts={topProducts}
+      catalogTotal={Number(spotlightRes.total ?? topProducts.length)}
       topEarners={topEarners}
       maxEarning={maxEarning}
       settings={settings}

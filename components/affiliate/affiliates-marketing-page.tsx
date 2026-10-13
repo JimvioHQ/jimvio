@@ -23,6 +23,7 @@ type AffiliatesMarketingPageProps = {
   heroRate: number;
   statsRow: { label: string; value: string }[];
   topProducts: AffiliateSpotlightProduct[];
+  catalogTotal?: number | null;
   topEarners: TopEarner[];
   maxEarning: number;
   settings: ResolvedPlatformSettings;
@@ -33,6 +34,7 @@ type AffiliatesMarketingPageProps = {
 export function AffiliatesMarketingPage({
   heroRate,
   topProducts,
+  catalogTotal = null,
   isLoggedIn,
   hasAffiliateAccount,
 }: AffiliatesMarketingPageProps) {
@@ -47,7 +49,7 @@ export function AffiliatesMarketingPage({
       <AffiliateHero heroRate={heroRate} primaryCtaHref={primaryCtaHref} />
       <AffiliateCategories />
       <AffiliateHowItWorks />
-      <AffiliateProducts products={topProducts} />
+      <AffiliateProducts products={topProducts} total={catalogTotal} />
       <AffiliateBottomCta primaryCtaHref={primaryCtaHref} />
 
       {/* Sticky mobile promote CTA */}

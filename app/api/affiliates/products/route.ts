@@ -4,10 +4,9 @@ import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
 import { getSessionAffiliate } from "@/lib/affiliate/access";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { affiliatePageHasMore, affiliateProductWindow } from "@/lib/affiliate/catalog-feed";
 
 export const dynamic = "force-dynamic";
-
-const MAX_LIMIT = 40;
 
 /**
  * GET /api/affiliates/products?limit=&offset=
@@ -15,11 +14,11 @@ const MAX_LIMIT = 40;
  */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
-  const limit = Math.min(
-    MAX_LIMIT,
-    Math.max(1, Number(sp.get("limit") ?? 10) || 10)
+  const page = affiliateProductWindow(
+    Number(sp.get("offset") ?? 0),
+    Number(sp.get("limit") ?? 10),
   );
-  const offset = Math.max(0, Number(sp.get("offset") ?? 0) || 0);
+  const { limit, offset } = page;
 
   try {
     const [settings, result] = await Promise.all([
@@ -39,7 +38,13 @@ export async function GET(req: NextRequest) {
         defaultRate
       )
     );
-    const total = Number(result.total ?? mapped.length);
+    const total = Number(result.total ?? 0);
+    const hasMore = affiliatePageHasMore({
+      offset,
+      returned: mapped.length,
+      limit,
+      total,
+    });
 
     let pickedProductIds: string[] = [];
     try {
@@ -72,7 +77,8 @@ export async function GET(req: NextRequest) {
       total,
       limit,
       offset,
-      hasMore: offset + mapped.length < total,
+      nextOffset: offset + mapped.length,
+      hasMore,
       pickedProductIds,
     });
   } catch (err) {

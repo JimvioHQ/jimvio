@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { mergeLinkMetrics } from "./link-metrics";
-import { resolveWorkspaceNavActive } from "../workspace/config";
+import { resolveWorkspaceNavActive, WORKSPACES } from "../workspace/config";
 import { isWithinAttributionWindow } from "./attribution";
 
 describe("affiliate link metrics merge", () => {
@@ -42,6 +42,16 @@ describe("affiliate workspace nav active", () => {
     assert.equal(
       resolveWorkspaceNavActive("/affiliates/payouts", "affiliates"),
       "payouts"
+    );
+  });
+
+  it("does not keep the affiliate sidebar promotional card", () => {
+    assert.equal(WORKSPACES.affiliates.proCard, undefined);
+    assert.equal(
+      WORKSPACES.affiliates.sidebarSections?.some((section) =>
+        section.items.some((item) => item.id === "products" && item.href === "/affiliates"),
+      ),
+      true,
     );
   });
 });

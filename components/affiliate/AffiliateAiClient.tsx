@@ -12,6 +12,7 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
+import { affiliatePlainText } from "@/lib/affiliate/rich-content";
 
 type ProductOpt = {
   id: string;
@@ -82,8 +83,8 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
             price: selected.price,
             currency: "USD",
             commissionRate: selected.rate,
-            features: selected.features ?? [],
-            description: selected.description ?? "",
+            features: (selected.features ?? []).map((feature) => affiliatePlainText(feature)).filter(Boolean),
+            description: affiliatePlainText(selected.description ?? "").slice(0, 700),
           }),
         });
         const data = await res.json().catch(() => null);

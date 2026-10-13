@@ -20,7 +20,6 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
 import { toggleWishlist } from "@/lib/actions/marketplace";
 import {
   AFFILIATE_BTN_PRIMARY,
@@ -28,18 +27,25 @@ import {
   AFFILIATE_CARD,
   AFFILIATE_SHELL,
   AffiliateSectionHeading,
-  fadeUp,
   formatAffiliateMoney,
-  staggerContainer,
   type AffiliateSpotlightProduct,
 } from "./shared";
 import { cn } from "@/lib/utils";
+import {
+  AFFILIATE_CATALOG_PAGE_SIZE,
+  canLoadMoreAffiliateProducts,
+  catalogHasMore,
+  affiliateFeedErrorMessage,
+  mergeAffiliateCatalogPage,
+  shouldFollowDuplicatePage,
+} from "@/lib/affiliate/catalog-feed";
 
 type AffiliateProductsProps = {
   products: AffiliateSpotlightProduct[];
+  total?: number | null;
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = AFFILIATE_CATALOG_PAGE_SIZE;
 
 const ProductCard = memo(function ProductCard({
   product,
@@ -217,18 +223,24 @@ function ProductSkeleton() {
   );
 }
 
-export function AffiliateProducts({ products }: AffiliateProductsProps) {
+export function AffiliateProducts({ products, total = null }: AffiliateProductsProps) {
   const initial = products.slice(0, PAGE_SIZE);
   const [items, setItems] = useState<AffiliateSpotlightProduct[]>(initial);
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
-  const [offset, setOffset] = useState(initial.length);
-  const [hasMore, setHasMore] = useState(initial.length >= PAGE_SIZE);
+  const [hasMore, setHasMore] = useState(
+    catalogHasMore({ loaded: initial.length, total, pageSize: PAGE_SIZE }),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const reduceMotion = useReducedMotion() ?? false;
-  const gridRef = useRef<HTMLDivElement>(null);
   const seenIds = useRef(new Set(initial.map((p) => p.id)));
+  const offsetRef = useRef(initial.length);
+  const itemsRef = useRef(initial);
+  const inFlight = useRef(false);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,10 +256,15 @@ export function AffiliateProducts({ products }: AffiliateProductsProps) {
         if (Array.isArray(body.pickedProductIds)) {
           setPickedIds(new Set(body.pickedProductIds as string[]));
         }
-        if (typeof body.hasMore === "boolean") {
-          setHasMore(body.hasMore && body.total > initial.length);
-        } else if (typeof body.total === "number") {
-          setHasMore(body.total > initial.length);
+        const reportedTotal = typeof body.total === "number" ? body.total : total;
+        if (offsetRef.current === initial.length) {
+          setHasMore(
+            catalogHasMore({
+              loaded: initial.length,
+              total: reportedTotal,
+              pageSize: PAGE_SIZE,
+            }),
+          );
         }
       } catch {
         /* non-blocking */
@@ -260,49 +277,62 @@ export function AffiliateProducts({ products }: AffiliateProductsProps) {
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (loading) return;
+    if (!canLoadMoreAffiliateProducts({ loading: inFlight.current, hasMore })) return;
+    inFlight.current = true;
     setLoading(true);
     setError(null);
     setExpanded(true);
+    let follows = 0;
+    let firstAddedId: string | null = null;
     try {
-      const res = await fetch(
-        `/api/affiliates/products?limit=${PAGE_SIZE}&offset=${offset}`,
-        { credentials: "same-origin" }
-      );
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(body?.error || "Could not load more products");
+      while (follows < 3) {
+        const res = await fetch(
+          `/api/affiliates/products?limit=${PAGE_SIZE}&offset=${offsetRef.current}`,
+          { credentials: "same-origin" }
+        );
+        const body = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(affiliateFeedErrorMessage(body, false) ?? "Could not load more products");
+        }
+        const pageProducts = (body.products ?? []) as AffiliateSpotlightProduct[];
+        const merged = mergeAffiliateCatalogPage(itemsRef.current, seenIds.current, {
+          products: pageProducts,
+          offset: offsetRef.current,
+          limit: PAGE_SIZE,
+          total: typeof body.total === "number" ? body.total : null,
+          hasMore: typeof body.hasMore === "boolean" ? body.hasMore : undefined,
+        });
+        seenIds.current = merged.seen;
+        offsetRef.current = merged.nextOffset;
+        itemsRef.current = merged.items;
+        setItems(merged.items);
+        setHasMore(merged.hasMore);
+        if (Array.isArray(body.pickedProductIds)) {
+          setPickedIds((prev) => {
+            const next = new Set(prev);
+            for (const id of body.pickedProductIds as string[]) next.add(id);
+            return next;
+          });
+        }
+        if (!firstAddedId && merged.firstAddedId) firstAddedId = merged.firstAddedId;
+        if (!shouldFollowDuplicatePage(merged, follows)) break;
+        follows += 1;
       }
-      const next = (body.products ?? []) as AffiliateSpotlightProduct[];
-      const deduped = next.filter((p) => {
-        if (seenIds.current.has(p.id)) return false;
-        seenIds.current.add(p.id);
-        return true;
-      });
-      setItems((prev) => [...prev, ...deduped]);
-      const newOffset = offset + next.length;
-      setOffset(newOffset);
-      setHasMore(
-        typeof body.hasMore === "boolean"
-          ? body.hasMore
-          : newOffset < Number(body.total ?? 0)
-      );
-      if (Array.isArray(body.pickedProductIds)) {
-        setPickedIds((prev) => {
-          const merged = new Set(prev);
-          for (const id of body.pickedProductIds as string[]) merged.add(id);
-          return merged;
+      if (firstAddedId) {
+        requestAnimationFrame(() => {
+          document.getElementById(`affiliate-product-${firstAddedId}`)?.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
         });
       }
-      requestAnimationFrame(() => {
-        gridRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load products");
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
-  }, [loading, offset]);
+  }, [hasMore]);
 
   return (
     <section className={`${AFFILIATE_SHELL} pt-12 sm:pt-14`} id="creatives">
@@ -317,28 +347,21 @@ export function AffiliateProducts({ products }: AffiliateProductsProps) {
           soon.
         </div>
       ) : (
-        <motion.div
-          ref={gridRef}
-          className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5"
-          initial={reduceMotion ? false : "hidden"}
-          whileInView="show"
-          viewport={{ once: true, margin: "-40px" }}
-          variants={staggerContainer}
-        >
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
           {items.map((product) => (
-            <motion.div key={product.id} variants={fadeUp} className="h-full">
+            <div key={product.id} id={`affiliate-product-${product.id}`} className="h-full">
               <ProductCard
                 product={product}
                 picked={pickedIds.has(product.id)}
               />
-            </motion.div>
+            </div>
           ))}
           {loading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <ProductSkeleton key={`sk-${i}`} />
               ))
             : null}
-        </motion.div>
+        </div>
       )}
 
       <div className="mt-8 flex flex-col items-center gap-3">
@@ -362,7 +385,7 @@ export function AffiliateProducts({ products }: AffiliateProductsProps) {
           <button
             type="button"
             onClick={() => void loadMore()}
-            disabled={loading}
+            disabled={loading || !canLoadMoreAffiliateProducts({ loading, hasMore })}
             aria-busy={loading}
             className={cn(
               AFFILIATE_BTN_PRIMARY,

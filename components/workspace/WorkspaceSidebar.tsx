@@ -141,7 +141,7 @@ export function WorkspaceSidebar({ workspace, activeId, onNavigate }: WorkspaceS
             </Link>
           </div>
         </div>
-      ) : (
+      ) : isAffiliate ? null : (
         <div className="mt-auto shrink-0 border-t border-[var(--color-border)] p-3">
           <Link
             href="/"

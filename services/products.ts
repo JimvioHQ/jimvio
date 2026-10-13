@@ -316,6 +316,9 @@ export async function getProducts(query: ProductQuery = {}) {
     case "sales": q = q.order("sale_count", { ascending: false }); break;
     default: q = q.order("view_count", { ascending: false });
   }
+  // Affiliate pages share sale_count across many products. A unique tie-break
+  // keeps offset pages from skipping or repeating rows.
+  if (affiliate) q = q.order("id", { ascending: true });
 
   const { data, count } = await q.range(offset, offset + limit - 1);
   const products = data ?? [];

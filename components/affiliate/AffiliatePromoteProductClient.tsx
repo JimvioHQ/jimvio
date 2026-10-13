@@ -22,6 +22,11 @@ import {
   formatAffiliateMoney,
 } from "./sections/shared";
 import { cn } from "@/lib/utils";
+import {
+  affiliateContentNeedsDisclosure,
+  affiliatePlainText,
+  prepareAffiliateRichHtml,
+} from "@/lib/affiliate/rich-content";
 
 export type AffiliatePromoteProductView = {
   id: string;
@@ -113,6 +118,15 @@ export function AffiliatePromoteProductClient({
     null
   );
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const descriptionSource = product.description || product.shortDescription;
+  const descriptionPlain = useMemo(
+    () => affiliatePlainText(descriptionSource),
+    [descriptionSource],
+  );
+  const descriptionHtml = useMemo(
+    () => prepareAffiliateRichHtml(descriptionSource),
+    [descriptionSource],
+  );
 
   const images = product.images.length > 0 ? product.images : ["/images/default-profile.png"];
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -308,7 +322,7 @@ export function AffiliatePromoteProductClient({
             currency: "USD",
             commissionRate: product.rate,
             features: product.features,
-            description: product.description || product.shortDescription,
+            description: descriptionPlain.slice(0, 700),
           }),
         });
         const data = await res.json().catch(() => null);
@@ -385,22 +399,17 @@ export function AffiliatePromoteProductClient({
             </div>
           ) : null}
 
-          <Section title="Product description">
-            <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-[#4B5563]">
-              {product.description ||
-                product.shortDescription ||
-                "Premium product ready for creator-led promotion."}
-            </p>
-          </Section>
+          <ProductCopy
+            title="Product description"
+            plain={descriptionPlain}
+            html={descriptionHtml}
+            empty="No description is available for this product."
+            expandLabel="View Full Description"
+            collapseLabel="Show less"
+          />
 
           {product.benefits.length > 0 ? (
-            <Section title="Benefits">
-              <ul className="space-y-1.5 text-[13px] text-[#4B5563]">
-                {product.benefits.map((b) => (
-                  <li key={b}>• {b}</li>
-                ))}
-              </ul>
-            </Section>
+            <BenefitCopy benefits={product.benefits} />
           ) : null}
 
           {product.features.length > 0 ? (
@@ -408,7 +417,7 @@ export function AffiliatePromoteProductClient({
               <ul className="grid gap-1.5 sm:grid-cols-2 text-[13px] text-[#4B5563]">
                 {product.features.map((f) => (
                   <li key={f} className="rounded-lg bg-[#F9FAFB] px-2.5 py-2">
-                    {f}
+                    {affiliatePlainText(f) || f}
                   </li>
                 ))}
               </ul>
@@ -726,6 +735,83 @@ export function AffiliatePromoteProductClient({
         </div>
       </div>
     </div>
+  );
+}
+
+function ProductCopy({
+  title,
+  plain,
+  html,
+  empty,
+  expandLabel,
+  collapseLabel,
+}: {
+  title: string;
+  plain: string;
+  html: string;
+  empty: string;
+  expandLabel: string;
+  collapseLabel: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const long = affiliateContentNeedsDisclosure(plain);
+  const panelId = "affiliate-product-description";
+  return (
+    <Section title={title}>
+      {html ? (
+        <div
+          id={panelId}
+          className={cn(
+            "affiliate-rich text-[13.5px] leading-relaxed text-[#4B5563] break-words",
+            "[&_b]:font-semibold [&_strong]:font-semibold",
+            "[&_h2]:font-semibold [&_h3]:font-semibold [&_h4]:font-semibold",
+            "[&_p+p]:mt-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_li+li]:mt-1",
+            long && !expanded && "max-h-40 overflow-hidden",
+          )}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      ) : (
+        <p className="text-[13.5px] leading-relaxed text-[#6B7280]">{empty}</p>
+      )}
+      {html && long ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          onClick={() => setExpanded((open) => !open)}
+          className="mt-2 text-[12.5px] font-semibold text-[#FF5A1F] hover:underline"
+        >
+          {expanded ? collapseLabel : expandLabel}
+        </button>
+      ) : null}
+    </Section>
+  );
+}
+
+function BenefitCopy({ benefits }: { benefits: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const plain = benefits.join("\n");
+  const long = benefits.length > 4 || affiliateContentNeedsDisclosure(plain);
+  const visible = long && !expanded ? benefits.slice(0, 4) : benefits;
+  return (
+    <Section title="Benefits">
+      <ul id="affiliate-product-benefits" className="space-y-1.5 text-[13px] text-[#4B5563]">
+        {visible.map((benefit) => (
+          <li key={benefit}>• {benefit}</li>
+        ))}
+      </ul>
+      {long ? (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls="affiliate-product-benefits"
+          onClick={() => setExpanded((open) => !open)}
+          className="mt-2 text-[12.5px] font-semibold text-[#FF5A1F] hover:underline"
+        >
+          {expanded ? "Show less" : "View full benefits"}
+        </button>
+      ) : null}
+    </Section>
   );
 }
 

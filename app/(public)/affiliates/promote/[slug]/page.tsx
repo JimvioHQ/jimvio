@@ -15,6 +15,11 @@ import {
   PLATFORM_CURRENCY,
   toPlatformUsd,
 } from "@/lib/currency/platform";
+import {
+  affiliatePlainText,
+  deriveAffiliateBenefits,
+  extractSafeDescriptionImages,
+} from "@/lib/affiliate/rich-content";
 
 function collectProductImages(images: unknown): string[] {
   if (!images) return [];
@@ -58,24 +63,6 @@ function collectVideoUrl(product: Record<string, unknown>): string | null {
     }
   }
   return null;
-}
-
-function deriveBenefits(description: string, features: string[]): string[] {
-  if (features.length >= 3) {
-    return features.slice(0, 4).map((f) => `Get more from ${f.toLowerCase()}`);
-  }
-  const sentences = description
-    .split(/[.!?]\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 24)
-    .slice(0, 4);
-  return sentences.length
-    ? sentences
-    : [
-        "Earn tracked commissions on every qualified sale",
-        "Promote with ready-made gallery assets",
-        "Share short links, QR codes, and deep links",
-      ];
 }
 
 type PageProps = {
@@ -127,16 +114,22 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
       ? fixedEarn
       : estimateAffiliateCommissionUsd(price, rate).amount;
   const currency = PLATFORM_CURRENCY;
-  const images = collectProductImages(product.images);
-  const features = Array.isArray((product as { features?: string[] | null }).features)
-    ? ((product as { features?: string[] }).features ?? []).filter(Boolean)
-    : [];
   const description = String(
     (product as { description?: string | null }).description ?? ""
   ).trim();
   const shortDescription = String(
     (product as { short_description?: string | null }).short_description ?? ""
   ).trim();
+  const gallery = collectProductImages(product.images);
+  const embeddedImages = extractSafeDescriptionImages(description || shortDescription);
+  const images = gallery.length > 0 ? gallery : embeddedImages;
+  const features = (
+    Array.isArray((product as { features?: string[] | null }).features)
+      ? ((product as { features?: string[] }).features ?? [])
+      : []
+  )
+    .map((feature) => affiliatePlainText(String(feature)))
+    .filter(Boolean);
 
   const vendor = (product as {
     vendors?: {
@@ -155,7 +148,7 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     images,
     videoUrl: collectVideoUrl(product as unknown as Record<string, unknown>),
     features,
-    benefits: deriveBenefits(description || shortDescription, features),
+    benefits: deriveAffiliateBenefits(description || shortDescription, features),
     category:
       (product as { product_categories?: { name?: string | null } | null })
         .product_categories?.name ??

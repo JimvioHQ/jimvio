@@ -5,6 +5,7 @@ import {
   describeAiError,
   getAiProviderStatus,
 } from "@/services/ai/openai";
+import { createAffiliatePromotionResponse } from "@/lib/ai/affiliate-gemini";
 import { z } from "zod";
 
 const generateSchema = z.discriminatedUnion("type", [
@@ -77,6 +78,19 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const params = generateSchema.parse(body);
 
+    if (params.type === "affiliate_promotion") {
+      const result = await createAffiliatePromotionResponse({
+        productName: params.productName,
+        category: params.category,
+        price: params.price,
+        currency: params.currency || "USD",
+        commissionRate: params.commissionRate,
+        features: params.features,
+        description: params.description,
+      });
+      return NextResponse.json(result.body, { status: result.status });
+    }
+
     const provider = getAiProviderStatus();
     if (!provider.configured) {
       return NextResponse.json(
@@ -106,12 +120,6 @@ export async function POST(req: NextRequest) {
         break;
       case "campaign_ideas":
         result = await aiService.generateCampaignIdeas(params);
-        break;
-      case "affiliate_promotion":
-        result = await aiService.generateAffiliatePromotion({
-          ...params,
-          currency: params.currency || "USD",
-        });
         break;
       default:
         return NextResponse.json({ error: "Invalid generation type" }, { status: 400 });
