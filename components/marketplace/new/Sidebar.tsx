@@ -226,11 +226,21 @@ export function Sidebar({ type = "physical" }: Props) {
   const [aiProducts, setAiProducts] = useState<{ name: string; slug: string; price: number | string | null; currency?: string | null }[]>([]);
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [aiError, setAiError] = useState("");
+  const [retryAfterMs, setRetryAfterMs] = useState<number | null>(null);
   const lastAiMessage = useRef("");
+  const aiInFlight = useRef(false);
+
+  useEffect(() => {
+    if (!retryAfterMs) return;
+    const wait = Math.max(0, retryAfterMs - Date.now());
+    const timer = window.setTimeout(() => setRetryAfterMs(null), wait);
+    return () => window.clearTimeout(timer);
+  }, [retryAfterMs]);
 
   async function askShoppingAssistant(message: string) {
     const text = message.replace(/\s+/g, " ").trim();
-    if (!text || aiStatus === "loading") return;
+    if (!text || aiInFlight.current || retryAfterMs != null) return;
+    aiInFlight.current = true;
     lastAiMessage.current = text;
     setAiStatus("loading");
     setAiError("");
@@ -246,17 +256,28 @@ export function Sidebar({ type = "physical" }: Props) {
         ok?: boolean;
         reply?: string;
         error?: string;
+        quotaScope?: "minute" | "daily" | "overload" | null;
+        retryAfterSeconds?: number | null;
         products?: { name: string; slug: string; price: number | string | null; currency?: string | null }[];
       };
       if (!res.ok || !data.ok || !data.reply) {
+        const wait = Number(data.retryAfterSeconds);
+        if (data.error === "rate_limit" && Number.isFinite(wait) && wait > 0) {
+          setRetryAfterMs(Date.now() + wait * 1000);
+        }
         setAiStatus("error");
         setAiError(
           data.error === "rate_limit"
-            ? "The assistant is busy right now. Try again in a moment."
+            ? data.quotaScope === "daily"
+              ? "Gemini’s daily quota for this assistant is used up. The provider did not give a reset time."
+              : data.quotaScope === "overload"
+                ? "Gemini is busy right now. Wait a moment, then retry."
+                : `Gemini is rate-limiting requests${Number.isFinite(wait) && wait > 0 ? `. Retry in ${Math.ceil(wait)}s` : ""}.`
             : "The assistant couldn’t answer. Try again.",
         );
         return;
       }
+      setRetryAfterMs(null);
       setAiReply(data.reply);
       setAiProducts(Array.isArray(data.products) ? data.products : []);
       setAiStatus("ready");
@@ -264,6 +285,8 @@ export function Sidebar({ type = "physical" }: Props) {
     } catch {
       setAiStatus("error");
       setAiError("The assistant couldn’t answer. Try again.");
+    } finally {
+      aiInFlight.current = false;
     }
   }
 
@@ -628,7 +651,8 @@ export function Sidebar({ type = "physical" }: Props) {
               <button
                 type="button"
                 onClick={() => void askShoppingAssistant(lastAiMessage.current)}
-                className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white"
+                disabled={retryAfterMs != null}
+                className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white disabled:opacity-50"
               >
                 Retry
               </button>

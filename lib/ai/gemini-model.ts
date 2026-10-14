@@ -93,6 +93,60 @@ export type GeminiFailureCategory =
   | "success"
   | "fallback";
 
+export type GeminiQuotaScope = "minute" | "daily" | "overload";
+
+export type GeminiProviderFailure = {
+  category: Exclude<GeminiFailureCategory, "success" | "fallback" | "unconfigured">;
+  retryAfterSeconds: number | null;
+  quotaScope: GeminiQuotaScope | null;
+  detail: string;
+};
+
+function readErrorStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object") return null;
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" && Number.isFinite(status) ? status : null;
+}
+
+/** Seconds from Retry-After, Google retryDelay, or "retry in Ns". Never invents a daily reset. */
+export function readRetryAfterSeconds(error: unknown): number | null {
+  const detail = redactProviderMessage(error);
+  const candidates: number[] = [];
+  const delay = detail.match(/retryDelay["']?\s*[:=]\s*["']?(\d+(?:\.\d+)?)\s*s/i);
+  if (delay) candidates.push(Number(delay[1]));
+  const retryIn = detail.match(/retry in\s+(\d+(?:\.\d+)?)\s*s/i);
+  if (retryIn) candidates.push(Number(retryIn[1]));
+  const headerValue = (error as { headers?: { get?: (name: string) => string | null } } | null)?.headers?.get?.("retry-after");
+  if (headerValue && /^\d+$/.test(headerValue.trim())) candidates.push(Number(headerValue.trim()));
+  const seconds = candidates.find((value) => Number.isFinite(value) && value >= 0 && value <= 86_400);
+  return seconds == null ? null : Math.ceil(seconds);
+}
+
+export function parseGeminiProviderFailure(error: unknown): GeminiProviderFailure {
+  const detail = redactProviderMessage(error);
+  const status = readErrorStatus(error);
+  const category = classifyProviderError(error);
+  const daily = /per day|daily quota|requests per day|generate content free tier/i.test(detail);
+  const overload = status === 503 || (/503|high demand/.test(detail) && status !== 429);
+  let quotaScope: GeminiQuotaScope | null = null;
+  if (category === "rate_limit" && daily) quotaScope = "daily";
+  else if (category === "rate_limit" && overload) quotaScope = "overload";
+  else if (category === "rate_limit") quotaScope = "minute";
+  return {
+    category,
+    retryAfterSeconds: readRetryAfterSeconds(error),
+    quotaScope,
+    detail,
+  };
+}
+
+/** Only a retired model is worth another attempt. Quota and overload stops immediately. */
+export function shouldContinueGeminiAttempts(
+  category: GeminiProviderFailure["category"],
+): boolean {
+  return category === "retired_model";
+}
+
 export function classifyProviderError(error: unknown): Exclude<GeminiFailureCategory, "success" | "fallback" | "unconfigured"> {
   const name = error instanceof Error ? error.name : "";
   const message = redactProviderMessage(error);

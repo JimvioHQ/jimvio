@@ -3,11 +3,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import {
   GEMINI_API_KEY_ENV,
-  classifyProviderError,
   geminiAttemptOrder,
   isUsableApiKey,
-  redactProviderMessage,
+  parseGeminiProviderFailure,
   resolveGeminiModel,
+  shouldContinueGeminiAttempts,
+  type GeminiProviderFailure,
 } from "@/lib/ai/gemini-model";
 import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -21,6 +22,47 @@ import {
 } from "@/lib/marketplace/shopping-assistant";
 
 export const dynamic = "force-dynamic";
+
+type ProviderBlock = {
+  until: number;
+  failure: GeminiProviderFailure;
+};
+
+let providerBlock: ProviderBlock | null = null;
+
+function blockRemainingSeconds(): number {
+  if (!providerBlock) return 0;
+  const left = providerBlock.until - Date.now();
+  if (left <= 0) {
+    providerBlock = null;
+    return 0;
+  }
+  return Math.ceil(left / 1000);
+}
+
+function rememberProviderBlock(failure: GeminiProviderFailure): number | null {
+  if (failure.category !== "rate_limit") return failure.retryAfterSeconds;
+  const wait = failure.quotaScope === "daily"
+    ? 15 * 60
+    : Math.min(90, Math.max(failure.retryAfterSeconds ?? 20, 8));
+  providerBlock = { until: Date.now() + wait * 1000, failure };
+  return failure.quotaScope === "daily" ? failure.retryAfterSeconds : wait;
+}
+
+function limitResponse(failure: GeminiProviderFailure, retryAfterSeconds: number | null) {
+  const status = failure.category === "rate_limit" ? 429 : 503;
+  const headers: Record<string, string> = {};
+  if (retryAfterSeconds && retryAfterSeconds > 0) headers["Retry-After"] = String(retryAfterSeconds);
+  return NextResponse.json(
+    {
+      ok: false,
+      error: failure.category === "rate_limit" ? "rate_limit" : "unavailable",
+      quotaScope: failure.quotaScope,
+      retryAfterSeconds,
+    },
+    { status, headers },
+  );
+}
 
 function clientIp(request: Request): string {
   return (
@@ -81,10 +123,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
   }
 
+  const remaining = blockRemainingSeconds();
+  if (remaining > 0 && providerBlock) {
+    return limitResponse(providerBlock.failure, providerBlock.failure.quotaScope === "daily" ? null : remaining);
+  }
+
   try {
     const catalog = await listAccessibleGeminiModels(apiKey!);
     if (catalog.category === "rate_limit") {
-      return NextResponse.json({ ok: false, error: "rate_limit" }, { status: 429 });
+      const failure: GeminiProviderFailure = {
+        category: "rate_limit",
+        retryAfterSeconds: null,
+        quotaScope: /per day|daily/i.test(catalog.detail ?? "") ? "daily" : "minute",
+        detail: catalog.detail ?? "models.list rate limit",
+      };
+      console.warn("[shopping-assistant] model list limited", { quotaScope: failure.quotaScope });
+      return limitResponse(failure, rememberProviderBlock(failure));
     }
     const attempts = geminiAttemptOrder(catalog.models, resolveGeminiModel().model);
     if (!attempts.length) {
@@ -93,36 +147,47 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey!);
     let reply = "";
-    let lastCategory: string | null = null;
+    let lastFailure: GeminiProviderFailure | null = null;
     for (const modelName of attempts) {
       try {
         const model = genAI.getGenerativeModel({
           model: modelName,
           systemInstruction: shoppingAssistantSystemPrompt(),
-          generationConfig: { maxOutputTokens: 280, temperature: 0.3 },
+          generationConfig: { maxOutputTokens: 220, temperature: 0.3 },
         });
         const result = await model.generateContent(
           `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
         );
         reply = result.response.text().trim();
         if (reply) break;
-        lastCategory = "empty_output";
+        lastFailure = {
+          category: "empty_output",
+          retryAfterSeconds: null,
+          quotaScope: null,
+          detail: "empty output",
+        };
+        break;
       } catch (error) {
-        lastCategory = classifyProviderError(error);
+        lastFailure = parseGeminiProviderFailure(error);
         console.warn("[shopping-assistant] provider failed", {
           model: modelName,
-          category: lastCategory,
-          detail: redactProviderMessage(error),
+          category: lastFailure.category,
+          quotaScope: lastFailure.quotaScope,
+          retryAfterSeconds: lastFailure.retryAfterSeconds,
+          detail: lastFailure.detail,
         });
+        if (!shouldContinueGeminiAttempts(lastFailure.category)) break;
       }
     }
 
     if (!reply) {
-      const status = lastCategory === "rate_limit" ? 429 : 503;
-      return NextResponse.json(
-        { ok: false, error: lastCategory === "rate_limit" ? "rate_limit" : "unavailable" },
-        { status },
-      );
+      const failure = lastFailure ?? {
+        category: "provider" as const,
+        retryAfterSeconds: null,
+        quotaScope: null,
+        detail: "no model response",
+      };
+      return limitResponse(failure, rememberProviderBlock(failure));
     }
 
     return NextResponse.json({
@@ -131,12 +196,12 @@ export async function POST(req: NextRequest) {
       products,
     });
   } catch (error) {
-    const category = classifyProviderError(error);
+    const failure = parseGeminiProviderFailure(error);
     console.warn("[shopping-assistant] provider failed", {
-      category,
-      detail: redactProviderMessage(error),
+      category: failure.category,
+      quotaScope: failure.quotaScope,
+      detail: failure.detail,
     });
-    const status = category === "rate_limit" ? 429 : 503;
-    return NextResponse.json({ ok: false, error: category === "rate_limit" ? "rate_limit" : "unavailable" }, { status });
+    return limitResponse(failure, rememberProviderBlock(failure));
   }
 }
