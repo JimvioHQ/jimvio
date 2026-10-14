@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   ArrowLeft,
   Fullscreen,
@@ -44,7 +45,7 @@ import {
   LIVEKIT_JOIN_GRACE_MS,
 } from "@/lib/live/livekit-presence";
 import { detectScreenShareCapability } from "@/lib/live/screen-share-capability";
-import { describeVideoFrame, sharedStageLayout } from "@/lib/live/screen-frame";
+import { enterElementFullscreen, exitDocumentFullscreen } from "@/lib/live/stage-fullscreen";
 import { canControlRoomStage, readStageFocus } from "@/lib/live/stage-selection";
 import { isAnonymousLiveIdentity } from "@/lib/live/livekit-token";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
@@ -148,9 +149,11 @@ export function HubLivePage({
   const [activity, setActivity] = useState<ActivityMode>("live");
   const [focusMode, setFocusMode] = useState(false);
   const [documentFullscreen, setDocumentFullscreen] = useState(false);
-  const stageRootRef = useRef<HTMLElement | null>(null);
-  const [stageFrame, setStageFrame] = useState<{ width: number; height: number } | null>(null);
+  const stageRootRef = useRef<HTMLDivElement | null>(null);
+  const localFullscreenRef = useRef<HTMLDivElement | null>(null);
   const clearedStageRef = useRef<string | null>(null);
+  const stageClearTimerRef = useRef<number | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
   const seenScreenSharesRef = useRef<Set<string>>(new Set());
   const [confirmDialog, setConfirmDialog] = useState<null | "end" | "leave" | "back">(null);
   const [endLiveBusy, setEndLiveBusy] = useState(false);
@@ -182,8 +185,12 @@ export function HubLivePage({
   const [mediaBusy, setMediaBusy] = useState(false);
   const [viewFull, setViewFull] = useState<{
     name: string;
-    stream: MediaStream;
+    avatarUrl?: string | null;
+    stream: MediaStream | null;
   } | null>(null);
+  const [viewFullMode, setViewFullMode] = useState<"device" | "focus" | null>(null);
+  const viewFullModeRef = useRef<"device" | "focus" | null>(null);
+  viewFullModeRef.current = viewFullMode;
   const [hostSocial, setHostSocial] = useState<HostPublicSocial[]>([]);
   const [selfProfile, setSelfProfile] = useState<{
     name: string | null;
@@ -272,18 +279,7 @@ export function HubLivePage({
 
   const activeScreenShareIdentity = livekit.activeScreenShareIdentity;
   const screenShareActive = livekit.stageKind === "screen" && Boolean(activeScreenShareIdentity);
-  const sharedLayout = sharedStageLayout(
-    describeVideoFrame(stageFrame?.width ?? 0, stageFrame?.height ?? 0),
-  );
-  const onStageFrame = useCallback((frame: { width: number; height: number }) => {
-    setStageFrame((prev) =>
-      prev && prev.width === frame.width && prev.height === frame.height ? prev : frame,
-    );
-  }, []);
-
-  useEffect(() => {
-    setStageFrame(null);
-  }, [activeScreenShareIdentity]);
+  const roomStageFocus = readStageFocus(live.session?.settings);
 
   useEffect(() => {
     for (const share of livekit.screenShares) seenScreenSharesRef.current.add(share.identity);
@@ -291,6 +287,10 @@ export function HubLivePage({
   }, [live.userId, livekit.screenShares, media.sharing]);
 
   useEffect(() => {
+    if (stageClearTimerRef.current != null) {
+      window.clearTimeout(stageClearTimerRef.current);
+      stageClearTimerRef.current = null;
+    }
     if (!livekit.connected || !canControlRoomStage(live.myRole)) return;
     const focus = readStageFocus(live.session?.settings);
     if (!focus || focus.kind !== "screen" || !focus.identity) return;
@@ -300,13 +300,38 @@ export function HubLivePage({
     if (!seenScreenSharesRef.current.has(focus.identity)) return;
     const key = `${focus.version}:${focus.identity}`;
     if (clearedStageRef.current === key) return;
-    clearedStageRef.current = key;
-    void live.setStageFocus({ identity: null, kind: "default" }).catch(() => undefined);
+    const identity = focus.identity;
+    const version = focus.version;
+    stageClearTimerRef.current = window.setTimeout(() => {
+      stageClearTimerRef.current = null;
+      const current = readStageFocus(live.session?.settings);
+      if (
+        !current ||
+        current.kind !== "screen" ||
+        current.identity !== identity ||
+        current.version !== version
+      ) {
+        return;
+      }
+      const still = new Set(livekit.screenShares.map((share) => share.identity));
+      if (media.sharing && live.userId) still.add(live.userId);
+      if (still.has(identity)) return;
+      clearedStageRef.current = key;
+      void live.setStageFocus({ identity: null, kind: "default" }).catch(() => undefined);
+    }, 1200);
+    return () => {
+      if (stageClearTimerRef.current != null) {
+        window.clearTimeout(stageClearTimerRef.current);
+        stageClearTimerRef.current = null;
+      }
+    };
   }, [
     live,
     livekit.connected,
     livekit.screenShares,
     media.sharing,
+    live.userId,
+    live.session?.settings,
   ]);
 
   const loadDashboard = useCallback(async (opts?: { soft?: boolean }) => {
@@ -917,6 +942,7 @@ export function HubLivePage({
       return;
     }
     updateDrawer({ rightOpen: true, rightTab: "chat", leftPanel: "none" });
+    setMembersOpen(false);
     setShareOpen(false);
     setLiveNavOpen(false);
     setChatIdle(false);
@@ -1369,38 +1395,66 @@ export function HubLivePage({
     draftTitle,
   ]);
 
-  const toggleLiveFullscreen = useCallback(async () => {
-    const root = stageRootRef.current;
-    const active = document.fullscreenElement;
-    if (active) {
-      await document.exitFullscreen().catch(() => setFocusMode(false));
-      return;
+  const closeLocalFullscreen = useCallback(async () => {
+    if (
+      document.fullscreenElement &&
+      document.fullscreenElement === localFullscreenRef.current
+    ) {
+      await exitDocumentFullscreen(document);
     }
-    const candidate = root as
-      | (HTMLElement & { webkitRequestFullscreen?: () => void })
-      | null;
-    if (candidate?.requestFullscreen) {
-      try {
-        await candidate.requestFullscreen();
-        return;
-      } catch {
-        setFocusMode(true);
+    setViewFull(null);
+    setViewFullMode(null);
+  }, []);
+
+  const openLocalFullscreen = useCallback(
+    async (payload: { name: string; avatarUrl?: string | null; stream: MediaStream | null }) => {
+      if (document.fullscreenElement && document.fullscreenElement !== localFullscreenRef.current) {
+        await exitDocumentFullscreen(document);
+      }
+      flushSync(() => {
+        setViewFull(payload);
+        setViewFullMode(null);
+      });
+      const result = await enterElementFullscreen(localFullscreenRef.current, document);
+      if (result === "entered") {
+        setViewFullMode("device");
         return;
       }
-    }
-    if (candidate?.webkitRequestFullscreen) {
-      candidate.webkitRequestFullscreen();
+      setViewFullMode("focus");
+    },
+    [],
+  );
+
+  const toggleLiveFullscreen = useCallback(async () => {
+    if (document.fullscreenElement) {
+      const exited = await exitDocumentFullscreen(document);
+      if (exited !== "exited") setFocusMode(false);
+      setFocusMode(false);
       return;
     }
-    setFocusMode((open) => !open);
+    const result = await enterElementFullscreen(stageRootRef.current, document);
+    if (result === "entered") {
+      setFocusMode(false);
+      return;
+    }
+    setFocusMode(true);
   }, []);
 
   useEffect(() => {
     const sync = () => {
-      setDocumentFullscreen(document.fullscreenElement === stageRootRef.current);
+      const active = document.fullscreenElement;
+      setDocumentFullscreen(active === stageRootRef.current);
+      if (!active && viewFullModeRef.current === "device") {
+        setViewFull(null);
+        setViewFullMode(null);
+      }
     };
     document.addEventListener("fullscreenchange", sync);
-    return () => document.removeEventListener("fullscreenchange", sync);
+    document.addEventListener("webkitfullscreenchange", sync as EventListener);
+    return () => {
+      document.removeEventListener("fullscreenchange", sync);
+      document.removeEventListener("webkitfullscreenchange", sync as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -1417,6 +1471,10 @@ export function HubLivePage({
         return;
       }
       if (e.key === "Escape") {
+        if (viewFull) {
+          void closeLocalFullscreen();
+          return;
+        }
         if (focusMode) {
           setFocusMode(false);
           return;
@@ -1441,13 +1499,15 @@ export function HubLivePage({
           .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
           .catch(() => undefined);
       }
-      if (k === "f" && !meta) setFocusMode((v) => !v);
+      if (k === "f" && !meta) void toggleLiveFullscreen();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [
     closeDrawers,
+    closeLocalFullscreen,
     focusMode,
+    viewFull,
     openRight,
     toggleCam,
     toggleMic,
@@ -1459,6 +1519,7 @@ export function HubLivePage({
     live.session,
     live.myRole,
     live.launchPoll,
+    toggleLiveFullscreen,
   ]);
 
   const speakersFromLive = useMemo(() => {
@@ -2231,7 +2292,13 @@ export function HubLivePage({
   // Reference layout: stage + right contextual panel — hide left icon rail during Live.
   /* Left context rail removed — dock + More own Participants/Chat/Settings. */
   const showLeftRail = false;
-  const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
+  const showSpeakers = mode !== "minimal" && !focusMode && !documentFullscreen && hasSession;
+  const pinnedStagePerson =
+    roomStageFocus?.kind === "participant" && roomStageFocus.identity
+      ? (peopleList.find((person) => person.id === roomStageFocus.identity) ??
+        speakers.find((person) => person.id === roomStageFocus.identity) ??
+        null)
+      : null;
   const showRight = !focusMode && hasSession;
   const displayTitle =
     live.session?.title ??
@@ -2864,7 +2931,6 @@ export function HubLivePage({
 
         {/* Stage — light chrome; video occupies the canvas */}
         <main
-          ref={stageRootRef}
           className={cn(
             "relative flex min-w-0 flex-1 flex-col overflow-hidden",
             "bg-[#F8FAFC]"
@@ -2872,39 +2938,32 @@ export function HubLivePage({
         >
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col",
+              "flex min-h-0 flex-1 flex-col overflow-x-hidden",
               immersive
                 ? "overflow-hidden p-0"
                 : hasSession
-                  ? "gap-3 overflow-y-auto px-3 pb-[calc(9.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-4 sm:pb-5 lg:pb-4"
+                  ? "gap-2 overflow-hidden px-2 pb-[calc(5.75rem+env(safe-area-inset-bottom))] pt-2 sm:px-3 lg:pb-3"
                   : "overflow-y-auto px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
             )}
           >
             <div
+              ref={stageRootRef}
               role="presentation"
-              onDoubleClick={() => setFocusMode((v) => !v)}
+              onDoubleClick={() => void toggleLiveFullscreen()}
               className={cn(
-                "relative w-full cursor-default overflow-hidden",
+                "relative w-full min-w-0 cursor-default overflow-hidden",
+                immersive || hasSession
+                  ? "min-h-0 flex-1"
+                  : "min-h-[min(78vh,700px)] shrink-0",
                 immersive
-                  ? "min-h-0 flex-1 rounded-none border-0 bg-transparent"
+                  ? "rounded-none border-0 bg-black"
                   : screenShareActive
-                    ? "mx-auto min-h-[220px] max-h-[min(72vh,860px)] w-full shrink-0 rounded-2xl bg-neutral-950 sm:flex-1"
+                    ? "rounded-2xl bg-neutral-950"
                     : hasSession
-                      ? "aspect-[4/5] min-h-0 shrink-0 rounded-2xl sm:aspect-video sm:flex-1"
-                      : "min-h-[min(78vh,700px)] shrink-0 rounded-none bg-transparent",
-                activity === "share" && "ring-2 ring-[#FF5A1F]/35",
-                "motion-safe:transition-transform motion-safe:duration-[180ms]"
+                      ? "rounded-2xl bg-[#EEF2F7]"
+                      : "rounded-none bg-transparent",
+                activity === "share" && "ring-2 ring-[#FF5A1F]/35"
               )}
-              style={
-                screenShareActive
-                  ? {
-                      aspectRatio: sharedLayout.aspectRatio ?? "16 / 9",
-                      maxWidth: sharedLayout.maxWidth,
-                      width: "100%",
-                      marginInline: "auto",
-                    }
-                  : undefined
-              }
             >
               <div
                 className={cn(
@@ -2917,7 +2976,6 @@ export function HubLivePage({
               <StageMediaPreview
                 stream={stageStream}
                 cover={!screenShareActive && Boolean(stageStream)}
-                onFrame={screenShareActive ? onStageFrame : undefined}
               />
               {screenShareActive ? (
                 <div className="pointer-events-none absolute left-3 top-3 z-[4]">
@@ -2989,8 +3047,8 @@ export function HubLivePage({
                         </div>
                       ) : (
           <LiveStageFallback
-                          hostName={stageHostName}
-                          avatarUrl={hostAvatar}
+                          hostName={pinnedStagePerson?.name ?? stageHostName}
+                          avatarUrl={pinnedStagePerson?.avatar_url ?? hostAvatar}
                           cameraOff={!hostRemote?.camOn && !media.camOn}
                           micOff={hostRemote ? !hostRemote.micOn : !micOn}
                           screenSharing={Boolean(hostRemote?.sharing || media.sharing)}
@@ -3011,22 +3069,14 @@ export function HubLivePage({
                         setFocusMode(false);
                       }}
                       className={cn(
-                        "absolute right-4 top-4 z-20 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm backdrop-blur-md hover:bg-black/70",
+                        "absolute right-4 top-[max(1rem,env(safe-area-inset-top))] z-20 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white shadow-sm backdrop-blur-md hover:bg-black/70",
                         MOTION_COLORS,
                         FOCUS_RING_DARK
                       )}
                     >
-                      Exit Fullscreen
+                      {documentFullscreen ? "Exit Fullscreen" : "Exit focus"}
                     </button>
                   )}
-
-                  {viewFull ? (
-                    <LiveViewFullOverlay
-                      name={viewFull.name}
-                      stream={viewFull.stream}
-                      onClose={() => setViewFull(null)}
-                    />
-                  ) : null}
 
                   {((live.session?.settings ?? {}) as {
                     stage_focus?: { identity?: string | null };
@@ -3090,6 +3140,34 @@ export function HubLivePage({
               )}
             </div>
 
+            {hasSession && !focusMode && !documentFullscreen ? (
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  aria-expanded={membersOpen}
+                  onClick={() => {
+                    setMembersOpen((open) => {
+                      const next = !open;
+                      if (next) {
+                        updateDrawer({ rightOpen: false, leftPanel: "none" });
+                        setLiveNavOpen(false);
+                      }
+                      return next;
+                    });
+                  }}
+                  className={cn(
+                    "mb-2 inline-flex h-11 items-center rounded-full border border-[#E5E7EB] bg-white px-4 text-[12px] font-semibold text-[#111827] shadow-sm hover:bg-[#F8FAFC]",
+                    FOCUS_RING
+                  )}
+                >
+                  {membersOpen ? "Hide Members and Speakers" : "View Members and Speakers"}
+                </button>
+                {membersOpen ? (
+                  <div
+                    role="region"
+                    aria-label="Members and speakers"
+                    className="max-h-[min(42vh,380px)] overflow-y-auto overflow-x-hidden rounded-2xl border border-[#E5E7EB] bg-white/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-sm"
+                  >
             {showSpeakers && galleryParticipants.length > 0 ? (
               <LiveStagePipStack>
                 {galleryParticipants.map((p) => {
@@ -3119,17 +3197,21 @@ export function HubLivePage({
                       sharing={sharing}
                       isYou={isYou}
                       speaking={Boolean(ui?.speaking)}
-                      selected={activeSpeakerId === p.id}
+                      selected={
+                        roomStageFocus?.identity === p.id &&
+                        roomStageFocus.kind === "participant"
+                      }
+                      roleLabel={
+                        p.role === "host" ? "Host" : p.role === "cohost" ? "Cohost" : null
+                      }
                       canManage={canManageStage}
                       onSelect={() => setActiveSpeakerId(p.id)}
-                      onViewFull={
-                        stream
-                          ? () =>
-                              setViewFull({
-                                name: p.name,
-                                stream,
-                              })
-                          : undefined
+                      onViewFull={() =>
+                        void openLocalFullscreen({
+                          name: p.name,
+                          avatarUrl: p.avatar_url,
+                          stream: stream && (isYou ? camOn : ui?.camOn ?? remote?.camOn) ? stream : null,
+                        })
                       }
                       onMoveToStage={
                         canManageStage
@@ -3137,13 +3219,9 @@ export function HubLivePage({
                               void live
                                 .setStageFocus({
                                   identity: p.id,
-                                  kind: sharing ? "screen" : "participant",
+                                  kind: "participant",
                                 })
-                                .then(() =>
-                                  showToast(
-                                    sharing ? "Screen is on the main stage" : "Moved to stage",
-                                  ),
-                                )
+                                .then(() => showToast("Moved to stage"))
                                 .catch((e) =>
                                   showToast(
                                     e instanceof Error
@@ -3179,12 +3257,19 @@ export function HubLivePage({
                 })}
               </LiveStagePipStack>
             ) : null}
-
-
-            {hasSession && screenShareTiles.length > 0 ? (
+            {screenShareTiles.length > 0 ? (
+              <div className="mt-2">
               <LiveScreenShareStrip
                 shares={screenShareTiles}
                 canPromote={canControlRoomStage(live.myRole)}
+                onFullscreen={(identity) => {
+                  const share = screenShareTiles.find((item) => item.identity === identity);
+                  if (!share) return;
+                  void openLocalFullscreen({
+                    name: `${share.name} screen`,
+                    stream: share.stream,
+                  });
+                }}
                 onPromote={(identity) => {
                   void live
                     .setStageFocus({ identity, kind: "screen" })
@@ -3194,6 +3279,14 @@ export function HubLivePage({
                     );
                 }}
               />
+              </div>
+            ) : null}
+            {galleryParticipants.length === 0 && screenShareTiles.length === 0 ? (
+              <p className="px-1 py-2 text-[12px] text-[#6B7280]">No members on stage yet.</p>
+            ) : null}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
             {hasSession && !isAnonymousViewer ? (
@@ -3658,6 +3751,17 @@ export function HubLivePage({
           </>
         )}
       </div>
+
+      {viewFull ? (
+        <LiveViewFullOverlay
+          name={viewFull.name}
+          avatarUrl={viewFull.avatarUrl}
+          stream={viewFull.stream}
+          deviceFullscreen={viewFullMode === "device"}
+          rootRef={localFullscreenRef}
+          onClose={() => void closeLocalFullscreen()}
+        />
+      ) : null}
 
       <LiveMobileDock
         isHost={isLiveHost && hasSession}

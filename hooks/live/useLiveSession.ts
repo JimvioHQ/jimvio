@@ -253,7 +253,15 @@ export function useLiveSession(initialSessionId?: string | null) {
     };
     if (!res.ok) throw new Error(json.error ?? "Failed to load session");
     setError(null);
-    setSession(json.session ?? null);
+    setSession((prev) => {
+      const next = json.session ?? null;
+      if (!next) return null;
+      if (!prev || prev.id !== next.id) return next;
+      return {
+        ...next,
+        settings: mergeLiveSessionSettings(prev.settings, next.settings),
+      };
+    });
     const now = Date.now();
     for (const [uid, ts] of leftTombstones.current) {
       if (now - ts > 5_000) leftTombstones.current.delete(uid);

@@ -53,7 +53,8 @@ describe("Jimvio Live completion — invite & share", () => {
     assert.match(pip, /overflow-x-auto/);
     assert.match(pip, /aria-label="Participant tiles"/);
     assert.doesNotMatch(pip, /absolute bottom-\[4\.25rem\]/);
-    assert.match(page, /requestFullscreen/);
+    assert.match(page, /enterElementFullscreen/);
+    assert.match(read("lib/live/stage-fullscreen.ts"), /requestFullscreen/);
     assert.match(page, /Exit Fullscreen/);
     assert.match(page, /setStageFocus/);
     assert.match(page, /onViewFull/);

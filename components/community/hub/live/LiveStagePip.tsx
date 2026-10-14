@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";
 import { Maximize2, Mic, MicOff, Monitor, Pin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ export function LiveStagePipTile({
   isYou = false,
   speaking = false,
   selected = false,
+  roleLabel = null,
   canManage = false,
   onSelect,
   onViewFull,
@@ -36,6 +37,7 @@ export function LiveStagePipTile({
   isYou?: boolean;
   speaking?: boolean;
   selected?: boolean;
+  roleLabel?: string | null;
   canManage?: boolean;
   onSelect?: () => void;
   onViewFull?: () => void;
@@ -123,6 +125,8 @@ export function LiveStagePipTile({
         </p>
         {isYou ? (
           <p className="text-[9px] font-medium text-[#FF5A1F] sm:text-[10px]">(You)</p>
+        ) : roleLabel ? (
+          <p className="truncate text-[9px] font-medium text-[#6B7280] sm:text-[10px]">{roleLabel}</p>
         ) : sharing ? (
           <p className="truncate text-[9px] font-medium text-[#7C3AED] sm:text-[10px]">
             Screen
@@ -130,34 +134,31 @@ export function LiveStagePipTile({
         ) : null}
       </div>
 
-      {(onViewFull || onMoveToStage || onStopShare) && (sharing || canManage) ? (
-        <div className="hidden items-center gap-0.5 border-t border-neutral-100 px-1 py-1 sm:flex">
+      {onViewFull || onMoveToStage || onStopShare ? (
+        <div className="flex items-center gap-0.5 border-t border-neutral-100 px-1 py-1">
           {onViewFull ? (
             <button
               type="button"
-              title="View full"
-              aria-label="View full"
+              title="Fullscreen"
+              aria-label={`Fullscreen ${name}`}
               onClick={onViewFull}
               className={cn(
-                "inline-flex h-7 flex-1 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800",
+                "inline-flex h-11 min-w-11 flex-1 items-center justify-center gap-1 rounded-lg text-[10px] font-semibold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900",
                 FOCUS_RING
               )}
             >
               <Maximize2 className="h-3.5 w-3.5" aria-hidden />
+              Fullscreen
             </button>
           ) : null}
           {onMoveToStage && canManage ? (
             <button
               type="button"
-              title={sharing ? "Show on main stage" : "Move to stage"}
-              aria-label={
-                sharing
-                  ? `Show ${name}'s screen on the main stage`
-                  : `Move ${name} to the main stage`
-              }
+              title="Move to Stage"
+              aria-label={`Move ${name} to the main stage`}
               onClick={onMoveToStage}
               className={cn(
-                "inline-flex h-7 flex-1 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800",
+                "inline-flex h-11 min-w-11 flex-1 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800",
                 FOCUS_RING
               )}
             >
@@ -206,14 +207,23 @@ export function LiveStagePipStack({
   );
 }
 
-/** Optional local-only fullscreen overlay for View Full (does not change global stage). */
+/**
+ * Local-only fullscreen for one card. Does not change room stage_focus.
+ * deviceFullscreen is true only after the Fullscreen API accepts the element.
+ */
 export function LiveViewFullOverlay({
   name,
+  avatarUrl,
   stream,
+  deviceFullscreen,
+  rootRef,
   onClose,
 }: {
   name: string;
+  avatarUrl?: string | null;
   stream: MediaStream | null;
+  deviceFullscreen: boolean;
+  rootRef: RefObject<HTMLDivElement | null>;
   onClose: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -223,36 +233,57 @@ export function LiveViewFullOverlay({
     if (!el) return;
     el.srcObject = stream;
     if (stream) void el.play().catch(() => undefined);
+    return () => {
+      el.srcObject = null;
+    };
   }, [stream]);
 
-  if (!stream) return null;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div
-      className="absolute inset-0 z-[40] flex flex-col bg-black/92"
+      ref={rootRef}
+      className="fixed inset-0 z-[70] flex flex-col bg-black"
       role="dialog"
       aria-label={`Viewing ${name}`}
+      style={{
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}
     >
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between gap-3 px-4 py-3">
         <p className="truncate text-[13px] font-semibold text-white">{name}</p>
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            "rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-white/20",
+            "rounded-full bg-white/10 px-3 py-2 text-[12px] font-semibold text-white hover:bg-white/20",
             FOCUS_RING_DARK
           )}
         >
-          Close
+          {deviceFullscreen ? "Exit Fullscreen" : "Exit focus"}
         </button>
       </div>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="min-h-0 flex-1 object-contain"
-      />
+      {stream ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="min-h-0 w-full flex-1 object-contain"
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3">
+          <HubAvatar name={name} src={avatarUrl} size={120} />
+          <p className="text-[15px] font-semibold text-white">{name}</p>
+        </div>
+      )}
     </div>
   );
 }

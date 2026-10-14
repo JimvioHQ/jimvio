@@ -136,6 +136,68 @@ describe("stage-share-layout", () => {
     assert.equal(layout.screenShares.length, 1);
   });
 
+  it("shows a pinned participant even while the host screen is live", () => {
+    const guestCam = fakeStream("guest-cam");
+    const hostScreen = fakeStream("host-screen");
+    const layout = selectStageShareLayout({
+      remotes: [
+        { identity: "guest-b", role: "speaker", screenStream: null, cameraStream: guestCam },
+      ],
+      hostIdentity: "host-a",
+      localIdentity: "host-a",
+      localSharing: true,
+      localScreen: hostScreen,
+      stageFocus: focus({ identity: "guest-b", kind: "participant", version: 4 }),
+    });
+    assert.equal(layout.stageStream, guestCam);
+    assert.equal(layout.stageKind, "camera");
+    assert.equal(layout.activeScreenShareIdentity, null);
+    assert.equal(layout.screenShares[0]?.identity, "host-a");
+    assert.equal(layout.screenShares[0]?.onStage, false);
+  });
+
+  it("keeps the selected screen when the sharer camera turns on", () => {
+    const guestScreen = fakeStream("guest-screen");
+    const withoutCamera = selectStageShareLayout({
+      remotes: [
+        { identity: "guest-b", role: "speaker", screenStream: guestScreen, cameraStream: null },
+      ],
+      hostIdentity: "host-a",
+      stageFocus: focus({ identity: "guest-b", kind: "screen", version: 3 }),
+    });
+    const withCamera = selectStageShareLayout({
+      remotes: [
+        {
+          identity: "guest-b",
+          role: "speaker",
+          screenStream: guestScreen,
+          cameraStream: fakeStream("guest-cam"),
+        },
+      ],
+      hostIdentity: "host-a",
+      localCamera: fakeStream("host-cam"),
+      stageFocus: focus({ identity: "guest-b", kind: "screen", version: 3 }),
+    });
+    assert.equal(withoutCamera.stageStream, guestScreen);
+    assert.equal(withCamera.stageStream, guestScreen);
+    assert.equal(withCamera.stageKind, "screen");
+  });
+
+  it("drops a stopped share and falls back when the pinned person has left", () => {
+    const hostScreen = fakeStream("host-screen");
+    const layout = selectStageShareLayout({
+      remotes: [],
+      hostIdentity: "host-a",
+      localIdentity: "host-a",
+      localSharing: true,
+      localScreen: hostScreen,
+      stageFocus: focus({ identity: "guest-b", kind: "participant", version: 5 }),
+    });
+    assert.equal(layout.stageStream, hostScreen);
+    assert.equal(layout.stageKind, "screen");
+    assert.equal(layout.screenShares.some((share) => share.identity === "guest-b"), false);
+  });
+
   it("keeps a pinned camera when nobody is selected as a screen", () => {
     const guestCam = fakeStream("guest-cam");
     const layout = selectStageShareLayout({

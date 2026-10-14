@@ -94,15 +94,35 @@ export function selectStageShareLayout(input: {
     return remotes.find((remote) => remote.identity === identity)?.cameraStream ?? null;
   };
 
-  const pinnedCamera =
-    stageFocus?.kind === "participant" && stageFocus.identity ? cameraFor(stageFocus.identity) : null;
-  if (pinnedCamera) {
-    return {
-      stageStream: pinnedCamera,
-      activeScreenShareIdentity: null,
-      stageKind: "camera",
-      screenShares,
-    };
+  const pinnedIdentity =
+    (stageFocus?.kind === "participant" || stageFocus?.kind === "camera") && stageFocus.identity
+      ? stageFocus.identity
+      : null;
+  if (pinnedIdentity) {
+    const pinnedCamera = cameraFor(pinnedIdentity);
+    const stillPresent =
+      pinnedIdentity === localIdentity ||
+      remotes.some((remote) => remote.identity === pinnedIdentity);
+    if (pinnedCamera || stillPresent) {
+      return {
+        stageStream: pinnedCamera,
+        activeScreenShareIdentity: null,
+        stageKind: "camera",
+        screenShares,
+      };
+    }
+    const hostScreen = hostIdentity ? screenByIdentity.get(hostIdentity) : null;
+    if (hostScreen && hostIdentity) {
+      return {
+        stageStream: hostScreen,
+        activeScreenShareIdentity: hostIdentity,
+        stageKind: "screen",
+        screenShares: screenShares.map((share) => ({
+          ...share,
+          onStage: share.identity === hostIdentity,
+        })),
+      };
+    }
   }
   if (preferLocalCamera && localCamera) {
     return {

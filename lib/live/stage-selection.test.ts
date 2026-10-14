@@ -69,6 +69,29 @@ describe("live stage selection", () => {
     assert.equal(resolved.identity === "guest-c", false);
   });
 
+  it("keeps an explicit participant pin ahead of an active host screen", () => {
+    const resolved = resolveStageSource({
+      focus: { identity: "guest-b", owner: "guest-b", kind: "participant", version: 4 },
+      hostIdentity: "host-a",
+      screenIdentities: ["host-a"],
+      hostSharing: true,
+    });
+    assert.equal(resolved.identity, "guest-b");
+    assert.equal(resolved.kind, "camera");
+    assert.equal(resolved.fellBack, false);
+  });
+
+  it("does not let a newer share replace the host-selected screen", () => {
+    const resolved = resolveStageSource({
+      focus: { identity: "host-a", owner: "host-a", kind: "screen", version: 2 },
+      hostIdentity: "host-a",
+      screenIdentities: ["host-a", "guest-b"],
+      hostSharing: true,
+    });
+    assert.equal(resolved.identity, "host-a");
+    assert.equal(resolved.kind, "screen");
+  });
+
   it("increments the version when the host changes the stage", () => {
     const next = nextStageFocus({
       previous: { identity: "host-a", owner: "host-a", kind: "screen", version: 2 },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Monitor } from "lucide-react";
+import { Maximize2, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type LiveScreenShareTile = {
@@ -36,10 +36,12 @@ export function LiveScreenShareStrip({
   shares,
   canPromote,
   onPromote,
+  onFullscreen,
 }: {
   shares: LiveScreenShareTile[];
   canPromote: boolean;
   onPromote: (identity: string) => void;
+  onFullscreen?: (identity: string) => void;
 }) {
   if (!shares.length) return null;
   return (
@@ -68,6 +70,17 @@ export function LiveScreenShareStrip({
               {share.name}
               {share.isYou ? " (You)" : ""}
             </p>
+            <div className="mt-1 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onFullscreen?.(share.identity)}
+                className="inline-flex h-11 min-w-11 flex-1 items-center justify-center gap-1 rounded-lg text-[10px] font-semibold text-[#374151] hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                aria-label={`Fullscreen ${share.name}'s screen`}
+              >
+                <Maximize2 className="h-3.5 w-3.5" aria-hidden />
+                Fullscreen
+              </button>
+            </div>
             {share.onStage ? (
               <p className="text-[10px] font-semibold text-[#FF5A1F]" aria-current="true">
                 On main stage
@@ -76,7 +89,7 @@ export function LiveScreenShareStrip({
               <button
                 type="button"
                 onClick={() => onPromote(share.identity)}
-                className="mt-1 h-7 w-full rounded-lg bg-[#FF5A1F] text-[10px] font-bold text-white hover:bg-[#E04E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                className="mt-1 h-11 w-full rounded-lg bg-[#FF5A1F] text-[10px] font-bold text-white hover:bg-[#E04E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
                 aria-label={`Show ${share.name}'s screen on the main stage`}
               >
                 Show on main stage

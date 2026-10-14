@@ -100,8 +100,10 @@ export type ResolvedStageSource = {
 
 /**
  * Host-selected screen stays featured only while that share is still live.
+ * An explicit participant pin replaces the screen for every viewer.
  * A new participant share never replaces the current selection by itself.
- * A stopped selection falls back to the host screen, then the host camera.
+ * A stopped screen selection falls back to the host screen, then the host camera.
+ * Active-speaker audio is not an input and cannot override this result.
  */
 export function resolveStageSource(input: {
   focus: RoomStageFocus | null;
@@ -111,15 +113,23 @@ export function resolveStageSource(input: {
 }): ResolvedStageSource {
   const screens = new Set(input.screenIdentities.filter(Boolean));
   const hostIdentity = input.hostIdentity ?? null;
+  const focus = input.focus;
+  if (
+    focus &&
+    (focus.kind === "participant" || focus.kind === "camera") &&
+    focus.identity
+  ) {
+    return { identity: focus.identity, kind: "camera", fellBack: false };
+  }
   const requestedScreen =
-    input.focus?.kind === "screen" && input.focus.identity && screens.has(input.focus.identity)
-      ? input.focus.identity
+    focus?.kind === "screen" && focus.identity && screens.has(focus.identity)
+      ? focus.identity
       : null;
   if (requestedScreen) {
     return { identity: requestedScreen, kind: "screen", fellBack: false };
   }
   const requestedMissing =
-    input.focus?.kind === "screen" && Boolean(input.focus.identity) && !requestedScreen;
+    focus?.kind === "screen" && Boolean(focus.identity) && !requestedScreen;
   if (input.hostSharing && hostIdentity && screens.has(hostIdentity)) {
     return { identity: hostIdentity, kind: "screen", fellBack: requestedMissing };
   }
