@@ -60,6 +60,7 @@ const navSections = [
       { label: "Disputes",      href: "/admin/disputes",      icon: Siren },
       { label: "UGC & Clipping", href: "/admin/ugc", icon: Megaphone },
       { label: "Communities", href: "/admin/communities", icon: UsersRound },
+      { label: "Community posts", href: "/admin/communities/posts", icon: Inbox },
       { label: "Live sessions", href: "/admin/live", icon: Activity },
       { label: "Messages",      href: "/admin/messages",      icon: Inbox },
     ],

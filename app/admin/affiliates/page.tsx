@@ -77,9 +77,43 @@ export default async function AdminAffiliatesPage({
         </table>
       </div>
       <p className="text-xs text-[var(--color-text-muted)]">{count ?? 0} affiliates</p>
+      <CommissionHistory />
       <div className="flex gap-3 text-sm">
         {page > 1 ? <Link href={`/admin/affiliates?page=${page - 1}&q=${encodeURIComponent(q)}&state=${state}`}>Previous</Link> : null}
         {from + rows.length < (count ?? 0) ? <Link href={`/admin/affiliates?page=${page + 1}&q=${encodeURIComponent(q)}&state=${state}`}>Next</Link> : null}
+      </div>
+    </div>
+  );
+}
+
+async function CommissionHistory() {
+  const { data, error } = await getAdminDB()
+    .from("affiliate_commissions")
+    .select("id, order_id, commission_amount, status, lifecycle_status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return (
+    <div className="space-y-2">
+      <h2 className="text-sm font-semibold">Recent commissions</h2>
+      <p className="text-xs text-[var(--color-text-muted)]">Read only. This list does not mark a commission or payout as paid.</p>
+      {error ? <p className="text-sm text-rose-600">Commissions could not be loaded.</p> : null}
+      <div className={adminTableShell}>
+        <table className="w-full text-left text-[13px]">
+          <thead className="text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+            <tr><th className="px-4 py-3">Order</th><th className="px-4 py-3">Amount</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Lifecycle</th></tr>
+          </thead>
+          <tbody>
+            {(data ?? []).map((row) => (
+              <tr key={row.id} className="border-t border-[var(--color-border)]">
+                <td className="px-4 py-3 font-mono text-[11px]">{row.order_id}</td>
+                <td className="px-4 py-3 tabular-nums">{row.commission_amount}</td>
+                <td className="px-4 py-3">{row.status ?? "—"}</td>
+                <td className="px-4 py-3">{row.lifecycle_status}</td>
+              </tr>
+            ))}
+            {(data ?? []).length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={4}>No commission rows.</td></tr> : null}
+          </tbody>
+        </table>
       </div>
     </div>
   );

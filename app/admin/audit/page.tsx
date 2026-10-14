@@ -34,6 +34,7 @@ export default async function AdminAuditPage({
               <th className="px-4 py-3">When</th>
               <th className="px-4 py-3">Action</th>
               <th className="px-4 py-3">Entity</th>
+              <th className="px-4 py-3">Reason</th>
               <th className="px-4 py-3">Actor</th>
             </tr>
           </thead>
@@ -46,10 +47,15 @@ export default async function AdminAuditPage({
                   <p>{row.entity_type}</p>
                   <p className="text-[11px] text-[var(--color-text-muted)]">{row.entity_id}</p>
                 </td>
+                <td className="px-4 py-3 text-[12px] text-[var(--color-text-secondary)]">
+                  {row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata) && typeof (row.metadata as { reason?: unknown }).reason === "string"
+                    ? (row.metadata as { reason: string }).reason
+                    : "—"}
+                </td>
                 <td className="px-4 py-3 text-[11px]">{row.actor_id}</td>
               </tr>
             ))}
-            {(data ?? []).length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={4}>No audit events match this search.</td></tr> : null}
+            {(data ?? []).length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={5}>No audit events match this search.</td></tr> : null}
           </tbody>
         </table>
       </div>

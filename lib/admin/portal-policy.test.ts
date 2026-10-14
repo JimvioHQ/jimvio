@@ -19,5 +19,7 @@ describe("admin portal policy", () => {
     assert.match(src, /writeAuditEvent/);
     assert.doesNotMatch(src, /payout_account/);
     assert.doesNotMatch(src, /stream_key/);
+    assert.match(src, /community_posts/);
+    assert.doesNotMatch(src, /status:\s*"paid"/);
   });
 });

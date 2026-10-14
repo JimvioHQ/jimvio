@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/admin";
 import { adminBtnSecondary, adminInputClass, adminTableShell } from "@/lib/admin/ui";
-import { archiveCommunityAction, setCommunityVisibilityAction } from "@/lib/admin/portal-actions";
+import { archiveCommunityAction, setCommunityFeaturedAction, setCommunityVisibilityAction } from "@/lib/admin/portal-actions";
 import { getAdminDB } from "@/services/db";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +50,7 @@ export default async function AdminCommunitiesPage({
               <th className="px-4 py-3">Community</th>
               <th className="px-4 py-3">Visibility</th>
               <th className="px-4 py-3">Members</th>
+              <th className="px-4 py-3">Featured</th>
               <th className="px-4 py-3">State</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -63,6 +64,7 @@ export default async function AdminCommunitiesPage({
                 </td>
                 <td className="px-4 py-3">{row.visibility_mode}</td>
                 <td className="px-4 py-3 tabular-nums">{row.member_count ?? 0}</td>
+                <td className="px-4 py-3">{row.is_featured ? "Yes" : "No"}</td>
                 <td className="px-4 py-3">{row.archived_at ? "Archived" : row.is_active ? "Active" : "Inactive"}</td>
                 <td className="px-4 py-3 space-y-2">
                   <form action={archiveCommunityAction} className="flex flex-wrap gap-2">
@@ -70,6 +72,12 @@ export default async function AdminCommunitiesPage({
                     <input type="hidden" name="archived" value={row.archived_at ? "0" : "1"} />
                     <input name="reason" required minLength={8} placeholder="Reason" className={adminInputClass} />
                     <button className={adminBtnSecondary} type="submit">{row.archived_at ? "Restore" : "Archive"}</button>
+                  </form>
+                  <form action={setCommunityFeaturedAction} className="flex flex-wrap gap-2">
+                    <input type="hidden" name="id" value={row.id} />
+                    <input type="hidden" name="featured" value={row.is_featured ? "0" : "1"} />
+                    <input name="reason" required minLength={8} placeholder="Reason" className={adminInputClass} />
+                    <button className={adminBtnSecondary} type="submit">{row.is_featured ? "Unfeature" : "Feature"}</button>
                   </form>
                   <form action={setCommunityVisibilityAction} className="flex flex-wrap gap-2">
                     <input type="hidden" name="id" value={row.id} />
@@ -85,7 +93,7 @@ export default async function AdminCommunitiesPage({
                 </td>
               </tr>
             ))}
-            {rows.length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={5}>No communities match this filter.</td></tr> : null}
+            {rows.length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={6}>No communities match this filter.</td></tr> : null}
           </tbody>
         </table>
       </div>
