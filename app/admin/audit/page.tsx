@@ -1,23 +1,30 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/admin";
 import { adminBtnSecondary, adminInputClass, adminTableShell } from "@/lib/admin/ui";
 import { getAdminDB } from "@/services/db";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 50;
+
 export default async function AdminAuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
+  const page = Math.max(1, Number(params.page) || 1);
+  const from = (page - 1) * PAGE_SIZE;
   let query = getAdminDB()
     .from("admin_audit_events")
-    .select("id, actor_id, action, entity_type, entity_id, metadata, created_at")
+    .select("id, actor_id, action, entity_type, entity_id, metadata, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(50);
+    .range(from, from + PAGE_SIZE - 1);
   if (q) query = query.or(`action.ilike.%${q.replace(/[%_,]/g, "")}%,entity_type.ilike.%${q.replace(/[%_,]/g, "")}%`);
-  const { data, error } = await query;
+  const { data, count, error } = await query;
+  const rows = data ?? [];
+  const total = count ?? 0;
 
   return (
     <div className="space-y-6">
@@ -39,7 +46,7 @@ export default async function AdminAuditPage({
             </tr>
           </thead>
           <tbody>
-            {(data ?? []).map((row) => (
+            {rows.map((row) => (
               <tr key={row.id} className="border-t border-[var(--color-border)] align-top">
                 <td className="px-4 py-3 whitespace-nowrap">{row.created_at ? new Date(row.created_at).toLocaleString() : "—"}</td>
                 <td className="px-4 py-3 font-medium">{row.action}</td>
@@ -55,10 +62,17 @@ export default async function AdminAuditPage({
                 <td className="px-4 py-3 text-[11px]">{row.actor_id}</td>
               </tr>
             ))}
-            {(data ?? []).length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={5}>No audit events match this search.</td></tr> : null}
+            {rows.length === 0 ? <tr><td className="px-4 py-8 text-[var(--color-text-muted)]" colSpan={5}>No audit events match this search.</td></tr> : null}
           </tbody>
         </table>
       </div>
+      <p className="text-xs text-[var(--color-text-muted)]">{total} audit events</p>
+      {page > 1 || from + rows.length < total ? (
+        <div className="flex gap-3 text-sm">
+          {page > 1 ? <Link href={`/admin/audit?page=${page - 1}&q=${encodeURIComponent(q)}`}>Previous</Link> : null}
+          {from + rows.length < total ? <Link href={`/admin/audit?page=${page + 1}&q=${encodeURIComponent(q)}`}>Next</Link> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
