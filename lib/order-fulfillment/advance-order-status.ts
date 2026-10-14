@@ -4,6 +4,7 @@ import {
     type OrderStatusValue,
 } from "@/lib/payments/record-status-change";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { decideSupplierTrackingUpdate } from "@/lib/order-fulfillment/tracking-decision";
 
 const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "refunded"]);
 
@@ -18,11 +19,12 @@ export async function advanceOrderFulfillment(
         trackingStatus?: string | null;
         cjFulfillmentStatus?: string | null;
         metadata?: Record<string, unknown>;
+        occurredAt?: string | null;
     }
 ): Promise<{ updated: boolean; status: string }> {
     const { data: order } = await db
         .from("orders")
-        .select("status, shipped_at, delivered_at, tracking_number, tracking_url, buyer_id, order_number, metadata")
+        .select("status, shipped_at, delivered_at, tracking_number, tracking_status, tracking_url, buyer_id, order_number, metadata")
         .eq("id", orderId)
         .maybeSingle();
 
@@ -32,9 +34,34 @@ export async function advanceOrderFulfillment(
     }
 
     const previousStatus = order.status as OrderStatusValue;
+    const storedMeta =
+        order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+            ? (order.metadata as Record<string, unknown>)
+            : {};
+    const source = String(params.metadata?.source ?? "");
+    const supplierUpdate = source === "cj_webhook" || source === "cj_sync";
+    let supplierNotify: ReturnType<typeof decideSupplierTrackingUpdate>["notify"] = null;
+    if (supplierUpdate) {
+        const decision = decideSupplierTrackingUpdate({
+            currentStatus: previousStatus,
+            currentTrackingStatus: order.tracking_status,
+            currentTrackingNumber: order.tracking_number,
+            currentEventAt: typeof storedMeta.tracking_event_at === "string" ? storedMeta.tracking_event_at : null,
+            incomingStatus: params.cjFulfillmentStatus ?? params.newStatus ?? params.trackingStatus,
+            incomingTrackingNumber: params.trackingNumber,
+            occurredAt: params.occurredAt,
+        });
+        if (!decision.apply) {
+            return { updated: false, status: previousStatus };
+        }
+        supplierNotify = decision.notify;
+        if (decision.orderStatus) params = { ...params, newStatus: decision.orderStatus };
+        if (decision.trackingStatus) params = { ...params, trackingStatus: decision.trackingStatus };
+    }
+
     let targetStatus = params.newStatus ?? previousStatus;
 
-    if (params.trackingNumber?.trim()) {
+    if (params.trackingNumber?.trim() && params.trackingStatus !== "Delivery exception") {
         targetStatus =
             previousStatus === "delivered" || targetStatus === "delivered"
                 ? "delivered"
@@ -49,21 +76,27 @@ export async function advanceOrderFulfillment(
     }
     if (params.trackingNumber?.trim()) {
         patch.tracking_number = params.trackingNumber.trim();
-        patch.tracking_status = params.trackingStatus ?? "in_transit";
+    }
+    if (params.trackingStatus) {
+        patch.tracking_status = params.trackingStatus;
+    } else if (params.trackingNumber?.trim()) {
+        patch.tracking_status = "In transit";
     }
     if (targetStatus !== previousStatus) {
         patch.status = targetStatus;
     }
-    const prevMeta =
-      order.metadata &&
-      typeof order.metadata === "object" &&
-      !Array.isArray(order.metadata)
-        ? (order.metadata as Record<string, unknown>)
-        : {};
     const trackingUrl = params.trackingUrl?.trim() || "";
+    const metaPatch: Record<string, unknown> = { ...storedMeta };
+    let metaChanged = false;
     if (trackingUrl) {
-      patch.metadata = { ...prevMeta, tracking_url: trackingUrl };
+      metaPatch.tracking_url = trackingUrl;
+      metaChanged = true;
     }
+    if (supplierUpdate && params.occurredAt) {
+      metaPatch.tracking_event_at = params.occurredAt;
+      metaChanged = true;
+    }
+    if (metaChanged) patch.metadata = metaPatch;
 
     if (targetStatus === "shipped" && !order.shipped_at) {
         patch.shipped_at = now;
@@ -156,6 +189,49 @@ export async function advanceOrderFulfillment(
                 orderNumber: String(order.order_number ?? orderId),
                 actionPath: `/orders/${orderId}`,
                 idempotencyKey: `order.delivered:${orderId}`,
+            },
+        });
+    }
+
+    if (supplierNotify && order.buyer_id && supplierNotify !== "shipped" && supplierNotify !== "delivered" && supplierNotify !== "cancelled") {
+        const orderNumber = String(order.order_number ?? orderId);
+        const trackingNumber = params.trackingNumber?.trim() || order.tracking_number || null;
+        const title =
+            supplierNotify === "out_for_delivery"
+                ? "Out for delivery"
+                : supplierNotify === "exception"
+                  ? "Delivery needs attention"
+                  : supplierNotify === "in_transit"
+                    ? "Shipment update"
+                    : "Order update";
+        const message =
+            supplierNotify === "out_for_delivery"
+                ? `Your order #${orderNumber} is out for delivery.`
+                : supplierNotify === "exception"
+                  ? `Your order #${orderNumber} has a delivery exception. Open the order for the latest status.`
+                  : supplierNotify === "in_transit"
+                    ? `Your order #${orderNumber} is in transit.${trackingNumber ? ` Tracking: ${trackingNumber}` : ""}`
+                    : `Your order #${orderNumber} is being prepared.`;
+        await notifyUser(db, {
+            userId: order.buyer_id,
+            type: "order",
+            title,
+            message,
+            actionUrl: `/orders/${orderId}`,
+            eventKey: `order.${supplierNotify}:${orderId}`,
+            email: {
+                kind: "account_notice",
+                orderId,
+                orderNumber,
+                subject: title,
+                titleLead: title,
+                titleAccent: "",
+                subtitle: message,
+                noticeTitle: title,
+                noticeBody: message,
+                ctaLabel: "View order",
+                actionPath: `/orders/${orderId}`,
+                idempotencyKey: `order.${supplierNotify}:${orderId}`,
             },
         });
     }

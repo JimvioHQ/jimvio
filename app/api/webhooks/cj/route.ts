@@ -19,6 +19,7 @@ import {
 } from "@/lib/cj/sync-inventory";
 import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
+import { logWebhookEvent, markWebhookFailed, markWebhookProcessed } from "@/lib/payments/webhook-logger";
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
@@ -216,7 +217,8 @@ async function syncOrderFromWebhook(
         newStatus: mappedStatus ?? undefined,
         trackingNumber,
         trackingUrl: params.trackingUrl ?? null,
-        cjFulfillmentStatus: params.orderStatus?.toLowerCase(),
+        cjFulfillmentStatus: params.orderStatus,
+        occurredAt: params.updateDate || params.deliveryDate || null,
         notes: trackingNumber ? "Your order is on the way." : undefined,
         metadata: {
             cj_order_id: cjOrderId,
@@ -741,10 +743,28 @@ export async function POST(req: Request): Promise<Response> {
             });
         }
 
-        // ── ORDER ─────────────────────────────────────────────────────────
-        if (payload.type === "ORDER") {
+        // ── ORDER / LOGISTIC ──────────────────────────────────────────────
+        if (payload.type === "ORDER" || payload.type === "LOGISTIC") {
             const params = payload.params as unknown as CJOrderParams;
-            await syncOrderFromWebhook(supabase, params);
+            const idempotencyKey = payload.messageId
+                ? `cj:${payload.messageId}`
+                : `cj:${payload.type}:${params.cjOrderId ?? params.orderNumber}:${params.orderStatus}:${params.trackNumber ?? ""}:${params.updateDate ?? ""}`;
+            const logged = await logWebhookEvent(supabase, {
+                provider: "cj",
+                idempotencyKey,
+                payload,
+            });
+            if (logged.isDuplicate) {
+                return Response.json({ ok: true, duplicate: true });
+            }
+            try {
+                await syncOrderFromWebhook(supabase, params);
+                if (logged.eventId) await markWebhookProcessed(supabase, logged.eventId);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Order sync failed";
+                if (logged.eventId) await markWebhookFailed(supabase, logged.eventId, message);
+                throw err;
+            }
             console.log(
                 `[CJ webhook] ORDER sync ok cjOrderId=${params.cjOrderId} status=${params.orderStatus}`
             );

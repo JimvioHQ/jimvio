@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  chunkReloadStorageKey,
+  decideChunkRecovery,
+  isChunkLoadFailure,
+  readChunkDeploymentId,
+} from "@/lib/client/chunk-recovery";
 
 /**
  * Replaces Next.js DefaultGlobalError so production never hides the real
@@ -13,52 +19,48 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [recovery, setRecovery] = useState<"reload" | "offline" | "manual" | "ignore">("ignore");
+  const [showLive, setShowLive] = useState(false);
+
   useEffect(() => {
     console.error("[global-error]", {
       name: error.name,
       message: error.message,
       digest: error.digest,
-      stack: error.stack,
     });
 
-    const chunk =
-      error.name === "ChunkLoadError" ||
-      /Loading chunk|Failed to fetch dynamically imported module|ChunkLoadError/i.test(
-        error.message || ""
-      );
+    const chunk = isChunkLoadFailure(error);
     if (!chunk || typeof window === "undefined") return;
-
-    const recover = async () => {
-      try {
-        const key = "jimvio-chunk-reload";
-        if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, "1");
-      } catch {
-        /* continue */
-      }
-      try {
-        if ("serviceWorker" in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map((r) => r.unregister()));
-        }
-      } catch {
-        /* ignore */
-      }
-      try {
-        if ("caches" in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((k) => caches.delete(k)));
-        }
-      } catch {
-        /* ignore */
-      }
-      const url = new URL(window.location.href);
-      url.searchParams.set("_chunkfix", String(Date.now()));
-      window.location.replace(url.toString());
-    };
-
-    void recover();
+    const deploymentId =
+      readChunkDeploymentId(error.message) || document.body?.dataset.deploymentId?.trim() || null;
+    setShowLive(window.location.pathname.includes("/live"));
+    let attempted = false;
+    try {
+      attempted = sessionStorage.getItem(chunkReloadStorageKey(deploymentId, window.location.pathname)) === "1";
+    } catch {
+      attempted = false;
+    }
+    const decision = decideChunkRecovery({
+      isChunkError: true,
+      online: navigator.onLine,
+      alreadyAttempted: attempted,
+    });
+    setRecovery(decision);
+    if (decision !== "reload") return;
+    try {
+      sessionStorage.setItem(chunkReloadStorageKey(deploymentId, window.location.pathname), "1");
+    } catch {
+      /* continue */
+    }
+    window.location.reload();
   }, [error]);
+
+  const chunkMessage =
+    recovery === "offline"
+      ? "You appear to be offline. Reconnect, then reload this page."
+      : recovery === "manual"
+        ? "This page is still missing a file from the latest deploy. Reload once you are back online."
+        : null;
 
   return (
     <html lang="en">
@@ -91,7 +93,7 @@ export default function GlobalError({
             This page couldn’t load
           </h1>
           <p style={{ marginTop: 8, fontSize: 14, color: "#52525b" }}>
-            {error.message || "An unexpected client error stopped this page."}
+            {chunkMessage || "This page hit a problem while loading. You can reload without losing your place."}
           </p>
           {error.digest ? (
             <p
@@ -104,25 +106,6 @@ export default function GlobalError({
             >
               Ref: {error.digest}
             </p>
-          ) : null}
-          {error.stack ? (
-            <pre
-              style={{
-                marginTop: 12,
-                maxHeight: 220,
-                overflow: "auto",
-                borderRadius: 8,
-                background: "#18181b",
-                color: "#fafafa",
-                fontSize: 11,
-                lineHeight: 1.45,
-                padding: 12,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {error.stack}
-            </pre>
           ) : null}
           <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
@@ -157,24 +140,26 @@ export default function GlobalError({
             >
               Try again
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = "/communities/live";
-              }}
-              style={{
-                height: 40,
-                padding: "0 16px",
-                borderRadius: 10,
-                border: "1px solid #e4e4e7",
-                background: "#fff",
-                color: "#18181b",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Open Live
-            </button>
+            {showLive ? (
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/communities/live";
+                }}
+                style={{
+                  height: 40,
+                  padding: "0 16px",
+                  borderRadius: 10,
+                  border: "1px solid #e4e4e7",
+                  background: "#fff",
+                  color: "#18181b",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Open Live
+              </button>
+            ) : null}
           </div>
         </div>
       </body>

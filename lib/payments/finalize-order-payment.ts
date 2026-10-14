@@ -737,7 +737,7 @@ function getPaymentProviderLabel(provider: string | null | undefined): string {
     stripe: "Card",
     mtn: "MTN Money",
     airtel: "Airtel Money",
-    manual: "manual payment",
+    manual: "Jimvio",
   };
   return map[provider.toLowerCase()] ?? provider;
 }
@@ -753,6 +753,10 @@ export type FinalizePaymentContext = {
   webhookReference?: string;
   nowpaymentsPaymentId?: number | null;
   paymentProvider?: "binance" | "flutterwave" | any | null;
+  triggeredBy?: "webhook" | "manual" | "system" | "admin";
+  approvalSource?: string | null;
+  auditReason?: string | null;
+  externalReference?: string | null;
 };
 
 interface CJOrderItem {
@@ -1136,14 +1140,20 @@ export async function finalizeOrderPayment(
 
   // ── Status change context — shared by both paths ──────────────────────────
   const statusChangeOptions = {
-    triggeredBy: "webhook" as const,
+    triggeredBy: ctx.triggeredBy ?? ("webhook" as const),
     provider: ctx.paymentProvider ?? undefined,
     providerTransactionId: ctx.providerTransactionId,
     metadata: {
       webhook_reference: ctx.webhookReference ?? null,
       paid_at: ctx.paidAtIso,
+      approval_source: ctx.approvalSource ?? null,
+      audit_reason: ctx.auditReason ?? null,
+      external_reference: ctx.externalReference ?? null,
     },
   };
+  const paymentNote = ctx.approvalSource === "admin_manual"
+    ? `Payment recorded by an administrator after the funds were verified.${ctx.externalReference ? ` Reference ${ctx.externalReference}.` : ""}`
+    : `Payment confirmed via ${getPaymentProviderLabel(ctx.paymentProvider)}.`;
 
   function buildOrderPatch(
     orderStatus: "confirmed" | "processing",
@@ -1203,7 +1213,7 @@ export async function finalizeOrderPayment(
       "confirmed",
       {
         ...statusChangeOptions,
-        notes: `Payment confirmed via ${getPaymentProviderLabel(ctx.paymentProvider)}.`,
+        notes: paymentNote,
       }
     );
 
@@ -1451,7 +1461,7 @@ export async function finalizeOrderPayment(
       "processing",
       {
         ...statusChangeOptions,
-        notes: `Payment confirmed via ${getPaymentProviderLabel(ctx.paymentProvider)}. Forwarding to Shopify.`,
+        notes: `${paymentNote} Forwarding to Shopify.`,
       }
     );
 

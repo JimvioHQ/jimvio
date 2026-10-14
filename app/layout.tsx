@@ -56,6 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body
         suppressHydrationWarning
+        data-deployment-id={process.env.VERCEL_DEPLOYMENT_ID ?? ""}
         className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
       >
         {!onMerchantStoreHost ? <JimvioJsonLd /> : null}

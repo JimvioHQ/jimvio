@@ -26,6 +26,7 @@ import { VariantPickerDialog } from "./variant-picker-dialog";
 import { ProductCardVideoMedia } from "./product-card-video-media";
 import { productHasVideos } from "@/lib/product-videos";
 import { isPurchaseBlockedByStock } from "@/lib/marketplace/stock-status";
+import { isOfficialJimvioStoreLabel } from "@/lib/marketplace/store-display";
 import { ProductCardCommerceActions } from "@/components/marketplace/product-card-commerce-actions";
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -372,7 +373,7 @@ export function ProductCardClient({
 
         {/* ─────────── Info area ─────────── */}
         <div className="pointer-events-none relative z-[2] flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1">
-          {p.vendors?.business_name && (
+          {p.vendors?.business_name && !isOfficialJimvioStoreLabel(p.vendors) && (
             <p className="text-[10px] font-medium tracking-wide text-stone-400 dark:text-stone-500 uppercase truncate">
               {p.vendors.business_name}
             </p>

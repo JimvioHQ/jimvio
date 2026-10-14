@@ -29,6 +29,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/order-tracking-sync",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/cj-supplier-health",
       "schedule": "*/30 * * * *"
     },

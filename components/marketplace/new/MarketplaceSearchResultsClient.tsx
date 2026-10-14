@@ -144,7 +144,6 @@ export function MarketplaceSearchResultsClient({
   const [results, setResults] = useState<DbProduct[]>(aiMode ? [] : initialProducts);
   const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
   const [exactMatch, setExactMatch] = useState(initialTotal > 0);
-  const [total, setTotal] = useState(initialTotal);
   const [pageCount, setPageCount] = useState(initialPageCount);
   const [aiIntent, setAiIntent] = useState<string | null>(null);
   const [searchError, setSearchError] = useState(initialError);
@@ -178,7 +177,6 @@ export function MarketplaceSearchResultsClient({
         if (controller.signal.aborted) return;
         const products = (data.products ?? []) as DbProduct[];
         setResults(products);
-        setTotal(products.length);
         setPageCount(1);
         setCategories([]);
         setExactMatch(products.length > 0);
@@ -242,11 +240,6 @@ export function MarketplaceSearchResultsClient({
           </h1>
           {!loading && q && aiIntent && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{aiIntent}</p>
-          )}
-          {!loading && q && hasResults && (
-            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-              {total} matching {total === 1 ? "product" : "products"}
-            </p>
           )}
         </div>
       </div>

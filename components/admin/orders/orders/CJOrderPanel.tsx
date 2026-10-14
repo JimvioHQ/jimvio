@@ -66,6 +66,7 @@ interface Props {
     cjShippingMethod:     string | null;
     cjSubmitTime:         string | null;
     cjLastSync:           string | null;
+    syncError?:           string | null;
     hasCJItems:           boolean;
 }
 
@@ -80,6 +81,7 @@ export function CJOrderPanel({
     cjShippingMethod,
     cjSubmitTime,
     cjLastSync,
+    syncError,
     hasCJItems,
 }: Props) {
     const [pending,  startTransition] = useTransition();
@@ -153,6 +155,7 @@ export function CJOrderPanel({
                 <InfoCell label="Tracking"        value={trackingNumber} mono />
                 <InfoCell label="Submitted"       value={fmtDate(cjSubmitTime)} />
                 <InfoCell label="Last sync"       value={fmtDate(cjLastSync)} />
+                {syncError ? <InfoCell label="Sync error" value={syncError} /> : null}
             </div>
 
             {/* Tracking link */}

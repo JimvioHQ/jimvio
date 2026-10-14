@@ -1,4 +1,15 @@
 export const JIMVIO_STORE_SLUG = "jimvio-store";
+
+/** Marketplace cards should not print the official store name as a seller line. */
+export function isOfficialJimvioStoreLabel(vendor: {
+  business_name?: string | null;
+  business_slug?: string | null;
+} | null | undefined): boolean {
+  const slug = vendor?.business_slug?.trim().toLowerCase();
+  if (slug === JIMVIO_STORE_SLUG) return true;
+  const name = vendor?.business_name?.trim().toLowerCase().replace(/\s+/g, " ");
+  return name === "jimvio store";
+}
 export const JIMVIO_STORE_LOGO_SRC = "/jimvio-logo-mark.png";
 
 /** Official Jimvio mark — used when the Jimvio Store row has no uploaded logo. */

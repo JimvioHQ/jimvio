@@ -17,6 +17,7 @@ import {
    DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrency } from "@/context/CurrencyContext";
+import { customerTrackingLabel } from "@/lib/order-fulfillment/tracking-decision";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions/marketplace";
@@ -1042,9 +1043,9 @@ export default function BuyerOrdersPage() {
                                        </span>
                                     )}
                                     {/* Tracking status badge */}
-                                    {o.tracking_status && o.status === "shipped" && (
-                                       <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)] capitalize">
-                                          {o.tracking_status}
+                                    {customerTrackingLabel(o.tracking_status) && o.status === "shipped" && (
+                                       <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
+                                          {customerTrackingLabel(o.tracking_status)}
                                        </span>
                                     )}
                                  </div>

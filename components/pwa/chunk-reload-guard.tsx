@@ -1,78 +1,64 @@
 "use client";
 
 import { useEffect } from "react";
+import {
+  chunkReloadStorageKey,
+  decideChunkRecovery,
+  isChunkLoadFailure,
+  readChunkDeploymentId,
+} from "@/lib/client/chunk-recovery";
 
-function isChunkFailure(reason: unknown): boolean {
-  const msg =
-    reason instanceof Error
-      ? `${reason.name} ${reason.message}`
-      : String(reason ?? "");
-  return /ChunkLoadError|Loading chunk|Failed to fetch dynamically imported module|ChunkLoadError/i.test(
-    msg
-  );
+function currentDeploymentId(): string | null {
+  const fromDom = document.body?.dataset.deploymentId?.trim();
+  return fromDom || null;
 }
 
-async function clearStaleClientCaches() {
+function alreadyAttempted(deploymentId: string | null): boolean {
   try {
-    if ("serviceWorker" in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map((r) => r.unregister()));
-    }
+    return sessionStorage.getItem(chunkReloadStorageKey(deploymentId, window.location.pathname)) === "1";
   } catch {
-    /* ignore */
-  }
-  try {
-    if ("caches" in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((k) => caches.delete(k)));
-    }
-  } catch {
-    /* ignore */
+    return false;
   }
 }
 
-function hardReloadOnce() {
+function reloadOnce(deploymentId: string | null) {
   try {
-    const key = "jimvio-chunk-reload";
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, "1");
+    sessionStorage.setItem(chunkReloadStorageKey(deploymentId, window.location.pathname), "1");
   } catch {
-    /* continue */
+    /* still reload once */
   }
-
-  void clearStaleClientCaches().finally(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("_chunkfix", String(Date.now()));
-    window.location.replace(url.toString());
-  });
+  window.location.reload();
 }
 
-/** Catches ChunkLoadError outside React render (soft nav / dynamic import). */
+/** One reload for a stale or interrupted chunk. Further failures stay manual. */
 export function ChunkReloadGuard() {
   useEffect(() => {
-    // Successful hydration after a chunk-reload — allow future recoveries.
-    try {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has("_chunkfix")) {
-        url.searchParams.delete("_chunkfix");
-        window.history.replaceState({}, "", url.toString());
-        sessionStorage.removeItem("jimvio-chunk-reload");
-      }
-    } catch {
-      /* ignore */
-    }
-
     const onError = (event: ErrorEvent) => {
-      if (isChunkFailure(event.error ?? event.message)) {
-        event.preventDefault();
-        hardReloadOnce();
-      }
+      const reason = event.error ?? event.message;
+      if (!isChunkLoadFailure(reason)) return;
+      const deploymentId =
+        readChunkDeploymentId(typeof event.filename === "string" ? event.filename : null) ??
+        currentDeploymentId();
+      const decision = decideChunkRecovery({
+        isChunkError: true,
+        online: navigator.onLine,
+        alreadyAttempted: alreadyAttempted(deploymentId),
+      });
+      if (decision !== "reload") return;
+      event.preventDefault();
+      reloadOnce(deploymentId);
     };
     const onRejection = (event: PromiseRejectionEvent) => {
-      if (isChunkFailure(event.reason)) {
-        event.preventDefault();
-        hardReloadOnce();
-      }
+      if (!isChunkLoadFailure(event.reason)) return;
+      const deploymentId = currentDeploymentId();
+      const decision = decideChunkRecovery({
+        isChunkError: true,
+        online: navigator.onLine,
+        alreadyAttempted: alreadyAttempted(deploymentId),
+      });
+      if (decision !== "reload") return;
+      event.preventDefault();
+      reloadOnce(deploymentId);
     };
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);

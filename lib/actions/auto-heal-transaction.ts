@@ -27,6 +27,9 @@ export async function autoHealTransaction(input: HealInput): Promise<AutoHealRes
     }
 
     const { transactionId, orderId, provider, verifiedStatus, isStuck } = input;
+    if (provider === "manual" && !verifiedStatus) {
+        return { action: "none", reason: "manual_approval · not auto-healed" };
+    }
     if (!isUuid(transactionId) || (orderId != null && orderId !== "" && !isUuid(orderId))) {
         return { action: "error", reason: "invalid_id · heal_aborted" };
     }

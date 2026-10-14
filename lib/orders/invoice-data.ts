@@ -58,6 +58,22 @@ export type InvoiceData = {
   totals: InvoiceTotalLine[];
 };
 
+function invoicePaymentLabel(status?: string | null, paidAt?: string | null): string {
+  const key = (status ?? "").toLowerCase();
+  if (key === "refunded") return "Refunded";
+  if (key === "cancelled") return "Cancelled";
+  if ((key === "paid" || key === "completed") && paidAt) return "Paid";
+  if (key === "paid" || key === "completed") return "Paid";
+  return "Unpaid";
+}
+
+function customerPaymentProvider(provider: string | null | undefined): string | null {
+  if (!provider) return null;
+  if (/cj|dropshipping|supplier/i.test(provider)) return null;
+  if (provider.toLowerCase() === "manual") return "Jimvio";
+  return provider;
+}
+
 function formatInvoiceDate(d?: string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-GB", {
@@ -130,17 +146,22 @@ export function buildInvoiceData(order: InvoiceOrder): InvoiceData {
   return {
     ref,
     issuedDate: formatInvoiceDate(order.created_at),
-    paidDate: order.paid_at ? formatInvoiceDate(order.paid_at) : null,
+    paidDate:
+      invoicePaymentLabel(order.payment_status, order.paid_at) === "Paid" && order.paid_at
+        ? formatInvoiceDate(order.paid_at)
+        : null,
     currency,
-    paymentStatus: order.payment_status ?? "pending",
+    paymentStatus: invoicePaymentLabel(order.payment_status, order.paid_at),
     paymentProvider:
-      order.payment_provider ??
-      (order.metadata &&
-      typeof order.metadata === "object" &&
-      !Array.isArray(order.metadata) &&
-      typeof (order.metadata as Record<string, unknown>).payment_provider === "string"
-        ? ((order.metadata as Record<string, unknown>).payment_provider as string)
-        : null),
+      customerPaymentProvider(order.payment_provider) ??
+      customerPaymentProvider(
+        order.metadata &&
+        typeof order.metadata === "object" &&
+        !Array.isArray(order.metadata) &&
+        typeof (order.metadata as Record<string, unknown>).payment_provider === "string"
+          ? ((order.metadata as Record<string, unknown>).payment_provider as string)
+          : null,
+      ),
     buyerName,
     buyerEmail,
     addressLine,

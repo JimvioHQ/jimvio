@@ -24,6 +24,7 @@ import { retryCJOrderAction } from "@/lib/actions/orders";
 import { autoCompleteOrderPaymentIfEligible } from "@/lib/payments/auto-complete-order-payment";
 import { formatHealError } from "@/lib/payments/heal-error";
 import { CJOrderPanel } from "@/components/admin/orders/orders/CJOrderPanel";
+import { ApprovePaymentForm } from "@/components/admin/orders/approve-payment-form";
 
 
 export const dynamic = "force-dynamic";
@@ -523,6 +524,7 @@ export default async function OrderDetailPage({
                             Payment hasn't completed and provider couldn't be reached.
                             {txs.length > 0 && ` Last tx: ${txs[0].status} via ${txs[0].provider}.`}
                         </p>
+                        <ApprovePaymentForm orderId={order.id} />
                     </div>
                 </div>
             )}
@@ -536,6 +538,7 @@ export default async function OrderDetailPage({
                             Order placed {relativeTime(order.created_at ?? "")} but payment hasn't completed.
                             {txs.length > 0 && ` Last transaction: ${txs[0].status}.`}
                         </p>
+                        <ApprovePaymentForm orderId={order.id} />
                     </div>
                 </div>
             )}
@@ -694,6 +697,7 @@ export default async function OrderDetailPage({
                             cjShippingMethod={order.cj_shipping_method ?? null}
                             cjSubmitTime={(order as any).cj_submit_time ?? null}
                             cjLastSync={(order as any).cj_last_sync ?? null}
+                            syncError={typeof metadata.tracking_last_error === "string" ? metadata.tracking_last_error : null}
                             hasCJItems={hasCJItems}
                         />
                     )}
