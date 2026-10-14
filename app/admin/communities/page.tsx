@@ -22,6 +22,7 @@ export default async function AdminCommunitiesPage({
     .from("communities")
     .select("id, name, slug, visibility_mode, is_active, archived_at, member_count, is_featured, owner_id", { count: "exact" })
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
   if (q) query = query.or(`name.ilike.%${q.replace(/[%_,]/g, "")}%,slug.ilike.%${q.replace(/[%_,]/g, "")}%`);
   if (state === "archived") query = query.not("archived_at", "is", null);

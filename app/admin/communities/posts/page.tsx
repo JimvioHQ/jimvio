@@ -26,6 +26,7 @@ export default async function AdminCommunityPostsPage({
     .from("community_posts")
     .select("id, title, community_id, is_published, archived_at, comment_count, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
   if (safe) postsQuery = postsQuery.ilike("title", `%${safe}%`);
   if (state === "archived") postsQuery = postsQuery.not("archived_at", "is", null);
@@ -35,6 +36,7 @@ export default async function AdminCommunityPostsPage({
     .from("community_post_comments")
     .select("id, post_id, body, is_published, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(cfrom, cfrom + PAGE_SIZE - 1);
   if (safe) commentsQuery = commentsQuery.ilike("body", `%${safe}%`);
 

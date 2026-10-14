@@ -21,5 +21,8 @@ describe("admin portal policy", () => {
     assert.doesNotMatch(src, /stream_key/);
     assert.match(src, /community_posts/);
     assert.doesNotMatch(src, /status:\s*"paid"/);
+    const posts = readFileSync(new URL("../../app/admin/communities/posts/page.tsx", import.meta.url), "utf8");
+    const postOrders = posts.match(/\.order\("id", \{ ascending: false \}\)/g) ?? [];
+    assert.equal(postOrders.length, 2);
   });
 });
