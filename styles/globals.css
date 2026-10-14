@@ -188,9 +188,6 @@
     .jimvio-mobile-header-bar {
       box-shadow: none !important;
       -webkit-box-shadow: none !important;
-      /* The universal box-shadow transition interpolates Tailwind's `0 0 #0000`
-         and iOS paints that as a black strip along the bottom of this bar. */
-      transition-property: background-color, border-color, color !important;
     }
   }
 
