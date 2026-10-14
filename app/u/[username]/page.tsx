@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { IdentityProfileView } from "@/components/identity/IdentityProfileView";
+import { PresenceProvider } from "@/components/presence/PresenceProvider";
 import { IdentityPublicProfileClient } from "@/components/identity/IdentityPublicProfileClient";
 import type { IdentityProfilePayload } from "@/lib/identity/types";
 
@@ -72,5 +73,9 @@ export default async function PublicIdentityPage({
   }
   if (!payload) notFound();
 
-  return <IdentityProfileView payload={payload} />;
+  return (
+    <PresenceProvider>
+      <IdentityProfileView payload={payload} />
+    </PresenceProvider>
+  );
 }

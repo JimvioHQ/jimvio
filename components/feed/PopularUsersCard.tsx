@@ -7,6 +7,7 @@ import { useFeedHubDiscover } from "@/components/feed/use-feed-hub-discover";
 import { useFollowUser } from "@/hooks/live/useFollowUser";
 import { POPULAR_USER_COUNT, type FeedSidebarPopularUser } from "@/lib/feed/load-feed-sidebar";
 import { cn, formatNumber, getInitials } from "@/lib/utils";
+import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 
 function UserAvatar({
   name,
@@ -72,7 +73,9 @@ function PopularUserRow({ user }: { user: FeedSidebarPopularUser }) {
   return (
     <li className="flex items-center gap-2.5 py-2 first:pt-0 last:pb-0">
       <Link href={user.href} className="shrink-0 transition-opacity hover:opacity-90">
-        <UserAvatar name={user.name} url={user.avatarUrl} />
+        <PresenceAvatarFrame userId={user.userId}>
+          <UserAvatar name={user.name} url={user.avatarUrl} />
+        </PresenceAvatarFrame>
       </Link>
       <div className="min-w-0 flex-1">
         <Link href={user.href} className="group block min-w-0">

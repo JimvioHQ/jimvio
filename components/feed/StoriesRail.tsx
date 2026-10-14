@@ -12,6 +12,7 @@ import {
 } from "@/lib/supabase/realtime-subscribe";
 import { cn, getInitials } from "@/lib/utils";
 import { StoryViewer, type StoryViewerGroup } from "@/components/feed/StoryViewer";
+import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
 const STORY_RING = "border-2 border-[#FF5A1F]";
@@ -195,6 +196,7 @@ export function StoriesRail() {
                 ownGroup?.stories.length ? "View your story" : "Add your story"
               }
             >
+              <PresenceAvatarFrame userId={currentUserId}>
               <div className={cn("rounded-full p-[2px]", STORY_RING)}>
                 <div
                   className={cn(
@@ -213,6 +215,7 @@ export function StoriesRail() {
                   )}
                 </div>
               </div>
+              </PresenceAvatarFrame>
             </button>
             <button
               type="button"
@@ -262,6 +265,7 @@ export function StoriesRail() {
                   className="flex w-[64px] shrink-0 snap-start flex-col items-center gap-1.5 transition-opacity active:opacity-70 motion-reduce:active:opacity-100"
                 >
                   <div className="relative">
+                    <PresenceAvatarFrame userId={group.author_id}>
                     <div className={cn("rounded-full p-[2px]", ring)}>
                       <div
                         className={cn(
@@ -276,6 +280,7 @@ export function StoriesRail() {
                         />
                       </div>
                     </div>
+                    </PresenceAvatarFrame>
                   </div>
                   <span className="max-w-[64px] truncate text-center text-[11px] font-medium text-[var(--color-text-secondary)]">
                     {name}

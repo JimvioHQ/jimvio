@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { rateLimit } from "@/lib/ops/rate-limit";
+import { rotateStoryAuthors, storyRotationBucket } from "@/lib/feed/story-rotation";
 
 export const dynamic = "force-dynamic";
 
@@ -178,12 +179,9 @@ export async function GET() {
   }
 
   // Own stories first, then unseen, then rest (by most recent story)
-  const groups = order
+  const ranked = order
     .map((id) => byAuthor.get(id)!)
     .sort((a, b) => {
-      const aOwn = user && a.author_id === user.id ? 0 : 1;
-      const bOwn = user && b.author_id === user.id ? 0 : 1;
-      if (aOwn !== bOwn) return aOwn - bOwn;
       const aUnseen = a.has_unseen ? 0 : 1;
       const bUnseen = b.has_unseen ? 0 : 1;
       if (aUnseen !== bUnseen) return aUnseen - bUnseen;
@@ -191,6 +189,7 @@ export async function GET() {
       const bLatest = b.stories[b.stories.length - 1]?.created_at ?? "";
       return bLatest.localeCompare(aLatest);
     });
+  const groups = rotateStoryAuthors(ranked, storyRotationBucket(), user?.id ?? null);
 
   return NextResponse.json(
     {

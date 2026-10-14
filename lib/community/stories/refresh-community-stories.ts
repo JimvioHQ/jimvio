@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { storyCommunityWindow, storyRotationBucket } from "@/lib/feed/story-rotation";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 
 const STORY_TTL_MS = 48 * 60 * 60 * 1000;
@@ -62,13 +63,15 @@ export async function refreshCommunityStories(): Promise<RefreshResult> {
     .or("is_private.eq.false,is_private.is.null")
     .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
-    .limit(BATCH_LIMIT);
+    .limit(BATCH_LIMIT * 4);
 
   if (commError || !communities?.length) {
     return result;
   }
 
-  for (const community of communities) {
+  const windowed = storyCommunityWindow(communities, storyRotationBucket(), BATCH_LIMIT);
+
+  for (const community of windowed) {
     // Skip archived / non-public visibility when present
     if ((community as { archived_at?: string | null }).archived_at) {
       result.skipped_no_content += 1;

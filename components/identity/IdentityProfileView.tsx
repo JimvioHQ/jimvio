@@ -18,6 +18,7 @@ import {
 import type { IdentityProfilePayload } from "@/lib/identity/types";
 import { formatNumber } from "@/lib/utils";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
+import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { IdentityButton, IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
 import { IdentityTabNav, type IdentityTab } from "@/components/identity/IdentityTabNav";
 import { IdentityOverviewPanel } from "@/components/identity/IdentityOverviewPanel";
@@ -118,11 +119,13 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
         <div className="relative px-5 pb-6 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="-mt-12 flex items-end gap-4 sm:-mt-14">
+              <PresenceAvatarFrame userId={profile.userId}>
               <PersonAvatar
                 name={displayName}
                 url={profile.avatarUrl}
                 className="h-24 w-24 rounded-[26px] border-4 border-white shadow-lg sm:h-28 sm:w-28"
               />
+              </PresenceAvatarFrame>
               <div className="pb-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <h1 className="font-[var(--font-identity-serif)] text-[22px] font-medium tracking-tight text-[#161512] sm:text-[26px]">

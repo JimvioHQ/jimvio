@@ -17,8 +17,19 @@ export default async function FeedPage({
   let initialCommunities: TrendingCommunity[] = [];
   let initialPosts: ApiPost[] = [];
   let initialNextCursor: string | null = null;
+  const [communityRows, feedResult] = await Promise.all([
+    getHomepageCommunities(8).catch((err) => {
+      console.error("[communities] public catalog preload failed:", err);
+      return [] as Awaited<ReturnType<typeof getHomepageCommunities>>;
+    }),
+    loadHubFeedSsr({ filter: "for-you", limit: 20, tag }).catch((err) => {
+      console.error("[communities] hub feed preload failed:", err);
+      return { posts: [] as ApiPost[], next_cursor: null as string | null };
+    }),
+  ]);
+
   try {
-    const rows = await getHomepageCommunities(8);
+    const rows = communityRows;
     initialCommunities = rows.map((row) => {
       const memberCount = Number(row.member_count ?? 0) || 0;
       return {
@@ -44,13 +55,8 @@ export default async function FeedPage({
     console.error("[communities] public catalog preload failed:", err);
   }
 
-  try {
-    const feed = await loadHubFeedSsr({ filter: "for-you", limit: 20, tag });
-    initialPosts = feed.posts;
-    initialNextCursor = feed.next_cursor;
-  } catch (err) {
-    console.error("[communities] hub feed preload failed:", err);
-  }
+  initialPosts = feedResult.posts;
+  initialNextCursor = feedResult.next_cursor;
 
   return (
     <FeedPageContent

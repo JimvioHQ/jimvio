@@ -298,30 +298,46 @@ async function countJimvioFollowers(
   userId: string,
   username?: string | null
 ): Promise<number> {
-  let real = 0;
   try {
-    const { count } = await db
+    const { count, error } = await db
       .from("user_follows")
       .select("id", { count: "exact", head: true })
       .eq("following_id", userId);
-    real = count ?? 0;
+    if (!error && typeof count === "number") {
+      return resolveProfileFollowerCount({ username, follower_count: count });
+    }
   } catch (err) {
     console.error("resolve: countJimvioFollowers failed", err);
-    real = 0;
   }
-  return resolveProfileFollowerCount({
-    username,
-    follower_count: real,
-  });
+  try {
+    const { data } = await db
+      .from("profiles")
+      .select("follower_count")
+      .eq("id", userId)
+      .maybeSingle();
+    return resolveProfileFollowerCount({
+      username,
+      follower_count: data?.follower_count,
+    });
+  } catch (err) {
+    console.error("resolve: follower cache fallback failed", err);
+    return 0;
+  }
 }
 
 async function countJimvioFollowing(db: ServiceClient, userId: string): Promise<number> {
   try {
-    const { count } = await db
+    const { count, error } = await db
       .from("user_follows")
       .select("id", { count: "exact", head: true })
       .eq("follower_id", userId);
-    return count ?? 0;
+    if (!error && typeof count === "number") return count;
+    const { data } = await db
+      .from("profiles")
+      .select("following_count")
+      .eq("id", userId)
+      .maybeSingle();
+    return typeof data?.following_count === "number" ? data.following_count : 0;
   } catch (err) {
     console.error("resolve: countJimvioFollowing failed", err);
     return 0;

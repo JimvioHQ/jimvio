@@ -1,4 +1,5 @@
 import HubLayout from "../components/Layout";
+import { PresenceProvider } from "@/components/presence/PresenceProvider";
 import { FeedAuthProvider } from "@/lib/feed/use-feed-user";
 import { loadFeedAuthInitial } from "@/lib/feed/load-feed-auth";
 
@@ -10,7 +11,9 @@ export default async function HubsLayout({
   const initialAuth = await loadFeedAuthInitial();
   return (
     <FeedAuthProvider initial={initialAuth}>
-      <HubLayout>{children}</HubLayout>
+      <PresenceProvider>
+        <HubLayout>{children}</HubLayout>
+      </PresenceProvider>
     </FeedAuthProvider>
   );
 }

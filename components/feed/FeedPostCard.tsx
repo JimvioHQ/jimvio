@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
+import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { resolveFeedPublisher } from "@/lib/feed/post-identity";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
@@ -71,6 +72,7 @@ export type ApiPost = {
     avatar_url?: string | null;
     username?: string | null;
   } | null;
+  author_id?: string | null;
 };
 
 type DisplayPost = {
@@ -83,6 +85,7 @@ type DisplayPost = {
     verified: boolean;
     avatar: string | null;
     kind: "profile" | "community";
+    userId: string | null;
   };
   timestamp: string;
   pinned: boolean;
@@ -156,6 +159,7 @@ function mapApiPost(post: ApiPost): DisplayPost {
       verified: false,
       avatar: publisher.avatar,
       kind: publisher.kind,
+      userId: publisher.kind === "profile" ? post.author_id ?? null : null,
     },
     timestamp: post.created_at
       ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
@@ -259,10 +263,14 @@ function HubFeedArticle({
               className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
               onClick={(e) => e.stopPropagation()}
             >
-              <AuthorAvatar name={post.author.name} url={post.author.avatar} />
+              <PresenceAvatarFrame userId={post.author.userId}>
+                <AuthorAvatar name={post.author.name} url={post.author.avatar} />
+              </PresenceAvatarFrame>
             </Link>
           ) : (
-            <AuthorAvatar name={post.author.name} url={post.author.avatar} className="mt-0.5 shrink-0" />
+            <PresenceAvatarFrame userId={post.author.userId} className="mt-0.5 shrink-0">
+              <AuthorAvatar name={post.author.name} url={post.author.avatar} />
+            </PresenceAvatarFrame>
           )}
           <div className="min-w-0 pt-0.5">
             <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -496,9 +504,18 @@ export function FeedPostCard({
       const params = new URLSearchParams({ limit: "20", filter });
       if (tag) params.set("tag", tag);
       if (nextCursor) params.set("cursor", nextCursor);
-      const res = await fetch(`/api/posts/feed?${params}`, {
-        cache: "no-store",
-        signal: abortRef.current?.signal,
+      let timer: number | undefined;
+      const res = await new Promise<Response>((resolve, reject) => {
+        timer = window.setTimeout(() => {
+          abortRef.current?.abort();
+          reject(new Error("feed-timeout"));
+        }, 12_000);
+        fetch(`/api/posts/feed?${params}`, {
+          cache: "no-store",
+          signal: abortRef.current?.signal,
+        }).then(resolve, reject);
+      }).finally(() => {
+        if (timer != null) window.clearTimeout(timer);
       });
       if (res.status === 401) {
         if (!isMore && !opts?.soft) {
@@ -540,6 +557,10 @@ export function FeedPostCard({
       setHasMore(Boolean(next));
       setCursor(next);
     } catch (err) {
+      if (err instanceof Error && err.message === "feed-timeout") {
+        if (!isMore && !opts?.soft) setLoadError(true);
+        return;
+      }
       if (err instanceof DOMException && err.name === "AbortError") return;
       if (!isMore && !opts?.soft) {
         setPosts([]);
@@ -808,9 +829,19 @@ export function FeedPostCard({
 
   if (loading && posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
-        <Loader2 className="h-5 w-5 animate-spin" />
-        <p className="text-[13px] font-medium text-[var(--color-text-muted)]">Loading your community feed...</p>
+      <div className="space-y-3 py-2" aria-busy="true" aria-label="Loading your community feed">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-neutral-200" />
+              <div className="h-3 w-32 rounded bg-neutral-200" />
+            </div>
+            <div className="mt-4 h-3 w-full rounded bg-neutral-100" />
+            <div className="mt-2 h-3 w-4/5 rounded bg-neutral-100" />
+            <div className="mt-4 h-40 rounded-xl bg-neutral-100" />
+          </div>
+        ))}
+        <p className="sr-only">Loading your community feed...</p>
       </div>
     );
   }

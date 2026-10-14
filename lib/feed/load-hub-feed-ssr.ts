@@ -59,19 +59,23 @@ export async function loadHubFeedSsr(opts?: {
   const tagDb = hasSupabaseSecretKey()
     ? (createServiceRoleClient() as Parameters<typeof loadHashtagFeed>[0])
     : supabase;
+  const feedDb = hasSupabaseSecretKey()
+    ? (createServiceRoleClient() as Parameters<typeof loadGlobalCommunityFeed>[0])
+    : supabase;
   const global = tag
     ? await loadHashtagFeed(tagDb, {
         tag,
         limit,
         memberCommunityIds: membershipIds,
       })
-    : await loadGlobalCommunityFeed(supabase, {
+    : await loadGlobalCommunityFeed(feedDb, {
     limit,
     filter,
     viewerId: user.id,
     followedAuthorIds,
     memberCommunityIds: membershipIds,
     useRanking: filter !== "newest",
+    signal: AbortSignal.timeout(8_000),
   });
 
   const postIds = global.posts.map((p) => p.id);
