@@ -58,26 +58,20 @@ function LogoMark({
   flat?: boolean;
 }) {
   if (flat) {
-    // Official mark SVG already has the rounded orange tile. Do not use an
-    // <img>, CSS radius, or box-shadow here: iOS paints those as a black bar
-    // under the mark in the fixed mobile header. `transition: none` stops the
-    // global box-shadow transition from interpolating Tailwind's `0 0 #0000`.
+    // Background on a plain box, not an <img> with object-fit/overflow.
+    // iOS rasterizes that replaced layer as a black bar under the fixed header.
     return (
       <span
         aria-hidden
-        className="jimvio-header-mark block shrink-0"
+        className={cn("block shrink-0 bg-[#FB4C07]", radius)}
         style={{
           width: icon,
           height: icon,
-          backgroundColor: "transparent",
-          backgroundImage: "url(/jimvio-logo.svg)",
+          backgroundImage: `url(${MARK_SRC})`,
           backgroundRepeat: "no-repeat",
           backgroundPosition: "center",
           backgroundSize: "100% 100%",
-          borderRadius: 0,
           boxShadow: "none",
-          WebkitBoxShadow: "none",
-          transition: "none",
         }}
       />
     );

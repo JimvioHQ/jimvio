@@ -288,7 +288,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
             : "md:bg-white/70 md:backdrop-blur-xl md:dark:bg-[#0a0a0a]/70",
         )}
       >
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-black/[0.06] dark:bg-white/[0.08] md:hidden" />
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
         <div className="min-w-0 w-full">
           {/* main bar — 3-column grid; nav may clip, Create menu portals above */}
