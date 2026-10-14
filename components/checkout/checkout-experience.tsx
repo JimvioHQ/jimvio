@@ -664,7 +664,12 @@ export function CheckoutExperience({
 
    return (
       <div className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--color-bg)]">
-         <div className="flex-1 pb-28 max-lg:pb-32 lg:pb-20">
+         <div className={cn(
+            "flex-1 lg:pb-20",
+            stage === "shipping" || stage === "delivery"
+               ? "pb-[calc(72px+env(safe-area-inset-bottom,0px))]"
+               : "pb-[calc(148px+env(safe-area-inset-bottom,0px))]",
+         )}>
             <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10 max-lg:px-4 max-lg:py-5">
 
                <Link
@@ -864,6 +869,53 @@ export function CheckoutExperience({
 
                   <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-4">
                      <CheckoutTrustSignals />
+                     <div className="lg:hidden">
+                        {stage === "shipping" && (
+                           <button
+                              type="button"
+                              data-checkout-mobile-continue="trust"
+                              onClick={advanceFromShipping}
+                              disabled={cjLoading}
+                              className={cn(
+                                 "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[15px] font-bold text-white",
+                                 "bg-[var(--color-accent)]",
+                                 "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                                 "disabled:cursor-not-allowed disabled:opacity-60",
+                              )}
+                           >
+                              {cjLoading ? (
+                                 <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Loading shipping rates…
+                                 </>
+                              ) : (
+                                 <>
+                                    Continue
+                                    <ChevronRight className="h-4 w-4" />
+                                 </>
+                              )}
+                           </button>
+                        )}
+                        {stage === "delivery" && (
+                           <button
+                              type="button"
+                              data-checkout-mobile-continue="trust"
+                              onClick={() => setStage("payment")}
+                              disabled={!cjSelected}
+                              className={cn(
+                                 "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[15px] font-bold text-white",
+                                 "bg-[var(--color-accent)]",
+                                 "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                                 "disabled:cursor-not-allowed disabled:opacity-60",
+                              )}
+                           >
+                              Continue to payment
+                              <ChevronRight className="h-4 w-4" />
+                           </button>
+                        )}
+                     </div>
                      <PremiumTrustPanel
                         surface={brandSurface}
                         storeName={storeName}
@@ -898,48 +950,11 @@ export function CheckoutExperience({
          </div>
 
          {/* Mobile sticky stage CTA */}
-         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3 shadow-[0_-8px_28px_rgba(0,0,0,0.1)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
-            {stage === "shipping" && (
-               <button
-                  type="button"
-                  onClick={advanceFromShipping}
-                  disabled={cjLoading}
-                  className={cn(
-                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
-                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
-                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
-                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
-                  )}
-               >
-                  {cjLoading ? (
-                     <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading shipping rates…
-                     </>
-                  ) : (
-                     <>
-                        Continue
-                        <ChevronRight className="h-4 w-4" />
-                     </>
-                  )}
-               </button>
-            )}
-            {stage === "delivery" && (
-               <button
-                  type="button"
-                  onClick={() => setStage("payment")}
-                  disabled={!cjSelected}
-                  className={cn(
-                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
-                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
-                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
-                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
-                  )}
-               >
-                  Continue to payment
-                  <ChevronRight className="h-4 w-4" />
-               </button>
-            )}
+         <div className={cn(
+            "fixed inset-x-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3 shadow-[0_-8px_28px_rgba(0,0,0,0.1)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden",
+            "bottom-[calc(60px+env(safe-area-inset-bottom,0px))]",
+            (stage === "shipping" || stage === "delivery") && "hidden",
+         )}>
             {stage === "payment" && (
                <button
                   type="button"

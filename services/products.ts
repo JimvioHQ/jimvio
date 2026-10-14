@@ -8,6 +8,14 @@ import {
 } from "@/lib/shipping/regional-shipping";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { fetchProductVideosMap, isPlayableVideoUrl, productVideoUrl, resolveProductVideoUrls } from "@/lib/product-videos";
+import {
+  escapeLikePrefix,
+  isProductLookupTimeout,
+  isStorefrontVisibleProduct,
+  productRouteLookups,
+  ProductLookupUnavailable,
+  type ProductRouteLookup,
+} from "@/lib/marketplace/product-route-lookup";
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
@@ -399,40 +407,95 @@ export async function countActiveListedProducts() {
  * column constants) and consolidates it with `getProductPageData`.
  * Use `getProductPageData` when you also need related products & shipping.
  */
+type StorefrontProductRow = Tables<"products">;
+
+async function queryVisibleProduct(
+  db: Awaited<ReturnType<typeof getDB>>,
+  lookup: ProductRouteLookup,
+): Promise<{ row: StorefrontProductRow | null; failed: boolean }> {
+  const run = () => {
+    const query = db
+      .from("products")
+      .select("*")
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null);
+
+    if (lookup.kind === "slug") return query.eq("slug", lookup.slug).maybeSingle();
+    if (lookup.kind === "sku") return query.eq("sku", lookup.sku).maybeSingle();
+    return query.like("slug", `${escapeLikePrefix(lookup.prefix)}%`).limit(2);
+  };
+
+  let result = await run();
+  if (result.error && isProductLookupTimeout(result.error)) {
+    result = await run();
+  }
+  if (result.error) {
+    console.error("[getProductBySlug] lookup failed", result.error.code ?? "unknown");
+    return { row: null, failed: true };
+  }
+
+  if (lookup.kind === "slug-prefix") {
+    const rows = ((result.data ?? []) as StorefrontProductRow[]).filter(isStorefrontVisibleProduct);
+    return { row: rows.length === 1 ? rows[0] : null, failed: false };
+  }
+
+  const row = (result.data as StorefrontProductRow | null) ?? null;
+  if (row && !isStorefrontVisibleProduct(row)) return { row: null, failed: false };
+  return { row, failed: false };
+}
+
+async function attachStorefrontRelations(
+  db: Awaited<ReturnType<typeof getDB>>,
+  row: StorefrontProductRow,
+): Promise<ProductWithRelations> {
+  const product = row as ProductWithRelations;
+  const [variantsRes, shippingRes, reviewsRes, vendorRes, categoryRes, videoMap] = await Promise.all([
+    db.from("product_variants").select(VARIANT_COLS).eq("product_id", row.id),
+    db.from("product_shipping_options").select(SHIPPING_COLS).eq("product_id", row.id),
+    db.from("reviews").select(REVIEW_COLS).eq("product_id", row.id).order("created_at", { ascending: false }).limit(50),
+    row.vendor_id
+      ? db.from("vendors").select(VENDOR_PUBLIC_COLS).eq("id", row.vendor_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    row.category_id
+      ? db.from("product_categories").select("id, name, slug, parent_id").eq("id", row.category_id).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    fetchProductVideosByProductIds(db, [row.id]),
+  ]);
+
+  product.product_variants = filterStorefrontVariants(
+    variantsRes.error ? [] : ((variantsRes.data ?? []) as ProductWithRelations["product_variants"]),
+    Boolean(product.track_inventory),
+  );
+  product.product_shipping_options = shippingRes.error
+    ? []
+    : ((shippingRes.data ?? []) as ProductWithRelations["product_shipping_options"]);
+  product.reviews = reviewsRes.error ? [] : ((reviewsRes.data ?? []) as ProductWithRelations["reviews"]);
+  product.vendors = (vendorRes.data as VendorPublic | null) ?? null;
+  product.product_categories = (categoryRes.data as ProductCategoryPublic | null) ?? null;
+  product.product_videos = videoMap.get(row.id) ?? [];
+  return product;
+}
+
 export const getProductBySlug = cache(async function getProductBySlug(
   slug: string,
 ): Promise<ProductWithRelations | null> {
+  const lookups = productRouteLookups(slug);
+  if (lookups.length === 0) return null;
+
   const db = await getDB();
-  const { data, error } = await db
-    .from("products")
-    .select(`
-      *,
-      vendors ( ${VENDOR_PUBLIC_COLS} ),
-      product_categories ( id, name, slug, parent_id ),
-      product_variants ( ${VARIANT_COLS} ),
-      product_shipping_options ( ${SHIPPING_COLS} ),
-      reviews ( ${REVIEW_COLS} )
-    `)
-    .eq("slug", slug)
-    .eq("status", "active")
-    .eq("is_active", true)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  if (error) {
-    console.error(`[getProductBySlug] "${slug}":`, error);
-    return null;
+  let primaryFailed = false;
+  for (const lookup of lookups) {
+    const { row, failed } = await queryVisibleProduct(db, lookup);
+    if (failed) {
+      if (lookup.kind === "slug") primaryFailed = true;
+      continue;
+    }
+    if (!row) continue;
+    return attachStorefrontRelations(db, row);
   }
-  if (!data) return null;
-
-  const product = data as ProductWithRelations;
-  product.product_variants = filterStorefrontVariants(
-    product.product_variants,
-    Boolean(product.track_inventory)
-  );
-  const videoMap = await fetchProductVideosByProductIds(db, [product.id]);
-  product.product_videos = videoMap.get(product.id) ?? [];
-  return product;
+  if (primaryFailed) throw new ProductLookupUnavailable();
+  return null;
 });
 
 /**

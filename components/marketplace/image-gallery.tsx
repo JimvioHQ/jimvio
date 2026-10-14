@@ -603,6 +603,7 @@ export function ImageGallery({
     const [activeIndex, setActiveIndex] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [mediaError, setMediaError] = useState(false);
+    const [mediaRetry, setMediaRetry] = useState(0);
     const [videoNeedsTap, setVideoNeedsTap] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -620,6 +621,7 @@ export function ImageGallery({
         setActiveIndex(firstVideoIndex >= 0 ? firstVideoIndex : firstImageIndex >= 0 ? firstImageIndex : 0);
         setImageLoaded(false);
         setMediaError(false);
+        setMediaRetry(0);
     }, [mediaKey, media.length, firstVideoIndex, firstImageIndex]);
 
     useEffect(() => {
@@ -805,18 +807,33 @@ export function ImageGallery({
                                     </span>
                                     <p className="text-[13px] font-medium text-white/80">Video couldn&apos;t load</p>
                                     <p className="text-[11px] text-white/45">Try again or open the file directly.</p>
-                                    <a
-                                        href={mainVideo.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-1 rounded-full bg-[#fd5000] px-4 py-2 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        Open video
-                                    </a>
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            className="rounded-full bg-[#fd5000] px-4 py-2 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setMediaError(false);
+                                                setImageLoaded(false);
+                                                setMediaRetry((n) => n + 1);
+                                            }}
+                                        >
+                                            Try again
+                                        </button>
+                                        <a
+                                            href={mainVideo.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="rounded-full bg-white/10 px-4 py-2 text-[11px] font-bold text-white ring-1 ring-white/15 transition-opacity hover:opacity-90"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            Open video
+                                        </a>
+                                    </div>
                                 </div>
                             ) : (
                                 <ProductVideoPlayer
+                                    key={`${mainVideoSrc ?? mainVideoEmbed ?? "video"}:${mediaRetry}`}
                                     src={mainVideoSrc}
                                     embedSrc={mainVideoEmbed}
                                     poster={mainVideo.poster}
