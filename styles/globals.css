@@ -185,7 +185,8 @@
   /* Tailwind's shadow-none is `0 0 #0000`. iOS rasterizes that as a black
      tile under the fixed mobile header. Force a real none on that shell. */
   @media (max-width: 767px) {
-    .jimvio-mobile-header-bar {
+    .jimvio-mobile-header-bar,
+    .jimvio-header-mark {
       box-shadow: none !important;
       -webkit-box-shadow: none !important;
     }
