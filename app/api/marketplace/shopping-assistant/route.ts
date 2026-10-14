@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   GEMINI_API_KEY_ENV,
   classifyProviderError,
+  geminiAttemptOrder,
   isUsableApiKey,
   redactProviderMessage,
   resolveGeminiModel,
@@ -82,24 +83,46 @@ export async function POST(req: NextRequest) {
 
   try {
     const catalog = await listAccessibleGeminiModels(apiKey!);
-    const configured = resolveGeminiModel().model;
-    const modelName = catalog.models.includes(configured) ? configured : catalog.models[0];
-    if (!modelName) {
+    if (catalog.category === "rate_limit") {
+      return NextResponse.json({ ok: false, error: "rate_limit" }, { status: 429 });
+    }
+    const attempts = geminiAttemptOrder(catalog.models, resolveGeminiModel().model);
+    if (!attempts.length) {
       return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey!);
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      systemInstruction: shoppingAssistantSystemPrompt(),
-      generationConfig: { maxOutputTokens: 280, temperature: 0.3 },
-    });
-    const result = await model.generateContent(
-      `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
-    );
-    const reply = result.response.text().trim();
+    let reply = "";
+    let lastCategory: string | null = null;
+    for (const modelName of attempts) {
+      try {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction: shoppingAssistantSystemPrompt(),
+          generationConfig: { maxOutputTokens: 280, temperature: 0.3 },
+        });
+        const result = await model.generateContent(
+          `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
+        );
+        reply = result.response.text().trim();
+        if (reply) break;
+        lastCategory = "empty_output";
+      } catch (error) {
+        lastCategory = classifyProviderError(error);
+        console.warn("[shopping-assistant] provider failed", {
+          model: modelName,
+          category: lastCategory,
+          detail: redactProviderMessage(error),
+        });
+      }
+    }
+
     if (!reply) {
-      return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
+      const status = lastCategory === "rate_limit" ? 429 : 503;
+      return NextResponse.json(
+        { ok: false, error: lastCategory === "rate_limit" ? "rate_limit" : "unavailable" },
+        { status },
+      );
     }
 
     return NextResponse.json({
