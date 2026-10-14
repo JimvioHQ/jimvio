@@ -1001,6 +1001,16 @@ async function finalizeEndedSession(
   return { session: data as LiveSessionRow };
 }
 
+export async function endLiveSessionForPlatformAdmin(
+  sessionId: string,
+  actorId: string
+): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session) return { error: "Session not found", status: 404 };
+  if (session.status !== "live") return { error: "Only a live session can be ended.", status: 409 };
+  return finalizeEndedSession(session, actorId);
+}
+
 export async function endLiveSession(
   sessionId: string,
   userId: string
