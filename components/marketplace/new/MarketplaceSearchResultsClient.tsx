@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Search, Sparkles, TrendingUp } from "lucide-react";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import type { DbProduct } from "@/lib/utils";
@@ -10,6 +10,12 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   initialType: "physical" | "digital";
+  initialQuery?: string;
+  initialProducts?: DbProduct[];
+  initialTotal?: number;
+  initialPage?: number;
+  initialPageCount?: number;
+  initialError?: boolean;
 };
 
 const POPULAR_FALLBACK = [
@@ -75,10 +81,12 @@ function EmptySearchState({
         <Search className="size-7 text-[var(--color-accent)]" />
       </div>
       <h2 className="text-base font-bold text-[var(--color-text-primary)]">
-        No products found for &ldquo;{query}&rdquo;
+        {query ? `No products found for “${query}”` : "Search the marketplace"}
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-muted)]">
-        Try a different keyword, check spelling, or explore popular searches below.
+        {query
+          ? "Try a different keyword, check spelling, or explore popular searches below."
+          : "Enter a product name and search again, or start from a popular search."}
       </p>
       <div className="mt-6">
         <p className="mb-2 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
@@ -108,27 +116,44 @@ function EmptySearchState({
   );
 }
 
-export function MarketplaceSearchResultsClient({ initialType }: Props) {
+function searchHref(query: string, type: string, page: number) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  params.set("type", type);
+  if (page > 1) params.set("page", String(page));
+  return `/marketplace/search?${params.toString()}`;
+}
+
+export function MarketplaceSearchResultsClient({
+  initialType,
+  initialQuery = "",
+  initialProducts = [],
+  initialTotal = 0,
+  initialPage = 1,
+  initialPageCount = 1,
+  initialError = false,
+}: Props) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const q = (searchParams.get("q") ?? "").trim();
+  const q = (searchParams.get("q") ?? initialQuery).trim();
   const type = searchParams.get("type") === "digital" ? "digital" : initialType;
   const aiMode = searchParams.get("ai") === "1";
+  const page = Math.max(1, Number(searchParams.get("page") ?? initialPage) || 1);
 
-  const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState<DbProduct[]>([]);
-  const [similar, setSimilar] = useState<DbProduct[]>([]);
-  const [recommended, setRecommended] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(aiMode);
+  const [results, setResults] = useState<DbProduct[]>(aiMode ? [] : initialProducts);
   const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
-  const [exactMatch, setExactMatch] = useState(true);
+  const [exactMatch, setExactMatch] = useState(initialTotal > 0);
+  const [total, setTotal] = useState(initialTotal);
+  const [pageCount, setPageCount] = useState(initialPageCount);
   const [aiIntent, setAiIntent] = useState<string | null>(null);
-  const [searchError, setSearchError] = useState(false);
+  const [searchError, setSearchError] = useState(initialError);
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    if (!aiMode) return;
     if (!q) {
       setResults([]);
-      setSimilar([]);
-      setRecommended([]);
       setCategories([]);
       setAiIntent(null);
       setSearchError(false);
@@ -142,57 +167,38 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
 
     const run = async () => {
       try {
-        if (aiMode) {
-          const res = await fetch("/api/ai/search", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: q, type }),
-            signal: controller.signal,
-          });
-          if (!res.ok) throw new Error("Search failed");
-          const data = await res.json();
-          if (controller.signal.aborted) return;
-          const products = (data.products ?? []) as DbProduct[];
-          setResults(products);
-          setSimilar([]);
-          setRecommended([]);
-          setCategories([]);
-          setExactMatch(products.length > 0);
-          const intent = data.intent as { search_term?: string; category?: string; max_price?: number } | undefined;
-          setAiIntent(
-            intent
-              ? [
-                  intent.category ? `category: ${intent.category}` : null,
-                  intent.max_price ? `under ${intent.max_price}` : null,
-                  data.mode ? `mode: ${data.mode}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "AI search"
-              : "AI search"
-          );
-          return;
-        }
-
-        const res = await fetch(
-          `/api/marketplace/search?q=${encodeURIComponent(q)}&type=${type}&limit=40`,
-          { signal: controller.signal },
-        );
+        const res = await fetch("/api/ai/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q, type }),
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         if (controller.signal.aborted) return;
-        setResults(data.results ?? []);
-        setSimilar(data.similar ?? []);
-        setRecommended(data.recommended ?? []);
-        setCategories(data.categories ?? []);
-        setExactMatch(Boolean(data.exactMatch));
-        setAiIntent(null);
+        const products = (data.products ?? []) as DbProduct[];
+        setResults(products);
+        setTotal(products.length);
+        setPageCount(1);
+        setCategories([]);
+        setExactMatch(products.length > 0);
+        const intent = data.intent as { search_term?: string; category?: string; max_price?: number } | undefined;
+        setAiIntent(
+          intent
+            ? [
+                intent.category ? `category: ${intent.category}` : null,
+                intent.max_price ? `under ${intent.max_price}` : null,
+                data.mode ? `mode: ${data.mode}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "AI search"
+            : "AI search"
+        );
       } catch (err) {
         if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
           return;
         }
         setResults([]);
-        setSimilar([]);
-        setRecommended([]);
         setCategories([]);
         setExactMatch(false);
         setAiIntent(null);
@@ -210,9 +216,7 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
   }, [q, type, aiMode, retry]);
 
   const hasResults = exactMatch && results.length > 0;
-  const hasSimilar = !exactMatch && similar.length > 0;
-  const hasRecommended = !exactMatch && recommended.length > 0;
-  const isEmpty = !loading && !searchError && !hasResults && !hasSimilar && !hasRecommended;
+  const isEmpty = !loading && !searchError && q && !hasResults;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
@@ -239,9 +243,9 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
           {!loading && q && aiIntent && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{aiIntent}</p>
           )}
-          {!loading && q && !exactMatch && !aiMode && (
+          {!loading && q && hasResults && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-              No exact matches — showing similar picks
+              {total} matching {total === 1 ? "product" : "products"}
             </p>
           )}
         </div>
@@ -278,35 +282,46 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
           </p>
           <button
             type="button"
-            onClick={() => setRetry((n) => n + 1)}
+            onClick={() => {
+              if (aiMode) setRetry((n) => n + 1);
+              else router.refresh();
+            }}
             className="mt-5 inline-flex rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
           >
             Retry
           </button>
         </div>
       ) : hasResults ? (
-        <ProductGrid products={results} />
-      ) : hasSimilar || hasRecommended ? (
-        <div className="space-y-8">
-          {hasSimilar && (
-            <div>
-              <p className="mb-3 text-xs font-semibold text-[var(--color-text-secondary)]">
-                Similar products
-              </p>
-              <ProductGrid products={similar} />
+        <>
+          <ProductGrid products={results} />
+          {pageCount > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-3 text-xs font-semibold">
+              {page > 1 ? (
+                <Link
+                  href={searchHref(q, type, page - 1)}
+                  className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
+                >
+                  Previous
+                </Link>
+              ) : null}
+              <span className="text-[var(--color-text-muted)]">
+                Page {page} of {pageCount}
+              </span>
+              {page < pageCount ? (
+                <Link
+                  href={searchHref(q, type, page + 1)}
+                  className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
+                >
+                  Next
+                </Link>
+              ) : null}
             </div>
           )}
-          {hasRecommended && (
-            <div>
-              <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-                Popular right now
-              </p>
-              <ProductGrid products={recommended} />
-            </div>
-          )}
-        </div>
+        </>
       ) : isEmpty && q ? (
         <EmptySearchState query={q} type={type} popular={POPULAR_FALLBACK} />
+      ) : !q ? (
+        <EmptySearchState query="" type={type} popular={POPULAR_FALLBACK} />
       ) : null}
     </div>
   );

@@ -170,14 +170,24 @@ export function scoreProduct(
   score += nameScore * 100;
   if (name.startsWith(terms[0] ?? "")) score += 25;
 
+  const phraseWords = normalizeText(terms[0] ?? "")
+    .split(" ")
+    .filter((word) => word.length >= 3);
+  if (phraseWords.length > 1) {
+    const hits = phraseWords.filter((word) => name.includes(word)).length;
+    score += hits * 24;
+  }
+
   const tagScore = scoreField(tags, terms);
   score += tagScore * 40;
 
-  const catScore = scoreField(cat, terms);
-  score += catScore * 30;
-
   const descScore = scoreField(desc, terms);
   score += descScore * 15;
+
+  const catScore = scoreField(cat, terms);
+  if (nameScore > 0 || descScore > 0 || tagScore > 0) {
+    score += catScore * 30;
+  }
 
   const vendorScore = scoreField(vendor, terms);
   score += vendorScore * 10;
@@ -195,6 +205,21 @@ export function scoreProduct(
   score += Math.min(Number(product.view_count ?? 0) / 500, 5);
 
   return score;
+}
+
+export function paginateSearchResults<T>(items: T[], page: number, pageSize: number) {
+  const size = Math.min(60, Math.max(1, Math.floor(pageSize) || 1));
+  const total = items.length;
+  const pageCount = Math.max(1, Math.ceil(total / size));
+  const safePage = Math.min(pageCount, Math.max(1, Math.floor(page) || 1));
+  const start = (safePage - 1) * size;
+  return {
+    page: safePage,
+    pageSize: size,
+    total,
+    pageCount,
+    items: items.slice(start, start + size),
+  };
 }
 
 export function rankProducts<T extends SearchableProduct>(

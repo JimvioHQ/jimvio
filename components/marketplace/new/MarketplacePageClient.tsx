@@ -320,16 +320,16 @@ export function MarketplacePageClient({
   }
 
   const urlQ = (searchParams.get("q") ?? "").trim();
-  const [search, setSearch] = useState(urlQ);
-  const [debouncedSearch, setDebouncedSearch] = useState(urlQ);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
     dedupeProductsByIdentity(startingBundle.flashDeals),
   );
   // When landing with ?q=, do not paint SSR browse products as fake "results"
   const [trending, setTrending] = useState<DbProduct[]>(() =>
-    urlQ ? [] : dedupeProductsByIdentity(startingBundle.trending),
+    dedupeProductsByIdentity(startingBundle.trending),
   );
-  const [productsLoading, setProductsLoading] = useState(() => Boolean(urlQ));
+  const [productsLoading, setProductsLoading] = useState(false);
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
@@ -353,44 +353,26 @@ export function MarketplacePageClient({
     debouncedSearch: "",
   });
 
+  const [visitNonce, setVisitNonce] = useState(0);
+
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
-    return () => clearTimeout(t);
-  }, [search]);
+    const onShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setVisitNonce((n) => n + 1);
+    };
+    const onPop = () => setVisitNonce((n) => n + 1);
+    window.addEventListener("pageshow", onShow);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("pageshow", onShow);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, []);
 
-  // Browser back/forward: hydrate search from URL without fighting typing
+  // Shared ?q= links land on the dedicated results page.
   useEffect(() => {
-    if (urlQ === debouncedSearch) return;
-    if (urlQ === search.trim()) {
-      setDebouncedSearch(urlQ);
-      return;
-    }
-    setSearch(urlQ);
-    setDebouncedSearch(urlQ);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync from URL only
-  }, [urlQ]);
-
-  // Keep marketplace search shareable / refreshable via ?q=
-  useEffect(() => {
-    const current = (searchParams.get("q") ?? "").trim();
-    if (debouncedSearch === current) return;
-
-    const params = new URLSearchParams(searchParams.toString());
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    else params.delete("q");
-
-    // Physical marketplace is canonical at /marketplace/physical
-    const path =
-      type === "physical"
-        ? "/marketplace/physical"
-        : "/marketplace";
-    if (type === "digital") params.set("type", "digital");
-    else if (path === "/marketplace/physical") params.delete("type");
-
-    const qs = params.toString();
-    router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional URL write on query change
-  }, [debouncedSearch, type]);
+    if (!urlQ) return;
+    router.replace(`/marketplace/search?q=${encodeURIComponent(urlQ)}&type=${type}`);
+  }, [urlQ, type, router]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -887,6 +869,41 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, type, searchRetry]);
 
+  useEffect(() => {
+    if (!isDefaultBrowseState(filters, debouncedSearch)) return;
+
+    const controller = new AbortController();
+    const seed =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `visit-${Date.now().toString(36)}-${visitNonce}`;
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/marketplace/trending?type=${type}&seed=${encodeURIComponent(seed)}`,
+          { signal: controller.signal, cache: "no-store" },
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { products?: DbProduct[] };
+        if (controller.signal.aborted || !Array.isArray(data.products) || data.products.length === 0) return;
+        const next = dedupeProductsByIdentity(data.products);
+        setTrending(next);
+        const cached = cacheRef.current[type];
+        cacheRef.current[type] = {
+          flashDeals: cached?.flashDeals ?? [],
+          trending: next,
+          categories: cached?.categories ?? [],
+          listingCount: cached?.listingCount ?? next.length,
+        };
+      } catch (err) {
+        if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
+      }
+    })();
+
+    return () => controller.abort();
+  }, [debouncedSearch, filters, filtersKey, type, visitNonce]);
+
   // Intentionally no "hydrate all remaining products" effect.
   // SSR ships one page; Load more / pagination grows the list on demand.
 
@@ -968,12 +985,7 @@ export function MarketplacePageClient({
   }
 
   function applySearch(term: string) {
-    const t = term.trim();
-    if (!t) return;
-    pushRecent(t);
-    setSearch(t);
-    setDebouncedSearch(t);
-    setSearchFocused(false);
+    submitSearch(term);
   }
 
   function applyCategoryFilter(categoryName: string) {
@@ -992,9 +1004,11 @@ export function MarketplacePageClient({
   }
 
   function submitSearch(term?: string) {
-    const t = (term ?? search).trim();
+    const t = (term ?? search).trim().replace(/\s+/g, " ");
     if (!t) return;
-    applySearch(t);
+    pushRecent(t);
+    setSearchFocused(false);
+    router.push(`/marketplace/search?q=${encodeURIComponent(t)}&type=${type}`);
   }
 
   const q = search.trim();

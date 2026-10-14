@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Flame, Cpu, Smartphone, Shirt, Sparkles, Sofa, Dumbbell,
   Car, Watch, Baby, Briefcase, Wrench, Star, Crown, Send,
@@ -222,6 +222,51 @@ export function Sidebar({ type = "physical" }: Props) {
 
   const { formatMoney } = useCurrency();
   const [aiQuery, setAiQuery] = useState("");
+  const [aiReply, setAiReply] = useState("");
+  const [aiProducts, setAiProducts] = useState<{ name: string; slug: string; price: number | string | null; currency?: string | null }[]>([]);
+  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [aiError, setAiError] = useState("");
+  const lastAiMessage = useRef("");
+
+  async function askShoppingAssistant(message: string) {
+    const text = message.replace(/\s+/g, " ").trim();
+    if (!text || aiStatus === "loading") return;
+    lastAiMessage.current = text;
+    setAiStatus("loading");
+    setAiError("");
+    setAiReply("");
+    setAiProducts([]);
+    try {
+      const res = await fetch("/api/marketplace/shopping-assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, type }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        reply?: string;
+        error?: string;
+        products?: { name: string; slug: string; price: number | string | null; currency?: string | null }[];
+      };
+      if (!res.ok || !data.ok || !data.reply) {
+        setAiStatus("error");
+        setAiError(
+          data.error === "rate_limit"
+            ? "The assistant is busy right now. Try again in a moment."
+            : "The assistant couldn’t answer. Try again.",
+        );
+        return;
+      }
+      setAiReply(data.reply);
+      setAiProducts(Array.isArray(data.products) ? data.products : []);
+      setAiStatus("ready");
+      setAiQuery("");
+    } catch {
+      setAiStatus("error");
+      setAiError("The assistant couldn’t answer. Try again.");
+    }
+  }
+
   const [sidebarCategories, setSidebarCategories] = useState<SidebarCategory[]>([]);
   const [shippingCounts, setShippingCounts] = useState<ShippingCount[]>([]);
   const [deliveryCounts, setDeliveryCounts] = useState<DeliveryCount[]>([]);
@@ -530,22 +575,65 @@ export function Sidebar({ type = "physical" }: Props) {
             className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
             onSubmit={(e) => {
               e.preventDefault();
-              if (aiQuery.trim()) { setCategory(""); setAiQuery(""); }
+              void askShoppingAssistant(aiQuery);
             }}
           >
             <input
               value={aiQuery}
               onChange={(e) => setAiQuery(e.target.value)}
               placeholder={type === "digital" ? "Find digital products..." : "Ask AI anything..."}
+              maxLength={500}
+              aria-label="AI Shopping Assistant"
+              disabled={aiStatus === "loading"}
               className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/55"
             />
             <button
               type="submit"
-              className="rounded p-0.5 transition-colors hover:bg-white/20"
+              aria-label="Send message"
+              disabled={aiStatus === "loading" || !aiQuery.trim()}
+              className="rounded p-0.5 transition-colors hover:bg-white/20 disabled:opacity-50"
             >
               <Send className="size-3 text-white" />
             </button>
           </form>
+          {aiStatus === "loading" && (
+            <p className="mt-2 text-[10px] text-white/80" aria-live="polite">
+              Looking through the marketplace…
+            </p>
+          )}
+          {aiStatus === "ready" && aiReply && (
+            <div className="mt-2 space-y-1.5" aria-live="polite">
+              <p className="max-h-28 overflow-y-auto whitespace-pre-wrap text-[10px] leading-relaxed text-white/90">
+                {aiReply}
+              </p>
+              {aiProducts.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                  {aiProducts.map((product) => (
+                    <a
+                      key={product.slug}
+                      href={`/marketplace/${product.slug}`}
+                      className="truncate text-[10px] font-semibold text-white underline"
+                    >
+                      {product.name}
+                      {product.price != null ? ` · ${product.currency ?? "USD"} ${product.price}` : ""}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {aiStatus === "error" && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-live="polite">
+              <p className="text-[10px] text-white/90">{aiError}</p>
+              <button
+                type="button"
+                onClick={() => void askShoppingAssistant(lastAiMessage.current)}
+                className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           <div className="mt-2.5 flex flex-wrap gap-1 text-[9px] font-semibold">
             {(type === "digital"
               ? ["Top courses", "AI tools", "Templates"]
@@ -554,7 +642,7 @@ export function Sidebar({ type = "physical" }: Props) {
               <button
                 key={t}
                 type="button"
-                onClick={() => setCategory("")}
+                onClick={() => void askShoppingAssistant(t)}
                 className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
               >
                 {t}
@@ -591,13 +679,13 @@ export function Sidebar({ type = "physical" }: Props) {
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            className="w-full rounded-lg py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+          <a
+            href="https://www.jimvio.com/help"
+            className="block w-full rounded-lg py-1.5 text-center text-xs font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: "var(--color-accent)" }}
           >
             Join Elite Now
-          </button>
+          </a>
         </div>
 
       </div>

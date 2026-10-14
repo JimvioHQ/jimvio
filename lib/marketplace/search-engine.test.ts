@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   expandSearchTerms,
+  paginateSearchResults,
   resolveMatchedCategoryIds,
   scoreProduct,
   sqlSearchTerms,
@@ -99,5 +100,45 @@ describe("marketplace search-engine", () => {
       assert.equal(ids.includes("f"), true, `${q} should match fashion`);
       assert.equal(ids.includes("g"), false, `${q} should not match gaming`);
     }
+  });
+
+  it("ranks an exact title above a partial description and ignores unrelated products", () => {
+    const terms = expandSearchTerms("wireless earbuds");
+    const exact: SearchableProduct = {
+      id: "exact",
+      name: "Wireless Earbuds",
+      slug: "wireless-earbuds",
+      short_description: "Bluetooth audio",
+    };
+    const partial: SearchableProduct = {
+      id: "partial",
+      name: "Travel Case",
+      slug: "travel-case",
+      short_description: "Fits wireless earbuds and a cable",
+    };
+    const unrelated: SearchableProduct = {
+      id: "other",
+      name: "Cotton Sleeping Bag",
+      slug: "sleeping-bag",
+      short_description: "For newborn babies",
+    };
+    const exactScore = scoreProduct(exact, terms);
+    const partialScore = scoreProduct(partial, terms);
+    const unrelatedScore = scoreProduct(unrelated, terms);
+    assert.ok(exactScore > partialScore);
+    assert.ok(partialScore > unrelatedScore);
+    assert.ok(partialScore >= 15);
+    assert.ok(unrelatedScore < 15);
+  });
+
+  it("paginates ranked results and keeps the same query window", () => {
+    const items = ["a", "b", "c", "d", "e"];
+    const first = paginateSearchResults(items, 1, 2);
+    const second = paginateSearchResults(items, 2, 2);
+    assert.deepEqual(first.items, ["a", "b"]);
+    assert.deepEqual(second.items, ["c", "d"]);
+    assert.equal(first.total, 5);
+    assert.equal(second.pageCount, 3);
+    assert.equal(paginateSearchResults(items, 9, 2).page, 3);
   });
 });
