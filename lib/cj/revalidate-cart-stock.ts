@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchCJVariantStock, syncProductInventoryFromVariants } from "@/lib/cj/sync-inventory";
 import { getCJToken } from "@/lib/cj/client";
 import { noteCjQuotaIfPresent, assertCjQuotaAvailableForBackground } from "@/lib/cj/quota-circuit";
+import { isCjRemovedFromShelvesMessage, markCjSupplierRemoved } from "@/lib/cj/supplier-removed";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
 
 export type CjCartStockLine = {
@@ -65,6 +66,19 @@ export async function revalidateCjLineStock(
       }
     } catch (err) {
       noteCjQuotaIfPresent(err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (isCjRemovedFromShelvesMessage(message)) {
+        errors.push(`"${line.name}" is no longer available`);
+        const { data: variant } = await supabase
+          .from("product_variants")
+          .select("product_id")
+          .eq("cj_vid", vid)
+          .maybeSingle();
+        if (variant?.product_id) {
+          await markCjSupplierRemoved(supabase, String(variant.product_id));
+        }
+        continue;
+      }
       errors.push(`"${line.name}" could not be confirmed with the supplier`);
     }
   }

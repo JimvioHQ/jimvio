@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cjFetchWithRetry } from "@/lib/cj/client";
 import { noteCjQuotaIfPresent } from "@/lib/cj/quota-circuit";
+import { isCjRemovedFromShelvesMessage, isTransientCjStockFailure, markCjSupplierRemoved } from "@/lib/cj/supplier-removed";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
 
 type SupabaseLike = SupabaseClient<any, any, any>;
@@ -282,6 +283,7 @@ export async function refreshCJProductStockBatch(
     let quotaPaused = false;
     let networkPaused = false;
     let completedProducts = 0;
+    const removedProductIds = new Set<string>();
 
     async function writeVariantStock(
         row: (typeof rows)[number],
@@ -364,8 +366,14 @@ export async function refreshCJProductStockBatch(
                 quotaPaused = true;
                 break;
             }
-            const message = err instanceof Error ? `${err.name} ${err.message}` : String(err);
-            if (/timeout|aborted|AbortError|ECONN|ENETUNREACH|EAI_AGAIN|fetch failed|UND_ERR|socket/i.test(message)) {
+            const message = err instanceof Error ? err.message : String(err);
+            if (isCjRemovedFromShelvesMessage(message)) {
+                await markCjSupplierRemoved(supabase, productId);
+                removedProductIds.add(productId);
+                completedProducts += 1;
+                continue;
+            }
+            if (isTransientCjStockFailure(message)) {
                 networkPaused = true;
                 break;
             }
@@ -379,6 +387,7 @@ export async function refreshCJProductStockBatch(
     }
 
     for (const productId of productIds.slice(0, completedProducts)) {
+        if (removedProductIds.has(productId)) continue;
         await syncProductInventoryFromVariants(supabase, productId);
         const { data: product } = await supabase
             .from("products")
