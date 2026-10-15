@@ -35,6 +35,34 @@ export function retainsLearningAccess(hasActiveEnrollment: boolean): boolean {
   return hasActiveEnrollment;
 }
 
+/** Creators and community managers can open drafts and archives. Everyone else only sees a live course. */
+export function canOpenCourseTree(input: {
+  isPublished: boolean;
+  archived: boolean;
+  isCreator: boolean;
+  isManager: boolean;
+}): boolean {
+  if (input.isCreator || input.isManager) return true;
+  return input.isPublished && !input.archived;
+}
+
+/** Failed, cancelled, and refunded transactions must not grant access. Completed is only for idempotent recovery. */
+export function coursePurchaseMayGrant(status: string): boolean {
+  return status === "pending" || status === "processing" || status === "completed";
+}
+
+/** Pasted lesson links may only be absolute http(s) URLs. */
+export function safeHttpUrl(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export type CompletionInput = {
   lessonCount: number;
   completedLessons: number;

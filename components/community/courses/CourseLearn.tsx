@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { safeHttpUrl } from "@/lib/community/courses/rules";
 
 type Lesson = {
   id: string;
@@ -182,21 +183,22 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
         {lesson ? (
           <>
             <h2 className="text-xl font-semibold text-[#111827]">{lesson.title}</h2>
-            {lesson.video_url && (
-              <video className="w-full rounded-xl bg-black" controls src={lesson.video_url} />
+            {safeHttpUrl(lesson.video_url) && (
+              <video className="w-full rounded-xl bg-black" controls src={safeHttpUrl(lesson.video_url) ?? undefined} />
             )}
             {lesson.body && <div className="whitespace-pre-wrap text-sm leading-6 text-[#374151]">{lesson.body}</div>}
             {Array.isArray(lesson.attachments) && lesson.attachments.length > 0 && (
               <ul className="space-y-1 text-sm">
-                {(lesson.attachments as Array<{ url?: string; name?: string }>).map((file) =>
-                  file.url ? (
-                    <li key={file.url}>
-                      <a className="font-semibold text-[#FF5A1F]" href={file.url} target="_blank" rel="noreferrer">
+                {(lesson.attachments as Array<{ url?: string; name?: string }>).map((file) => {
+                  const url = safeHttpUrl(file.url);
+                  return url ? (
+                    <li key={url}>
+                      <a className="font-semibold text-[#FF5A1F]" href={url} target="_blank" rel="noreferrer">
                         {file.name || "Download resource"}
                       </a>
                     </li>
-                  ) : null
-                )}
+                  ) : null;
+                })}
               </ul>
             )}
             {quiz && (

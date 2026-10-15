@@ -26,6 +26,8 @@ type HubCourse = {
 export default function HubCoursesPage() {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<HubCourse[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "in-progress" | "completed">("all");
   const [category, setCategory] = useState("all");
@@ -40,15 +42,24 @@ export default function HubCoursesPage() {
         if (searchQuery.trim()) params.set("q", searchQuery.trim());
         const qs = params.toString();
         const res = await fetch(`/api/c/courses${qs ? `?${qs}` : ""}`);
-        if (!res.ok) return;
-        const json = (await res.json()) as { courses: HubCourse[] };
-        if (!cancelled) setCourses(json.courses ?? []);
+        const json = (await res.json().catch(() => ({}))) as { courses?: HubCourse[]; error?: string };
+        if (!res.ok) {
+          if (!cancelled) {
+            setError(json.error ?? "Could not load courses");
+            setCourses([]);
+          }
+          return;
+        }
+        if (!cancelled) {
+          setError(null);
+          setCourses(json.courses ?? []);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [searchQuery]);
+  }, [searchQuery, reloadKey]);
 
   const categories = useMemo(() => {
     const values = new Set(courses.map((course) => course.category).filter(Boolean) as string[]);
@@ -138,6 +149,14 @@ export default function HubCoursesPage() {
             <div className="h-40 animate-pulse rounded-2xl bg-white" />
             <div className="h-40 animate-pulse rounded-2xl bg-white" />
           </div>
+        ) : error ? (
+          <HubCard className="py-12 text-center">
+            <p className="text-[14px] font-bold">Could not load courses</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="mt-4 rounded-xl bg-[#fd5000] px-4 py-2 text-[12px] font-semibold text-white">
+              Try again
+            </button>
+          </HubCard>
         ) : filtered.length === 0 ? (
           <HubCard className="py-12 text-center">
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-zinc-300" />

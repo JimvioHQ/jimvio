@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { paymentAmountsMatch } from "@/lib/payments/order-payment-utils";
 import { enrollInCourse } from "@/lib/community/courses/access";
-import { serverPriceCents } from "@/lib/community/courses/rules";
+import { coursePurchaseMayGrant, serverPriceCents } from "@/lib/community/courses/rules";
 
 type ConfirmInput = {
   paymentRef?: string | null;
@@ -72,6 +72,9 @@ type CoursePurchaseTx = {
     .maybeSingle();
   if (existingReceipt) {
     return { handled: true, granted: true, courseId, userId: tx.user_id, alreadyEnrolled: true };
+  }
+  if (!coursePurchaseMayGrant(tx.status)) {
+    return { handled: true, granted: false, courseId, userId: tx.user_id, alreadyEnrolled: false };
   }
 
   const expectedAmount = Number(tx.amount);

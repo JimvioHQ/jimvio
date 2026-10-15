@@ -145,6 +145,16 @@ export async function POST(
         return NextResponse.json({ error: "Score must be between 0 and 100" }, { status: 400 });
       }
       const admin = createServiceRoleClient();
+      const { data: existing } = await admin
+        .from("course_assignment_submissions")
+        .select("id, user_id")
+        .eq("id", String(body.submissionId ?? ""))
+        .eq("course_id", courseId)
+        .maybeSingle();
+      if (!existing) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+      if (existing.user_id === user) {
+        return NextResponse.json({ error: "You cannot grade your own submission" }, { status: 403 });
+      }
       const { data, error } = await admin
         .from("course_assignment_submissions")
         .update({

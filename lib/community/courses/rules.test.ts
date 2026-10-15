@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   canAutoEnrollFree,
+  canOpenCourseTree,
   completionSatisfied,
+  coursePurchaseMayGrant,
+  safeHttpUrl,
   isCatalogVisible,
   retainsLearningAccess,
   serverPriceCents,
@@ -130,5 +133,42 @@ describe("completion and price", () => {
   it("ignores client-side non-positive prices", () => {
     assert.equal(serverPriceCents(-5), 0);
     assert.equal(serverPriceCents("12.9"), 13);
+  });
+});
+
+describe("course management and payment gates", () => {
+  it("lets managers open drafts that they did not create", () => {
+    assert.equal(
+      canOpenCourseTree({
+        isPublished: false,
+        archived: false,
+        isCreator: false,
+        isManager: true,
+      }),
+      true
+    );
+    assert.equal(
+      canOpenCourseTree({
+        isPublished: false,
+        archived: false,
+        isCreator: false,
+        isManager: false,
+      }),
+      false
+    );
+  });
+
+  it("does not grant access from a failed or cancelled payment", () => {
+    assert.equal(coursePurchaseMayGrant("pending"), true);
+    assert.equal(coursePurchaseMayGrant("failed"), false);
+    assert.equal(coursePurchaseMayGrant("cancelled"), false);
+    assert.equal(coursePurchaseMayGrant("refunded"), false);
+  });
+
+  it("accepts only http and https resource URLs", () => {
+    assert.equal(safeHttpUrl("https://cdn.example.com/guide.pdf"), "https://cdn.example.com/guide.pdf");
+    assert.equal(safeHttpUrl("javascript:alert(1)"), null);
+    assert.equal(safeHttpUrl("/relative/file.pdf"), null);
+    assert.equal(safeHttpUrl(""), null);
   });
 });

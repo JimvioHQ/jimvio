@@ -39,21 +39,26 @@ export function CourseDetail({ courseId }: { courseId: string }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       const res = await fetch(`/api/c/courses/${courseId}`, { cache: "no-store" });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (cancelled) return;
-      if (!res.ok) setError(json.error ?? "Could not load course");
-      else setData(json);
+      if (!res.ok) {
+        setData(null);
+        setError(json.error ?? "Could not load course");
+      } else setData(json);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [courseId]);
+  }, [courseId, reloadKey]);
 
   async function enroll() {
     setBusy(true);
@@ -96,6 +101,9 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     return (
       <div className="mx-auto max-w-lg rounded-2xl border border-[#E5E7EB] bg-white p-8 text-center">
         <p className="font-semibold text-[#111827]">{error ?? "Course unavailable"}</p>
+        <button type="button" onClick={() => setReloadKey((value) => value + 1)} className="mt-4 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white">
+          Try again
+        </button>
         <Link href="/communities/courses" className="mt-4 inline-block text-sm font-semibold text-[#FF5A1F]">
           Back to courses
         </Link>

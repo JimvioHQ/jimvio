@@ -37,8 +37,16 @@ type Analytics = {
   courses: Array<{ id: string; title: string; enrollments: number; completionRate: number }>;
 };
 
-type Lesson = { id: string; title: string; module_id: string; body?: string | null; video_url?: string | null };
-type Module = { id: string; title: string; course_lessons: Lesson[] };
+type Lesson = {
+  id: string;
+  title: string;
+  module_id: string;
+  body?: string | null;
+  video_url?: string | null;
+  sort_order?: number;
+  attachments?: Array<{ url?: string }>;
+};
+type Module = { id: string; title: string; sort_order?: number; course_lessons: Lesson[] };
 
 function statusOf(course: ManagedCourse) {
   if (course.archived_at) return "Archived";
@@ -61,6 +69,8 @@ export function CoursesManagement() {
   const [lessonBody, setLessonBody] = useState("");
   const [lessonVideo, setLessonVideo] = useState("");
   const [lessonResource, setLessonResource] = useState("");
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [lessonModule, setLessonModule] = useState("");
   const [roster, setRoster] = useState<Array<Record<string, unknown>>>([]);
   const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);
@@ -350,34 +360,50 @@ export function CoursesManagement() {
 
               <div className="border-t border-[#E5E7EB] pt-4">
                 <h2 className="text-sm font-semibold">Curriculum</h2>
-                <form
+                  <form
                   className="mt-2 flex gap-2"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void run(selected.id, "module", { title: moduleTitle, sortOrder: modules.length }).then(() => setModuleTitle(""));
+                    const editingModule = modules.find((module) => module.id === editingModuleId);
+                    void run(selected.id, "module", {
+                      id: editingModuleId ?? undefined,
+                      title: moduleTitle,
+                      sortOrder: editingModule?.sort_order ?? modules.length,
+                    }).then(() => {
+                      setModuleTitle("");
+                      setEditingModuleId(null);
+                    });
                   }}
                 >
                   <Input value={moduleTitle} onChange={(event) => setModuleTitle(event.target.value)} placeholder="Module title" required />
-                  <Button type="submit" variant="outline" disabled={!!busy}>Add module</Button>
+                  <Button type="submit" variant="outline" disabled={!!busy}>{editingModuleId ? "Save module" : "Add module"}</Button>
                 </form>
                 <form
                   className="mt-2 grid gap-2"
                   onSubmit={(event) => {
                     event.preventDefault();
+                    const editingLesson = modules
+                      .flatMap((module) => module.course_lessons ?? [])
+                      .find((lesson) => lesson.id === editingLessonId);
                     void run(selected.id, "lesson", {
+                      id: editingLessonId ?? undefined,
                       moduleId: lessonModule,
                       title: lessonTitle,
                       body: lessonBody,
                       videoUrl: lessonVideo,
                       attachments: lessonResource.trim()
                         ? [{ url: lessonResource.trim(), name: lessonTitle || "Resource", type: "file" }]
-                        : [],
-                      sortOrder: modules.find((module) => module.id === lessonModule)?.course_lessons.length ?? 0,
+                        : editingLesson?.attachments ?? [],
+                      sortOrder:
+                        editingLesson?.sort_order ??
+                        modules.find((module) => module.id === lessonModule)?.course_lessons.length ??
+                        0,
                     }).then(() => {
                       setLessonTitle("");
                       setLessonBody("");
                       setLessonVideo("");
                       setLessonResource("");
+                      setEditingLessonId(null);
                     });
                   }}
                 >
@@ -391,15 +417,43 @@ export function CoursesManagement() {
                   <Textarea value={lessonBody} onChange={(event) => setLessonBody(event.target.value)} placeholder="Lesson text" />
                   <Input value={lessonVideo} onChange={(event) => setLessonVideo(event.target.value)} placeholder="Video or image URL (optional)" />
                   <Input value={lessonResource} onChange={(event) => setLessonResource(event.target.value)} placeholder="Downloadable resource URL (optional)" />
-                  <Button type="submit" variant="outline" disabled={!!busy || !lessonModule}>Add lesson</Button>
+                  <Button type="submit" variant="outline" disabled={!!busy || !lessonModule}>{editingLessonId ? "Save lesson" : "Add lesson"}</Button>
                 </form>
                 <div className="mt-3 space-y-3">
                   {modules.map((module) => (
                     <div key={module.id}>
-                      <p className="text-sm font-semibold">{module.title}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold">{module.title}</p>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-[#FF5A1F]"
+                          onClick={() => {
+                            setEditingModuleId(module.id);
+                            setModuleTitle(module.title);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
                       <ul className="mt-1 space-y-1 pl-3 text-sm text-[#6B7280]">
                         {(module.course_lessons ?? []).map((lesson) => (
-                          <li key={lesson.id}>{lesson.title}</li>
+                          <li key={lesson.id} className="flex items-center justify-between gap-2">
+                            <span>{lesson.title}</span>
+                            <button
+                              type="button"
+                              className="text-xs font-semibold text-[#FF5A1F]"
+                              onClick={() => {
+                                setEditingLessonId(lesson.id);
+                                setLessonModule(lesson.module_id);
+                                setLessonTitle(lesson.title);
+                                setLessonBody(lesson.body ?? "");
+                                setLessonVideo(lesson.video_url ?? "");
+                                setLessonResource(lesson.attachments?.find((file) => file.url)?.url ?? "");
+                              }}
+                            >
+                              Edit
+                            </button>
+                          </li>
                         ))}
                       </ul>
                     </div>

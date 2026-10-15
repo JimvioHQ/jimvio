@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { safeHttpUrl } from "@/lib/community/courses/rules";
 
 function db() { return createServiceRoleClient(); }
 
@@ -14,7 +15,9 @@ async function assertCreator(courseId: string, userId: string) {
 export async function upsertModule(input: { userId: string; courseId: string; id?: string; title: string; description?: string; sortOrder?: number; isFree?: boolean }) {
   await assertCreator(input.courseId, input.userId);
   const payload = { course_id: input.courseId, title: input.title, description: input.description ?? null, sort_order: input.sortOrder ?? 0, is_free: Boolean(input.isFree) };
-  const query = input.id ? db().from("course_modules").update(payload).eq("id", input.id) : db().from("course_modules").insert(payload);
+  const query = input.id
+    ? db().from("course_modules").update(payload).eq("id", input.id).eq("course_id", input.courseId)
+    : db().from("course_modules").insert(payload);
   const { data, error } = await query.select().single();
   if (error) throw error;
   return data;
@@ -22,8 +25,25 @@ export async function upsertModule(input: { userId: string; courseId: string; id
 
 export async function upsertLesson(input: { userId: string; courseId: string; moduleId: string; id?: string; title: string; body?: string; videoUrl?: string; duration?: number; sortOrder?: number; isFree?: boolean; attachments?: unknown[] }) {
   await assertCreator(input.courseId, input.userId);
-  const payload = { course_id: input.courseId, module_id: input.moduleId, title: input.title, body: input.body ?? null, video_url: input.videoUrl ?? null, duration: input.duration ?? 0, sort_order: input.sortOrder ?? 0, is_free: Boolean(input.isFree), attachments: input.attachments ?? [] };
-  const query = input.id ? db().from("course_lessons").update(payload).eq("id", input.id) : db().from("course_lessons").insert(payload);
+  const { data: moduleRow } = await db()
+    .from("course_modules")
+    .select("id")
+    .eq("id", input.moduleId)
+    .eq("course_id", input.courseId)
+    .maybeSingle();
+  if (!moduleRow) throw new Error("Module not found");
+  const videoUrl = input.videoUrl?.trim() ? safeHttpUrl(input.videoUrl) : null;
+  if (input.videoUrl?.trim() && !videoUrl) throw new Error("Video URL must be http or https");
+  const attachments = (input.attachments ?? []).map((item) => {
+    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : null;
+    const url = safeHttpUrl(record?.url);
+    if (!url) throw new Error("Resource URL must be http or https");
+    return { ...record, url };
+  });
+  const payload = { course_id: input.courseId, module_id: input.moduleId, title: input.title, body: input.body ?? null, video_url: videoUrl, duration: input.duration ?? 0, sort_order: input.sortOrder ?? 0, is_free: Boolean(input.isFree), attachments };
+  const query = input.id
+    ? db().from("course_lessons").update(payload).eq("id", input.id).eq("course_id", input.courseId)
+    : db().from("course_lessons").insert(payload);
   const { data, error } = await query.select().single();
   if (error) throw error;
   return data;
@@ -34,10 +54,29 @@ export async function listCourseTree(courseId: string, userId?: string) {
   const { data: course, error } = await client.from("community_courses").select("*").eq("id", courseId).maybeSingle();
   if (error) throw error;
   if (!course) throw new Error("Course not found");
-  if (!course.is_published && course.creator_id !== userId) throw new Error("Course is not published");
-  if (course.archived_at && course.creator_id !== userId) throw new Error("Course is archived");
+  let isManager = false;
+  if (userId) {
+    try {
+      const { assertCourseManager } = await import("@/lib/community/courses/manage");
+      await assertCourseManager(userId, course.community_id);
+      isManager = true;
+    } catch {
+      isManager = false;
+    }
+  }
+  const { canOpenCourseTree } = await import("@/lib/community/courses/rules");
+  if (
+    !canOpenCourseTree({
+      isPublished: Boolean(course.is_published),
+      archived: Boolean(course.archived_at),
+      isCreator: course.creator_id === userId,
+      isManager,
+    })
+  ) {
+    throw new Error(course.archived_at ? "Course is archived" : "Course is not published");
+  }
 
-  let fullContent = course.creator_id === userId;
+  let fullContent = course.creator_id === userId || isManager;
   if (!fullContent && userId && course.room_id) {
     const { assertCourseAccess, redactCourseTreeForAccess } = await import(
       "@/lib/community/courses/access"
@@ -101,6 +140,13 @@ export async function listCourseTree(courseId: string, userId?: string) {
 
 export async function saveQuiz(input: { userId: string; courseId: string; lessonId: string; title: string; questions: unknown[]; passScore?: number }) {
   await assertCreator(input.courseId, input.userId);
+  const { data: lesson } = await db()
+    .from("course_lessons")
+    .select("id")
+    .eq("id", input.lessonId)
+    .eq("course_id", input.courseId)
+    .maybeSingle();
+  if (!lesson) throw new Error("Lesson not found");
   const { data, error } = await db().from("course_quizzes").upsert({
     course_id: input.courseId, lesson_id: input.lessonId, title: input.title,
     questions: input.questions, pass_score: input.passScore ?? 70, updated_at: new Date().toISOString(),
