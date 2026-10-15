@@ -776,7 +776,7 @@ function RightSidebar({
 
 /* ── STEP 1: Details ── */
 function StepDetails({
-    form, handleChange, categories, handleImageUpload, removeImage, business, onContinueDigital, onVerifyBusiness, onPayVerificationFee,
+    form, handleChange, categories, handleImageUpload, removeImage, business, onContinueDigital, onVerifyBusiness,
 }: {
     form: FormState;
     handleChange: (f: string, v: unknown) => void;
@@ -786,7 +786,6 @@ function StepDetails({
     business: BusinessVerificationUi;
     onContinueDigital: () => void;
     onVerifyBusiness: () => Promise<void>;
-    onPayVerificationFee: (method: "wallet" | "flutterwave" | "mobile_money" | "nowpayments" | "binancepay") => Promise<void>;
 }) {
     const [videoInput, setVideoInput] = React.useState("");
     const [imageUrlInput, setImageUrlInput] = React.useState("");
@@ -827,7 +826,6 @@ function StepDetails({
                 onChange={(next) => handleChange("product_type", next)}
                 business={business}
                 onVerifyBusiness={onVerifyBusiness}
-                onPayVerificationFee={onPayVerificationFee}
                 onContinueDigital={onContinueDigital}
             />
 
@@ -1829,9 +1827,9 @@ export function ProductFormShell({
         key: "not_started",
         label: "Business verification required",
         feePaid: false,
-        feeUsd: 5.65,
-        feeLabel: "$5.65 USD",
-        phase: "fee_required",
+        feeUsd: null,
+        feeLabel: null,
+        phase: "not_requested",
     });
     const [categories, setCategories] = useState<any[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -1872,11 +1870,13 @@ export function ProductFormShell({
             label: ctx.businessStatus.label,
             phase: ctx.businessStatus.verified
                 ? "verified"
-                : prev.feePaid
-                  ? prev.phase === "in_progress" || prev.phase === "in_review"
-                      ? prev.phase
-                      : "fee_paid"
-                  : "fee_required",
+                : ctx.businessStatus.key === "in_review" || ctx.businessStatus.key === "in_progress"
+                  ? "pending"
+                  : ctx.businessStatus.key === "failed"
+                    ? "rejected"
+                    : ctx.businessStatus.key === "expired"
+                      ? "suspended"
+                      : "not_requested",
         }));
     };
 
@@ -1888,15 +1888,11 @@ export function ProductFormShell({
             verified: Boolean(json.verified),
             key: json.customer?.key || "not_started",
             label: json.customer?.label || "Business verification required",
-            feePaid: Boolean(json.feePaid),
-            feeUsd: typeof json.feeUsd === "number" ? json.feeUsd : 5.65,
-            feeLabel: typeof json.feeLabel === "string" ? json.feeLabel : "$5.65 USD",
-            availableBalance:
-                typeof json.availableBalance === "number" ? json.availableBalance : undefined,
-            supportedMethods: Array.isArray(json.supportedMethods)
-                ? json.supportedMethods
-                : undefined,
-            phase: json.phase || (json.verified ? "verified" : json.feePaid ? "fee_paid" : "fee_required"),
+            feePaid: false,
+            feeUsd: null,
+            feeLabel: null,
+            supportHref: typeof json.supportHref === "string" ? json.supportHref : undefined,
+            phase: json.phase || (json.verified ? "verified" : "not_requested"),
         });
         if (json.verified) {
             setBusinessVerified(true);
@@ -2043,14 +2039,6 @@ export function ProductFormShell({
         const fromDidit = params.get("business_verification");
         if (!fromFee && !fromDidit) return;
         void (async () => {
-            if (fromFee) {
-                const ref = params.get("ref") || params.get("tx_ref");
-                const transactionId = params.get("transaction_id");
-                const qs = new URLSearchParams();
-                if (ref) qs.set("ref", ref);
-                if (transactionId) qs.set("transaction_id", transactionId);
-                await fetch(`/api/identity/verification/fee?${qs.toString()}`, { method: "GET" });
-            }
             await refreshBusinessVerificationStatus();
             const ctx = await getSellerUploadContext();
             if (ctx.authenticated) applyBusinessContext(ctx);
@@ -2087,84 +2075,8 @@ export function ProductFormShell({
         setStep(next);
     }
 
-    async function payVerificationFee(
-        method: "wallet" | "flutterwave" | "mobile_money" | "nowpayments" | "binancepay",
-    ) {
-        const idempotencyKey =
-            typeof crypto !== "undefined" && "randomUUID" in crypto
-                ? crypto.randomUUID()
-                : `bvfee-${Date.now()}`;
-        const res = await fetch("/api/identity/verification/fee", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Idempotency-Key": idempotencyKey,
-            },
-            body: JSON.stringify({ method, idempotencyKey }),
-        });
-        const json = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            throw new Error(
-                typeof json.error === "string"
-                    ? json.error
-                    : "Could not start verification fee payment.",
-            );
-        }
-        if (json.checkoutUrl) {
-            window.location.href = json.checkoutUrl as string;
-            return;
-        }
-        if (json.feePaid) {
-            await refreshBusinessVerificationStatus();
-            return;
-        }
-        throw new Error("Payment could not be completed. Please try again.");
-    }
-
     async function startBusinessVerification() {
         await refreshBusinessVerificationStatus();
-        const statusRes = await fetch("/api/identity/verification/business", { method: "GET" });
-        const statusJson = statusRes.ok ? await statusRes.json().catch(() => ({})) : {};
-        if (statusJson.verified) {
-            const ctx = await getSellerUploadContext();
-            if (ctx.authenticated) applyBusinessContext(ctx);
-            return;
-        }
-        if (!statusJson.feePaid) {
-            throw new Error("Pay the $5.65 business verification fee before starting verification.");
-        }
-
-        const res = await fetch("/api/identity/verification/business", { method: "POST" });
-        const json = await res.json().catch(() => ({}));
-        if (res.status === 402) {
-            throw new Error(
-                typeof json.error === "string"
-                    ? json.error
-                    : "Business verification fee required",
-            );
-        }
-        if (res.status === 503) {
-            throw new Error(
-                "Business verification is being set up. Please try again shortly, or contact Jimvio support.",
-            );
-        }
-        if (!res.ok) {
-            throw new Error(
-                typeof json.error === "string"
-                    ? json.error
-                    : "Could not start business verification. Please try again.",
-            );
-        }
-        if (json.verified) {
-            const ctx = await getSellerUploadContext();
-            if (ctx.authenticated) applyBusinessContext(ctx);
-            return;
-        }
-        if (json.verificationUrl) {
-            window.location.href = json.verificationUrl as string;
-            return;
-        }
-        throw new Error("Verification link was not available. Please try again.");
     }
 
     function handleChange(field: string, value: unknown) {
@@ -2597,7 +2509,6 @@ export function ProductFormShell({
                                     }
                                     onContinueDigital={() => handleChange("product_type", "digital")}
                                     onVerifyBusiness={startBusinessVerification}
-                                    onPayVerificationFee={payVerificationFee}
                                 />
                             )}
                             {step === 2 && <StepPricing form={form} handleChange={handleChange} />}

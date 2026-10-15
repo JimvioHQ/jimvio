@@ -18,6 +18,11 @@ type ManageEvent = {
   end_date: string | null;
   location: string | null;
   kind: string;
+  format?: string;
+  visibility?: string;
+  status?: string;
+  timezone?: string;
+  invite_token?: string | null;
   is_published?: boolean;
   attendee_count?: number;
 };
@@ -48,6 +53,13 @@ export function EventsManagement() {
     endsAt: "",
     isOnline: true,
     meetingUrl: "",
+    visibility: "public",
+    format: "online",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    status: "draft",
+    venue: "",
+    tags: "",
+    capacity: "",
   });
 
   const load = useCallback(async () => {
@@ -104,7 +116,14 @@ export function EventsManagement() {
           description: form.description.trim() || null,
           kind: form.kind,
           location: form.location.trim() || null,
-          isOnline: form.isOnline,
+          isOnline: form.format !== "in_person",
+          format: form.format,
+          visibility: form.visibility,
+          status: form.status,
+          timezone: form.timezone,
+          venue: form.venue,
+          tags: form.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+          capacity: form.capacity ? Number(form.capacity) : null,
           meetingUrl: form.meetingUrl.trim() || null,
           startsAt: new Date(form.startsAt).toISOString(),
           endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : null,
@@ -112,7 +131,12 @@ export function EventsManagement() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Create failed");
-      toast.success("Event scheduled");
+      if (json.inviteToken) {
+        toast.success("Private event saved. Invitation link copied.");
+        await navigator.clipboard.writeText(`${window.location.origin}/communities/events/invite/${json.inviteToken}`).catch(() => undefined);
+      } else {
+        toast.success("Event scheduled");
+      }
       setShowForm(false);
       setForm({
         title: "",
@@ -123,6 +147,13 @@ export function EventsManagement() {
         endsAt: "",
         isOnline: true,
         meetingUrl: "",
+        visibility: "public",
+        format: "online",
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        status: "draft",
+        venue: "",
+        tags: "",
+        capacity: "",
       });
       await load();
     } catch (err) {
@@ -147,6 +178,26 @@ export function EventsManagement() {
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not delete event");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setStatus(eventId: string, status: string) {
+    if ((status === "cancelled" || status === "completed") && !window.confirm(`Mark this event ${status}?`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/c/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", eventId, status }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Update failed");
+      toast.success(`Event ${status}`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update event");
     } finally {
       setSaving(false);
     }
@@ -247,6 +298,44 @@ export function EventsManagement() {
                 onChange={(e) => setForm((f) => ({ ...f, endsAt: e.target.value }))}
               />
             </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Format</span>
+              <select value={form.format} onChange={(e) => setForm((f) => ({ ...f, format: e.target.value }))} className="h-10 w-full rounded-md border border-[#E5E7EB] px-3 text-sm">
+                <option value="online">Online</option>
+                <option value="in_person">In person</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Visibility</span>
+              <select value={form.visibility} onChange={(e) => setForm((f) => ({ ...f, visibility: e.target.value }))} className="h-10 w-full rounded-md border border-[#E5E7EB] px-3 text-sm">
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Timezone</span>
+              <Input value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Status</span>
+              <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} className="h-10 w-full rounded-md border border-[#E5E7EB] px-3 text-sm">
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Venue</span>
+              <Input value={form.venue} onChange={(e) => setForm((f) => ({ ...f, venue: e.target.value }))} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[12px] font-semibold text-[#374151]">Capacity</span>
+              <Input value={form.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))} inputMode="numeric" />
+            </label>
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-[12px] font-semibold text-[#374151]">Tags</span>
+              <Input value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} placeholder="ama, launch" />
+            </label>
             <label className="space-y-1 sm:col-span-2">
               <span className="text-[12px] font-semibold text-[#374151]">Meeting URL</span>
               <Input
@@ -311,16 +400,43 @@ export function EventsManagement() {
                       : ""}
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={saving}
-                  onClick={() => void removeEvent(event.id)}
-                  aria-label={`Delete ${event.title}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  {event.visibility === "private" && event.invite_token ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(`${window.location.origin}/communities/events/invite/${event.invite_token}`);
+                        toast.success("Invitation link copied");
+                      }}
+                    >
+                      Copy invite
+                    </Button>
+                  ) : null}
+                  {(["published", "draft", "cancelled", "completed"] as const).map((status) => (
+                    <Button
+                      key={status}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || event.status === status}
+                      onClick={() => void setStatus(event.id, status)}
+                    >
+                      {status}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    onClick={() => void removeEvent(event.id)}
+                    aria-label={`Delete ${event.title}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </li>
             );
           })}

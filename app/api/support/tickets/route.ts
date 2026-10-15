@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { deliverSupportNotice } from "@/lib/support/notify";
 import { createSupportTicket, listOwnTickets } from "@/lib/support/store";
+import { isPhysicalSellerSupportSubject } from "@/lib/products/physical-selling";
+import { markPhysicalSellingRequested } from "@/lib/products/physical-selling-server";
 import { supportNotificationRecipient } from "@/lib/contact-email";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 
@@ -65,6 +67,10 @@ export async function POST(request: Request) {
 
   if ("ignored" in result) return NextResponse.json({ ok: true });
   if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+
+  if (user?.id && isPhysicalSellerSupportSubject(result.ticket.subject)) {
+    await markPhysicalSellingRequested(user.id).catch(() => undefined);
+  }
 
   let email: { sent: boolean; reason: "not_configured" | "no_recipient" | "sent" | "failed" } = {
     sent: false,

@@ -17,6 +17,7 @@ import {
     EmptyState,
 } from "@/components/ui/admin";
 import { VendorActions } from "@/components/admin/vendors/vendor-action";
+import { PhysicalSellingPanel } from "@/components/admin/vendors/PhysicalSellingPanel";
 
 // ─── Type ─────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,8 @@ export interface AdminVendorDetail {
     verification_status: string;
     verification_notes: string | null;
     verified_at: string | null;
+    physical_selling_requested_at?: string | null;
+    physical_selling_reviewed_at?: string | null;
     rating: number;
     total_sales: number;
     total_revenue: number;
@@ -266,6 +269,8 @@ export function AdminVendorDetailClient({ vendor }: { vendor: AdminVendorDetail 
                     </Link>
                 </div>
             </div>
+
+            <PhysicalSellingPanel vendor={vendor} />
 
             {/* Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

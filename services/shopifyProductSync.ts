@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { MAX_SHOPIFY_CLEANUP_BATCH } from "@/lib/security/destructive-limits";
+import { assertCanCreateProductType } from "@/lib/products/authorization";
 const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -222,6 +223,15 @@ function transformToJimvioProduct(
 }
 
 export async function syncVendorShopifyProducts(vendorId: string) {
+  const { data: vendor } = await supabase
+    .from("vendors")
+    .select("id, user_id, is_active, verification_status")
+    .eq("id", vendorId)
+    .maybeSingle();
+  const gate = assertCanCreateProductType(vendor?.user_id, vendor, "physical");
+  if (!gate.ok) {
+    throw new Error(gate.message);
+  }
   const creds = await getVendorTokenByVendorId(vendorId);
 
   let slugToId = await loadCategorySlugToId();

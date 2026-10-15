@@ -19,11 +19,19 @@ export function SupportTicketForm({
   defaultName = "",
   requireContact = false,
   heading = "Create a support ticket",
+  defaultSubject = "",
+  defaultCategory = "",
+  defaultIssueType = "",
+  defaultDescription = "",
 }: {
   defaultEmail?: string;
   defaultName?: string;
   requireContact?: boolean;
   heading?: string;
+  defaultSubject?: string;
+  defaultCategory?: string;
+  defaultIssueType?: string;
+  defaultDescription?: string;
 }) {
   const router = useRouter();
   function idempotencyKey() {
@@ -114,11 +122,11 @@ export function SupportTicketForm({
       ) : (
         <Field label="Email" name="email" type="email" defaultValue={defaultEmail} />
       )}
-      <Field label="Subject" name="subject" required />
+      <Field label="Subject" name="subject" required defaultValue={defaultSubject} />
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block text-sm font-medium">
           Category
-          <select name="category" required className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2">
+          <select name="category" required defaultValue={defaultCategory || undefined} className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2">
             {SUPPORT_CATEGORIES.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.title}
@@ -128,7 +136,7 @@ export function SupportTicketForm({
         </label>
         <label className="block text-sm font-medium">
           Issue type
-          <select name="issueType" required className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2">
+          <select name="issueType" required defaultValue={defaultIssueType || undefined} className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2">
             {ISSUES.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -148,7 +156,7 @@ export function SupportTicketForm({
       <Field label="Order, wallet, or campaign reference" name="referenceCode" />
       <label className="block text-sm font-medium">
         Description
-        <textarea name="description" required minLength={10} rows={6} className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2" />
+        <textarea name="description" required minLength={10} rows={6} defaultValue={defaultDescription} className="mt-1 w-full rounded-xl border border-neutral-200 px-3 py-2" />
       </label>
       <input name="company" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
       {error ? (

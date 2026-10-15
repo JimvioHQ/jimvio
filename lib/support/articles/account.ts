@@ -122,12 +122,12 @@ export const ACCOUNT_ARTICLES = [
     "Verify your identity from the Identity verification page when Jimvio asks you to, and complete any business verification required for selling.",
     [
       "Sign in and open Identity verification.",
-      "Submit the checks the page requests. A verification fee can apply and is paid with the methods shown on that page.",
+      "A verification fee is not charged. Contact Support and wait for an administrator to approve physical selling.",
       "Wait for the review status on the verification page to update. A ticket does not mark you verified.",
     ],
     "Personal verification and business verification are separate. Physical-product selling can require business verification even if your profile is complete.",
     [
-      "If payment for a verification fee is pending, check the status on the verification page before paying again.",
+      "Business verification is reviewed by Support and an administrator. There is no verification payment.",
       "If the provider page fails to load, try another browser and then contact support with the time of the attempt, not with document images in chat.",
     ],
     "Do not treat a pending review as approved. Sell or withdraw only when the product shows the required status.",
@@ -147,7 +147,7 @@ export const ACCOUNT_ARTICLES = [
     "Not every account needs every check. Browsing the marketplace does not require business verification.",
     [
       "A completed profile is not the same as a passed verification.",
-      "Paying a verification fee does not guarantee approval if the review is declined.",
+      "Contact Support if a business review is still open. Paying a fee is not part of verification.",
     ],
     "If the status stays pending longer than the page indicates, open a ticket with the verification reference shown in the product.",
     ["why verify", "kyc required"],

@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getHubEvents } from "@/services/community/hub-data";
 import {
-  createCommunityEvent,
+  announceEventUpdate,
+  listDiscoverableEvents,
+  registerForEvent,
+  rotateEventInvite,
+  saveCommunityEvent,
+  setEventLifecycle,
+} from "@/lib/community/event-access";
+import {
   deleteCommunityEvent,
   listCommunityEventsForOwner,
   listHubCommunityEvents,
-  setEventRsvp,
-  updateCommunityEvent,
   type CommunityEventKind,
 } from "@/lib/community/events";
 
@@ -35,6 +40,26 @@ export async function GET(req: NextRequest) {
   const communitySlug = req.nextUrl.searchParams.get("community")?.trim() || "";
   const communityId = req.nextUrl.searchParams.get("communityId")?.trim() || "";
   const manage = req.nextUrl.searchParams.get("manage") === "1";
+  const discover = req.nextUrl.searchParams.get("discover") === "1";
+
+  if (discover) {
+    try {
+      const result = await listDiscoverableEvents({
+        userId: user.id,
+        q: req.nextUrl.searchParams.get("q") ?? undefined,
+        filter: req.nextUrl.searchParams.get("filter") ?? undefined,
+        kind: req.nextUrl.searchParams.get("kind") ?? undefined,
+        cursor: Number(req.nextUrl.searchParams.get("cursor") ?? 0),
+        communitySlug,
+      });
+      return NextResponse.json(result);
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not load events" },
+        { status: 400 },
+      );
+    }
+  }
 
   if (manage && communityId) {
     try {
@@ -88,10 +113,11 @@ export async function POST(req: NextRequest) {
 
   if (body.action === "rsvp") {
     try {
-      const rsvp = await setEventRsvp({
+      const rsvp = await registerForEvent({
         userId: user.id,
         eventId: String(body.eventId ?? ""),
         status: body.status === "interested" || body.status === "declined" ? body.status : "going",
+        token: typeof body.token === "string" ? body.token : null,
       });
       return NextResponse.json({ ok: true, rsvp });
     } catch (error) {
@@ -102,6 +128,53 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (body.action === "status") {
+    try {
+      const event = await setEventLifecycle({
+        userId: user.id,
+        eventId: String(body.eventId ?? ""),
+        status: body.status,
+      });
+      return NextResponse.json({ ok: true, event });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Update failed" },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (body.action === "invite") {
+    try {
+      const invite = await rotateEventInvite({
+        userId: user.id,
+        eventId: String(body.eventId ?? ""),
+        revoke: body.revoke === true,
+      });
+      return NextResponse.json({ ok: true, ...invite });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Invite update failed" },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (body.action === "announce") {
+    try {
+      await announceEventUpdate({
+        userId: user.id,
+        eventId: String(body.eventId ?? ""),
+        message: String(body.message ?? ""),
+      });
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Could not send update" },
+        { status: 400 },
+      );
+    }
+  }
   if (body.action === "delete") {
     try {
       await deleteCommunityEvent({
@@ -124,22 +197,30 @@ export async function POST(req: NextRequest) {
     }
     const kind = KINDS.has(body.kind) ? (body.kind as CommunityEventKind) : undefined;
     try {
-      const event = await updateCommunityEvent({
+      const saved = await saveCommunityEvent({
         userId: user.id,
         eventId,
-        title: typeof body.title === "string" ? body.title.trim() : undefined,
-        description: body.description,
-        kind,
-        location: body.location,
-        isOnline: body.isOnline,
-        meetingUrl: body.meetingUrl,
-        imageUrl: body.imageUrl,
-        startsAt: typeof body.startsAt === "string" ? body.startsAt : undefined,
-        endsAt: body.endsAt,
-        capacity: body.capacity != null ? Number(body.capacity) : undefined,
-        isPublished: body.isPublished,
+        communityId: typeof body.communityId === "string" ? body.communityId : "",
+        draft: {
+          title: body.title,
+          description: body.description,
+          kind,
+          format: body.format ?? (body.isOnline === false ? "in_person" : "online"),
+          visibility: body.visibility,
+          status: body.status ?? (body.isPublished === false ? "draft" : body.isPublished ? "published" : undefined),
+          timezone: body.timezone,
+          startsAt: body.startsAt,
+          endsAt: body.endsAt,
+          meetingUrl: body.meetingUrl,
+          location: body.location,
+          venue: body.venue,
+          capacity: body.capacity != null ? Number(body.capacity) : null,
+          imageUrl: body.imageUrl,
+          tags: Array.isArray(body.tags) ? body.tags : undefined,
+          hostName: body.hostName,
+        },
       });
-      return NextResponse.json({ ok: true, event });
+      return NextResponse.json({ ok: true, event: saved.event, inviteToken: saved.inviteToken });
     } catch (error) {
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "Update failed" },
@@ -161,21 +242,29 @@ export async function POST(req: NextRequest) {
   const kind = KINDS.has(body.kind) ? (body.kind as CommunityEventKind) : "meetup";
 
   try {
-    const event = await createCommunityEvent({
+    const saved = await saveCommunityEvent({
       userId: user.id,
       communityId,
-      title,
-      description: body.description ?? null,
-      kind,
-      location: body.location ?? null,
-      isOnline: body.isOnline !== false,
-      meetingUrl: body.meetingUrl ?? null,
-      imageUrl: body.imageUrl ?? null,
-      startsAt,
-      endsAt: body.endsAt ?? null,
-      capacity: body.capacity != null ? Number(body.capacity) : null,
+      draft: {
+        title,
+        description: body.description ?? null,
+        kind,
+        format: body.format ?? (body.isOnline === false ? "in_person" : "online"),
+        visibility: body.visibility ?? "public",
+        status: body.status ?? "published",
+        timezone: body.timezone ?? "UTC",
+        startsAt,
+        endsAt: body.endsAt ?? null,
+        meetingUrl: body.meetingUrl ?? null,
+        location: body.location ?? null,
+        venue: body.venue ?? null,
+        capacity: body.capacity != null ? Number(body.capacity) : null,
+        imageUrl: body.imageUrl ?? null,
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        hostName: body.hostName ?? null,
+      },
     });
-    return NextResponse.json({ ok: true, event });
+    return NextResponse.json({ ok: true, event: saved.event, inviteToken: saved.inviteToken });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not create event" },

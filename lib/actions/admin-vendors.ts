@@ -4,6 +4,8 @@
 import { revalidatePath } from "next/cache";
 import { getAdminDB } from "@/lib/supabase/admin";
 import { assertAdminAccess } from "@/lib/cj/premium-intelligence/super-admin-auth";
+import { writeAuditEvent } from "@/services/ops/audit";
+import { physicalSellingStatus } from "@/lib/products/physical-selling";
 
 async function requireAdminAction() {
     const auth = await assertAdminAccess();
@@ -361,4 +363,61 @@ export async function resolveReport(
     if (error) return { success: false, error: error.message };
     revalidatePath("/admin/verifications");
     return { success: true };
+}
+
+export async function setPhysicalSellingAccess(
+    vendorId: string,
+    decision: "approved" | "rejected" | "suspended",
+    notes?: string,
+) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+    const actorId = gate.user?.id ?? null;
+
+    const admin = getAdminDB();
+    const { data: vendor } = await admin
+        .from("vendors")
+        .select("id, user_id, is_active, verification_status")
+        .eq("id", vendorId)
+        .maybeSingle();
+    if (!vendor) return { success: false, error: "Vendor not found" };
+    if (decision === "approved" && vendor.is_active === false) {
+        return {
+            success: false,
+            error: "This seller account is inactive. Approval cannot bypass that restriction.",
+        };
+    }
+
+    const verification_status =
+        decision === "approved" ? "verified" : decision === "rejected" ? "rejected" : "suspended";
+    const now = new Date().toISOString();
+    const { error } = await admin
+        .from("vendors")
+        .update({
+            verification_status,
+            verification_notes: notes?.trim() || null,
+            verified_at: decision === "approved" ? now : null,
+            physical_selling_reviewed_at: now,
+            physical_selling_reviewed_by: actorId,
+        } as any)
+        .eq("id", vendorId);
+    if (error) return { success: false, error: error.message };
+
+    await writeAuditEvent({
+        actorId,
+        action: `physical_selling.${decision}`,
+        entityType: "vendor",
+        entityId: vendorId,
+        metadata: {
+            userId: vendor.user_id,
+            previous: vendor.verification_status,
+            next: verification_status,
+            notes: notes?.trim() || null,
+        },
+    });
+
+    revalidatePath("/admin/vendors");
+    revalidatePath(`/admin/vendors/${vendorId}`);
+    revalidatePath("/admin/verifications");
+    return { success: true, status: physicalSellingStatus({ verification_status }) };
 }

@@ -53,6 +53,8 @@ export async function listHubCommunityEvents(userId: string) {
     )
     .in("community_id", communityIds)
     .eq("is_published", true)
+    .eq("visibility", "public")
+    .eq("status", "published")
     .order("starts_at", { ascending: true })
     .limit(80);
 
@@ -123,7 +125,7 @@ export async function listCommunityEventsForOwner(
   const { data: events, error } = await db()
     .from("community_events")
     .select(
-      "id, community_id, created_by, title, description, kind, location, is_online, meeting_url, image_url, starts_at, ends_at, capacity, rsvp_count, is_published",
+      "id, community_id, created_by, title, description, kind, location, venue, is_online, format, visibility, status, timezone, meeting_url, image_url, starts_at, ends_at, capacity, rsvp_count, is_published, invite_token",
     )
     .eq("community_id", communityId)
     .order("starts_at", { ascending: true })
@@ -140,8 +142,13 @@ export async function listCommunityEventsForOwner(
     image_url: e.image_url,
     attendee_count: Number(e.rsvp_count ?? 0),
     kind: e.kind,
+    format: (e as { format?: string }).format ?? (e.is_online ? "online" : "in_person"),
+    visibility: (e as { visibility?: string }).visibility ?? "public",
+    status: (e as { status?: string }).status ?? (e.is_published ? "published" : "draft"),
+    timezone: (e as { timezone?: string }).timezone ?? "UTC",
     is_published: e.is_published,
     meeting_url: e.meeting_url,
+    invite_token: (e as { invite_token?: string | null }).invite_token ?? null,
     capacity: e.capacity,
     community_name: community?.name ?? null,
     community_slug: community?.slug ?? null,

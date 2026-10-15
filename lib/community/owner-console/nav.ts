@@ -31,6 +31,7 @@ export type OwnerConsoleSectionId =
   | "content"
   | "courses"
   | "events"
+  | "missions"
   | "live"
   | "commerce"
   | "analytics"
@@ -148,6 +149,13 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "channel.manage",
     "Calendar, RSVP, and workshops"
   ),
+  missions: navItem(
+    "missions",
+    "Missions",
+    "missions",
+    "channel.manage",
+    "Challenges, submissions, and reviews"
+  ),
   live: navItem(
     "live",
     "Live",
@@ -240,7 +248,7 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
     id: "content",
     label: "Content",
     collapsible: true,
-    items: ["content", "courses", "events", "live"],
+    items: ["content", "courses", "events", "missions", "live"],
   },
   {
     id: "community",
@@ -274,7 +282,7 @@ export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
     id: "content",
     label: "Content",
     collapsible: true,
-    items: ["content", "courses", "events", "live"],
+    items: ["content", "courses", "events", "missions", "live"],
   },
   {
     id: "growth",
@@ -512,6 +520,7 @@ export const OWNER_SECTION_ICON_KEYS: Record<OwnerConsoleSectionId, string> = {
   content: "file",
   courses: "graduation",
   events: "calendar",
+  missions: "target",
   live: "radio",
   commerce: "shop",
   analytics: "chart",

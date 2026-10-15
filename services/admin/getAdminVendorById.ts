@@ -20,6 +20,8 @@ export interface AdminVendorDetail {
     verification_status: string;
     verification_notes: string | null;
     verified_at: string | null;
+    physical_selling_requested_at?: string | null;
+    physical_selling_reviewed_at?: string | null;
     rating: number;
     total_sales: number;
     total_revenue: number;
@@ -154,6 +156,8 @@ export async function getAdminVendorById(vendorId: string): Promise<AdminVendorD
         verification_status: (v.verification_status as string) ?? "pending",
         verification_notes: v.verification_notes ?? null,
         verified_at: v.verified_at ?? null,
+        physical_selling_requested_at: (v as { physical_selling_requested_at?: string | null }).physical_selling_requested_at ?? null,
+        physical_selling_reviewed_at: (v as { physical_selling_reviewed_at?: string | null }).physical_selling_reviewed_at ?? null,
         rating: Number(v.rating ?? 0),
         total_sales: orderStats.sales,
         total_revenue: orderStats.revenue,

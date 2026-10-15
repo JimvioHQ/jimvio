@@ -11,6 +11,7 @@ import { GroupsManagement } from "@/components/community/owner-console/groups";
 import { GroupSettingsPage } from "@/components/community/owner-console/groups/GroupSettingsPage";
 import { AnalyticsManagement } from "@/components/community/owner-console/analytics";
 import { EventsManagement } from "@/components/community/owner-console/events";
+import { MissionsManagement } from "@/components/community/owner-console/missions/MissionsManagement";
 import { CoursesManagement } from "@/components/community/owner-console/courses/CoursesManagement";
 import type { OwnerConsoleSectionId } from "@/lib/community/owner-console";
 
@@ -22,6 +23,7 @@ const TOP_LEVEL: Partial<Record<OwnerConsoleSectionId, ComponentType<object> | n
   spaces: GroupsManagement,
   analytics: AnalyticsManagement,
   events: EventsManagement,
+  missions: MissionsManagement,
   courses: CoursesManagement,
 };
 
@@ -68,6 +70,7 @@ export function ManageCommunitySectionView({
     "content",
     "courses",
     "events",
+    "missions",
     "live",
     "commerce",
     "analytics",
