@@ -41,10 +41,10 @@ export async function POST(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("id, room_id, community_id, view_count, is_published, archived_at")
+    .select("id, room_id, community_id, view_count, is_published, archived_at, hidden_at, deleted_at")
     .eq("id", postId)
     .maybeSingle();
-  if (!post || post.is_published === false || post.archived_at != null) {
+  if (!post || post.is_published === false || post.archived_at != null || post.hidden_at != null || post.deleted_at != null) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

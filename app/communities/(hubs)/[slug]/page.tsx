@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     .select("name, tagline, avatar_url, cover_image")
     .eq("slug", slug)
     .eq("is_active", true)
+    .is("archived_at", null)
     .maybeSingle();
 
   if (!data) return { title: "Community" };
@@ -49,6 +50,7 @@ async function loadPublicCommunity(slug: string): Promise<CommunityDetailPayload
     `)
     .eq("slug", slug)
     .eq("is_active", true)
+    .is("archived_at", null)
     .maybeSingle();
 
   if (!community) return null;

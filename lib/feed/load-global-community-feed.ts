@@ -218,6 +218,8 @@ async function fetchPublicRawBatch(
     .select(POST_COLUMNS)
     .eq("is_published", true)
     .is("archived_at", null)
+    .is("hidden_at", null)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(fetchLimit);
@@ -263,6 +265,8 @@ async function fetchMemberRawBatch(
         .in("community_id", ids)
         .eq("is_published", true)
         .is("archived_at", null)
+        .is("hidden_at", null)
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(fetchLimit);

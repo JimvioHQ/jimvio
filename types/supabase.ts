@@ -3450,6 +3450,7 @@ export type Database = {
           id: string
           is_pinned: boolean
           is_published: boolean | null
+          deleted_at: string | null
           like_count: number | null
           parent_id: string | null
           post_id: string
@@ -3462,6 +3463,7 @@ export type Database = {
           id?: string
           is_pinned?: boolean
           is_published?: boolean | null
+          deleted_at?: string | null
           like_count?: number | null
           parent_id?: string | null
           post_id: string
@@ -3474,6 +3476,7 @@ export type Database = {
           id?: string
           is_pinned?: boolean
           is_published?: boolean | null
+          deleted_at?: string | null
           like_count?: number | null
           parent_id?: string | null
           post_id?: string
@@ -3716,6 +3719,8 @@ export type Database = {
       community_posts: {
         Row: {
           archived_at: string | null
+          hidden_at: string | null
+          deleted_at: string | null
           attachments: Json | null
           audience: string
           author_id: string
@@ -3746,6 +3751,8 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          hidden_at?: string | null
+          deleted_at?: string | null
           attachments?: Json | null
           audience?: string
           author_id: string
@@ -3776,6 +3783,8 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          hidden_at?: string | null
+          deleted_at?: string | null
           attachments?: Json | null
           audience?: string
           author_id?: string

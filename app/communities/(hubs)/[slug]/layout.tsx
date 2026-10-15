@@ -88,10 +88,9 @@ export default async function CommunitySlugLayout({
     .from("communities")
     .select("id, is_private, visibility, visibility_mode, is_active, archived_at")
     .eq("slug", slug)
-    .eq("is_active", true)
     .maybeSingle();
 
-  if (!community) notFound();
+  if (!community || community.is_active === false || community.archived_at) notFound();
 
   const {
     data: { user },

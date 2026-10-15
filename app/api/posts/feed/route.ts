@@ -286,7 +286,7 @@ export async function GET(req: NextRequest) {
   if (draftsOnly) {
     query = query.eq("author_id", user.id).eq("is_published", false);
   } else {
-    query = query.eq("is_published", true).is("archived_at", null);
+    query = query.eq("is_published", true).is("archived_at", null).is("hidden_at", null).is("deleted_at", null);
   }
 
   if (cursor) {

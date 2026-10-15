@@ -54,7 +54,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!community) return null;
+  if (!community || community.archived_at) return null;
 
   if (!viewerId && communityIsRestrictedToMembers(community)) return null;
 

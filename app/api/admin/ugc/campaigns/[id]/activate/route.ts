@@ -12,8 +12,8 @@ import {
   adminActivateOverrideError,
   canAdminActivateOverride,
   isAdminActivateIdempotent,
-  normalizeAdminActivateReason,
 } from "@/lib/ugc/admin-activate-override";
+import { requireAdminReason } from "@/lib/admin/portal-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +52,10 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   } catch {
     body = {};
   }
-  const reason = normalizeAdminActivateReason(
-    body && typeof body === "object" ? (body as { reason?: unknown }).reason : null,
+  const reasonResult = requireAdminReason(
+    body && typeof body === "object" && typeof (body as { reason?: unknown }).reason === "string"
+      ? (body as { reason: string }).reason
+      : "",
   );
 
   const db = createServiceRoleClient();
@@ -73,6 +75,11 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   const fundingBefore = await escrowState(db, id);
   const meta = await requestMeta();
   const previousStatus = String(campaign.status ?? "");
+
+  if (!isAdminActivateIdempotent(previousStatus) && !reasonResult.ok) {
+    return NextResponse.json({ error: reasonResult.error }, { status: 400 });
+  }
+  const reason = reasonResult.ok ? reasonResult.reason : null;
 
   if (isAdminActivateIdempotent(previousStatus)) {
     await writeAuditEvent({

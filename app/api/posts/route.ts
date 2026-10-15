@@ -27,6 +27,9 @@ export async function GET(req: NextRequest) {
     .select("*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
     .eq("room_id", roomId)
     .eq("is_published", true)
+    .is("archived_at", null)
+    .is("hidden_at", null)
+    .is("deleted_at", null)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(50);

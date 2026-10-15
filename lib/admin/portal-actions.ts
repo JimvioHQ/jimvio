@@ -3,6 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 import { communityVisibilityPatch, requireAdminReason } from "@/lib/admin/portal-policy";
+import {
+  COMMENT_OPERATIONS,
+  COMMUNITY_OPERATIONS,
+  POST_OPERATIONS,
+  applyCommentOperation,
+  applyCommunityOperation,
+  applyPostOperation,
+  requireDestructiveConfirm,
+  type CommentOperation,
+  type CommunityOperation,
+  type PostOperation,
+} from "@/lib/admin/control-policy";
 import { endLiveSessionForPlatformAdmin } from "@/services/live/session-service";
 import { writeAuditEvent } from "@/services/ops/audit";
 import { getAdminDB } from "@/services/db";
@@ -25,32 +37,62 @@ export async function archiveCommunityAction(formData: FormData): Promise<void> 
 }
 
 export async function archiveCommunity(input: { id: string; archived: boolean; reason: string }): Promise<ActionResult> {
+  return setCommunityOperation({
+    id: input.id,
+    operation: input.archived ? "archive" : "restore",
+    reason: input.reason,
+  });
+}
+
+export async function setCommunityOperationAction(formData: FormData): Promise<void> {
+  const result = await setCommunityOperation({
+    id: String(formData.get("id") ?? ""),
+    operation: String(formData.get("operation") ?? "") as CommunityOperation,
+    reason: String(formData.get("reason") ?? ""),
+  });
+  if (!result.ok) throw new Error(result.error);
+}
+
+export async function setCommunityOperation(input: {
+  id: string;
+  operation: CommunityOperation;
+  reason: string;
+}): Promise<ActionResult> {
   const auth = await actor();
   if ("error" in auth) return { ok: false, error: auth.error ?? "Unauthorized." };
+  if (!COMMUNITY_OPERATIONS.has(input.operation)) return { ok: false, error: "That community action is not supported." };
   const reason = requireAdminReason(input.reason);
   if (!reason.ok) return reason;
   const admin = getAdminDB();
   const now = new Date().toISOString();
-  const { data: before } = await admin.from("communities").select("id, archived_at, is_active").eq("id", input.id).maybeSingle();
-  if (!before) return { ok: false, error: "Community not found." };
-  const { error } = await admin
+  const { data: before } = await admin
     .from("communities")
-    .update({
-      archived_at: input.archived ? now : null,
-      archived_by: input.archived ? auth.user.id : null,
-      is_active: !input.archived,
-      updated_at: now,
-    })
-    .eq("id", input.id);
-  if (error) return { ok: false, error: "The community could not be updated." };
+    .select("id, archived_at, is_active, member_count, post_count")
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) return { ok: false, error: "Community not found." };
+  const decision = applyCommunityOperation(before, input.operation, now, auth.user.id);
+  if (!decision.ok) return decision;
+  if (!decision.idempotent) {
+    const { error } = await admin.from("communities").update(decision.patch).eq("id", input.id);
+    if (error) return { ok: false, error: "The community could not be updated." };
+  }
   await writeAuditEvent({
     actorId: auth.user.id,
-    action: input.archived ? "community.archive" : "community.restore",
+    action: `community.${input.operation}`,
     entityType: "community",
     entityId: input.id,
-    metadata: { reason: reason.reason, previous_archived_at: before.archived_at, previous_is_active: before.is_active },
+    metadata: {
+      reason: reason.reason,
+      idempotent: decision.idempotent,
+      previous_archived_at: before.archived_at,
+      previous_is_active: before.is_active,
+      member_count: before.member_count,
+      post_count: before.post_count,
+    },
   });
   revalidatePath("/admin/communities");
+  revalidatePath(`/admin/communities/${input.id}`);
   return { ok: true };
 }
 
@@ -164,29 +206,66 @@ export async function moderateCommunityPostAction(formData: FormData): Promise<v
 }
 
 export async function moderateCommunityPost(input: { id: string; archived: boolean; reason: string }): Promise<ActionResult> {
+  return moderatePostOperation({
+    id: input.id,
+    operation: input.archived ? "archive" : "restore",
+    reason: input.reason,
+  });
+}
+
+export async function moderatePostOperationAction(formData: FormData): Promise<void> {
+  const result = await moderatePostOperation({
+    id: String(formData.get("id") ?? ""),
+    operation: String(formData.get("operation") ?? "") as PostOperation,
+    reason: String(formData.get("reason") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!result.ok) throw new Error(result.error);
+}
+
+export async function moderatePostOperation(input: {
+  id: string;
+  operation: PostOperation;
+  reason: string;
+  confirm?: string;
+}): Promise<ActionResult> {
   const auth = await actor();
   if ("error" in auth) return { ok: false, error: auth.error ?? "Unauthorized." };
+  if (!POST_OPERATIONS.has(input.operation)) return { ok: false, error: "That post action is not supported." };
   const reason = requireAdminReason(input.reason);
   if (!reason.ok) return reason;
+  if (input.operation === "soft_delete") {
+    const confirm = requireDestructiveConfirm(input.confirm ?? "");
+    if (!confirm.ok) return confirm;
+  }
   const admin = getAdminDB();
-  const { data: before } = await admin.from("community_posts").select("id, archived_at, is_published").eq("id", input.id).maybeSingle();
-  if (!before) return { ok: false, error: "Post not found." };
   const now = new Date().toISOString();
-  const { error } = await admin
+  const { data: before } = await admin
     .from("community_posts")
-    .update({
-      archived_at: input.archived ? now : null,
-      is_published: input.archived ? false : true,
-      updated_at: now,
-    })
-    .eq("id", input.id);
-  if (error) return { ok: false, error: "The post could not be updated." };
+    .select("id, community_id, archived_at, hidden_at, deleted_at, is_published, comments_disabled")
+    .eq("id", input.id)
+    .maybeSingle();
+  if (!before) return { ok: false, error: "Post not found." };
+  const decision = applyPostOperation(before, input.operation, now);
+  if (!decision.ok) return decision;
+  if (!decision.idempotent) {
+    const { error } = await admin.from("community_posts").update(decision.patch).eq("id", input.id);
+    if (error) return { ok: false, error: "The post could not be updated." };
+  }
   await writeAuditEvent({
     actorId: auth.user.id,
-    action: input.archived ? "community_post.archive" : "community_post.restore",
+    action: `community_post.${input.operation}`,
     entityType: "community_post",
     entityId: input.id,
-    metadata: { reason: reason.reason, previous_archived_at: before.archived_at, previous_is_published: before.is_published },
+    metadata: {
+      reason: reason.reason,
+      idempotent: decision.idempotent,
+      community_id: before.community_id,
+      previous_archived_at: before.archived_at,
+      previous_hidden_at: before.hidden_at,
+      previous_deleted_at: before.deleted_at,
+      previous_is_published: before.is_published,
+    },
   });
   revalidatePath("/admin/communities/posts");
   return { ok: true };
@@ -202,21 +281,64 @@ export async function moderateCommunityCommentAction(formData: FormData): Promis
 }
 
 export async function moderateCommunityComment(input: { id: string; published: boolean; reason: string }): Promise<ActionResult> {
+  return moderateCommentOperation({
+    id: input.id,
+    operation: input.published ? "unhide" : "hide",
+    reason: input.reason,
+  });
+}
+
+export async function moderateCommentOperationAction(formData: FormData): Promise<void> {
+  const result = await moderateCommentOperation({
+    id: String(formData.get("id") ?? ""),
+    operation: String(formData.get("operation") ?? "") as CommentOperation,
+    reason: String(formData.get("reason") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!result.ok) throw new Error(result.error);
+}
+
+export async function moderateCommentOperation(input: {
+  id: string;
+  operation: CommentOperation;
+  reason: string;
+  confirm?: string;
+}): Promise<ActionResult> {
   const auth = await actor();
   if ("error" in auth) return { ok: false, error: auth.error ?? "Unauthorized." };
+  if (!COMMENT_OPERATIONS.has(input.operation)) return { ok: false, error: "That comment action is not supported." };
   const reason = requireAdminReason(input.reason);
   if (!reason.ok) return reason;
+  if (input.operation === "soft_delete") {
+    const confirm = requireDestructiveConfirm(input.confirm ?? "");
+    if (!confirm.ok) return confirm;
+  }
   const admin = getAdminDB();
-  const { data: before } = await admin.from("community_post_comments").select("id, is_published").eq("id", input.id).maybeSingle();
+  const now = new Date().toISOString();
+  const { data: before } = await admin
+    .from("community_post_comments")
+    .select("id, post_id, is_published, deleted_at")
+    .eq("id", input.id)
+    .maybeSingle();
   if (!before) return { ok: false, error: "Comment not found." };
-  const { error } = await admin.from("community_post_comments").update({ is_published: input.published }).eq("id", input.id);
-  if (error) return { ok: false, error: "The comment could not be updated." };
+  const decision = applyCommentOperation(before, input.operation, now);
+  if (!decision.ok) return decision;
+  if (!decision.idempotent) {
+    const { error } = await admin.from("community_post_comments").update(decision.patch).eq("id", input.id);
+    if (error) return { ok: false, error: "The comment could not be updated." };
+  }
   await writeAuditEvent({
     actorId: auth.user.id,
-    action: input.published ? "community_comment.restore" : "community_comment.hide",
+    action: `community_comment.${input.operation}`,
     entityType: "community_comment",
     entityId: input.id,
-    metadata: { reason: reason.reason, previous_is_published: before.is_published },
+    metadata: {
+      reason: reason.reason,
+      idempotent: decision.idempotent,
+      post_id: before.post_id,
+      previous_is_published: before.is_published,
+      previous_deleted_at: before.deleted_at,
+    },
   });
   revalidatePath("/admin/communities/posts");
   return { ok: true };

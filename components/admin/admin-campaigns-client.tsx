@@ -32,6 +32,7 @@ import {
 import { adminBtnGhost, adminBtnPrimary, adminTableShell } from "@/lib/admin/ui";
 import { relativeTime } from "@/lib/utils";
 import { canAdminActivateOverride } from "@/lib/ugc/admin-activate-override";
+import { ugcLifecycleDecision, type UgcLifecycleAction } from "@/lib/admin/control-policy";
 import { formatUgcFundingUsd, getClipRateBadge } from "@/components/ugc/workspace/ugc-campaign-utils";
 
 type EscrowState = "unfunded" | "pending" | "held";
@@ -63,6 +64,7 @@ export function AdminCampaignsClient() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"recent" | "budget" | "views">("recent");
   const [pending, setPending] = useState<AdminCampaign | null>(null);
+  const [pendingAction, setPendingAction] = useState<"activate" | UgcLifecycleAction>("activate");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -113,29 +115,48 @@ export function AdminCampaignsClient() {
     return sortCampaigns(rows, sort);
   }, [campaigns, status, search, sort]);
 
-  async function confirmActivate() {
-    if (!pending) return;
+  function openAction(campaign: AdminCampaign, action: "activate" | UgcLifecycleAction) {
+    setPending(campaign);
+    setPendingAction(action);
+    setReason("");
+  }
+
+  async function confirmAction() {
+    if (!pending || reason.trim().length < 8) {
+      toast.error("Enter a reason of at least 8 characters.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/admin/ugc/campaigns/${pending.id}/activate`, {
+      const path = pendingAction === "activate" ? "activate" : "lifecycle";
+      const res = await fetch(`/api/admin/ugc/campaigns/${pending.id}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify(pendingAction === "activate" ? { reason } : { action: pendingAction, reason }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof json.error === "string" ? json.error : "Could not activate campaign.");
+        toast.error(typeof json.error === "string" ? json.error : "Could not update campaign.");
         return;
       }
-      const next = json.campaign as AdminCampaign | undefined;
+      const nextStatus = pendingAction === "activate" ? "active" : (json.status as UGCCampaignStatus | undefined);
       setCampaigns((prev) =>
-        prev.map((c) => (c.id === pending.id ? { ...c, ...(next ?? {}), status: "active", activated_by_admin: true } : c)),
+        prev.map((c) =>
+          c.id === pending.id
+            ? {
+                ...c,
+                ...(pendingAction === "activate" ? ((json.campaign as AdminCampaign | undefined) ?? {}) : {}),
+                status: nextStatus ?? c.status,
+                activated_by_admin: pendingAction === "activate" ? true : c.activated_by_admin,
+              }
+            : c,
+        ),
       );
-      toast.success(json.idempotent ? "Campaign is already active." : "Campaign marked as active. Funding was not recorded.");
+      toast.success(json.idempotent ? "Campaign was already in that state." : "Campaign updated. Funding records were not changed.");
       setPending(null);
       setReason("");
     } catch {
-      toast.error("Could not activate campaign.");
+      toast.error("Could not update campaign.");
     } finally {
       setSubmitting(false);
     }
@@ -146,7 +167,7 @@ export function AdminCampaignsClient() {
       <PageHeader
         eyebrow="UGC & Clipping"
         title="Campaign Management"
-        subtitle="Inspect lifecycle and funding separately. Mark as Active bypasses funding for platform admins only."
+        subtitle="Pause, resume, cancel, and complete never move escrow or payouts. Mark as Active is a separate override and does not record funding."
         actions={
           <Link href="/admin/ugc/submissions?status=pending" className={adminBtnPrimary}>
             Submission queue
@@ -323,20 +344,25 @@ export function AdminCampaignsClient() {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        {canAdminActivateOverride(c.status) ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPending(c);
-                              setReason("");
-                            }}
-                            className="inline-flex h-8 items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18]"
-                          >
-                            Mark as Active
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-[var(--color-text-muted)]">—</span>
-                        )}
+                        <div className="flex max-w-[220px] flex-wrap gap-1">
+                          {canAdminActivateOverride(c.status) ? (
+                            <button type="button" onClick={() => openAction(c, "activate")} className="inline-flex h-8 items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18]">
+                              Mark as Active
+                            </button>
+                          ) : null}
+                          {c.status === "active" && ugcLifecycleDecision({ action: "pause", status: c.status, escrowHeld: c.escrow_state === "held", adminActivated: Boolean(c.activated_by_admin) }).ok ? (
+                            <button type="button" onClick={() => openAction(c, "pause")} className={adminBtnGhost}>Pause</button>
+                          ) : null}
+                          {ugcLifecycleDecision({ action: "resume", status: c.status, escrowHeld: c.escrow_state === "held", adminActivated: Boolean(c.activated_by_admin) }).ok && c.status === "paused" ? (
+                            <button type="button" onClick={() => openAction(c, "resume")} className={adminBtnGhost}>Resume</button>
+                          ) : null}
+                          {ugcLifecycleDecision({ action: "complete", status: c.status, escrowHeld: c.escrow_state === "held", adminActivated: Boolean(c.activated_by_admin) }).ok && c.status !== "completed" ? (
+                            <button type="button" onClick={() => openAction(c, "complete")} className={adminBtnGhost}>Complete</button>
+                          ) : null}
+                          {ugcLifecycleDecision({ action: "cancel", status: c.status, escrowHeld: c.escrow_state === "held", adminActivated: Boolean(c.activated_by_admin) }).ok && c.status !== "cancelled" ? (
+                            <button type="button" onClick={() => openAction(c, "cancel")} className="inline-flex h-9 items-center rounded-md bg-rose-600 px-3 text-[12px] font-semibold text-white">Cancel</button>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="px-3 py-3">
                         <RowArrow href={`/ugc/campaign-center/campaigns/${c.id}`} />
@@ -354,17 +380,18 @@ export function AdminCampaignsClient() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-activate-title">
           <div className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-5 shadow-xl ring-1 ring-[var(--color-border)]">
             <h2 id="admin-activate-title" className="text-[16px] font-semibold text-[var(--color-text-primary)]">
-              Mark campaign as active?
+              {pendingAction === "activate" ? "Mark campaign as active?" : `${pendingAction[0].toUpperCase()}${pendingAction.slice(1)} “${pending.title}”?`}
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-              This will make “{pending.title}” visible to eligible creators without the normal funding step.
-              Funding will not be recorded by this action.
+              {pendingAction === "activate"
+                ? `This makes “${pending.title}” visible to eligible creators without recording funding. It does not add escrow or approve payouts.`
+                : `This changes “${pending.title}” to ${pendingAction === "pause" ? "paused" : pendingAction === "resume" ? "active" : pendingAction === "cancel" ? "cancelled" : "completed"}. Escrow, spent budget, and payouts stay as they are.`}
             </p>
             <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
               Budget spent: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · Escrow: {fundingLabel(pending.escrow_state)}
             </p>
             <label className="mt-4 block text-[12px] font-medium text-[var(--color-text-secondary)]">
-              Reason for activation (optional)
+              Reason (required)
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -388,10 +415,10 @@ export function AdminCampaignsClient() {
               <button
                 type="button"
                 className={adminBtnPrimary}
-                disabled={submitting}
-                onClick={() => void confirmActivate()}
+                onClick={() => void confirmAction()}
+                disabled={submitting || reason.trim().length < 8}
               >
-                {submitting ? "Activating…" : "Mark as Active"}
+                {submitting ? "Saving…" : "Confirm"}
               </button>
             </div>
           </div>

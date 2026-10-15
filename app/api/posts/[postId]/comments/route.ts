@@ -126,7 +126,8 @@ export async function GET(
     .from("community_post_comments")
     .select(COMMENT_COLUMNS)
     .eq("post_id", postId)
-    .eq("is_published", true);
+    .eq("is_published", true)
+    .is("deleted_at", null);
 
   if (before) query = query.lt("created_at", before);
 
