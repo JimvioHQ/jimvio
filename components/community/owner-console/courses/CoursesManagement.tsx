@@ -60,6 +60,7 @@ export function CoursesManagement() {
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonBody, setLessonBody] = useState("");
   const [lessonVideo, setLessonVideo] = useState("");
+  const [lessonResource, setLessonResource] = useState("");
   const [lessonModule, setLessonModule] = useState("");
   const [roster, setRoster] = useState<Array<Record<string, unknown>>>([]);
   const [submissions, setSubmissions] = useState<Array<Record<string, unknown>>>([]);
@@ -368,11 +369,15 @@ export function CoursesManagement() {
                       title: lessonTitle,
                       body: lessonBody,
                       videoUrl: lessonVideo,
+                      attachments: lessonResource.trim()
+                        ? [{ url: lessonResource.trim(), name: lessonTitle || "Resource", type: "file" }]
+                        : [],
                       sortOrder: modules.find((module) => module.id === lessonModule)?.course_lessons.length ?? 0,
                     }).then(() => {
                       setLessonTitle("");
                       setLessonBody("");
                       setLessonVideo("");
+                      setLessonResource("");
                     });
                   }}
                 >
@@ -384,7 +389,8 @@ export function CoursesManagement() {
                   </select>
                   <Input value={lessonTitle} onChange={(event) => setLessonTitle(event.target.value)} placeholder="Lesson title" required />
                   <Textarea value={lessonBody} onChange={(event) => setLessonBody(event.target.value)} placeholder="Lesson text" />
-                  <Input value={lessonVideo} onChange={(event) => setLessonVideo(event.target.value)} placeholder="Video URL (optional)" />
+                  <Input value={lessonVideo} onChange={(event) => setLessonVideo(event.target.value)} placeholder="Video or image URL (optional)" />
+                  <Input value={lessonResource} onChange={(event) => setLessonResource(event.target.value)} placeholder="Downloadable resource URL (optional)" />
                   <Button type="submit" variant="outline" disabled={!!busy || !lessonModule}>Add lesson</Button>
                 </form>
                 <div className="mt-3 space-y-3">

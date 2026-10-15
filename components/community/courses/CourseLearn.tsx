@@ -186,6 +186,19 @@ export function CourseLearn({ courseId, communitySlug }: { courseId: string; com
               <video className="w-full rounded-xl bg-black" controls src={lesson.video_url} />
             )}
             {lesson.body && <div className="whitespace-pre-wrap text-sm leading-6 text-[#374151]">{lesson.body}</div>}
+            {Array.isArray(lesson.attachments) && lesson.attachments.length > 0 && (
+              <ul className="space-y-1 text-sm">
+                {(lesson.attachments as Array<{ url?: string; name?: string }>).map((file) =>
+                  file.url ? (
+                    <li key={file.url}>
+                      <a className="font-semibold text-[#FF5A1F]" href={file.url} target="_blank" rel="noreferrer">
+                        {file.name || "Download resource"}
+                      </a>
+                    </li>
+                  ) : null
+                )}
+              </ul>
+            )}
             {quiz && (
               <form
                 className="space-y-3 rounded-2xl border border-[#E5E7EB] bg-white p-4"
