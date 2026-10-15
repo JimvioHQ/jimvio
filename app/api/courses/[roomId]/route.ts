@@ -48,9 +48,27 @@ export async function GET(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const hasAccess = await canAccessRoom(user.id, roomId);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
-
   const admin = createServiceRoleClient();
+  if (!hasAccess) {
+    const { data: linked } = await admin
+      .from("community_courses")
+      .select("id")
+      .eq("room_id", roomId)
+      .maybeSingle();
+    let enrolled = false;
+    if (linked?.id) {
+      const { data: enrollment } = await admin
+        .from("course_enrollments")
+        .select("id")
+        .eq("course_id", linked.id)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+      enrolled = Boolean(enrollment);
+    }
+    if (!enrolled) return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
+
   let { data: course, error } = await admin
     .from("community_courses")
     .select(COURSE_SELECT)
@@ -125,6 +143,7 @@ export async function GET(
     priceCents: (course as { price_cents?: number | null }).price_cents,
     isPublished: course.is_published as boolean | null,
     archivedAt: (course as { archived_at?: string | null }).archived_at,
+    accessMode: (course as { access_mode?: string | null }).access_mode,
   });
 
   const safeCourse = redactCourseTreeForAccess(

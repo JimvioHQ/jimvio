@@ -494,6 +494,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, ugc: true, campaignId: ugc.campaignId });
     }
 
+    const { confirmCoursePurchase } = await import("@/lib/community/courses/confirm-purchase");
+    const coursePurchase = await confirmCoursePurchase(supabase, {
+      paymentRef: txRef,
+      providerTransactionId: txId != null ? String(txId) : txRef,
+      amount: amount != null ? Number(amount) : null,
+      currency: currency ?? "USD",
+      provider: "flutterwave",
+    });
+    if (coursePurchase.handled) {
+      if (eventId) await markWebhookProcessed(supabase, eventId, null);
+      return NextResponse.json({ received: true, coursePurchase: true, courseId: coursePurchase.courseId });
+    }
+
     const { confirmBusinessVerificationFeeFromProvider } = await import(
       "@/lib/identity/confirm-verification-fee"
     );

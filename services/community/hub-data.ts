@@ -166,6 +166,12 @@ export type HubCourseItem = {
   instructor_name?: string | null;
   instructor_id?: string;
   href: string;
+  price_cents?: number | null;
+  currency?: string | null;
+  access_mode?: string | null;
+  language?: string | null;
+  total_duration?: number | null;
+  thumbnail_url?: string | null;
 };
 
 export type HubLiveRoom = {
@@ -1119,36 +1125,52 @@ export async function getHubCourses(
 ): Promise<HubCourseItem[]> {
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(supabase, userId);
-  if (communityIds.length === 0) return [];
-
-  // Service role + loose typing until generated DB types include new catalog columns.
+  const select =
+    "id, title, description, difficulty, category, tags, total_lessons, total_duration, room_id, creator_id, trailer_url, thumbnail_url, price_cents, currency, access_mode, language, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = (createServiceRoleClient() as any)
-    .from("community_courses")
-    .select(
-      "id, title, description, difficulty, category, tags, total_lessons, room_id, creator_id, trailer_url, thumbnail_url, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)"
-    )
-    .in("community_id", communityIds)
-    .eq("is_published", true)
-    .is("archived_at", null)
-    .order("published_at", { ascending: false })
-    .limit(80);
+  const admin: any = createServiceRoleClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const applyFilters = (query: any) => {
+    let next = query;
+    if (opts?.category?.trim()) next = next.ilike("category", opts.category.trim());
+    if (opts?.difficulty?.trim()) next = next.eq("difficulty", opts.difficulty.trim());
+    if (opts?.instructorId?.trim()) next = next.eq("creator_id", opts.instructorId.trim());
+    if (opts?.q?.trim()) {
+      const q = opts.q.trim();
+      next = next.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+    }
+    return next;
+  };
 
-  if (opts?.category?.trim()) {
-    query = query.ilike("category", opts.category.trim());
+  const memberPromise = communityIds.length
+    ? applyFilters(
+        admin
+          .from("community_courses")
+          .select(select)
+          .in("community_id", communityIds)
+          .eq("is_published", true)
+          .is("archived_at", null)
+          .neq("access_mode", "private")
+          .order("published_at", { ascending: false })
+          .limit(80)
+      )
+    : Promise.resolve({ data: [] });
+  const publicPromise = applyFilters(
+    admin
+      .from("community_courses")
+      .select(select)
+      .eq("access_mode", "public")
+      .eq("is_published", true)
+      .is("archived_at", null)
+      .order("published_at", { ascending: false })
+      .limit(40)
+  );
+  const [memberRes, publicRes] = await Promise.all([memberPromise, publicPromise]);
+  const merged = new Map<string, Record<string, unknown>>();
+  for (const row of [...(memberRes.data ?? []), ...(publicRes.data ?? [])]) {
+    merged.set(String(row.id), row);
   }
-  if (opts?.difficulty?.trim()) {
-    query = query.eq("difficulty", opts.difficulty.trim());
-  }
-  if (opts?.instructorId?.trim()) {
-    query = query.eq("creator_id", opts.instructorId.trim());
-  }
-  if (opts?.q?.trim()) {
-    const q = opts.q.trim();
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
-  }
-
-  const { data: courses } = await query;
+  const courses = [...merged.values()];
 
   type CourseRow = {
     id: string;
@@ -1200,7 +1222,6 @@ export async function getHubCourses(
 
   return filtered.map((course) => {
     const community = course.communities;
-    const room = course.rooms;
     const instructor = course.profiles;
     const progress = progressByCourse.get(course.id);
     const totalLessons = course.total_lessons ?? 0;
@@ -1212,13 +1233,17 @@ export async function getHubCourses(
           : 0;
 
     const communitySlug = community?.slug ?? "";
-    const roomSlug = room?.slug?.trim() || "";
-    const href =
-      communitySlug && roomSlug
-        ? `/communities/${communitySlug}/spaces/${encodeURIComponent(roomSlug)}`
-        : communitySlug
-          ? `/communities/${communitySlug}/courses`
-          : "/communities/courses";
+    const href = communitySlug
+      ? `/communities/${communitySlug}/courses/${course.id}`
+      : `/communities/courses`;
+    const extra = course as CourseRow & {
+      price_cents?: number | null;
+      currency?: string | null;
+      access_mode?: string | null;
+      language?: string | null;
+      total_duration?: number | null;
+      thumbnail_url?: string | null;
+    };
 
     return {
       id: course.id,
@@ -1234,6 +1259,12 @@ export async function getHubCourses(
       instructor_name: instructor?.full_name ?? instructor?.username ?? null,
       instructor_id: course.creator_id,
       href,
+      price_cents: extra.price_cents ?? null,
+      currency: extra.currency ?? "USD",
+      access_mode: extra.access_mode ?? "members",
+      language: extra.language ?? "en",
+      total_duration: extra.total_duration ?? null,
+      thumbnail_url: extra.thumbnail_url ?? null,
     };
   });
 }
@@ -1652,6 +1683,7 @@ export async function getCommunityOverviewStats(
       .select("id, title, difficulty, total_lessons, thumbnail_url, room_id, rooms(slug)")
       .eq("community_id", communityId)
       .eq("is_published", true)
+      .is("archived_at", null)
       .order("published_at", { ascending: false })
       .limit(6),
     supabase
@@ -1856,13 +1888,13 @@ export async function getCommunityOverviewStats(
     }
   }
 
-  const courses: OverviewCourse[] = (coursesRes.data ?? []).map((course) => {
+  const courses: OverviewCourse[] = (coursesRes.data ?? [])
+    .filter((course) => (course as { access_mode?: string | null }).access_mode !== "private")
+    .map((course) => {
     const completed = progressByCourse.get(course.id) ?? 0;
     const totalLessons = course.total_lessons ?? 0;
     const progress =
       totalLessons > 0 ? Math.min(Math.round((completed / totalLessons) * 100), 100) : 0;
-    const room = (course as { rooms?: { slug: string | null } | null }).rooms;
-    const roomSlug = room?.slug?.trim() || "";
     return {
       id: course.id,
       title: course.title,
@@ -1870,9 +1902,7 @@ export async function getCommunityOverviewStats(
       total_lessons: totalLessons,
       progress,
       cover_image: course.thumbnail_url ?? null,
-      href: roomSlug
-        ? `${base}/spaces/${encodeURIComponent(roomSlug)}`
-        : `${base}/courses`,
+      href: `${base}/courses/${course.id}`,
     };
   });
   const featuredCourse = courses[0] ?? null;

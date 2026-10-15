@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Loader2, Search, ChevronRight, BookOpen } from "lucide-react";
+import { GraduationCap, Search, ChevronRight, BookOpen } from "lucide-react";
 import { HubCard, HubLinkButton } from "@/components/community/hub/hub-ui";
 import { cn } from "@/lib/utils";
 
@@ -11,11 +11,16 @@ type HubCourse = {
   title: string;
   description: string | null;
   difficulty: string;
+  category?: string | null;
   total_lessons: number;
   progress: number;
   community_name: string;
   community_slug: string;
   href: string;
+  price_cents?: number | null;
+  currency?: string | null;
+  thumbnail_url?: string | null;
+  instructor_name?: string | null;
 };
 
 export default function HubCoursesPage() {
@@ -23,6 +28,8 @@ export default function HubCoursesPage() {
   const [courses, setCourses] = useState<HubCourse[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "in-progress" | "completed">("all");
+  const [category, setCategory] = useState("all");
+  const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("progress");
 
   useEffect(() => {
     let cancelled = false;
@@ -43,20 +50,31 @@ export default function HubCoursesPage() {
     return () => { cancelled = true; };
   }, [searchQuery]);
 
+  const categories = useMemo(() => {
+    const values = new Set(courses.map((course) => course.category).filter(Boolean) as string[]);
+    return ["all", ...values];
+  }, [courses]);
+
   const filtered = useMemo(() => {
-    return courses
-      .filter((course) => {
-        const matchesSearch =
-          course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.community_name.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesFilter =
-          filter === "all" ||
-          (filter === "completed" && course.progress >= 100) ||
-          (filter === "in-progress" && course.progress > 0 && course.progress < 100);
-        return matchesSearch && matchesFilter;
-      })
-      .sort((a, b) => b.progress - a.progress);
-  }, [courses, searchQuery, filter]);
+    const rows = courses.filter((course) => {
+      const matchesSearch =
+        course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        course.community_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "completed" && course.progress >= 100) ||
+        (filter === "in-progress" && course.progress > 0 && course.progress < 100);
+      const matchesCategory = category === "all" || course.category === category;
+      return matchesSearch && matchesFilter && matchesCategory;
+    });
+    rows.sort((a, b) => {
+      if (sort === "title") return a.title.localeCompare(b.title);
+      if (sort === "price") return (a.price_cents ?? 0) - (b.price_cents ?? 0);
+      if (sort === "recent") return 0;
+      return b.progress - a.progress;
+    });
+    return rows;
+  }, [courses, searchQuery, filter, category, sort]);
 
   return (
     <div className="min-h-full bg-[var(--color-bg,#f4f4f5)]">
@@ -87,7 +105,7 @@ export default function HubCoursesPage() {
               className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-4 text-[13px] focus:border-[#fd5000]/40 focus:outline-none"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(["all", "in-progress", "completed"] as const).map((key) => (
               <button
                 key={key}
@@ -103,12 +121,22 @@ export default function HubCoursesPage() {
                 {key === "in-progress" ? "In progress" : key.charAt(0).toUpperCase() + key.slice(1)}
               </button>
             ))}
+            <select aria-label="Category" value={category} onChange={(event) => setCategory(event.target.value)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] font-semibold">
+              {categories.map((item) => <option key={item} value={item}>{item === "all" ? "All categories" : item}</option>)}
+            </select>
+            <select aria-label="Sort" value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[12px] font-semibold">
+              <option value="progress">Progress</option>
+              <option value="title">Title</option>
+              <option value="price">Price</option>
+              <option value="recent">Recently published</option>
+            </select>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="h-40 animate-pulse rounded-2xl bg-white" />
+            <div className="h-40 animate-pulse rounded-2xl bg-white" />
           </div>
         ) : filtered.length === 0 ? (
           <HubCard className="py-12 text-center">
@@ -142,6 +170,8 @@ export default function HubCoursesPage() {
                   <div className="mt-3 flex flex-wrap gap-3 text-[10px] font-semibold text-[var(--color-text-muted)]">
                     <span className="capitalize">{course.difficulty}</span>
                     <span>{course.total_lessons} lessons</span>
+                    <span>{course.price_cents && course.price_cents > 0 ? `$${(course.price_cents / 100).toFixed(2)}` : "Free"}</span>
+                    {course.category && <span>{course.category}</span>}
                   </div>
                   <div className="mt-3">
                     <div className="mb-1 flex justify-between text-[10px] font-bold">

@@ -190,6 +190,26 @@ export async function GET(req: NextRequest) {
                     `/ugc/campaign-center/${ugc.campaignId}/fund?funded=${ugc.activated ? "1" : "pending"}`,
                 );
             }
+            const { confirmCoursePurchase } = await import("@/lib/community/courses/confirm-purchase");
+            const coursePurchase = await confirmCoursePurchase(supabase, {
+                paymentRef: txRef,
+                providerTransactionId: txRef,
+                amount: txData.amount != null ? Number(txData.amount) : null,
+                currency: txData.currency ?? "USD",
+                provider: "flutterwave",
+            });
+            if (coursePurchase.handled && coursePurchase.granted) {
+                const { data: courseRow } = await supabase
+                    .from("community_courses")
+                    .select("communities(slug)")
+                    .eq("id", coursePurchase.courseId)
+                    .maybeSingle();
+                const slug = (courseRow as { communities?: { slug?: string } | null } | null)?.communities?.slug;
+                const next = slug
+                    ? `/communities/${slug}/courses/${coursePurchase.courseId}/learn?enrolled=1`
+                    : `/communities/courses`;
+                return await redirect(next);
+            }
             return await redirect(`/checkout/cancel?reason=order_not_found`);
         }
         if (orderId && orderId !== resolvedOrderId) {

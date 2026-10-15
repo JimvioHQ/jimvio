@@ -5,7 +5,9 @@ function db() { return createServiceRoleClient(); }
 async function assertCreator(courseId: string, userId: string) {
   const { data, error } = await db().from("community_courses").select("*").eq("id", courseId).maybeSingle();
   if (error) throw error;
-  if (!data || data.creator_id !== userId) throw new Error("Forbidden");
+  if (!data) throw new Error("Forbidden");
+  const { assertCourseManager } = await import("@/lib/community/courses/manage");
+  await assertCourseManager(userId, data.community_id);
   return data;
 }
 
@@ -49,6 +51,7 @@ export async function listCourseTree(courseId: string, userId?: string) {
       priceCents: course.price_cents,
       isPublished: course.is_published,
       archivedAt: course.archived_at,
+      accessMode: course.access_mode,
     });
     fullContent = access.fullContent;
     const { data: modules, error: modulesError } = await client
@@ -118,10 +121,10 @@ export async function submitQuiz(input: { userId: string; quizId: string; answer
     .select("room_id, creator_id")
     .eq("id", quiz.course_id)
     .maybeSingle();
-  if (course?.room_id && course.creator_id !== input.userId) {
-    const { canAccessRoom } = await import("@/services/accessControl");
-    const ok = await canAccessRoom(input.userId, course.room_id);
-    if (!ok) throw new Error("No access");
+  if (course?.creator_id !== input.userId) {
+    const { getActiveEnrollment } = await import("@/lib/community/courses/access");
+    const enrollment = await getActiveEnrollment(quiz.course_id, input.userId);
+    if (!enrollment) throw new Error("No access");
   }
   const questions = Array.isArray(quiz.questions) ? quiz.questions as Array<{ correctAnswer?: unknown; answer?: unknown }> : [];
   const submitted = Array.isArray(input.answers) ? input.answers : [];
@@ -156,15 +159,47 @@ export async function issueCertificate(courseId: string, userId: string) {
   if (!course.is_published && course.creator_id !== userId) {
     throw new Error("Course is not published");
   }
-  if (course.room_id) {
-    const { canAccessRoom } = await import("@/services/accessControl");
-    const ok = await canAccessRoom(userId, course.room_id);
-    if (!ok && course.creator_id !== userId) throw new Error("No access");
+  if (course.creator_id !== userId) {
+    const { getActiveEnrollment } = await import("@/lib/community/courses/access");
+    const enrollment = await getActiveEnrollment(courseId, userId);
+    if (!enrollment) throw new Error("No access");
   }
   const progress = await getProgress(courseId, userId);
-  if (!progress.lessons || progress.completed !== progress.lessons) {
-    throw new Error("Complete all lessons first");
-  }
+  const [{ data: quizzes }, { data: attempts }, { data: assignments }, { data: submissions }] =
+    await Promise.all([
+      db().from("course_quizzes").select("id").eq("course_id", courseId),
+      db().from("course_quiz_attempts").select("quiz_id, passed").eq("user_id", userId),
+      db().from("course_assignments").select("id, required, pass_score").eq("course_id", courseId),
+      db()
+        .from("course_assignment_submissions")
+        .select("assignment_id, status, score")
+        .eq("course_id", courseId)
+        .eq("user_id", userId),
+    ]);
+  const { completionSatisfied } = await import("@/lib/community/courses/rules");
+  const requiredAssignments = (assignments ?? []).filter((row) => row.required !== false);
+  const passedAssignments = requiredAssignments
+    .filter((row) => {
+      const submission = (submissions ?? []).find((item) => item.assignment_id === row.id);
+      return (
+        submission?.status === "graded" &&
+        Number(submission.score ?? 0) >= Number(row.pass_score ?? 70)
+      );
+    })
+    .map((row) => row.id);
+  const quizIds = (quizzes ?? []).map((row) => row.id);
+  const passedQuizIds = quizIds.filter((id) =>
+    (attempts ?? []).some((attempt) => attempt.quiz_id === id && attempt.passed)
+  );
+  const completion = completionSatisfied({
+    lessonCount: progress.lessons,
+    completedLessons: progress.completed,
+    quizIds,
+    passedQuizIds,
+    requiredAssignmentIds: requiredAssignments.map((row) => row.id),
+    passedAssignmentIds: passedAssignments,
+  });
+  if (!completion.ok) throw new Error(completion.reason ?? "Requirements not met");
 
   const { data: existing } = await db()
     .from("course_certificates")

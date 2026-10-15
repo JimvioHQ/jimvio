@@ -1,0 +1,188 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+
+type Detail = {
+  course: {
+    id: string;
+    title: string;
+    description: string | null;
+    difficulty: string | null;
+    category: string | null;
+    language: string | null;
+    access_mode: string | null;
+    price_cents: number | null;
+    currency: string | null;
+    thumbnail_url: string | null;
+    total_lessons: number | null;
+    total_duration: number | null;
+    certificate_enabled: boolean | null;
+    learning_outcomes: string[];
+    prerequisites: string[];
+    community: { name?: string; slug?: string } | null;
+    instructor: { full_name?: string | null; username?: string | null } | null;
+  };
+  modules: Array<{ id: string; title: string; course_lessons: Array<{ id: string; title: string; duration: number | null }> }>;
+  access: { enrolled: boolean; fullContent: boolean };
+  rating: { average: number | null; count: number };
+  reviews: Array<{ id: string; rating: number; body: string | null }>;
+};
+
+export function CourseDetail({ courseId }: { courseId: string }) {
+  const router = useRouter();
+  const [data, setData] = useState<Detail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const res = await fetch(`/api/c/courses/${courseId}`, { cache: "no-store" });
+      const json = await res.json();
+      if (cancelled) return;
+      if (!res.ok) setError(json.error ?? "Could not load course");
+      else setData(json);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId]);
+
+  async function enroll() {
+    setBusy(true);
+    setMessage(null);
+    const res = await fetch(`/api/c/courses/${courseId}/enroll`, { method: "POST" });
+    const json = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMessage(json.error ?? "Could not enroll");
+      return;
+    }
+    setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
+    router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
+  }
+
+  async function buy(method: "wallet" | "flutterwave") {
+    setBusy(true);
+    setMessage(null);
+    const res = await fetch(`/api/c/courses/${courseId}/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method }),
+    });
+    const json = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMessage(json.error ?? "Checkout failed");
+      return;
+    }
+    if (json.checkoutUrl) {
+      window.location.href = json.checkoutUrl;
+      return;
+    }
+    setData((current) => (current ? { ...current, access: { enrolled: true, fullContent: true } } : current));
+    router.push(`/communities/${data?.course.community?.slug}/courses/${courseId}/learn`);
+  }
+
+  if (loading) return <div className="mx-auto h-64 max-w-3xl animate-pulse rounded-2xl bg-[#F3F4F6]" />;
+  if (error || !data) {
+    return (
+      <div className="mx-auto max-w-lg rounded-2xl border border-[#E5E7EB] bg-white p-8 text-center">
+        <p className="font-semibold text-[#111827]">{error ?? "Course unavailable"}</p>
+        <Link href="/communities/courses" className="mt-4 inline-block text-sm font-semibold text-[#FF5A1F]">
+          Back to courses
+        </Link>
+      </div>
+    );
+  }
+
+  const course = data.course;
+  const price = course.price_cents && course.price_cents > 0 ? course.price_cents / 100 : 0;
+  const instructor = course.instructor?.full_name || course.instructor?.username || "Instructor";
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+      <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+        {course.thumbnail_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={course.thumbnail_url} alt="" className="h-48 w-full object-cover" />
+        ) : (
+          <div className="h-32 bg-[#FFF1EB]" />
+        )}
+        <div className="space-y-3 p-5">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#FF5A1F]">{course.community?.name}</p>
+          <h1 className="text-2xl font-semibold text-[#111827]">{course.title}</h1>
+          <p className="text-sm text-[#6B7280]">
+            {instructor} · {course.difficulty} · {course.language} · {course.total_lessons ?? 0} lessons
+            {course.total_duration ? ` · ${course.total_duration} min` : ""}
+          </p>
+          <p className="text-sm leading-6 text-[#374151]">{course.description}</p>
+          <p className="text-lg font-semibold text-[#111827]">{price > 0 ? `$${price.toFixed(2)}` : "Free"}</p>
+          {data.rating.count > 0 && (
+            <p className="text-sm text-[#6B7280]">{data.rating.average} / 5 from {data.rating.count} reviews</p>
+          )}
+          {message && <p className="text-sm text-red-600">{message}</p>}
+          {data.access.fullContent ? (
+            <Link
+              href={`/communities/${course.community?.slug}/courses/${course.id}/learn`}
+              className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white"
+            >
+              Continue learning
+            </Link>
+          ) : price > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={busy} onClick={() => void buy("flutterwave")} className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white disabled:opacity-50">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buy course"}
+              </button>
+              <button type="button" disabled={busy} onClick={() => void buy("wallet")} className="h-10 rounded-xl border border-[#E5E7EB] px-4 text-sm font-semibold disabled:opacity-50">
+                Pay with wallet
+              </button>
+            </div>
+          ) : (
+            <button type="button" disabled={busy} onClick={() => void enroll()} className="h-10 rounded-xl bg-[#FF5A1F] px-4 text-sm font-semibold text-white disabled:opacity-50">
+              {busy ? "Enrolling…" : "Enroll"}
+            </button>
+          )}
+        </div>
+      </div>
+      {course.learning_outcomes.length > 0 && (
+        <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <h2 className="font-semibold">What you will learn</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#374151]">
+            {course.learning_outcomes.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </section>
+      )}
+      {course.prerequisites.length > 0 && (
+        <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <h2 className="font-semibold">Prerequisites</h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#374151]">
+            {course.prerequisites.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </section>
+      )}
+      <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+        <h2 className="font-semibold">Curriculum</h2>
+        <div className="mt-3 space-y-3">
+          {data.modules.map((module) => (
+            <div key={module.id}>
+              <p className="text-sm font-semibold">{module.title}</p>
+              <ul className="mt-1 space-y-1 pl-3 text-sm text-[#6B7280]">
+                {(module.course_lessons ?? []).map((lesson) => (
+                  <li key={lesson.id}>{lesson.title}{lesson.duration ? ` · ${lesson.duration} min` : ""}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}

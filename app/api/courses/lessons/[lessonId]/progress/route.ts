@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { canAccessRoom } from "@/services/accessControl";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -47,14 +46,27 @@ export async function POST(
 
   const { data: course } = await admin
     .from("community_courses")
-    .select("room_id")
+    .select("room_id, community_id, creator_id, price_cents, is_published, archived_at, access_mode")
     .eq("id", lesson.course_id)
     .maybeSingle();
 
   if (!course?.room_id) return NextResponse.json({ error: "Course not found" }, { status: 404 });
 
-  const hasAccess = await canAccessRoom(user.id, course.room_id);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const { assertCourseAccess } = await import("@/lib/community/courses/access");
+  const access = await assertCourseAccess({
+    userId: user.id,
+    roomId: course.room_id,
+    courseId: lesson.course_id,
+    communityId: course.community_id,
+    creatorId: course.creator_id,
+    priceCents: course.price_cents,
+    isPublished: course.is_published,
+    archivedAt: course.archived_at,
+    accessMode: course.access_mode,
+  });
+  if (!access.fullContent && !lesson.is_free) {
+    return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
 
   const { data: existing } = await admin
     .from("lesson_progress")
