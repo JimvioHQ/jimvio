@@ -35,6 +35,17 @@ export function normalizeDiditStatus(status: string | null | undefined): string 
 }
 
 /**
+ * Physical selling stays on admin review. Didit business webhooks must not
+ * write vendors.verification_status, including Approved.
+ */
+export function vendorStatusPatchFromDiditBusinessWebhook(
+  status: string | null | undefined,
+): null {
+  void status;
+  return null;
+}
+
+/**
  * Whether an incoming Didit status may overwrite the stored session status.
  * Approved never regresses. Declined/Expired do not become In Progress.
  */

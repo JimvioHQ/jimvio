@@ -5,6 +5,7 @@ import {
   diditWebhookSecret,
   fingerprintEvent,
   normalizeDiditStatus,
+  vendorStatusPatchFromDiditBusinessWebhook,
   verifyDiditWebhook,
 } from "@/lib/identity/didit";
 import { applyDiditIdentityResult } from "@/lib/identity/apply-didit-result";
@@ -143,50 +144,17 @@ export async function POST(req: NextRequest) {
       { onConflict: "session_id" },
     );
 
-    if (status === "Approved") {
+    const vendorStatusPatch = vendorStatusPatchFromDiditBusinessWebhook(status);
+    if (vendorStatusPatch) {
+      await admin.from("vendors").update(vendorStatusPatch).eq("user_id", userId);
+    } else if (status === "Approved") {
       await admin
         .from("vendors")
         .update({
-          verification_status: "verified",
-          verified_at: new Date().toISOString(),
-          verification_notes: "Didit business verification approved",
-        })
-        .eq("user_id", userId);
-    } else if (
-      status === "Declined" ||
-      status === "Expired" ||
-      status === "Abandoned" ||
-      status === "KYC Expired"
-    ) {
-      await admin
-        .from("vendors")
-        .update({
-          verification_status: status === "Declined" ? "rejected" : "pending",
-          verification_notes:
-            status === "Declined"
-              ? "Didit business verification declined"
-              : `Didit business verification ${status.toLowerCase()}`,
+          physical_selling_requested_at: new Date().toISOString(),
         })
         .eq("user_id", userId)
-        .neq("verification_status", "verified");
-
-      try {
-        const { consumeVerificationFeeForVendor } = await import(
-          "@/lib/identity/confirm-verification-fee"
-        );
-        const { data: vendor } = await admin
-          .from("vendors")
-          .select("id")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (vendor?.id) {
-          await consumeVerificationFeeForVendor(admin, vendor.id, sessionId);
-        }
-      } catch (feeErr) {
-        console.error("[Didit webhook] fee consume failed", feeErr);
-      }
+        .is("physical_selling_requested_at", null);
     }
   } else {
     await applyDiditIdentityResult({

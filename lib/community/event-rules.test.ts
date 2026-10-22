@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isDiscoverableEvent, validateEventDraft } from "./event-rules";
+import { canViewEventRecord, isDiscoverableEvent, validateEventDraft } from "./event-rules";
 
 describe("event rules", () => {
   it("rejects an end time before the start", () => {
@@ -45,5 +45,28 @@ describe("event rules", () => {
     assert.equal(isDiscoverableEvent({ visibility: "public", status: "cancelled" }), false);
     assert.equal(isDiscoverableEvent({ visibility: "public", status: "draft" }), false);
     assert.equal(isDiscoverableEvent({ visibility: "public", status: "published" }), true);
+  });
+
+  it("lets RSVP holders view a private event after the invite link is gone", () => {
+    assert.equal(
+      canViewEventRecord({
+        visibility: "private",
+        status: "published",
+        canManage: false,
+        invited: false,
+        rsvpStatus: "going",
+      }),
+      true,
+    );
+    assert.equal(
+      canViewEventRecord({
+        visibility: "private",
+        status: "published",
+        canManage: false,
+        invited: false,
+        rsvpStatus: null,
+      }),
+      false,
+    );
   });
 });

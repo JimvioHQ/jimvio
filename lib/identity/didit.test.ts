@@ -6,6 +6,7 @@ import {
   diditCanonicalJsonV2,
   fingerprintEvent,
   mapDiditStatusToCustomer,
+  vendorStatusPatchFromDiditBusinessWebhook,
   verifyDiditWebhook,
 } from "./didit";
 import {
@@ -14,6 +15,11 @@ import {
 } from "@/lib/app-origin";
 
 describe("didit helpers", () => {
+  it("never auto-verifies a seller from a Didit business webhook", () => {
+    assert.equal(vendorStatusPatchFromDiditBusinessWebhook("Approved"), null);
+    assert.equal(vendorStatusPatchFromDiditBusinessWebhook("Declined"), null);
+  });
+
   it("maps Didit statuses explicitly (Approved never looks like in progress)", () => {
     assert.equal(mapDiditStatusToCustomer("Approved").key, "verified");
     assert.equal(mapDiditStatusToCustomer("Approved").headline, "Verification successful");

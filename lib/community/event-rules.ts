@@ -40,6 +40,22 @@ export function isDiscoverableEvent(event: {
   return visibility === "public" && status === "published";
 }
 
+export function canViewEventRecord(input: {
+  visibility?: string | null;
+  status?: string | null;
+  is_published?: boolean | null;
+  canManage: boolean;
+  invited: boolean;
+  rsvpStatus?: string | null;
+}): boolean {
+  if (input.canManage) return true;
+  if (isDiscoverableEvent(input)) return true;
+  if (input.invited) return true;
+  const rsvp = String(input.rsvpStatus ?? "");
+  if (input.visibility === "private" && (rsvp === "going" || rsvp === "interested")) return true;
+  return false;
+}
+
 export function validateEventDraft(input: EventDraftInput): { ok: true; value: Required<Pick<EventDraftInput, "title" | "startsAt">> & EventDraftInput } | { ok: false; error: string } {
   const title = String(input.title ?? "").trim();
   if (title.length < 3 || title.length > 160) {

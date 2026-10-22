@@ -172,7 +172,8 @@ export async function saveMission(input: {
     if (!owner.canManage && existing.data.creator_id !== input.userId) {
       throw new Error("Not authorized to edit this mission");
     }
-    const { data, error } = await admin().from("community_tasks").update(row).eq("id", input.missionId).select("*").single();
+    const updateRow = { ...row, community_id: existing.data.community_id };
+    const { data, error } = await admin().from("community_tasks").update(updateRow).eq("id", input.missionId).select("*").single();
     if (error) throw error;
     return data;
   }

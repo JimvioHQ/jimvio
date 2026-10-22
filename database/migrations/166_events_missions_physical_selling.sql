@@ -15,11 +15,10 @@ ALTER TABLE public.community_events
   ADD COLUMN IF NOT EXISTS invite_token TEXT,
   ADD COLUMN IF NOT EXISTS invite_expires_at TIMESTAMPTZ;
 
-UPDATE public.community_events
-SET
-  status = CASE WHEN is_published THEN 'published' ELSE 'draft' END,
-  format = CASE WHEN is_online THEN 'online' ELSE 'in_person' END
-WHERE status IS NULL OR status = 'published';
+-- No status/format backfill. ADD COLUMN defaults cover new rows.
+-- Production had 0 community_events rows at apply time. Re-running the
+-- previous WHERE (status IS NULL OR status = 'published') would rewrite
+-- cancelled/completed published-status events, so it is intentionally omitted.
 
 ALTER TABLE public.community_events
   DROP CONSTRAINT IF EXISTS community_events_visibility_check;
@@ -118,9 +117,8 @@ ALTER TABLE public.community_tasks
   ADD COLUMN IF NOT EXISTS reward_type TEXT NOT NULL DEFAULT 'points',
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
-UPDATE public.community_tasks
-SET status = CASE WHEN COALESCE(is_active, true) THEN 'published' ELSE 'paused' END
-WHERE status IS NULL OR status = '';
+-- No task status backfill. Column default is 'published', matching is_active default true.
+-- Production had 0 community_tasks rows at apply time.
 
 ALTER TABLE public.community_tasks
   DROP CONSTRAINT IF EXISTS community_tasks_status_check;
@@ -160,14 +158,8 @@ ALTER TABLE public.task_completions
   ADD COLUMN IF NOT EXISTS file_url TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
-DELETE FROM public.task_completions a
-USING public.task_completions b
-WHERE a.task_id = b.task_id
-  AND a.user_id = b.user_id
-  AND a.ctid < b.ctid;
-
-CREATE UNIQUE INDEX IF NOT EXISTS task_completions_task_user_uidx
-  ON public.task_completions (task_id, user_id);
+-- Unique (task_id, user_id) already exists as task_completions_task_id_user_id_key.
+-- Production had 0 task_completions rows, so no duplicate cleanup is required or performed.
 
 -- Physical selling review metadata. Approval remains vendors.verification_status.
 ALTER TABLE public.vendors

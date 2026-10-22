@@ -118,9 +118,21 @@ export async function POST(
       const { loadManaged } = await import("./guard");
       await loadManaged(user, courseId);
       const admin = createServiceRoleClient();
+      const lessonId = typeof body.lessonId === "string" ? body.lessonId : null;
+      if (lessonId) {
+        const { data: lesson } = await admin
+          .from("course_lessons")
+          .select("id")
+          .eq("id", lessonId)
+          .eq("course_id", courseId)
+          .maybeSingle();
+        if (!lesson) {
+          return NextResponse.json({ error: "Lesson not found on this course" }, { status: 400 });
+        }
+      }
       const payload = {
         course_id: courseId,
-        lesson_id: typeof body.lessonId === "string" ? body.lessonId : null,
+        lesson_id: lessonId,
         title: String(body.title ?? "").trim(),
         instructions: typeof body.instructions === "string" ? body.instructions : null,
         required: body.required !== false,

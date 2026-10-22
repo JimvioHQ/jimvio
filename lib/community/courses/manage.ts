@@ -4,7 +4,7 @@ import {
   DEFAULT_BEHAVIOR_CONFIG,
   DEFAULT_PERMISSION_CONFIG,
 } from "@/lib/community/owner-console/channels/constants";
-import { normalizeAccessMode, serverPriceCents, type CourseAccessMode } from "@/lib/community/courses/rules";
+import { normalizeAccessMode, safeHttpUrl, serverPriceCents, type CourseAccessMode } from "@/lib/community/courses/rules";
 
 function db() {
   return createServiceRoleClient();
@@ -193,6 +193,8 @@ export async function updateCourse(
   if ("prerequisites" in next && !Array.isArray(next.prerequisites)) {
     throw new Error("Prerequisites must be a list");
   }
+  if ("thumbnail_url" in next) next.thumbnail_url = safeHttpUrl(next.thumbnail_url);
+  if ("trailer_url" in next) next.trailer_url = safeHttpUrl(next.trailer_url);
   const { data, error } = await db()
     .from("community_courses")
     .update(next)

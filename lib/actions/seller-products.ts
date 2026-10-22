@@ -329,3 +329,68 @@ export async function upsertSellerProduct(
         : "Draft saved.",
   };
 }
+
+export async function duplicateSellerProduct(
+  productId: string,
+): Promise<SellerProductUpsertResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized", code: "unauthenticated" };
+
+  const vendor = await ensureSellerVendor(user.id);
+  if (!vendor) {
+    return { success: false, error: "A seller account is required.", code: "vendor_required" };
+  }
+
+  const { data: source, error: fetchErr } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("vendor_id", vendor.id)
+    .maybeSingle();
+  if (fetchErr || !source) {
+    return { success: false, error: "Product not found.", code: "not_found" };
+  }
+
+  const bucket = toProductTypeBucket(source.product_type);
+  const auth = assertCanCreateProductType(user.id, vendor, bucket);
+  if (!auth.ok) {
+    return { success: false, error: auth.message, code: auth.code };
+  }
+
+  return upsertSellerProduct({
+    name: `${String(source.name || "Product").trim() || "Product"} (Copy)`,
+    short_description: source.short_description,
+    description: source.description,
+    product_type: bucket,
+    product_subtype: bucket === "digital" ? source.product_type : null,
+    price: Number(source.price || 0),
+    currency: source.currency || "USD",
+    pricing_type: source.pricing_type,
+    billing_period: source.billing_period,
+    category_id: source.category_id,
+    digital_file_url: source.digital_file_url,
+    track_inventory: Boolean(source.track_inventory),
+    inventory_quantity: Number(source.inventory_quantity || 0),
+    weight: source.weight,
+    dimensions: typeof source.dimensions === "string" ? source.dimensions : null,
+    affiliate_enabled: Boolean(source.affiliate_enabled),
+    affiliate_commission_rate: source.affiliate_commission_rate,
+    button_text: source.button_text,
+    tags: Array.isArray(source.tags)
+      ? source.tags.filter((tag): tag is string => typeof tag === "string")
+      : null,
+    images: Array.isArray(source.images)
+      ? source.images.filter((url): url is string => typeof url === "string")
+      : [],
+    show_author: source.show_author ?? true,
+    show_reviews: source.show_reviews ?? true,
+    enable_discussions: Boolean(source.enable_discussions),
+    compare_at_price: source.compare_at_price,
+    discount_label: source.discount_label,
+    is_flash_deal: Boolean(source.is_flash_deal),
+    intent: "draft",
+  });
+}

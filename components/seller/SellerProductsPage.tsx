@@ -25,6 +25,7 @@ import {
   vendorLookupToastMessage,
   type VendorRow,
 } from "@/lib/vendor/lookup";
+import { duplicateSellerProduct } from "@/lib/actions/seller-products";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -330,69 +331,27 @@ export function SellerProductsPage() {
     setBusyId(productId);
     setOpenMenu(null);
 
-    const supabase = createClient();
-    const { data: source, error: fetchErr } = await supabase
-      .from("products")
-      .select("*")
-      .eq("id", productId)
-      .maybeSingle();
-
-    if (fetchErr || !source) {
-      toast.error("Couldn't duplicate product");
+    const result = await duplicateSellerProduct(productId);
+    if (!result.success) {
+      toast.error(
+        result.code === "business_verification_required"
+          ? "Business verification is required to duplicate physical products."
+          : result.error || "Couldn't duplicate product",
+      );
       setBusyId(null);
       return;
     }
 
-    const sourceType = String(source.product_type || "").toLowerCase();
-    if (sourceType === "physical") {
-      const { data: vend } = await createClient()
-        .from("vendors")
-        .select("verification_status")
-        .eq("id", source.vendor_id)
-        .maybeSingle();
-      if (String(vend?.verification_status || "").toLowerCase() !== "verified") {
-        toast.error("Business verification is required to duplicate physical products.");
-        setBusyId(null);
-        return;
-      }
-    }
-
-    // Strip server-managed fields, generate a new slug
-    const newSlug = `${source.slug}-copy-${Date.now().toString(36)}`;
-
-    type ProductInsert = Database["public"]["Tables"]["products"]["Insert"];
-
-    const payload: ProductInsert = {
-      ...source,
-      id: undefined as unknown as ProductInsert["id"],
-      slug: newSlug,
-      name: `${source.name} (Copy)`,
-      status: "draft",
-      sale_count: 0,
-      view_count: 0,
-      rating: 0,
-      review_count: 0,
-      wishlist_count: 0,
-      published_at: null,
-      created_at: undefined as unknown as ProductInsert["created_at"],
-      updated_at: undefined as unknown as ProductInsert["updated_at"],
-      deleted_at: null,
-    };
-
-    const { data: inserted, error: insertErr } = await supabase
+    const supabase = createClient();
+    const { data: inserted } = await supabase
       .from("products")
-      .insert(payload)
-      .select()
-      .single();
-
-    if (insertErr || !inserted) {
-      console.error("Duplicate failed:", insertErr);
-      toast.error("Couldn't duplicate product");
-    } else {
+      .select("*")
+      .eq("id", result.id)
+      .maybeSingle();
+    if (inserted) {
       setProducts((prev) => [inserted as Product, ...prev]);
-      toast.success("Product duplicated as draft");
     }
-
+    toast.success(result.message || "Product duplicated as draft");
     setBusyId(null);
   }, [busyId]);
 

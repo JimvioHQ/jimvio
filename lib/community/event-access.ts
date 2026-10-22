@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import {
+  canViewEventRecord,
+  EVENT_STATUSES,
   isDiscoverableEvent,
   validateEventDraft,
   type EventDraftInput,
@@ -183,8 +185,15 @@ export async function saveCommunityEvent(input: {
   const access = await communityAccess(input.userId, communityId);
   if (!access.canManage) throw new Error("Only owners and moderators can manage events");
   const value = parsed.value;
-  const invite = value.visibility === "private" ? createInviteToken() : null;
-    const row = {
+  let existingEvent: { invite_token_hash?: string | null } | null = null;
+  if (input.eventId) {
+    const managed = await assertCanManageEvent(input.userId, input.eventId);
+    existingEvent = managed.event;
+  }
+  const needsInvite = value.visibility === "private" && !existingEvent?.invite_token_hash;
+  const invite = needsInvite ? createInviteToken() : null;
+  const inviteExpires = invite ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() : null;
+  const row = {
     community_id: communityId,
     title: value.title,
     description: value.description ?? null,
@@ -209,21 +218,34 @@ export async function saveCommunityEvent(input: {
   };
 
   if (input.eventId) {
-    await assertCanManageEvent(input.userId, input.eventId);
     const patch: Record<string, unknown> = { ...row };
     delete patch.community_id;
     if (invite) {
       patch.invite_token = invite.token;
       patch.invite_token_hash = invite.hash;
-      patch.invite_expires_at = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+      patch.invite_expires_at = inviteExpires;
     }
     if (value.visibility === "public") {
       patch.invite_token = null;
       patch.invite_token_hash = null;
+      patch.invite_expires_at = null;
+      await admin()
+        .from("community_event_invites")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("event_id", input.eventId)
+        .is("revoked_at", null);
     }
     const { data, error } = await admin().from("community_events").update(patch).eq("id", input.eventId).select("*").single();
     if (error) throw error;
-    return { event: data, inviteToken: invite?.token ?? data.invite_token ?? null };
+    if (invite) {
+      await admin().from("community_event_invites").insert({
+        event_id: data.id,
+        token_hash: invite.hash,
+        created_by: input.userId,
+        expires_at: inviteExpires,
+      });
+    }
+    return { event: data, inviteToken: invite?.token ?? null };
   }
 
   const { data, error } = await admin()
@@ -233,7 +255,7 @@ export async function saveCommunityEvent(input: {
       created_by: input.userId,
       invite_token: invite?.token ?? null,
       invite_token_hash: invite?.hash ?? null,
-      invite_expires_at: invite ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString() : null,
+      invite_expires_at: inviteExpires,
     })
     .select("*")
     .single();
@@ -254,6 +276,9 @@ export async function setEventLifecycle(input: {
   eventId: string;
   status: EventStatus;
 }) {
+  if (!EVENT_STATUSES.includes(input.status)) {
+    throw new Error("Invalid event status");
+  }
   const { event } = await assertCanManageEvent(input.userId, input.eventId);
   const { data, error } = await admin()
     .from("community_events")
@@ -335,23 +360,31 @@ export async function getEventForViewer(input: { userId: string; eventId: string
   const access = await communityAccess(input.userId, event.community_id);
   const canManage = access.canManage || event.created_by === input.userId;
   const invited = event.visibility === "private" ? await inviteIsValid(event.id, input.token) : false;
-  const discoverable = isDiscoverableEvent(event);
-  if (!canManage && !invited && !discoverable) return null;
-  if (!canManage && event.visibility === "private" && !invited) return null;
-
   const { data: rsvp } = await admin()
     .from("community_event_rsvps")
     .select("status")
     .eq("event_id", event.id)
     .eq("user_id", input.userId)
     .maybeSingle();
+  if (
+    !canViewEventRecord({
+      visibility: event.visibility,
+      status: event.status,
+      is_published: event.is_published,
+      canManage,
+      invited,
+      rsvpStatus: rsvp?.status,
+    })
+  ) {
+    return null;
+  }
 
   const shape = publicEventShape(event, {
     is_going: rsvp?.status === "going",
     registration_status: rsvp?.status ?? null,
     can_manage: canManage,
     meeting_url: canManage || rsvp?.status === "going" || invited ? event.meeting_url : null,
-    registration_questions: canManage || discoverable || invited ? event.registration_questions ?? [] : [],
+    registration_questions: canManage || isDiscoverableEvent(event) || invited ? event.registration_questions ?? [] : [],
   });
   if (!canManage) {
     return shape;
