@@ -283,7 +283,7 @@
 
 //                 {/* Actions */}
 //                 <DropdownMenuItem asChild className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer">
-//                     <Link href="/identity/settings" className="flex items-center gap-2.5 px-3 py-2">
+//                     <Link href="/settings/profile" className="flex items-center gap-2.5 px-3 py-2">
 //                         <Settings className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
 //                         <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">Account settings</span>
 //                     </Link>
@@ -809,7 +809,7 @@ function MobilePreferencesMenu() {
                 <div className="px-3 pb-3">
                     <DropdownMenuItem asChild className="rounded-lg focus:bg-[var(--color-surface-secondary)] cursor-pointer p-0">
                         <Link
-                            href="/identity/settings"
+                            href="/settings/profile"
                             className="flex items-center justify-center gap-2 w-full px-3 py-2.5 text-[12px] font-semibold text-[var(--color-accent)] border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-surface-secondary)]"
                         >
                             <Settings className="h-3.5 w-3.5" />
@@ -913,7 +913,7 @@ function UserMenu({ user }: { user: UserProfile }) {
                     className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer"
                 >
                     <Link
-                        href="/identity/settings"
+                        href="/settings/profile"
                         className="flex items-center gap-2.5 px-3 py-2"
                     >
                         <Settings className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />

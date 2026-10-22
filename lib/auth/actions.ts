@@ -1112,7 +1112,7 @@ export async function updatePassword(formData: FormData) {
 }
 
 export async function linkGoogleIdentity(): Promise<void> {
-  let redirectUrl = "/identity/security?error=link_failed"
+    let redirectUrl = "/settings/connected?error=link_failed"
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -1121,7 +1121,7 @@ export async function linkGoogleIdentity(): Promise<void> {
     }
     const callbackUrl = buildAuthCallbackUrl(
       await getPublicAppUrl(),
-      "/identity/security",
+      "/settings/connected",
     )
     const { data, error } = await supabase.auth.linkIdentity({
       provider: "google",
@@ -1133,7 +1133,7 @@ export async function linkGoogleIdentity(): Promise<void> {
     })
     if (error || !data?.url) {
       console.error("[auth] linkGoogleIdentity:", error?.message ?? "missing url")
-      redirectUrl = "/identity/security?error=link_failed"
+      redirectUrl = "/settings/connected?error=link_failed"
     } else {
       redirectUrl = data.url
     }

@@ -48,8 +48,11 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.avatarUrl === "string") profileUpdates.avatar_url = body.avatarUrl;
   if (typeof body.username === "string") {
     const desired = body.username.trim().toLowerCase();
-    if (desired.length < 3) {
-      return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
+    if (!/^[a-z0-9_]{3,24}$/.test(desired)) {
+      return NextResponse.json(
+        { error: "Username must be 3–24 characters and use lowercase letters, numbers, or underscores." },
+        { status: 400 },
+      );
     }
     const { data: taken } = await db
       .from("profiles")
@@ -211,6 +214,8 @@ export async function PATCH(req: NextRequest) {
   }
 
   revalidatePath("/identity/edit");
+  revalidatePath("/settings/profile");
+  revalidatePath("/settings/privacy");
   revalidatePath("/identity");
   revalidatePath("/ugc/applications");
   revalidatePath("/ugc");

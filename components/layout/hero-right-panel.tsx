@@ -235,7 +235,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
       <div className="grid grid-cols-2 gap-2">
         {[
           { href: "/orders", icon: ShoppingBag, label: "Orders" },
-          { href: "/identity/settings", icon: Settings, label: "Settings" },
+          { href: "/settings/profile", icon: Settings, label: "Settings" },
           { href: "/ugc/campaign-center/setup", icon: Factory, label: "Sell" },
           { href: "/ugc", icon: Megaphone, label: "Campaigns" },
         ].map(({ href, icon: Icon, label }) => (

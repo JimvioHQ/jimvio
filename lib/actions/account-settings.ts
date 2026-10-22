@@ -6,8 +6,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { provisionOwnNonPrivilegedRole } from "@/lib/auth/provision-nonprivileged-role";
 import type { ActionResult } from "@/lib/actions/security";
 import { isValidAuthEmail, mapEmailChangeError, normalizeSignInEmail } from "@/lib/auth/sign-in-errors";
+import { cookies } from "next/headers";
 import { getPublicAppUrl } from "@/lib/app-url";
 import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin";
+import { UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
+import {
+  isSettingsLanguage,
+  isValidTimeZone,
+  toUgcLocale,
+} from "@/lib/settings/preferences";
 
 export type VendorPolicies = {
   shipping_policy: string;
@@ -56,12 +63,13 @@ export async function requestEmailChange(
 
   const { error } = await supabase.auth.updateUser(
     { email },
-    { emailRedirectTo: buildAuthCallbackUrl(await getPublicAppUrl(), "/identity/settings") },
+    { emailRedirectTo: buildAuthCallbackUrl(await getPublicAppUrl(), "/settings/account") },
   );
   if (error) return { success: false, error: mapEmailChangeError(error) };
 
   revalidatePath("/identity/settings");
   revalidatePath("/identity/security");
+  revalidatePath("/settings/account");
   revalidatePath("/admin/settings/profile");
   return {
     success: true,
@@ -150,22 +158,39 @@ export async function saveUserPreferences(input: {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
+  const language = input.language.trim().toLowerCase();
+  if (!isSettingsLanguage(language)) {
+    return { success: false, error: "Choose a language Jimvio currently supports." };
+  }
+  const timezone = input.timezone.trim() || "UTC";
+  if (!isValidTimeZone(timezone)) {
+    return { success: false, error: "Choose a valid timezone." };
+  }
+
   const { error: profileError } = await supabase
     .from("profiles")
     .update({
-      language: input.language.trim() || "en",
-      timezone: input.timezone.trim() || "Africa/Kigali",
+      language,
+      timezone,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
   if (profileError) return { success: false, error: profileError.message };
 
   const { error: metaError } = await supabase.auth.updateUser({
-    data: { preferred_currency: input.preferred_currency.trim() || "USD" },
+    data: { preferred_currency: "USD" },
   });
   if (metaError) return { success: false, error: metaError.message };
 
+  const jar = await cookies();
+  jar.set(UGC_LOCALE_COOKIE, toUgcLocale(language), {
+    path: "/",
+    maxAge: 31536000,
+    sameSite: "lax",
+  });
+
   revalidatePath("/identity/settings");
+  revalidatePath("/settings/language");
   return { success: true };
 }
 

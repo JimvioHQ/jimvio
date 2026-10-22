@@ -19,7 +19,7 @@ export const OS_NAV_ITEMS: OsNavItem[] = [
   { id: "products", label: "Products", href: "/marketplace", icon: "package" },
   { id: "analytics", label: "Analytics", href: "/", icon: "chart" },
   { id: "ai", label: "Jimvio AI", href: "#open-ai", icon: "sparkles" },
-  { id: "settings", label: "Settings", href: "/identity/settings", icon: "settings" },
+  { id: "settings", label: "Settings", href: "/settings/profile", icon: "settings" },
 ];
 
 export const OS_WORKSPACE_MODES: Array<{

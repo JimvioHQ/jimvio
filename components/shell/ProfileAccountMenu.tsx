@@ -97,7 +97,7 @@ export function ProfileAccountMenu({
         {/* Identity — name only, no email */}
         <DropdownMenuItem asChild className="p-0 focus:bg-transparent cursor-pointer">
           <Link
-            href="/identity/settings"
+            href="/settings/profile"
             onClick={onNavigate}
             className="flex items-center gap-3 px-3.5 py-3.5 transition-colors hover:bg-stone-50"
           >

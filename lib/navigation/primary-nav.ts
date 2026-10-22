@@ -63,7 +63,7 @@ export const MOBILE_BOTTOM_NAV_ITEMS = [
 export const PROFILE_TOOL_ITEMS: ProfileMenuItem[] = [
   {
     label: "My Account",
-    href: "/identity/settings",
+    href: "/settings/profile",
     icon: User,
     description: "Profile, security, settings",
   },

@@ -479,7 +479,7 @@ export default function ActivateRolePage() {
               <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">
                 Verify your email before activating.{" "}
                 <Link
-                  href="/identity/settings"
+                  href="/settings/profile"
                   className="text-[var(--color-accent)] font-semibold hover:underline"
                 >
                   Open settings →
@@ -491,7 +491,7 @@ export default function ActivateRolePage() {
               <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">
                 Add your name to complete your profile.{" "}
                 <Link
-                  href="/identity/settings"
+                  href="/settings/profile"
                   className="text-[var(--color-accent)] font-semibold hover:underline"
                 >
                   Complete profile →

@@ -8,7 +8,7 @@ const TIPS = [
   {
     id: "profile",
     text: "Complete your profile so people recognize you across Jimvio.",
-    href: "/identity/settings",
+    href: "/settings/profile",
     cta: "Edit profile",
   },
   {

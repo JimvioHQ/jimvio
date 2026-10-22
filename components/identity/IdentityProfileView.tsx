@@ -75,7 +75,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
       { id: "reviews", label: "Reviews" },
       { id: "bookings", label: "Bookings", href: isOwner ? "/identity/bookings" : undefined },
     ];
-    if (isOwner) list.push({ id: "settings", label: "Settings", href: "/identity/settings" });
+    if (isOwner) list.push({ id: "settings", label: "Settings", href: "/settings/profile" });
     return list;
   }, [isOwner]);
 

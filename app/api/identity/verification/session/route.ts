@@ -39,7 +39,7 @@ export async function POST() {
   }
 
   const appUrl = assertNonLocalhostProductionOrigin(getCanonicalAppOrigin());
-  const callbackUrl = `${appUrl}/identity/verification?return=1`;
+  const callbackUrl = `${appUrl}/settings/verification?return=1`;
 
   const created = await createDiditSession({
     userId: user.id,

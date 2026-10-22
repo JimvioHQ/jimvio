@@ -28,8 +28,10 @@ type StatusPayload = {
 
 export function IdentityVerificationClient({
   initialVerified,
+  embedded = false,
 }: {
   initialVerified: boolean;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,7 +68,7 @@ export function IdentityVerificationClient({
     void (async () => {
       await refresh({ sessionId: hintSession });
       if (searchParams.get("return") || hintSession || searchParams.get("status")) {
-        router.replace("/identity/verification", { scroll: false });
+        router.replace("/settings/verification", { scroll: false });
       }
     })();
   }, [refresh, router, searchParams]);
@@ -96,15 +98,17 @@ export function IdentityVerificationClient({
       "Secure identity verification helps protect your account and unlock eligible Jimvio features.";
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]">
-          Jimvio Identity
-        </p>
-        <h1 className="font-[var(--font-identity-serif)] text-[26px] font-medium tracking-tight text-[#161512]">
-          Verification
-        </h1>
-      </div>
+    <div className={embedded ? "" : "mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6 lg:px-8"}>
+      {embedded ? null : (
+        <div className="mb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]">
+            Jimvio Identity
+          </p>
+          <h1 className="font-[var(--font-identity-serif)] text-[26px] font-medium tracking-tight text-[#161512]">
+            Verification
+          </h1>
+        </div>
+      )}
 
       <IdentityCard className="p-6 sm:p-8">
         {loading ? (
@@ -158,7 +162,7 @@ export function IdentityVerificationClient({
             <div className="flex flex-wrap gap-2">
               {key === "verified" ? (
                 <Link
-                  href="/identity/edit"
+                  href="/settings/profile"
                   className="inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white"
                 >
                   Back to profile
@@ -182,7 +186,7 @@ export function IdentityVerificationClient({
 
               {key !== "verified" ? (
                 <Link
-                  href="/identity/edit"
+                  href="/settings/profile"
                   className="inline-flex h-10 items-center rounded-full border border-black/10 bg-white px-4 text-[13px] font-semibold text-[#1C1B19]"
                 >
                   Back to profile

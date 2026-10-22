@@ -114,7 +114,7 @@ export const OS_PROFILE_RAIL: WorkspaceNavItem[] = [
   { id: "messages", label: "Messages", href: "/messages", icon: "message", section: "system" },
   { id: "inbox", label: "Inbox", href: "/notifications", icon: "bell", section: "system" },
   { id: "identity", label: "Profile", href: "/identity", icon: "users", section: "system" },
-  { id: "settings", label: "Settings", href: "/identity/settings", icon: "settings", section: "system" },
+  { id: "settings", label: "Settings", href: "/settings/profile", icon: "settings", section: "system" },
 ];
 
 /** @deprecated Prefer OS_CORE_RAIL + OS_PROFILE_RAIL */
@@ -320,7 +320,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       focus: [
         { id: "f1", label: "Finish campaign application", href: "/ugc/applications", progress: 65, deadline: "Today", priority: "high", cta: "Continue" },
         { id: "f2", label: "Submit content draft", href: "/ugc/submissions", progress: 40, deadline: "Tomorrow", priority: "high", cta: "Upload" },
-        { id: "f3", label: "Complete profile", href: "/identity/edit", progress: 80, deadline: "This week", priority: "medium", cta: "Edit profile" },
+        { id: "f3", label: "Complete profile", href: "/settings/profile", progress: 80, deadline: "This week", priority: "medium", cta: "Edit profile" },
       ],
       insights: [
         { id: "i1", label: "Creator trend", value: "+12%", trend: "Engagement", href: "/ugc/analytics" },

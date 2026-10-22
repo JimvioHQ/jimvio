@@ -91,7 +91,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { label: "Messages", href: "/messages", icon: MessageSquare },
   { label: "Notifications", href: "/notifications", icon: Bell },
-  { label: "Account", href: "/identity/settings", icon: Settings },
+  { label: "Account", href: "/settings/profile", icon: Settings },
   { label: "Jimvio OS", icon: Monitor },
 ];
 

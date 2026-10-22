@@ -41,7 +41,7 @@ export const WALLET_OS_NAV: WalletNavItem[] = [
   { href: "/wallet/invoices", label: "Invoices", icon: Fingerprint },
   { href: "/wallet/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/wallet/security", label: "Security", icon: ShieldCheck },
-  { href: "/identity/settings", label: "Settings", icon: Settings },
+  { href: "/settings/profile", label: "Settings", icon: Settings },
 ];
 
 function isNavActive(pathname: string, href: string) {
