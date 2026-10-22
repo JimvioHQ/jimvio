@@ -3,6 +3,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { paymentAmountsMatch } from "@/lib/payments/order-payment-utils";
 import { enrollInCourse } from "@/lib/community/courses/access";
 import { coursePurchaseMayGrant, serverPriceCents } from "@/lib/community/courses/rules";
+import { coursePurchaseConfirmDecision } from "@/lib/community/courses/purchase-policy";
+import { refundCoursePurchase } from "@/lib/community/courses/refund-purchase";
 
 type ConfirmInput = {
   paymentRef?: string | null;
@@ -62,7 +64,7 @@ type CoursePurchaseTx = {
   if (!tx) return { handled: false };
 
   const meta = (tx.metadata ?? {}) as { course_id?: string; amount_cents?: number };
-  const courseId = String(meta.course_id || tx.reference || "");
+  const courseId = String(meta.course_id || "");
   if (!courseId) return { handled: false };
 
   const { data: existingReceipt } = await client
@@ -70,10 +72,18 @@ type CoursePurchaseTx = {
     .select("id")
     .eq("payment_reference", keys[0])
     .maybeSingle();
-  if (existingReceipt) {
+  const decision = coursePurchaseConfirmDecision({
+    txStatus: tx.status,
+    hasReceipt: Boolean(existingReceipt),
+  });
+  if (decision === "deny-refund") {
+    await refundCoursePurchase(client, { paymentRef: keys[0] });
+    return { handled: true, granted: false, courseId, userId: tx.user_id, alreadyEnrolled: false };
+  }
+  if (decision === "already-granted") {
     return { handled: true, granted: true, courseId, userId: tx.user_id, alreadyEnrolled: true };
   }
-  if (!coursePurchaseMayGrant(tx.status)) {
+  if (decision === "deny-status" || !coursePurchaseMayGrant(tx.status)) {
     return { handled: true, granted: false, courseId, userId: tx.user_id, alreadyEnrolled: false };
   }
 

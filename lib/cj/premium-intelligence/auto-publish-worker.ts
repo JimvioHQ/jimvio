@@ -92,8 +92,9 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
     durationMs: 0,
   };
 
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
   const schemaReady = await isAutoPublishSchemaReady();
-  if (!schemaReady) {
+  if (!schemaReady || !isCjProductIntelligenceProcessingEnabled()) {
     result.durationMs = Date.now() - start;
     return result;
   }

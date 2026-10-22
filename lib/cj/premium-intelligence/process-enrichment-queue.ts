@@ -43,6 +43,16 @@ export async function processEnrichmentQueue(
   limit = DEFAULT_BATCH_LIMIT,
   options?: EnrichmentQueueOptions
 ): Promise<EnrichmentBatchResultExtended> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return {
+      processed: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      timedOut: false,
+    };
+  }
   const maxDuration = options?.maxDurationMs ?? DEFAULT_MAX_DURATION_MS;
   const useCheckpoint = options?.useCheckpoint ?? true;
   const interJobMs = options?.interJobMs ?? DEFAULT_INTER_JOB_MS;

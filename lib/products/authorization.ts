@@ -16,7 +16,7 @@ export type VendorAuthSnapshot = {
 
 export type ProductCreateAuthResult =
   | { ok: true; vendor: VendorAuthSnapshot }
-  | { ok: false; code: "unauthenticated" | "vendor_required" | "business_verification_required" | "vendor_inactive"; message: string };
+  | { ok: false; code: "unauthenticated" | "vendor_required" | "business_verification_required" | "vendor_inactive" | "vendor_suspended"; message: string };
 
 export function isPhysicalProductType(productType: string | null | undefined): boolean {
   const t = String(productType || "").toLowerCase();
@@ -92,6 +92,14 @@ export function assertCanCreateProductType(
       ok: false,
       code: "vendor_inactive",
       message: "Your seller account is inactive.",
+    };
+  }
+  const vendorStatus = String(vendor.verification_status || "").trim().toLowerCase();
+  if (vendorStatus === "suspended" || vendorStatus === "revoked") {
+    return {
+      ok: false,
+      code: "vendor_suspended",
+      message: "Your seller account is suspended.",
     };
   }
   if (productType === "physical" && !isBusinessVerified(vendor)) {

@@ -46,6 +46,21 @@ describe("product upload authorization", () => {
     assert.equal(r.ok, true);
   });
 
+  it("blocks suspended vendors from digital and physical creates", () => {
+    const suspended = { ...vendorPending, verification_status: "suspended" };
+    const digital = assertCanCreateProductType("u1", suspended, "digital");
+    const physical = assertCanCreateProductType("u1", suspended, "physical");
+    assert.equal(digital.ok, false);
+    assert.equal(physical.ok, false);
+    if (!digital.ok) assert.equal(digital.code, "vendor_suspended");
+  });
+
+  it("blocks inactive vendors", () => {
+    const r = assertCanCreateProductType("u1", { ...vendorVerified, is_active: false }, "digital");
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.equal(r.code, "vendor_inactive");
+  });
+
   it("does not treat personal identity as business verified", () => {
     assert.equal(isBusinessVerified({ verification_status: "pending" }), false);
     assert.equal(isBusinessVerified({ verification_status: "in_review" }), false);

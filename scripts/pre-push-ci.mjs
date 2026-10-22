@@ -281,6 +281,7 @@ function main() {
   run("auth-email-templates", process.execPath, [
     join(root, "scripts", "release", "verify-auth-email-templates.mjs"),
   ]);
+  run("unit", "npm", ["run", "test:unit"]);
   timedBuild();
   run("perf", process.execPath, [join(root, "scripts", "release", "performance-budget.mjs")]);
   run("lint", "npm", ["run", "lint"]);

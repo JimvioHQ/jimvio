@@ -17,10 +17,6 @@
       "schedule": "*/15 * * * *"
     },
     {
-      "path": "/api/cron/cj-intelligence-daily",
-      "schedule": "0 4 * * *"
-    },
-    {
       "path": "/api/cron/cj-marketplace-maintenance",
       "schedule": "*/15 * * * *"
     },

@@ -40,7 +40,7 @@ describe("storefront product grid columns", () => {
     assert.match(GRID_CSS, /repeat\(3, minmax\(0, 1fr\)\)/);
     assert.match(GRID_CSS, /@media \(min-width: 1024px\)/);
     assert.match(GRID_CSS, /repeat\(var\(--store-grid-cols, 5\), minmax\(0, 1fr\)\)/);
-    assert.match(GRID_CSS, /max-width: 14\.5rem/);
+    assert.match(GRID_CSS, /\[data-storefront-chrome="product-grid"\] > \*/);
     assert.doesNotMatch(GRID_CSS, /lg:\[grid-template-columns/);
   });
 });

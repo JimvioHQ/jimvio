@@ -285,7 +285,8 @@ export async function runCatalogScannerBatch(
     durationMs: Date.now() - start,
   };
 
-  if (!(await isScannerSchemaReady())) {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled() || !(await isScannerSchemaReady())) {
     return empty;
   }
 

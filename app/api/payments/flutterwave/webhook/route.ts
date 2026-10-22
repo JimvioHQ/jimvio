@@ -4,6 +4,7 @@ import {
   verifyFlutterwaveTransaction,
   validateFlutterwaveWebhookRequest,
   isFlutterwaveSuccessfulStatus,
+  isFlutterwaveRefundStatus,
   flutterwaveWebhookSecretConfigured,
 } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { eventName, txRef, txId, status, amount, currency, rawTxData } =
+  const { eventName, txRef, txId, status, amount, currency } =
     normalisePayload(rawParsed);
 
   console.info("[Flutterwave webhook] Event parsed", {
@@ -316,7 +317,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  // 6. Ignore non-successful events
+  // 6. Course refunds revoke enrollment without re-granting on later charge replays.
+  if (isFlutterwaveRefundStatus(status, eventName)) {
+    const { refundCoursePurchase } = await import("@/lib/community/courses/refund-purchase");
+    const courseRefund = await refundCoursePurchase(supabase, {
+      paymentRef: txRef,
+      providerTransactionId: txId != null ? String(txId) : txRef,
+    });
+    if (courseRefund.handled) {
+      return NextResponse.json({
+        received: true,
+        courseRefund: true,
+        courseId: courseRefund.courseId,
+        alreadyRefunded: courseRefund.alreadyRefunded,
+      });
+    }
+  }
+
+  // 7. Ignore non-successful events
   if (!isFlutterwaveSuccessfulStatus(status)) {
     console.info("[Flutterwave webhook] Non-successful status — ignoring", { status });
     return NextResponse.json({ received: true });

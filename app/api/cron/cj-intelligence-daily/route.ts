@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { runDailyScoreRecalc } from "@/lib/cj/premium-intelligence/refresh-jobs";
+import {
+  cjIntelligenceDisabledPayload,
+  isCjProductIntelligenceProcessingEnabled,
+} from "@/lib/cj/intelligence-kill-switch";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 
-/** Every 24 hours — trend, health, supplier recalculation */
+/** Disabled unless CJ_PRODUCT_INTELLIGENCE_ENABLED=true. */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return NextResponse.json(cjIntelligenceDisabledPayload({ rescored: 0 }));
+  }
 
   try {
     const result = await runDailyScoreRecalc();

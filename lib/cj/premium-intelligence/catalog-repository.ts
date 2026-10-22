@@ -138,6 +138,8 @@ export async function backfillIntelFilterSignals(
   limit = 250,
   offset = 0
 ): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   if (limit <= 0) return 0;
   const db = getCatalogDB();
   const from = Math.max(0, offset);
@@ -156,6 +158,8 @@ export async function backfillIntelFilterSignals(
 }
 
 export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return;
   if (pids.length === 0) return;
   const db = getCatalogDB();
   const rows = pids.map((pid) => ({
@@ -178,6 +182,8 @@ export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
 
 /** Create PENDING intelligence for every raw product missing a row. */
 export async function backfillIntelligenceFromRaw(): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   let backfilled = 0;
   let offset = 0;
@@ -217,6 +223,8 @@ export async function enqueueEnrichment(
   pids: string[],
   priority = 0
 ): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   if (pids.length === 0) return 0;
   const db = getCatalogDB();
   const now = new Date().toISOString();
@@ -240,6 +248,8 @@ export async function enqueueEnrichment(
 
 /** Enqueue all products not complete in intelligence table. */
 export async function enqueueMissingEnrichment(): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   let enqueued = 0;
   let offset = 0;
@@ -612,6 +622,8 @@ export async function getIntelligenceTotal(): Promise<number> {
 
 /** Skip full-table scan when every raw product already has intelligence. */
 export async function ensureIntelligenceBackfill(): Promise<void> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return;
   const [rawTotal, intelTotal] = await Promise.all([
     getRawCatalogTotal(),
     getIntelligenceTotal(),
@@ -625,6 +637,8 @@ export async function updateIntelligence(
   pid: string,
   patch: Partial<CjProductIntelligenceRow>
 ): Promise<void> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return;
   const db = getCatalogDB();
   const { error } = await db
     .from("cj_product_intelligence")

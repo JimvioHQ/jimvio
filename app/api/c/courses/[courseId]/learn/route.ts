@@ -3,19 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { assertCourseAccess } from "@/lib/community/courses/access";
 import { getProgress, submitQuiz } from "@/services/creator-economy/courses";
+import { quizPayloadForViewer } from "@/lib/community/courses/quiz-privacy";
 
 export const dynamic = "force-dynamic";
-
-function stripQuestions(questions: unknown) {
-  if (!Array.isArray(questions)) return [];
-  return questions.map((question) => {
-    if (!question || typeof question !== "object") return question;
-    const copy = { ...(question as Record<string, unknown>) };
-    delete copy.correctAnswer;
-    delete copy.answer;
-    return copy;
-  });
-}
 
 export async function GET(
   _req: NextRequest,
@@ -63,10 +53,9 @@ export async function GET(
       getProgress(courseId, user.id),
     ]);
 
-  const safeQuizzes = (quizzes ?? []).map((quiz) => ({
-    ...quiz,
-    questions: access.isStaff ? quiz.questions : stripQuestions(quiz.questions),
-  }));
+  const safeQuizzes = (quizzes ?? []).map((quiz) =>
+    quizPayloadForViewer(quiz as Record<string, unknown>, access.isStaff)
+  );
 
   return NextResponse.json({
     course,

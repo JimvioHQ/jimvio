@@ -13,12 +13,6 @@ function getSecretKey(): string {
   return key.trim().replace(/^["']|["']$/g, "");
 }
 
-function getWebhookSecret(): string {
-  const secret = getWebhookSecretOrNull();
-  if (!secret) throw new Error("FLW_WEBHOOK_SECRET is not configured in .env");
-  return secret;
-}
-
 function getWebhookSecretOrNull(): string | null {
   const secret = process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH;
   if (!secret) return null;
@@ -45,6 +39,18 @@ export function isFlutterwaveSuccessfulStatus(
     normalized === "successful" ||
     normalized === "succeeded" ||
     normalized === "completed"
+  );
+}
+
+export function isFlutterwaveRefundStatus(
+  status: string | null | undefined,
+  eventName?: string | null
+): boolean {
+  const normalized = `${status ?? ""} ${eventName ?? ""}`.toLowerCase();
+  return (
+    normalized.includes("refund") ||
+    normalized.includes("reversed") ||
+    normalized.includes("chargeback")
   );
 }
 

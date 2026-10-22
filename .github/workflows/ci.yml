@@ -1,5 +1,5 @@
-# Shared expression note:
-# runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted","linux","x64"]') }}
+# Default GitHub-hosted ubuntu-latest. The self-hosted runner is offline.
+# Set vars.USE_GITHUB_HOSTED_RUNNERS=false to force self-hosted.
 
 name: CI
 
@@ -21,7 +21,7 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'false' && fromJSON('["self-hosted", "linux", "x64"]') || fromJSON('["ubuntu-latest"]') }}
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -60,6 +60,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
+
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: Pre-push CI gate
         id: prepush
@@ -113,7 +116,7 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- runner: self-hosted by default (set USE_GITHUB_HOSTED_RUNNERS=true for ubuntu-latest)"
+            echo "- runner: ubuntu-latest by default (set USE_GITHUB_HOSTED_RUNNERS=false for self-hosted)"
             echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"

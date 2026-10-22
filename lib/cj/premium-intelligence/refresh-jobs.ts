@@ -21,7 +21,11 @@ export async function runSixHourRefresh(): Promise<{
 }
 
 /** 24-hour recalculation: trend, health, supplier scores for enriched products */
-export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
+export async function runDailyScoreRecalc(): Promise<{ rescored: number; disabled?: boolean }> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return { rescored: 0, disabled: true };
+  }
   const runId = await startSyncRun("score_recalc");
   const db = getCatalogDB();
 
