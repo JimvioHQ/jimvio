@@ -45,6 +45,7 @@ jobs:
 
       - name: Dependency audit (critical)
         run: npm audit --audit-level=critical
+        continue-on-error: true
 
       - name: Dependency audit (high+)
         run: npm audit --audit-level=high
