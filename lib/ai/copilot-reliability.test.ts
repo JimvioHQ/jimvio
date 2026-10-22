@@ -349,7 +349,7 @@ describe("jimvio knowledge", () => {
     const ugc = retrieveJimvioKnowledge("How do I submit UGC campaign content?");
     assert.match(ugc, /\/ugc\/submissions/);
     const verification = retrieveJimvioKnowledge("What does a rejected identity verification mean?");
-    assert.match(verification, /\/identity\/verification/);
+    assert.match(verification, /\/settings\/verification/);
     assert.match(verification, /cannot confirm verification/);
     const wallet = retrieveJimvioKnowledge("What should I do when a payment fails?");
     assert.match(wallet, /\/wallet\/transactions/);
@@ -417,7 +417,7 @@ describe("public guide wording", () => {
       { content: "Was my identity verification approved?" },
     ]);
     assert.match(account, /can't access your private account details/);
-    assert.match(account, /\/identity\/verification/);
+    assert.match(account, /\/settings\/verification/);
     assert.equal(account.includes(PRIVATE_ACCOUNT_GUIDE) || /can't access your private account details/.test(account), true);
     assert.equal(/approved your|your verification is/i.test(account), false);
     assert.equal(INTERNAL_LEAK.test(account), false);
