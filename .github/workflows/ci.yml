@@ -1,5 +1,5 @@
-# Default GitHub-hosted ubuntu-latest. The self-hosted runner is offline.
-# Set vars.USE_GITHUB_HOSTED_RUNNERS=false to force self-hosted.
+# Required checks run on GitHub-hosted ubuntu-latest. The previous
+# self-hosted Jimvio runner is offline and is not referenced here.
 
 name: CI
 
@@ -21,7 +21,7 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'false' && fromJSON('["self-hosted", "linux", "x64"]') || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -45,7 +45,6 @@ jobs:
 
       - name: Dependency audit (critical)
         run: npm audit --audit-level=critical
-        continue-on-error: true
 
       - name: Dependency audit (high+)
         run: npm audit --audit-level=high
@@ -117,7 +116,7 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- runner: ubuntu-latest by default (set USE_GITHUB_HOSTED_RUNNERS=false for self-hosted)"
+            echo "- runner: ubuntu-latest"
             echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"

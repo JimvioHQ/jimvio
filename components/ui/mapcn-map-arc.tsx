@@ -1,6 +1,7 @@
 "use client";
 
-import MapLibreGL, { type PopupOptions, type MarkerOptions } from "maplibre-gl";
+import * as MapLibreGL from "maplibre-gl";
+import type { MarkerOptions, PopupOptions } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
     createContext,
@@ -225,9 +226,9 @@ function MapMarker({ longitude, latitude, children, onClick, onMouseEnter, onMou
 
     const marker = useMemo(() => {
         const m = new MapLibreGL.Marker({ ...markerOptions, element: document.createElement("div"), draggable }).setLngLat([longitude, latitude]);
-        m.getElement()?.addEventListener("click", (e) => callbacksRef.current.onClick?.(e));
-        m.getElement()?.addEventListener("mouseenter", (e) => callbacksRef.current.onMouseEnter?.(e));
-        m.getElement()?.addEventListener("mouseleave", (e) => callbacksRef.current.onMouseLeave?.(e));
+        m.getElement()?.addEventListener("click", (e: MouseEvent) => callbacksRef.current.onClick?.(e));
+        m.getElement()?.addEventListener("mouseenter", (e: MouseEvent) => callbacksRef.current.onMouseEnter?.(e));
+        m.getElement()?.addEventListener("mouseleave", (e: MouseEvent) => callbacksRef.current.onMouseLeave?.(e));
         m.on("dragstart", () => { const l = m.getLngLat(); callbacksRef.current.onDragStart?.({ lng: l.lng, lat: l.lat }); });
         m.on("drag", () => { const l = m.getLngLat(); callbacksRef.current.onDrag?.({ lng: l.lng, lat: l.lat }); });
         m.on("dragend", () => { const l = m.getLngLat(); callbacksRef.current.onDragEnd?.({ lng: l.lng, lat: l.lat }); });
