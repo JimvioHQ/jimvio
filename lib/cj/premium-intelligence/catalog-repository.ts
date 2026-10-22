@@ -97,6 +97,8 @@ async function patchListIntelSignalsFromRaw(
   rows: Array<Omit<CjRawProductRow, "created_at" | "updated_at" | "list_synced_at">>,
   fullReplace = false
 ): Promise<void> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return;
   if (rows.length === 0) return;
   const db = getCatalogDB();
   const updates: Array<Record<string, unknown>> = [];
@@ -278,6 +280,8 @@ export async function enqueueMissingEnrichment(): Promise<number> {
 
 /** Reset intelligence rows incorrectly marked REQUIREMENTS_MISSING before enrichment. */
 export async function realignPendingEnrichmentStatus(limit = 500): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   const { data } = await db
     .from("cj_product_intelligence")
@@ -306,6 +310,8 @@ const STUCK_ENRICHMENT_MS = 15 * 60_000;
 
 /** Reset enrichment jobs stuck in processing state. */
 export async function resetStuckEnrichmentJobs(): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   const cutoff = new Date(Date.now() - STUCK_ENRICHMENT_MS).toISOString();
   let reset = 0;
@@ -861,6 +867,8 @@ export async function getCatalogMonitoring(): Promise<CatalogMonitoring> {
 }
 
 export async function retryFailedEnrichments(limit = 50): Promise<number> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   const { data } = await db
     .from("cj_enrichment_queue")

@@ -106,6 +106,8 @@ async function fixLiveProductIntelligence(
 export async function fixMisalignedLiveIntelligence(
   limit = RESTORE_BATCH
 ): Promise<{ scanned: number; fixed: number }> {
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) return { scanned: 0, fixed: 0 };
   const db = getCatalogDB();
   const admin = createAdminClient();
   const blacklisted = await getBlacklistedSupplierIds();
@@ -181,6 +183,12 @@ export async function restoreAggressiveUnpublishes(
     errors: 0,
     durationMs: 0,
   };
+
+  const { isCjProductIntelligenceProcessingEnabled } = await import("@/lib/cj/intelligence-kill-switch");
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    result.durationMs = Date.now() - start;
+    return result;
+  }
 
   const db = getCatalogDB();
   const admin = createAdminClient();

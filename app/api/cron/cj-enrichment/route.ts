@@ -7,6 +7,10 @@ import {
   realignPendingEnrichmentStatus,
   resetStuckEnrichmentJobs,
 } from "@/lib/cj/premium-intelligence";
+import {
+  cjIntelligenceDisabledPayload,
+  isCjProductIntelligenceProcessingEnabled,
+} from "@/lib/cj/intelligence-kill-switch";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import {
   releaseHeavyWorkerLock,
@@ -25,6 +29,10 @@ const TIME_BUDGET_MS = 240_000;
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
+
+  if (!isCjProductIntelligenceProcessingEnabled()) {
+    return NextResponse.json(cjIntelligenceDisabledPayload({ processed: 0 }));
+  }
 
   // Checkout freightCalculate needs daily API points. Stop enrichment when
   // Remaining: 0 so customers can still get shipping quotes after reset.

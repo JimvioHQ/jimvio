@@ -6,6 +6,7 @@ import {
   retryFailedEnrichments,
   syncCjListCatalog,
 } from "@/lib/cj/premium-intelligence";
+import { isCjProductIntelligenceProcessingEnabled } from "@/lib/cj/intelligence-kill-switch";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import {
   releaseHeavyWorkerLock,
@@ -61,13 +62,16 @@ export async function GET(req: Request) {
     await bootstrapCatalog({ runSyncIfEmpty: true, runEnrichment: false });
     const listSync = await syncCjListCatalog({ maxPages: 120 });
     await bootstrapCatalog({ runSyncIfEmpty: false, runEnrichment: false });
-    const retried = await retryFailedEnrichments(50);
-    const enrichment = await processEnrichmentQueue(20, {
-      maxDurationMs: 120_000,
-      useCheckpoint: true,
-      runId: lock.runId,
-      skipFinishRun: true,
-    });
+    const intelligenceEnabled = isCjProductIntelligenceProcessingEnabled();
+    const retried = intelligenceEnabled ? await retryFailedEnrichments(50) : 0;
+    const enrichment = intelligenceEnabled
+      ? await processEnrichmentQueue(20, {
+          maxDurationMs: 120_000,
+          useCheckpoint: true,
+          runId: lock.runId,
+          skipFinishRun: true,
+        })
+      : { processed: 0, succeeded: 0, failed: 0, skipped: 0, timedOut: false, metrics: undefined };
 
     await releaseHeavyWorkerLock(lock.runId, {
       status: "success",

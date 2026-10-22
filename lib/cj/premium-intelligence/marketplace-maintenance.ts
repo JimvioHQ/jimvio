@@ -10,6 +10,7 @@ import { logAutoPublishEvent } from "./auto-publish-events";
 import { runStockHealthMonitor } from "./auto-unpublish-monitor";
 import { restoreAggressiveUnpublishes, fixMisalignedLiveIntelligence } from "./marketplace-restore";
 import { realignPendingEnrichmentStatus, resetStuckEnrichmentJobs } from "./catalog-repository";
+import { isCjProductIntelligenceProcessingEnabled } from "@/lib/cj/intelligence-kill-switch";
 
 const STUCK_PROCESSING_MS = 15 * 60_000;
 
@@ -146,15 +147,17 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
   const repairedFlags = await repairActiveAutoUnpublishedProducts(300);
   result.restored += repairedFlags;
 
-  const restoreResult = await restoreAggressiveUnpublishes(200);
-  result.restored += restoreResult.restored;
-  result.intelligenceFixed = restoreResult.intelligenceFixed;
+  if (isCjProductIntelligenceProcessingEnabled()) {
+    const restoreResult = await restoreAggressiveUnpublishes(200);
+    result.restored += restoreResult.restored;
+    result.intelligenceFixed = restoreResult.intelligenceFixed;
 
-  await realignPendingEnrichmentStatus(500);
-  await resetStuckEnrichmentJobs();
+    await realignPendingEnrichmentStatus(500);
+    await resetStuckEnrichmentJobs();
 
-  const misaligned = await fixMisalignedLiveIntelligence(200);
-  result.intelligenceFixed += misaligned.fixed;
+    const misaligned = await fixMisalignedLiveIntelligence(200);
+    result.intelligenceFixed += misaligned.fixed;
+  }
 
   result.stuckQueueReset = await resetStuckAutoPublishJobs();
   result.stuckSignalReset = await resetStuckSignalJobs();
