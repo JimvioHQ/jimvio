@@ -1,4 +1,5 @@
 ﻿import { Organization, WebSite } from "schema-dts";
+import { CONCISE_DEFINITION, PUBLIC_ECOSYSTEM } from "@/lib/brand/positioning";
 import { SITE } from "@/lib/seo";
 import { JIMVIO_INSTAGRAM_URL, JIMVIO_LINKEDIN_URL, JIMVIO_TIKTOK_URL } from "@/lib/brand/social";
 
@@ -10,7 +11,7 @@ const organization: Organization = {
   "@id": orgId,
   name: SITE.name,
   legalName: SITE.name,
-  alternateName: ["Jimvio Marketplace", "Jimvio.com"],
+  alternateName: ["Jimvio.com"],
   url: SITE.url,
   logo: {
     "@type": "ImageObject",
@@ -19,7 +20,8 @@ const organization: Organization = {
     height: "512",
   },
   image: `${SITE.url}/jimvio-logo-mark.png`,
-  description: SITE.description,
+  description: CONCISE_DEFINITION,
+  knowsAbout: PUBLIC_ECOSYSTEM.map((item) => item.title),
   contactPoint: {
     "@type": "ContactPoint",
     email: "info@jimvio.com",
@@ -40,9 +42,9 @@ const website: WebSite = {
   "@type": "WebSite",
   "@id": websiteId,
   name: SITE.name,
-  alternateName: ["Jimvio", "Jimvio Marketplace"],
+  alternateName: ["Jimvio.com"],
   url: SITE.url,
-  description: SITE.description,
+  description: CONCISE_DEFINITION,
   publisher: { "@id": orgId },
   inLanguage: "en",
   potentialAction: {

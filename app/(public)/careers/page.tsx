@@ -119,12 +119,13 @@ export default async function CareersPage() {
             Careers
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)] sm:text-5xl md:text-6xl">
-            Build the platform behind{" "}
-            <span className="text-[#FF5A1F]">global creator commerce</span>
+            Build the all-in-one{" "}
+            <span className="text-[#FF5A1F]">creator commerce and digital business platform</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
-            Jimvio connects marketplace commerce, affiliates, UGC campaigns, communities, and
-            payouts so creators and businesses can earn without juggling disconnected tools.
+            Jimvio connects marketplace commerce, seller tools, affiliates, UGC and clipping,
+            communities, and supported payouts so people can build a digital business without
+            juggling disconnected tools. Availability varies by account and country.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a

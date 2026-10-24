@@ -9,11 +9,11 @@ import {
   Users,
 } from "lucide-react";
 import { ABOUT_FEATURES } from "@/lib/about/content";
+import { CONCISE_DEFINITION } from "@/lib/brand/positioning";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { SITE } from "@/lib/seo";
 
-const BOILERPLATE =
-  "Jimvio is the global creator commerce platform to sell products, run affiliate programs, launch UGC campaigns, and grow your community — free to start.";
+const BOILERPLATE = CONCISE_DEFINITION;
 
 const FACTS = [
   { label: "Company", value: "Jimvio Inc." },
@@ -69,10 +69,9 @@ export default async function PressPage() {
               {BOILERPLATE}
             </p>
             <p className="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)] sm:text-base">
-              Jimvio was founded to make earning online possible without gatekeepers, blocked
-              payment methods, or a requirement for millions of followers. Today the platform
-              connects marketplace commerce, UGC, affiliates, communities, wallet payouts, and
-              store integrations in one product.
+              Jimvio was founded to make earning online possible without gatekeepers or a
+              requirement for millions of followers. Product, payment, and payout availability
+              varies by country and account. Income is not guaranteed.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {platformHighlights.map((feature) => {

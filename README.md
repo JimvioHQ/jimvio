@@ -1,17 +1,17 @@
 "# Jimvio
 
-> Global Creator-Commerce Ecosystem
+> The all-in-one creator commerce and digital business platform
 
 ## Overview
 
-Jimvio is a Next.js + TypeScript creator-commerce platform built for creator storefronts, marketplace commerce, order management, vendor workflows, user-generated content, and multi-gateway payments.
+Jimvio is an all-in-one global creator-commerce and digital business platform. The public product includes marketplace commerce, seller and storefront tools, dropshipping inside Commerce, affiliate tracking, UGC and clipping campaigns, digital products, communities, live community sessions, wallet balances and supported payouts, and in-product AI assistance. Availability varies by account and country.
 
 The app uses:
 - Next.js 16 with App Router
 - TypeScript
 - Tailwind CSS
 - Prisma + Supabase/Postgres
-- Multi-provider payments (PesaPal, PawaPay, NowPayments, BinancePay, AfriPay)
+- Checkout and wallet payouts through the methods currently enabled in the product (card and mobile money via supported processors, crypto, bank, and Binance). PayPal, PesaPal, PawaPay, and AfriPay are not offered for new payments.
 - Shopify integration and webhook handling
 - OpenAI / Google generative APIs for AI-powered features
 

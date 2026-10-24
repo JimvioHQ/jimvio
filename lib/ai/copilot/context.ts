@@ -59,7 +59,7 @@ const CONTEXT_META: Record<CopilotPageContext, CopilotContextMeta> = {
   general: {
     id: "general",
     label: "Jimvio",
-    description: "Your creator commerce copilot across the platform.",
+    description: "Assistance across Jimvio’s creator commerce and digital business tools.",
     placeholder: "Ask Jimvio AI anything…",
   },
 };

@@ -22,35 +22,13 @@ import {
   jimvioStagger,
 } from "@/lib/motion/jimvio-motion";
 
+import { CLOSING_LINE, HERO_SUPPORT } from "@/lib/brand/positioning";
+
 const ORANGE_GRAD = "linear-gradient(90deg, #fd5000 0%, #ff7a33 55%, #ff9a5c 100%)";
 const CTA_GRAD = "linear-gradient(135deg, #ff7a33 0%, #fd5000 55%, #e84800 100%)";
 const PHRASE_EASE = jimvioEase;
-const PHRASE_INTERVAL_MS = 2800;
 const STAT_INTERVAL_MS = 4200;
 const STAT_TRANSITION_S = 0.28;
-
-const HERO_PHRASES = [
-  "Build Your Business",
-  "Monetize Knowledge",
-  "Earn Globally",
-  "Grow Your Audience",
-  "Create UGC",
-  "Sell Products",
-  "Build Communities",
-  "Launch Campaigns",
-  "Start a Business",
-  "Buy Products",
-  "Grow Your Brand",
-  "Make Money Online",
-  "Teach Online",
-  "Build Your Marketplace",
-  "Earn From Your Influence",
-  "Dropship Globally",
-] as const;
-
-const LONGEST_HERO_PHRASE = HERO_PHRASES.reduce((a, b) =>
-  a.length >= b.length ? a : b,
-);
 
 export type HeroLiveStats = {
   users: number;
@@ -172,51 +150,6 @@ function useInViewActive(ref: React.RefObject<HTMLElement | null>, enabled: bool
 
   return enabled && inView;
 }
-
-const HeroRotatingPhrase = memo(function HeroRotatingPhrase({
-  play,
-}: {
-  play: boolean;
-}) {
-  const [index, setIndex] = useState(0);
-  const reduced = usePrefersReducedMotion();
-
-  useEffect(() => {
-    if (!play || reduced) return;
-    const timer = setInterval(
-      () => setIndex((current) => (current + 1) % HERO_PHRASES.length),
-      PHRASE_INTERVAL_MS,
-    );
-    return () => clearInterval(timer);
-  }, [play, reduced]);
-
-  return (
-    <span className="relative mx-auto block w-full min-w-0 max-w-full">
-      <span
-        aria-hidden
-        className="invisible block whitespace-nowrap bg-clip-text leading-[1.08] text-transparent"
-        style={{ backgroundImage: ORANGE_GRAD }}
-      >
-        {LONGEST_HERO_PHRASE}
-      </span>
-      <span className="absolute inset-0 overflow-hidden">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.span
-            key={HERO_PHRASES[index]}
-            initial={reduced ? { opacity: 0 } : { y: 10, opacity: 0 }}
-            animate={reduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
-            exit={reduced ? { opacity: 0 } : { y: -10, opacity: 0 }}
-            transition={{ duration: 0.32, ease: PHRASE_EASE }}
-            className="block w-full whitespace-nowrap bg-clip-text leading-[1.08] text-transparent"
-            style={{ backgroundImage: ORANGE_GRAD }}
-          >
-            {HERO_PHRASES[index]}
-          </motion.span>
-        </AnimatePresence>
-      </span>
-    </span>
-  );
-});
 
 const HeroStatsRotatingBadge = memo(function HeroStatsRotatingBadge({
   play,
@@ -563,9 +496,9 @@ export function Hero() {
 
           <h1
             className={cn(
-              "mt-5 flex w-full flex-col items-center gap-1.5 font-black tracking-tight text-[var(--color-text-primary)] sm:gap-2.5",
-              "text-[clamp(1.4rem,4.8vw+0.45rem,1.7rem)]",
-              "sm:text-[clamp(2.15rem,6.2vw,3.85rem)]",
+              "mt-5 flex w-full max-w-[20rem] flex-col items-center gap-1.5 font-black tracking-tight text-[var(--color-text-primary)] sm:max-w-[820px] sm:gap-2",
+              "text-[clamp(1.7rem,6.4vw,2.05rem)]",
+              "sm:text-[clamp(2.2rem,5.2vw,3.45rem)]",
             )}
             style={{
               letterSpacing: "-0.038em",
@@ -577,27 +510,28 @@ export function Hero() {
               variants={enter}
               initial="hidden"
               animate="show"
-              className="block whitespace-nowrap"
+              className="block text-balance"
             >
-              The platform to
+              The all-in-one
             </motion.span>
             <motion.span
               custom={2}
               variants={enter}
               initial="hidden"
               animate="show"
-              className="block w-full"
+              className="block bg-clip-text text-balance text-transparent"
+              style={{ backgroundImage: ORANGE_GRAD }}
             >
-              <HeroRotatingPhrase play={inView} />
+              creator commerce
             </motion.span>
             <motion.span
               custom={3}
               variants={enter}
               initial="hidden"
               animate="show"
-              className="block whitespace-nowrap"
+              className="block max-w-[16ch] text-balance sm:max-w-none"
             >
-              Anywhere.
+              and digital business platform
             </motion.span>
           </h1>
 
@@ -608,9 +542,16 @@ export function Hero() {
             animate="show"
             className="mx-auto mt-4 max-w-[700px] text-[14px] leading-[1.5] tracking-[0.01em] text-[var(--color-text-muted)] sm:mt-6 sm:text-[16px] sm:leading-[1.5]"
           >
-            Sell products. Promote offers. Create content.
-            <br />
-            Build your community. Grow your audience — all in one place.
+            {HERO_SUPPORT}
+          </motion.p>
+          <motion.p
+            custom={4}
+            variants={enter}
+            initial="hidden"
+            animate="show"
+            className="mx-auto mt-2 max-w-[700px] text-[13px] font-semibold tracking-[-0.01em] text-[#111827] sm:text-[15px] dark:text-[var(--color-text-primary)]"
+          >
+            {CLOSING_LINE}
           </motion.p>
 
           <motion.div

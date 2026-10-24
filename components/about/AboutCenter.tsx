@@ -29,6 +29,11 @@ import {
   LOGO_MISUSE,
   type AboutSectionId,
 } from "@/lib/about/content";
+import {
+  BRAND_POSITIONING,
+  CONCISE_DEFINITION,
+  MASTER_DEFINITION_PARAGRAPHS,
+} from "@/lib/brand/positioning";
 import { cn } from "@/lib/utils";
 import { AboutHeroArt } from "./AboutHeroArt";
 import { AboutMobileNav } from "./AboutMobileNav";
@@ -216,7 +221,7 @@ export function AboutCenter() {
                     <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--color-text-secondary)] sm:text-[15px]">
                       We envision a world where creators, entrepreneurs, sellers, and brands can
                       build sustainable businesses, reach global audiences, and turn their ideas
-                      into real opportunities — without unnecessary barriers.
+                      into real opportunities — without unnecessary barriers. Jimvio is {BRAND_POSITIONING.replace(/^The /, "the ")}.
                     </p>
                     <div className="mt-6 flex flex-wrap gap-3">
                       <Link
@@ -316,9 +321,11 @@ export function AboutCenter() {
                   <h2 className="text-2xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)]">
                     What is Jimvio?
                   </h2>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    A complete ecosystem for creators, sellers, brands, and communities.
-                  </p>
+                  <div className="mt-3 max-w-3xl space-y-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                    {MASTER_DEFINITION_PARAGRAPHS.map((paragraph) => (
+                      <p key={paragraph.slice(0, 24)}>{paragraph}</p>
+                    ))}
+                  </div>
                 </div>
                 <Link
                   href="/marketplace"
@@ -434,7 +441,7 @@ export function AboutCenter() {
                 Our Ecosystem
               </h2>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                One login connecting discover, create, sell, promote, earn, and grow.
+                One login connecting discover, create, sell, connect, monetize, and grow.
               </p>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {ABOUT_ECOSYSTEM.map((item, index) => (
@@ -478,10 +485,11 @@ export function AboutCenter() {
                 Brand positioning
               </h2>
               <Card className="mt-4">
-                <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                  Jimvio is the global creator-commerce platform: marketplace, affiliates, UGC
-                  campaigns, communities, commerce integrations, and payouts — in one place, free
-                  to start.
+                <p className="text-sm font-semibold text-[#111827] dark:text-[var(--color-text-primary)]">
+                  {BRAND_POSITIONING}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                  {CONCISE_DEFINITION} Available features vary by account and country.
                 </p>
               </Card>
             </Section>

@@ -807,8 +807,8 @@ export function WhatToDoToday() {
               } as CSSProperties
             }
           >
-            Create, earn, sell and grow — all in one place. Choose a path and turn your next idea
-            into something real.
+            Create. Sell. Connect. Monetize. Grow — all in one place. Choose a path and turn your
+            next idea into something real.
           </RevealItem>
         </header>
 

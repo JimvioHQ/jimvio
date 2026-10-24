@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   BookOpen,
   Briefcase,
   Clapperboard,
@@ -27,6 +28,7 @@ import {
   Wallet,
   Wand2,
 } from "lucide-react";
+import { PUBLIC_ECOSYSTEM } from "@/lib/brand/positioning";
 import {
   formatPlatformStat,
   getPlatformStatsLaunchSnapshot,
@@ -240,85 +242,34 @@ export const ABOUT_IMPACT = [
   },
 ];
 
+const ABOUT_FEATURE_ICONS: Record<string, LucideIcon> = {
+  marketplace: ShoppingBag,
+  communities: Users,
+  affiliates: Handshake,
+  ugc: Clapperboard,
+  seller: Store,
+  digital: BookOpen,
+  dropshipping: Layers,
+  collaborations: Target,
+  live: Radio,
+  monetization: Sparkles,
+  payments: Wallet,
+  ai: Wand2,
+  global: Globe2,
+  growth: BarChart3,
+};
+
 export const ABOUT_FEATURES: Array<{
   title: string;
   description: string;
   href: string;
   icon: LucideIcon;
-}> = [
-  {
-    title: "Marketplace",
-    description: "Discover, buy, and sell physical and digital products.",
-    href: "/marketplace",
-    icon: ShoppingBag,
-  },
-  {
-    title: "Commerce",
-    description: "Manage stores, catalog sync, orders, and fulfillment.",
-    href: "/commerce",
-    icon: Store,
-  },
-  {
-    title: "Affiliates",
-    description: "Promote products and earn commissions with tracking links.",
-    href: "/affiliates",
-    icon: Handshake,
-  },
-  {
-    title: "UGC & Clipping",
-    description: "Connect brands, campaigns, and creators.",
-    href: "/ugc",
-    icon: Clapperboard,
-  },
-  {
-    title: "Communities",
-    description: "Build and join spaces for buyers, sellers, and creators.",
-    href: "/communities",
-    icon: Users,
-  },
-  {
-    title: "Digital Products",
-    description: "Sell courses, e-books, and other digital goods.",
-    href: "/marketplace/digital",
-    icon: BookOpen,
-  },
-  {
-    title: "Creator Monetization",
-    description: "Turn content and skills into income across Jimvio tools.",
-    href: "/creator",
-    icon: Sparkles,
-  },
-  {
-    title: "Brand Campaigns",
-    description: "Run creator collaborations through UGC and clipping.",
-    href: "/ugc",
-    icon: Target,
-  },
-  {
-    title: "Wallet & Payouts",
-    description: "Access supported earnings, withdrawals, and payout methods.",
-    href: "/wallet",
-    icon: Wallet,
-  },
-  {
-    title: "Live Commerce",
-    description: "Sell and engage through Jimvio live community tools.",
-    href: "/live-activities",
-    icon: Radio,
-  },
-  {
-    title: "Cross-Border Commerce",
-    description: "Reach buyers across supported markets with global checkout.",
-    href: "/marketplace",
-    icon: Globe2,
-  },
-  {
-    title: "AI assistance",
-    description: "Use Jimvio AI tools where they are already available in-product.",
-    href: "/ugc/creator-copilot",
-    icon: Wand2,
-  },
-];
+}> = PUBLIC_ECOSYSTEM.map((item) => ({
+  title: item.title,
+  description: item.description,
+  href: item.href,
+  icon: ABOUT_FEATURE_ICONS[item.id] ?? LayoutGrid,
+}));
 
 export const ABOUT_AUDIENCES = [
   {
@@ -355,9 +306,9 @@ export const ABOUT_ECOSYSTEM = [
   { title: "Discover", body: "Browse marketplace products, campaigns, and communities." },
   { title: "Create", body: "Publish content, storefronts, listings, and brand briefs." },
   { title: "Sell", body: "Take orders through Jimvio checkout and Commerce tools." },
-  { title: "Promote", body: "Share affiliate links and run UGC or clipping campaigns." },
-  { title: "Earn", body: "Track commissions, campaign payouts, and wallet balances." },
-  { title: "Grow", body: "Use communities, analytics, and global payouts to keep going." },
+  { title: "Connect", body: "Join communities, message members, and collaborate with brands on supported campaigns." },
+  { title: "Monetize", body: "Track sales, affiliate commissions, campaign payouts, and wallet balances. Income is not guaranteed." },
+  { title: "Grow", body: "Use communities, analytics, and supported payouts. Availability varies by country." },
 ];
 
 export const ABOUT_VALUES = [
@@ -390,7 +341,7 @@ export const ABOUT_VALUES = [
 export const ABOUT_COMMITMENTS = [
   "Transparent platform rules.",
   "Useful tools for creators and sellers.",
-  "Support for global opportunities, including payouts to 195 countries.",
+  "International reach, with shipping, checkout, and payouts that vary by country.",
   "Respect for trust, privacy, and account security.",
   "Continuous improvement based on user needs.",
 ];
@@ -414,7 +365,7 @@ export const ABOUT_TIMELINE = [
   {
     label: "Today",
     title: "Expanding Ecosystem",
-    body: "Jimvio now connects marketplace commerce, UGC, affiliates, communities, wallet payouts, and store integrations in one product.",
+    body: "Jimvio connects marketplace commerce, seller tools, dropshipping, affiliates, UGC, communities, live sessions, wallet payouts, and AI assistance in one product. Availability varies.",
   },
   {
     label: "Next",

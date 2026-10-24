@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { BRAND_TITLE, SEO_DESCRIPTION } from "@/lib/brand/positioning";
 import { getSiteUrl } from "@/lib/site-url";
 
 const siteUrl = getSiteUrl();
@@ -11,25 +12,26 @@ export const SITE = {
   twitter: "@jimvio",
   /** Brand-first title for Google site name & homepage SERP */
   title: "Jimvio",
-  tagline: "Global creator commerce platform",
-  description:
-    "Jimvio is the global creator commerce platform to sell products, run affiliate programs, launch UGC campaigns, and grow your community — free to start.",
+  tagline: "All-in-one creator commerce and digital business platform",
+  description: SEO_DESCRIPTION,
   keywords: [
     "Jimvio",
-    "Jimvio marketplace",
-    "creator marketplace",
-    "affiliate program",
+    "creator commerce",
+    "digital business platform",
+    "online marketplace",
+    "dropshipping",
+    "affiliate marketing",
     "UGC campaigns",
-    "sell online",
-    "creator community",
+    "digital products",
+    "creator communities",
+    "live commerce",
   ],
 } as const;
 
 export const PAGE_SEO = {
   home: {
-    title: "Jimvio — Global Creator Commerce Platform",
-    description:
-      "Sell products, run affiliate programs, launch UGC campaigns, and grow your creator community on one global commerce platform. Free to start on Jimvio.",
+    title: BRAND_TITLE,
+    description: SEO_DESCRIPTION,
     path: "/",
   },
   marketplace: {
@@ -83,12 +85,13 @@ export const PAGE_SEO = {
   about: {
     title: "About Jimvio",
     description:
-      "Why Jimvio exists: a borderless creator-commerce platform for marketplace, affiliates, UGC, communities, and payouts.",
+      "Jimvio is the all-in-one creator commerce and digital business platform for marketplace, affiliates, UGC, communities, and business tools.",
     path: "/about",
   },
   blog: {
     title: "Journal",
-    description: "News, guides, and updates from the Jimvio creator commerce platform.",
+    description:
+      "News, guides, and updates from Jimvio, the all-in-one creator commerce and digital business platform.",
     path: "/blog",
   },
   pricing: {
@@ -109,7 +112,7 @@ export const PAGE_SEO = {
   careers: {
     title: "Careers at Jimvio",
     description:
-      "Join Jimvio’s remote-first team building the global creator commerce platform — marketplace, affiliates, UGC, and communities.",
+      "Join Jimvio’s remote-first team building the all-in-one creator commerce and digital business platform.",
     path: "/careers",
   },
   press: {
@@ -132,7 +135,7 @@ export const PAGE_SEO = {
   },
   terms: {
     title: "Terms of service",
-    description: "Terms and conditions for using the Jimvio creator commerce platform.",
+    description: "Terms and conditions for using Jimvio.",
     path: "/terms",
   },
   privacy: {
@@ -213,7 +216,9 @@ export function constructMetadata({
           default: SITE.title,
           template: `%s | ${SITE.name}`,
         }
-      : title,
+      : path === "/"
+        ? { absolute: title }
+        : title,
     applicationName: SITE.name,
     description: metaDescription,
     keywords,
