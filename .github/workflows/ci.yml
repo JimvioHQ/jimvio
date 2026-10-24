@@ -35,7 +35,7 @@ jobs:
           echo "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  $archive" | sha256sum -c -
           tar -xzf "$archive" -C /tmp gitleaks
           # Scan the checkout, not a later node_modules tree. Git mode honors .gitignore.
-          /tmp/gitleaks detect --source . --redact --no-banner --exit-code 1
+          /tmp/gitleaks detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1
 
       - name: Setup Node
         uses: actions/setup-node@v5

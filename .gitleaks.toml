@@ -1,0 +1,22 @@
+title = "Jimvio"
+# Default rules stay on. This list covers build placeholders and identifier
+# strings that are not credentials. Do not add real tokens here.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "CI placeholders, localStorage key names, and demo rows"
+regexTarget = "line"
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVy''',
+  '''(?i)(storage_key|fixture_key|return_key|handoff_key)''',
+  '''pgp_sym_encrypt\(''',
+  '''lastUsed:''',
+  '''key: "faith\-reflection\-c1\"''',
+]
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+  '''(^|/)tmp/''',
+]
