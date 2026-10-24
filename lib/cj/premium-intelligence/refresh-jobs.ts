@@ -15,7 +15,7 @@ export async function runSixHourRefresh(): Promise<{
   listSync: Awaited<ReturnType<typeof syncCjListCatalog>>;
   enrichment: Awaited<ReturnType<typeof processEnrichmentQueue>>;
 }> {
-  const listSync = await syncCjListCatalog({ maxPages: 120 });
+  const listSync = await syncCjListCatalog({ maxPages: 20, maxDurationMs: 160_000 });
   const enrichment = await processEnrichmentQueue(25);
   return { listSync, enrichment };
 }

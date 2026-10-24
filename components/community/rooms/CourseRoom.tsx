@@ -1283,6 +1283,7 @@ export function DashboardCourseStudio({ roomId, communityId, onClose }: { roomId
     coverUrl: null,
     tagline: null,
     isPrivate: false,
+    isFree: true,
     joinedAt: null,
     userId: "dashboard-owner",
     currentUserId: "dashboard-owner",

@@ -13,6 +13,14 @@ import {
   type ProductTypeBucket,
   type VendorAuthSnapshot,
 } from "@/lib/products/authorization";
+import { configuredMaxFileBytes } from "@/lib/digital-products/trust/files";
+import { assessSubmission } from "@/lib/digital-products/trust/policy";
+import type { AcquisitionModel, SubmissionInput } from "@/lib/digital-products/trust/types";
+
+/** Loaded only for a digital save. Keeps the service-role client off unrelated imports. */
+function verificationRuntime() {
+  return import("@/lib/digital-products/trust/service");
+}
 
 export type SellerProductUpsertInput = {
   id?: string;
@@ -48,7 +56,76 @@ export type SellerProductUpsertInput = {
   is_flash_deal?: boolean;
   /** draft | submit — submit enters pending_review */
   intent: "draft" | "submit";
+  acquisition_model?: AcquisitionModel | null;
+  affiliate_destination_url?: string | null;
+  rightsholder_name?: string | null;
+  buyer_license_summary?: string | null;
+  refund_policy_note?: string | null;
+  compatibility_notes?: string | null;
+  update_policy?: string | null;
+  content_language?: string | null;
+  intended_audience?: string | null;
+  declarations_accepted?: boolean;
+  file_name?: string | null;
+  file_mime?: string | null;
+  file_size_bytes?: number | null;
+  evidence_url?: string | null;
+  evidence_file_name?: string | null;
 };
+
+function fileNameFromUrl(url?: string | null): string {
+  try {
+    return decodeURIComponent(new URL(url || "").pathname.split("/").pop() || "");
+  } catch {
+    return "";
+  }
+}
+
+function mimeFromName(name: string, fallback?: string | null): string | null {
+  if (fallback && fallback !== "application/octet-stream") return fallback;
+  const ext = name.toLowerCase().split(".").pop();
+  const map: Record<string, string> = {
+    pdf: "application/pdf",
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    zip: "application/zip",
+    epub: "application/epub+zip",
+    mp3: "audio/mpeg",
+    mp4: "video/mp4",
+    txt: "text/plain",
+    csv: "text/csv",
+  };
+  return (ext && map[ext]) || fallback || null;
+}
+
+function digitalSubmission(input: SellerProductUpsertInput): SubmissionInput {
+  const fileName = input.file_name || fileNameFromUrl(input.digital_file_url);
+  return {
+    intent: input.intent,
+    name: input.name,
+    description: input.description ?? null,
+    categoryId: input.category_id ?? null,
+    acquisitionModel: input.acquisition_model ?? "original_vendor_product",
+    fulfillmentMode: input.acquisition_model === "affiliate_only_product" ? "affiliate_redirect" : "download",
+    affiliateDestinationUrl: input.affiliate_destination_url ?? null,
+    rightsholderName: input.rightsholder_name ?? null,
+    buyerLicenseSummary: input.buyer_license_summary ?? null,
+    declarationsAccepted: Boolean(input.declarations_accepted),
+    fileName: fileName || null,
+    fileMime: mimeFromName(fileName, input.file_mime),
+    fileSizeBytes: input.file_size_bytes ?? null,
+    fileUrl: input.digital_file_url ?? null,
+    evidenceUrl: input.evidence_url ?? null,
+    evidenceFileName: input.evidence_file_name ?? null,
+    duplicateDigest: false,
+    refundPolicyNote: input.refund_policy_note ?? null,
+    compatibilityNotes: input.compatibility_notes ?? null,
+    updatePolicy: input.update_policy ?? null,
+    contentLanguage: input.content_language ?? null,
+    intendedAudience: input.intended_audience ?? null,
+  };
+}
 
 export type SellerProductUpsertResult =
   | { success: true; id: string; status: string; message: string }
@@ -155,6 +232,8 @@ export async function upsertSellerProduct(
   if (!auth.ok) {
     return { success: false, error: auth.message, code: auth.code };
   }
+  const seller = auth.vendor;
+  const sellerUserId = user.id;
 
   const isDigital = input.product_type === "digital";
   const resolvedType =
@@ -171,19 +250,37 @@ export async function upsertSellerProduct(
       .select("id, vendor_id, product_type, status")
       .eq("id", input.id)
       .maybeSingle();
-    if (!existing || existing.vendor_id !== auth.vendor.id) {
+    if (!existing || existing.vendor_id !== seller.id) {
       return { success: false, error: "Product not found.", code: "not_found" };
     }
     const existingBucket = toProductTypeBucket(existing.product_type);
     if (existingBucket === "digital" && input.product_type === "physical") {
-      const gate = assertCanCreateProductType(user.id, auth.vendor, "physical");
+      const gate = assertCanCreateProductType(sellerUserId, seller, "physical");
       if (!gate.ok) {
         return { success: false, error: gate.message, code: gate.code };
       }
     }
   }
 
-  if (isDigital && input.intent === "submit" && !input.digital_file_url) {
+  const trustReady = isDigital
+    ? await (await verificationRuntime()).verificationSchemaReady()
+    : false;
+  if (isDigital && !trustReady) {
+    return {
+      success: false,
+      error: "Digital listings cannot be saved until verification storage is available. Apply migration 168. Nothing was published.",
+      code: "verification_unavailable",
+    };
+  }
+  if (isDigital && trustReady) {
+    const assessed = assessSubmission(
+      digitalSubmission(input),
+      configuredMaxFileBytes(process.env.DIGITAL_PRODUCT_MAX_BYTES),
+    );
+    if (input.intent === "submit" && !assessed.ok) {
+      return { success: false, error: assessed.errors[0] || "The submission is incomplete.", code: "verification" };
+    }
+  } else if (isDigital && input.intent === "submit" && !input.digital_file_url) {
     return {
       success: false,
       error: "Add a digital file or access URL before submitting for review.",
@@ -249,12 +346,45 @@ export async function upsertSellerProduct(
     is_flash_deal: Boolean(input.is_flash_deal),
     status,
     is_active: status === "pending_review" || status === "draft",
-    vendor_id: auth.vendor.id,
+    vendor_id: seller.id,
     source: "vendor",
     submitted_for_review_at: input.intent === "submit" ? new Date().toISOString() : null,
     // Force unpublished until approved — marketplace requires status=active
     published_at: null,
   };
+
+  if (trustReady && isDigital) {
+    Object.assign(payload, {
+      acquisition_model: input.acquisition_model || "original_vendor_product",
+      fulfillment_mode: input.acquisition_model === "affiliate_only_product" ? "affiliate_redirect" : "download",
+      affiliate_destination_url: input.affiliate_destination_url || null,
+      rightsholder_name: input.rightsholder_name || null,
+      digital_verification_state: input.intent === "submit" ? "submitted" : "draft",
+      buyer_license_summary: input.buyer_license_summary || null,
+      refund_policy_note: input.refund_policy_note || null,
+      compatibility_notes: input.compatibility_notes || null,
+      update_policy: input.update_policy || null,
+      content_language: input.content_language || null,
+      intended_audience: input.intended_audience || null,
+      declarations_accepted_at: input.declarations_accepted ? new Date().toISOString() : null,
+    });
+  }
+
+  async function recordTrust(productId: string): Promise<string | null> {
+    if (!isDigital || !trustReady) return null;
+    const { engageProductVerification } = await verificationRuntime();
+    const recorded = await engageProductVerification({
+      productId,
+      vendorId: seller.id,
+      actorUserId: sellerUserId,
+      submission: digitalSubmission(input),
+    });
+    if (!recorded.ok) return recorded.error;
+    if (input.intent === "submit" && recorded.scanStatus === "unavailable") {
+      return "SUBMITTED_UNSCANNED";
+    }
+    return null;
+  }
 
   // Strip fields clients must never force to active/published
   if (input.intent === "submit") {
@@ -267,12 +397,16 @@ export async function upsertSellerProduct(
       .from("products")
       .update(payload as never)
       .eq("id", input.id)
-      .eq("vendor_id", auth.vendor.id)
+      .eq("vendor_id", seller.id)
       .select("id, status")
       .single();
     if (error) {
       console.error("[upsertSellerProduct] update", error.message);
       return { success: false, error: "Could not save product." };
+    }
+    const trustNote = await recordTrust(data.id);
+    if (trustNote && trustNote !== "SUBMITTED_UNSCANNED") {
+      return { success: false, error: trustNote, code: "verification" };
     }
     revalidatePath("/seller/products");
     revalidatePath("/marketplace/new");
@@ -281,9 +415,11 @@ export async function upsertSellerProduct(
       id: data.id,
       status: data.status as string,
       message:
-        input.intent === "submit"
-          ? "Submitted for review. Your product will appear on Marketplace after approval."
-          : "Draft saved.",
+        trustNote === "SUBMITTED_UNSCANNED"
+          ? "Submitted for review. No malware scanner is configured, so this file cannot be published until scanning is available and a reviewer approves it."
+          : input.intent === "submit"
+            ? "Submitted for review. It can be published only after the required checks and a reviewer approval."
+            : "Draft saved.",
     };
   }
 
@@ -299,11 +435,15 @@ export async function upsertSellerProduct(
     const admin = createServiceRoleClient() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const { data: inserted, error: adminErr } = await admin
       .from("products")
-      .insert({ ...payload, vendor_id: auth.vendor.id })
+      .insert({ ...payload, vendor_id: seller.id })
       .select("id, status")
       .single();
     if (adminErr || !inserted) {
       return { success: false, error: "Could not create product." };
+    }
+    const trustNote = await recordTrust(inserted.id);
+    if (trustNote && trustNote !== "SUBMITTED_UNSCANNED") {
+      return { success: false, error: trustNote, code: "verification" };
     }
     revalidatePath("/seller/products");
     return {
@@ -311,12 +451,18 @@ export async function upsertSellerProduct(
       id: inserted.id,
       status: inserted.status,
       message:
-        input.intent === "submit"
-          ? "Submitted for review. Your product will appear on Marketplace after approval."
-          : "Draft saved.",
+        trustNote === "SUBMITTED_UNSCANNED"
+          ? "Submitted for review. No malware scanner is configured, so this file cannot be published until scanning is available and a reviewer approves it."
+          : input.intent === "submit"
+            ? "Submitted for review. It can be published only after the required checks and a reviewer approval."
+            : "Draft saved.",
     };
   }
 
+  const trustNote = await recordTrust(data.id);
+  if (trustNote && trustNote !== "SUBMITTED_UNSCANNED") {
+    return { success: false, error: trustNote, code: "verification" };
+  }
   revalidatePath("/seller/products");
   revalidatePath("/marketplace/new");
   return {
@@ -324,9 +470,11 @@ export async function upsertSellerProduct(
     id: data.id,
     status: data.status as string,
     message:
-      input.intent === "submit"
-        ? "Submitted for review. Your product will appear on Marketplace after approval."
-        : "Draft saved.",
+      trustNote === "SUBMITTED_UNSCANNED"
+        ? "Submitted for review. No malware scanner is configured, so this file cannot be published until scanning is available and a reviewer approves it."
+        : input.intent === "submit"
+          ? "Submitted for review. It can be published only after the required checks and a reviewer approval."
+          : "Draft saved.",
   };
 }
 

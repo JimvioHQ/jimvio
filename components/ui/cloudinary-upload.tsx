@@ -408,12 +408,14 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 interface CloudinaryUploadButtonProps {
   folder: CloudinaryFolder;
   resourceType?: "image" | "video" | "raw";
-  onUploadSuccess: (url: string, publicId: string) => void;
+  onUploadSuccess: (url: string, publicId: string, meta?: { bytes?: number; originalFilename?: string; format?: string }) => void;
   onUploadError?: (error: string) => void;
   buttonText?: string;
   className?: string;
   /** Mirrors shadcn Button variant — wired to the button style below */
   variant?: "default" | "outline" | "ghost" | "secondary";
+  accessType?: "public" | "private" | "authenticated";
+  maxBytes?: number;
 }
 
 /* ─── helpers ──────────────────────────────────────────────── */
@@ -433,10 +435,12 @@ function getAccept(resourceType: "image" | "video" | "raw") {
 function validateFile(
   file: File,
   resourceType: "image" | "video" | "raw",
+  maxBytes = MAX_BYTES,
 ): string | null {
-  if (file.size > MAX_BYTES) {
+  if (file.size > maxBytes) {
     const mb = (file.size / 1024 / 1024).toFixed(1);
-    return `File is ${mb} MB — max 10 MB allowed`;
+    const limit = Math.round(maxBytes / 1024 / 1024);
+    return `File is ${mb} MB — max ${limit} MB allowed`;
   }
   if (resourceType === "image" && !file.type.startsWith("image/")) {
     return "Only image files are accepted here";
@@ -485,6 +489,8 @@ export function CloudinaryUploadButton({
   buttonText = "Upload File",
   className,
   variant = "outline",
+  accessType = "public",
+  maxBytes = MAX_BYTES,
 }: CloudinaryUploadButtonProps) {
   const { upload, uploading, progress, cancelUpload } =
     useCloudinaryUpload(folder);
@@ -501,7 +507,7 @@ export function CloudinaryUploadButton({
       setLocalError(null);
 
       // Client-side validation before hitting the network
-      const validationError = validateFile(file, resourceType);
+      const validationError = validateFile(file, resourceType, maxBytes);
       if (validationError) {
         setLocalError(validationError);
         onUploadError?.(validationError);
@@ -510,10 +516,14 @@ export function CloudinaryUploadButton({
       }
 
       // upload() now returns { url, publicId } | { error: string } | null
-      const result = await upload(file, resourceType);
+      const result = await upload(file, resourceType, accessType);
 
       if (result && "url" in result) {
-        onUploadSuccess(result.url, result.publicId);
+        onUploadSuccess(result.url, result.publicId, {
+          bytes: result.bytes,
+          format: result.format,
+          originalFilename: file.name,
+        });
         setDone(true);
         setTimeout(() => setDone(false), 2500);
       } else if (result && "error" in result) {
@@ -523,7 +533,7 @@ export function CloudinaryUploadButton({
 
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
-    [upload, resourceType, onUploadSuccess, onUploadError],
+    [upload, resourceType, accessType, maxBytes, onUploadSuccess, onUploadError],
   );
 
   const baseStyle = variantBase[variant];

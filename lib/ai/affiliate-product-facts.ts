@@ -8,11 +8,10 @@ import {
   AFFILIATE_PROMOTION_ASSETS,
   type AffiliateAuthoritativeContext,
 } from "@/lib/ai/affiliate-workspace";
-import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
+import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
 import {
   DEFAULT_AFFILIATE_COMMISSION_PERCENT,
   PLATFORM_CURRENCY,
-  toPlatformUsd,
 } from "@/lib/currency/platform";
 import { getSiteUrl } from "@/lib/site-url";
 
@@ -88,14 +87,14 @@ export function assembleAffiliateProductContext(
   const descriptionSource = row.description || row.short_description || "";
   const description = affiliatePlainText(descriptionSource).slice(0, 700);
   const benefits = deriveAffiliateBenefits(descriptionSource, row.features ?? []);
-  const price = toPlatformUsd(Number(row.price ?? 0), row.currency);
-  const fixed = row.affiliate_price != null ? toPlatformUsd(Number(row.affiliate_price), row.currency) : 0;
-  const offer = resolveAffiliateOffer({
-    priceUsd: price,
+  const offer = offerForAffiliateProduct({
+    price: Number(row.price ?? 0),
+    currency: row.currency,
     configuredPercent: row.affiliate_commission_rate,
     fallbackPercent: options.defaultCommissionPercent ?? DEFAULT_AFFILIATE_COMMISSION_PERCENT,
-    fixedEarningUsd: fixed,
+    fixedEarning: row.affiliate_price,
   });
+  const price = offer.priceUsd;
   const commissionPercent = offer.rate ?? 0;
   const estimated = offer.earningUsd;
   const trackingPath = options.trackingPath?.trim() || null;

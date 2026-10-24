@@ -1,6 +1,6 @@
 import { getImage } from "@/lib/utils";
-import { formatAffiliateRate, resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
-import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
+import { formatAffiliateRate, offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import type { AffiliateSpotlightProduct } from "@/components/affiliate/sections/shared";
 
 type RawAffiliateProduct = {
@@ -28,17 +28,14 @@ export function mapAffiliateSpotlightProduct(
   defaultCommissionPercent: number
 ): AffiliateSpotlightProduct {
   const cat = p.product_categories?.name ?? p.product_type ?? "General";
-  const priceUsd = toPlatformUsd(Number(p.price), p.currency);
-  const fixedEarn =
-    p.affiliate_price != null && Number(p.affiliate_price) > 0
-      ? toPlatformUsd(Number(p.affiliate_price), p.currency)
-      : null;
-  const offer = resolveAffiliateOffer({
-    priceUsd,
+  const offer = offerForAffiliateProduct({
+    price: Number(p.price),
+    currency: p.currency,
     configuredPercent: p.affiliate_commission_rate,
     fallbackPercent: defaultCommissionPercent,
-    fixedEarningUsd: fixedEarn,
+    fixedEarning: p.affiliate_price,
   });
+  const priceUsd = offer.priceUsd;
   const rate = offer.rate ?? 0;
   const earning = offer.earningUsd;
   const verification = p.vendors?.verification_status?.toLowerCase() ?? "";

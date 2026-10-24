@@ -582,10 +582,7 @@ function OrderItemRow({
         <div className="mt-1.5 flex flex-wrap items-center gap-3">
           {isDigital && hasUrl && (
             <Link
-              href={item.digital_download_url!}
-              target="_blank"
-              rel="noopener noreferrer"
-              {...(downloadable && { download: true })}
+              href={`/api/downloads/order-item/${item.id}`}
               className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-accent)] transition-colors hover:underline"
             >
               {downloadable ? <Download className="h-3 w-3" /> : <ExternalLink className="h-3 w-3" />}
@@ -1048,10 +1045,7 @@ function DigitalAssetsPanel({ order, celebratory = false }: {
             return (
               <li key={item.id}>
                 <Link
-                  href={item.digital_download_url!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...(downloadable && { download: true })}
+                  href={`/api/downloads/order-item/${item.id}`}
                   className="group flex items-center gap-2.5 border border-[var(--color-border)] p-2.5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-0.5 hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-light)] hover:shadow-[var(--shadow-sm)]"
                   style={{ borderRadius: "var(--radius-sm)" }}
                 >

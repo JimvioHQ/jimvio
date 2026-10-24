@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 import { createClient } from "@/lib/supabase/server";
+
+function leaderboardFailure(error: { message?: string } | null) {
+  if (!error) return null;
+  logCommunityFailure("leaderboard", error);
+  return NextResponse.json(
+    { error: publicErrorMessage(error, "Could not load leaderboard") },
+    { status: 500 },
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +30,14 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
 
   if (tab === "affiliates") {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("affiliates")
       .select("id, user_id, total_earnings, total_conversions")
       .eq("is_active", true)
       .order("total_earnings", { ascending: false })
       .limit(25);
+    const failure = leaderboardFailure(error);
+    if (failure) return failure;
     const profiles = await profileMap(
       supabase,
       (data ?? []).map((r) => r.user_id).filter(Boolean)
@@ -46,11 +58,13 @@ export async function GET(req: NextRequest) {
   }
 
   if (tab === "ugc") {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("influencers")
       .select("id, user_id, total_earnings")
       .order("total_earnings", { ascending: false })
       .limit(25);
+    const failure = leaderboardFailure(error);
+    if (failure) return failure;
     const profiles = await profileMap(
       supabase,
       (data ?? []).map((r) => r.user_id).filter(Boolean)
@@ -71,12 +85,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (tab === "communities") {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("communities")
       .select("id, name, slug, member_count, post_count")
       .eq("is_active", true)
       .order("member_count", { ascending: false })
       .limit(25);
+    const failure = leaderboardFailure(error);
+    if (failure) return failure;
     return NextResponse.json({
       rows: (data ?? []).map((row, i) => ({
         id: row.id,
@@ -90,12 +106,14 @@ export async function GET(req: NextRequest) {
   }
 
   if (tab === "brands") {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("vendors")
       .select("id, business_name, business_slug, total_sales, verification_status")
       .eq("is_active", true)
       .order("total_sales", { ascending: false })
       .limit(25);
+    const failure = leaderboardFailure(error);
+    if (failure) return failure;
     return NextResponse.json({
       rows: (data ?? []).map((row, i) => ({
         id: row.id,
@@ -108,11 +126,13 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const { data: points } = await supabase
+  const { data: points, error } = await supabase
     .from("member_points")
     .select("user_id, total_points, level")
     .order("total_points", { ascending: false })
     .limit(60);
+  const failure = leaderboardFailure(error);
+  if (failure) return failure;
 
   const profiles = await profileMap(
     supabase,

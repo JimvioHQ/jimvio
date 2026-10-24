@@ -4,6 +4,8 @@
  * Historical paid rows are never rewritten by these helpers.
  */
 
+import { toPlatformUsd } from "@/lib/currency/platform";
+
 const TIER_CAPS = [
   { maxCents: 500, rate: 18 },
   { maxCents: 1500, rate: 16.5 },
@@ -78,4 +80,41 @@ export function resolveAffiliateOffer(input: {
     rate,
     earningUsd: Math.round(input.priceUsd * (rate / 100) * 100) / 100,
   };
+}
+
+/** USD and RWF are the only currencies with a real conversion. */
+export function isSupportedAffiliateCurrency(currency: string | null | undefined): boolean {
+  const code = (currency || "USD").trim().toUpperCase();
+  return code === "USD" || code === "RWF";
+}
+
+/**
+ * Canonical offer from the stored sale price.
+ * A client-supplied percent is accepted on the input and never applied.
+ * Unsupported currencies produce no commission instead of a guessed FX rate.
+ */
+export function offerForAffiliateProduct(input: {
+  price: number;
+  currency?: string | null;
+  configuredPercent?: number | null;
+  fallbackPercent?: number | null;
+  fixedEarning?: number | null;
+  clientPercent?: number | null;
+}): { rate: number | null; earningUsd: number; priceUsd: number } {
+  if (!isSupportedAffiliateCurrency(input.currency)) {
+    return { rate: null, earningUsd: 0, priceUsd: 0 };
+  }
+  const priceUsd = toPlatformUsd(Number(input.price), input.currency);
+  const fixedRaw = Number(input.fixedEarning);
+  const fixedEarningUsd =
+    Number.isFinite(fixedRaw) && fixedRaw > 0
+      ? toPlatformUsd(fixedRaw, input.currency)
+      : null;
+  const offer = resolveAffiliateOffer({
+    priceUsd,
+    configuredPercent: input.configuredPercent,
+    fallbackPercent: input.fallbackPercent,
+    fixedEarningUsd,
+  });
+  return { ...offer, priceUsd };
 }

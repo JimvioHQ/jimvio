@@ -9,6 +9,8 @@ import {
   getLinkMetricsMap,
   mergeLinkMetrics,
 } from "@/lib/affiliate/link-metrics";
+import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
+import { DEFAULT_AFFILIATE_COMMISSION_PERCENT } from "@/lib/currency/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export async function GET(req: NextRequest) {
   let query = client
     .from("affiliate_links")
     .select(
-      "id, link_code, custom_slug, destination_url, full_url, commission_rate, total_clicks, unique_clicks, total_conversions, total_earnings, is_active, expires_at, created_at, product_id, products(id, name, slug, images, currency, price)"
+      "id, link_code, custom_slug, destination_url, full_url, commission_rate, total_clicks, unique_clicks, total_conversions, total_earnings, is_active, expires_at, created_at, product_id, products(id, name, slug, images, currency, price, affiliate_commission_rate, affiliate_price)"
     )
     .eq("affiliate_id", auth.affiliate!.id)
     .order("created_at", { ascending: false })
@@ -78,7 +80,18 @@ export async function GET(req: NextRequest) {
           ? l.full_url
           : generateAffiliateUrl(site, l.link_code),
       shortUrl: `${site}/ref/${l.link_code}`,
-      commissionRate: l.commission_rate != null ? Number(l.commission_rate) : null,
+      commissionRate: l.products
+        ? offerForAffiliateProduct({
+            price: Number(l.products.price ?? 0),
+            currency: l.products.currency,
+            configuredPercent: l.products.affiliate_commission_rate,
+            fallbackPercent: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+            fixedEarning: l.products.affiliate_price,
+            clientPercent: l.commission_rate,
+          }).rate
+        : l.commission_rate != null
+          ? Number(l.commission_rate)
+          : null,
       clicks: metrics.clicks,
       uniqueClicks: Number(l.unique_clicks ?? 0),
       conversions: metrics.conversions,
@@ -118,16 +131,13 @@ export async function POST(req: NextRequest) {
     typeof body?.destinationUrl === "string" ? body.destinationUrl.trim() : "";
   let vendorId =
     typeof body?.vendorId === "string" ? body.vendorId : null;
-  let commissionRate =
-    body?.commissionRate != null && Number.isFinite(Number(body.commissionRate))
-      ? Number(body.commissionRate)
-      : null;
+  let commissionRate: number | null = null;
 
   if (productId) {
     const { data: product, error: productError } = await client
       .from("products")
       .select(
-        "id, slug, vendor_id, status, is_active, deleted_at, affiliate_enabled, affiliate_commission_rate"
+        "id, slug, vendor_id, status, is_active, deleted_at, affiliate_enabled, affiliate_commission_rate, affiliate_price, price, currency"
       )
       .eq("id", productId)
       .maybeSingle();
@@ -165,9 +175,14 @@ export async function POST(req: NextRequest) {
       destinationUrl = canonicalDest;
     }
     vendorId = product.vendor_id ?? vendorId;
-    if (commissionRate == null && product.affiliate_commission_rate != null) {
-      commissionRate = Number(product.affiliate_commission_rate);
-    }
+    commissionRate = offerForAffiliateProduct({
+      price: Number(product.price ?? 0),
+      currency: product.currency,
+      configuredPercent: product.affiliate_commission_rate,
+      fallbackPercent: DEFAULT_AFFILIATE_COMMISSION_PERCENT,
+      fixedEarning: product.affiliate_price,
+      clientPercent: body?.commissionRate,
+    }).rate;
   }
 
   if (!destinationUrl) {

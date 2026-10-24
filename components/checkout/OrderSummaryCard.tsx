@@ -47,11 +47,9 @@ export function OrderSummaryCard({
 }: OrderSummaryCardProps) {
     const [detailsOpen, setDetailsOpen] = useState(false);
 
-    // Default feature list for digital products
     const defaultFeatures = [
-        "Digital product · Instant access after payment",
-        "Access on all devices · Mobile, tablet & desktop",
-        "Lifetime access · One-time payment",
+        "Payment first · Download access is created only after payment is confirmed",
+        "Refunds · Eligibility follows the product terms. A download does not end it by itself",
     ];
     const featureList = features ?? (isAllDigital ? defaultFeatures : []);
     const heroItem = items[0];

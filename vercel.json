@@ -29,6 +29,10 @@
       "schedule": "*/30 * * * *"
     },
     {
+      "path": "/api/cron/digital-license-expiry",
+      "schedule": "15 4 * * *"
+    },
+    {
       "path": "/api/cron/cj-supplier-health",
       "schedule": "*/30 * * * *"
     },

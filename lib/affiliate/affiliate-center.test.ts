@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import { mergeLinkMetrics } from "./link-metrics";
 import { resolveWorkspaceNavActive, WORKSPACES } from "../workspace/config";
 import { isWithinAttributionWindow } from "./attribution";
@@ -43,6 +46,49 @@ describe("affiliate workspace nav active", () => {
       resolveWorkspaceNavActive("/affiliates/payouts", "affiliates"),
       "payouts"
     );
+  });
+
+  it("shows the capped affiliate offer on the AI promotion page", () => {
+    const root = dirname(fileURLToPath(import.meta.url));
+    const source = readFileSync(
+      join(root, "../../app/(public)/affiliates/ai/page.tsx"),
+      "utf8",
+    );
+    const client = readFileSync(
+      join(root, "../../components/affiliate/AffiliateAiClient.tsx"),
+      "utf8",
+    );
+    assert.match(source, /offerForAffiliateProduct/);
+    assert.match(source, /affiliate_price/);
+    assert.match(source, /earning: offer\.earningUsd/);
+    assert.match(client, /formatAffiliateRate\(selected\.rate\)/);
+    assert.match(client, /selected\.earning/);
+    assert.doesNotMatch(source, /rate: Number\(row\.affiliate_commission_rate/);
+  });
+
+  it("stores the server offer on new links and ignores a client commission", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../app/api/affiliates/links/route.ts"),
+      "utf8",
+    );
+    assert.match(source, /offerForAffiliateProduct/);
+    assert.match(source, /clientPercent: body\?\.commissionRate/);
+    assert.doesNotMatch(source, /body\?\.commissionRate != null && Number\.isFinite/);
+    assert.doesNotMatch(source, /commissionRate = Number\(product\.affiliate_commission_rate\)/);
+  });
+
+  it("caps the legacy order action and leaves refunds on the recorded amount", () => {
+    const root = dirname(fileURLToPath(import.meta.url));
+    const orders = readFileSync(join(root, "../actions/orders.ts"), "utf8");
+    const commissions = readFileSync(join(root, "commissions.ts"), "utf8");
+    const attribution = readFileSync(join(root, "attribution.ts"), "utf8");
+    assert.match(orders, /offerForAffiliateProduct/);
+    assert.doesNotMatch(orders, /\(totalPrice \* commissionRate\) \/ 100/);
+    assert.match(attribution, /resolveAffiliateOffer/);
+    assert.match(attribution, /isSupportedAffiliateCurrency/);
+    assert.match(commissions, /original_commission_amount/);
+    assert.doesNotMatch(commissions, /resolveAffiliateOffer|offerForAffiliateProduct/);
+    assert.match(commissions, /if \(existing\) return \{ created: false/);
   });
 
   it("does not keep the affiliate sidebar promotional card", () => {

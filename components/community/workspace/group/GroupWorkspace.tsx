@@ -17,6 +17,9 @@ import type { MembershipLite } from "@/lib/community-workspace-access";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import { SpaceSettingsDialog } from "@/components/community/workspace/space/SpaceSettingsDialog";
+import { discussionComposerGate } from "@/lib/community/workspace/discussion-composer";
+import { isAnnouncementOnlyRoom, isGroupDiscussionRoom } from "@/lib/community/workspace/channel-posting";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 import { GroupHeader } from "./GroupHeader";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
@@ -33,6 +36,7 @@ export function GroupWorkspace({
   membership,
   memberCount,
   isStaff,
+  isFree = null,
   ownerName: _ownerName,
   communityAvatar,
   communityCover,
@@ -45,6 +49,7 @@ export function GroupWorkspace({
   membership: MembershipLite | null;
   memberCount?: number;
   isStaff?: boolean;
+  isFree?: boolean | null;
   ownerName?: string | null;
   communityAvatar?: string | null;
   communityCover?: string | null;
@@ -56,6 +61,7 @@ export function GroupWorkspace({
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
   const [ensureAttempt, setEnsureAttempt] = useState(0);
+  const [joining, setJoining] = useState(false);
 
   const roleInput = useMemo(
     () => ({ userId, ownerId, membership }),
@@ -97,16 +103,39 @@ export function GroupWorkspace({
       posting?.canPublish
   );
 
-  const readOnlyCopy = useMemo(() => {
-    const restricted =
-      posting && !posting.canPublish && Boolean(userId) && membership?.status === "active";
-    if (!restricted) return null;
-    return {
-      title: "Only admins can send messages in this Space.",
-      description:
-        "You can read the conversation and scroll history. Messaging is limited to community admins.",
-    };
-  }, [posting, userId, membership?.status]);
+  const memberDiscussion = Boolean(
+    discussionRoom &&
+      isGroupDiscussionRoom(discussionRoom) &&
+      !isAnnouncementOnlyRoom(discussionRoom)
+  );
+
+  const composerGate = useMemo(
+    () =>
+      discussionComposerGate({
+        userId,
+        membershipStatus: membership?.status,
+        isStaff,
+        canPublish: Boolean(posting?.canPublish),
+        isFree,
+        memberDiscussion,
+      }),
+    [userId, membership?.status, isStaff, posting?.canPublish, isFree, memberDiscussion]
+  );
+
+  const joinCommunity = useCallback(async () => {
+    setJoining(true);
+    try {
+      const res = await fetch(`/api/communities/${communitySlug}/join`, { method: "POST" });
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(payload?.error || "Could not join this community");
+      toast.success("You joined this community");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not join this community");
+    } finally {
+      setJoining(false);
+    }
+  }, [communitySlug, router]);
 
   useEffect(() => {
     if (resolvedFromSpace || ensuredRoom) return;
@@ -204,8 +233,34 @@ export function GroupWorkspace({
             canPost={canPost}
             emptyTitle="No messages yet"
             emptyDescription="Start the conversation with the Space."
-            readOnlyTitle={readOnlyCopy?.title}
-            readOnlyDescription={readOnlyCopy?.description}
+            readOnlyTitle={composerGate.kind === "compose" ? undefined : composerGate.title}
+            readOnlyDescription={composerGate.kind === "compose" ? undefined : composerGate.description}
+            readOnlyAction={
+              composerGate.kind === "join" ? (
+                <button
+                  type="button"
+                  disabled={joining}
+                  onClick={() => void joinCommunity()}
+                  className="inline-flex min-h-9 items-center rounded-xl bg-[#fd5000] px-4 text-[12px] font-semibold text-white disabled:opacity-60"
+                >
+                  {joining ? "Joining…" : composerGate.actionLabel}
+                </button>
+              ) : composerGate.kind === "subscribe" ? (
+                <a
+                  href={`/communities/${communitySlug}/subscribe`}
+                  className="inline-flex min-h-9 items-center rounded-xl bg-[#fd5000] px-4 text-[12px] font-semibold text-white"
+                >
+                  {composerGate.actionLabel}
+                </a>
+              ) : composerGate.kind === "sign-in" ? (
+                <a
+                  href={buildHubLoginUrl(`/communities/${communitySlug}/spaces/${space.slug}`)}
+                  className="inline-flex min-h-9 items-center rounded-xl bg-[#fd5000] px-4 text-[12px] font-semibold text-white"
+                >
+                  {composerGate.actionLabel}
+                </a>
+              ) : null
+            }
           />
         ) : ensuring ? (
           <WorkspaceSkeleton rows={8} className="min-h-[320px]" />

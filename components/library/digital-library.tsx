@@ -278,6 +278,7 @@ export function DigitalLibrary() {
 
     const handleDownload = useCallback(async (itemId: string, itemName: string) => {
         await logActivity(itemId, 'download')
+        window.location.assign(`/api/files/access/${itemId}`)
         toast.success(`${itemName} download started`)
     }, [])
 

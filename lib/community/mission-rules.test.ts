@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { missionIsOpen, validateMissionDraft, validateSubmission } from "./mission-rules";
+import { matchesMissionListFilter, missionIsOpen, validateMissionDraft, validateSubmission } from "./mission-rules";
 
 describe("mission rules", () => {
   it("blocks automatic review when evidence is required", () => {
@@ -39,5 +39,29 @@ describe("mission rules", () => {
     );
     assert.equal(validateSubmission("text", { text: "short" }).ok, false);
     assert.equal(validateSubmission("link", { url: "https://example.com/proof" }).ok, true);
+  });
+
+  it("keeps hub mission filters distinct", () => {
+    assert.equal(matchesMissionListFilter({ filter: "all", status: "published" }), true);
+    assert.equal(
+      matchesMissionListFilter({ filter: "active", status: "published", participantStatus: "joined" }),
+      true,
+    );
+    assert.equal(
+      matchesMissionListFilter({ filter: "active", status: "published", participantStatus: "completed" }),
+      false,
+    );
+    assert.equal(
+      matchesMissionListFilter({ filter: "in_progress", participantStatus: "submitted" }),
+      true,
+    );
+    assert.equal(
+      matchesMissionListFilter({ filter: "completed", participantStatus: "approved" }),
+      true,
+    );
+    assert.equal(
+      matchesMissionListFilter({ filter: "completed", participantStatus: "joined" }),
+      false,
+    );
   });
 });

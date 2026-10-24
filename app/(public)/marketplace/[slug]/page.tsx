@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductPageData, getUserCountry, getProductBySlug } from "@/services/db";
+import { loadPublicTrust } from "@/lib/digital-products/trust/service";
 import { getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
@@ -45,6 +46,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (!pageData) notFound();
 
   const { product, vendor, relatedProducts, allShippingOptions, isDigital } = pageData;
+  const trust = isDigital ? await loadPublicTrust(product.id).catch(() => null) : null;
 
   const reviews = product.reviews ?? [];
   const reviewCount = reviews.length;
@@ -92,6 +94,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
           vendor={vendor}
           relatedProducts={relatedProducts}
           followedVendorIds={followedVendorIds}
+          trust={trust}
         />
       </>
     );

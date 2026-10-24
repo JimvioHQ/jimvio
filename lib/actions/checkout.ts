@@ -278,6 +278,7 @@ async function createVendorOrder(
       lineTotal: totalPrice,
       quantity: item.quantity,
       cartAffiliateLinkId: item.affiliate_link_id ?? null,
+      saleCurrency: p.currency,
     });
 
     orderItemsPayload.push({
@@ -625,6 +626,7 @@ async function refreshPendingOrdersAffiliateAttribution(
         lineTotal,
         quantity: line.quantity,
         cartAffiliateLinkId: cartItem?.affiliate_link_id ?? null,
+        saleCurrency: product.currency,
       });
       if (!attribution) continue;
 
@@ -1156,6 +1158,14 @@ export async function startCheckout(
 
   // ── Validate ───────────────────────────────────────────────────────────────
   const validationErrors = validateCartItems(items);
+  const { evaluateDigitalPurchase } = await import("@/lib/digital-products/trust/service");
+  for (const item of items) {
+    if (item.products?.is_digital !== true) continue;
+    const purchase = await evaluateDigitalPurchase(item.product_id);
+    if (!purchase.allowed) {
+      validationErrors.push(`"${item.products.name}" cannot be purchased. ${purchase.reason}`);
+    }
+  }
   if (validationErrors.length > 0) {
     return err(validationErrors.join("; "));
   }

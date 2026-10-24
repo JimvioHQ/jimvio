@@ -39,6 +39,26 @@ export async function grantDigitalAccess(params: GrantAccessParams) {
   // Admin client bypasses RLS — required for server-side writes where the
   // calling context is not the user's own session (checkout, webhooks, etc.)
   const supabase = createAdminClient();
+  const { getDeliveryGate } = await import("@/lib/digital-products/trust/service");
+  const { mayGrantNewDelivery } = await import("@/lib/digital-products/trust/policy");
+  const gate = await getDeliveryGate(params.productId).catch(() => null);
+  const delivery = mayGrantNewDelivery({
+    paymentConfirmed: true,
+    verificationState: gate?.verificationState ?? null,
+    fulfillment: gate?.fulfillment ?? null,
+    acquisitionModel: gate?.acquisitionModel ?? null,
+    fileUrl: gate?.fileUrl ?? params.accessUrl,
+    fileDigest: gate?.fileDigest ?? null,
+    scanDigest: gate?.scanDigest ?? null,
+    scanBytesInspected: gate?.scanBytesInspected ?? false,
+    licenseExpired: gate?.licenseExpired ?? false,
+    licenseRevoked: gate?.licenseRevoked ?? false,
+    enforcementBlocksDelivery: gate?.enforcementBlocksDelivery ?? false,
+    scanStatus: (gate?.scanStatus ?? null) as never,
+  });
+  if (!gate?.schemaReady || !delivery.allowed) {
+    throw new Error(gate?.schemaReady ? delivery.reason : "Digital delivery is not available for this product.");
+  }
 
   const {
     userId, productId, orderItemId, orderId,
@@ -73,7 +93,10 @@ export async function grantDigitalAccess(params: GrantAccessParams) {
   // Stamp access_granted_at on order_item for backwards compatibility
   const { error: stampError } = await supabase
     .from("order_items")
-    .update({ access_granted_at: new Date().toISOString() })
+    .update({
+      access_granted_at: new Date().toISOString(),
+      digital_download_url: accessUrl,
+    })
     .eq("id", orderItemId);
 
   if (stampError) {

@@ -1026,12 +1026,12 @@ export function MarketplaceClient({
                   <Lock className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
                 </div>
                 <p className="text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                  {uiVariant === "digital" ? "Verified licenses" : "Buyer protection"}
+                  {uiVariant === "digital" ? "Digital delivery" : "Buyer protection"}
                 </p>
               </div>
               <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
                 {uiVariant === "digital"
-                  ? "Instant access to your files after purchase via your library."
+                  ? "Access is granted after payment. License review, security checks, and approval are shown separately on each product."
                   : "Every order tracked from warehouse to door. Refund if undelivered."}
               </p>
             </div>

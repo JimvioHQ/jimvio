@@ -10,6 +10,7 @@ import { getAdminDB } from "@/services/db";
 import { revalidatePath } from "next/cache";
 import { handleCJFulfillment } from "@/services/cj/cj-lifecycle-integration";
 import { assertPlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
+import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
 
 export async function createOrder(productId: string, quantity: number = 1) {
   const supabase = await createClient();
@@ -64,8 +65,20 @@ export async function createOrder(productId: string, quantity: number = 1) {
 
   const basePrice = Number(product.price);
   const totalPrice = basePrice * quantity;
-  if (affiliateId) {
-    commissionAmount = (totalPrice * commissionRate) / 100;
+  const offer = offerForAffiliateProduct({
+    price: basePrice,
+    currency: product.currency,
+    configuredPercent: commissionRate,
+    fallbackPercent: defaultAffiliate,
+    fixedEarning: product.affiliate_price,
+    clientPercent: commissionRate,
+  });
+  if (affiliateId && offer.rate != null) {
+    commissionRate = offer.rate;
+    commissionAmount = Math.round(offer.earningUsd * quantity * 100) / 100;
+  } else {
+    commissionRate = 0;
+    commissionAmount = 0;
   }
 
   // FIX 4: pass subtotal so orders row is consistent before trigger fires

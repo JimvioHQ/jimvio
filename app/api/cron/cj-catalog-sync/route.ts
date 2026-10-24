@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     }
 
     await bootstrapCatalog({ runSyncIfEmpty: true, runEnrichment: false });
-    const listSync = await syncCjListCatalog({ maxPages: 120 });
+    const listSync = await syncCjListCatalog({ maxPages: 20, maxDurationMs: 160_000 });
     await bootstrapCatalog({ runSyncIfEmpty: false, runEnrichment: false });
     const intelligenceEnabled = isCjProductIntelligenceProcessingEnabled();
     const retried = intelligenceEnabled ? await retryFailedEnrichments(50) : 0;

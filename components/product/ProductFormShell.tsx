@@ -33,6 +33,7 @@ import {
     type BusinessVerificationUi,
 } from "@/components/product/ProductTypeSelector";
 import { saveProductVideos } from "@/lib/actions/product-videos";
+import { DigitalSourceFields, type DigitalSourceValue } from "@/components/product/DigitalSourceFields";
 import { sortProductVideoRows } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cleanCJDescription } from "@/lib/cj/render";
@@ -211,6 +212,21 @@ interface FormState {
     compare_at_price: string;
     discount_label: string;
     is_flash_deal: boolean;
+    acquisition_model: string;
+    rightsholder_name: string;
+    content_language: string;
+    intended_audience: string;
+    buyer_license_summary: string;
+    refund_policy_note: string;
+    compatibility_notes: string;
+    update_policy: string;
+    affiliate_destination_url: string;
+    declarations_accepted: boolean;
+    evidence_url: string;
+    evidence_file_name: string;
+    file_name: string;
+    file_mime: string;
+    file_size_bytes: string;
 }
 
 /* ── reusable primitives ── */
@@ -1546,19 +1562,34 @@ function StepSettings({ form, handleChange }: { form: FormState; handleChange: (
                                 <CloudinaryUploadButton
                                     folder="jimvio/digital-files"
                                     resourceType="raw"
-                                    onUploadSuccess={url => handleChange("digital_file_url", url)}
+                                    accessType="private"
+                                    maxBytes={50 * 1024 * 1024}
+                                    onUploadSuccess={(url, _id, meta) => {
+                                        handleChange("digital_file_url", url);
+                                        handleChange("file_name", meta?.originalFilename || "");
+                                        handleChange("file_size_bytes", meta?.bytes != null ? String(meta.bytes) : "");
+                                        handleChange("file_mime", meta?.format === "pdf" ? "application/pdf" : "application/octet-stream");
+                                    }}
                                     className="px-4 h-8 text-xs font-medium transition-all"
                                 />
                             )}
                         </div>
-                        <div>
-                            <Label>File URL</Label>
-                            <Input
-                                value={form.digital_file_url}
-                                onChange={e => handleChange("digital_file_url", e.target.value)}
-                                placeholder="https://…"
-                            />
-                        </div>
+                        {form.acquisition_model !== "affiliate_only_product" && (
+                            <div>
+                                <Label>Private file URL</Label>
+                                <Input
+                                    value={form.digital_file_url}
+                                    onChange={e => handleChange("digital_file_url", e.target.value)}
+                                    placeholder="https://res.cloudinary.com/…/raw/private/…"
+                                />
+                            </div>
+                        )}
+                        <DigitalSourceFields
+                            value={form}
+                            onChange={(patch: Partial<DigitalSourceValue>) => {
+                                Object.entries(patch).forEach(([key, val]) => handleChange(key as keyof FormState, val as never));
+                            }}
+                        />
                     </div>
                 )}
             </div>
@@ -1609,8 +1640,12 @@ function StepPublish({
         },
         {
             label: "Fulfilment",
-            hint: isDigital ? (form.digital_file_url ? "Digital file attached" : "Upload a file to deliver") : "Physical shipping",
-            done: !isDigital || !!form.digital_file_url,
+            hint: isDigital
+                ? form.acquisition_model === "affiliate_only_product"
+                    ? "Affiliate destination, no hosted file"
+                    : (form.digital_file_url ? "Private digital file attached" : "Upload a private file")
+                : "Physical shipping",
+            done: !isDigital || form.acquisition_model === "affiliate_only_product" || !!form.digital_file_url,
         },
     ];
 
@@ -1855,6 +1890,21 @@ export function ProductFormShell({
         compare_at_price: "",
         discount_label: "",
         is_flash_deal: false,
+        acquisition_model: "original_vendor_product",
+        rightsholder_name: "",
+        content_language: "",
+        intended_audience: "",
+        buyer_license_summary: "",
+        refund_policy_note: "",
+        compatibility_notes: "",
+        update_policy: "",
+        affiliate_destination_url: "",
+        declarations_accepted: false,
+        evidence_url: "",
+        evidence_file_name: "",
+        file_name: "",
+        file_mime: "",
+        file_size_bytes: "",
     });
 
     const physicalGateActive =
@@ -2024,6 +2074,21 @@ export function ProductFormShell({
                     discount_label: (product.discount_label as string) ?? "",
                     is_flash_deal: (product.is_flash_deal as boolean) ?? false,
                     videoUrls: sortProductVideoRows(videoRows ?? []),
+                    acquisition_model: (product.acquisition_model as string) || "original_vendor_product",
+                    rightsholder_name: (product.rightsholder_name as string) || "",
+                    content_language: (product.content_language as string) || "",
+                    intended_audience: (product.intended_audience as string) || "",
+                    buyer_license_summary: (product.buyer_license_summary as string) || "",
+                    refund_policy_note: (product.refund_policy_note as string) || "",
+                    compatibility_notes: (product.compatibility_notes as string) || "",
+                    update_policy: (product.update_policy as string) || "",
+                    affiliate_destination_url: (product.affiliate_destination_url as string) || "",
+                    declarations_accepted: Boolean(product.declarations_accepted_at),
+                    evidence_url: "",
+                    evidence_file_name: "",
+                    file_name: "",
+                    file_mime: "",
+                    file_size_bytes: product.digital_file_size != null ? String(product.digital_file_size) : "",
                 });
             }
             setLoading(false);
@@ -2283,6 +2348,21 @@ export function ProductFormShell({
                 discount_label: resolvedDiscountLabel,
                 is_flash_deal: resolvedFlashDeal,
                 intent,
+                acquisition_model: isDigital ? (form.acquisition_model as "original_vendor_product") : null,
+                affiliate_destination_url: form.affiliate_destination_url || null,
+                rightsholder_name: form.rightsholder_name || null,
+                buyer_license_summary: form.buyer_license_summary || null,
+                refund_policy_note: form.refund_policy_note || null,
+                compatibility_notes: form.compatibility_notes || null,
+                update_policy: form.update_policy || null,
+                content_language: form.content_language || null,
+                intended_audience: form.intended_audience || null,
+                declarations_accepted: form.declarations_accepted,
+                file_name: form.file_name || null,
+                file_mime: form.file_mime || null,
+                file_size_bytes: form.file_size_bytes ? Number(form.file_size_bytes) : null,
+                evidence_url: form.evidence_url || null,
+                evidence_file_name: form.evidence_file_name || null,
             });
 
             if (!result.success) {

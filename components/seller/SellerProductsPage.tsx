@@ -29,7 +29,7 @@ import { duplicateSellerProduct } from "@/lib/actions/seller-products";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ProductStatus = "active" | "paused" | "draft" | "archived";
+type ProductStatus = "active" | "paused" | "draft" | "archived" | "pending_review" | "rejected";
 
 type Product = Pick<Database["public"]["Tables"]["products"]["Row"],
   | "id" | "name" | "slug" | "price" | "currency" | "status" | "product_type"
@@ -48,10 +48,12 @@ const STATUS: Record<ProductStatus, { label: string; dot: string; badge: string 
   paused: { label: "Paused", dot: "bg-amber-500", badge: "bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400" },
   draft: { label: "Draft", dot: "bg-slate-400", badge: "bg-slate-500/10 border-slate-500/20 text-slate-600 dark:text-slate-400" },
   archived: { label: "Archived", dot: "bg-rose-500", badge: "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400" },
+  pending_review: { label: "In review", dot: "bg-sky-500", badge: "bg-sky-500/10 border-sky-500/20 text-sky-700 dark:text-sky-300" },
+  rejected: { label: "Rejected", dot: "bg-rose-500", badge: "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400" },
 };
 
 const FILTERS = [
-  "All", "Active", "Paused", "Draft", "Archived",
+  "All", "Active", "In review", "Rejected", "Paused", "Draft", "Archived",
   "Digital", "Physical", "Low Stock", "Out of Stock",
 ] as const;
 
@@ -165,6 +167,8 @@ export function SellerProductsPage() {
 
     switch (activeFilter) {
       case "Active": result = result.filter((p) => p.status === "active"); break;
+      case "In review": result = result.filter((p) => p.status === "pending_review"); break;
+      case "Rejected": result = result.filter((p) => p.status === "rejected"); break;
       case "Paused": result = result.filter((p) => p.status === "paused"); break;
       case "Draft": result = result.filter((p) => p.status === "draft"); break;
       case "Archived": result = result.filter((p) => p.status === "archived"); break;
@@ -198,7 +202,7 @@ export function SellerProductsPage() {
 
 
   // ── Actions ──────────────────────────────────────────────────────────────
-  const toggleStatus = useCallback(async (productId: string, currentStatus: ProductStatus) => {
+  const toggleStatus = useCallback(async (productId: string, currentStatus: ProductStatus, isDigital = false) => {
     if (busyId) {
       toast.error("Please wait...");
       return;
@@ -206,7 +210,17 @@ export function SellerProductsPage() {
     setBusyId(productId);
     setOpenMenu(null);
 
+    if (currentStatus === "pending_review" || currentStatus === "rejected") {
+      toast.error("Submitted products stay in review until an authorized reviewer publishes them.");
+      setBusyId(null);
+      return;
+    }
     const newStatus: ProductStatus = currentStatus === "active" ? "paused" : "active";
+    if (isDigital && newStatus === "active") {
+      toast.error("Digital products are published from verification review, not from this switch.");
+      setBusyId(null);
+      return;
+    }
 
     // Optimistic update
     setProducts((prev) =>
@@ -594,7 +608,7 @@ function ProductTableRow({
   openMenu: string | null;
   busyId: string | null;
   setOpenMenu: (id: string | null) => void;
-  toggleStatus: (id: string, status: ProductStatus) => void;
+  toggleStatus: (id: string, status: ProductStatus, isDigital?: boolean) => void;
   archiveProduct: (id: string, name: string) => void;
   restoreProduct: (id: string) => void;
   deleteProduct: (id: string, name: string) => void;
@@ -647,7 +661,7 @@ function ProductTableRow({
       <td className="px-3 py-3">
         <button
           type="button"
-          onClick={() => !isArchived && toggleStatus(p.id, status)}
+          onClick={() => !isArchived && toggleStatus(p.id, status, Boolean(p.is_digital))}
           disabled={isArchived || isBusy}
           className={cn(!isArchived && !isBusy && "cursor-pointer")}
         >
@@ -701,7 +715,7 @@ function ProductTableRow({
                   )}
                   <MenuButton icon={Copy} label="Duplicate" onClick={() => duplicateProduct(p.id)} />
                   {!isArchived && (
-                    <MenuButton icon={Zap} label={status === "active" ? "Pause" : "Activate"} onClick={() => toggleStatus(p.id, status)} />
+                    <MenuButton icon={Zap} label={status === "active" ? "Pause" : "Activate"} onClick={() => toggleStatus(p.id, status, Boolean(p.is_digital))} />
                   )}
                   <div className="border-t border-[var(--color-border)]" />
                   {isArchived ? (

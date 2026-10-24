@@ -19,6 +19,7 @@ export type CommunityWorkspacePayload = {
     owner_id: string;
     cover_image?: string | null;
     is_private?: boolean | null;
+    is_free?: boolean | null;
     visibility?: string | null;
     visibility_mode?: string | null;
     archived_at?: string | null;
@@ -49,7 +50,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, tagline, visibility, visibility_mode, archived_at, settings")
+    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, is_free, tagline, visibility, visibility_mode, archived_at, settings")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Home, Layers, Plus, ShieldCheck, X } from "lucide-react";
+import { ArrowLeft, Home, Layers, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useWorkspaceOptional,
@@ -15,7 +15,6 @@ import {
   resolvePrimarySpace,
   resolveSpaceAvatarSrc,
 } from "@/lib/community/workspace";
-import { manageCommunityHref } from "@/lib/community/owner-console";
 import { createClient } from "@/lib/supabase/client";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { SpaceAvatar } from "@/components/community/workspace/space/SpaceAvatar";
@@ -289,17 +288,6 @@ function SidebarBody({
             })
           )}
         </nav>
-      </div>
-
-      <div className="mt-auto border-t border-[var(--color-border)] px-3 py-3">
-        <Link
-          href={manageCommunityHref(slug)}
-          onClick={onNavigate}
-          className="flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-        >
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          COMMUNITY MANAGER
-        </Link>
       </div>
 
       {communityId && (

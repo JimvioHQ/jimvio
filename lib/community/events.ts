@@ -4,6 +4,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 
 export type CommunityEventKind =
   | "workshop"
@@ -38,15 +39,19 @@ function db() {
 
 export async function listHubCommunityEvents(userId: string) {
   const supabase = await createClient();
-  const { data: memberships } = await supabase
+  const { data: memberships, error: membershipError } = await supabase
     .from("community_memberships")
     .select("community_id")
     .eq("user_id", userId)
     .eq("status", "active");
+  if (membershipError) {
+    logCommunityFailure("events.memberships", membershipError);
+    throw new Error(publicErrorMessage(membershipError, "Could not load events"));
+  }
   const communityIds = (memberships ?? []).map((m) => m.community_id);
   if (communityIds.length === 0) return [];
 
-  const { data: events } = await db()
+  const { data: events, error } = await db()
     .from("community_events")
     .select(
       "id, community_id, created_by, title, description, kind, location, is_online, meeting_url, image_url, starts_at, ends_at, capacity, rsvp_count, is_published, communities(name, slug)"
@@ -57,6 +62,10 @@ export async function listHubCommunityEvents(userId: string) {
     .eq("status", "published")
     .order("starts_at", { ascending: true })
     .limit(80);
+  if (error) {
+    logCommunityFailure("events.hub", error);
+    throw new Error(publicErrorMessage(error, "Could not load events"));
+  }
 
   const eventIds = (events ?? []).map((e: CommunityEventRow) => e.id);
   let rsvpMap = new Map<string, string>();

@@ -137,6 +137,19 @@ export function validateSubmission(kind: string, input: { text?: string | null; 
   return { ok: false, error: "Unsupported submission type." };
 }
 
+/** Hub filters: All, Active, In progress, Completed. */
+export function matchesMissionListFilter(input: {
+  filter?: string | null;
+  status?: string | null;
+  participantStatus?: string | null;
+}): boolean {
+  const state = input.participantStatus ?? undefined;
+  if (input.filter === "completed") return state === "approved" || state === "completed";
+  if (input.filter === "active") return input.status === "published" && state !== "approved" && state !== "completed";
+  if (input.filter === "in_progress") return state === "joined" || state === "submitted" || state === "rejected";
+  return true;
+}
+
 function parseOptionalDate(value?: string | null): Date | null {
   if (!value) return null;
   const date = new Date(value);

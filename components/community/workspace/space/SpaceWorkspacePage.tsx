@@ -102,6 +102,7 @@ export function SpaceWorkspacePage() {
               0
             }
             isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
+            isFree={workspace.isFree}
             ownerName={workspace.ownerName}
             communityAvatar={workspace.avatarUrl}
             communityCover={workspace.coverUrl}
@@ -240,6 +241,7 @@ export function SpaceWorkspacePage() {
             0
           }
           isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
+          isFree={workspace.isFree}
           ownerName={workspace.ownerName}
           communityAvatar={workspace.avatarUrl}
           communityCover={workspace.coverUrl}

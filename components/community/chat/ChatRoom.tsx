@@ -27,7 +27,7 @@ import {
 } from "@/lib/community/commerce";
 import { Msg } from "@/types";
 import { Loader2, ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useCall } from "../call-context";
 import { ChatEmojiPickerDialog } from "./chat-emoji-picker-dialog";
@@ -66,6 +66,8 @@ interface ChatRoomProps {
   /** Shown when canPost is false — must match server posting policy. */
   readOnlyTitle?: string;
   readOnlyDescription?: string;
+  /** Join, subscribe, or sign-in control. Does not bypass the posting check. */
+  readOnlyAction?: ReactNode;
 }
 
 export function ChatRoom({
@@ -83,6 +85,7 @@ export function ChatRoom({
   emptyActionLabel,
   readOnlyTitle,
   readOnlyDescription,
+  readOnlyAction,
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
@@ -686,6 +689,7 @@ export function ChatRoom({
                 {readOnlyDescription ??
                   "Only authorized publishers can post in this channel."}
               </p>
+              {readOnlyAction ? <div className="mt-3 flex justify-center">{readOnlyAction}</div> : null}
             </div>
           </div>
         )}

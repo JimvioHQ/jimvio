@@ -805,30 +805,60 @@ async function grantDigitalAccess(
 
     if (productIds.length === 0) return;
 
-    const { data: products } = await db
+    const extended = await db
       .from("products")
-      .select("id, product_type, digital_file_url, pricing_type, billing_period")
+      .select("id, product_type, is_digital, digital_file_url, pricing_type, billing_period, digital_verification_state, fulfillment_mode, acquisition_model")
       .in("id", productIds);
+    const products = extended.error && /digital_verification_state|fulfillment_mode/i.test(extended.error.message)
+      ? (await db.from("products").select("id, product_type, digital_file_url, pricing_type, billing_period").in("id", productIds)).data
+      : extended.data;
 
     const productMap = new Map(
       (products ?? []).map((p: {
         id: string;
         product_type: string;
+        is_digital?: boolean | null;
         digital_file_url: string | null;
         pricing_type: string | null;
         billing_period: string | null;
+        digital_verification_state?: string | null;
+        fulfillment_mode?: string | null;
+        acquisition_model?: string | null;
       }) => [p.id, p] as const)
     );
 
     const now = new Date().toISOString();
     let digitalCount = 0;
+    let grantedCount = 0;
+
+    const { mayGrantNewDelivery } = await import("@/lib/digital-products/trust/policy");
+    const { getDeliveryGate } = await import("@/lib/digital-products/trust/service");
 
     for (const item of items) {
       const product = productMap.get(item.product_id ?? "");
-      if (!product || product.product_type !== "digital") continue;
+      if (!product) continue;
+      const digitalProduct = product.is_digital === true || product.product_type === "digital";
+      if (!digitalProduct) continue;
 
       digitalCount++;
-      if (item.digital_download_url) continue;
+      const gate = product.digital_verification_state
+        ? await getDeliveryGate(product.id).catch(() => null)
+        : null;
+      const delivery = mayGrantNewDelivery({
+        paymentConfirmed: true,
+        verificationState: (gate?.verificationState ?? product.digital_verification_state ?? null) as never,
+        fulfillment: (gate?.fulfillment ?? product.fulfillment_mode ?? null) as never,
+        acquisitionModel: (gate?.acquisitionModel ?? product.acquisition_model ?? null) as never,
+        fileUrl: gate?.fileUrl ?? product.digital_file_url,
+        licenseExpired: gate?.licenseExpired ?? false,
+        licenseRevoked: gate?.licenseRevoked ?? false,
+        enforcementBlocksDelivery: gate?.enforcementBlocksDelivery ?? false,
+        scanStatus: (gate?.scanStatus ?? null) as never,
+        fileDigest: gate?.fileDigest ?? null,
+        scanDigest: gate?.scanDigest ?? null,
+        scanBytesInspected: gate?.scanBytesInspected ?? false,
+      });
+      if (!delivery.allowed) continue;
 
       if (buyerUserId) {
         try {
@@ -844,7 +874,9 @@ async function grantDigitalAccess(
           });
         } catch (e) {
           console.warn(`[DigitalAccess] Failed for ${item.id}:`, e);
+          continue;
         }
+        grantedCount += 1;
       } else {
         const { error } = await db
           .from("order_items")
@@ -857,11 +889,13 @@ async function grantDigitalAccess(
 
         if (error) {
           console.warn(`[DigitalAccess] Fallback failed for ${item.id}:`, error.message);
+          continue;
         }
+        grantedCount += 1;
       }
     }
 
-    if (digitalCount > 0 && digitalCount === items.length) {
+    if (digitalCount > 0 && grantedCount === digitalCount && digitalCount === items.length) {
       await db
         .from("orders")
         .update({ status: "delivered", delivered_at: now })

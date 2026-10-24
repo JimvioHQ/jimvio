@@ -10,7 +10,7 @@ import {
   isSelfReferral,
 } from "@/lib/affiliate/attribution";
 import { createPendingCommission } from "@/lib/affiliate/commissions";
-import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
+import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
 
 function db() {
   return createServiceRoleClient() as any;
@@ -36,10 +36,12 @@ export async function attributeNonOrderConversion(input: {
     return { attributed: false };
   }
 
-  const offer = resolveAffiliateOffer({
-    priceUsd: input.amount,
+  const offer = offerForAffiliateProduct({
+    price: input.amount,
+    currency: input.currency ?? "USD",
     configuredPercent: resolved.commissionRate ?? input.commissionRate,
     fallbackPercent: input.commissionRate ?? 10,
+    clientPercent: input.commissionRate,
   });
   if (offer.rate == null) return { attributed: false };
   const rate = offer.rate;

@@ -52,7 +52,7 @@ export async function bootstrapCatalog(options?: {
   if (rawCount === 0 && options?.runSyncIfEmpty !== false) {
     syncStarted = true;
     try {
-      await syncCjListCatalog({ maxPages: 120 });
+      await syncCjListCatalog({ maxPages: 15, maxDurationMs: 120_000 });
       rawCount = await getRawCatalogTotal();
     } catch (err) {
       syncError = err instanceof Error ? err.message : "Catalog sync failed";

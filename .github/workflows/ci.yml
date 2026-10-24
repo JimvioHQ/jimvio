@@ -25,10 +25,20 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Secret scanning (gitleaks)
+        run: |
+          set -euo pipefail
+          archive=/tmp/gitleaks_8.28.0_linux_x64.tar.gz
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz" -o "$archive"
+          echo "a65b5253807a68ac0cafa4414031fd740aeb55f54fb7e55f386acb52e6a840eb  $archive" | sha256sum -c -
+          tar -xzf "$archive" -C /tmp gitleaks
+          # Scan the checkout, not a later node_modules tree. Git mode honors .gitignore.
+          /tmp/gitleaks detect --source . --redact --no-banner --exit-code 1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -53,12 +63,6 @@ jobs:
       - name: Dependency review
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
-        continue-on-error: true
-
-      - name: Secret scanning (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Unit tests
@@ -87,7 +91,7 @@ jobs:
 
       - name: Performance report artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-report-${{ github.run_id }}
           path: |
@@ -98,7 +102,7 @@ jobs:
 
       - name: Upload CI logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ci-logs-${{ github.run_id }}
           path: |

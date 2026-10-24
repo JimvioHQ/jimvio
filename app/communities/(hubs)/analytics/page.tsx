@@ -43,23 +43,37 @@ function formatMoney(amount: number, currency: string) {
 
 export default function HubAnalyticsPage() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [data, setData] = useState<AnalyticsData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch("/api/c/analytics");
-        if (!res.ok) return;
-        const json = (await res.json()) as AnalyticsData;
+        const json = (await res.json().catch(() => ({}))) as AnalyticsData & { error?: string };
+        if (!res.ok) {
+          if (!cancelled) {
+            setData(null);
+            setError(json.error || "Could not load analytics");
+          }
+          return;
+        }
         if (!cancelled) setData(json);
+      } catch (err) {
+        if (!cancelled) {
+          setData(null);
+          setError(err instanceof Error ? err.message : "Could not load analytics");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
 
   const challengePct = useMemo(() => {
     if (!data?.challenge || data.challenge.target <= 0) return 0;
@@ -95,6 +109,21 @@ export default function HubAnalyticsPage() {
           </HubLinkButton>
         </div>
 
+        {error ? (
+          <HubCard className="py-10 text-center">
+            <p className="font-bold">Analytics could not be loaded</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button
+              type="button"
+              className="mt-4 rounded-xl bg-[#fd5000] px-4 py-2 text-[12px] font-semibold text-white"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Try again
+            </button>
+          </HubCard>
+        ) : null}
+
+        {error ? null : <>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <HubStatCard label="Online now" value={String(stats?.membersOnline ?? 0)} icon={<Users className="h-4 w-4" />} accent="#22c55e" />
           <HubStatCard label="Live sessions" value={String(stats?.liveSessions ?? 0)} icon={<Radio className="h-4 w-4" />} accent="#ef4444" />
@@ -179,6 +208,7 @@ export default function HubAnalyticsPage() {
             </li>
           </ul>
         </HubCard>
+        </>}
       </div>
     </div>
   );

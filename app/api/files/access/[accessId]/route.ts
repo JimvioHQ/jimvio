@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { mayServeExistingDownload } from "@/lib/digital-products/trust/policy";
+import { getDeliveryGate } from "@/lib/digital-products/trust/service";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -44,7 +48,7 @@ export async function GET(
     
     const { data: access, error } = await supabase
         .from("digital_access")
-        .select("id, access_url, subtype, expires_at, revoked_at, user_id")
+        .select("id, access_url, subtype, expires_at, revoked_at, user_id, product_id, order_id")
         .eq("id", accessId)
         .eq("user_id", user.id)
         .is("revoked_at", null)
@@ -85,6 +89,61 @@ export async function GET(
         );
     }
 
+    if (access.order_id) {
+        const admin = createAdminClient();
+        const { data: linkedOrder, error: orderError } = await admin
+            .from("orders")
+            .select("status, payment_status, total_amount")
+            .eq("id", access.order_id)
+            .maybeSingle();
+        if (orderError || !linkedOrder) {
+            return NextResponse.json(
+                { error: "Access denied", reason: "Delivery status could not be confirmed." },
+                { status: 403 },
+            );
+        }
+        const cancelled = String(linkedOrder.status || "").toLowerCase() === "cancelled";
+        const paid = !cancelled && (
+            isOrderPaymentComplete(linkedOrder.payment_status)
+            || Number(linkedOrder.total_amount) === 0
+        );
+        if (!paid) {
+            return NextResponse.json(
+                {
+                    error: "Access denied",
+                    reason: cancelled ? "This order is cancelled." : "Payment has not been confirmed.",
+                },
+                { status: 403 },
+            );
+        }
+    }
+
+    if (access.product_id) {
+        const gate = await getDeliveryGate(access.product_id).catch(() => null);
+        if (!gate) {
+            return NextResponse.json(
+                { error: "Access denied", reason: "Delivery status could not be confirmed." },
+                { status: 403 },
+            );
+        }
+        if (gate.schemaReady) {
+            const decision = mayServeExistingDownload({
+                hasEntitlement: true,
+                verificationState: gate.verificationState,
+                fulfillment: gate.fulfillment,
+                acquisitionModel: gate.acquisitionModel,
+                enforcementBlocksDelivery: gate.enforcementBlocksDelivery,
+                scanStatus: gate.scanStatus as never,
+            });
+            if (!decision.allowed) {
+                return NextResponse.json(
+                    { error: "Access denied", reason: decision.reason },
+                    { status: 403 },
+                );
+            }
+        }
+    }
+
     // 4. LOG ACCESS (non-blocking but safe)
     supabase
         .from("digital_access")
@@ -93,65 +152,82 @@ export async function GET(
         .then();
 
     // 5. NON-CLOUDINARY FILES → still protected by YOUR route
-    const url = new URL(access.access_url);
-    const isCloudinary = url.hostname.includes(CLOUDINARY_HOST);
+    try {
+        const admin = createAdminClient();
+        const since = new Date(Date.now() - 60_000).toISOString();
+        const { count } = await admin
+            .from("digital_download_events")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .gte("created_at", since);
+        if ((count ?? 0) >= 30) {
+            return NextResponse.json(
+                { error: "Too many requests", reason: "Download limit reached. Try again in a minute." },
+                { status: 429 },
+            );
+        }
+        if (access.product_id) {
+            await admin.from("digital_download_events").insert({
+                access_id: access.id,
+                user_id: user.id,
+                product_id: access.product_id,
+                user_agent: req.headers.get("user-agent")?.slice(0, 180) || null,
+            });
+        }
+    } catch {
+        // Download audit is best-effort and must not reveal the file URL.
+    }
 
-    if (!isCloudinary) {
-        // IMPORTANT: still gated by auth above
+    let url: URL;
+    try {
+        url = new URL(access.access_url);
+    } catch {
+        return NextResponse.json({ error: "Not found", reason: "The stored file reference is not valid." }, { status: 404 });
+    }
+    if (url.protocol !== "https:") {
+        return NextResponse.json({ error: "Not found", reason: "The stored file reference is not valid." }, { status: 404 });
+    }
+    const isCloudinary = url.hostname.includes(CLOUDINARY_HOST);
+    const asset = isCloudinary ? parseCloudinaryAsset(access.access_url) : null;
+
+    if (!asset) {
         return NextResponse.redirect(url.toString());
     }
 
-    // 6. CLOUDINARY FILE DELIVERY (secure signed URL)
-    const publicId = extractPublicId(access.access_url);
-    const format = extractFormat(access.access_url);
-
     const expiresAt = Math.floor(Date.now() / 1000) + 600; // 10 min
 
-    const signedUrl = cloudinary.url(publicId, {
+    const signedUrl = cloudinary.url(asset.publicId, {
         secure: true,
         sign_url: true,
-        resource_type: "raw",
-        type: "private",
+        resource_type: asset.resourceType,
+        type: asset.type,
         attachment: true,
         expires_at: expiresAt,
-        format,
+        format: asset.format,
     });
 
     // 7. FINAL REDIRECT (user only gets here AFTER passing your site auth)
     return NextResponse.redirect(signedUrl);
 }
 
-/**
- * Extract Cloudinary public_id safely
- */
-function extractPublicId(url: string): string {
+function parseCloudinaryAsset(raw: string): {
+    publicId: string;
+    format: string;
+    type: "upload" | "private" | "authenticated";
+    resourceType: "image" | "video" | "raw";
+} | null {
     try {
-        const pathname = new URL(url).pathname;
-        const uploadIndex = pathname.indexOf("/upload/");
-        if (uploadIndex === -1) return "";
-
-        let id = pathname.substring(uploadIndex + 8);
-
-        // remove version prefix
-        id = id.replace(/^v\d+\//, "");
-
-        // remove extension
+        const pathname = new URL(raw).pathname;
+        const match = pathname.match(/\/(image|video|raw)\/(upload|private|authenticated)\//);
+        if (!match || match.index == null) return null;
+        const resourceType = match[1] as "image" | "video" | "raw";
+        const type = match[2] as "upload" | "private" | "authenticated";
+        let id = pathname.slice(match.index + match[0].length).replace(/^v\d+\//, "");
+        const format = id.includes(".") ? (id.split(".").pop() || "bin") : "bin";
         id = id.replace(/\.[^/.]+$/, "");
-
-        return id;
+        if (!id) return null;
+        return { publicId: id, format, type, resourceType };
     } catch {
-        return "";
-    }
-}
-
-/**
- * Extract file format safely
- */
-function extractFormat(url: string): string {
-    try {
-        const pathname = new URL(url).pathname;
-        return pathname.split(".").pop() ?? "bin";
-    } catch {
-        return "bin";
+        return null;
     }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { joinOrSubmitMission, listMissions, saveMission } from "@/lib/community/mission-access";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,9 @@ export async function GET(req: NextRequest) {
     });
     return NextResponse.json(result);
   } catch (error) {
+    logCommunityFailure("missions.get", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not load missions" },
+      { error: publicErrorMessage(error, "Could not load missions") },
       { status: 400 },
     );
   }
@@ -55,8 +57,9 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ ok: true, mission });
   } catch (error) {
+    logCommunityFailure("missions.save", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not save mission" },
+      { error: publicErrorMessage(error, "Could not save mission") },
       { status: 400 },
     );
   }

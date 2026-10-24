@@ -1596,7 +1596,7 @@ export async function addToCart(
         .select(
           `id, name, price, images, currency, source, source_metadata,
            affiliate_enabled, affiliate_commission_rate,
-           product_type, pricing_type, billing_period,
+           product_type, pricing_type, billing_period, is_digital,
            status, is_active, track_inventory, inventory_quantity, allow_backorder`
         )
         .eq("id", productId)
@@ -1614,6 +1614,14 @@ export async function addToCart(
     }
     if (product.status !== "active" || !product.is_active) {
       return { success: false, error: "Product is unavailable" };
+    }
+    const cartDigital = product.is_digital === true || (
+      product.product_type != null && product.product_type !== "physical"
+    );
+    if (cartDigital && !isCJSource(normalizeProductSource(product.source))) {
+      const { evaluateDigitalPurchase } = await import("@/lib/digital-products/trust/service");
+      const purchase = await evaluateDigitalPurchase(productId);
+      if (!purchase.allowed) return { success: false, error: purchase.reason };
     }
 
     const productSource = normalizeProductSource(product.source);
@@ -2394,7 +2402,7 @@ export async function buyDirectCheckout(
         .select(`
           id, name, price, images, currency, source, source_metadata,
           affiliate_enabled, affiliate_commission_rate, affiliate_price,
-          product_type, pricing_type, billing_period, digital_file_url,
+          product_type, pricing_type, billing_period, digital_file_url, is_digital,
           status, is_active, track_inventory, inventory_quantity, allow_backorder
         `)
         .eq("id", productId)
@@ -2412,6 +2420,14 @@ export async function buyDirectCheckout(
     }
     if (product.status !== "active" || !product.is_active) {
       return { success: false, error: "Product is unavailable" };
+    }
+    const directDigital = product.is_digital === true || (
+      product.product_type != null && product.product_type !== "physical"
+    );
+    if (directDigital && !isCJSource(normalizeProductSource(product.source))) {
+      const { evaluateDigitalPurchase } = await import("@/lib/digital-products/trust/service");
+      const purchase = await evaluateDigitalPurchase(productId);
+      if (!purchase.allowed) return { success: false, error: purchase.reason };
     }
 
     const productSource = normalizeProductSource(product.source);
@@ -2477,6 +2493,7 @@ export async function buyDirectCheckout(
         lineTotal: totalAmount,
         quantity,
         platformDefaultRate: await getDefaultAffiliateCommissionPercent(),
+        saleCurrency: product.currency,
       });
 
       // Prefer explicit cookie code if buildLineAttribution used last-touch cookies;
@@ -2573,8 +2590,8 @@ export async function buyDirectCheckout(
         source_metadata: lineMeta as Json,
         pricing_type: product.pricing_type ?? "one_time",
         billing_period: product.billing_period ?? null,
-        digital_download_url: !isCJ ? product.digital_file_url ?? null : null,
-        access_granted_at: isFree && !isCJ ? new Date().toISOString() : null,
+        digital_download_url: null,
+        access_granted_at: null,
         metadata: {
           ...(lastVideoId ? { video_id: lastVideoId } : {}),
           ...(affiliateLinkId

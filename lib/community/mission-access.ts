@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 import {
+  matchesMissionListFilter,
   missionIsOpen,
   validateMissionDraft,
   validateSubmission,
@@ -95,7 +97,10 @@ export async function listMissions(input: {
     if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
   }
   const { data, error } = await query.order("due_date", { ascending: true, nullsFirst: false }).range(offset, offset + limit - 1);
-  if (error) throw error;
+  if (error) {
+    logCommunityFailure("missions.list", error);
+    throw new Error(publicErrorMessage(error, "Could not load missions"));
+  }
 
   const visible = (data ?? []).filter((task: any) => {
     if (input.manage || input.filter === "organized" || task.creator_id === input.userId) return true;
@@ -114,13 +119,13 @@ export async function listMissions(input: {
     for (const row of rows ?? []) progress.set(row.task_id, row.status);
   }
 
-  const filtered = visible.filter((task: any) => {
-    const state = progress.get(task.id);
-    if (input.filter === "completed") return state === "approved" || state === "completed";
-    if (input.filter === "active") return task.status === "published" && state !== "approved";
-    if (input.filter === "in_progress") return state === "joined" || state === "submitted" || state === "rejected";
-    return true;
-  });
+  const filtered = visible.filter((task: any) =>
+    matchesMissionListFilter({
+      filter: input.filter,
+      status: task.status,
+      participantStatus: progress.get(task.id),
+    })
+  );
 
   return {
     missions: filtered.map((task: any) =>

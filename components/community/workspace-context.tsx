@@ -75,6 +75,7 @@ export type WorkspaceContextValue = {
   coverUrl: string | null;
   tagline: string | null;
   isPrivate: boolean;
+  isFree: boolean | null;
   joinedAt: string | null;
   userId: string;
   currentUserId: string;

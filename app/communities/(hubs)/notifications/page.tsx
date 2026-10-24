@@ -50,18 +50,24 @@ function categoryOf(n: Notif): string {
 export default function CommunityNotificationsPage() {
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/notifications?limit=40", { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setItems([]);
+        setError(data.error || "Could not load notifications");
         return;
       }
-      const data = await res.json();
       setItems(Array.isArray(data.items) ? data.items : []);
+    } catch (err) {
+      setItems([]);
+      setError(err instanceof Error ? err.message : "Could not load notifications");
     } finally {
       setLoading(false);
     }
@@ -131,6 +137,18 @@ export default function CommunityNotificationsPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
+        ) : error ? (
+          <HubCard className="py-10 text-center">
+            <p className="font-bold">Notifications could not be loaded</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button
+              type="button"
+              className="mt-4 rounded-xl bg-[#fd5000] px-4 py-2 text-[12px] font-semibold text-white"
+              onClick={() => void load()}
+            >
+              Try again
+            </button>
+          </HubCard>
         ) : filtered.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Bell className="mx-auto mb-3 h-10 w-10 text-zinc-300" />

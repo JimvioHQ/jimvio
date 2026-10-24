@@ -5,7 +5,7 @@
 
 import { cookies } from "next/headers";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
+import { isSupportedAffiliateCurrency, resolveAffiliateOffer } from "@/lib/affiliate/commission-tiers";
 import {
   DEFAULT_AFFILIATE_COMMISSION_PERCENT,
   resolveCommissionRatePercent,
@@ -267,9 +267,14 @@ export async function buildLineAttribution(input: {
   cartAffiliateLinkId?: string | null;
   preferredModel?: AttributionModel;
   platformDefaultRate?: number | null;
+  /** Catalog currency. Unsupported codes earn nothing instead of a guessed FX rate. */
+  saleCurrency?: string | null;
 }): Promise<LineAttribution | null> {
   const source = normalizeProductSource(input.productSource) as ProductSource;
   if (!supportsAffiliateCommission(source, input.affiliateEnabled)) return null;
+  if (input.saleCurrency != null && !isSupportedAffiliateCurrency(input.saleCurrency)) {
+    return null;
+  }
 
   let resolved: ResolvedReferral | null = null;
 

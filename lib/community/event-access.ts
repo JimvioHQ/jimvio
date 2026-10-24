@@ -10,6 +10,7 @@ import {
   type EventDraftInput,
   type EventStatus,
 } from "@/lib/community/event-rules";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 
 function admin() {
   return createServiceRoleClient() as any;
@@ -135,7 +136,10 @@ export async function listDiscoverableEvents(input: {
   }
 
   const { data, error } = await query.range(offset, offset + limit - 1);
-  if (error) throw error;
+  if (error) {
+    logCommunityFailure("events.discover", error);
+    throw new Error(publicErrorMessage(error, "Could not load events"));
+  }
 
   const rows = (data ?? []).filter((event: any) => {
     if (filter === "organized" || filter === "registered") return true;

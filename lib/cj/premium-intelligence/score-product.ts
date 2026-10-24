@@ -18,10 +18,12 @@ import {
   upsertRawProducts,
 } from "./catalog-repository";
 import { listV2RowToRaw, rawRowToCJProduct } from "./map-to-cj-product";
+import { getListSyncPage, saveListSyncPage } from "./worker-coordinator";
 import type { SyncListResult } from "./types";
 
 const PAGE_SIZE = 100;
-const MAX_PAGES = 120;
+const MAX_PAGES = 20;
+const MAX_DURATION_MS = 160_000;
 
 interface ListV2Response {
   data: {
@@ -32,6 +34,8 @@ interface ListV2Response {
 
 export async function syncCjListCatalog(options?: {
   maxPages?: number;
+  maxDurationMs?: number;
+  startPage?: number;
 }): Promise<SyncListResult> {
   const runId = await startSyncRun("list_sync");
   const supabase = getServiceClient();
@@ -42,9 +46,16 @@ export async function syncCjListCatalog(options?: {
   let enqueued = 0;
   let errors = 0;
   const maxPages = options?.maxPages ?? MAX_PAGES;
+  const budgetMs = options?.maxDurationMs ?? MAX_DURATION_MS;
+  const startedAt = Date.now();
+  let page = options?.startPage ?? (await getListSyncPage());
+  let pagesThisRun = 0;
+  let catalogComplete = false;
 
   try {
-    for (let page = 1; page <= maxPages; page++) {
+    while (pagesThisRun < maxPages) {
+      if (Date.now() - startedAt >= budgetMs) break;
+
       const params = new URLSearchParams({
         page: String(page),
         size: String(PAGE_SIZE),
@@ -57,7 +68,11 @@ export async function syncCjListCatalog(options?: {
       );
 
       const records = json.data?.content?.[0]?.productList ?? [];
-      if (records.length === 0) break;
+      pagesThisRun += 1;
+      if (records.length === 0) {
+        catalogComplete = true;
+        break;
+      }
 
       fetched += records.length;
       const rawRows = records.map(listV2RowToRaw).filter((r) => r.pid);
@@ -73,10 +88,19 @@ export async function syncCjListCatalog(options?: {
       }
 
       const total = json.data?.totalRecords ?? 0;
-      if (fetched >= total || records.length < PAGE_SIZE) break;
+      const reachedEnd = records.length < PAGE_SIZE || (total > 0 && page * PAGE_SIZE >= total);
+      if (reachedEnd) {
+        catalogComplete = true;
+        break;
+      }
 
+      page += 1;
+      await saveListSyncPage(page);
       await sleep(300);
     }
+
+    const nextPage = catalogComplete ? 1 : page;
+    await saveListSyncPage(nextPage);
 
     if (fetched > 0 && saved === 0) {
       throw new Error(
@@ -85,11 +109,11 @@ export async function syncCjListCatalog(options?: {
     }
 
     await finishSyncRun(runId, {
-      status: errors > 0 ? "partial" : "success",
+      status: errors > 0 || !catalogComplete ? "partial" : "success",
       total_fetched: fetched,
       total_saved: saved,
       total_errors: errors,
-      metadata: { enqueued },
+      metadata: { enqueued, pagesThisRun, nextPage, catalogComplete },
     });
   } catch (err) {
     await finishSyncRun(runId, {

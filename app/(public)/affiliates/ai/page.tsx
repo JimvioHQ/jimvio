@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getAffiliateSpotlightProducts } from "@/services/db";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { AffiliateAiClient } from "@/components/affiliate/AffiliateAiClient";
-import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
+import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
+import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { getSessionAffiliate } from "@/lib/affiliate/access";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -14,6 +15,7 @@ type ProductOpt = {
   price: number;
   currency: string;
   rate: number;
+  earning: number;
   description?: string;
   features?: string[];
 };
@@ -29,18 +31,27 @@ function mapProduct(
     description?: string | null;
     features?: string[] | null;
     affiliate_commission_rate?: number | null;
+    affiliate_price?: number | null;
     product_categories?: { name?: string | null } | null;
   },
   defaultRate: number
 ): ProductOpt {
+  const offer = offerForAffiliateProduct({
+    price: Number(row.price ?? 0),
+    currency: row.currency,
+    configuredPercent: row.affiliate_commission_rate,
+    fallbackPercent: defaultRate,
+    fixedEarning: row.affiliate_price,
+  });
   return {
     id: row.id,
     slug: row.slug,
     name: row.name,
     category: row.product_categories?.name ?? row.product_type ?? "General",
-    price: toPlatformUsd(Number(row.price ?? 0), row.currency),
+    price: offer.priceUsd,
     currency: PLATFORM_CURRENCY,
-    rate: Number(row.affiliate_commission_rate ?? defaultRate),
+    rate: offer.rate ?? 0,
+    earning: offer.earningUsd,
     description: row.description ?? "",
     features: Array.isArray(row.features) ? row.features : [],
   };
@@ -70,7 +81,7 @@ export default async function AffiliateAiPage() {
     const { data: picked } = await admin
       .from("affiliate_links")
       .select(
-        "product_id, products(id, slug, name, price, currency, product_type, description, features, affiliate_commission_rate, product_categories(name))"
+        "product_id, products(id, slug, name, price, currency, product_type, description, features, affiliate_commission_rate, affiliate_price, product_categories(name))"
       )
       .eq("affiliate_id", affiliate.id)
       .eq("is_active", true)

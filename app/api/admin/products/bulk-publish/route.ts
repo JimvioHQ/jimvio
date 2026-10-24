@@ -11,6 +11,8 @@ type ProductRow = {
   status: string | null;
   deleted_at: string | null;
   images: unknown;
+  is_digital?: boolean | null;
+  digital_verification_state?: string | null;
 };
 
 type ResultItem = { id: string; name: string; reason?: string; error?: string };
@@ -141,10 +143,15 @@ export async function POST(req: NextRequest) {
 
     const uniqueIds = [...new Set(productIds)];
 
-    const { data: rows, error: fetchError } = await admin
+    const extended = await admin
       .from("products")
-      .select("id, name, status, deleted_at, images")
+      .select("id, name, status, deleted_at, images, is_digital, digital_verification_state")
       .in("id", uniqueIds);
+    const schemaMissing = Boolean(extended.error && /digital_verification_state/i.test(extended.error.message));
+    const fallback = schemaMissing
+      ? await admin.from("products").select("id, name, status, deleted_at, images, is_digital").in("id", uniqueIds)
+      : extended;
+    const { data: rows, error: fetchError } = fallback;
 
     if (fetchError) {
       return NextResponse.json(
@@ -190,6 +197,11 @@ export async function POST(req: NextRequest) {
 
       if (parseImages(row.images).length === 0) {
         skipped.push({ id, name, reason: "No images" });
+        continue;
+      }
+
+      if (row.is_digital && (schemaMissing || row.digital_verification_state !== "published")) {
+        skipped.push({ id, name, reason: schemaMissing ? "Digital verification storage is not available" : "Digital verification required" });
         continue;
       }
 

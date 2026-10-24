@@ -32,6 +32,7 @@ export default function HubCoursesPage() {
   const [filter, setFilter] = useState<"all" | "in-progress" | "completed">("all");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<"recent" | "title" | "price" | "progress">("progress");
+  const [createHref, setCreateHref] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,17 +43,23 @@ export default function HubCoursesPage() {
         if (searchQuery.trim()) params.set("q", searchQuery.trim());
         const qs = params.toString();
         const res = await fetch(`/api/c/courses${qs ? `?${qs}` : ""}`);
-        const json = (await res.json().catch(() => ({}))) as { courses?: HubCourse[]; error?: string };
+        const json = (await res.json().catch(() => ({}))) as {
+          courses?: HubCourse[];
+          error?: string;
+          createHref?: string | null;
+        };
         if (!res.ok) {
           if (!cancelled) {
             setError(json.error ?? "Could not load courses");
             setCourses([]);
+            setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
           }
           return;
         }
         if (!cancelled) {
           setError(null);
           setCourses(json.courses ?? []);
+          setCreateHref(typeof json.createHref === "string" ? json.createHref : null);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -100,9 +107,9 @@ export default function HubCoursesPage() {
               Learn from your joined communities
             </p>
           </div>
-          <HubLinkButton href="/communities" variant="secondary">
-            Browse communities
-          </HubLinkButton>
+          {createHref ? (
+            <HubLinkButton href={createHref}>Create course</HubLinkButton>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">

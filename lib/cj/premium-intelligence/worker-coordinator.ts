@@ -18,6 +18,7 @@ const HEAVY_JOB_TYPES = [
 
 const DEFAULT_STALE_MS = 310_000; // slightly above Vercel 300s limit
 const CHECKPOINT_ROW_ID = "enrichment_checkpoint";
+const LIST_SYNC_ROW_ID = "list_sync_checkpoint";
 
 export type HeavyWorkerLockResult =
   | { acquired: true; runId: string | null }
@@ -165,6 +166,42 @@ export async function saveEnrichmentCheckpoint(
 
 export async function resetEnrichmentCheckpoint(): Promise<void> {
   await saveEnrichmentCheckpoint("", 0, 0);
+}
+
+/** Next CJ list page to fetch. Stored on its own watcher row so enrichment cursors stay intact. */
+export async function getListSyncPage(): Promise<number> {
+  const db = getCatalogDB();
+  await db.from("cj_watcher_state").upsert(
+    {
+      id: LIST_SYNC_ROW_ID,
+      last_raw_pid: "",
+      last_list_sync_page: 1,
+      products_watched: 0,
+      signals_detected: 0,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+  const { data } = await db
+    .from("cj_watcher_state")
+    .select("last_list_sync_page")
+    .eq("id", LIST_SYNC_ROW_ID)
+    .maybeSingle();
+  const page = Number(data?.last_list_sync_page) || 1;
+  return page < 1 ? 1 : page;
+}
+
+export async function saveListSyncPage(page: number): Promise<void> {
+  const db = getCatalogDB();
+  const next = page < 1 ? 1 : page;
+  await db.from("cj_watcher_state").upsert(
+    {
+      id: LIST_SYNC_ROW_ID,
+      last_list_sync_page: next,
+      last_run_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" },
+  );
 }
 
 export async function countPendingEnrichmentQueue(): Promise<number> {

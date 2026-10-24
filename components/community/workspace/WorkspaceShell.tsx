@@ -32,6 +32,7 @@ import {
 interface Props {
   community: WorkspaceCommunity & {
     is_private?: boolean | null;
+    is_free?: boolean | null;
     tagline?: string | null;
   };
   currentUserId: string;
@@ -148,6 +149,7 @@ export function WorkspaceLayout({
       coverUrl: community.cover_image ?? null,
       tagline: community.tagline ?? null,
       isPrivate: !!community.is_private,
+      isFree: community.is_free === true ? true : community.is_free === false ? false : null,
       joinedAt,
       userId: currentUserId,
       currentUserId,
@@ -170,6 +172,7 @@ export function WorkspaceLayout({
       community.cover_image,
       community.tagline,
       community.is_private,
+      community.is_free,
       ownerName,
       joinedAt,
       currentUserId,

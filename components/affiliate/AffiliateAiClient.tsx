@@ -25,6 +25,7 @@ type ProductOpt = {
   price: number;
   currency: string;
   rate: number;
+  earning?: number;
   description?: string;
   features?: string[];
 };
@@ -186,6 +187,9 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                 {selected.category} ·{" "}
                 {formatAffiliateMoney(selected.price, "USD")} ·{" "}
                 {formatAffiliateRate(selected.rate)}% commission
+                {selected.earning != null
+                  ? ` · ${formatAffiliateMoney(selected.earning, "USD")} per sale`
+                  : ""}
               </p>
             ) : null}
             {error && offerWorkspace && selected ? (

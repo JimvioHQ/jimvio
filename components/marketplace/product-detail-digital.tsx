@@ -502,6 +502,7 @@ import { ProductDescriptionView } from "@/components/marketplace/product-descrip
 import { resolveProductVideoUrls } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+import { sanitizePublicText } from "@/lib/digital-products/trust/public-view";
 import {
   ProductBreadcrumb,
   SaveShareBar,
@@ -511,6 +512,7 @@ import {
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
+import { DigitalTrustPanel } from "@/components/marketplace/digital-trust-panel";
 import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -520,24 +522,17 @@ interface DigitalProductDetailProps {
   vendor: VendorPublic | null;
   followedVendorIds: string[];
   relatedProducts?: Tables<"products">[];
+  trust?: {
+    licenseStatus?: string | null;
+    licenseExpired?: boolean;
+    licenseRevoked?: boolean;
+    scanStatus?: string | null;
+    scanBytesInspected?: boolean;
+    humanApproved?: boolean;
+  } | null;
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
-
-const DEFAULT_FEATURES = [
-  "Instant download after payment",
-  "Commercial use license included",
-  "Lifetime access to all updates",
-  "Compatible with all major tools",
-  "Creator support via direct message",
-];
-
-const DEFAULT_INCLUDED = [
-  "Source files (editable)",
-  "High-resolution exports",
-  "Commercial use license",
-  "Setup & integration guide",
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -676,25 +671,38 @@ function DigitalBadgePills({
   product,
   savings,
 }: { product: ProductWithRelations; savings: number | null }) {
+  const row = product as ProductWithRelations & {
+    fulfillment_mode?: string | null;
+    acquisition_model?: string | null;
+    update_policy?: string | null;
+    buyer_license_summary?: string | null;
+  };
+  const affiliate = row.fulfillment_mode === "affiliate_redirect" || row.acquisition_model === "affiliate_only_product";
   const isBestseller = (product.sale_count ?? 0) >= 100;
   const hasAffiliate = product.affiliate_enabled;
+  const updatePolicy = row.update_policy?.trim();
+  const buyerTerms = row.buyer_license_summary?.trim();
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-        <Download className="h-3 w-3" /> Instant Download
+        <Download className="h-3 w-3" /> {affiliate ? "External offer" : "Download after payment"}
       </span>
       {isBestseller && (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
           <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> Bestseller
         </span>
       )}
-      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-        <InfinityIcon className="h-3 w-3" /> Lifetime Updates
-      </span>
-      <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
-        <FileText className="h-3 w-3" /> Commercial License
-      </span>
+      {updatePolicy && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+          <InfinityIcon className="h-3 w-3" /> {updatePolicy.slice(0, 42)}
+        </span>
+      )}
+      {buyerTerms && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+          <FileText className="h-3 w-3" /> Buyer terms stated
+        </span>
+      )}
       {savings !== null && savings > 0 && (
         <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2.5 py-1 text-[11px] font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
           <Sparkles className="h-3 w-3" /> {savings}% Off
@@ -907,7 +915,7 @@ function DigitalDeliveryCard({ product }: { product: ProductWithRelations }) {
       label: "File formats",
       value: (
         <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {fileFormats.length > 0 ? fileFormats.slice(0, 3).join(", ") : "PDF, PNG, SVG"}
+          {fileFormats.length > 0 ? fileFormats.slice(0, 3).join(", ") : "Not stated"}
         </span>
       ),
     },
@@ -937,7 +945,7 @@ function DigitalDeliveryCard({ product }: { product: ProductWithRelations }) {
     label: "Last updated",
     value: (
       <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-        {lastUpdated ?? "This month"}
+        {lastUpdated ?? "Not stated"}
       </span>
     ),
   });
@@ -962,8 +970,8 @@ function DigitalDeliveryCard({ product }: { product: ProductWithRelations }) {
         className="px-5 py-2"
         style={{ background: "rgba(16,185,129,0.06)", borderTop: "1px solid rgba(16,185,129,0.2)" }}
       >
-        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
-          ✓ Download link delivered to your email instantly
+        <p className="text-[11px] text-[var(--color-text-secondary)]">
+          Access is granted after payment is confirmed. A public file link is not shown here.
         </p>
       </div>
     </div>
@@ -972,12 +980,33 @@ function DigitalDeliveryCard({ product }: { product: ProductWithRelations }) {
 
 // ─── License info card (sidebar) ──────────────────────────────────────────────
 
-function LicenseInfoCard() {
+function LicenseInfoCard({
+  product,
+  vendorStatus,
+  trust,
+}: {
+  product: ProductWithRelations;
+  vendorStatus?: string | null;
+  trust?: DigitalProductDetailProps["trust"];
+}) {
+  const verificationState = (product as { digital_verification_state?: string | null }).digital_verification_state;
+  if (verificationState) {
+    return (
+      <DigitalTrustPanel
+        product={product as never}
+        vendorStatus={vendorStatus}
+        licenseStatus={(trust?.licenseStatus as never) ?? null}
+        licenseExpired={Boolean(trust?.licenseExpired)}
+        licenseRevoked={Boolean(trust?.licenseRevoked)}
+        scanStatus={(trust?.scanStatus as never) ?? null}
+        scanBytesInspected={Boolean(trust?.scanBytesInspected)}
+        humanApproved={Boolean(trust?.humanApproved)}
+      />
+    );
+  }
   const items = [
-    { allowed: true, text: "Use in personal & client projects" },
-    { allowed: true, text: "Use in unlimited products" },
-    { allowed: true, text: "Modify & adapt freely" },
-    { allowed: false, text: "Resell or redistribute as-is" },
+    { allowed: false, text: "Buyer terms are only shown when the seller provides them" },
+    { allowed: false, text: "This listing does not carry a separate verification record" },
   ];
   return (
     <div
@@ -986,7 +1015,7 @@ function LicenseInfoCard() {
     >
       <div className="px-5 py-3.5 border-b border-[var(--color-border)] flex items-center gap-2">
         <FileText className="h-4 w-4 text-violet-500" />
-        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Commercial License</p>
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">License terms</p>
       </div>
       <ul className="p-4 space-y-2.5">
         {items.map((item) => (
@@ -1022,10 +1051,9 @@ function LicenseInfoCard() {
 
 function CompactBuyerProtectionCard() {
   const items = [
-    "14-day refund guarantee",
-    "Secure payment",
-    "Creator-verified files",
-    "Dispute support",
+    "Payment is confirmed before access is granted",
+    "A download does not by itself decide a refund",
+    "Report inaccurate or unusable files from the product page",
   ];
   return (
     <div
@@ -1061,10 +1089,10 @@ function CompactBuyerProtectionCard() {
 
 function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
   const stats = [
-    { value: "50K+", label: "Creators" },
-    { value: "120K+", label: "Assets" },
-    { value: "2M+", label: "Downloads" },
-    { value: "4.9", label: "Avg Rating", isRating: true },
+    { value: "Separate", label: "Checks" },
+    { value: "Human", label: "Review" },
+    { value: "Paid", label: "Access" },
+    { value: "No", label: "Safety guarantee" },
   ];
   return (
     <div
@@ -1077,13 +1105,10 @@ function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
         </p>
       </div>
       <div className="grid grid-cols-4 divide-x divide-[var(--color-border)] py-4">
-        {stats.map(({ value, label, isRating }) => (
+        {stats.map(({ value, label }) => (
           <div key={label} className="flex flex-col items-center gap-1 px-2">
             <div className="flex items-center gap-0.5">
               <p className="text-[15px] font-bold text-orange-600 tabular-nums">{value}</p>
-              {isRating && (
-                <Star className="h-3 w-3 fill-amber-400 text-amber-400 mb-0.5" />
-              )}
             </div>
             <p className="text-[9px] text-[var(--color-text-muted)] text-center leading-tight">
               {label}
@@ -1175,6 +1200,7 @@ export function DigitalProductDetail({
   vendor,
   followedVendorIds,
   relatedProducts = [],
+  trust = null,
 }: DigitalProductDetailProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("overview");
@@ -1186,15 +1212,13 @@ export function DigitalProductDetail({
     () => resolveProductVideoUrls(product),
     [product],
   );
-  const saleCount = product.sale_count ?? 120;
+  const saleCount = product.sale_count ?? 0;
   const reviewCount = product.review_count ?? 0;
-  const rating = (product as { rating?: number | null }).rating ?? 4.9;
+  const rating = Number((product as { rating?: number | null }).rating ?? 0);
 
   const featuresFromProduct = getFeatures(product);
-  const features: string[] = featuresFromProduct.length ? featuresFromProduct : DEFAULT_FEATURES;
-  const included: string[] = getMetaArray(product, "package_includes").length
-    ? getMetaArray(product, "package_includes")
-    : DEFAULT_INCLUDED;
+  const features: string[] = featuresFromProduct;
+  const included: string[] = getMetaArray(product, "package_includes");
 
   const previewUrl = getPreviewUrl(product);
 
@@ -1234,9 +1258,10 @@ export function DigitalProductDetail({
     if (language) rows.push({ label: "Language", value: language });
     if (version) rows.push({ label: "Version", value: version });
     if (lastUpdated) rows.push({ label: "Last updated", value: lastUpdated });
-    rows.push({ label: "Delivery", value: "Instant download" });
-    rows.push({ label: "License", value: "Commercial use included" });
-    rows.push({ label: "Updates", value: "Free lifetime updates" });
+    const affiliateListing = (product as { fulfillment_mode?: string | null }).fulfillment_mode === "affiliate_redirect";
+    rows.push({ label: "Delivery", value: affiliateListing ? "External affiliate offer" : "Download after confirmed payment" });
+    rows.push({ label: "License", value: (product as { buyer_license_summary?: string | null }).buyer_license_summary || "Shown when the seller provides buyer terms" });
+    rows.push({ label: "Updates", value: (product as { update_policy?: string | null }).update_policy || "No update policy stated" });
 
     return rows;
   }, [product]);
@@ -1271,7 +1296,7 @@ export function DigitalProductDetail({
   const sidebarCards = (
     <>
       <DigitalDeliveryCard product={product} />
-      <LicenseInfoCard />
+      <LicenseInfoCard product={product} vendorStatus={vendor?.verification_status} trust={trust} />
     </>
   );
 
@@ -1555,6 +1580,9 @@ export function DigitalProductDetail({
                         What&apos;s Included
                       </h3>
                       <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
+                        {included.length === 0 && (
+                          <li className="text-[var(--color-text-muted)]">The seller has not listed included files.</li>
+                        )}
                         {included.map((item) => (
                           <li
                             key={item}
@@ -1573,6 +1601,9 @@ export function DigitalProductDetail({
                 {/* Features */}
                 {activeTab === "features" && (
                   <div className="grid sm:grid-cols-2 gap-3">
+                    {features.length === 0 && (
+                      <p className="text-[13px] text-[var(--color-text-muted)]">The seller has not listed features for this product.</p>
+                    )}
                     {features.map((feat) => (
                       <div
                         key={feat}
@@ -1702,9 +1733,8 @@ export function DigitalProductDetail({
                             {reviewCount} review{reviewCount !== 1 ? "s" : ""}
                           </p>
                           <div className="flex items-center gap-1 justify-center mt-2">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                            <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                              Verified reviews
+                            <span className="text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
+                              Buyer reviews
                             </span>
                           </div>
                         </div>
@@ -1755,75 +1785,23 @@ export function DigitalProductDetail({
                       </div>
                       <div>
                         <h3 className="text-[15px] font-bold text-[var(--color-text-primary)]">
-                          Commercial Use License
+                          Buyer license terms
                         </h3>
                         <p className="text-[12.5px] text-[var(--color-text-muted)] leading-relaxed mt-0.5">
-                          Every purchase includes a commercial license that lets you use this asset
-                          in unlimited projects.
+                          {(() => {
+                            const summary = (product as { buyer_license_summary?: string | null }).buyer_license_summary?.trim();
+                            return summary
+                              ? sanitizePublicText(summary)
+                              : "The seller has not published buyer license terms. Jimvio does not add a commercial-use, modification, or redistribution grant by default.";
+                          })()}
                         </p>
                       </div>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div
-                        className="rounded-md p-4"
-                        style={{
-                          background: "rgba(16,185,129,0.06)",
-                          border: "1px solid rgba(16,185,129,0.2)",
-                        }}
-                      >
-                        <p className="text-[12px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-3">
-                          ✓ Allowed
-                        </p>
-                        <ul className="space-y-2 text-[12.5px] text-[var(--color-text-primary)]">
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                            Use in personal and client projects
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                            Use in unlimited end products
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                            Modify and adapt the files freely
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                            Use globally, no geographic limits
-                          </li>
-                        </ul>
-                      </div>
-                      <div
-                        className="rounded-md p-4"
-                        style={{
-                          background: "rgba(244,63,94,0.06)",
-                          border: "1px solid rgba(244,63,94,0.2)",
-                        }}
-                      >
-                        <p className="text-[12px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-3">
-                          ✗ Not allowed
-                        </p>
-                        <ul className="space-y-2 text-[12.5px] text-[var(--color-text-primary)]">
-                          <li className="flex items-start gap-2">
-                            <X className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
-                            Reselling or redistributing as-is
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <X className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
-                            Sharing source files publicly
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <X className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
-                            Using in trademarks or logos
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <X className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
-                            Sublicensing to third parties
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
+                    <p className="text-[12.5px] text-[var(--color-text-secondary)] leading-relaxed">
+                      Allowed and restricted uses are only those written in the seller terms above.
+                      A reviewed listing still does not mean the file is legally certified or guaranteed safe.
+                    </p>
 
                     <Link
                       href="/help"
@@ -1850,8 +1828,8 @@ export function DigitalProductDetail({
                               value:
                                 (vendor.total_sales ?? 0) >= 1000
                                   ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k`
-                                  : `${vendor.total_sales ?? 1200}`,
-                              label: "Total Downloads",
+                                  : `${vendor.total_sales ?? 0}`,
+                              label: "Recorded sales",
                               color: "text-orange-500",
                               bg: "bg-orange-500/10",
                             },
@@ -1864,7 +1842,7 @@ export function DigitalProductDetail({
                             },
                             {
                               icon: MessageSquare,
-                              value: vendor.response_time ?? "5 min",
+                              value: vendor.response_time ?? "Not published",
                               label: "Avg. Response",
                               color: "text-sky-500",
                               bg: "bg-sky-500/10",

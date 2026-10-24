@@ -29,6 +29,8 @@ export default function CommunityLeaderboardPage() {
   const [tab, setTab] = useState<BoardTab>("creators");
   const [rows, setRows] = useState<RankRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [monthLabel, setMonthLabel] = useState("");
 
   useEffect(() => {
@@ -41,12 +43,25 @@ export default function CommunityLeaderboardPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch(`/api/c/hub/leaderboard?tab=${tab}`, {
           cache: "no-store",
         });
         const data = await res.json().catch(() => ({}));
-        if (!cancelled) setRows(Array.isArray(data.rows) ? data.rows : []);
+        if (!cancelled) {
+          if (!res.ok) {
+            setRows([]);
+            setError(data.error || "Could not load leaderboard");
+          } else {
+            setRows(Array.isArray(data.rows) ? data.rows : []);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setRows([]);
+          setError(err instanceof Error ? err.message : "Could not load leaderboard");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -54,7 +69,7 @@ export default function CommunityLeaderboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [tab]);
+  }, [tab, reloadKey]);
 
   return (
     <div className="min-h-full bg-[var(--color-bg,#f4f4f5)]">
@@ -91,6 +106,18 @@ export default function CommunityLeaderboardPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
+        ) : error ? (
+          <HubCard className="py-10 text-center">
+            <p className="font-bold">Leaderboard could not be loaded</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button
+              type="button"
+              className="mt-4 rounded-xl bg-[#fd5000] px-4 py-2 text-[12px] font-semibold text-white"
+              onClick={() => setReloadKey((key) => key + 1)}
+            >
+              Try again
+            </button>
+          </HubCard>
         ) : rows.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Trophy className="mx-auto mb-3 h-10 w-10 text-zinc-300" />

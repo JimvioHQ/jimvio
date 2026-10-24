@@ -187,11 +187,25 @@ export async function publishAdminProduct(
   if (!auth.ok) return { success: false, error: auth.error };
 
   const admin = createAdminClient();
-  const { data: product, error: fetchErr } = await admin
+  const adminAny = admin as unknown as {
+    from: (table: string) => {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          maybeSingle: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+        };
+      };
+    };
+  };
+  let productResult = await adminAny
     .from("products")
-    .select("images, status")
+    .select("images, status, is_digital, digital_verification_state")
     .eq("id", productId)
     .maybeSingle();
+  const schemaMissing = Boolean(productResult.error && /digital_verification_state/i.test(productResult.error.message));
+  if (schemaMissing) {
+    productResult = await adminAny.from("products").select("images, status, is_digital").eq("id", productId).maybeSingle();
+  }
+  const { data: product, error: fetchErr } = productResult;
 
   if (fetchErr) return { success: false, error: fetchErr.message };
   if (!product) return { success: false, error: "Product not found." };
@@ -202,6 +216,17 @@ export async function publishAdminProduct(
 
   if (images.length === 0) {
     return { success: false, error: "Product has no images — add images before publishing." };
+  }
+
+  const verificationState = (product as { digital_verification_state?: string | null }).digital_verification_state;
+  const isDigital = (product as { is_digital?: boolean | null }).is_digital === true;
+  if (isDigital && (schemaMissing || verificationState !== "published")) {
+    return {
+      success: false,
+      error: schemaMissing
+        ? "Digital publishing is blocked until migration 168 is applied. This product was not published."
+        : "This digital listing was not published. A null or incomplete verification state is not approval. Use Digital review after a byte-level scan and human approval.",
+    };
   }
 
   const { error } = await admin

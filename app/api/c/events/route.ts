@@ -15,6 +15,7 @@ import {
   listHubCommunityEvents,
   type CommunityEventKind,
 } from "@/lib/community/events";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +55,9 @@ export async function GET(req: NextRequest) {
       });
       return NextResponse.json(result);
     } catch (error) {
+      logCommunityFailure("events.discover", error);
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Could not load events" },
+        { error: publicErrorMessage(error, "Could not load events") },
         { status: 400 },
       );
     }
@@ -73,10 +75,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const [legacy, native] = await Promise.all([
-    communitySlug ? Promise.resolve([]) : getHubEvents(user.id),
-    listHubCommunityEvents(user.id).catch(() => []),
-  ]);
+  let legacy: Awaited<ReturnType<typeof getHubEvents>> = [];
+  let native: Awaited<ReturnType<typeof listHubCommunityEvents>> = [];
+  try {
+    [legacy, native] = await Promise.all([
+      communitySlug ? Promise.resolve([]) : getHubEvents(user.id),
+      listHubCommunityEvents(user.id),
+    ]);
+  } catch (error) {
+    logCommunityFailure("events.list", error);
+    return NextResponse.json(
+      { error: publicErrorMessage(error, "Could not load events") },
+      { status: 400 },
+    );
+  }
 
   const events = [
     ...native.filter((e: { community_slug?: string | null }) =>
