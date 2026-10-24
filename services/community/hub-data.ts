@@ -3,6 +3,14 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
 import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { resolveCommunityMemberCount, resolveSpaceMemberCount } from "@/lib/community/member-count";
+import { logCommunityFailure, publicErrorMessage } from "@/lib/community/public-error";
+import {
+  HUB_SPACES_PER_COMMUNITY_LIMIT,
+  HUB_SPACES_SEARCH_MATCH_CAP,
+  mergeSearchCommunities,
+  selectPrimarySpacesPerCommunity,
+  sliceCommunityPage,
+} from "@/lib/community/hub-spaces-page";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -23,34 +31,6 @@ async function getUserCommunityIds(supabase: Awaited<ReturnType<typeof createCli
 
   return (memberships ?? []).map((m) => m.community_id);
 }
-
-/** Joined + publicly discoverable communities the user may browse Spaces for. */
-async function getAccessibleCommunityIds(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-): Promise<string[]> {
-  const joined = await getUserCommunityIds(supabase, userId);
-  const ids = new Set(joined);
-
-  const { data: owned } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("owner_id", userId)
-    .eq("is_active", true);
-  for (const row of owned ?? []) ids.add(row.id);
-
-  const { data: publicRows } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("is_active", true)
-    .or("is_private.eq.false,is_private.is.null")
-    .limit(500);
-  for (const row of publicRows ?? []) ids.add(row.id);
-
-  return [...ids];
-}
-
-import { pickPrimarySpaceCandidate } from "@/lib/community/workspace/primary-space";
 
 export type HubPlatformStats = {
   membersOnline: number;
@@ -136,7 +116,9 @@ export type HubSpaceItem = {
   access_type: string;
   last_message: string | null;
   last_message_at: string | null;
-  message_count: number;
+  /** Omitted when the hub does not count messages. Do not treat absence as zero. */
+  message_count?: number;
+  is_member?: boolean;
 };
 
 export type HubMissionItem = {
@@ -855,6 +837,36 @@ export type HubChannelItem = {
   href: string;
 };
 
+const HUB_COMMUNITY_FIELDS =
+  "id, name, slug, avatar_url, cover_image, member_count, settings";
+
+async function loadVisibleCommunitiesByIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  ids: readonly string[],
+  accessOr: string,
+) {
+  const chunks: string[][] = [];
+  for (let index = 0; index < ids.length; index += 100) {
+    chunks.push(ids.slice(index, index + 100));
+  }
+  const loaded = await Promise.all(
+    chunks.map(async (chunk) => {
+      const { data, error } = await supabase
+        .from("communities")
+        .select(HUB_COMMUNITY_FIELDS)
+        .in("id", chunk)
+        .eq("is_active", true)
+        .or(accessOr);
+      if (error) {
+        logCommunityFailure("spaces.communities", error);
+        throw new Error(publicErrorMessage(error, "Could not load Spaces"));
+      }
+      return data ?? [];
+    }),
+  );
+  return loaded.flat();
+}
+
 export async function getHubSpaces(
   userId: string,
   opts?: { offset?: number; limit?: number; q?: string }
@@ -864,21 +876,106 @@ export async function getHubSpaces(
   total: number;
 }> {
   const supabase = await createClient();
-  const communityIds = await getAccessibleCommunityIds(supabase, userId);
-  if (communityIds.length === 0) {
-    return { spaces: [], nextOffset: null, total: 0 };
+  const offset = Math.max(0, opts?.offset ?? 0);
+  const limit = Math.min(30, Math.max(1, opts?.limit ?? 30));
+  const q = (opts?.q ?? "").replace(/[%_,.()"'\\]/g, "").trim().slice(0, 60);
+  const joined = (await getUserCommunityIds(supabase, userId)).slice(0, 100);
+  const memberIds = new Set(joined);
+  const accessOr = [
+    "is_private.eq.false",
+    "is_private.is.null",
+    `owner_id.eq.${userId}`,
+    joined.length ? `id.in.(${joined.join(",")})` : "",
+  ].filter(Boolean).join(",");
+
+  let communities: Awaited<ReturnType<typeof loadVisibleCommunitiesByIds>> = [];
+  let total = 0;
+  let nextOffset: number | null = null;
+
+  if (!q) {
+    const { data: communityPage, error: communityError, count } = await supabase
+      .from("communities")
+      .select(HUB_COMMUNITY_FIELDS, { count: "exact" })
+      .eq("is_active", true)
+      .or(accessOr)
+      .order("name", { ascending: true })
+      .range(offset, offset + limit - 1);
+    if (communityError) {
+      logCommunityFailure("spaces.communities", communityError);
+      throw new Error(publicErrorMessage(communityError, "Could not load Spaces"));
+    }
+    communities = [...(communityPage ?? [])];
+    total = count ?? communities.length;
+    nextOffset = offset + limit < total ? offset + limit : null;
+  } else {
+    const { data: nameMatches, error: nameError } = await supabase
+      .from("communities")
+      .select(HUB_COMMUNITY_FIELDS)
+      .eq("is_active", true)
+      .or(accessOr)
+      .or(`name.ilike.%${q}%,slug.ilike.%${q}%`)
+      .order("name", { ascending: true })
+      .limit(HUB_SPACES_SEARCH_MATCH_CAP);
+    if (nameError) {
+      logCommunityFailure("spaces.communities", nameError);
+      throw new Error(publicErrorMessage(nameError, "Could not load Spaces"));
+    }
+
+    const { data: spaceHits, error: spaceHitError } = await supabase
+      .from("spaces")
+      .select("community_id")
+      .eq("is_active", true)
+      .eq("is_hidden", false)
+      .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
+      .limit(HUB_SPACES_SEARCH_MATCH_CAP);
+    if (spaceHitError) {
+      logCommunityFailure("spaces.search", spaceHitError);
+      throw new Error(publicErrorMessage(spaceHitError, "Could not load Spaces"));
+    }
+
+    const nameRows = nameMatches ?? [];
+    const seenIds = new Set(nameRows.map((community) => community.id));
+    const extraIds = [...new Set((spaceHits ?? []).map((row) => row.community_id))].filter(
+      (id) => !seenIds.has(id),
+    );
+    const spaceCommunities = extraIds.length
+      ? await loadVisibleCommunitiesByIds(supabase, extraIds, accessOr)
+      : [];
+    const merged = mergeSearchCommunities(nameRows, spaceCommunities);
+    const page = sliceCommunityPage(merged, offset, limit);
+    communities = page.page;
+    total = page.total;
+    nextOffset = page.nextOffset;
   }
 
-  const { data: spaces } = await supabase
-    .from("spaces")
-    .select(
-      "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, access_type, sort_order, is_featured, communities(name, slug, avatar_url, cover_image, member_count, settings)"
-    )
-    .in("community_id", communityIds)
-    .eq("is_active", true)
-    .eq("is_hidden", false)
-    .order("sort_order", { ascending: true })
-    .limit(500);
+  if (communities.length === 0) {
+    return { spaces: [], nextOffset: null, total };
+  }
+
+  const spaceGroups = await Promise.all(
+    communities.map(async (community) => {
+      const { data, error } = await supabase
+        .from("spaces")
+        .select(
+          "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, access_type, sort_order, is_featured"
+        )
+        .eq("community_id", community.id)
+        .eq("is_active", true)
+        .eq("is_hidden", false)
+        // Match spacesWithinPerCommunityCap: featured first, nulls last, then sort_order.
+        .order("is_featured", { ascending: false, nullsFirst: false })
+        .order("sort_order", { ascending: true })
+        .limit(HUB_SPACES_PER_COMMUNITY_LIMIT);
+      if (error) {
+        logCommunityFailure("spaces.list", error);
+        throw new Error(publicErrorMessage(error, "Could not load Spaces"));
+      }
+      return data ?? [];
+    }),
+  );
+  const spaces = spaceGroups.flat();
+
+  const communityById = new Map(communities.map((community) => [community.id, community]));
 
   type SpaceRow = NonNullable<typeof spaces>[number];
   const byCommunity = new Map<string, SpaceRow[]>();
@@ -888,9 +985,10 @@ export async function getHubSpaces(
     byCommunity.set(space.community_id, list);
   }
 
-  const primarySpaces = [...byCommunity.values()]
-    .map((list) => pickPrimarySpaceCandidate(list))
-    .filter((s): s is NonNullable<typeof s> => !!s);
+  const primarySpaces = selectPrimarySpacesPerCommunity(
+    communities.map((community) => community.id),
+    byCommunity,
+  );
 
   const spaceIds = primarySpaces.map((s) => s.id);
   const { data: rooms } = spaceIds.length
@@ -913,7 +1011,6 @@ export async function getHubSpaces(
 
   const roomIds = [...discussionRoomBySpace.values()];
   const lastByRoom = new Map<string, { body: string; created_at: string }>();
-  const countByRoom = new Map<string, number>();
 
   if (roomIds.length > 0) {
     try {
@@ -934,28 +1031,12 @@ export async function getHubSpaces(
         }
       }
     } catch {
-      /* RPC optional */
-    }
-
-    for (const roomId of roomIds) {
-      const { count } = await supabase
-        .from("community_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("room_id", roomId)
-        .eq("is_deleted", false);
-      countByRoom.set(roomId, count ?? 0);
+      /* Recent-message preview is optional; the Space cards still render. */
     }
   }
 
   const items = primarySpaces.map((space) => {
-    const community = space.communities as {
-      name: string;
-      slug: string;
-      avatar_url: string | null;
-      cover_image: string | null;
-      member_count?: number | null;
-      settings?: unknown;
-    } | null;
+    const community = communityById.get(space.community_id) ?? null;
     const cover =
       space.cover_url?.trim() ||
       (space as { banner_url?: string | null }).banner_url?.trim() ||
@@ -991,33 +1072,15 @@ export async function getHubSpaces(
       access_type: (space as { access_type?: string }).access_type ?? "free",
       last_message: last?.body?.slice(0, 140) ?? null,
       last_message_at: last?.created_at ?? null,
-      message_count: roomId ? countByRoom.get(roomId) ?? 0 : 0,
+      is_member: memberIds.has(space.community_id),
       href: community
         ? `/communities/${community.slug}/spaces/${space.slug}`
         : "/communities",
     };
   });
 
-  const q = opts?.q?.trim().toLowerCase() ?? "";
-  let sorted = items;
-  if (q) {
-    sorted = items.filter(
-      (space) =>
-        space.name.toLowerCase().includes(q) ||
-        space.community_name.toLowerCase().includes(q) ||
-        space.description?.toLowerCase().includes(q) ||
-        space.last_message?.toLowerCase().includes(q)
-    );
-  }
-  sorted = [...sorted].sort((a, b) => a.community_name.localeCompare(b.community_name));
-
-  const offset = Math.max(0, opts?.offset ?? 0);
-  const limit = Math.min(60, Math.max(1, opts?.limit ?? 30));
-  const total = sorted.length;
-  const page = sorted.slice(offset, offset + limit);
-  const nextOffset = offset + limit < total ? offset + limit : null;
-
-  return { spaces: page, nextOffset, total };
+  const sorted = [...items].sort((a, b) => a.community_name.localeCompare(b.community_name));
+  return { spaces: sorted, nextOffset, total };
 }
 
 export async function getHubChannels(userId: string): Promise<HubChannelItem[]> {

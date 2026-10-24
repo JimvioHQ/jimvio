@@ -15,6 +15,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { HubCard, HubAvatar, HubLinkButton, HubBadge } from "@/components/community/hub/hub-ui";
 import { resolveSpaceAvatar } from "@/components/community/hub/messages/MessageEntityAvatar";
+import { applySpacesPage, shouldApplySpacesPage } from "@/lib/community/hub-spaces-page";
+import { interpretSpacesResponse } from "@/lib/community/hub-spaces-response";
 
 type HubSpace = {
   id: string;
@@ -155,17 +157,11 @@ function SpaceCardSkeleton() {
 
 const PAGE_SIZE = 30;
 
-function dedupeSpaces(spaces: HubSpace[]): HubSpace[] {
-  const seenIds = new Set<string>();
-  const seenCommunities = new Set<string>();
-  return spaces.filter((space) => {
-    if (seenIds.has(space.id)) return false;
-    const communityKey = space.community_id ?? space.community_slug;
-    if (seenCommunities.has(communityKey)) return false;
-    seenIds.add(space.id);
-    seenCommunities.add(communityKey);
-    return true;
-  });
+function isAbortError(err: unknown): boolean {
+  return (
+    (err instanceof DOMException && err.name === "AbortError") ||
+    (err instanceof Error && err.name === "AbortError")
+  );
 }
 
 export default function HubSpacesPage() {
@@ -176,7 +172,16 @@ export default function HubSpacesPage() {
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const spacesRef = useRef<HubSpace[]>([]);
+  const queryRef = useRef(debouncedQuery);
+  const pageQueryRef = useRef(debouncedQuery);
+  const generationRef = useRef(0);
+  const loadMoreAbortRef = useRef<AbortController | null>(null);
+  spacesRef.current = spaces;
+  queryRef.current = debouncedQuery;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
@@ -184,56 +189,148 @@ export default function HubSpacesPage() {
   }, [searchQuery]);
 
   const fetchPage = useCallback(
-    async (offset: number, q: string, append: boolean) => {
+    async (
+      offset: number,
+      q: string,
+      append: boolean,
+      signal: AbortSignal | undefined,
+      generation: number,
+    ) => {
       const params = new URLSearchParams({
         offset: String(offset),
         limit: String(PAGE_SIZE),
       });
       if (q) params.set("q", q);
 
-      const res = await fetch(`/api/c/spaces?${params.toString()}`);
-      if (!res.ok) return;
-      const json = (await res.json()) as {
-        spaces: HubSpace[];
-        nextOffset: number | null;
-        total: number;
+      const res = await fetch(`/api/c/spaces?${params.toString()}`, { signal });
+      const json = (await res.json().catch(() => null)) as {
+        error?: string;
+        spaces?: HubSpace[];
+        nextOffset?: number | null;
+        total?: number;
+      } | null;
+      const gate = {
+        aborted: Boolean(signal?.aborted),
+        requestQuery: q,
+        currentQuery: queryRef.current,
+        requestGeneration: generation,
+        currentGeneration: generationRef.current,
       };
+      if (!shouldApplySpacesPage(gate)) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+      const parsed = interpretSpacesResponse(res.status, json);
+      if (
+        !shouldApplySpacesPage({
+          ...gate,
+          aborted: Boolean(signal?.aborted),
+          currentQuery: queryRef.current,
+          currentGeneration: generationRef.current,
+        })
+      ) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+      if (!parsed.ok) {
+        if (!append) {
+          spacesRef.current = [];
+          pageQueryRef.current = q;
+          setSpaces([]);
+          setNextOffset(null);
+          setTotal(0);
+        }
+        throw new Error(parsed.error);
+      }
 
-      setTotal(json.total ?? 0);
-      setNextOffset(json.nextOffset ?? null);
-      setSpaces((prev) => {
-        const merged = append ? [...prev, ...(json.spaces ?? [])] : json.spaces ?? [];
-        return dedupeSpaces(merged);
+      const decision = applySpacesPage({
+        aborted: Boolean(signal?.aborted),
+        requestQuery: q,
+        currentQuery: queryRef.current,
+        requestGeneration: generation,
+        currentGeneration: generationRef.current,
+        append,
+        previous: spacesRef.current,
+        incoming: (parsed.spaces as HubSpace[]) ?? [],
+        nextOffset: parsed.nextOffset,
+        total: parsed.total,
       });
+      if (!decision.apply) {
+        throw new DOMException("Aborted", "AbortError");
+      }
+
+      pageQueryRef.current = q;
+      spacesRef.current = decision.spaces;
+      setError(null);
+      setTotal(decision.total);
+      setNextOffset(decision.nextOffset);
+      setSpaces(decision.spaces);
     },
     []
   );
 
   useEffect(() => {
+    const controller = new AbortController();
+    loadMoreAbortRef.current?.abort();
+    loadMoreAbortRef.current = null;
+    const generation = ++generationRef.current;
+    const timer = window.setTimeout(() => controller.abort(), 25000);
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLoadingMore(false);
+      setError(null);
       try {
-        await fetchPage(0, debouncedQuery, false);
+        await fetchPage(0, debouncedQuery, false, controller.signal, generation);
+      } catch (err) {
+        if (cancelled) return;
+        if (generation !== generationRef.current || queryRef.current !== debouncedQuery) return;
+        if (isAbortError(err)) {
+          setError("Spaces are taking too long to load.");
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Could not load Spaces");
       } finally {
+        window.clearTimeout(timer);
         if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
+      controller.abort();
+      loadMoreAbortRef.current?.abort();
+      loadMoreAbortRef.current = null;
     };
-  }, [debouncedQuery, fetchPage]);
+  }, [debouncedQuery, fetchPage, reloadKey]);
 
   useEffect(() => {
     if (loading || loadingMore || nextOffset == null) return;
+    if (pageQueryRef.current !== debouncedQuery) return;
     const node = sentinelRef.current;
     if (!node) return;
 
+    const controller = new AbortController();
+    loadMoreAbortRef.current = controller;
+    const generation = generationRef.current;
+    const query = debouncedQuery;
+    const offset = nextOffset;
+    let started = false;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (!entries[0]?.isIntersecting || loadingMore || nextOffset == null) return;
+        if (started || !entries[0]?.isIntersecting) return;
+        if (controller.signal.aborted || offset == null) return;
+        started = true;
         setLoadingMore(true);
-        void fetchPage(nextOffset, debouncedQuery, true).finally(() => setLoadingMore(false));
+        void fetchPage(offset, query, true, controller.signal, generation)
+          .catch((err: unknown) => {
+            if (isAbortError(err)) return;
+            if (generation !== generationRef.current || query !== queryRef.current) return;
+            setError(err instanceof Error ? err.message : "Could not load more Spaces");
+          })
+          .finally(() => {
+            if (controller.signal.aborted) return;
+            if (generation !== generationRef.current || query !== queryRef.current) return;
+            setLoadingMore(false);
+          });
       },
       { rootMargin: "240px" }
     );
@@ -287,12 +384,25 @@ export default function HubSpacesPage() {
 
         {loading ? (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <li key={i}>
                 <SpaceCardSkeleton />
               </li>
             ))}
           </ul>
+        ) : error && !hasSpaces ? (
+          <HubCard className="py-14 text-center">
+            <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
+            <p className="text-[15px] font-bold text-[#111827]">Spaces could not be loaded</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((value) => value + 1)}
+              className="mt-4 rounded-xl bg-[#FF5A1F] px-4 py-2 text-[12px] font-semibold text-white"
+            >
+              Try again
+            </button>
+          </HubCard>
         ) : noSearchResults ? (
           <HubCard className="py-14 text-center">
             <Search className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
@@ -317,6 +427,9 @@ export default function HubSpacesPage() {
           </HubCard>
         ) : (
           <>
+            {error ? (
+              <p className="text-[12px] font-medium text-[#b45309]">{error}</p>
+            ) : null}
             {countLabel ? (
               <p className="text-[12px] font-medium text-[var(--color-text-muted)]">
                 {countLabel} available
