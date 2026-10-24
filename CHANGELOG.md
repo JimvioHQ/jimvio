@@ -1,3 +1,13 @@
+## v1.0.3 — 2026-10-24
+
+# Jimvio v1.0.3
+
+Production release from `a3cb1d30169d3ded48b036e685fc7917b91f5b0b`.
+
+## Changes
+- feat: define Jimvio as an all-in-one creator commerce platform (a3cb1d30)
+
+
 ## v1.0.2 — 2026-10-24
 
 # Jimvio v1.0.2
