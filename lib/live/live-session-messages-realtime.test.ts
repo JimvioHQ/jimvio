@@ -8,7 +8,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const migration = readFileSync(
   join(
     root,
-    "supabase/migrations/20261006150000_publish_live_session_messages_realtime.sql"
+    "supabase/migrations/20261006073207_publish_live_session_messages_realtime.sql"
   ),
   "utf8"
 );

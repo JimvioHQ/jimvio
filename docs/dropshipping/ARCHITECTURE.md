@@ -15,7 +15,7 @@ Jimvio Catalog → Merchant Store → Customer Order → Jimvio Order
 - Marketplace checkout / payments / existing `/api/webhooks/shopify` fulfillment path
 - `vendors` as tenant (merchant)
 
-**New tables:** see migration `156_dropshipping_os.sql` / `20260911040000_dropshipping_os.sql`.
+**New tables:** see migration `156_dropshipping_os.sql` / `20260911014541_dropshipping_os.sql`.
 
 ## Supplier connector interface
 

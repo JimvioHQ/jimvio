@@ -69,6 +69,15 @@ jobs:
       - name: Migration verification
         run: node scripts/release/verify-migrations.mjs
 
+      - name: Supabase migration files
+        run: node scripts/release/verify-supabase-migrations.mjs
+
+      - name: Supabase history match
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: node scripts/release/verify-remote-migration-history.mjs
+
       - name: Environment / deploy readiness
         id: env
         env:
@@ -77,13 +86,14 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
         run: |
+          node scripts/release/verify-env.mjs
           if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "Vercel deploy secrets not configured — gates still run; deploy skipped." >> "$GITHUB_STEP_SUMMARY"
+            echo "Vercel secret names are missing. Vercel Git still publishes main; this workflow will not deploy." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          node scripts/release/verify-env.mjs --strict
           echo "configured=true" >> "$GITHUB_OUTPUT"
+          echo "VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID are set. GitHub Actions will not start a second production deployment." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Decide deploy
         id: decide
@@ -97,14 +107,14 @@ jobs:
           fi
 
   deploy:
-    name: Deploy production
+    name: Confirm production
     needs: gate
-    if: needs.gate.outputs.should_deploy == 'true'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.gate.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
       name: production
-      url: ${{ steps.meta.outputs.public_url }}
+      url: https://www.jimvio.com
     steps:
       - uses: actions/checkout@v5
         with:
@@ -118,48 +128,28 @@ jobs:
 
       - run: npm ci
 
-      - name: Deploy to Vercel production
-        id: deploy
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          START=$(date +%s)
-          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          npx vercel build --prod --token="$VERCEL_TOKEN"
-          URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          END=$(date +%s)
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "duration_s=$((END-START))" >> "$GITHUB_OUTPUT"
-          echo "Production deploy URL: $URL" >> "$GITHUB_STEP_SUMMARY"
-          echo "Deploy duration: $((END-START))s" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Resolve public URL
-        id: meta
-        env:
-          PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-        run: |
-          if [ -n "$PUBLIC_URL" ]; then
-            echo "public_url=$PUBLIC_URL" >> "$GITHUB_OUTPUT"
-          else
-            echo "public_url=${{ steps.deploy.outputs.url }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Post-deploy health (+ auto-rollback)
+      - name: Wait for Vercel Git production commit
         id: health
-        env:
-          BASE_URL: ${{ steps.meta.outputs.public_url }}
-          AUTO_ROLLBACK: "1"
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          ROLLBACK_CMD: npx vercel rollback --yes --token=${{ secrets.VERCEL_TOKEN }}
-        run: node scripts/release/post-deploy-health.mjs
+        run: |
+          set -euo pipefail
+          expected="${GITHUB_SHA}"
+          for i in $(seq 1 40); do
+            body=$(curl -fsS --max-time 20 https://www.jimvio.com/api/ops/health || true)
+            version=$(printf '%s' "$body" | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{try{const j=JSON.parse(s);if(j&&typeof j.version==="string")process.stdout.write(j.version)}catch{}})')
+            if [ "$version" = "$expected" ]; then
+              echo "matched=true" >> "$GITHUB_OUTPUT"
+              echo "Production health version matches ${expected}." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Waiting for production version ${expected} (attempt ${i}/40)."
+            sleep 20
+          done
+          echo "::error::Production health did not report ${expected}."
+          exit 1
 
       - name: Production smoke
         env:
-          BASE_URL: ${{ steps.meta.outputs.public_url }}
+          BASE_URL: https://www.jimvio.com
         run: node scripts/smoke/critical-flows.mjs
 
       - name: Semantic version + CHANGELOG + GitHub Release
@@ -217,9 +207,9 @@ jobs:
         run: |
           {
             echo "### Release observability"
-            echo "- deploy_duration_s: ${{ steps.deploy.outputs.duration_s }}"
+            echo "- publisher: Vercel Git integration"
+            echo "- github_actions_deploy: not run"
             echo "- health: ${{ steps.health.outcome }}"
             echo "- sha: \`${{ github.sha }}\`"
-            echo "- public_url: ${{ steps.meta.outputs.public_url }}"
-            echo "- rollback: AUTO on failed post-deploy health"
+            echo "- public_url: https://www.jimvio.com"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,15 +1,10 @@
--- Fix infinite recursion in community_memberships SELECT.
--- memberships_select_active_peers previously did:
---   EXISTS (SELECT 1 FROM community_memberships me WHERE ...)
--- which re-entered the same RLS policy.
---
--- SECURITY DEFINER helper in schema private bypasses RLS for a boolean
--- membership check only. search_path is empty. EXECUTE is granted to
--- authenticated (needed for policy evaluation) but not anon.
+-- Fix infinite recursion: memberships_select_active_peers queried
+-- community_memberships from inside a community_memberships SELECT policy.
+-- Replace with SECURITY DEFINER helper that bypasses RLS for a boolean check only.
 
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC;
-GRANT USAGE ON SCHEMA private TO postgres, service_role, authenticated;
+GRANT USAGE ON SCHEMA private TO postgres, service_role;
 
 CREATE OR REPLACE FUNCTION private.is_active_community_member(
   p_community_id uuid,
@@ -31,7 +26,6 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION private.is_active_community_member(uuid, uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION private.is_active_community_member(uuid, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION private.is_active_community_member(uuid, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION private.is_active_community_member(uuid, uuid) TO service_role;
 

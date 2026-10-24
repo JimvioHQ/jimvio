@@ -30,7 +30,7 @@ const tokens = read("components/ugc/workspace/ugc-tokens.ts");
 const hero = read("components/ugc/workspace/UGCHeroHeader.tsx");
 const recruitment = read("components/ugc/brand/CreatorRecruitmentClient.tsx");
 const migration = read("database/migrations/135_ugc_acceptance_hardening.sql");
-const migrationTwin = read("supabase/migrations/20260828120000_ugc_acceptance_hardening.sql");
+const migrationTwin = read("supabase/migrations/20260828181058_ugc_acceptance_hardening.sql");
 const auth = read("lib/ugc/platform/auth.ts");
 
 assert.match(auth, /creatorProfileRequiredPayload/);

@@ -144,7 +144,7 @@ const FORBIDDEN_PUBLIC_KEYS = [
 
 const schema = mustExist("schema.sql");
 const dbMig = mustExist("database/migrations/129_lock_user_roles_and_platform_settings.sql");
-const sbMig = mustExist("supabase/migrations/20260825020000_lock_user_roles_and_platform_settings.sql");
+const sbMig = mustExist("supabase/migrations/20260825015212_lock_user_roles_and_platform_settings.sql");
 
 assert.equal(
   normalizeSql(dbMig),

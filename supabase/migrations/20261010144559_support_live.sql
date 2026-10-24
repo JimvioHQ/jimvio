@@ -1,9 +1,3 @@
--- Live support conversations. Additive. Customers read only their own
--- customer-visible messages. Staff writes go through the service role after
--- requirePlatformAdmin. Apply this migration before the live inbox is used.
--- Reverse: drop the three tables below (they do not reference ticket rows
--- except an optional ticket id with ON DELETE SET NULL).
-
 CREATE TABLE IF NOT EXISTS public.support_conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   public_ref TEXT NOT NULL UNIQUE,
@@ -23,16 +17,9 @@ CREATE TABLE IF NOT EXISTS public.support_conversations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE INDEX IF NOT EXISTS support_conversations_user_updated_idx
-  ON public.support_conversations (user_id, updated_at DESC);
-
-CREATE INDEX IF NOT EXISTS support_conversations_queue_idx
-  ON public.support_conversations (status, updated_at DESC);
-
-CREATE INDEX IF NOT EXISTS support_conversations_assignee_idx
-  ON public.support_conversations (assignee_id, updated_at DESC);
-
+CREATE INDEX IF NOT EXISTS support_conversations_user_updated_idx ON public.support_conversations (user_id, updated_at DESC);
+CREATE INDEX IF NOT EXISTS support_conversations_queue_idx ON public.support_conversations (status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS support_conversations_assignee_idx ON public.support_conversations (assignee_id, updated_at DESC);
 CREATE TABLE IF NOT EXISTS public.support_conversation_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   conversation_id UUID NOT NULL REFERENCES public.support_conversations(id) ON DELETE CASCADE,
@@ -46,111 +33,45 @@ CREATE TABLE IF NOT EXISTS public.support_conversation_messages (
   notified_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE UNIQUE INDEX IF NOT EXISTS support_conversation_messages_client_uidx
-  ON public.support_conversation_messages (client_message_id)
-  WHERE client_message_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS support_conversation_messages_thread_idx
-  ON public.support_conversation_messages (conversation_id, created_at);
-
+CREATE UNIQUE INDEX IF NOT EXISTS support_conversation_messages_client_uidx ON public.support_conversation_messages (client_message_id) WHERE client_message_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS support_conversation_messages_thread_idx ON public.support_conversation_messages (conversation_id, created_at);
 CREATE TABLE IF NOT EXISTS public.support_agent_presence (
   user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
   available BOOLEAN NOT NULL DEFAULT false,
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE IF NOT EXISTS public.support_conversation_typing (
   conversation_id UUID NOT NULL REFERENCES public.support_conversations(id) ON DELETE CASCADE,
   actor TEXT NOT NULL CHECK (actor IN ('customer', 'staff')),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (conversation_id, actor)
 );
-
 ALTER TABLE public.support_conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_conversation_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_agent_presence ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_conversation_typing ENABLE ROW LEVEL SECURITY;
-
 REVOKE ALL ON TABLE public.support_conversations FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.support_conversation_messages FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.support_agent_presence FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.support_conversation_typing FROM PUBLIC, anon, authenticated;
-
 GRANT SELECT ON TABLE public.support_conversations TO authenticated;
 GRANT SELECT ON TABLE public.support_conversation_messages TO authenticated;
 GRANT SELECT ON TABLE public.support_conversation_typing TO authenticated;
-
 DROP POLICY IF EXISTS support_conversations_select ON public.support_conversations;
-CREATE POLICY support_conversations_select ON public.support_conversations
-  FOR SELECT TO authenticated
-  USING (
-    user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.is_active = true
-        AND ur.role = 'admin'
-    )
-  );
-
+CREATE POLICY support_conversations_select ON public.support_conversations FOR SELECT TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = auth.uid() AND ur.is_active = true AND ur.role = 'admin'));
 DROP POLICY IF EXISTS support_conversation_messages_select ON public.support_conversation_messages;
-CREATE POLICY support_conversation_messages_select ON public.support_conversation_messages
-  FOR SELECT TO authenticated
-  USING (
-    (
-      visibility = 'customer'
-      AND EXISTS (
-        SELECT 1 FROM public.support_conversations c
-        WHERE c.id = conversation_id AND c.user_id = auth.uid()
-      )
-    )
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.is_active = true
-        AND ur.role = 'admin'
-    )
-  );
-
+CREATE POLICY support_conversation_messages_select ON public.support_conversation_messages FOR SELECT TO authenticated USING ((visibility = 'customer' AND EXISTS (SELECT 1 FROM public.support_conversations c WHERE c.id = conversation_id AND c.user_id = auth.uid())) OR EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = auth.uid() AND ur.is_active = true AND ur.role = 'admin'));
 DROP POLICY IF EXISTS support_typing_select ON public.support_conversation_typing;
-CREATE POLICY support_typing_select ON public.support_conversation_typing
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.support_conversations c
-      WHERE c.id = conversation_id AND c.user_id = auth.uid()
-    )
-    OR EXISTS (
-      SELECT 1 FROM public.user_roles ur
-      WHERE ur.user_id = auth.uid()
-        AND ur.is_active = true
-        AND ur.role = 'admin'
-    )
-  );
-
+CREATE POLICY support_typing_select ON public.support_conversation_typing FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.support_conversations c WHERE c.id = conversation_id AND c.user_id = auth.uid()) OR EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = auth.uid() AND ur.is_active = true AND ur.role = 'admin'));
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
-    RAISE NOTICE 'supabase_realtime publication missing — skip';
     RETURN;
   END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime'
-      AND schemaname = 'public'
-      AND tablename = 'support_conversation_messages'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'support_conversation_messages') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.support_conversation_messages;
   END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_publication_tables
-    WHERE pubname = 'supabase_realtime'
-      AND schemaname = 'public'
-      AND tablename = 'support_conversations'
-  ) THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'support_conversations') THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.support_conversations;
   END IF;
 END $$;

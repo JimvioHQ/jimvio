@@ -5,13 +5,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const migration = readFileSync(
-  join(
-    root,
-    "supabase/migrations/20261006140000_fix_community_memberships_rls_recursion.sql"
-  ),
-  "utf8"
-);
+const migration = [
+  "supabase/migrations/20261006070207_fix_community_memberships_peer_select_recursion.sql",
+  "supabase/migrations/20261006070217_grant_private_schema_usage_for_member_helper.sql",
+]
+  .map((file) => readFileSync(join(root, file), "utf8"))
+  .join("\n");
 
 describe("community_memberships peer SELECT is non-recursive", () => {
   it("uses a SECURITY DEFINER helper instead of self-selecting the table", () => {

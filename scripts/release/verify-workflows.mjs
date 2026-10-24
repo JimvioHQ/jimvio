@@ -47,6 +47,24 @@ if (!existsSync(dependabot)) {
   console.log("OK dependabot.yml");
 }
 
+const release = readFileSync(join(workflowsDir, "release.yml"), "utf8");
+if (/vercel deploy/.test(release)) {
+  fail("release.yml must not start a Vercel deployment; Vercel Git publishes main");
+}
+if (!/Wait for Vercel Git production commit/.test(release)) {
+  fail("release.yml must confirm the Vercel Git commit before smoke");
+}
+const supabaseWorkflow = readFileSync(join(workflowsDir, "supabase.yml"), "utf8");
+if (!/supabase-production-migrate/.test(supabaseWorkflow)) {
+  fail("supabase.yml must serialize production migration applies");
+}
+if (!/apply-eligible-migrations\.mjs/.test(supabaseWorkflow)) {
+  fail("supabase.yml must apply migrations only through the eligible-migration script");
+}
+if (!/verify-remote-migration-history\.mjs/.test(supabaseWorkflow)) {
+  fail("supabase.yml must fail closed on migration history drift");
+}
+
 const listed = existsSync(workflowsDir) ? readdirSync(workflowsDir).filter((f) => f.endsWith(".yml") || f.endsWith(".yaml")) : [];
 console.log(`Workflows present: ${listed.join(", ") || "(none)"}`);
 

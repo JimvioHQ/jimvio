@@ -151,7 +151,7 @@ function testFailureIsolationContract() {
 }
 
 must(
-  "supabase/migrations/20260910230000_live_multistream_destinations.sql",
+  "supabase/migrations/20260910113920_live_multistream_destinations.sql",
   ["live_destinations", "live_destination_sessions", "encrypted_credentials", "ROW LEVEL SECURITY"],
   "Migration creates destination tables + RLS"
 );

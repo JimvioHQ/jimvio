@@ -278,6 +278,9 @@ function main() {
   scanServerClientBoundaries();
   scanEnvExample();
   run("migrations", process.execPath, [join(root, "scripts", "release", "verify-migrations.mjs")]);
+  run("supabase-migrations", process.execPath, [
+    join(root, "scripts", "release", "verify-supabase-migrations.mjs"),
+  ]);
   run("auth-email-templates", process.execPath, [
     join(root, "scripts", "release", "verify-auth-email-templates.mjs"),
   ]);

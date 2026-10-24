@@ -2,7 +2,6 @@
 -- Extends existing commerce (products, variants, orders, vendors, CJ, Shopify)
 -- without replacing working Marketplace / checkout / CJ fulfillment.
 
--- ── Merchant stores (external storefronts connected to Jimvio) ───────────────
 CREATE TABLE IF NOT EXISTS public.merchant_stores (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -13,14 +12,7 @@ CREATE TABLE IF NOT EXISTS public.merchant_stores (
   status text NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'connected', 'disconnected', 'error', 'expired')),
   scopes text[] NOT NULL DEFAULT '{}',
-  sync_preferences jsonb NOT NULL DEFAULT '{
-    "inventory": true,
-    "price": true,
-    "images": true,
-    "description": true,
-    "title": false,
-    "seo": false
-  }'::jsonb,
+  sync_preferences jsonb NOT NULL DEFAULT '{"inventory": true, "price": true, "images": true, "description": true, "title": false, "seo": false}'::jsonb,
   settings jsonb NOT NULL DEFAULT '{}'::jsonb,
   last_sync_at timestamptz,
   last_sync_status text,
@@ -37,7 +29,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_merchant_stores_vendor_platform_domain
   ON public.merchant_stores(vendor_id, platform, domain)
   WHERE domain IS NOT NULL;
 
--- Server-side credentials only — never expose to clients
 CREATE TABLE IF NOT EXISTS public.merchant_store_credentials (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id uuid NOT NULL UNIQUE REFERENCES public.merchant_stores(id) ON DELETE CASCADE,
@@ -52,7 +43,6 @@ CREATE TABLE IF NOT EXISTS public.merchant_store_credentials (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Product / variant mapping: Jimvio ↔ Store ↔ Supplier identities
 CREATE TABLE IF NOT EXISTS public.store_product_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -93,7 +83,6 @@ CREATE INDEX IF NOT EXISTS idx_store_product_links_supplier
   ON public.store_product_links(supplier_code, supplier_variant_id)
   WHERE supplier_variant_id IS NOT NULL;
 
--- Configurable price rules (global / store / product / variant)
 CREATE TABLE IF NOT EXISTS public.ds_price_rules (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -121,7 +110,6 @@ CREATE TABLE IF NOT EXISTS public.ds_price_rules (
 
 CREATE INDEX IF NOT EXISTS idx_ds_price_rules_vendor ON public.ds_price_rules(vendor_id, is_active, priority);
 
--- Sync engine
 CREATE TABLE IF NOT EXISTS public.ds_sync_jobs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -170,7 +158,6 @@ CREATE TABLE IF NOT EXISTS public.ds_sync_runs (
 
 CREATE INDEX IF NOT EXISTS idx_ds_sync_runs_job ON public.ds_sync_runs(job_id, started_at DESC);
 
--- Merchant API keys (hashed secrets)
 CREATE TABLE IF NOT EXISTS public.ds_api_keys (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -190,7 +177,6 @@ CREATE INDEX IF NOT EXISTS idx_ds_api_keys_vendor ON public.ds_api_keys(vendor_i
   WHERE revoked_at IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_ds_api_keys_prefix ON public.ds_api_keys(key_prefix);
 
--- Idempotency for critical mutations
 CREATE TABLE IF NOT EXISTS public.ds_idempotency_keys (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -206,7 +192,6 @@ CREATE TABLE IF NOT EXISTS public.ds_idempotency_keys (
 
 CREATE INDEX IF NOT EXISTS idx_ds_idempotency_expires ON public.ds_idempotency_keys(expires_at);
 
--- Integration observability (no secrets)
 CREATE TABLE IF NOT EXISTS public.ds_integration_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid REFERENCES public.vendors(id) ON DELETE SET NULL,
@@ -229,7 +214,6 @@ CREATE INDEX IF NOT EXISTS idx_ds_integration_logs_vendor
 CREATE INDEX IF NOT EXISTS idx_ds_integration_logs_op
   ON public.ds_integration_logs(operation, status, created_at DESC);
 
--- Returns / disputes (explicit statuses; no fake auto-refunds)
 CREATE TABLE IF NOT EXISTS public.ds_returns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -268,7 +252,6 @@ CREATE TABLE IF NOT EXISTS public.ds_disputes (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Entitlement abstraction (billing later)
 CREATE TABLE IF NOT EXISTS public.ds_entitlements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id uuid NOT NULL UNIQUE REFERENCES public.vendors(id) ON DELETE CASCADE,
@@ -283,16 +266,24 @@ CREATE TABLE IF NOT EXISTS public.ds_entitlements (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Extend orders for inbound merchant-store ingestion (preserve existing columns)
 ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS merchant_store_id uuid REFERENCES public.merchant_stores(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS external_order_id text,
-  ADD COLUMN IF NOT EXISTS order_channel text DEFAULT 'marketplace'
-    CHECK (order_channel IS NULL OR order_channel IN (
-      'marketplace', 'shopify', 'woocommerce', 'custom', 'api'
-    )),
+  ADD COLUMN IF NOT EXISTS order_channel text DEFAULT 'marketplace',
   ADD COLUMN IF NOT EXISTS source_payload jsonb,
   ADD COLUMN IF NOT EXISTS fulfillment_status_normalized text;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'orders_order_channel_check'
+  ) THEN
+    ALTER TABLE public.orders
+      ADD CONSTRAINT orders_order_channel_check
+      CHECK (order_channel IS NULL OR order_channel IN (
+        'marketplace', 'shopify', 'woocommerce', 'custom', 'api'
+      ));
+  END IF;
+END $$;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_store_external
   ON public.orders(merchant_store_id, external_order_id)
@@ -302,7 +293,6 @@ CREATE INDEX IF NOT EXISTS idx_orders_merchant_store
   ON public.orders(merchant_store_id, created_at DESC)
   WHERE merchant_store_id IS NOT NULL;
 
--- Webhook processing extensions (reuse webhook_events)
 ALTER TABLE public.webhook_events
   ADD COLUMN IF NOT EXISTS processing_status text DEFAULT 'received',
   ADD COLUMN IF NOT EXISTS processed_at timestamptz,
@@ -314,11 +304,9 @@ CREATE INDEX IF NOT EXISTS idx_webhook_events_dead_letter
   ON public.webhook_events(dead_letter, created_at DESC)
   WHERE dead_letter = true;
 
--- Link existing Shopify credentials to merchant_stores when helpful
 ALTER TABLE public.shopify_credentials
   ADD COLUMN IF NOT EXISTS merchant_store_id uuid REFERENCES public.merchant_stores(id) ON DELETE SET NULL;
 
--- ── RLS ───────────────────────────────────────────────────────────────────────
 ALTER TABLE public.merchant_stores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.merchant_store_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.store_product_links ENABLE ROW LEVEL SECURITY;
@@ -333,76 +321,120 @@ ALTER TABLE public.ds_return_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ds_disputes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ds_entitlements ENABLE ROW LEVEL SECURITY;
 
--- Credentials: no client policies (service role only)
-CREATE POLICY merchant_stores_select_own ON public.merchant_stores
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
-CREATE POLICY merchant_stores_insert_own ON public.merchant_stores
-  FOR INSERT TO authenticated
-  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
-CREATE POLICY merchant_stores_update_own ON public.merchant_stores
-  FOR UPDATE TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
-CREATE POLICY merchant_stores_delete_own ON public.merchant_stores
-  FOR DELETE TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY merchant_stores_select_own ON public.merchant_stores
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY merchant_stores_insert_own ON public.merchant_stores
+    FOR INSERT TO authenticated
+    WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY merchant_stores_update_own ON public.merchant_stores
+    FOR UPDATE TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY merchant_stores_delete_own ON public.merchant_stores
+    FOR DELETE TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY store_product_links_select_own ON public.store_product_links
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
-CREATE POLICY store_product_links_mutate_own ON public.store_product_links
-  FOR ALL TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
-  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY store_product_links_select_own ON public.store_product_links
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE POLICY store_product_links_mutate_own ON public.store_product_links
+    FOR ALL TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+    WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_price_rules_own ON public.ds_price_rules
-  FOR ALL TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
-  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_price_rules_own ON public.ds_price_rules
+    FOR ALL TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+    WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_sync_jobs_select_own ON public.ds_sync_jobs
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_sync_jobs_select_own ON public.ds_sync_jobs
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_sync_runs_select_own ON public.ds_sync_runs
-  FOR SELECT TO authenticated
-  USING (job_id IN (
-    SELECT id FROM public.ds_sync_jobs
-    WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
-  ));
+DO $$ BEGIN
+  CREATE POLICY ds_sync_runs_select_own ON public.ds_sync_runs
+    FOR SELECT TO authenticated
+    USING (job_id IN (
+      SELECT id FROM public.ds_sync_jobs
+      WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_api_keys_select_own ON public.ds_api_keys
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_api_keys_select_own ON public.ds_api_keys
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_integration_logs_select_own ON public.ds_integration_logs
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_integration_logs_select_own ON public.ds_integration_logs
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_returns_own ON public.ds_returns
-  FOR ALL TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
-  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_returns_own ON public.ds_returns
+    FOR ALL TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+    WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_return_items_own ON public.ds_return_items
-  FOR ALL TO authenticated
-  USING (return_id IN (
-    SELECT id FROM public.ds_returns
-    WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
-  ))
-  WITH CHECK (return_id IN (
-    SELECT id FROM public.ds_returns
-    WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
-  ));
+DO $$ BEGIN
+  CREATE POLICY ds_return_items_own ON public.ds_return_items
+    FOR ALL TO authenticated
+    USING (return_id IN (
+      SELECT id FROM public.ds_returns
+      WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    ))
+    WITH CHECK (return_id IN (
+      SELECT id FROM public.ds_returns
+      WHERE vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid())
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_disputes_own ON public.ds_disputes
-  FOR ALL TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
-  WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_disputes_own ON public.ds_disputes
+    FOR ALL TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()))
+    WITH CHECK (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE POLICY ds_entitlements_select_own ON public.ds_entitlements
-  FOR SELECT TO authenticated
-  USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY ds_entitlements_select_own ON public.ds_entitlements
+    FOR SELECT TO authenticated
+    USING (vendor_id IN (SELECT id FROM public.vendors WHERE user_id = auth.uid()));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 COMMENT ON TABLE public.merchant_stores IS 'Dropshipping OS: merchant external store connections';
 COMMENT ON TABLE public.store_product_links IS 'Maps Jimvio products/variants to merchant store + supplier IDs';

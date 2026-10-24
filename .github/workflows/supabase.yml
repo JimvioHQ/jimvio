@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   migrations:
-    name: Verify remote migration history
+    name: Verify migration history
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -30,7 +30,10 @@ jobs:
       - name: Verify local numbered migrations
         run: node scripts/release/verify-migrations.mjs
 
-      - name: Verify production migration names
+      - name: Verify Supabase migration files
+        run: node scripts/release/verify-supabase-migrations.mjs
+
+      - name: Verify production migration history
         shell: bash
         run: |
           set -euo pipefail
@@ -49,7 +52,40 @@ jobs:
           node scripts/release/verify-remote-migration-history.mjs
           {
             echo "### Supabase migration checks"
-            echo "- Status: production migration names verified via Management API"
-            echo "- Project: \`$SUPABASE_PROJECT_REF\`"
-            echo "- Timestamp drift from MCP apply_migration is allowed; historical SQL is not rerun"
+            echo "- Status: local versions match production history"
+            echo "- Schema changes: not applied by this job"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: Apply eligible production migrations
+    needs: migrations
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: supabase-production-migrate
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: https://www.jimvio.com
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      APPLY_MIGRATIONS: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Apply allowlisted migrations
+        run: node scripts/release/apply-eligible-migrations.mjs

@@ -1,0 +1,20 @@
+-- applied from supabase/migrations/20261015233000_course_platform.sql
+ALTER TABLE public.community_courses ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
+ALTER TABLE public.community_courses ADD COLUMN IF NOT EXISTS learning_outcomes text[] NOT NULL DEFAULT '{}'::text[];
+ALTER TABLE public.community_courses ADD COLUMN IF NOT EXISTS prerequisites text[] NOT NULL DEFAULT '{}'::text[];
+ALTER TABLE public.community_courses ADD COLUMN IF NOT EXISTS access_mode text NOT NULL DEFAULT 'members';
+ALTER TABLE public.community_courses DROP CONSTRAINT IF EXISTS community_courses_access_mode_check;
+ALTER TABLE public.community_courses ADD CONSTRAINT community_courses_access_mode_check CHECK (access_mode IN ('public', 'members', 'private'));
+CREATE INDEX IF NOT EXISTS idx_community_courses_discovery ON public.community_courses (is_published, access_mode, published_at DESC) WHERE archived_at IS NULL;
+CREATE TABLE IF NOT EXISTS public.course_assignments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), course_id uuid NOT NULL REFERENCES public.community_courses(id) ON DELETE CASCADE, lesson_id uuid REFERENCES public.course_lessons(id) ON DELETE SET NULL, title text NOT NULL, instructions text, required boolean NOT NULL DEFAULT true, pass_score numeric(5,2) NOT NULL DEFAULT 70 CHECK (pass_score >= 0 AND pass_score <= 100), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_course_assignments_course ON public.course_assignments (course_id);
+CREATE TABLE IF NOT EXISTS public.course_assignment_submissions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), assignment_id uuid NOT NULL REFERENCES public.course_assignments(id) ON DELETE CASCADE, course_id uuid NOT NULL REFERENCES public.community_courses(id) ON DELETE CASCADE, user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, body text NOT NULL, status text NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'graded', 'returned')), score numeric(5,2) CHECK (score IS NULL OR (score >= 0 AND score <= 100)), feedback text, graded_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL, submitted_at timestamptz NOT NULL DEFAULT now(), graded_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE (assignment_id, user_id));
+CREATE INDEX IF NOT EXISTS idx_course_assignment_submissions_course ON public.course_assignment_submissions (course_id, user_id);
+CREATE TABLE IF NOT EXISTS public.course_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), course_id uuid NOT NULL REFERENCES public.community_courses(id) ON DELETE CASCADE, user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, rating integer NOT NULL CHECK (rating BETWEEN 1 AND 5), body text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE (course_id, user_id));
+CREATE INDEX IF NOT EXISTS idx_course_reviews_course ON public.course_reviews (course_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS public.course_purchase_receipts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), course_id uuid NOT NULL REFERENCES public.community_courses(id) ON DELETE CASCADE, user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE, payment_reference text NOT NULL UNIQUE, amount_cents integer NOT NULL CHECK (amount_cents > 0), currency text NOT NULL DEFAULT 'USD', provider text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS idx_course_purchase_receipts_user ON public.course_purchase_receipts (user_id, created_at DESC);
+ALTER TABLE public.course_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_assignment_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_purchase_receipts ENABLE ROW LEVEL SECURITY;

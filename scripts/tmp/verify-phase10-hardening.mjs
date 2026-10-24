@@ -24,7 +24,7 @@ function stripSqlComments(sql) {
 }
 
 const migration = mustExist("database/migrations/131_tighten_rls_money_and_comments.sql");
-const migrationTwin = mustExist("supabase/migrations/20260825120000_tighten_rls_money_and_comments.sql");
+const migrationTwin = mustExist("supabase/migrations/20260825140905_tighten_rls_money_and_comments.sql");
 assert.equal(stripSqlComments(migration), stripSqlComments(migrationTwin), "migration 131 twins must match");
 assert.match(migration, /wallet_deposits_select_own/);
 assert.match(migration, /DROP POLICY IF EXISTS community_post_comments_select/);

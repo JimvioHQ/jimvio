@@ -10,7 +10,7 @@ function read(rel) {
 }
 
 const migDb = read("database/migrations/145_ugc_payout_join_concurrency.sql");
-const migSb = read("supabase/migrations/20260908180000_ugc_payout_join_concurrency.sql");
+const migSb = read("supabase/migrations/20260908192931_ugc_payout_join_concurrency.sql");
 const credit = read("lib/ugc/credit-fixed-payout.ts");
 const joinService = read("lib/ugc/join-service.ts");
 const syncViews = read("lib/ugc/syncViews.ts");

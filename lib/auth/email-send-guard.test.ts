@@ -37,7 +37,7 @@ describe("signup resend guard", () => {
 
   it("stores the guard in Postgres and keeps it off the public API", () => {
     const sql = readFileSync(
-      new URL("../../supabase/migrations/20261012183000_auth_email_send_guard.sql", import.meta.url),
+      new URL("../../supabase/migrations/20261012164030_auth_email_send_guard.sql", import.meta.url),
       "utf8",
     );
     assert.match(sql, /consume_auth_email_send/);

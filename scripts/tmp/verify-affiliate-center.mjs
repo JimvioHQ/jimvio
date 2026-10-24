@@ -58,7 +58,7 @@ mustInclude(
   "affiliate nav specificity"
 );
 mustInclude(
-  "supabase/migrations/20260904231620_order_items_affiliate_link_attribution.sql",
+  "supabase/migrations/20260904231959_order_items_affiliate_link_attribution.sql",
   "affiliate_link_id",
   "order_items link migration"
 );

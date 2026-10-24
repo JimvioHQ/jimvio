@@ -1,5 +1,4 @@
--- Twin of database/migrations/145_ugc_payout_join_concurrency.sql
--- Fixed payout one-shot unique index + atomic max_participants trigger.
+-- UGC reliability: fixed-payout DB idempotency + atomic max_participants enforcement.
 
 ALTER TABLE public.ugc_payouts
   ADD COLUMN IF NOT EXISTS is_fixed_one_shot boolean NOT NULL DEFAULT false;
@@ -69,6 +68,7 @@ BEGIN
   IF occupied >= max_p THEN
     RAISE EXCEPTION 'Campaign is full'
       USING ERRCODE = 'check_violation',
+            MESSAGE = 'Campaign is full',
             HINT = 'max_participants';
   END IF;
 

@@ -1,0 +1,12 @@
+DROP POLICY IF EXISTS course_assignments_read ON public.course_assignments;
+CREATE POLICY course_assignments_read ON public.course_assignments FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.community_courses c JOIN public.communities com ON com.id = c.community_id WHERE c.id = course_assignments.course_id AND (c.creator_id = auth.uid() OR com.owner_id = auth.uid())) OR EXISTS (SELECT 1 FROM public.course_enrollments e WHERE e.course_id = course_assignments.course_id AND e.user_id = auth.uid() AND e.status = 'active'));
+DROP POLICY IF EXISTS course_assignment_submissions_read ON public.course_assignment_submissions;
+CREATE POLICY course_assignment_submissions_read ON public.course_assignment_submissions FOR SELECT TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.community_courses c JOIN public.communities com ON com.id = c.community_id WHERE c.id = course_assignment_submissions.course_id AND (c.creator_id = auth.uid() OR com.owner_id = auth.uid())));
+DROP POLICY IF EXISTS course_reviews_read ON public.course_reviews;
+CREATE POLICY course_reviews_read ON public.course_reviews FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.community_courses c WHERE c.id = course_reviews.course_id AND c.is_published = true AND c.archived_at IS NULL AND c.access_mode <> 'private') OR user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.community_courses c JOIN public.communities com ON com.id = c.community_id WHERE c.id = course_reviews.course_id AND (c.creator_id = auth.uid() OR com.owner_id = auth.uid())));
+DROP POLICY IF EXISTS course_reviews_write_own ON public.course_reviews;
+CREATE POLICY course_reviews_write_own ON public.course_reviews FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid() AND EXISTS (SELECT 1 FROM public.course_enrollments e WHERE e.course_id = course_reviews.course_id AND e.user_id = auth.uid() AND e.status = 'active'));
+DROP POLICY IF EXISTS course_reviews_update_own ON public.course_reviews;
+CREATE POLICY course_reviews_update_own ON public.course_reviews FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS course_purchase_receipts_own ON public.course_purchase_receipts;
+CREATE POLICY course_purchase_receipts_own ON public.course_purchase_receipts FOR SELECT TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM public.community_courses c WHERE c.id = course_purchase_receipts.course_id AND c.creator_id = auth.uid()));

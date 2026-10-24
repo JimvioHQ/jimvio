@@ -35,7 +35,7 @@ const oauthState = read("lib/live/destinations/oauth-state.ts");
 const disconnect = read("app/api/live/destinations/[id]/route.ts");
 const obs = read("lib/live/observability.ts");
 const migration = read(
-  "supabase/migrations/20260920010000_twitch_destination_hardening.sql"
+  "supabase/migrations/20260920000305_twitch_destination_hardening.sql"
 );
 
 if (twitch.includes("channel:read:stream_key")) ok("requests stream_key scope");

@@ -1,0 +1,1 @@
+update business_verification_fee_payments set status = 'failed', updated_at = now(), metadata = coalesce(metadata,'{}'::jsonb) || '{"fail_reason":"stale_localhost_redirect_invalidated"}'::jsonb where status = 'pending' and (metadata->>'checkout_url' ilike '%localhost%' or amount_usd is distinct from 5.65);

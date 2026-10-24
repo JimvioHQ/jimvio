@@ -1,11 +1,9 @@
 -- Commerce OS completion: cart isolation, published theme, domains lookup, returns, inventory holds
 -- Additive only. Does not destroy Marketplace carts or existing orders.
 
--- 1) Published theme snapshot (draft never used for public storefront)
 ALTER TABLE public.jimvio_stores
   ADD COLUMN IF NOT EXISTS published_theme jsonb NOT NULL DEFAULT '{}'::jsonb;
 
--- Backfill: if published and draft has sections, copy once
 UPDATE public.jimvio_stores
 SET published_theme = COALESCE(theme_draft, '{}'::jsonb)
 WHERE status = 'published'
@@ -13,11 +11,9 @@ WHERE status = 'published'
   AND theme_draft IS NOT NULL
   AND theme_draft <> '{}'::jsonb;
 
--- 2) Store-scoped carts (marketplace = jimvio_store_id IS NULL)
 ALTER TABLE public.carts
   ADD COLUMN IF NOT EXISTS jimvio_store_id uuid REFERENCES public.jimvio_stores(id) ON DELETE SET NULL;
 
--- Drop one-cart-per-user uniqueness; replace with marketplace + per-store uniqueness
 ALTER TABLE public.carts DROP CONSTRAINT IF EXISTS carts_user_id_key;
 DROP INDEX IF EXISTS carts_user_id_key;
 
@@ -33,11 +29,9 @@ CREATE INDEX IF NOT EXISTS idx_carts_jimvio_store
   ON public.carts (jimvio_store_id)
   WHERE jimvio_store_id IS NOT NULL;
 
--- 3) Domain lookup helpers for host routing
 CREATE INDEX IF NOT EXISTS idx_jimvio_store_domains_hostname_lower
   ON public.jimvio_store_domains (lower(hostname));
 
--- 4) Store returns (reuse payments for refunds; supplier returns stay in Dropshipping OS)
 CREATE TABLE IF NOT EXISTS public.jimvio_store_returns (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id uuid NOT NULL REFERENCES public.jimvio_stores(id) ON DELETE CASCADE,
@@ -68,7 +62,6 @@ CREATE TABLE IF NOT EXISTS public.jimvio_store_return_items (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- 5) Soft inventory holds for store checkouts (prevent naive oversell; release via TTL)
 CREATE TABLE IF NOT EXISTS public.jimvio_inventory_holds (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   store_id uuid REFERENCES public.jimvio_stores(id) ON DELETE CASCADE,
@@ -87,7 +80,6 @@ CREATE INDEX IF NOT EXISTS idx_jimvio_inventory_holds_product
   ON public.jimvio_inventory_holds (product_id, status)
   WHERE status = 'reserved';
 
--- 6) RLS for new tables
 ALTER TABLE public.jimvio_store_returns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jimvio_store_return_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jimvio_inventory_holds ENABLE ROW LEVEL SECURITY;
@@ -118,8 +110,7 @@ CREATE POLICY jimvio_store_return_items_owner ON public.jimvio_store_return_item
     )
   );
 
-DROP POLICY IF EXISTS jimvio_inventory_holds_service ON public.jimvio_inventory_holds;
--- Holds are managed via service role / server actions; authenticated can read own store holds
+DROP POLICY IF EXISTS jimvio_inventory_holds_vendor_read ON public.jimvio_inventory_holds;
 CREATE POLICY jimvio_inventory_holds_vendor_read ON public.jimvio_inventory_holds
   FOR SELECT TO authenticated
   USING (
@@ -129,7 +120,5 @@ CREATE POLICY jimvio_inventory_holds_vendor_read ON public.jimvio_inventory_hold
     )
   );
 
--- 7) Abandoned cart: ensure carts.metadata can track email recovery flags (already jsonb)
--- Add store_id column mirror on abandoned table if missing linkage
 ALTER TABLE public.jimvio_abandoned_carts
   ADD COLUMN IF NOT EXISTS cart_id uuid REFERENCES public.carts(id) ON DELETE SET NULL;

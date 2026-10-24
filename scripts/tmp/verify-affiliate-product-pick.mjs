@@ -67,7 +67,7 @@ mustContain(
 );
 
 mustContain(
-  "supabase/migrations/20260904120000_affiliate_links_pick_idempotency.sql",
+  "supabase/migrations/20260904005430_affiliate_links_pick_idempotency.sql",
   ["uq_affiliate_links_active_affiliate_product"],
   "Unique index migration present"
 );

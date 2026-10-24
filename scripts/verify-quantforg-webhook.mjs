@@ -30,7 +30,7 @@ function gateFiles() {
     "lib/integrations/quantforg/format-message.ts",
     "lib/integrations/quantforg/publish-event.ts",
     "database/migrations/137_quantforg_webhook_idempotency.sql",
-    "supabase/migrations/20260901193000_quantforg_webhook_idempotency.sql",
+    "supabase/migrations/20260901182423_quantforg_webhook_idempotency.sql",
   ];
   for (const f of required) {
     assert.ok(existsSync(resolve(root, f)), `missing ${f}`);
