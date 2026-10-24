@@ -14,26 +14,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
 const WHY: readonly { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: ShieldCheck, title: "Checked vendors", desc: "We review suppliers before they list." },
-  {
-    icon: Wallet,
-    title: "Wallet payouts",
-    desc: "Balances and withdrawals through supported payout methods.",
-  },
+  { icon: Wallet, title: "Wallet payouts", desc: "Earnings land in your Jimvio balance." },
   {
     icon: Globe,
     title: "Works across borders",
-    desc: "International reach. Shipping and payouts vary by country.",
+    desc: `Buyers and sellers in ${getDemoPlatformStats().countries} countries.`,
   },
-  {
-    icon: Users,
-    title: "One login",
-    desc: "Marketplace, affiliates, UGC, communities, and business tools.",
-  },
+  { icon: Users, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
   { icon: BarChart3, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },
   { icon: FileText, title: "Creator listings", desc: "Brands can find people to work with." },
   {
@@ -44,23 +37,19 @@ const WHY: readonly { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Truck,
     title: "Dropshipping",
-    desc: "Import supplier catalogs, sync stock, and process orders in Commerce.",
+    desc: "Import products, sync inventory, and fulfill orders.",
   },
   {
     icon: Scissors,
     title: "UGC & clipping tools",
-    desc: "Briefs, submissions, and performance tracking for creator campaigns.",
+    desc: "Turn content into sales with built-in tools.",
   },
-  {
-    icon: Radio,
-    title: "Live commerce",
-    desc: "Host community live sessions and point viewers to products when supported.",
-  },
+  { icon: Radio, title: "Live commerce", desc: "Go live, pin products, and sell in real time." },
   { icon: Lock, title: "Secure & trusted", desc: "Buyer protection and secure checkout." },
   {
     icon: Sparkles,
     title: "AI assistance",
-    desc: "In-product help for discovery, selling, and growth. Results are not guaranteed.",
+    desc: "Use Jimvio AI tools where they are already available.",
   },
 ];
 

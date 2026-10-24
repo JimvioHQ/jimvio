@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { BRAND_TITLE, SEO_DESCRIPTION } from "@/lib/brand/positioning";
+import { SEO_DESCRIPTION } from "@/lib/brand/positioning";
 import { getSiteUrl } from "@/lib/site-url";
 
 const siteUrl = getSiteUrl();
@@ -30,8 +30,9 @@ export const SITE = {
 
 export const PAGE_SEO = {
   home: {
-    title: BRAND_TITLE,
-    description: SEO_DESCRIPTION,
+    title: "Jimvio — Global Creator Commerce Platform",
+    description:
+      "Sell products, run affiliate programs, launch UGC campaigns, and grow your creator community on one global commerce platform. Free to start on Jimvio.",
     path: "/",
   },
   marketplace: {
@@ -216,9 +217,7 @@ export function constructMetadata({
           default: SITE.title,
           template: `%s | ${SITE.name}`,
         }
-      : path === "/"
-        ? { absolute: title }
-        : title,
+      : title,
     applicationName: SITE.name,
     description: metaDescription,
     keywords,
@@ -314,6 +313,20 @@ export function pageMetadata(
     title: page.title,
     description: page.description,
     path: page.path,
+    // Homepage keywords stayed on the pre-positioning list. Other pages use SITE.keywords.
+    ...(key === "home"
+      ? {
+          keywords: [
+            "Jimvio",
+            "Jimvio marketplace",
+            "creator marketplace",
+            "affiliate program",
+            "UGC campaigns",
+            "sell online",
+            "creator community",
+          ],
+        }
+      : {}),
     ...overrides,
   });
 }

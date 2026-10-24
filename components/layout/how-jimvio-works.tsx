@@ -166,7 +166,7 @@ export function HowJimvioWorks() {
             className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[#6B7280] sm:text-[15px]"
             style={{ ["--reveal-stagger" as string]: `${jimvioStagger.tight}ms` }}
           >
-            Create. Sell. Connect. Monetize. Grow. All in one place.
+            Create. Sell. Promote. Earn. Build. All in one platform.
           </RevealItem>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
