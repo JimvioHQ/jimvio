@@ -1,3 +1,13 @@
+## v1.0.2 — 2026-10-24
+
+# Jimvio v1.0.2
+
+Production release from `9543fde5adae8cbeee85be4728225dc7337b2115`.
+
+## Changes
+- feat: refresh seller products inventory page (9543fde5)
+
+
 ## v1.0.1 — 2026-10-24
 
 # Jimvio v1.0.1
