@@ -29,6 +29,8 @@ const optional = [
   "RESEND_API_KEY",
 ];
 
+console.log("Canonical Supabase project secret: SUPABASE_PROJECT_REF.");
+console.log("SUPABASE_PROJECT_ID is not read by workflows.");
 console.log("GitHub Actions secret checklist:");
 for (const name of required) console.log(`- [ ] ${name} (required)`);
 for (const name of optional) console.log(`- [ ] ${name} (optional)`);

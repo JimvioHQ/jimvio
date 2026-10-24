@@ -33,7 +33,9 @@ function walk(dir, acc = []) {
 }
 
 const files = ["lib", "services"].flatMap((dir) => walk(join(root, dir)));
-if (!files.length) {
+const migrationPolicyTest = join(root, "scripts/release/migration-policy.test.mjs");
+files.push(migrationPolicyTest);
+if (files.length === 1) {
   console.error("No *.test.ts files found under lib/ or services/");
   process.exit(1);
 }

@@ -25,7 +25,7 @@ const strict = args.has("--strict") || process.env.STRICT_SECRETS === "1";
 
 const REQUIRED = [
   { name: "SUPABASE_ACCESS_TOKEN", purpose: "Supabase CLI auth for migration list/link" },
-  { name: "SUPABASE_PROJECT_REF", purpose: "Remote Supabase project ref" },
+  { name: "SUPABASE_PROJECT_REF", purpose: "Canonical Supabase project ref. Workflows do not read SUPABASE_PROJECT_ID." },
   { name: "VERCEL_TOKEN", purpose: "Vercel CLI deploys (release/preview)" },
   { name: "VERCEL_PROJECT_ID", purpose: "Vercel project id" },
   { name: "VERCEL_ORG_ID", purpose: "Vercel org/team id" },

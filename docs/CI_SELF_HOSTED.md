@@ -168,6 +168,8 @@ npm run ci:secrets:guide
 
 Required for Actions: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
+The canonical Supabase project secret is `SUPABASE_PROJECT_REF`. Workflows do not read `SUPABASE_PROJECT_ID`.
+
 ---
 
 ## Workflow runner selection

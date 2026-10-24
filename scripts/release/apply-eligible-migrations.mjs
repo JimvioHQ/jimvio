@@ -1,115 +1,68 @@
 #!/usr/bin/env node
 /**
- * Apply only allowlisted pending migrations on a linked Supabase project.
+ * Apply only the exact allowlisted pending set on a linked Supabase project.
  *
- * Refuses to run when history has drifted, a pending file is missing from
- * scripts/release/eligible-migrations.json, or a pending file contains
- * destructive SQL. Never uses db reset, --include-all, or migration repair.
+ * Refuses unexplained remote history, versions outside the allowlist, versions
+ * that are not newer than the remote history, destructive SQL, and a dry-run
+ * plan that is not the approved set. Never uses db reset, --include-all, or
+ * migration repair.
  *
- * APPLY_MIGRATIONS=1 runs `supabase db push` after a dry-run. Any other value
- * prints the plan and exits without connecting to the database password path.
+ * APPLY_MIGRATIONS=1 runs `supabase db push` after a matching dry-run.
  */
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import {
+  dbPushArgs,
+  dryRunMatchesApprovedSet,
+  evaluatePending,
+  linkArgs,
+  plannedMigrationVersions,
+} from "./migration-policy.mjs";
+import {
+  fetchRemoteMigrations,
+  loadAllowlist,
+  loadLocalMigrations,
+  readSupabaseAuth,
+} from "./migration-state.mjs";
 
 const root = process.cwd();
-const token = (process.env.SUPABASE_ACCESS_TOKEN || "").trim();
-const ref = (process.env.SUPABASE_PROJECT_REF || "").trim();
 const apply = process.env.APPLY_MIGRATIONS === "1";
-
-if (!token || !ref) {
-  console.error("Missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF");
-  process.exit(1);
-}
-if (!/^[a-z0-9]{20}$/.test(ref)) {
-  console.error("SUPABASE_PROJECT_REF is not a 20-character project ref");
+const auth = readSupabaseAuth(process.env);
+if (!auth.ok) {
+  console.error(auth.message);
   process.exit(1);
 }
 
-function fromFile(file) {
-  const match = file.match(/^(\d{14})_(.+)\.sql$/);
-  return match ? { version: match[1], name: match[2], file } : null;
-}
-
-function stripComments(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/--[^\n]*/g, "");
-}
-
-function isDestructive(sql) {
-  const body = stripComments(sql);
-  return [
-    /^\s*truncate\b/im,
-    /^\s*delete\s+from\b/im,
-    /^\s*drop\s+table\b/im,
-    /^\s*drop\s+schema\b/im,
-    /^\s*drop\s+database\b/im,
-    /^\s*update\s+[a-z0-9_."]+/im,
-  ].some((pattern) => pattern.test(body));
-}
-
-const localFiles = readdirSync(join(root, "supabase", "migrations"))
-  .filter((file) => file.endsWith(".sql"))
-  .map(fromFile)
-  .filter(Boolean);
-const localByVersion = new Map(localFiles.map((file) => [file.version, file]));
-
-const response = await fetch(
-  `https://api.supabase.com/v1/projects/${ref}/database/migrations`,
-  { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
-);
-if (!response.ok) {
-  console.error(`Management API migrations failed: HTTP ${response.status}`);
-  process.exit(1);
-}
-const remote = await response.json();
-const remoteVersions = new Set(
-  (Array.isArray(remote) ? remote : remote.migrations || [])
-    .map((row) => String(row.version || ""))
-    .filter(Boolean)
-);
-
-const remoteOnly = [...remoteVersions].filter((version) => !localByVersion.has(version)).sort();
-const pending = [...localByVersion.keys()].filter((version) => !remoteVersions.has(version)).sort();
-
-if (remoteOnly.length) {
-  console.error("Remote history has versions with no local file:");
-  for (const version of remoteOnly) console.error(` - ${version}`);
+const allowlist = loadAllowlist(root);
+if (!allowlist.ok) {
+  console.error(allowlist.message);
   process.exit(1);
 }
 
-const allowlist = JSON.parse(
-  readFileSync(join(root, "scripts/release/eligible-migrations.json"), "utf8")
-);
-const allowed = new Set(
-  (Array.isArray(allowlist.versions) ? allowlist.versions : []).map((version) => String(version))
-);
-
-console.log(`Pending migrations: ${pending.length}`);
-for (const version of pending) console.log(` - ${version}_${localByVersion.get(version).name}`);
-
-if (!pending.length) {
-  console.log("No pending migrations. Database push skipped.");
-  process.exit(0);
+const local = loadLocalMigrations(root);
+let remote;
+try {
+  remote = await fetchRemoteMigrations(auth);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : "Management API migrations failed");
+  process.exit(1);
 }
 
-const blocked = pending.filter((version) => !allowed.has(version));
-if (blocked.length) {
-  console.error("Pending migrations are not in scripts/release/eligible-migrations.json:");
-  for (const version of blocked) console.error(` - ${version}_${localByVersion.get(version).name}`);
+const decision = evaluatePending({ local, remote, allowlist: allowlist.versions });
+console.log(`Pending migrations: ${decision.pending.length}`);
+for (const pending of decision.pending) {
+  console.log(` - ${pending.version}${pending.name ? `_${pending.name}` : ""}`);
+}
+
+if (!decision.ok) {
+  console.error("Pending migration approval failed.");
+  for (const error of decision.errors) console.error(` - ${error.message}`);
   console.error("Not applied.");
   process.exit(1);
 }
 
-const destructive = pending.filter((version) =>
-  isDestructive(readFileSync(join(root, "supabase/migrations", localByVersion.get(version).file), "utf8"))
-);
-if (destructive.length) {
-  console.error("Pending migrations contain destructive or data-updating SQL and were not applied:");
-  for (const version of destructive) console.error(` - ${version}_${localByVersion.get(version).name}`);
-  process.exit(1);
+if (!decision.approved.length) {
+  console.log("No pending migrations. Database push skipped.");
+  process.exit(0);
 }
 
 if (!apply) {
@@ -120,6 +73,14 @@ if (!apply) {
 if (!process.env.SUPABASE_DB_PASSWORD) {
   console.error("Missing SUPABASE_DB_PASSWORD. Not applying migrations.");
   process.exit(1);
+}
+
+const commands = [linkArgs(auth.ref), dbPushArgs(true), dbPushArgs(false)];
+for (const args of commands) {
+  if (args.includes("--include-all") || args.includes("reset") || args.includes("repair")) {
+    console.error("Refusing unsafe Supabase arguments. Not applying migrations.");
+    process.exit(1);
+  }
 }
 
 function run(args) {
@@ -139,17 +100,15 @@ function run(args) {
   return redacted;
 }
 
-run(["link", "--project-ref", ref, "--yes"]);
-const dryRun = run(["db", "push", "--linked", "--dry-run", "--yes"]);
-const planned = [...dryRun.matchAll(/\b(\d{14})\b/g)].map((match) => match[1]);
-const uniquePlanned = [...new Set(planned)].filter((version) => pending.includes(version));
-const unexpected = uniquePlanned.filter((version) => !allowed.has(version));
-if (unexpected.length || uniquePlanned.length !== pending.length) {
+run(linkArgs(auth.ref));
+const dryRun = run(dbPushArgs(true));
+if (!dryRunMatchesApprovedSet(dryRun, decision.approved)) {
+  const planned = plannedMigrationVersions(dryRun);
   console.error("Dry-run did not match the allowlisted pending set. Not applying.");
-  console.error(`Planned: ${uniquePlanned.join(", ") || "(none)"}`);
-  console.error(`Pending: ${pending.join(", ")}`);
+  console.error(`Planned: ${planned.join(", ") || "(none)"}`);
+  console.error(`Approved: ${decision.approved.join(", ")}`);
   process.exit(1);
 }
 
-run(["db", "push", "--linked", "--yes"]);
+run(dbPushArgs(false));
 console.log("Eligible migrations applied.");

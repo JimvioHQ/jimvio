@@ -18,14 +18,14 @@ const CATALOG = [
     name: "SUPABASE_ACCESS_TOKEN",
     required: true,
     purpose: "Supabase CLI auth for migration list/link",
-    workflows: ["supabase.yml"],
+    workflows: ["supabase.yml", "release.yml"],
     where: ["GitHub Actions secrets (repo/org)", ".env.local (local verify)"],
   },
   {
     name: "SUPABASE_PROJECT_REF",
     required: true,
-    purpose: "Remote Supabase project ref",
-    workflows: ["supabase.yml"],
+    purpose: "Canonical Supabase project ref. Workflows do not read SUPABASE_PROJECT_ID.",
+    workflows: ["supabase.yml", "release.yml"],
     where: ["GitHub Actions secrets", ".env.local"],
   },
   {

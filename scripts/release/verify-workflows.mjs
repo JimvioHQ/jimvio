@@ -64,6 +64,15 @@ if (!/apply-eligible-migrations\.mjs/.test(supabaseWorkflow)) {
 if (!/verify-remote-migration-history\.mjs/.test(supabaseWorkflow)) {
   fail("supabase.yml must fail closed on migration history drift");
 }
+if (!/verify-pending-migrations\.mjs/.test(supabaseWorkflow)) {
+  fail("supabase.yml must validate pending migrations separately from baseline history");
+}
+if (/secrets\.SUPABASE_PROJECT_ID/.test(supabaseWorkflow) || /secrets\.SUPABASE_PROJECT_ID/.test(release)) {
+  fail("Workflows must use SUPABASE_PROJECT_REF, not SUPABASE_PROJECT_ID");
+}
+if (!/secrets\.SUPABASE_PROJECT_REF/.test(supabaseWorkflow) || !/secrets\.SUPABASE_PROJECT_REF/.test(release)) {
+  fail("Workflows must use the canonical SUPABASE_PROJECT_REF secret");
+}
 
 const listed = existsSync(workflowsDir) ? readdirSync(workflowsDir).filter((f) => f.endsWith(".yml") || f.endsWith(".yaml")) : [];
 console.log(`Workflows present: ${listed.join(", ") || "(none)"}`);

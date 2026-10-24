@@ -1,0 +1,67 @@
+/**
+ * Load local migration files, the allowlist, and remote history metadata.
+ * Remote reads use the Management API. This module never runs migration SQL.
+ */
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { readSupabaseProjectRef } from "./migration-policy.mjs";
+
+export function readSupabaseAuth(env = process.env) {
+  const token = String(env.SUPABASE_ACCESS_TOKEN || "").trim();
+  const refResult = readSupabaseProjectRef(env);
+  if (!token || !refResult.ok) {
+    const parts = [];
+    if (!token) parts.push("Missing SUPABASE_ACCESS_TOKEN.");
+    if (!refResult.ok) parts.push(refResult.message);
+    return { ok: false, message: parts.join(" ") };
+  }
+  return { ok: true, token, ref: refResult.ref };
+}
+
+export function loadLocalMigrations(root) {
+  const dir = join(root, "supabase", "migrations");
+  return readdirSync(dir)
+    .filter((file) => file.endsWith(".sql"))
+    .map((file) => {
+      const match = file.match(/^(\d{14})_(.+)\.sql$/);
+      if (!match) return null;
+      return {
+        version: match[1],
+        name: match[2],
+        file,
+        sql: readFileSync(join(dir, file), "utf8"),
+      };
+    })
+    .filter(Boolean);
+}
+
+export function loadAllowlist(root) {
+  const parsed = JSON.parse(
+    readFileSync(join(root, "scripts/release/eligible-migrations.json"), "utf8")
+  );
+  if (!parsed || !Array.isArray(parsed.versions)) {
+    return {
+      ok: false,
+      versions: [],
+      message: "scripts/release/eligible-migrations.json must contain a versions array",
+    };
+  }
+  return { ok: true, versions: parsed.versions.map((version) => String(version)) };
+}
+
+export async function fetchRemoteMigrations({ token, ref }) {
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${ref}/database/migrations`,
+    { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
+  );
+  if (!response.ok) {
+    throw new Error(`Management API migrations failed: HTTP ${response.status}`);
+  }
+  const remote = await response.json();
+  return (Array.isArray(remote) ? remote : remote.migrations || [])
+    .map((row) => ({
+      version: String(row.version || ""),
+      name: String(row.name || ""),
+    }))
+    .filter((row) => row.version);
+}
