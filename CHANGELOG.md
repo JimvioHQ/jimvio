@@ -1,3 +1,13 @@
+## v1.0.1 — 2026-10-24
+
+# Jimvio v1.0.1
+
+Production release from `40518b84fa81b65c26a0b2cc8645111a2a8aa1cd`.
+
+## Changes
+- fix: approve only allowlisted Supabase migrations (40518b84)
+
+
 ## v1.0.0 — 2026-10-24
 
 # Jimvio v1.0.0
