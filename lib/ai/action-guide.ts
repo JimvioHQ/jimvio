@@ -34,6 +34,17 @@ const WORKFLOWS: Array<{
   followups: string[];
 }> = [
   {
+    id: "ticket",
+    test: /\b(open|create|file|submit|start)\b.{0,40}\b(support )?tickets?\b/i,
+    content:
+      "A support ticket is created on the ticket page. This chat has not opened a ticket.\n\n1. Open New ticket.\n2. Describe the problem and submit the form.\n3. A ticket exists only after that page shows a reference.",
+    links: [
+      { label: "New ticket", href: "/help/tickets/new" },
+      { label: "My tickets", href: "/help/tickets" },
+    ],
+    followups: ["How do I sign in?"],
+  },
+  {
     id: "space",
     test: /\b(create|add|start|set up|setup)\b.{0,40}\b(space|spaces)\b|\bcommunity space\b/i,
     content:

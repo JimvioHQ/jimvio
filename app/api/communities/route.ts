@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/base";
 import { createOwnedCommunity, slugifyCommunityName } from "@/lib/community/create-owned-community";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
-import { resolveCommunityMemberCount } from "@/lib/community/member-count";
+import { toPublicCommunityListItem } from "@/lib/community/public-community-list";
 
 export const dynamic = "force-dynamic";
 
@@ -219,14 +219,12 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
-    communities: communities.map((community) => ({
-      ...community,
-      member_count: resolveCommunityMemberCount({
-        slug: community.slug,
-        member_count: community.member_count,
-        settings: (community as { settings?: unknown }).settings,
+    communities: communities.map((community) =>
+      toPublicCommunityListItem(community as Record<string, unknown>, {
+        isMember: memberSet.has(community.id),
+        isOwner: ownerSet.has(community.id) || community.owner_id === user?.id,
       }),
-    })),
+    ),
     total: count ?? 0,
     page,
     limit,

@@ -90,6 +90,78 @@ describe("primary text completion", () => {
     assert.equal(openai, 1);
     assert.equal(gemini, 0);
   });
+
+  it("returns Gemini text after an eligible outage and skips Gemini when disabled", async () => {
+    let gemini = 0;
+    const text = await completePrimaryText({
+      apiKey: "sk-test-fixture-key-123456",
+      input: "hello",
+      complete: async () => {
+        throw Object.assign(new Error("unavailable"), { status: 503 });
+      },
+      gemini: async () => {
+        gemini += 1;
+        return "fallback answer";
+      },
+    });
+    assert.equal(text, "fallback answer");
+    assert.equal(gemini, 1);
+
+    gemini = 0;
+    await assert.rejects(
+      () =>
+        completePrimaryText({
+          apiKey: "sk-test-fixture-key-123456",
+          input: "hello",
+          geminiFallback: false,
+          complete: async () => {
+            throw Object.assign(new Error("unavailable"), { status: 503 });
+          },
+          gemini: async () => {
+            gemini += 1;
+            return "fallback answer";
+          },
+        }),
+      /unavailable/,
+    );
+    assert.equal(gemini, 0);
+  });
+
+  it("does not call Gemini for forbidden or empty output", async () => {
+    let gemini = 0;
+    await assert.rejects(
+      () =>
+        completePrimaryText({
+          apiKey: "sk-test-fixture-key-123456",
+          input: "hello",
+          complete: async () => {
+            throw Object.assign(new Error("forbidden"), { status: 403 });
+          },
+          gemini: async () => {
+            gemini += 1;
+            return "no";
+          },
+        }),
+      /forbidden/,
+    );
+    assert.equal(gemini, 0);
+
+    gemini = 0;
+    await assert.rejects(
+      () =>
+        completePrimaryText({
+          apiKey: "sk-test-fixture-key-123456",
+          input: "hello",
+          complete: async () => "   ",
+          gemini: async () => {
+            gemini += 1;
+            return "no";
+          },
+        }),
+      /empty output/,
+    );
+    assert.equal(gemini, 0);
+  });
 });
 
 describe("information policy", () => {
@@ -137,10 +209,14 @@ describe("embedding width and route gates", () => {
     assert.match(support, /Never invent payment status/);
 
     const chat = readFileSync(new URL("../../app/api/ai/chat/route.ts", import.meta.url), "utf8");
-    const chatGuard = chat.indexOf("isConfidentialAiRequest");
-    const live = chat.indexOf("openLiveResponse(messages");
-    const fallback = chat.indexOf("if (lastError && qualifiesForGeminiFallback");
-    assert.ok(chatGuard > 0 && live > chatGuard && fallback > live);
+    const post = chat.slice(chat.indexOf("export async function POST"));
+    const chatGuard = post.indexOf("isConfidentialAiRequest");
+    const live = post.indexOf("attemptLiveChat");
+    assert.ok(chatGuard > 0 && live > chatGuard);
+    const attempt = readFileSync(new URL("./chat-live-attempt.ts", import.meta.url), "utf8");
+    const openAt = attempt.indexOf("await options.openLive");
+    const fallback = attempt.indexOf("qualifiesForGeminiFallback(lastError)");
+    assert.ok(openAt > 0 && fallback > openAt);
     assert.equal(chat.includes("@google/generative-ai"), false);
     assert.equal(chat.includes("generativelanguage.googleapis.com"), false);
   });

@@ -22,7 +22,6 @@ import {
   readConsumedAffiliateAutoStarts,
 } from "@/lib/ai/affiliate-workspace";
 import { useAIStore } from "@/lib/store/use-ai-store";
-import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 type JimvioAiExperienceProps = {
@@ -51,7 +50,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
-  const reducedMotion = usePrefersReducedMotion();
+  const followingRef = useRef(false);
   const contextMeta = useMemo(() => getCopilotContextMeta(pageContext), [pageContext]);
   const quickActions = useMemo(() => getQuickActionsForContext("home", 8), []);
   const chips = useMemo(() => getQuickActionsForContext("home", 4), []);
@@ -168,8 +167,10 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   useEffect(() => {
     const node = scrollRef.current;
     if (!node || messages.length === 0 || !stickToBottomRef.current) return;
-    node.scrollTo({ top: node.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
-  }, [messages, isSending, reducedMotion]);
+    followingRef.current = true;
+    node.scrollTop = node.scrollHeight;
+    followingRef.current = false;
+  }, [messages, isSending]);
 
   const handleSend = useCallback(
     (text = query, actionId?: string) => {
@@ -180,7 +181,10 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
         affiliateTask: affiliateTaskRef.current ?? undefined,
       });
       if (!accepted) return;
-      stickToBottomRef.current = true;
+      const node = scrollRef.current;
+      if (node) {
+        stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+      }
       setQuery("");
       saveCopilotDraft("");
     },
@@ -224,6 +228,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
       <div
         ref={scrollRef}
         onScroll={(event) => {
+          if (followingRef.current) return;
           const node = event.currentTarget;
           stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
         }}

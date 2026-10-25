@@ -159,14 +159,14 @@ ${linkLine([
   {
     id: "discovery",
     title: "Trending products and communities",
-    keywords: ["trending", "popular", "ibicuruzwa", "bigezweho", "imiryango"],
-    body: "A request for trending or popular products uses active marketplace listings ordered by the stored view_count. It is not a sales ranking. A request for what is trending in the community uses public communities ordered by the stored post_count. That list is not individual posts, likes, or private rooms. Room posts stay inside a community the viewer can open. Active campaigns ordered by stored submission_count are the public UGC list. Kinyarwanda phrases such as ibicuruzwa bigezweho mean trending products, and imiryango bigezweho means trending communities. Do not invent a view count, sale count, member count, or post count that is not returned with the card.",
+    keywords: ["trending", "popular", "ibicuruzwa", "bigezweho", "imiryango", "posts"],
+    body: "A request for trending or popular products uses active marketplace listings ordered by the stored view_count. It is not a sales ranking. A request for what is trending in the community uses public communities ordered by the stored post_count. That community list is not individual posts. Individual public posts come from the public feed at /communities/feed: one hashtag such as #phones, or the trending filter. Private rooms are not searched, and a multi-word phrase is not a full-text search of every post. Active campaigns ordered by stored submission_count are the public UGC list. Kinyarwanda phrases such as ibicuruzwa bigezweho mean trending products, and imiryango bigezweho means trending communities. Do not invent a view count, sale count, member count, like count, or post count that is not returned with the card.",
     links: [
       { label: "Marketplace", href: "/marketplace" },
       { label: "Communities", href: "/communities" },
       { label: "UGC", href: "/ugc" },
     ],
-    publicAnswer: `Trending products are active marketplace listings ordered by the stored view count. Trending communities are public communities ordered by the stored post count, not individual posts. Active campaigns can be ordered by the stored submission count.
+    publicAnswer: `Trending products are active marketplace listings ordered by the stored view count. Trending communities are public communities ordered by the stored post count, not individual posts. Public posts can be matched by one hashtag or the public trending feed. Private rooms are not searched. Active campaigns can be ordered by the stored submission count.
 
 ${linkLine([
   { label: "Marketplace", href: "/marketplace" },

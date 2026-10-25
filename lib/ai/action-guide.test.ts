@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { parseAiActionBody } from "./actions.ts";
 import { planGuideTurn, type PendingCommunityAction } from "./action-guide.ts";
@@ -30,6 +31,14 @@ describe("ai action allowlist", () => {
 });
 
 describe("action guide", () => {
+  it("does not claim a support ticket was opened", () => {
+    const turn = planGuideTurn("How do I create a support ticket?", null);
+    assert.equal(turn?.execute, undefined);
+    assert.match(turn?.content ?? "", /has not opened a ticket/);
+    assert.match(turn?.links?.[0]?.href ?? "", /\/help\/tickets\/new/);
+    assert.equal((turn?.content ?? "").toLowerCase().includes("ticket was opened"), false);
+  });
+
   it("asks for a community name before any create", () => {
     const turn = planGuideTurn("Help me create a community", null);
     assert.ok(turn);
@@ -71,6 +80,16 @@ describe("action guide", () => {
       assert.match(turn?.content ?? "", /not|Nothing/i);
       assert.ok((turn?.links?.length ?? 0) > 0);
     }
+  });
+
+  it("claims a community only after the server confirms a slug", () => {
+    const hook = readFileSync(new URL("../../components/copilot/use-copilot-chat.ts", import.meta.url), "utf8");
+    const success = hook.indexOf("Created the free public community");
+    const gate = hook.lastIndexOf("!response.ok || !data?.href || !data.community?.slug", success);
+    assert.ok(gate > 0 && gate < success);
+    assert.match(hook, /Nothing was created/);
+    assert.match(hook, /The community was not created/);
+    assert.match(hook, /could not reach the server/);
   });
 
   it("sends paid communities to the form", () => {

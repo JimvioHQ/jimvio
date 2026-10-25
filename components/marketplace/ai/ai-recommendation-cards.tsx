@@ -3,23 +3,25 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Package, Megaphone, Users, ShieldCheck } from "lucide-react";
-import type { ParsedCampaign, ParsedCommunity, ParsedProduct } from "@/lib/ai/chat-shared";
+import { FileText, Megaphone, Package, ShieldCheck, Users } from "lucide-react";
+import type { ParsedCampaign, ParsedCommunity, ParsedPost, ParsedProduct } from "@/lib/ai/chat-shared";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 
 interface Props {
   products?: ParsedProduct[];
   campaigns?: ParsedCampaign[];
   communities?: ParsedCommunity[];
+  posts?: ParsedPost[];
   onClose?: () => void;
 }
 
-export function AiRecommendationCards({ products, campaigns, communities, onClose }: Props) {
+export function AiRecommendationCards({ products, campaigns, communities, posts, onClose }: Props) {
   const hasProducts = products && products.length > 0;
   const hasCampaigns = campaigns && campaigns.length > 0;
   const hasCommunities = communities && communities.length > 0;
+  const hasPosts = posts && posts.length > 0;
 
-  if (!hasProducts && !hasCampaigns && !hasCommunities) return null;
+  if (!hasProducts && !hasCampaigns && !hasCommunities && !hasPosts) return null;
 
   return (
     <div className="space-y-3 pt-1">
@@ -87,6 +89,28 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               <h4 className="line-clamp-2 text-[13px] font-bold text-[var(--color-text-primary)]">{c.title}</h4>
               <p className="mt-1.5 text-[12px] font-semibold" style={{ color: JIMVIO_ORANGE }}>{c.rate}</p>
               {c.basis ? <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{c.basis}</p> : null}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {hasPosts && (
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          {posts!.map((post) => (
+            <Link
+              key={post.id}
+              href={post.href}
+              onClick={onClose}
+              className="rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[#FF5A1F]/40"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-lg bg-[#FF5A1F]/10">
+                  <FileText className="size-4" style={{ color: JIMVIO_ORANGE }} />
+                </span>
+                <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Public post</span>
+              </div>
+              <h4 className="line-clamp-3 text-[13px] font-bold text-[var(--color-text-primary)]">{post.title}</h4>
+              {post.basis ? <p className="mt-1 text-[11px] leading-snug text-[var(--color-text-muted)]">{post.basis}</p> : null}
             </Link>
           ))}
         </div>

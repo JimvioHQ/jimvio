@@ -1,5 +1,5 @@
 import { parseAiTriggers } from "@/lib/ai/chat-shared";
-import { resolveDiscoveryCards } from "@/lib/ai/discovery";
+import { discoveryPreface, resolveDiscoveryCards } from "@/lib/ai/discovery";
 import { parseSseBuffer, streamNeedsFallback, type ParsedSse } from "@/lib/ai/sse";
 import type { CopilotProvider, CopilotSendInput, CopilotStreamChunk } from "./types";
 
@@ -86,10 +86,14 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
   }
   const triggers = parseAiTriggers(full);
   const cards = await resolveDiscoveryCards(input.message, fetchDiscoveryJson, signal);
+  const preface = discoveryPreface(input.message);
+  const content = preface && !triggers.cleaned.includes(preface)
+    ? `${preface}\n\n${triggers.cleaned}`.trim()
+    : triggers.cleaned;
   yield {
     type: "metadata",
     message: {
-      content: triggers.cleaned,
+      content,
       followups: triggers.followups,
       links: triggers.links,
       fallback,

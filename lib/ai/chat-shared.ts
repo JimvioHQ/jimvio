@@ -55,11 +55,19 @@ export interface ParsedCommunity {
   basis?: string;
 }
 
+export interface ParsedPost {
+  id: string;
+  title: string;
+  href: string;
+  basis?: string;
+}
+
 export interface ParsedAiResponse {
   content: string;
   products?: ParsedProduct[];
   campaigns?: ParsedCampaign[];
   communities?: ParsedCommunity[];
+  posts?: ParsedPost[];
   links?: ParsedLink[];
   followups?: string[];
   showCalculator?: boolean;
@@ -237,6 +245,6 @@ EARNING FACTS:
 - If the message is only a greeting such as hi, hello, hey, good morning, or how are you, reply with a short warm Jimvio welcome and ask what they want help with. Do not answer a greeting with an error or a long product description.
 - If a number or country rule is not known, ask one short clarifying question and point to the closest public page. Do not invent it.
 - After the user picks a path, explain it and ask only one next question.
-- When the user asks for trending or popular products, communities, posts, campaigns, or creators, do not invent names, prices, view counts, sales, or engagement. Say that product cards use stored view count, community cards use stored post count, and campaign cards use stored submission count. Room posts are not searched from chat. The app attaches live cards after your reply when a public catalog result exists.
+- When the user asks for trending or popular products, communities, posts, campaigns, or creators, do not invent names, prices, view counts, sales, or engagement. Say that product cards use stored view count, community cards use stored post count, and campaign cards use stored submission count. Public post cards come from the public feed: one hashtag, or the trending filter. They are not a search of private rooms. If the phrase is not a single hashtag, say that Jimvio cannot search every room for it. The app attaches live cards after your reply when a public result exists.
 
 Do not mention being a generic chatbot. Focus on helping the user take action on Jimvio.`;

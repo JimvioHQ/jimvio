@@ -13,7 +13,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const stampPath = join(root, ".git", "jimvio-ci-pass.json");
+
+function stampPath() {
+  const gitPath = execFileSync("git", ["rev-parse", "--git-path", "jimvio-ci-pass.json"], { cwd: root })
+    .toString()
+    .trim();
+  return gitPath.startsWith("/") ? gitPath : join(root, gitPath);
+}
 
 function readStdin() {
   try {
@@ -81,7 +87,8 @@ const isGitPush = /\bgit\s+push\b/.test(command);
 // so landing the CI tooling itself is possible after a green ci:prepush.
 if (!isGitPush) allow();
 
-if (!existsSync(stampPath)) {
+const ciStampPath = stampPath();
+if (!existsSync(ciStampPath)) {
   deny(
     "Blocked push: run npm run ci:prepush first (no CI stamp).",
     "PRE-PUSH CI POLICY: git push denied until npm run ci:prepush passes."
@@ -90,7 +97,7 @@ if (!existsSync(stampPath)) {
 
 let stamp;
 try {
-  stamp = JSON.parse(readFileSync(stampPath, "utf8"));
+  stamp = JSON.parse(readFileSync(ciStampPath, "utf8"));
 } catch {
   deny("Blocked push: invalid CI stamp.", "Re-run npm run ci:prepush.");
 }

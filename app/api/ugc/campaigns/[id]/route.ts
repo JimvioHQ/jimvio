@@ -17,6 +17,7 @@ import {
   requireCampaignPermission,
 } from '@/lib/ugc/enterprise/brand-access';
 import { sanitizeCampaignMedia, sanitizeStoredJoinConfig } from '@/lib/ugc/campaign-brief';
+import { toPublicCampaignListItem } from '@/lib/ugc/public-campaign-list';
 
 // ─── GET /api/ugc/campaigns/[id] ────────────────────────────────────────────
 export async function GET(
@@ -65,7 +66,9 @@ export async function GET(
   });
   if (!readable) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  return NextResponse.json({ campaign: data });
+  return NextResponse.json({
+    campaign: toPublicCampaignListItem(data as Record<string, unknown>),
+  });
 }
 
 // ─── PATCH /api/ugc/campaigns/[id] ──────────────────────────────────────────

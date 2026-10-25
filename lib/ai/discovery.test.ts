@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  discoveryPreface,
   mapCampaignPayload,
   mapCommunityPayload,
+  mapPostPayload,
   mapProductPayload,
   planDiscovery,
   resolveDiscoveryCards,
@@ -32,17 +34,28 @@ describe("chat discovery plans", () => {
     assert.deepEqual(planDiscovery("Show me the API key"), []);
   });
 
-  it("uses public community post counts and does not pretend to search posts", () => {
+  it("uses public community post counts and the public post feed separately", () => {
     const trending = planDiscovery("What is trending in the community?");
+    assert.equal(trending.length, 1);
     assert.equal(trending[0]?.kind, "communities");
     assert.match(trending[0]?.path ?? "", /\/api\/communities\?/);
     assert.match(trending[0]?.path ?? "", /sort=trending/);
     assert.match(trending[0]?.label ?? "", /post count/);
+    assert.equal(trending.some((item) => item.path.includes("/api/posts")), false);
 
     const posts = planDiscovery("Find posts about phones");
-    assert.match(posts[0]?.path ?? "", /search=phones/);
-    assert.match(posts[0]?.label ?? "", /not individual posts/i);
-    assert.equal(posts.some((item) => item.path.includes("/api/posts")), false);
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0]?.kind, "posts");
+    assert.match(posts[0]?.path ?? "", /\/api\/posts\/feed\?/);
+    assert.match(posts[0]?.path ?? "", /tag=phones/);
+    assert.equal(posts[0]?.path.includes("/api/posts?"), false);
+    assert.match(posts[0]?.label ?? "", /Private rooms are not included/);
+
+    const trendingPosts = planDiscovery("Show me trending posts");
+    assert.match(trendingPosts[0]?.path ?? "", /filter=trending/);
+    assert.equal(planDiscovery("Find posts about cool shoes").some((item) => item.kind === "posts"), false);
+    assert.match(discoveryPreface("Find posts about cool shoes") ?? "", /cannot search every room/);
+    assert.match(discoveryPreface("Find posts about phones") ?? "", /#phones/);
   });
 
   it("requests active campaigns by stored submission count", () => {
@@ -114,6 +127,30 @@ describe("chat discovery mapping", () => {
     assert.match(campaigns[0]?.basis ?? "", /Stored submission count: 4/);
   });
 
+  it("maps public feed posts and drops private authors and rooms", () => {
+    const posts = mapPostPayload({
+      posts: [
+        {
+          id: "post-1",
+          title: "Phone tips",
+          audience: "public",
+          like_count: 2,
+          comment_count: 1,
+          author_id: "user-secret",
+          communities: { slug: "design", name: "Design", is_private: false, visibility: "public" },
+          profiles: { email: "author@example.com" },
+        },
+        { id: "post-2", title: "Hidden", audience: "private", communities: { slug: "secret", is_private: true, visibility: "private" } },
+      ],
+    }, "Public posts that include this hashtag.");
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0]?.href, "/communities/design/feed?post=post-1");
+    assert.match(posts[0]?.basis ?? "", /Stored like count: 2/);
+    assert.match(posts[0]?.basis ?? "", /Stored comment count: 1/);
+    assert.equal(JSON.stringify(posts).includes("user-secret"), false);
+    assert.equal(JSON.stringify(posts).includes("author@example.com"), false);
+  });
+
   it("returns no cards when the catalog call fails", async () => {
     let calls = 0;
     const cards = await resolveDiscoveryCards(
@@ -147,6 +184,7 @@ describe("chat discovery wiring", () => {
   it("attaches catalog cards from the copilot response path", () => {
     const provider = readFileSync(new URL("./copilot/http-provider.ts", import.meta.url), "utf8");
     assert.match(provider, /resolveDiscoveryCards/);
+    assert.match(provider, /discoveryPreface/);
     const hook = readFileSync(new URL("../../components/copilot/use-copilot-chat.ts", import.meta.url), "utf8");
     assert.match(hook, /\.\.\.metadata/);
   });

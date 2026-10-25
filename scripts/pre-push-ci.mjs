@@ -13,7 +13,13 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { join, relative } from "node:path";
 
 const root = process.cwd();
-const stampPath = join(root, ".git", "jimvio-ci-pass.json");
+
+function stampPath() {
+  const gitPath = execFileSync("git", ["rev-parse", "--git-path", "jimvio-ci-pass.json"], { cwd: root })
+    .toString()
+    .trim();
+  return gitPath.startsWith("/") ? gitPath : join(root, gitPath);
+}
 
 function log(step, msg) {
   console.log(`\n==> [${step}] ${msg}`);
@@ -245,8 +251,9 @@ function runVerifies() {
 }
 
 function writeStamp(fp) {
+  const target = stampPath();
   writeFileSync(
-    stampPath,
+    target,
     JSON.stringify(
       {
         head: fp.head,
@@ -258,7 +265,7 @@ function writeStamp(fp) {
       2
     )
   );
-  console.log(`\n✅ CI stamp written: ${stampPath}`);
+  console.log(`\n✅ CI stamp written: ${target}`);
 }
 
 function timedBuild() {

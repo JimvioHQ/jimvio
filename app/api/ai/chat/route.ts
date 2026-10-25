@@ -15,16 +15,15 @@ import {
 } from "@/lib/ai/gemini-model";
 import { greetingReply, isSimpleGreeting } from "@/lib/ai/guide-copy";
 import { buildGuideResponse } from "@/lib/ai/guide-reply";
+import { attemptLiveChat } from "@/lib/ai/chat-live-attempt";
 import { geminiTextModel, streamGeminiText } from "@/lib/ai/gemini-fallback";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
 import {
   openaiAttemptModels,
   openResponseStream,
   readOpenAIKey,
-  shouldRetryProviderError,
   type ModelTurn,
 } from "@/lib/ai/openai-runtime";
-import { qualifiesForGeminiFallback } from "@/lib/ai/provider-policy";
 import { sseChunk, sseDone, sseError, sseMode } from "@/lib/ai/sse";
 import { verifyAffiliatePromotionTask } from "@/lib/ai/affiliate-task-token";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -347,37 +346,13 @@ export async function POST(req: NextRequest) {
     const attempts = openaiAttemptModels();
     const affiliateTask =
       typeof body.affiliateTask === "string" ? verifyAffiliatePromotionTask(body.affiliateTask) : null;
-
-    let retried = false;
-    let lastError: unknown = null;
-    for (const modelName of attempts) {
-      try {
-        const live = await openLiveResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
-        if (live) return live;
-      } catch (error) {
-        lastError = error;
-        const category = classifyProviderError(error);
-        if (!retried && shouldRetryProviderError(error)) {
-          retried = true;
-          try {
-            const live = await openLiveResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
-            if (live) return live;
-          } catch (retryError) {
-            lastError = retryError;
-            logAiResult(classifyProviderError(retryError), {
-              model: modelName,
-              detail: redactProviderMessage(retryError),
-            });
-          }
-        }
-        if (category !== "retired_model") break;
-      }
-    }
-
-    if (lastError && qualifiesForGeminiFallback(lastError)) {
-      const live = await openGeminiFallbackResponse(messages, cacheKey, affiliateTask?.addendum);
-      if (live) return live;
-    }
+    const live = await attemptLiveChat({
+      models: attempts,
+      openLive: (modelName) => openLiveResponse(messages, modelName, cacheKey, affiliateTask?.addendum),
+      openGemini: () => openGeminiFallbackResponse(messages, cacheKey, affiliateTask?.addendum),
+      log: (category, extra) => logAiResult(category as AiFailureCategory, extra),
+    });
+    if (live) return live;
 
     logAiResult("fallback", { detail: "models_failed", model: attempts.join(",") });
     return streamText(buildGuideResponse(messages), "guide");

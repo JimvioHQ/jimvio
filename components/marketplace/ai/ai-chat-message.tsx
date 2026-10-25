@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import { fallbackNotice } from "@/lib/ai/chat-turn";
 import { presentAssistantContent } from "@/lib/ai/guide-copy";
-import type { ParsedCampaign, ParsedCommunity, ParsedLink, ParsedProduct } from "@/lib/ai/chat-shared";
+import type { ParsedCampaign, ParsedCommunity, ParsedLink, ParsedPost, ParsedProduct } from "@/lib/ai/chat-shared";
 import { stabilizeStreamingMarkdown } from "@/lib/ai/markdown-stream";
 import { AiMessageMarkdown } from "./ai-message-markdown";
 import { AiRecommendationCards } from "./ai-recommendation-cards";
@@ -29,6 +29,7 @@ export interface AiChatMessageData {
   products?: ParsedProduct[];
   campaigns?: ParsedCampaign[];
   communities?: ParsedCommunity[];
+  posts?: ParsedPost[];
   links?: ParsedLink[];
   followups?: string[];
   showCalculator?: boolean;
@@ -211,6 +212,7 @@ export function AiChatMessage({
           products={msg.products}
           campaigns={msg.campaigns}
           communities={msg.communities}
+          posts={msg.posts}
           onClose={onClose}
         />
 

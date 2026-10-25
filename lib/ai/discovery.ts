@@ -1,7 +1,8 @@
-import type { ParsedCampaign, ParsedCommunity, ParsedProduct } from "@/lib/ai/chat-shared";
+import type { ParsedCampaign, ParsedCommunity, ParsedPost, ParsedProduct } from "@/lib/ai/chat-shared";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
 
-export type DiscoveryKind = "products" | "communities" | "campaigns";
+export type DiscoveryKind = "products" | "communities" | "campaigns" | "posts";
 
 export type DiscoveryRequest = {
   kind: DiscoveryKind;
@@ -13,6 +14,7 @@ export type DiscoveryCards = {
   products?: ParsedProduct[];
   communities?: ParsedCommunity[];
   campaigns?: ParsedCampaign[];
+  posts?: ParsedPost[];
 };
 
 const TERM_STOP = new Set([
@@ -27,9 +29,10 @@ const TERM_STOP = new Set([
 const PRODUCT_TRENDING = "Ordered by stored view count.";
 const PRODUCT_SEARCH = "Name search, then stored view count.";
 const COMMUNITY_TRENDING = "Public communities ordered by stored post count.";
-const COMMUNITY_POSTS = "Public communities for this topic, ordered by stored post count. Not individual posts.";
 const CAMPAIGN_POPULAR = "Ordered by stored submission count.";
 const CAMPAIGN_SEARCH = "Title search, then stored submission count.";
+const POST_TRENDING = "Public feed posts for the trending filter. Stored like and comment counts only. Private rooms are not included.";
+const POST_TAG = "Public posts that include this hashtag. Private rooms are not included.";
 
 function specificTerm(message: string): string {
   const words = message
@@ -61,9 +64,13 @@ function productIntent(text: string): boolean {
 function communityIntent(text: string): boolean {
   if (/\btrending in the community\b/i.test(text)) return true;
   if (/\b(trending|popular)\b.{0,40}\b(community|communities)\b/i.test(text)) return true;
-  if (/\b(show|find|discover|browse)\b.{0,40}\b(community|communities|posts?)\b/i.test(text)) return true;
+  if (/\b(show|find|discover|browse)\b.{0,40}\b(community|communities)\b/i.test(text)) return true;
   if (/\b(imiryango|umuryango)\b/i.test(text) && /\b(bigezweho|bikunzwe|show|find|ndashaka)\b/i.test(text)) return true;
   return false;
+}
+
+function postIntent(text: string): boolean {
+  return /\bposts?\b/i.test(text) && /\b(find|show|search|trending|popular|about)\b/i.test(text);
 }
 
 function campaignIntent(text: string): boolean {
@@ -95,13 +102,29 @@ export function planDiscovery(message: string): DiscoveryRequest[] {
   }
   if (communityIntent(text)) {
     const params: Record<string, string> = { sort: "trending", limit: "4" };
-    const posts = /\bposts?\b/i.test(text);
     if (term) params.search = term;
     requests.push({
       kind: "communities",
       path: requestPath("/api/communities", params),
-      label: posts ? COMMUNITY_POSTS : term ? `${COMMUNITY_TRENDING} Matching the search.` : COMMUNITY_TRENDING,
+      label: term ? `${COMMUNITY_TRENDING} Matching the search.` : COMMUNITY_TRENDING,
     });
+  }
+  if (postIntent(text)) {
+    const tag = term ? normalizeHashtagQuery(term) : null;
+    const trending = /\b(trending|popular)\b/i.test(text) && !tag;
+    if (tag) {
+      requests.push({
+        kind: "posts",
+        path: requestPath("/api/posts/feed", { tag, limit: "4" }),
+        label: `${POST_TAG} #${tag}.`,
+      });
+    } else if (trending) {
+      requests.push({
+        kind: "posts",
+        path: requestPath("/api/posts/feed", { filter: "trending", limit: "4" }),
+        label: POST_TRENDING,
+      });
+    }
   }
   if (campaignIntent(text)) {
     const params: Record<string, string> = { sort: "popular", limit: "4" };
@@ -220,6 +243,46 @@ export function mapCommunityPayload(payload: unknown, label: string): ParsedComm
   });
 }
 
+export function postSearchLimitation(message: string): string | null {
+  const text = message.trim();
+  if (!text || !postIntent(text) || blocksCatalog(text)) return null;
+  if (planDiscovery(text).some((item) => item.kind === "posts")) return null;
+  return "Jimvio cannot search every room for that phrase. A single public hashtag such as #phones can be matched on the public feed. Private rooms stay hidden, and no post was searched as a private room post.";
+}
+
+export function discoveryPreface(message: string): string | null {
+  return postSearchLimitation(message) ?? planDiscovery(message).find((item) => item.kind === "posts")?.label ?? null;
+}
+
+export function mapPostPayload(payload: unknown, label: string): ParsedPost[] {
+  return rowsFrom(payload, "posts").flatMap((row) => {
+    if (row.is_exclusive === true) return [];
+    const audience = typeof row.audience === "string" ? row.audience : "";
+    if (audience === "followers" || audience === "private") return [];
+    const community = asRecord(row.communities);
+    if (community && !communityIsPubliclyDiscoverable({
+      is_active: community.is_active as boolean | null | undefined,
+      is_private: community.is_private as boolean | null | undefined,
+      visibility: typeof community.visibility === "string" ? community.visibility : null,
+      visibility_mode: typeof community.visibility_mode === "string" ? community.visibility_mode : null,
+      archived_at: typeof community.archived_at === "string" ? community.archived_at : null,
+    })) return [];
+    const id = safeId(row.id);
+    const title = textField(row.title, 140) ?? textField(row.body, 140);
+    if (!id || !title) return [];
+    const slug = community ? safeSlug(community.slug) : undefined;
+    const likes = finiteCount(row.like_count);
+    const comments = finiteCount(row.comment_count);
+    const commentNote = comments === null ? "" : ` Stored comment count: ${comments}.`;
+    return [{
+      id,
+      title,
+      href: slug ? `/communities/${slug}/feed?post=${id}` : `/communities/feed?post=${id}`,
+      basis: `${withCount(label, "Stored like count", likes)}${commentNote}`,
+    }];
+  });
+}
+
 export function mapCampaignPayload(payload: unknown, label: string): ParsedCampaign[] {
   return rowsFrom(payload, "data").flatMap((row) => {
     if (row.status !== "active") return [];
@@ -260,6 +323,9 @@ export async function resolveDiscoveryCards(
     } else if (request.kind === "communities") {
       const communities = mapCommunityPayload(payload, request.label);
       if (communities.length) cards.communities = communities;
+    } else if (request.kind === "posts") {
+      const posts = mapPostPayload(payload, request.label);
+      if (posts.length) cards.posts = posts;
     } else {
       const campaigns = mapCampaignPayload(payload, request.label);
       if (campaigns.length) cards.campaigns = campaigns;
