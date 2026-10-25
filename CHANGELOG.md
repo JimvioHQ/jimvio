@@ -1,3 +1,13 @@
+## v1.0.4 — 2026-10-25
+
+# Jimvio v1.0.4
+
+Production release from `0113d96d4a4395a58ae61d21c39969a47ab7eab9`.
+
+## Changes
+- fix: restore original Jimvio homepage (0113d96d)
+
+
 ## v1.0.3 — 2026-10-24
 
 # Jimvio v1.0.3
