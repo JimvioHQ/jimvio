@@ -269,9 +269,21 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                     {/* Profile */}
                     <Section title="Profile" icon={Users}>
                         <div className="px-4 py-1">
+                            <InfoRow icon={Users} label="User ID" value={user.id} />
                             <InfoRow icon={Mail} label="Email" value={user.email} />
-                            <InfoRow icon={Phone} label="Phone" value={user.phone} />
-                            <InfoRow icon={MapPin} label="Location" value={[user.city, user.country].filter(Boolean).join(", ")} />
+                            <InfoRow
+                                icon={BadgeCheck}
+                                label="Email status"
+                                value={user.location.emailConfirmedAt ? `Confirmed ${fmtDate(user.location.emailConfirmedAt)}` : "Not confirmed"}
+                            />
+                            <InfoRow
+                                icon={Phone}
+                                label="Phone"
+                                value={user.location.phone.value
+                                    ? `${user.location.phone.value} · User-provided · not verified`
+                                    : "Not available"}
+                            />
+                            <InfoRow icon={MapPin} label="Profile place" value={[user.city, user.country].filter(Boolean).join(", ")} />
                             <InfoRow icon={Globe} label="Website" value={
                                 user.website ? (
                                     <a href={user.website} target="_blank" rel="noopener noreferrer"
@@ -288,7 +300,66 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                                     {user.bio}
                                 </div>
                             )}
+                            <InfoRow
+                                icon={BarChart3}
+                                label="Profile fields"
+                                value={`${user.location.profileCompletion.filled} of ${user.location.profileCompletion.total}${user.location.profileCompletion.missing.length ? ` · missing ${user.location.profileCompletion.missing.join(", ")}` : ""}`}
+                            />
                         </div>
+                    </Section>
+
+                    <Section title="Country and location" icon={MapPin}>
+                        <div className="px-4 py-1">
+                            {user.location.conflict && (
+                                <p className="py-2.5 text-[12px] text-amber-700 dark:text-amber-400 border-b border-[var(--color-border)]/50">
+                                    The account country and the latest IP estimate do not match.
+                                </p>
+                            )}
+                            {user.location.facts.map((fact) => (
+                                <div key={fact.id} className="py-2.5 border-b border-[var(--color-border)]/50 last:border-0">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-[11.5px] text-[var(--color-text-muted)]">{fact.title}</span>
+                                        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+                                            {fact.sourceLabel}
+                                        </span>
+                                    </div>
+                                    <p className="text-[12.5px] text-[var(--color-text-primary)] font-medium mt-0.5 break-words">{fact.value}</p>
+                                    {fact.note && (
+                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 leading-relaxed">{fact.note}</p>
+                                    )}
+                                    <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">
+                                        {fact.updatedAt ? `Updated ${fmtDate(fact.updatedAt)}` : "No update time recorded"}
+                                        {fact.confidence !== "none" ? ` · confidence ${fact.confidence}` : ""}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </Section>
+
+                    <Section title="Devices and sessions" icon={Globe}>
+                        {user.location.sessions.length === 0 ? (
+                            <p className="px-4 py-3 text-[12px] text-[var(--color-text-muted)]">No sessions recorded.</p>
+                        ) : (
+                            <div className="px-4 py-1">
+                                {user.location.sessions.map((session) => (
+                                    <div key={session.id} className="py-2.5 border-b border-[var(--color-border)]/50 last:border-0">
+                                        <p className="text-[12.5px] font-medium text-[var(--color-text-primary)]">{session.device}</p>
+                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5">
+                                            {session.category}
+                                            {session.browser ? ` · ${session.browser}` : ""}
+                                            {session.operatingSystem ? ` · ${session.operatingSystem}` : ""}
+                                            {" · browser version not collected"}
+                                        </p>
+                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 break-all">
+                                            IP {session.ip} · IP-estimated country {session.ipCountry ?? "Not available"}
+                                        </p>
+                                        <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">
+                                            Last active {session.lastActiveAt}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </Section>
 
                     {/* Wallet */}
@@ -307,6 +378,44 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
 
                 {/* ── RIGHT COLUMN ── */}
                 <div className="lg:col-span-2 space-y-4">
+
+                    <Section title="Activity" icon={BarChart3}>
+                        <div className="px-4 py-1">
+                            <InfoRow icon={Clock} label="Last sign-in" value={fmtDate(user.location.lastSignInAt)} />
+                            <InfoRow
+                                icon={Users}
+                                label="Memberships"
+                                value={user.activity.membershipCount === null ? "Not available" : String(user.activity.membershipCount)}
+                            />
+                            <InfoRow
+                                icon={BarChart3}
+                                label="Public posts"
+                                value={user.activity.publishedPostCount === null ? "Not available" : String(user.activity.publishedPostCount)}
+                            />
+                            <InfoRow
+                                icon={Store}
+                                label="Listings"
+                                value={user.activity.listingCount === null ? "Not available" : String(user.activity.listingCount)}
+                            />
+                            <InfoRow icon={ShieldCheck} label="Rate limits" value="Not collected" />
+                            {user.activity.tickets === null ? (
+                                <InfoRow icon={Receipt} label="Tickets" value="Not available" />
+                            ) : user.activity.tickets.length === 0 ? (
+                                <InfoRow icon={Receipt} label="Tickets" value="No tickets recorded" />
+                            ) : (
+                                <div className="py-2.5">
+                                    <p className="text-[11.5px] text-[var(--color-text-muted)] mb-1.5">Tickets</p>
+                                    <div className="space-y-1.5">
+                                        {user.activity.tickets.map((ticket) => (
+                                            <p key={ticket.publicRef} className="text-[12px] text-[var(--color-text-primary)]">
+                                                {ticket.publicRef} · {ticket.status} · {ticket.subject}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </Section>
 
                     {/* Vendor */}
                     {user.vendor && (

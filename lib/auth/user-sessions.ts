@@ -197,6 +197,12 @@ export async function syncUserSession(
   return { ...current, lastActivity: 'Just now' }
 }
 
+/** Stored device sessions for an authorized admin view. Does not create a session. */
+export async function listStoredSessions(userId: string): Promise<Session[]> {
+  const store = await readSessionStore(userId);
+  return store.sessions.filter((session) => !store.revokedIds.includes(session.id));
+}
+
 export async function listUserSessions(
   userId: string,
   meta?: SessionMeta

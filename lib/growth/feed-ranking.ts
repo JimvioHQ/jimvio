@@ -1,6 +1,9 @@
 /**
  * Enhanced feed ranking — freshness, engagement, relationship, spam dampening.
+ * Country relevance is a capped boost from the community region only.
  */
+
+import { communityLocationBoost, feedRegionOf } from "@/lib/geo/discovery-rank";
 
 export type RankableFeedItem = {
   id?: string;
@@ -14,12 +17,15 @@ export type RankableFeedItem = {
   author_id?: string | null;
   body?: string | null;
   reaction_counts?: Record<string, number> | null;
+  community_region?: string | null;
+  communities?: { region?: string | null } | null;
 };
 
 export type RankContext = {
   viewerId?: string | null;
   followedAuthorIds?: Set<string>;
   communityBoostAuthorIds?: Set<string>;
+  viewerCountry?: string | null;
   now?: number;
 };
 
@@ -63,8 +69,9 @@ export function feedScore(item: RankableFeedItem, ctx: RankContext = {}): number
   const spamPenalty = looksLikeSpam(item.body) ? 12 : 0;
   // Soft within-page nudge only — never let pins dominate a global page.
   const pin = item.is_pinned ? 0.35 : 0;
+  const location = communityLocationBoost(feedRegionOf(item), ctx.viewerCountry);
 
-  return pin + freshness * 12 + engagement + relationship - spamPenalty;
+  return pin + freshness * 12 + engagement + relationship + location - spamPenalty;
 }
 
 export function rankFeedItems<T extends RankableFeedItem>(

@@ -4,6 +4,8 @@ import { getAdminDB } from "@/services/base";
 import { createOwnedCommunity, slugifyCommunityName } from "@/lib/community/create-owned-community";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { toPublicCommunityListItem } from "@/lib/community/public-community-list";
+import { rankWithBoundedLocationBoost } from "@/lib/geo/discovery-rank";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +164,20 @@ export async function GET(req: NextRequest) {
     (community) =>
       memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
   );
+
+  // Reorder only the already authorized page. Private rooms never enter this list
+  // unless the viewer is a member, and a large engagement gap beats the country boost.
+  if (!isRising && sort !== "newest" && mode !== "newest") {
+    const viewerCountry = await resolvePersonalizationCountry();
+    const usePosts = sort === "trending" || mode === "trending" || mode === "hot";
+    communities = rankWithBoundedLocationBoost(communities, viewerCountry, (community) => {
+      const engagement = usePosts
+        ? Number(community.post_count ?? 0)
+        : Number(community.member_count ?? 0);
+      const featured = !usePosts && community.is_featured ? 1_000_000 : 0;
+      return featured + engagement;
+    });
+  }
 
   // Keep real user hubs discoverable on popular page 1 (not buried by featured editorial).
   if (

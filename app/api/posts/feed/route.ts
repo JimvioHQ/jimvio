@@ -6,6 +6,7 @@ import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-pub
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 import { extractHashtags, extractMentions } from "@/lib/feed/composer-utils";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert-room-community";
 import { requireCommunityMember } from "@/lib/community/rbac";
@@ -279,7 +280,7 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("community_posts")
     .select(
-      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name)"
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, region)"
     )
     .in("community_id", communityId ? [communityId] : communityIds);
 
@@ -420,9 +421,11 @@ export async function GET(req: NextRequest) {
   const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(filter);
   if (shouldRank && !draftsOnly) {
     // Soft-rank within the chronological page only — preserves pagination completeness.
+    const viewerCountry = await resolvePersonalizationCountry();
     enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
       viewerId: user.id,
       followedAuthorIds,
+      viewerCountry,
     }) as typeof enriched;
     if (filter === "rising") {
       enriched.sort((a, b) => {

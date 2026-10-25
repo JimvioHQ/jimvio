@@ -11,6 +11,7 @@ import {
   parseGlobalFeedCursor,
 } from "@/lib/feed/global-feed-exclusions";
 import { rankGlobalFeedItems } from "@/lib/feed/global-feed-ranking";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 import {
   applyFeedTabFilter,
   diversifyAuthors,
@@ -66,6 +67,7 @@ export type GlobalCommunityFeedPost = Record<string, unknown> & {
     visibility?: string | null;
     visibility_mode?: string | null;
     archived_at?: string | null;
+    region?: string | null;
   } | null;
 };
 
@@ -123,7 +125,7 @@ async function hydratePosts(
     ? db
         .from("communities")
         .select(
-          "id, slug, name, avatar_url, is_private, is_active, visibility, visibility_mode, archived_at",
+          "id, slug, name, avatar_url, region, is_private, is_active, visibility, visibility_mode, archived_at",
         )
         .in("id", communityIds)
     : null;
@@ -156,6 +158,7 @@ async function hydratePosts(
       slug: string | null;
       name: string | null;
       avatar_url: string | null;
+      region: string | null;
       is_private: boolean | null;
       is_active: boolean | null;
       visibility: string | null;
@@ -182,6 +185,7 @@ async function hydratePosts(
             slug: community.slug,
             name: community.name,
             avatar_url: community.avatar_url,
+            region: community.region,
             is_private: community.is_private,
             is_active: community.is_active,
             visibility: community.visibility,
@@ -394,6 +398,8 @@ export type LoadGlobalCommunityFeedParams = {
   verifiedCommunityIds?: Set<string>;
   /** Abort stalled PostgREST calls so the serverless isolate can return. */
   signal?: AbortSignal;
+  /** ISO country used only as a bounded public-content boost. */
+  viewerCountry?: string | null;
 };
 
 export type LoadGlobalCommunityFeedResult = {
@@ -484,9 +490,14 @@ export async function loadGlobalCommunityFeed(
 
   let ordered = eligible;
   if (params.useRanking !== false && filter !== "newest") {
+    const viewerCountry =
+      params.viewerCountry !== undefined
+        ? params.viewerCountry
+        : await resolvePersonalizationCountry();
     ordered = rankGlobalFeedItems(eligible, {
       viewerId: params.viewerId ?? "",
       followedAuthorIds: params.followedAuthorIds ?? new Set(),
+      viewerCountry,
       now: asOf,
       bucket,
     });

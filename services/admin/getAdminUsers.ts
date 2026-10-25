@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
 import { hasActiveTwoFactorSecret } from "@/lib/auth/repair-broken-2fa";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
+import { listStoredSessions } from "@/lib/auth/user-sessions";
+import { adminUserDetailDecision } from "@/lib/admin/user-detail-access";
+import { buildAdminUserLocationView, type AdminUserLocationView } from "@/lib/admin/user-location-view";
+import { writeAuditEvent } from "@/services/ops/audit";
 import type { AccountStatus } from "@/lib/users/account-status";
 import { isDeletedAccountEmail } from "@/lib/users/account-status";
 
@@ -261,6 +266,18 @@ export interface AdminUserDetail {
     }>;
 
     unread_notifications: number;
+    location: AdminUserLocationView;
+    activity: {
+        membershipCount: number | null;
+        publishedPostCount: number | null;
+        listingCount: number | null;
+        tickets: Array<{
+            publicRef: string;
+            subject: string;
+            status: string;
+            createdAt: string | null;
+        }> | null;
+    };
 }
 
 async function countPendingReportsForInfluencer(influencerId: string): Promise<number> {
@@ -282,7 +299,32 @@ async function countPendingReportsForInfluencer(influencerId: string): Promise<n
     return count ?? 0;
 }
 
+async function countOrNull(
+    query: PromiseLike<{ count: number | null; error: { message: string } | null }>,
+): Promise<number | null> {
+    try {
+        const { count, error } = await query;
+        if (error) return null;
+        return count ?? 0;
+    } catch {
+        return null;
+    }
+}
+
 export async function getAdminUserById(userId: string): Promise<AdminUserDetail | null> {
+    const auth = await assertPlatformAdmin();
+    const decision = adminUserDetailDecision({ ok: auth.ok }, userId);
+    if (!auth.ok || decision !== "allow") {
+        await writeAuditEvent({
+            actorId: auth.ok ? auth.user.id : null,
+            action: "admin.user_detail.view",
+            entityType: "profile",
+            entityId: decision === "invalid_id" ? null : userId,
+            metadata: { outcome: decision },
+        });
+        return null;
+    }
+
     const supabase = await createClient();
     const admin = getAdminDB();
 
@@ -332,7 +374,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
 
         supabase
             .from("orders")
-            .select("id, order_number, status, payment_status, total_amount, currency, created_at")
+            .select("id, order_number, status, payment_status, total_amount, currency, created_at, shipping_address")
             .eq("buyer_id", userId)
             .order("created_at", { ascending: false })
             .limit(5),
@@ -359,7 +401,16 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
             .maybeSingle(),
     ]);
 
-    if (profileRes.error || !profileRes.data) return null;
+    if (profileRes.error || !profileRes.data) {
+        await writeAuditEvent({
+            actorId: auth.user.id,
+            action: "admin.user_detail.view",
+            entityType: "profile",
+            entityId: userId,
+            metadata: { outcome: "not_found" },
+        });
+        return null;
+    }
 
     const p = profileRes.data;
     const v = vendorRes.data;
@@ -495,7 +546,120 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         })),
 
         unread_notifications: notifRes.count ?? 0,
+        location: buildAdminUserLocationView({
+            country: p.country ?? null,
+            city: p.city ?? null,
+            createdAt: p.created_at ?? null,
+            updatedAt: p.updated_at ?? null,
+            phone: p.phone ?? null,
+            fullName: p.full_name ?? null,
+            username: p.username ?? null,
+            avatarUrl: p.avatar_url ?? null,
+            bio: p.bio ?? null,
+            emailConfirmedAt: authRes.data?.user?.email_confirmed_at ?? null,
+            lastSignInAt: authRes.data?.user?.last_sign_in_at ?? null,
+            sessions: [],
+            orders: (ordersRes.data ?? []).map((order) => ({
+                shippingAddress: order.shipping_address,
+                paymentStatus: order.payment_status,
+                createdAt: order.created_at,
+            })),
+            includeCheckoutStreet: true,
+            latestIpCountry: null,
+            latestIpAt: null,
+        }),
+        activity: {
+            membershipCount: null,
+            publishedPostCount: null,
+            listingCount: null,
+            tickets: [],
+        },
     };
+
+    const [sessions, membershipCount, publishedPostCount, listingCount, ticketResult] = await Promise.all([
+        listStoredSessions(userId).catch(() => []),
+        countOrNull(
+            admin.from("community_memberships").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "active"),
+        ),
+        countOrNull(
+            admin.from("community_posts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("is_published", true),
+        ),
+        v?.id
+            ? countOrNull(
+                admin.from("products").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
+            )
+            : Promise.resolve(0),
+        (admin as unknown as {
+            from: (table: string) => {
+                select: (columns: string) => {
+                    eq: (column: string, value: string) => {
+                        order: (column: string, options: { ascending: boolean }) => {
+                            limit: (count: number) => Promise<{
+                                data: Array<{
+                                    public_ref: string;
+                                    subject: string;
+                                    status: string;
+                                    created_at: string | null;
+                                }> | null;
+                                error: { message: string } | null;
+                            }>;
+                        };
+                    };
+                };
+            };
+        })
+            .from("support_tickets")
+            .select("public_ref, subject, status, created_at")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(5)
+            .catch(() => ({ data: null, error: { message: "unavailable" } })),
+    ]);
+
+    const latestSession = sessions[0];
+    result.location = buildAdminUserLocationView({
+        country: p.country ?? null,
+        city: p.city ?? null,
+        createdAt: p.created_at ?? null,
+        updatedAt: p.updated_at ?? null,
+        phone: p.phone ?? null,
+        fullName: p.full_name ?? null,
+        username: p.username ?? null,
+        avatarUrl: p.avatar_url ?? null,
+        bio: p.bio ?? null,
+        emailConfirmedAt: authRes.data?.user?.email_confirmed_at ?? null,
+        lastSignInAt: authRes.data?.user?.last_sign_in_at ?? null,
+        sessions,
+        orders: (ordersRes.data ?? []).map((order) => ({
+            shippingAddress: order.shipping_address,
+            paymentStatus: order.payment_status,
+            createdAt: order.created_at,
+        })),
+        includeCheckoutStreet: true,
+        latestIpCountry: latestSession?.location ?? null,
+        latestIpAt: latestSession?.lastActivity ?? null,
+    });
+    result.activity = {
+        membershipCount,
+        publishedPostCount,
+        listingCount,
+        tickets: ticketResult.error
+            ? null
+            : (ticketResult.data ?? []).map((ticket) => ({
+                publicRef: ticket.public_ref,
+                subject: ticket.subject,
+                status: ticket.status,
+                createdAt: ticket.created_at,
+            })),
+    };
+
+    await writeAuditEvent({
+        actorId: auth.user.id,
+        action: "admin.user_detail.view",
+        entityType: "profile",
+        entityId: userId,
+        metadata: { outcome: "ok" },
+    });
 
     return result;
 }

@@ -2,6 +2,12 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { getDB, getAdminDB } from "./base";
 import { countryFromRequestHeaders } from "@/lib/geo/buyer-country";
+import { fetchActiveShippingForProducts } from "@/lib/geo/marketplace-shipping";
+import {
+  rankMarketplacePool,
+  shouldLocationRankMarketplace,
+} from "@/lib/geo/marketplace-rank";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 import {
   filterShippingOptions,
   type RegionalShippingOption,
@@ -318,20 +324,39 @@ export async function getProducts(query: ProductQuery = {}) {
   if (minRating != null && minRating > 0) q = q.gte("rating", minRating);
   if (brand) q = q.ilike("brand", brand);
 
+  const destination = affiliate
+    ? null
+    : await resolvePersonalizationCountry();
+  const locationRank = shouldLocationRankMarketplace({
+    sort,
+    country: destination,
+    offset,
+    limit,
+    affiliate,
+  });
+
   switch (sort) {
     case "newest": q = q.order("created_at", { ascending: false }); break;
     case "price_asc": q = q.order("price", { ascending: true }); break;
     case "price_desc": q = q.order("price", { ascending: false }); break;
     case "rating": q = q.order("rating", { ascending: false }); break;
     case "sales": q = q.order("sale_count", { ascending: false }); break;
-    default: q = q.order("view_count", { ascending: false });
+    default: q = q.order("view_count", { ascending: false }).order("id", { ascending: true });
   }
   // Affiliate pages share sale_count across many products. A unique tie-break
   // keeps offset pages from skipping or repeating rows.
   if (affiliate) q = q.order("id", { ascending: true });
 
   const { data, count } = await q.range(offset, offset + limit - 1);
-  const products = data ?? [];
+  let products = data ?? [];
+  if (locationRank && destination && products.length > 1) {
+    const shipping = await fetchActiveShippingForProducts(
+      db,
+      products.map((row) => row.id),
+    );
+    products = rankMarketplacePool(products, destination, shipping);
+  }
+  const total = count ?? 0;
   const videoMap = affiliate
     ? null
     : await fetchProductVideosByProductIds(
@@ -343,7 +368,7 @@ export async function getProducts(query: ProductQuery = {}) {
       ...p,
       product_videos: videoMap?.get(p.id) ?? [],
     })),
-    total: count ?? 0,
+    total,
   };
 }
 
@@ -364,15 +389,26 @@ export async function getHomepageTrendingProducts(limit = 12) {
     .from("products")
     .select(`
       id, name, slug, price, compare_at_price, currency, images,
-      rating, sale_count, product_type, affiliate_enabled,
-      vendors ( id, business_name, business_slug, verification_status )
+      rating, sale_count, view_count, product_type, is_digital, affiliate_enabled,
+      vendors ( id, business_name, business_slug, verification_status, business_country )
     `)
     .eq("status", "active")
     .eq("is_active", true)
     .order("view_count", { ascending: false })
+    .order("id", { ascending: true })
     .limit(limit);
 
-  return (data ?? []).map((product) => ({ ...product, product_videos: [] }));
+  let products = data ?? [];
+  const destination = await resolvePersonalizationCountry();
+  if (destination && products.length > 1) {
+    const shipping = await fetchActiveShippingForProducts(
+      db,
+      products.map((product) => product.id),
+    );
+    products = rankMarketplacePool(products, destination, shipping);
+  }
+
+  return products.map((product) => ({ ...product, product_videos: [] }));
 }
 
 export async function countActiveShopifyProducts() {

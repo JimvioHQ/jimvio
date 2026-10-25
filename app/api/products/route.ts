@@ -8,6 +8,12 @@ import {
   type VendorAuthSnapshot,
 } from "@/lib/products/authorization";
 import { ensureSellerVendor } from "@/lib/actions/seller-products";
+import { fetchActiveShippingForProducts } from "@/lib/geo/marketplace-shipping";
+import {
+  rankMarketplacePool,
+  shouldLocationRankMarketplace,
+} from "@/lib/geo/marketplace-rank";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 
 const createProductSchema = z.object({
   name: z.string().min(3).max(200),
@@ -73,9 +79,9 @@ export async function GET(req: NextRequest) {
       .from("products")
       .select(`
         id, name, slug, short_description, price, currency, compare_at_price,
-        images, rating, review_count, is_featured, is_digital, source,
+        images, rating, review_count, is_featured, is_digital, product_type, source,
         affiliate_enabled, affiliate_commission_rate, sale_count, view_count,
-        vendors!inner(id, business_name, business_slug, rating, verification_status),
+        vendors!inner(id, business_name, business_slug, rating, verification_status, business_country),
         product_categories(name, slug)
       `, { count: "exact" })
       .eq("status", "active")
@@ -92,12 +98,29 @@ export async function GET(req: NextRequest) {
       case "price-desc": query = query.order("price", { ascending: false }); break;
       case "rating": query = query.order("rating", { ascending: false }); break;
       case "sales": query = query.order("sale_count", { ascending: false }); break;
-      default: query = query.order("view_count", { ascending: false });
+      default: query = query.order("view_count", { ascending: false }).order("id", { ascending: true });
     }
 
     query = query.range(offset, offset + limit - 1);
 
-    const { data: products, count, error } = await query;
+    const result = await query;
+    let products = result.data;
+    const count = result.count;
+    const error = result.error;
+    const destination = await resolvePersonalizationCountry();
+    if (
+      !error &&
+      products &&
+      products.length > 1 &&
+      shouldLocationRankMarketplace({ sort, country: destination, offset, limit }) &&
+      destination
+    ) {
+      const shipping = await fetchActiveShippingForProducts(
+        supabase,
+        products.map((row) => row.id),
+      );
+      products = rankMarketplacePool(products, destination, shipping);
+    }
 
     if (error) throw error;
 

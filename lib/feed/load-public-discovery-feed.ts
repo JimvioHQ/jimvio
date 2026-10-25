@@ -4,6 +4,7 @@ import type { createClient } from "@/lib/supabase/server";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
+import { resolvePersonalizationCountry } from "@/lib/geo/resolve-personalization";
 import { isGuestVisiblePublicPost } from "@/lib/feed/public-post-visibility";
 import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 import { loadHashtagFeed } from "@/lib/feed/load-hashtag-feed";
@@ -246,7 +247,7 @@ export async function loadPublicDiscoveryFeed(
   let query = db
     .from("community_posts")
     .select(
-      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, avatar_url, is_private)",
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, avatar_url, is_private, region)",
     )
     .in("community_id", publicCommunityIds)
     .eq("is_published", true)
@@ -324,9 +325,11 @@ export async function loadPublicDiscoveryFeed(
     publicFilter,
   );
   if (shouldRank) {
+    const viewerCountry = await resolvePersonalizationCountry();
     enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
       viewerId: "",
       followedAuthorIds: new Set(),
+      viewerCountry,
     }) as typeof enriched;
   }
 
