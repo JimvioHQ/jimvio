@@ -1,3 +1,15 @@
+## v1.0.8 — 2026-10-25
+
+# Jimvio v1.0.8
+
+Production release from `e3ae40880fe600cc3fa989362c01255c314f1585`.
+
+## Changes
+- feat: use OpenAI first and Gemini only after an outage (e3ae4088)
+- feat: migrate Jimvio AI from Gemini to OpenAI (629db835)
+- feat: add an admin-only Search Console diagnostic (80c2f15b)
+
+
 ## v1.0.7 — 2026-10-25
 
 # Jimvio v1.0.7
