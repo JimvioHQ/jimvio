@@ -1,3 +1,14 @@
+## v1.0.5 — 2026-10-25
+
+# Jimvio v1.0.5
+
+Production release from `e02dfefc37bef52ad327b9df6f4fe6868fec1d9e`.
+
+## Changes
+- fix: load growth engine routes without the untracked SEO split (e02dfefc)
+- feat: add a paused growth engine with explicit marketing consent (b80f9885)
+
+
 ## v1.0.4 — 2026-10-25
 
 # Jimvio v1.0.4
