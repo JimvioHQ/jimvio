@@ -122,7 +122,11 @@ describe("search console insights", () => {
     assert.equal(result.state.campaigns.every((item) => item.submitted === false), true);
     assert.equal(result.state.referrals.every((item) => item.issued === false), true);
     assert.equal(result.state.followups.every((item) => item.sent === false), true);
-    assert.match(result.summary.summary, /Search Console returned 1 queries/);
+    assert.match(result.summary.summary, /Search Console returned 1 queries and 0 pages \(read\)/);
+    assert.equal(result.summary.summary.includes("marketplace"), false);
+    const readNote = result.state.opportunities.find((item) => item.id === "search-console-read");
+    assert.match(readNote?.evidence[0]?.statement ?? "", /1 queries and 0 pages \(read\)/);
+    assert.equal(readNote?.evidence.some((item) => item.statement.includes("marketplace")), false);
     for (const risk of ["paid_spend", "reward_issue", "bulk_message", "production_change"] as const) {
       assert.equal(evaluateAction(result.state, risk, "search-insight", now).allowed, false);
     }

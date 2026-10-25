@@ -1,5 +1,6 @@
 import { googleAdsMissing, metaAdsMissing, readGoogleAdsCustomer, readMetaAdAccount, spendGate } from "./ads-connectivity";
 import { readResendDomains } from "./resend-probe";
+import { searchConsoleReadSummary } from "./search-console-log";
 import { readSearchConsoleSurface } from "./search-console";
 import type { IntegrationCheck, IntegrationChecks, MeasuredSignals } from "./types";
 
@@ -42,12 +43,14 @@ export async function probeIntegrations(input: {
   let searchCheck: IntegrationCheck;
   let searchConsoleReport: MeasuredSignals["searchConsoleReport"];
   if (search.ok) {
-    const sample = search.queries.map((row) => row.query).slice(0, 5).join(", ");
     searchCheck = check(
       "verified",
-      sample
-        ? `Search Console returned ${search.queries.length} queries. Top queries: ${sample}.`
-        : `Search Console returned ${search.queries.length} queries.`,
+      searchConsoleReadSummary({
+        status: "read",
+        rowCount: search.queries.length,
+        pageRows: search.pages,
+        pageRead: search.pageRead,
+      }),
       at,
     );
     searchConsoleReport = {

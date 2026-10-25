@@ -6,6 +6,7 @@ import { buildOpportunities } from "./opportunities";
 import { effectiveStatus } from "./policy";
 import { assessReferrals } from "./referrals";
 import { acquireRunLock, releaseRunLock, runScheduledTasks, type GrowthTask } from "./scheduler";
+import { searchConsoleReadSummary } from "./search-console-log";
 import { auditSeo } from "./seo";
 import { appendAudit, ensureDaily, trimState } from "./state";
 import type { EngineState, MeasuredSignals, RunRecord, SeoPage } from "./types";
@@ -36,7 +37,7 @@ export type CycleSummary = {
 
 function searchConsoleSentence(signals: MeasuredSignals): string {
   const report = signals.searchConsoleReport;
-  if (report?.status === "read") return `Search Console returned ${report.rowCount} queries.`;
+  if (report?.status === "read") return searchConsoleReadSummary(report);
   if (report?.status === "failed") return `Search Console read failed (${report.code ?? "http_error"}).`;
   if (signals.searchConsoleConnected) return "Search Console credential names are present. No query report was read.";
   return "Search Console is not connected.";
