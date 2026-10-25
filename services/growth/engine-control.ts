@@ -5,8 +5,9 @@ import { deliverFollowupLocked, inAppFollowupNotification, type NotificationLook
 import { consentFromStoredPreferences, planFollowup } from "@/lib/growth/engine/followups";
 import { claimBounded, type LockOutcome } from "@/lib/growth/engine/lock";
 import { applyLowRiskDecision, bindApproval, capabilityReport, effectiveStatus, killSwitchEngaged } from "@/lib/growth/engine/policy";
+import { probeIntegrations } from "@/lib/growth/engine/integrations";
 import { integrationPresence, providerCatalog } from "@/lib/growth/engine/providers";
-import { appendAudit, createInitialState, trimState } from "@/lib/growth/engine/state";
+import { appendAudit, createInitialState, emptyIntegrationChecks, trimState } from "@/lib/growth/engine/state";
 import type { EngineState, FollowupPlan, FollowupTrigger, RiskClass } from "@/lib/growth/engine/types";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { PAGE_SEO } from "@/lib/seo";
@@ -125,6 +126,8 @@ async function measuredSignals() {
       convertedAt: row.accepted_at,
     }));
 
+  const probed = await probeIntegrations().catch(() => null);
+
   return {
     funnel: kpis?.funnel ?? null,
     affiliateClicks7d: stats ? stats.affiliateClicks7d : null,
@@ -134,6 +137,14 @@ async function measuredSignals() {
     adsAccountConnected: presence.adsAccountConnected,
     organizationSchema: true,
     websiteSchema: true,
+    integrationChecks: probed?.checks ?? {
+      ...emptyIntegrationChecks(),
+      searchConsole: { state: "failed", detail: "Provider checks could not be completed.", checkedAt: new Date().toISOString() },
+      resend: { state: "failed", detail: "Provider checks could not be completed.", checkedAt: new Date().toISOString() },
+      googleAds: { state: "failed", detail: "Provider checks could not be completed.", checkedAt: new Date().toISOString() },
+      metaAds: { state: "failed", detail: "Provider checks could not be completed.", checkedAt: new Date().toISOString() },
+    },
+    searchConsoleReport: probed?.searchConsoleReport,
   };
 }
 
@@ -209,7 +220,7 @@ export function engineSnapshot(loaded: LoadedEngine) {
     runs: state.runs,
     audit: state.audit.slice(-20),
     costs: state.costs,
-    providers: providerCatalog(),
+    providers: providerCatalog(process.env, state.integrations),
     capabilities: capabilityReport(state),
     lastError: state.lastError,
     updatedAt: state.updatedAt,

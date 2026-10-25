@@ -1,6 +1,7 @@
+import { googleAdsMissing, metaAdsMissing, spendGate } from "./ads-connectivity";
 import { isHighImpactPath, publicationDecision } from "./content";
 import { appendAudit } from "./state";
-import type { Approval, ApprovalParameters, EngineState, RiskClass } from "./types";
+import type { Approval, ApprovalParameters, EngineState, IntegrationCheck, RiskClass } from "./types";
 
 const ALWAYS_REVIEW = new Set<RiskClass>([
   "publish_low_risk",
@@ -36,14 +37,14 @@ function envSet(env: NodeJS.ProcessEnv, name: string): boolean {
 
 /**
  * Admin-facing readiness. This does not grant spend, rewards, bulk sends,
- * or site publication. Credential checks look at names only.
+ * or site publication. A verified provider read does not authorize spend or marketing email.
  */
 export function capabilityReport(state: EngineState, env: NodeJS.ProcessEnv = process.env): CapabilityReportItem[] {
   const running = effectiveStatus(state, env) === "running";
   const pauseReason = killSwitchEngaged(env)
     ? "GROWTH_ENGINE_KILL is on, so a stored running status does not run work."
     : state.pausedReason;
-  const searchReady = envSet(env, "GOOGLE_SEARCH_CONSOLE_SITE_URL") && envSet(env, "GOOGLE_SEARCH_CONSOLE_CREDENTIALS");
+  const spend = spendGate(env);
   return [
     {
       id: "observe_draft_queue",
@@ -76,14 +77,14 @@ export function capabilityReport(state: EngineState, env: NodeJS.ProcessEnv = pr
     {
       id: "paid_spend",
       label: "Ad spend",
-      state: "credential_required",
-      requirement: "Needs an ads account, a budget cap, and an explicit spend authorization from the owner. An account name alone does not enable spend.",
+      state: spend.capUsd !== null && spend.authorized ? "blocked" : "credential_required",
+      requirement: spend.reason,
     },
     {
       id: "reward_issue",
       label: "Wallet credits and rewards",
       state: "blocked",
-      requirement: "Needs verified fraud checks, eligibility rules, limits, and ledger integrity. Referral rows stay unissued.",
+      requirement: "Referral rows stay unissued. Issuance needs a qualified conversion, no fraud flags, a unique transactions.reference, a flat amount at or under 25 USD, and at most 5 same-day referrals. This engine still refuses the credit.",
     },
     {
       id: "production_change",
@@ -91,39 +92,48 @@ export function capabilityReport(state: EngineState, env: NodeJS.ProcessEnv = pr
       state: "blocked",
       requirement: "Production changes stay on reviewed releases and post-deployment checks. This engine cannot deploy or migrate.",
     },
-    {
+    integrationCapability(state.integrations?.searchConsole, envSet(env, "GOOGLE_SEARCH_CONSOLE_SITE_URL") && envSet(env, "GOOGLE_SEARCH_CONSOLE_CREDENTIALS"), {
       id: "search_console",
       label: "Search Console",
-      state: searchReady ? "unverified" : "credential_required",
-      requirement: searchReady
-        ? "GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS are set. No query report has been read, so demand is still unverified."
-        : "Set both GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS. No Search Console request is made until both names exist and a read-only check is implemented.",
-    },
-    {
+      missing: "Set GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS. The credential is a service-account JSON key with the Search Console readonly scope. Add that account on the site, then the engine reads searchAnalytics.",
+      pending: "Both Search Console names are set. A read-only query has not succeeded in this control record yet.",
+    }),
+    integrationCapability(state.integrations?.googleAds, googleAdsMissing(env).length === 0, {
       id: "google_ads",
       label: "Google Ads",
-      state: envSet(env, "GOOGLE_ADS_CUSTOMER_ID") ? "unverified" : "credential_required",
-      requirement: envSet(env, "GOOGLE_ADS_CUSTOMER_ID")
-        ? "GOOGLE_ADS_CUSTOMER_ID is set. Spend stays blocked until a budget cap and an explicit spend authorization exist. No campaign is submitted."
-        : "Set GOOGLE_ADS_CUSTOMER_ID, then add a budget cap and an explicit spend authorization. The customer id alone does not spend.",
-    },
-    {
+      missing: `Set ${googleAdsMissing(env).join(", ") || "GOOGLE_ADS_CUSTOMER_ID, GOOGLE_ADS_DEVELOPER_TOKEN, and GOOGLE_ADS_ACCESS_TOKEN"}. The read is a customer GET. ${spend.reason}`,
+      pending: `Google Ads names are set. The customer read has not succeeded in this control record yet. ${spend.reason}`,
+    }),
+    integrationCapability(state.integrations?.metaAds, metaAdsMissing(env).length === 0, {
       id: "meta_ads",
       label: "Meta ads",
-      state: envSet(env, "META_ADS_ACCOUNT_ID") ? "unverified" : "credential_required",
-      requirement: envSet(env, "META_ADS_ACCOUNT_ID")
-        ? "META_ADS_ACCOUNT_ID is set. Spend stays blocked until a budget cap and an explicit spend authorization exist. No campaign is submitted."
-        : "Set META_ADS_ACCOUNT_ID, then add a budget cap and an explicit spend authorization. The account id alone does not spend.",
-    },
-    {
+      missing: `Set ${metaAdsMissing(env).join(", ") || "META_ADS_ACCOUNT_ID and META_ADS_ACCESS_TOKEN"}. The read is an ad-account GET. ${spend.reason}`,
+      pending: `Meta ads names are set. The account read has not succeeded in this control record yet. ${spend.reason}`,
+    }),
+    integrationCapability(state.integrations?.resend, envSet(env, "RESEND_API_KEY"), {
       id: "resend",
       label: "Resend",
-      state: envSet(env, "RESEND_API_KEY") ? "unverified" : "credential_required",
-      requirement: envSet(env, "RESEND_API_KEY")
-        ? "RESEND_API_KEY is set. This engine does not send marketing email. The invoice and marketing-contact plan were not read."
-        : "RESEND_API_KEY is not set for this process. This engine does not send marketing email.",
-    },
+      missing: "RESEND_API_KEY is not set for this process. This engine does not send marketing email.",
+      pending: "RESEND_API_KEY is set. A domains read has not succeeded in this control record yet. Marketing email stays off.",
+    }),
   ];
+}
+
+function integrationCapability(
+  check: IntegrationCheck | undefined,
+  namesReady: boolean,
+  copy: { id: string; label: string; missing: string; pending: string },
+): CapabilityReportItem {
+  if (namesReady && check?.state === "verified") {
+    return { id: copy.id, label: copy.label, state: "operational", requirement: check.detail };
+  }
+  if (namesReady && check?.state === "failed") {
+    return { id: copy.id, label: copy.label, state: "unverified", requirement: check.detail };
+  }
+  if (!namesReady) {
+    return { id: copy.id, label: copy.label, state: "credential_required", requirement: copy.missing };
+  }
+  return { id: copy.id, label: copy.label, state: "unverified", requirement: copy.pending };
 }
 
 export const HARD_BLOCKED_RISKS = ["paid_spend", "reward_issue", "bulk_message", "production_change"] as const;

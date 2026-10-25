@@ -199,6 +199,7 @@ describe("postgres growth lock", databaseUrl ? {} : { skip: "GROWTH_LOCK_TEST_DA
 
   after(async () => {
     if (!pool) return;
+    await pool.query("DROP TABLE IF EXISTS public.notifications");
     await pool.query("DROP TABLE IF EXISTS public.growth_campaigns");
     await pool.end();
     pool = undefined;
@@ -859,6 +860,132 @@ describe("postgres growth lock", databaseUrl ? {} : { skip: "GROWTH_LOCK_TEST_DA
     });
     assert.equal(sends, 1);
     assert.equal(retry.notified, false);
+  });
+
+  it("enforces admin-only select and denies anonymous reads and writes", async () => {
+    await db().query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'growth_rls_anon') THEN
+          CREATE ROLE growth_rls_anon NOLOGIN;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+          CREATE ROLE authenticated NOLOGIN;
+        END IF;
+      END $$
+    `);
+    const slug = nextSlug("rls");
+    const adminId = "22222222-2222-4222-8222-222222222222";
+    const memberId = "33333333-3333-4333-8333-333333333333";
+    const client = await db().connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("CREATE SCHEMA IF NOT EXISTS auth");
+      await client.query(`
+        CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid
+        LANGUAGE sql STABLE AS $$
+          SELECT NULLIF(current_setting('growth.user_id', true), '')::uuid
+        $$
+      `);
+      await client.query(`
+        CREATE TABLE public.user_roles (
+          user_id uuid,
+          role text,
+          is_active boolean
+        )
+      `);
+      await client.query(
+        "INSERT INTO public.user_roles (user_id, role, is_active) VALUES ($1, 'admin', true), ($2, 'member', true)",
+        [adminId, memberId],
+      );
+      await client.query("GRANT USAGE ON SCHEMA public, auth TO growth_rls_anon, authenticated");
+      await client.query("GRANT SELECT ON public.growth_campaigns TO growth_rls_anon, authenticated");
+      await client.query("GRANT SELECT ON public.user_roles TO authenticated");
+      await client.query("ALTER TABLE public.growth_campaigns ENABLE ROW LEVEL SECURITY");
+      await client.query("ALTER TABLE public.growth_campaigns FORCE ROW LEVEL SECURITY");
+      await client.query("DROP POLICY IF EXISTS growth_campaigns_admin_select ON public.growth_campaigns");
+      await client.query(`
+        CREATE POLICY growth_campaigns_admin_select ON public.growth_campaigns
+          FOR SELECT TO authenticated
+          USING (EXISTS (
+            SELECT 1 FROM public.user_roles
+            WHERE user_id = auth.uid() AND role = 'admin' AND is_active = true
+          ))
+      `);
+      await client.query(
+        `INSERT INTO public.growth_campaigns (name, slug, channel, status, metadata)
+         VALUES ('lock test isolated', $1, 'internal', 'paused', $2::jsonb)`,
+        [slug, JSON.stringify(createInitialState(now))],
+      );
+
+      await client.query("SET LOCAL ROLE growth_rls_anon");
+      const anon = await client.query("SELECT slug FROM public.growth_campaigns WHERE slug = $1", [slug]);
+      assert.equal(anon.rows.length, 0);
+
+      await client.query("RESET ROLE");
+      await client.query("SET LOCAL ROLE authenticated");
+      await client.query("SELECT set_config('growth.user_id', $1, true)", [memberId]);
+      const member = await client.query("SELECT slug FROM public.growth_campaigns WHERE slug = $1", [slug]);
+      assert.equal(member.rows.length, 0);
+
+      await client.query("SELECT set_config('growth.user_id', $1, true)", [adminId]);
+      const admin = await client.query("SELECT slug FROM public.growth_campaigns WHERE slug = $1", [slug]);
+      assert.equal(admin.rows.length, 1);
+      await assert.rejects(
+        () => client.query("UPDATE public.growth_campaigns SET name = 'changed' WHERE slug = $1", [slug]),
+        /permission denied/i,
+      );
+      await client.query("ROLLBACK");
+    } catch (error) {
+      try { await client.query("ROLLBACK"); } catch { /* the transaction is already closed */ }
+      throw error;
+    } finally {
+      client.release();
+    }
+  });
+
+  it("rejects a duplicate notification event key and allows a null key twice", async () => {
+    await db().query("DROP TABLE IF EXISTS public.notifications");
+    await db().query(`
+      CREATE TABLE public.notifications (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL,
+        event_key text
+      )
+    `);
+    await db().query(`
+      CREATE UNIQUE INDEX uq_notifications_user_event_key
+      ON public.notifications (user_id, event_key)
+      WHERE event_key IS NOT NULL
+    `);
+    const user = "44444444-4444-4444-8444-444444444444";
+    try {
+      await db().query(
+        "INSERT INTO public.notifications (user_id, event_key) VALUES ($1, 'growth-followup:one')",
+        [user],
+      );
+      await assert.rejects(
+        () => db().query(
+          "INSERT INTO public.notifications (user_id, event_key) VALUES ($1, 'growth-followup:one')",
+          [user],
+        ),
+        (error: unknown) => {
+          const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
+          assert.equal(code, "23505");
+          return true;
+        },
+      );
+      await db().query(
+        "INSERT INTO public.notifications (user_id, event_key) VALUES ($1, NULL), ($1, NULL)",
+        [user],
+      );
+      const count = await db().query(
+        "SELECT count(*)::int AS n FROM public.notifications WHERE user_id = $1 AND event_key IS NULL",
+        [user],
+      );
+      assert.equal(count.rows[0].n, 2);
+    } finally {
+      await db().query("DROP TABLE IF EXISTS public.notifications");
+    }
   });
 });
 

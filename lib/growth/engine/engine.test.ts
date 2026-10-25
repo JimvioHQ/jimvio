@@ -310,6 +310,55 @@ describe("growth engine safety", () => {
     assert.equal(catalog.find((item) => item.id === "search-console")?.verification, "names_present_unverified");
     assert.equal(catalog.find((item) => item.id === "resend")?.connected, false);
     assert.equal(catalog.every((item) => item.id === "internal-audit" || item.connected === false), true);
+    const verified = providerCatalog({}, {
+      searchConsole: { state: "verified", detail: "Search Console returned 2 queries.", checkedAt: now.toISOString() },
+      resend: { state: "failed", detail: "Resend domains read failed (unauthorized). No message was sent.", checkedAt: now.toISOString() },
+      googleAds: { state: "missing", detail: "Not checked.", checkedAt: null },
+      metaAds: { state: "missing", detail: "Not checked.", checkedAt: null },
+    });
+    assert.equal(verified.find((item) => item.id === "search-console")?.connected, true);
+    assert.equal(verified.find((item) => item.id === "search-console")?.verification, "verified");
+    assert.equal(verified.find((item) => item.id === "resend")?.connected, false);
+    assert.equal(verified.find((item) => item.id === "resend")?.verification, "failed");
+  });
+
+  it("keeps an older control record readable and records a query report without publishing", async () => {
+    const parsed = parseEngineState({ version: 1, status: "running", pausedReason: "Running." });
+    assert.ok(parsed);
+    assert.equal(parsed?.integrations.searchConsole.state, "missing");
+    const items = buildOpportunities({
+      findings: [],
+      signals: {
+        searchConsoleConnected: true,
+        searchConsoleReport: { status: "read", rowCount: 1, queries: ["jimvio marketplace"] },
+      },
+      services: [],
+    });
+    assert.equal(items.some((item) => item.id === "search-console-read"), true);
+    assert.equal(items.some((item) => item.id === "search-console-unverified"), false);
+    const result = await runGrowthCycle({
+      state: runningState(),
+      signals: {
+        searchConsoleConnected: true,
+        searchConsoleReport: { status: "read", rowCount: 1, queries: ["jimvio marketplace"] },
+        integrationChecks: {
+          searchConsole: { state: "verified", detail: "Search Console returned 1 queries.", checkedAt: now.toISOString() },
+          resend: { state: "missing", detail: "RESEND_API_KEY is not set for this process.", checkedAt: null },
+          googleAds: { state: "missing", detail: "Set GOOGLE_ADS_CUSTOMER_ID.", checkedAt: null },
+          metaAds: { state: "missing", detail: "Set META_ADS_ACCOUNT_ID.", checkedAt: null },
+        },
+      },
+      pages: [],
+      sitemapPaths: [],
+      knownPaths: ["/"],
+      services: [],
+      now,
+      runId: "probe-cycle",
+    });
+    assert.equal(result.state.integrations.searchConsole.state, "verified");
+    assert.match(result.summary.summary, /Search Console returned 1 queries/);
+    assert.equal(result.state.drafts.every((draft) => draft.appliedToSite === false), true);
+    assert.equal(result.state.campaigns.every((item) => item.submitted === false), true);
   });
 
   it("rejects an error payload before the dashboard reads its arrays", () => {

@@ -1,4 +1,4 @@
-import type { Approval, ApprovalParameters, AuditEntry, EngineLimits, EngineState, FollowupPlan, RiskClass } from "./types";
+import type { Approval, ApprovalParameters, AuditEntry, EngineLimits, EngineState, FollowupPlan, IntegrationCheck, IntegrationChecks, RiskClass } from "./types";
 
 export const DEFAULT_LIMITS: EngineLimits = {
   maxTasksPerRun: 8,
@@ -8,6 +8,40 @@ export const DEFAULT_LIMITS: EngineLimits = {
   maxDailyExternalCalls: 0,
   maxDraftsPerRun: 3,
 };
+
+export function emptyIntegrationChecks(): IntegrationChecks {
+  const blank: IntegrationCheck = { state: "missing", detail: "Not checked.", checkedAt: null };
+  return {
+    searchConsole: { ...blank },
+    resend: { ...blank },
+    googleAds: { ...blank },
+    metaAds: { ...blank },
+  };
+}
+
+function parseIntegrationCheck(value: unknown, fallback: IntegrationCheck): IntegrationCheck {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+  const record = value as Record<string, unknown>;
+  const state = record.state;
+  const known = state === "missing" || state === "unverified" || state === "verified" || state === "failed";
+  return {
+    state: known ? state : "failed",
+    detail: typeof record.detail === "string" ? record.detail.slice(0, 240) : fallback.detail,
+    checkedAt: typeof record.checkedAt === "string" ? record.checkedAt : null,
+  };
+}
+
+export function parseIntegrationChecks(value: unknown): IntegrationChecks {
+  const fallback = emptyIntegrationChecks();
+  if (!value || typeof value !== "object" || Array.isArray(value)) return fallback;
+  const record = value as Record<string, unknown>;
+  return {
+    searchConsole: parseIntegrationCheck(record.searchConsole, fallback.searchConsole),
+    resend: parseIntegrationCheck(record.resend, fallback.resend),
+    googleAds: parseIntegrationCheck(record.googleAds, fallback.googleAds),
+    metaAds: parseIntegrationCheck(record.metaAds, fallback.metaAds),
+  };
+}
 
 export function createInitialState(now = new Date()): EngineState {
   const iso = now.toISOString();
@@ -30,6 +64,7 @@ export function createInitialState(now = new Date()): EngineState {
     runs: [],
     audit: [],
     costs: [],
+    integrations: emptyIntegrationChecks(),
     lastError: null,
     lastCheckedAt: null,
     updatedAt: iso,
@@ -76,6 +111,7 @@ export function trimState(state: EngineState): EngineState {
     runs: state.runs.slice(-30),
     audit: state.audit.slice(-100),
     costs: state.costs.slice(-30),
+    integrations: parseIntegrationChecks(state.integrations),
   };
 }
 
@@ -203,6 +239,7 @@ export function parseEngineState(value: unknown): EngineState | null {
     runs: Array.isArray(value.runs) ? (value.runs as EngineState["runs"]) : [],
     audit: Array.isArray(value.audit) ? (value.audit as EngineState["audit"]) : [],
     costs: Array.isArray(value.costs) ? (value.costs as EngineState["costs"]) : [],
+    integrations: parseIntegrationChecks(value.integrations),
     lastError: typeof value.lastError === "string" ? value.lastError : null,
     lastCheckedAt: typeof value.lastCheckedAt === "string" ? value.lastCheckedAt : null,
     updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : base.updatedAt,

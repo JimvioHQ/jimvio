@@ -154,7 +154,47 @@ export function buildOpportunities(input: {
     recommendedRiskClass: "observe",
   }));
 
-  if (!input.signals.searchConsoleConnected) {
+  const report = input.signals.searchConsoleReport;
+  if (report?.status === "read") {
+    const sample = report.queries.slice(0, 5).join(", ");
+    items.push(opportunity({
+      id: "search-console-read",
+      title: "Search Console returned site queries",
+      kind: "seo",
+      evidence: [{
+        kind: "measured",
+        statement: sample
+          ? `Search Console returned ${report.rowCount} queries. Top queries: ${sample}.`
+          : `Search Console returned ${report.rowCount} queries.`,
+        source: "search-console",
+      }],
+      effort: "medium",
+      expectedBenefit: "These queries are measured demand for existing pages. A draft still needs review and does not change the live site.",
+      benefitBasis: "measured",
+      confidence: "high",
+      risks: ["Do not publish a thin page from a query alone."],
+      nextAction: "Review the queries before drafting a page. This record does not change the live site.",
+      recommendedRiskClass: "observe",
+    }));
+  } else if (report?.status === "failed") {
+    items.push(opportunity({
+      id: "search-console-read-failed",
+      title: "Search Console read failed",
+      kind: "seo",
+      evidence: [{
+        kind: "measured",
+        statement: `Search Console read failed (${report.code ?? "http_error"}). No query demand was recorded.`,
+        source: "search-console",
+      }],
+      effort: "medium",
+      expectedBenefit: "A later successful read can replace this failure. The gain is not measured yet.",
+      benefitBasis: "hypothesis",
+      confidence: "high",
+      risks: ["Do not treat a failed read as search demand."],
+      nextAction: "Check the site URL, the service-account JSON, and that the account has access to the property.",
+      recommendedRiskClass: "observe",
+    }));
+  } else if (!input.signals.searchConsoleConnected) {
     items.push(opportunity({
       id: "search-console-not-connected",
       title: "Search query demand is not connected",
@@ -169,7 +209,7 @@ export function buildOpportunities(input: {
       benefitBasis: "hypothesis",
       confidence: "high",
       risks: ["The API is free of charge but quota-limited. Do not scrape search results instead."],
-      nextAction: "An admin can add the site URL and credential names later. This engine will not call the API until both are set.",
+      nextAction: "Set GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS. The engine then runs a read-only searchAnalytics query.",
       recommendedRiskClass: "observe",
     }));
   } else {
@@ -179,7 +219,7 @@ export function buildOpportunities(input: {
       kind: "seo",
       evidence: [{
         kind: "measured",
-        statement: "Both Search Console environment names are set. This cycle did not call the API, so query demand is still unknown.",
+        statement: "Both Search Console environment names are set. This cycle did not receive a query report, so query demand is still unknown.",
         source: "environment",
       }],
       effort: "medium",
@@ -187,7 +227,7 @@ export function buildOpportunities(input: {
       benefitBasis: "hypothesis",
       confidence: "high",
       risks: ["Do not describe credential names as measured search demand."],
-      nextAction: "Verify the Search Console API with a read-only report before using queries in a draft.",
+      nextAction: "Run a cycle after the service-account key is valid. A names-only setup does not count as demand.",
       recommendedRiskClass: "observe",
     }));
   }

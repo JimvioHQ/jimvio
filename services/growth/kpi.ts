@@ -23,14 +23,36 @@ export function distinctUsersSince(rows: TimestampRow[], since: string): number 
   return new Set(rows.filter((row) => row.user_id && row.created_at && row.created_at >= since).map((row) => row.user_id)).size;
 }
 
+export function scoreNps(scores: number[]): { nps: number | null; responses: number } {
+  const usable = scores.filter((score) => Number.isFinite(score) && score >= 0 && score <= 10);
+  if (usable.length === 0) return { nps: null, responses: 0 };
+  const promoters = usable.filter((score) => score >= 9).length;
+  const detractors = usable.filter((score) => score <= 6).length;
+  return { nps: Math.round(((promoters - detractors) / usable.length) * 100), responses: usable.length };
+}
+
+type QueryResult = { data?: unknown[] | null; count?: number | null };
+type RowQuery = PromiseLike<QueryResult> & {
+  gte: (column: string, value: string) => RowQuery;
+  eq: (column: string, value: string | boolean) => RowQuery;
+};
+type LooseAdmin = {
+  from: (table: string) => {
+    select: (columns: string, options?: { count: "exact"; head: true }) => RowQuery;
+  };
+};
+
 export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
-  const db = getAdminDB() as any;
+  const db = getAdminDB() as unknown as LooseAdmin;
   const today = windowStart(1, now);
   const mauStart = windowStart(30, now);
-  const safe = async <T,>(query: PromiseLike<{ data?: T[] | null }>): Promise<T[]> => {
-    try { return (await query).data ?? []; } catch { return []; }
+  const safe = async <T,>(query: PromiseLike<QueryResult>): Promise<T[]> => {
+    try {
+      const data = (await query).data;
+      return Array.isArray(data) ? data as T[] : [];
+    } catch { return []; }
   };
-  const countSince = async (table: string, since: string, extra?: (q: any) => any) => {
+  const countSince = async (table: string, since: string, extra?: (query: RowQuery) => RowQuery) => {
     try {
       let q = db.from(table).select("id", { count: "exact", head: true }).gte("created_at", since);
       if (extra) q = extra(q);
@@ -66,16 +88,12 @@ export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
     "growth.experiment_exposure",
   ];
 
-  const npsScores = eventRows
-    .filter((row) => row.event_name === "growth.nps_score")
-    .map((row) => Number(row.properties?.score))
-    .filter((score) => Number.isFinite(score) && score >= 0 && score <= 10);
-  const promoters = npsScores.filter((score) => score >= 9).length;
-  const detractors = npsScores.filter((score) => score <= 6).length;
-  const nps =
-    npsScores.length > 0
-      ? Math.round(((promoters - detractors) / npsScores.length) * 100)
-      : null;
+  const npsResult = scoreNps(
+    eventRows
+      .filter((row) => row.event_name === "growth.nps_score")
+      .map((row) => Number(row.properties?.score)),
+  );
+  const nps = npsResult.nps;
 
   return {
     dau: distinctUsersSince(eventRows, today),
@@ -88,7 +106,7 @@ export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
     creatorRevenueToday: sum(completedPayments, "creator_earnings"),
     affiliateCommissionsToday: sum(commissions, "commission_amount"),
     nps,
-    npsResponses: npsScores.length,
+    npsResponses: npsResult.responses,
     funnel: Object.fromEntries(funnelNames.map((name) => [name, eventRows.filter((row) => row.event_name === name).length])),
   };
 }

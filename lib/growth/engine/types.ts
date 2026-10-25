@@ -210,6 +210,7 @@ export type EngineState = {
   runs: RunRecord[];
   audit: AuditEntry[];
   costs: CostRecord[];
+  integrations: IntegrationChecks;
   lastError: string | null;
   lastCheckedAt: string | null;
   updatedAt: string;
@@ -233,14 +234,36 @@ export type MeasuredSignals = {
   adsAccountConnected?: boolean;
   organizationSchema?: boolean;
   websiteSchema?: boolean;
+  integrationChecks?: IntegrationChecks;
+  searchConsoleReport?: {
+    status: "read" | "failed";
+    rowCount: number;
+    queries: string[];
+    code?: string;
+  };
 };
 
-export type ProviderVerification = "internal" | "missing" | "names_present_unverified";
+export type IntegrationCheckState = "missing" | "unverified" | "verified" | "failed";
+
+export type IntegrationCheck = {
+  state: IntegrationCheckState;
+  detail: string;
+  checkedAt: string | null;
+};
+
+export type IntegrationChecks = {
+  searchConsole: IntegrationCheck;
+  resend: IntegrationCheck;
+  googleAds: IntegrationCheck;
+  metaAds: IntegrationCheck;
+};
+
+export type ProviderVerification = "internal" | "missing" | "names_present_unverified" | "verified" | "failed";
 
 export type ProviderFact = {
   id: string;
   name: string;
-  /** True only when this process can use the provider without an external credential check. */
+  /** True when a read-only call succeeded, or for the internal audit. Spend stays disabled. */
   connected: boolean;
   verification: ProviderVerification;
   requirement: string;

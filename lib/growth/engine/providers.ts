@@ -1,4 +1,4 @@
-import type { ProviderFact, ProviderVerification } from "./types";
+import type { IntegrationChecks, ProviderFact, ProviderVerification } from "./types";
 
 /**
  * Prices checked against provider pages on 2026-10-25.
@@ -104,53 +104,62 @@ function describeProvider(
   provider: ProviderFact,
   verification: ProviderVerification,
   summary: string,
+  connected = false,
 ): ProviderFact {
   return {
     ...provider,
-    connected: false,
+    connected,
     verification,
     summary,
   };
 }
 
-export function providerCatalog(env: NodeJS.ProcessEnv = process.env): ProviderFact[] {
+function probed(
+  provider: ProviderFact,
+  check: IntegrationChecks[keyof IntegrationChecks] | undefined,
+  namesPresent: boolean,
+  presentSummary: string,
+): ProviderFact | null {
+  if (check?.state === "verified") return describeProvider(provider, "verified", check.detail, true);
+  if (check?.state === "failed") return describeProvider(provider, "failed", check.detail, false);
+  if (!namesPresent) return null;
+  return describeProvider(provider, "names_present_unverified", presentSummary, false);
+}
+
+export function providerCatalog(env: NodeJS.ProcessEnv = process.env, checks?: IntegrationChecks): ProviderFact[] {
   const presence = integrationPresence(env);
   return PROVIDER_CATALOG.map((provider) => {
     if (provider.id === "search-console") {
-      return describeProvider(
+      return probed(
         provider,
-        presence.searchConsoleConnected ? "names_present_unverified" : "missing",
-        presence.searchConsoleConnected
-          ? "Both Search Console names are set. No query report was read, so this is not a verified connection."
-          : provider.summary,
-      );
+        checks?.searchConsole,
+        presence.searchConsoleConnected,
+        "Both Search Console names are set. No query report was read, so this is not a verified connection.",
+      ) ?? provider;
     }
     if (provider.id === "resend") {
-      return describeProvider(
+      return probed(
         provider,
-        presence.resendConfigured ? "names_present_unverified" : "missing",
-        presence.resendConfigured
-          ? "RESEND_API_KEY is set. This engine does not send marketing email, and the invoice was not read."
-          : provider.summary,
-      );
+        checks?.resend,
+        presence.resendConfigured,
+        "RESEND_API_KEY is set. This engine does not send marketing email, and the invoice was not read.",
+      ) ?? provider;
     }
     if (provider.id === "google-ads") {
-      return describeProvider(
+      return probed(
         provider,
-        presence.googleAdsConfigured ? "names_present_unverified" : "missing",
-        presence.googleAdsConfigured
-          ? "GOOGLE_ADS_CUSTOMER_ID is set. No campaign was submitted and spend stays disabled."
-          : provider.summary,
-      );
+        checks?.googleAds,
+        presence.googleAdsConfigured,
+        "GOOGLE_ADS_CUSTOMER_ID is set. No campaign was submitted and spend stays disabled.",
+      ) ?? provider;
     }
     if (provider.id === "meta-ads") {
-      return describeProvider(
+      return probed(
         provider,
-        presence.metaAdsConfigured ? "names_present_unverified" : "missing",
-        presence.metaAdsConfigured
-          ? "META_ADS_ACCOUNT_ID is set. No campaign was submitted and spend stays disabled."
-          : provider.summary,
-      );
+        checks?.metaAds,
+        presence.metaAdsConfigured,
+        "META_ADS_ACCOUNT_ID is set. No campaign was submitted and spend stays disabled.",
+      ) ?? provider;
     }
     return provider;
   });

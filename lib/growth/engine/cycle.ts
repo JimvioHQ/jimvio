@@ -34,6 +34,14 @@ export type CycleSummary = {
   errors: string[];
 };
 
+function searchConsoleSentence(signals: MeasuredSignals): string {
+  const report = signals.searchConsoleReport;
+  if (report?.status === "read") return `Search Console returned ${report.rowCount} queries.`;
+  if (report?.status === "failed") return `Search Console read failed (${report.code ?? "http_error"}).`;
+  if (signals.searchConsoleConnected) return "Search Console credential names are present. No query report was read.";
+  return "Search Console is not connected.";
+}
+
 function summaryText(input: {
   findings: number;
   opportunities: number;
@@ -52,9 +60,7 @@ function summaryText(input: {
   return [
     `${input.findings} SEO findings from the supplied catalog.`,
     `${input.opportunities} opportunities, including ${input.hypotheses} with a hypothesis.`,
-    input.signals.searchConsoleConnected
-      ? "Search Console credential names are present. No query report was read."
-      : "Search Console is not connected.",
+    searchConsoleSentence(input.signals),
     clicks,
     users,
     `${input.sent} messages sent, ${input.issued} rewards issued, ${input.spend} ad campaigns submitted.`,
@@ -212,8 +218,11 @@ export async function runGrowthCycle(input: CycleInput): Promise<{ state: Engine
 
     const scheduled = await runScheduledTasks(state, tasks, { now, env: input.env });
     state = scheduled.state;
+    const externalRead = Boolean(input.signals.searchConsoleReport)
+      || Object.values(input.signals.integrationChecks ?? {}).some((item) => item.checkedAt);
     state = {
       ...state,
+      integrations: input.signals.integrationChecks ?? state.integrations,
       costs: [
         ...state.costs,
         {
@@ -221,7 +230,9 @@ export async function runGrowthCycle(input: CycleInput): Promise<{ state: Engine
           provider: "internal-audit",
           amountUsd: 0,
           basis: "measured",
-          note: "This cycle used local catalog data only. No provider invoice was read.",
+          note: externalRead
+            ? "Read-only provider checks ran. No invoice was charged by this engine and no campaign was submitted."
+            : "This cycle used local catalog data only. No provider invoice was read.",
           at: now.toISOString(),
         },
       ],

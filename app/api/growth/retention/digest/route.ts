@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { requirePlatformAdmin } from "@/lib/ops/require-platform-admin";
 import { getAdminDB } from "@/services/base";
-import { buildWeeklyCreatorReportSummary, getNotificationPreferences, sendDigestEmail } from "@/services/growth/retention";
+import { classifyDigestResult } from "@/services/growth/digest";
+import { buildWeeklyCreatorReportSummary, sendDigestEmail, weeklyDigestConsent } from "@/services/growth/retention";
 
 export async function POST(request: Request) {
   const hasCronCredentials = Boolean(request.headers.get("authorization") || request.headers.get("x-cron-secret"));
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   }
 
   const send = new URL(request.url).searchParams.get("send") === "1";
-  const { data: users, error } = await (getAdminDB() as any)
+  const { data: users, error } = await getAdminDB()
     .from("notification_preferences")
     .select("user_id")
     .eq("email_weekly_digest", true)
@@ -25,11 +26,24 @@ export async function POST(request: Request) {
   if (!send) return NextResponse.json({ dryRun: true, recipients: users?.length ?? 0 });
 
   let queued = 0;
+  let duplicates = 0;
+  let skipped = 0;
+  let failed = 0;
   for (const { user_id: userId } of users ?? []) {
-    const preferences = await getNotificationPreferences(userId);
-    if (!preferences.email_weekly_digest) continue;
-    await sendDigestEmail(userId, await buildWeeklyCreatorReportSummary(userId));
-    queued += 1;
+    try {
+      const allowed = await weeklyDigestConsent(userId);
+      if (!allowed) {
+        skipped += 1;
+        continue;
+      }
+      const result = await sendDigestEmail(userId, await buildWeeklyCreatorReportSummary(userId));
+      const outcome = classifyDigestResult(result);
+      if (outcome === "sent") queued += 1;
+      else if (outcome === "duplicate") duplicates += 1;
+      else failed += 1;
+    } catch {
+      failed += 1;
+    }
   }
-  return NextResponse.json({ dryRun: false, queued });
+  return NextResponse.json({ dryRun: false, queued, duplicates, skipped, failed });
 }

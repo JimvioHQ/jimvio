@@ -1,6 +1,7 @@
 import { getAdminDB } from "@/services/base";
 import { explicitReengagementGranted, explicitReengagementWrite } from "@/lib/notifications/explicit-consent";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { digestCopy, digestEventKey, weeklyDigestAllowed } from "./digest";
 import { trackGrowthEvent } from "./events";
 
 export type NotificationPreferences = {
@@ -108,13 +109,29 @@ export async function sendAchievementEmail(userId: string, title: string, messag
   await trackGrowthEvent(userId, "growth.achievement_queued", { title });
 }
 
+export async function weeklyDigestConsent(userId: string): Promise<boolean> {
+  const { data, error } = await db()
+    .from("notification_preferences")
+    .select("email_weekly_digest")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return weeklyDigestAllowed(data);
+}
+
 export async function sendDigestEmail(userId: string, summary: Awaited<ReturnType<typeof buildWeeklyCreatorReportSummary>>) {
-  await notifyUser(db(), {
+  const now = new Date();
+  const result = await notifyUser(db(), {
     userId,
     type: "system",
     title: "Your weekly Jimvio report",
-    message: `${summary.communitiesOwned} communities, ${summary.productsListed} products, and ${summary.productsSold} paid sales this week.`,
+    message: digestCopy(summary),
     actionUrl: "/",
+    eventKey: digestEventKey(now),
+    data: { event: "weekly_digest", week: digestEventKey(now) },
   });
-  await trackGrowthEvent(userId, "growth.digest_queued", summary);
+  if (result?.ok && !result.skipped) {
+    await trackGrowthEvent(userId, "growth.digest_queued", summary);
+  }
+  return result ?? { ok: false as const, reason: "publish_failed" };
 }
