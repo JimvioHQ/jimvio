@@ -6,8 +6,6 @@ import {
   getAiProviderStatus,
 } from "@/services/ai/openai";
 import { createAffiliatePromotionResponse } from "@/lib/ai/affiliate-gemini";
-import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
-import { GEMINI_API_KEY_ENV } from "@/lib/ai/gemini-model";
 import {
   loadAffiliateProductContext,
   promotionInputFromContext,
@@ -91,9 +89,7 @@ export async function POST(req: NextRequest) {
           { status: 404 },
         );
       }
-      const result = await createAffiliatePromotionResponse(promotionInputFromContext(context), {
-        listModels: () => listAccessibleGeminiModels(process.env[GEMINI_API_KEY_ENV] ?? ""),
-      });
+      const result = await createAffiliatePromotionResponse(promotionInputFromContext(context));
       return NextResponse.json(
         { ...result.body, productId: context.productId },
         { status: result.status },

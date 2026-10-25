@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
+import { resolveOpenAIModel } from "@/lib/ai/openai-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,9 @@ export async function GET(
       return NextResponse.json({ summary: softFallback(), fallback: true });
     }
 
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({ apiKey, timeout: 20_000, maxRetries: 1 });
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [
         {
           role: "system",

@@ -52,7 +52,8 @@ describe("affiliate workspace fallback", () => {
     assert.match(client, /AffiliateAiRecovery/);
     assert.doesNotMatch(client, /openai|OPENAI/);
     assert.match(chat, /verifyAffiliatePromotionTask/);
-    assert.equal(chat.includes("openai"), false);
+    assert.match(chat, /openai-runtime/);
+    assert.equal(chat.includes("@google/generative-ai"), false);
     const hook = readFileSync(join(root, "components/copilot/use-copilot-chat.ts"), "utf8");
     assert.match(hook, /affiliatePromotionUsesLiveModel/);
   });

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { resolveOpenAIModel } from "@/lib/ai/openai-runtime";
 
 let _openai: OpenAI | null = null;
 
@@ -34,6 +35,8 @@ function getOpenAI(): OpenAI {
     _openai = new OpenAI({
       apiKey: openaiKey,
       baseURL: process.env.OPENAI_BASE_URL?.trim() || undefined,
+      timeout: 20_000,
+      maxRetries: 1,
     });
     return _openai;
   }
@@ -47,6 +50,8 @@ function getOpenAI(): OpenAI {
       baseURL:
         process.env.AI_GATEWAY_BASE_URL?.trim() ||
         "https://ai-gateway.vercel.sh/v1",
+      timeout: 20_000,
+      maxRetries: 1,
     });
     return _openai;
   }
@@ -164,7 +169,7 @@ Write a product description that:
 Return ONLY the product description, no additional text.`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 400,
@@ -202,7 +207,7 @@ Return ONLY JSON with keys:
 Do not invent fake discounts, shipping claims, or unverifiable stats.`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
       max_tokens: 350,
@@ -252,7 +257,7 @@ Return a JSON object with these exact keys:
 Make it compelling, specific, and conversion-focused.`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.8,
       max_tokens: 500,
@@ -287,7 +292,7 @@ Return a JSON object with:
 }`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.6,
       max_tokens: 600,
@@ -325,7 +330,7 @@ Return JSON with:
 }`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.8,
       max_tokens: 700,
@@ -388,7 +393,7 @@ Return ONLY JSON with these exact keys:
 }`;
 
     const response = await getOpenAI().chat.completions.create({
-      model: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.75,
       max_tokens: 1400,
@@ -436,7 +441,7 @@ Return ONLY JSON with these exact keys:
 
   async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>) {
     const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [
         {
           role: "system",

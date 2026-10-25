@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parseSearchIntent, generateTextEmbedding } from "@/lib/ai/ai-search-service";
+import { rateLimit } from "@/lib/ops/rate-limit";
 import {
   expandSearchTerms,
   scoreProduct,
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => ({}))) as { query?: string; type?: string };
     const query = sanitizeSearchTerm(body.query ?? "");
     if (!query) return NextResponse.json({ error: "Query required" }, { status: 400 });
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip")?.trim() ||
+      "anon";
+    const limited = rateLimit(`ai-search:${ip}`, 30, 60_000);
+    if (!limited.allowed) {
+      return NextResponse.json({ error: "Too many searches. Wait a moment and retry." }, { status: 429 });
+    }
 
     let intent: { category?: string | null; max_price?: number | null; search_term?: string } = {
       search_term: query,

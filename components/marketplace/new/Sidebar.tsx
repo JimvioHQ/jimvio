@@ -269,10 +269,10 @@ export function Sidebar({ type = "physical" }: Props) {
         setAiError(
           data.error === "rate_limit"
             ? data.quotaScope === "daily"
-              ? "Gemini’s daily quota for this assistant is used up. The provider did not give a reset time."
+              ? "This assistant’s daily quota is used up. The provider did not give a reset time."
               : data.quotaScope === "overload"
-                ? "Gemini is busy right now. Wait a moment, then retry."
-                : `Gemini is rate-limiting requests${Number.isFinite(wait) && wait > 0 ? `. Retry in ${Math.ceil(wait)}s` : ""}.`
+                ? "The assistant is busy right now. Wait a moment, then retry."
+                : `The assistant is rate-limiting requests${Number.isFinite(wait) && wait > 0 ? `. Retry in ${Math.ceil(wait)}s` : ""}.`
             : "The assistant couldn’t answer. Try again.",
         );
         return;

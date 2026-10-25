@@ -1,39 +1,54 @@
-import fetch from 'node-fetch';
-import fs from 'fs';
+import fs from "node:fs";
 
-const env = fs.readFileSync('.env', 'utf8');
-const apiKey = env.match(/GOOGLE_GENERATIVE_AI_API_KEY=(.*)/)?.[1]?.trim();
-
-async function listModels() {
-  if (!apiKey) {
-    console.error("No API key found in .env");
-    return;
+function readEnvFile(path) {
+  if (!fs.existsSync(path)) return {};
+  const out = {};
+  for (const line of fs.readFileSync(path, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+    const index = trimmed.indexOf("=");
+    out[trimmed.slice(0, index).trim()] = trimmed.slice(index + 1).trim();
   }
-
-  console.log("Querying Gemini models for key starting with:", apiKey.substring(0, 8));
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-  
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    
-    if (data.error) {
-      console.error("API Error:", JSON.stringify(data.error, null, 2));
-      return;
-    }
-
-    console.log("\n--- AVAILABLE MODELS ---");
-    data.models.forEach(m => {
-      console.log(`- ${m.name}`);
-    });
-    
-    fs.writeFileSync('scripts/models_data.json', JSON.stringify(data.models, null, 2));
-    console.log("Saved to scripts/models_data.json");
-
-  } catch (err) {
-    console.error("Fetch failed:", err);
-  }
+  return out;
 }
 
-listModels();
+const fileEnv = { ...readEnvFile(".env"), ...readEnvFile(".env.local") };
+const apiKey = (process.env.OPENAI_API_KEY || fileEnv.OPENAI_API_KEY || "").trim();
+const model = (process.env.OPENAI_MODEL || fileEnv.OPENAI_MODEL || "gpt-4o-mini").trim();
+const usable = apiKey.length >= 12 && !/your-|changeme|^xxx$/i.test(apiKey);
+
+console.log(`OPENAI_API_KEY: ${usable ? "set" : apiKey ? "placeholder" : "missing"}`);
+console.log(`OPENAI_MODEL: ${model}`);
+console.log("GOOGLE_GENERATIVE_AI_API_KEY is not used by active AI routes.");
+
+if (!process.argv.includes("--live")) {
+  console.log("Pass --live to send one short Responses API request. The key is not printed.");
+  process.exit(usable ? 0 : 1);
+}
+
+if (!usable) {
+  console.error("Refusing live check: OPENAI_API_KEY is missing.");
+  process.exit(1);
+}
+
+const response = await fetch("https://api.openai.com/v1/responses", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model,
+    input: "Reply with the single word ready.",
+    max_output_tokens: 16,
+    store: false,
+  }),
+});
+
+console.log(`OpenAI status: ${response.status}`);
+if (!response.ok) {
+  const body = await response.text();
+  console.error(body.replace(/sk-[A-Za-z0-9_-]+/g, "[redacted]").slice(0, 300));
+  process.exit(1);
+}
+console.log("OpenAI responded.");

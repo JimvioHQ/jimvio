@@ -1,6 +1,7 @@
 import "server-only";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
+import { redactProviderMessage } from "@/lib/ai/gemini-model";
+import { completeText, readOpenAIKey, resolveOpenAIModel, shouldRetryProviderError } from "@/lib/ai/openai-runtime";
 import { SUPPORT_ARTICLES, getSupportArticle } from "./articles";
 import { articlePlainText } from "./format";
 import { knowledgeAnswer } from "./knowledge-answer";
@@ -19,11 +20,8 @@ export type SupportAnswer = {
   articles: SupportAnswerArticle[];
 };
 
-function usableKey(key?: string) {
-  if (!key?.trim() || key.trim().length < 12) return false;
-  const value = key.trim().toLowerCase();
-  return !value.includes("your-") && !value.includes("changeme") && value !== "xxx";
-}
+const SUPPORT_SYSTEM_PROMPT =
+  "You are Jimvio Support. Answer only from the help articles provided. If they do not answer the question, say so and tell the person to open a support ticket. Never invent payment status, wallet balances, payout completion, refunds, campaign approvals, delivery dates, or verification results. Never ask for passwords, card numbers, or authenticator codes.";
 
 export async function answerSupportQuestion(input: {
   question: string;
@@ -46,8 +44,8 @@ export async function answerSupportQuestion(input: {
   }
 
   const fallback = knowledgeAnswer(SUPPORT_ARTICLES, question);
-  const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!usableKey(key)) {
+  const key = readOpenAIKey();
+  if (!key) {
     return { mode: "knowledge", answer: fallback.answer, articles };
   }
 
@@ -66,30 +64,33 @@ export async function answerSupportQuestion(input: {
           .join(", ")}. Do not invent other tickets.`
       : "\n\nDo not invent ticket, payment, wallet, refund, or approval status.";
 
-    const genAI = new GoogleGenerativeAI(key!.trim());
-    const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
-      systemInstruction: {
-        role: "system",
-        parts: [
-          {
-            text: "You are Jimvio Support. Answer only from the help articles provided. If they do not answer the question, say so and tell the person to open a support ticket. Never invent payment status, wallet balances, payout completion, refunds, campaign approvals, delivery dates, or verification results. Never ask for passwords, card numbers, or authenticator codes.",
-          },
-        ],
-      },
-      generationConfig: { maxOutputTokens: 700, temperature: 0.2 },
-    });
-    const result = await model.generateContent(
-      `Help articles:\n${context || "No matching article."}${ticketContext}\n\nQuestion:\n${question}`,
-    );
-    const text = result.response.text().trim();
+    const userPrompt = `Help articles:\n${context || "No matching article."}${ticketContext}\n\nQuestion:\n${question}`;
+    let text = "";
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        text = await completeText({
+          apiKey: key,
+          model: resolveOpenAIModel().model,
+          instructions: SUPPORT_SYSTEM_PROMPT,
+          input: userPrompt,
+          temperature: 0.2,
+          maxOutputTokens: 700,
+          timeoutMs: 20_000,
+        });
+        break;
+      } catch (error) {
+        console.error("[support-ask] model failed", redactProviderMessage(error));
+        if (attempt === 0 && shouldRetryProviderError(error)) continue;
+        return { mode: "knowledge", answer: fallback.answer, articles };
+      }
+    }
     return {
       mode: "live",
       answer: text || fallback.answer,
       articles,
     };
   } catch (error) {
-    console.error("[support-ask] model failed", error instanceof Error ? error.message : "error");
+    console.error("[support-ask] model failed", redactProviderMessage(error));
     return { mode: "knowledge", answer: fallback.answer, articles };
   }
 }

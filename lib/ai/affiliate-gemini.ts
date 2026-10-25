@@ -1,17 +1,14 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import type { GeminiCatalogResult } from "@/lib/ai/gemini-catalog";
+import { isUsableApiKey, redactProviderMessage } from "@/lib/ai/gemini-model";
 import {
-  GEMINI_API_KEY_ENV,
-  GEMINI_FALLBACK_MODEL,
-  GEMINI_MODEL_ENV,
-  geminiAttemptOrder,
-  isUsableApiKey,
-  redactProviderMessage,
-  resolveGeminiModel,
-} from "@/lib/ai/gemini-model";
+  OPENAI_API_KEY_ENV,
+  OPENAI_MODEL_ENV,
+  completeText,
+  openaiAttemptModels,
+  resolveOpenAIModel,
+} from "@/lib/ai/openai-runtime";
 import { affiliatePlainText } from "@/lib/affiliate/rich-content";
 
-export const AFFILIATE_AI_PROVIDER = "gemini" as const;
+export const AFFILIATE_AI_PROVIDER = "openai" as const;
 
 const QUOTA_MESSAGE = "Jimvio AI promotion is temporarily unavailable. Try again in a little while.";
 const RATE_MESSAGE = "Jimvio AI is busy right now. Wait a moment and retry.";
@@ -82,21 +79,22 @@ export class AffiliateAiError extends Error {
   }
 }
 
-export function affiliateGeminiConfig(env: Record<string, string | undefined> = process.env): {
+export function affiliateAiConfig(env: Record<string, string | undefined> = process.env): {
   configured: boolean;
   model: string;
-  keyEnv: typeof GEMINI_API_KEY_ENV;
+  keyEnv: typeof OPENAI_API_KEY_ENV;
 } {
-  const resolved = resolveGeminiModel(env[GEMINI_MODEL_ENV]);
+  const resolved = resolveOpenAIModel(env[OPENAI_MODEL_ENV]);
   return {
-    configured: isUsableApiKey(env[GEMINI_API_KEY_ENV]),
+    configured: isUsableApiKey(env[OPENAI_API_KEY_ENV]),
     model: resolved.model,
-    keyEnv: GEMINI_API_KEY_ENV,
+    keyEnv: OPENAI_API_KEY_ENV,
   };
 }
 
-export function selectGenerationBackend(type: string): "gemini" | "openai" {
-  return type === "affiliate_promotion" ? "gemini" : "openai";
+/** Affiliate promotion and the other generation types all use OpenAI. */
+export function selectGenerationBackend(type: string): "openai" {
+  return type === "affiliate_promotion" ? "openai" : "openai";
 }
 
 export function classifyAffiliateProviderFailure(error: unknown): AffiliateAiError {
@@ -212,28 +210,67 @@ function attemptsFor(code: AffiliateAiCode): number {
   return 1;
 }
 
-async function completeWithGemini(model: string, prompt: string, apiKey: string): Promise<string> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const generative = genAI.getGenerativeModel({
+const AFFILIATE_PROMOTION_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    tiktokCaption: { type: "string" },
+    instagramCaption: { type: "string" },
+    youtubeTitle: { type: "string" },
+    facebookPost: { type: "string" },
+    threadsPost: { type: "string" },
+    xPost: { type: "string" },
+    emailCopy: { type: "string" },
+    blogIntro: { type: "string" },
+    seoTitle: { type: "string" },
+    keywords: { type: "array", items: { type: "string" } },
+    hashtags: { type: "array", items: { type: "string" } },
+    hooks: { type: "array", items: { type: "string" } },
+    scripts: { type: "array", items: { type: "string" } },
+  },
+  required: [
+    "tiktokCaption",
+    "instagramCaption",
+    "youtubeTitle",
+    "facebookPost",
+    "threadsPost",
+    "xPost",
+    "emailCopy",
+    "blogIntro",
+    "seoTitle",
+    "keywords",
+    "hashtags",
+    "hooks",
+    "scripts",
+  ],
+};
+
+async function completeWithOpenAI(model: string, prompt: string, apiKey: string): Promise<string> {
+  const text = await completeText({
+    apiKey,
     model,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 1800,
-      responseMimeType: "application/json",
-    },
+    input: prompt,
+    temperature: 0.7,
+    maxOutputTokens: 1800,
+    timeoutMs: 25_000,
+    jsonSchema: { name: "affiliate_promotion", schema: AFFILIATE_PROMOTION_SCHEMA },
   });
-  const result = await generative.generateContent(prompt);
-  const text = result.response.text();
   if (!text.trim()) throw new AffiliateAiError(INVALID_MESSAGE, "invalid_output", 502);
   return text;
 }
+
+export type AffiliateModelList = {
+  models: string[];
+  category?: "authentication" | "rate_limit" | "timeout" | "retired_model" | "provider" | "malformed" | "empty_output";
+  detail?: string;
+};
 
 export type AffiliateGeminiDeps = {
   env?: Record<string, string | undefined>;
   complete?: (request: { model: string; prompt: string }) => Promise<string>;
   sleep?: (ms: number) => Promise<void>;
-  /** Same catalog the Jimvio AI workspace uses. Tests omit this and keep the static model list. */
-  listModels?: () => Promise<GeminiCatalogResult>;
+  /** Optional model list. Production does not call Gemini. */
+  listModels?: () => Promise<AffiliateModelList>;
 };
 
 function failureBody(error: AffiliateAiError, providerReady: boolean) {
@@ -249,7 +286,7 @@ function failureBody(error: AffiliateAiError, providerReady: boolean) {
   };
 }
 
-function catalogFailure(listed: GeminiCatalogResult): AffiliateAiError {
+function catalogFailure(listed: AffiliateModelList): AffiliateAiError {
   const detail = listed.detail ?? "";
   if (listed.category === "authentication") return new AffiliateAiError(AUTH_MESSAGE, "authentication", 503);
   if (listed.category === "rate_limit" && /quota|billing|credit/i.test(detail)) {
@@ -277,14 +314,13 @@ export async function createAffiliatePromotionResponse(
   };
 }> {
   const env = deps.env ?? process.env;
-  const config = affiliateGeminiConfig(env);
+  const config = affiliateAiConfig(env);
   if (!config.configured) {
     return failureBody(new AffiliateAiError(UNCONFIGURED_MESSAGE, "unconfigured", 503), false);
   }
 
-  const key = env[GEMINI_API_KEY_ENV]?.trim() ?? "";
-  let models = [config.model];
-  if (!models.includes(GEMINI_FALLBACK_MODEL)) models.push(GEMINI_FALLBACK_MODEL);
+  const key = env[OPENAI_API_KEY_ENV]?.trim() ?? "";
+  let models = openaiAttemptModels(env[OPENAI_MODEL_ENV]);
   if (deps.listModels) {
     try {
       const listed = await deps.listModels();
@@ -294,8 +330,8 @@ export async function createAffiliatePromotionResponse(
         return failureBody(failure, failure.code !== "authentication");
       }
       if (!listed.category && listed.models.length > 0) {
-        const ordered = geminiAttemptOrder(listed.models, config.model);
-        if (ordered.length) models = ordered;
+        const preferred = openaiAttemptModels(config.model).filter((model) => listed.models.includes(model));
+        models = preferred.length ? preferred : listed.models.filter(Boolean).slice(0, 3);
       }
     } catch (error) {
       const failure = classifyAffiliateProviderFailure(error);
@@ -306,7 +342,7 @@ export async function createAffiliatePromotionResponse(
     }
   }
   const prompt = promotionPrompt(params);
-  const complete = deps.complete ?? ((request) => completeWithGemini(request.model, request.prompt, key));
+  const complete = deps.complete ?? ((request) => completeWithOpenAI(request.model, request.prompt, key));
   const sleep = deps.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   let lastError = new AffiliateAiError(PROVIDER_MESSAGE, "provider", 502);

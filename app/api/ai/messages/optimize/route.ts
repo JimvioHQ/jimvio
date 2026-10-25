@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
+import { redactProviderMessage } from "@/lib/ai/gemini-model";
+import { completeText, readOpenAIKey, resolveOpenAIModel, shouldRetryProviderError } from "@/lib/ai/openai-runtime";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 /**
  * AI Sourcing Inquiry Optimizer: Natural Language → Professional Sourcing Draft
@@ -9,10 +9,25 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip")?.trim() ||
+      "anon";
+    const limited = rateLimit(`ai-optimize:${ip}`, 8, 60_000);
+    if (!limited.allowed) {
+      return NextResponse.json({ error: "Failed", message: "Too many requests. Wait a moment and retry." }, { status: 429 });
+    }
+
     const { interest, product_context } = await req.json();
     if (!interest || !product_context) return NextResponse.json({ error: "Context required" }, { status: 400 });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const apiKey = readOpenAIKey();
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Failed", message: "Jimvio AI is temporarily unavailable." },
+        { status: 503 },
+      );
+    }
 
     const prompt = `Act as a senior sourcing agent. Draft a professional, high-conversion message to a supplier for the following product: 
 
@@ -25,18 +40,35 @@ export async function POST(req: NextRequest) {
     - Keep it under 150 words. 
     - Output ONLY the draft message text.`;
 
-    const result = await model.generateContent(prompt);
-    
+    let draft = "";
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        draft = await completeText({
+          apiKey,
+          model: resolveOpenAIModel().model,
+          input: prompt,
+          temperature: 0.4,
+          maxOutputTokens: 400,
+          timeoutMs: 20_000,
+        });
+        break;
+      } catch (error) {
+        if (attempt === 0 && shouldRetryProviderError(error)) continue;
+        throw error;
+      }
+    }
+
     return NextResponse.json({
-      draft: result.response.text(),
+      draft,
       suggested_next_steps: [
         "Ask for a factory audit report",
         "Request a physical sample",
-        "Negotiate on shipping terms (DDP/FOB)"
-      ]
+        "Negotiate on shipping terms (DDP/FOB)",
+      ],
     });
-  } catch (error: any) {
-    console.error("Inquiry Optimization Error:", error.message);
-    return NextResponse.json({ error: "Failed", message: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = redactProviderMessage(error);
+    console.error("Inquiry Optimization Error:", message);
+    return NextResponse.json({ error: "Failed", message: "Failed to draft the inquiry." }, { status: 500 });
   }
 }

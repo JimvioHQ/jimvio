@@ -149,7 +149,7 @@ export function affiliateWorkspaceAddendum(context: AffiliateAuthoritativeContex
 }
 
 /**
- * Promotion handoff must reach Gemini. The general affiliate guide matches any
+ * Promotion handoff must reach the live model. The general affiliate guide matches any
  * message that says "affiliate", which would replace the product task with a
  * canned help reply and never send the signed product facts.
  */

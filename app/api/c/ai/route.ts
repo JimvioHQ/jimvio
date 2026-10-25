@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import { resolveOpenAIModel } from "@/lib/ai/openai-runtime";
 import { createClient } from "@/lib/supabase/server";
 import {
   formatCommunityAiContext,
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({ apiKey, timeout: 20_000, maxRetries: 1 });
     const system = [
       "You are Jimvio Community Brain — the AI layer for one community.",
       "Use ONLY the Community Brain context block for community facts.",
@@ -166,7 +167,7 @@ export async function POST(req: NextRequest) {
       .join("\n");
 
     const res = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: resolveOpenAIModel().model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userContent },

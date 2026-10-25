@@ -5,15 +5,15 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   AFFILIATE_AI_PROVIDER,
-  affiliateGeminiConfig,
+  affiliateAiConfig,
   createAffiliatePromotionResponse,
   selectGenerationBackend,
   type AffiliatePromotionKit,
 } from "./affiliate-gemini";
-import { GEMINI_API_KEY_ENV, GEMINI_FALLBACK_MODEL } from "./gemini-model";
+import { DEFAULT_OPENAI_MODEL, OPENAI_API_KEY_ENV, OPENAI_MODEL_ENV } from "./openai-runtime";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
-const FIXTURE_KEY = "AIzaSyFIXTUREKEY1234567890";
+const FIXTURE_KEY = "sk-test-fixture-key-1234567890";
 
 const kit: AffiliatePromotionKit = {
   tiktokCaption: "TikTok caption",
@@ -45,11 +45,11 @@ function noWait() {
   return async () => undefined;
 }
 
-describe("affiliate Gemini provider", () => {
-  it("selects Gemini for both affiliate promotion entry points", () => {
-    assert.equal(selectGenerationBackend("affiliate_promotion"), "gemini");
+describe("affiliate OpenAI provider", () => {
+  it("selects OpenAI for affiliate promotion and other generation", () => {
+    assert.equal(selectGenerationBackend("affiliate_promotion"), "openai");
     assert.equal(selectGenerationBackend("product_description"), "openai");
-    assert.equal(AFFILIATE_AI_PROVIDER, "gemini");
+    assert.equal(AFFILIATE_AI_PROVIDER, "openai");
     const promote = readFileSync(
       join(root, "components/affiliate/AffiliatePromoteProductClient.tsx"),
       "utf8",
@@ -68,32 +68,32 @@ describe("affiliate Gemini provider", () => {
       route.indexOf('params.type === "affiliate_promotion"'),
       route.indexOf("const provider = getAiProviderStatus"),
     );
-    assert.doesNotMatch(affiliateBranch, /params\.price|openai|aiService/);
+    assert.doesNotMatch(affiliateBranch, /params\.price|aiService|GoogleGenerativeAI|listAccessibleGeminiModels/);
     assert.doesNotMatch(
       route.slice(0, route.indexOf("const provider = getAiProviderStatus")),
       /getAiProviderStatus\(/,
     );
   });
 
-  it("reads the Gemini key on the server without returning it", async () => {
-    const config = affiliateGeminiConfig({
-      [GEMINI_API_KEY_ENV]: FIXTURE_KEY,
+  it("reads the OpenAI key on the server without returning it", async () => {
+    const config = affiliateAiConfig({
+      [OPENAI_API_KEY_ENV]: FIXTURE_KEY,
     });
     assert.equal(config.configured, true);
-    assert.equal(config.keyEnv, "GOOGLE_GENERATIVE_AI_API_KEY");
-    assert.equal(config.model, "gemini-2.5-flash-lite");
+    assert.equal(config.keyEnv, "OPENAI_API_KEY");
+    assert.equal(config.model, DEFAULT_OPENAI_MODEL);
     let seenPrompt = "";
     const result = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       complete: async (request) => {
         seenPrompt = request.prompt;
-        assert.equal(request.model, "gemini-2.5-flash-lite");
+        assert.equal(request.model, DEFAULT_OPENAI_MODEL);
         return JSON.stringify(kit);
       },
     });
     assert.equal(result.status, 200);
-    assert.equal(result.body.provider, "gemini");
+    assert.equal(result.body.provider, "openai");
     assert.equal(result.body.data?.tiktokCaption, kit.tiktokCaption);
     assert.equal(result.body.data?.hooks[0], kit.hooks[0]);
     assert.equal(result.body.data?.hashtags[0], kit.hashtags[0]);
@@ -107,7 +107,7 @@ describe("affiliate Gemini provider", () => {
   it("reports Gemini quota without retrying or mentioning OpenAI", async () => {
     let calls = 0;
     const result = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       complete: async () => {
         calls += 1;
@@ -141,7 +141,7 @@ describe("affiliate Gemini provider", () => {
   it("retries transient failures and a retired model, then accepts a valid kit", async () => {
     let calls = 0;
     const recovered = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       complete: async () => {
         calls += 1;
@@ -154,22 +154,22 @@ describe("affiliate Gemini provider", () => {
 
     const models: string[] = [];
     const fallback = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY, [OPENAI_MODEL_ENV]: "gpt-custom-test" },
       sleep: noWait(),
       complete: async (request) => {
         models.push(request.model);
-        if (request.model !== GEMINI_FALLBACK_MODEL) throw new Error("404 model not found");
+        if (request.model !== DEFAULT_OPENAI_MODEL) throw new Error("404 model not found");
         return JSON.stringify(kit);
       },
     });
-    assert.deepEqual(models, ["gemini-2.5-flash-lite", GEMINI_FALLBACK_MODEL]);
+    assert.deepEqual(models, ["gpt-custom-test", DEFAULT_OPENAI_MODEL]);
     assert.equal(fallback.status, 200);
   });
 
   it("retries a rate limit once and rejects invalid output without crashing", async () => {
     let limited = 0;
     const rateLimited = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       complete: async () => {
         limited += 1;
@@ -182,7 +182,7 @@ describe("affiliate Gemini provider", () => {
 
     let invalid = 0;
     const bad = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       complete: async () => {
         invalid += 1;
@@ -200,7 +200,7 @@ describe("affiliate Gemini provider", () => {
   it("uses the workspace model catalog once and offers Jimvio AI after quota or provider failure", async () => {
     let calls = 0;
     const quota = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       listModels: async () => ({ models: [], category: "rate_limit", detail: "quota exceeded" }),
       complete: async () => {
@@ -215,21 +215,21 @@ describe("affiliate Gemini provider", () => {
 
     const models: string[] = [];
     const selected = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
-      listModels: async () => ({ models: ["gemini-2.5-flash"] }),
+      listModels: async () => ({ models: ["gpt-4.1-mini"] }),
       complete: async (request) => {
         models.push(request.model);
         return JSON.stringify(kit);
       },
     });
-    assert.deepEqual(models, ["gemini-2.5-flash"]);
+    assert.deepEqual(models, ["gpt-4.1-mini"]);
     assert.equal(selected.status, 200);
     assert.equal(selected.body.workspaceFallback, undefined);
 
     let timedOut = 0;
     const afterTimeout = await createAffiliatePromotionResponse(params, {
-      env: { [GEMINI_API_KEY_ENV]: FIXTURE_KEY },
+      env: { [OPENAI_API_KEY_ENV]: FIXTURE_KEY },
       sleep: noWait(),
       listModels: async () => ({ models: [], category: "timeout", detail: "The model timed out" }),
       complete: async () => {

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@/lib/supabase/server";
 import {
-  GEMINI_API_KEY_ENV,
-  geminiAttemptOrder,
-  isUsableApiKey,
   parseGeminiProviderFailure,
-  resolveGeminiModel,
   shouldContinueGeminiAttempts,
   type GeminiProviderFailure,
 } from "@/lib/ai/gemini-model";
-import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
+import {
+  completeText,
+  openaiAttemptModels,
+  readOpenAIKey,
+  shouldRetryProviderError,
+} from "@/lib/ai/openai-runtime";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 import {
@@ -94,8 +94,8 @@ export async function POST(req: NextRequest) {
   }
 
   const type = body.type === "digital" ? "digital" : "physical";
-  const apiKey = process.env[GEMINI_API_KEY_ENV];
-  if (!isUsableApiKey(apiKey)) {
+  const apiKey = readOpenAIKey();
+  if (!apiKey) {
     return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
   }
 
@@ -129,55 +129,50 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const catalog = await listAccessibleGeminiModels(apiKey!);
-    if (catalog.category === "rate_limit") {
-      const failure: GeminiProviderFailure = {
-        category: "rate_limit",
-        retryAfterSeconds: null,
-        quotaScope: /per day|daily/i.test(catalog.detail ?? "") ? "daily" : "minute",
-        detail: catalog.detail ?? "models.list rate limit",
-      };
-      console.warn("[shopping-assistant] model list limited", { quotaScope: failure.quotaScope });
-      return limitResponse(failure, rememberProviderBlock(failure));
-    }
-    const attempts = geminiAttemptOrder(catalog.models, resolveGeminiModel().model);
-    if (!attempts.length) {
-      return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey!);
+    const attempts = openaiAttemptModels();
     let reply = "";
     let lastFailure: GeminiProviderFailure | null = null;
     for (const modelName of attempts) {
-      try {
-        const model = genAI.getGenerativeModel({
-          model: modelName,
-          systemInstruction: shoppingAssistantSystemPrompt(),
-          generationConfig: { maxOutputTokens: 220, temperature: 0.3 },
-        });
-        const result = await model.generateContent(
-          `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
-        );
-        reply = result.response.text().trim();
-        if (reply) break;
-        lastFailure = {
-          category: "empty_output",
-          retryAfterSeconds: null,
-          quotaScope: null,
-          detail: "empty output",
-        };
-        break;
-      } catch (error) {
-        lastFailure = parseGeminiProviderFailure(error);
-        console.warn("[shopping-assistant] provider failed", {
-          model: modelName,
-          category: lastFailure.category,
-          quotaScope: lastFailure.quotaScope,
-          retryAfterSeconds: lastFailure.retryAfterSeconds,
-          detail: lastFailure.detail,
-        });
-        if (!shouldContinueGeminiAttempts(lastFailure.category)) break;
+      let attempt = 0;
+      while (attempt < 2) {
+        attempt += 1;
+        try {
+          reply = (
+            await completeText({
+              apiKey,
+              model: modelName,
+              instructions: shoppingAssistantSystemPrompt(),
+              input: `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
+              temperature: 0.3,
+              maxOutputTokens: 220,
+              timeoutMs: 20_000,
+            })
+          ).trim();
+          if (reply) break;
+          lastFailure = {
+            category: "empty_output",
+            retryAfterSeconds: null,
+            quotaScope: null,
+            detail: "empty output",
+          };
+          attempt = 2;
+          break;
+        } catch (error) {
+          lastFailure = parseGeminiProviderFailure(error);
+          console.warn("[shopping-assistant] provider failed", {
+            model: modelName,
+            category: lastFailure.category,
+            quotaScope: lastFailure.quotaScope,
+            retryAfterSeconds: lastFailure.retryAfterSeconds,
+            detail: lastFailure.detail,
+          });
+          if (attempt === 1 && shouldRetryProviderError(error)) continue;
+          break;
+        }
       }
+      if (reply) break;
+      if (lastFailure?.category === "empty_output") break;
+      if (lastFailure && !shouldContinueGeminiAttempts(lastFailure.category)) break;
     }
 
     if (!reply) {

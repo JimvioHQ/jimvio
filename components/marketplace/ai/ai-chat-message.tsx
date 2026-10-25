@@ -35,7 +35,7 @@ export interface AiChatMessageData {
   feedback?: "up" | "down" | null;
   /** True when the reply is the earning guide because the live model did not answer. */
   fallback?: boolean;
-  /** True while Gemini chunks are still arriving. */
+  /** True while model chunks are still arriving. */
   streaming?: boolean;
 }
 

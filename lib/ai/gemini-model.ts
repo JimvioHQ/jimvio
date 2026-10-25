@@ -150,7 +150,14 @@ export function shouldContinueGeminiAttempts(
 export function classifyProviderError(error: unknown): Exclude<GeminiFailureCategory, "success" | "fallback" | "unconfigured"> {
   const name = error instanceof Error ? error.name : "";
   const message = redactProviderMessage(error);
-  if (name === "TimeoutError" || name === "AbortError" || /timeout|timed out|aborted/i.test(message)) return "timeout";
+  if (name === "TimeoutError" || name === "AbortError" || /Timeout/i.test(name) || /timeout|timed out|aborted/i.test(message)) {
+    return "timeout";
+  }
+  const status = readErrorStatus(error);
+  if (status === 408) return "timeout";
+  if (status === 429 || status === 503) return "rate_limit";
+  if (status === 401 || status === 403) return "authentication";
+  if (status === 404) return "retired_model";
   if (/429|503|rate limit|resource exhausted|quota|insufficient_quota|high demand/i.test(message)) return "rate_limit";
   if (/api_key_invalid|api key expired|invalid api key|unauthenticated|permission denied|401|403/i.test(message)) {
     return "authentication";

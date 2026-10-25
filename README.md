@@ -100,8 +100,9 @@ Retired (do not configure for new checkouts): PesaPal, PayPal, AfriPay (`AFRIPAY
 - `SHOPIFY_DEFAULT_PLATFORM_COMMISSION_RATE`
 
 ### AI / Social Media
-- `OPENAI_API_KEY`
-- `GOOGLE_GENERATIVE_AI_API_KEY`
+- `OPENAI_API_KEY` — server-only key for live Jimvio AI (chat, shopping assistant, affiliate promotion, support, search intent, and sourcing drafts). Do not expose it to the browser.
+- `OPENAI_MODEL` — optional model override. When unset, the app uses `gpt-4o-mini`.
+- `GOOGLE_GENERATIVE_AI_API_KEY` — legacy Gemini key. Active routes no longer call it. Keep it until a production OpenAI check succeeds, then remove it in a separate change.
 - `TIKTOK_ACCESS_TOKEN`
 - `INSTAGRAM_ACCESS_TOKEN`
 - `YOUTUBE_API_KEY`

@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
 import {
   AI_CACHE_TTL_MS,
@@ -10,21 +9,22 @@ import {
 } from "@/lib/ai/chat-shared";
 import { EARNING_GUIDE_SYSTEM_RULES } from "@/lib/ai/earning-guide";
 import {
-  GEMINI_API_KEY_ENV,
-  GEMINI_MODEL_ENV,
   classifyProviderError,
-  geminiAttemptOrder,
-  isUsableApiKey,
-  iterateGeminiText,
   redactProviderMessage,
   type GeminiFailureCategory,
 } from "@/lib/ai/gemini-model";
 import { greetingReply, isSimpleGreeting } from "@/lib/ai/guide-copy";
 import { buildGuideResponse } from "@/lib/ai/guide-reply";
 import { buildGroundedPrompt } from "@/lib/ai/knowledge";
+import {
+  openaiAttemptModels,
+  openResponseStream,
+  readOpenAIKey,
+  shouldRetryProviderError,
+  type ModelTurn,
+} from "@/lib/ai/openai-runtime";
 import { sseChunk, sseDone, sseError, sseMode } from "@/lib/ai/sse";
 import { verifyAffiliatePromotionTask } from "@/lib/ai/affiliate-task-token";
-import { listAccessibleGeminiModels } from "@/lib/ai/gemini-catalog";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 const FIRST_TOKEN_MS = 18_000;
@@ -49,7 +49,7 @@ function logAiResult(
   extra?: { model?: string; chunks?: number; detail?: string },
 ) {
   console.warn("[Jimvio AI] provider result", {
-    provider: "gemini",
+    provider: "openai",
     category,
     model: extra?.model,
     chunks: extra?.chunks,
@@ -105,18 +105,31 @@ function remember(cacheKey: string, text: string, mode: "live" | "guide") {
   }
 }
 
+function toModelInput(messages: ChatMessage[]): ModelTurn[] {
+  const history: ModelTurn[] = messages.slice(0, -1).map((item) => ({
+    role: item.role === "assistant" ? "assistant" : "user",
+    content: item.content.slice(0, MAX_MESSAGE_CHARS),
+  }));
+  while (history[0]?.role === "assistant") history.shift();
+  history.push({
+    role: "user",
+    content: (messages[messages.length - 1]?.content ?? "").slice(0, MAX_MESSAGE_CHARS),
+  });
+  return history;
+}
+
 /**
- * Opens the Gemini stream and forwards each text part as SSE.
- * Returns null when Gemini produces nothing, so the caller can send the guide.
+ * Opens the OpenAI stream and forwards each text part as SSE.
+ * Returns null when the model produces nothing, so the caller can send the guide.
  */
-async function openGeminiResponse(
+async function openLiveResponse(
   messages: ChatMessage[],
   modelName: string,
   cacheKey: string,
   productAddendum?: string,
 ): Promise<Response | null> {
-  const geminiKey = process.env[GEMINI_API_KEY_ENV];
-  if (!isUsableApiKey(geminiKey)) {
+  const apiKey = readOpenAIKey();
+  if (!apiKey) {
     logAiResult("unconfigured");
     return null;
   }
@@ -126,41 +139,32 @@ async function openGeminiResponse(
   const systemText = productAddendum
     ? `${grounded}\n\n${productAddendum.slice(0, 3500)}`
     : grounded;
-  const genAI = new GoogleGenerativeAI(geminiKey!);
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    systemInstruction: {
-      role: "system",
-      parts: [{ text: systemText }],
-    },
-    generationConfig: {
-      maxOutputTokens: 700,
-      temperature: 0.4,
-    },
-  });
 
-  const history = messages.slice(0, -1).map((item) => ({
-    role: item.role === "assistant" ? "model" : "user",
-    parts: [{ text: item.content.slice(0, MAX_MESSAGE_CHARS) }],
-  }));
-  while (history[0]?.role === "model") history.shift();
-
-  let stream: AsyncIterable<{ text(): string }>;
+  const controller = new AbortController();
+  const hardStop = setTimeout(() => controller.abort(), FIRST_TOKEN_MS + STREAM_DEADLINE_MS);
+  let iterator: AsyncIterator<string>;
   try {
-    const result = await withTimeout(
-      model.startChat({ history }).sendMessageStream(lastMessage.slice(0, MAX_MESSAGE_CHARS)),
-      FIRST_TOKEN_MS,
-    );
-    stream = result.stream;
+    const stream = await openResponseStream({
+      apiKey,
+      model: modelName,
+      instructions: systemText,
+      input: toModelInput(messages),
+      temperature: 0.4,
+      maxOutputTokens: 700,
+      timeoutMs: FIRST_TOKEN_MS + STREAM_DEADLINE_MS,
+      signal: controller.signal,
+    });
+    iterator = stream[Symbol.asyncIterator]();
   } catch (error) {
+    clearTimeout(hardStop);
+    controller.abort();
     logAiResult(error instanceof Error && error.name === "EmptyOutput" ? "empty_output" : classifyProviderError(error), {
       model: modelName,
       detail: redactProviderMessage(error),
     });
-    return null;
+    throw error;
   }
 
-  const iterator = iterateGeminiText(stream)[Symbol.asyncIterator]();
   let first = "";
   try {
     const deadline = Date.now() + FIRST_TOKEN_MS;
@@ -170,11 +174,15 @@ async function openGeminiResponse(
       first += step.value ?? "";
     }
   } catch (error) {
+    clearTimeout(hardStop);
+    controller.abort();
     logAiResult(classifyProviderError(error), { model: modelName, detail: redactProviderMessage(error) });
-    return null;
+    throw error;
   }
 
   if (!first.trim()) {
+    clearTimeout(hardStop);
+    controller.abort();
     logAiResult("empty_output", { model: modelName });
     return null;
   }
@@ -183,9 +191,9 @@ async function openGeminiResponse(
   let accumulated = first;
   let chunks = 1;
   const body = new ReadableStream({
-    async start(controller) {
-      controller.enqueue(encoder.encode(sseMode("live")));
-      controller.enqueue(encoder.encode(sseChunk(first)));
+    async start(streamController) {
+      streamController.enqueue(encoder.encode(sseMode("live")));
+      streamController.enqueue(encoder.encode(sseChunk(first)));
       const started = Date.now();
       let failed = false;
       try {
@@ -196,7 +204,7 @@ async function openGeminiResponse(
           if (!next) continue;
           chunks += 1;
           accumulated += next;
-          controller.enqueue(encoder.encode(sseChunk(next)));
+          streamController.enqueue(encoder.encode(sseChunk(next)));
         }
         const finalText = accumulated.trim();
         if (finalText) remember(cacheKey, finalText, "live");
@@ -205,10 +213,16 @@ async function openGeminiResponse(
         failed = true;
         logAiResult(classifyProviderError(error), { model: modelName, detail: redactProviderMessage(error) });
       } finally {
-        if (failed) controller.enqueue(encoder.encode(sseError("unavailable")));
-        else controller.enqueue(encoder.encode(sseDone()));
-        controller.close();
+        clearTimeout(hardStop);
+        controller.abort();
+        if (failed) streamController.enqueue(encoder.encode(sseError("unavailable")));
+        else streamController.enqueue(encoder.encode(sseDone()));
+        streamController.close();
       }
+    },
+    cancel() {
+      clearTimeout(hardStop);
+      controller.abort();
     },
   });
 
@@ -277,33 +291,38 @@ export async function POST(req: NextRequest) {
       return streamText(cached.text, cached.mode);
     }
 
-    const geminiKey = process.env[GEMINI_API_KEY_ENV];
-    if (!isUsableApiKey(geminiKey)) {
+    const apiKey = readOpenAIKey();
+    if (!apiKey) {
       logAiResult("unconfigured");
       logAiResult("fallback", { detail: "unconfigured" });
       return streamText(buildGuideResponse(messages), "guide");
     }
 
-    const catalog = await listAccessibleGeminiModels(geminiKey!);
-    if (catalog.category) {
-      logAiResult(catalog.category, { detail: catalog.detail });
-      logAiResult("fallback", { detail: catalog.category });
-      return streamText(buildGuideResponse(messages), "guide");
-    }
-
-    const attempts = geminiAttemptOrder(catalog.models, process.env[GEMINI_MODEL_ENV]);
-    if (!attempts.length) {
-      logAiResult("retired_model", { detail: "no generateContent model in models.list" });
-      logAiResult("fallback", { detail: "no_accessible_model" });
-      return streamText(buildGuideResponse(messages), "guide");
-    }
-
+    const attempts = openaiAttemptModels();
     const affiliateTask =
       typeof body.affiliateTask === "string" ? verifyAffiliatePromotionTask(body.affiliateTask) : null;
 
+    let retried = false;
     for (const modelName of attempts) {
-      const live = await openGeminiResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
-      if (live) return live;
+      try {
+        const live = await openLiveResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
+        if (live) return live;
+      } catch (error) {
+        const category = classifyProviderError(error);
+        if (!retried && shouldRetryProviderError(error)) {
+          retried = true;
+          try {
+            const live = await openLiveResponse(messages, modelName, cacheKey, affiliateTask?.addendum);
+            if (live) return live;
+          } catch (retryError) {
+            logAiResult(classifyProviderError(retryError), {
+              model: modelName,
+              detail: redactProviderMessage(retryError),
+            });
+          }
+        }
+        if (category !== "retired_model") break;
+      }
     }
 
     logAiResult("fallback", { detail: "models_failed", model: attempts.join(",") });

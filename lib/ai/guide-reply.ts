@@ -5,7 +5,7 @@ import { composePublicGuide } from "@/lib/ai/knowledge";
 type GuideMessage = { content: string };
 
 /**
- * Helpful reply used when Gemini does not answer.
+ * Helpful reply used when the live model does not answer.
  * The body is public copy, not the model prompt.
  */
 export function buildGuideResponse(messages: GuideMessage[]): string {

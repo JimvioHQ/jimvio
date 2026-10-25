@@ -252,7 +252,9 @@ describe("support tickets", () => {
     const answer = readFileSync(new URL("./answer-question.ts", import.meta.url), "utf8");
     const admin = readFileSync(new URL("../../app/api/admin/support/conversations/route.ts", import.meta.url), "utf8");
     const handoff = readFileSync(new URL("../../app/api/support/conversations/[id]/handoff/route.ts", import.meta.url), "utf8");
-    assert.match(answer, /GOOGLE_GENERATIVE_AI_API_KEY/);
+    assert.match(answer, /readOpenAIKey/);
+    assert.match(answer, /Never invent payment status/);
+    assert.equal(answer.includes("GOOGLE_GENERATIVE_AI_API_KEY"), false);
     assert.match(answer, /knowledgeAnswer/);
     assert.equal(answer.includes("AIza"), false);
     assert.equal(route.includes("AIza"), false);

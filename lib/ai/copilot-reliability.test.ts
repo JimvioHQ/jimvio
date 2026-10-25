@@ -538,17 +538,17 @@ describe("gemini configuration", () => {
 });
 
 describe("copilot route safety", () => {
-  it("keeps Gemini, rate limits, and does not fall back to another provider", () => {
+  it("uses OpenAI, rate limits, and falls back to the guide", () => {
     const route = readFileSync(new URL("app/api/ai/chat/route.ts", root), "utf8");
     const guardAt = route.indexOf("isConfidentialAiRequest");
     const greetingAt = route.indexOf("isSimpleGreeting");
-    const geminiAt = route.indexOf("openGeminiResponse(messages");
-    assert.ok(guardAt > 0 && greetingAt > guardAt && geminiAt > greetingAt);
+    const modelAt = route.indexOf("openLiveResponse(messages");
+    assert.ok(guardAt > 0 && greetingAt > guardAt && modelAt > greetingAt);
     assert.match(route, /rateLimit\(`ai-chat:/);
-    assert.match(route, /geminiAttemptOrder/);
-    assert.match(route, /listAccessibleGeminiModels/);
-    const catalog = readFileSync(new URL("lib/ai/gemini-catalog.ts", root), "utf8");
-    assert.match(catalog, /v1beta\/models/);
+    assert.match(route, /openaiAttemptModels/);
+    assert.match(route, /readOpenAIKey/);
+    assert.equal(route.includes("@google/generative-ai"), false);
+    assert.equal(route.includes("listAccessibleGeminiModels"), false);
     assert.match(route, /category: "fallback"|\"fallback\"/);
     assert.match(route, /buildGuideResponse\(messages\), "guide"/);
     const guideReply = readFileSync(new URL("lib/ai/guide-reply.ts", root), "utf8");
@@ -561,8 +561,8 @@ describe("copilot route safety", () => {
     assert.equal(route.includes("X-Jimvio-AI-Model"), true);
     const guideModelHeader = route.slice(route.indexOf("function streamText"), route.indexOf("function remember"));
     assert.equal(guideModelHeader.includes("X-Jimvio-AI-Model"), false);
-    assert.equal(route.includes("openai"), false);
-    assert.equal(route.includes("OPENAI"), false);
+    assert.match(route, /openai-runtime/);
+    assert.equal(route.includes("GOOGLE_GENERATIVE_AI_API_KEY"), false);
     assert.equal(route.includes("service_role"), false);
     assert.equal(route.includes("body.userId"), false);
     assert.equal(route.includes("@/lib/supabase"), false);

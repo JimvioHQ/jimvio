@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Jimvio AI retry and regenerate. Failure cases use a mocked chat response
- * so Gemini is not overloaded. A fresh browser context is used, with no
+ * so the live model is not called. A fresh browser context is used, with no
  * stored production session.
  */
 
@@ -87,7 +87,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
         headers: {
           "content-type": "text/event-stream",
           "x-jimvio-ai-mode": "live",
-          "x-jimvio-ai-model": "gemini-flash-latest",
+          "x-jimvio-ai-model": "gpt-4o-mini",
         },
         body: sse([
           JSON.stringify({ jimvio: { mode: "live" } }),
@@ -154,7 +154,7 @@ test.describe("Jimvio AI retry and regenerate", () => {
         headers: {
           "content-type": "text/event-stream",
           "x-jimvio-ai-mode": "live",
-          "x-jimvio-ai-model": "gemini-flash-latest",
+          "x-jimvio-ai-model": "gpt-4o-mini",
         },
         body: sse([
           JSON.stringify({ jimvio: { mode: "live" } }),
