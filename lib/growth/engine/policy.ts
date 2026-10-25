@@ -21,6 +21,111 @@ export function effectiveStatus(state: EngineState, env: NodeJS.ProcessEnv = pro
   return "running";
 }
 
+export type CapabilityReadiness = "operational" | "needs_approval" | "blocked" | "credential_required" | "unverified";
+
+export type CapabilityReportItem = {
+  id: string;
+  label: string;
+  state: CapabilityReadiness;
+  requirement: string;
+};
+
+function envSet(env: NodeJS.ProcessEnv, name: string): boolean {
+  return Boolean(env[name]?.trim());
+}
+
+/**
+ * Admin-facing readiness. This does not grant spend, rewards, bulk sends,
+ * or site publication. Credential checks look at names only.
+ */
+export function capabilityReport(state: EngineState, env: NodeJS.ProcessEnv = process.env): CapabilityReportItem[] {
+  const running = effectiveStatus(state, env) === "running";
+  const pauseReason = killSwitchEngaged(env)
+    ? "GROWTH_ENGINE_KILL is on, so a stored running status does not run work."
+    : state.pausedReason;
+  const searchReady = envSet(env, "GOOGLE_SEARCH_CONSOLE_SITE_URL") && envSet(env, "GOOGLE_SEARCH_CONSOLE_CREDENTIALS");
+  return [
+    {
+      id: "observe_draft_queue",
+      label: "Observe, draft, and queue",
+      state: running ? "operational" : "blocked",
+      requirement: running
+        ? "Cron and Run one cycle store SEO findings, drafts, referral notes, and ad proposals in the control row. Drafts stay off the live site."
+        : pauseReason,
+    },
+    {
+      id: "followup_delivery",
+      label: "One in-app follow-up",
+      state: "needs_approval",
+      requirement: "Needs one user, a stored explicit reengagement time, email_reengagement true, email enabled, a one-time approval, and the deliver action. A missing or default-true preference stays denied. No email is attached.",
+    },
+    {
+      id: "publish_low_risk",
+      label: "Low-risk publication log",
+      state: state.lowRiskChannels.length > 0 ? "needs_approval" : "blocked",
+      requirement: state.lowRiskChannels.length > 0
+        ? "An approval can log a non-public draft. Public pages still do not change the live site."
+        : "No low-risk channel is configured. Public-page drafts keep version history and rollback in this record, and appliedToSite stays false.",
+    },
+    {
+      id: "bulk_message",
+      label: "Bulk messages",
+      state: "blocked",
+      requirement: "Blocked until consent validation, rate limits, abuse controls, and an approved audience exist. This engine does not send bulk email.",
+    },
+    {
+      id: "paid_spend",
+      label: "Ad spend",
+      state: "credential_required",
+      requirement: "Needs an ads account, a budget cap, and an explicit spend authorization from the owner. An account name alone does not enable spend.",
+    },
+    {
+      id: "reward_issue",
+      label: "Wallet credits and rewards",
+      state: "blocked",
+      requirement: "Needs verified fraud checks, eligibility rules, limits, and ledger integrity. Referral rows stay unissued.",
+    },
+    {
+      id: "production_change",
+      label: "Production changes",
+      state: "blocked",
+      requirement: "Production changes stay on reviewed releases and post-deployment checks. This engine cannot deploy or migrate.",
+    },
+    {
+      id: "search_console",
+      label: "Search Console",
+      state: searchReady ? "unverified" : "credential_required",
+      requirement: searchReady
+        ? "GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS are set. No query report has been read, so demand is still unverified."
+        : "Set both GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS. No Search Console request is made until both names exist and a read-only check is implemented.",
+    },
+    {
+      id: "google_ads",
+      label: "Google Ads",
+      state: envSet(env, "GOOGLE_ADS_CUSTOMER_ID") ? "unverified" : "credential_required",
+      requirement: envSet(env, "GOOGLE_ADS_CUSTOMER_ID")
+        ? "GOOGLE_ADS_CUSTOMER_ID is set. Spend stays blocked until a budget cap and an explicit spend authorization exist. No campaign is submitted."
+        : "Set GOOGLE_ADS_CUSTOMER_ID, then add a budget cap and an explicit spend authorization. The customer id alone does not spend.",
+    },
+    {
+      id: "meta_ads",
+      label: "Meta ads",
+      state: envSet(env, "META_ADS_ACCOUNT_ID") ? "unverified" : "credential_required",
+      requirement: envSet(env, "META_ADS_ACCOUNT_ID")
+        ? "META_ADS_ACCOUNT_ID is set. Spend stays blocked until a budget cap and an explicit spend authorization exist. No campaign is submitted."
+        : "Set META_ADS_ACCOUNT_ID, then add a budget cap and an explicit spend authorization. The account id alone does not spend.",
+    },
+    {
+      id: "resend",
+      label: "Resend",
+      state: envSet(env, "RESEND_API_KEY") ? "unverified" : "credential_required",
+      requirement: envSet(env, "RESEND_API_KEY")
+        ? "RESEND_API_KEY is set. This engine does not send marketing email. The invoice and marketing-contact plan were not read."
+        : "RESEND_API_KEY is not set for this process. This engine does not send marketing email.",
+    },
+  ];
+}
+
 export const HARD_BLOCKED_RISKS = ["paid_spend", "reward_issue", "bulk_message", "production_change"] as const;
 
 export function hardBlocked(riskClass: RiskClass): boolean {

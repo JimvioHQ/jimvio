@@ -68,7 +68,7 @@ export function buildOpportunities(input: {
       confidence: "low",
       risks: ["Do not publish a thin page.", "Search Console is required before treating a query as demand."],
       nextAction: input.signals.searchConsoleConnected
-        ? "Compare Search Console queries for this service before drafting a page."
+        ? "Credential names are present, but this run did not read a Search Console report. Do not treat a hypothesis as demand."
         : "Connect Search Console before treating any query as demand. A draft can be prepared for review.",
       recommendedRiskClass: "draft",
     }));
@@ -170,6 +170,24 @@ export function buildOpportunities(input: {
       confidence: "high",
       risks: ["The API is free of charge but quota-limited. Do not scrape search results instead."],
       nextAction: "An admin can add the site URL and credential names later. This engine will not call the API until both are set.",
+      recommendedRiskClass: "observe",
+    }));
+  } else {
+    items.push(opportunity({
+      id: "search-console-unverified",
+      title: "Search Console names are set and no query report was read",
+      kind: "seo",
+      evidence: [{
+        kind: "measured",
+        statement: "Both Search Console environment names are set. This cycle did not call the API, so query demand is still unknown.",
+        source: "environment",
+      }],
+      effort: "medium",
+      expectedBenefit: "A later read-only query report could replace hypothesized topics. The gain is not measured yet.",
+      benefitBasis: "hypothesis",
+      confidence: "high",
+      risks: ["Do not describe credential names as measured search demand."],
+      nextAction: "Verify the Search Console API with a read-only report before using queries in a draft.",
       recommendedRiskClass: "observe",
     }));
   }

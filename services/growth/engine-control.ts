@@ -4,7 +4,7 @@ import { runGrowthCycle, type CycleSummary } from "@/lib/growth/engine/cycle";
 import { deliverFollowupLocked, inAppFollowupNotification, type NotificationLookup } from "@/lib/growth/engine/delivery";
 import { consentFromStoredPreferences, planFollowup } from "@/lib/growth/engine/followups";
 import { claimBounded, type LockOutcome } from "@/lib/growth/engine/lock";
-import { applyLowRiskDecision, bindApproval, effectiveStatus, killSwitchEngaged } from "@/lib/growth/engine/policy";
+import { applyLowRiskDecision, bindApproval, capabilityReport, effectiveStatus, killSwitchEngaged } from "@/lib/growth/engine/policy";
 import { integrationPresence, providerCatalog } from "@/lib/growth/engine/providers";
 import { appendAudit, createInitialState, trimState } from "@/lib/growth/engine/state";
 import type { EngineState, FollowupPlan, FollowupTrigger, RiskClass } from "@/lib/growth/engine/types";
@@ -210,6 +210,7 @@ export function engineSnapshot(loaded: LoadedEngine) {
     audit: state.audit.slice(-20),
     costs: state.costs,
     providers: providerCatalog(),
+    capabilities: capabilityReport(state),
     lastError: state.lastError,
     updatedAt: state.updatedAt,
     recovery: RECOVERY_STEPS,

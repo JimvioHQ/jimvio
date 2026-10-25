@@ -52,7 +52,9 @@ function summaryText(input: {
   return [
     `${input.findings} SEO findings from the supplied catalog.`,
     `${input.opportunities} opportunities, including ${input.hypotheses} with a hypothesis.`,
-    input.signals.searchConsoleConnected ? "Search Console credentials are present." : "Search Console is not connected.",
+    input.signals.searchConsoleConnected
+      ? "Search Console credential names are present. No query report was read."
+      : "Search Console is not connected.",
     clicks,
     users,
     `${input.sent} messages sent, ${input.issued} rewards issued, ${input.spend} ad campaigns submitted.`,

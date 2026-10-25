@@ -6,8 +6,9 @@ import { buildDraft, publicationDecision, qualityIssues, rollbackDraft, translat
 import { runGrowthCycle } from "./cycle";
 import { canDeliverInApp, planFollowup } from "./followups";
 import { buildOpportunities } from "./opportunities";
-import { evaluateAction } from "./policy";
-import { PROVIDER_CATALOG } from "./providers";
+import { isEngineSnapshot } from "./dashboard";
+import { capabilityReport, evaluateAction } from "./policy";
+import { integrationPresence, PROVIDER_CATALOG, providerCatalog } from "./providers";
 import { assessReferral } from "./referrals";
 import { acquireRunLock, runScheduledTasks } from "./scheduler";
 import { auditSeo } from "./seo";
@@ -59,6 +60,13 @@ describe("growth engine safety", () => {
     assert.equal(gap?.evidence.some((item) => item.kind === "measured"), true);
     assert.equal(gap?.benefitBasis, "hypothesis");
     assert.equal(items.some((item) => item.id === "search-console-not-connected"), true);
+    const named = buildOpportunities({
+      findings: [],
+      signals: { searchConsoleConnected: true, affiliateClicks7d: null },
+      services: [],
+    });
+    assert.equal(named.some((item) => item.id === "search-console-not-connected"), false);
+    assert.equal(named.some((item) => item.id === "search-console-unverified"), true);
   });
 
   it("does not publish public drafts or translate without a provider", () => {
@@ -269,5 +277,56 @@ describe("growth engine safety", () => {
     assert.equal(search?.priceStatus, "free_with_quota");
     assert.equal(ads?.priceStatus, "unknown");
     assert.equal(cohortRetention([], now).rows.length, 0);
+  });
+
+  it("reports low-risk work separately from blocked external actions", () => {
+    const paused = capabilityReport(createInitialState(now), {});
+    assert.equal(paused.find((item) => item.id === "observe_draft_queue")?.state, "blocked");
+    const running = capabilityReport(runningState(), {});
+    assert.equal(running.find((item) => item.id === "observe_draft_queue")?.state, "operational");
+    for (const id of ["bulk_message", "reward_issue", "production_change"]) {
+      assert.equal(running.find((item) => item.id === id)?.state, "blocked");
+    }
+    assert.equal(running.find((item) => item.id === "paid_spend")?.state, "credential_required");
+    assert.equal(running.find((item) => item.id === "followup_delivery")?.state, "needs_approval");
+    const killed = capabilityReport(runningState(), { GROWTH_ENGINE_KILL: "1" });
+    assert.equal(killed.find((item) => item.id === "observe_draft_queue")?.state, "blocked");
+    assert.match(killed.find((item) => item.id === "observe_draft_queue")?.requirement ?? "", /GROWTH_ENGINE_KILL/);
+  });
+
+  it("does not treat one ads account name as both networks or as a verified integration", () => {
+    const presence = integrationPresence({ GOOGLE_ADS_CUSTOMER_ID: "set", META_ADS_ACCOUNT_ID: "" });
+    assert.equal(presence.googleAdsConfigured, true);
+    assert.equal(presence.metaAdsConfigured, false);
+    const catalog = providerCatalog({
+      GOOGLE_ADS_CUSTOMER_ID: "set",
+      GOOGLE_SEARCH_CONSOLE_SITE_URL: "https://www.jimvio.com",
+      GOOGLE_SEARCH_CONSOLE_CREDENTIALS: "configured",
+      RESEND_API_KEY: "set",
+    });
+    assert.equal(catalog.find((item) => item.id === "google-ads")?.verification, "names_present_unverified");
+    assert.equal(catalog.find((item) => item.id === "meta-ads")?.verification, "missing");
+    assert.equal(catalog.find((item) => item.id === "search-console")?.connected, false);
+    assert.equal(catalog.find((item) => item.id === "search-console")?.verification, "names_present_unverified");
+    assert.equal(catalog.find((item) => item.id === "resend")?.connected, false);
+    assert.equal(catalog.every((item) => item.id === "internal-audit" || item.connected === false), true);
+  });
+
+  it("rejects an error payload before the dashboard reads its arrays", () => {
+    assert.equal(isEngineSnapshot({ error: "Unauthorized" }), false);
+    assert.equal(isEngineSnapshot({ status: "running", opportunities: [] }), false);
+    assert.equal(isEngineSnapshot({
+      status: "running",
+      effectiveStatus: "paused",
+      persisted: true,
+      pausedReason: "kill",
+      opportunities: [],
+      drafts: [],
+      followups: [],
+      approvals: [],
+      capabilities: [],
+      providers: [],
+      audit: [],
+    }), true);
   });
 });

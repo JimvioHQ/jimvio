@@ -235,10 +235,15 @@ export type MeasuredSignals = {
   websiteSchema?: boolean;
 };
 
+export type ProviderVerification = "internal" | "missing" | "names_present_unverified";
+
 export type ProviderFact = {
   id: string;
   name: string;
+  /** True only when this process can use the provider without an external credential check. */
   connected: boolean;
+  verification: ProviderVerification;
+  requirement: string;
   priceStatus: "free_with_quota" | "free_tier_not_guaranteed" | "paid_separate" | "unknown" | "internal_zero";
   summary: string;
   source: string;
