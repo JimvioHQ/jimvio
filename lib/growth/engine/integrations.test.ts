@@ -137,6 +137,9 @@ describe("growth provider reads", () => {
       now,
     });
     assert.equal(probed.checks.searchConsole.state, "verified");
+    assert.equal(probed.checks.searchConsole.detail, "Search Console returned 1 queries and 1 pages (read).");
+    assert.equal(probed.checks.searchConsole.detail.includes("marketplace"), false);
+    assert.equal(probed.checks.searchConsole.detail.includes("jimvio.com"), false);
     assert.equal(probed.searchConsoleReport?.queryRows?.[0]?.impressions, 40);
     assert.equal(probed.searchConsoleReport?.pageRows?.[0]?.page, "https://www.jimvio.com/marketplace");
     assert.equal(JSON.stringify(probed).includes("ya29"), false);

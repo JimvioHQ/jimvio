@@ -1,3 +1,4 @@
+import { searchConsoleReadSummary } from "./search-console-log";
 import { buildSearchConsoleInsights } from "./search-console-insights";
 import type { Evidence, MeasuredSignals, Opportunity, SeoFinding, SeoPage } from "./types";
 
@@ -163,7 +164,6 @@ export function buildOpportunities(input: {
 
   const report = input.signals.searchConsoleReport;
   if (report?.status === "read") {
-    const sample = report.queries.slice(0, 5).join(", ");
     const insights = buildSearchConsoleInsights({
       queries: report.queryRows ?? [],
       pages: report.pageRows ?? [],
@@ -177,9 +177,7 @@ export function buildOpportunities(input: {
       kind: "seo",
       evidence: [{
         kind: "measured",
-        statement: sample
-          ? `Search Console returned ${report.rowCount} queries. Top queries: ${sample}. ${mapped} recommendations map to a known public page.`
-          : `Search Console returned ${report.rowCount} queries. ${mapped} recommendations map to a known public page.`,
+        statement: `${searchConsoleReadSummary(report)} ${mapped} recommendations map to a known public page.`,
         source: "search-console",
       }],
       effort: "medium",

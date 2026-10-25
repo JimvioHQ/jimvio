@@ -87,7 +87,12 @@ describe("growth engine safety", () => {
     assert.deepEqual(translationDraft(draft, "fr").status, "blocked_no_provider");
     assert.ok(qualityIssues("PayPal is available and earnings are guaranteed.", 1).length > 0);
     const revised = { ...draft, versions: [...draft.versions, { version: 2, body: "second", createdAt: now.toISOString() }], currentVersion: 2 };
-    assert.equal(rollbackDraft(revised).currentVersion, 1);
+    const rolled = rollbackDraft(revised);
+    assert.equal(rolled.currentVersion, 1);
+    assert.equal(rolled.versions.find((version) => version.version === 1)?.body, draft.versions[0]?.body);
+    assert.equal(rolled.publication, "not_published");
+    assert.equal(rolled.appliedToSite, false);
+    assert.equal(rolled.status, "needs_review");
   });
 
   it("blocks marketing without consent and keeps security mail separate", () => {

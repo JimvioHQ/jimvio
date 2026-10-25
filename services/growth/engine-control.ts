@@ -1,4 +1,5 @@
 import { PUBLIC_ECOSYSTEM } from "@/lib/brand/positioning";
+import { growthCatalogPages } from "@/lib/growth/engine/catalog";
 import { markDraftReviewed, rejectDraft, rollbackDraft } from "@/lib/growth/engine/content";
 import { runGrowthCycle, type CycleSummary } from "@/lib/growth/engine/cycle";
 import { deliverFollowupLocked, inAppFollowupNotification, type NotificationLookup } from "@/lib/growth/engine/delivery";
@@ -10,7 +11,6 @@ import { integrationPresence, providerCatalog } from "@/lib/growth/engine/provid
 import { appendAudit, createInitialState, emptyIntegrationChecks, trimState } from "@/lib/growth/engine/state";
 import type { EngineState, FollowupPlan, FollowupTrigger, RiskClass } from "@/lib/growth/engine/types";
 import { notifyUser } from "@/lib/notifications/notify-user";
-import { PAGE_SEO } from "@/lib/seo";
 import { PUBLIC_SITEMAP_ROUTES } from "@/lib/growth/engine/public-surface";
 import { getAdminDB } from "@/services/base";
 import { getGrowthKpis } from "@/services/growth/kpi";
@@ -74,12 +74,7 @@ function lockTtl(state: EngineState): number {
 }
 
 export function catalogPages() {
-  return Object.values(PAGE_SEO).map((page) => ({
-    path: page.path,
-    title: page.title,
-    description: page.description,
-    canonical: page.path,
-  }));
+  return growthCatalogPages();
 }
 
 function knownPaths(): string[] {
