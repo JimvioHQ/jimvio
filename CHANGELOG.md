@@ -1,3 +1,14 @@
+## v1.0.9 — 2026-10-25
+
+# Jimvio v1.0.9
+
+Production release from `88b8c207899bc096e239748c0e64713168c84b59`.
+
+## Changes
+- fix: keep the OpenAI timeout test alive until abort (88b8c207)
+- fix: ignore the AI unit-test key stand-in in secret scanning (67fb3910)
+
+
 ## v1.0.8 — 2026-10-25
 
 # Jimvio v1.0.8
