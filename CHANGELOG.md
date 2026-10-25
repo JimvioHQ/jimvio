@@ -1,3 +1,13 @@
+## v1.0.6 — 2026-10-25
+
+# Jimvio v1.0.6
+
+Production release from `4bbb092450964f5ea8188042fce6bed2f9284ccd`.
+
+## Changes
+- fix: report growth engine readiness without treating credentials as live (4bbb0924)
+
+
 ## v1.0.5 — 2026-10-25
 
 # Jimvio v1.0.5
