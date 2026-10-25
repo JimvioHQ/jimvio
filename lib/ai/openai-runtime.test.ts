@@ -76,24 +76,28 @@ describe("openai runtime", () => {
     assert.equal(seen?.instructions, "Stay on Jimvio help.");
     assert.equal(JSON.stringify(seen).includes("sk-test-fixture"), false);
 
-    await assert.rejects(
-      () =>
-        completeText({
-          apiKey: "sk-test-fixture-key-123456",
-          model: "gpt-4o-mini",
-          input: "hi",
-          timeoutMs: 30,
-          create: (_body, options) =>
-            new Promise((_resolve, reject) => {
-              options?.signal?.addEventListener("abort", () => {
-                const error = new Error("aborted");
-                error.name = "AbortError";
-                reject(error);
-              });
-            }),
+    const hang = completeText({
+      apiKey: "sk-test-fixture-key-123456",
+      model: "gpt-4o-mini",
+      input: "hi",
+      timeoutMs: 30,
+      create: (_body, options) =>
+        new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
         }),
-      /aborted/,
-    );
+    });
+    // AbortSignal.timeout() does not keep the event loop alive. On Node 22 the
+    // test runner then cancels the pending assertion before the abort fires.
+    const keepAlive = setInterval(() => {}, 10);
+    try {
+      await assert.rejects(hang, /aborted/);
+    } finally {
+      clearInterval(keepAlive);
+    }
   });
 
   it("keeps prompts and refuses to call Gemini from active entry points", () => {
