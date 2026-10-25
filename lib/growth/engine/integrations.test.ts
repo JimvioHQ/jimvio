@@ -5,7 +5,7 @@ import { googleAdsReadUrl, metaAdsReadUrl, normalizeGoogleCustomerId, normalizeM
 import { probeIntegrations } from "./integrations";
 import { connectivityRecipientAllowed, readResendDomains, sendResendConnectivityTest } from "./resend-probe";
 import { rewardIssuanceDecision } from "./reward-gate";
-import { parseServiceAccount, readSearchConsoleQueries, validSearchConsoleSite } from "./search-console";
+import { parseServiceAccount, readSearchConsoleQueries, readSearchConsoleSurface, validSearchConsoleSite } from "./search-console";
 
 const now = new Date("2026-10-25T12:00:00.000Z");
 
@@ -90,6 +90,57 @@ describe("growth provider reads", () => {
     if (invalid.ok) return;
     assert.equal(invalid.code, "invalid_credentials");
     assert.equal(refused, 0);
+  });
+
+  it("reads query and page rows with one token and does not submit a sitemap", async () => {
+    const bodies: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.includes("oauth2.googleapis.com")) return jsonResponse(200, { access_token: "ya29.surface" });
+      const body = String(init?.body ?? "");
+      bodies.push(body);
+      assert.equal(url.includes("/sitemaps"), false);
+      const dimensions = JSON.parse(body).dimensions as string[];
+      if (dimensions[0] === "query") {
+        return jsonResponse(200, { rows: [{ keys: ["marketplace"], clicks: 2, impressions: 40, ctr: 0.05, position: 9 }] });
+      }
+      return jsonResponse(200, {
+        rows: [{ keys: ["https://www.jimvio.com/marketplace?x=1"], clicks: 2, impressions: 40, ctr: 0.05, position: 9 }],
+      });
+    };
+    const result = await readSearchConsoleSurface({
+      env: {
+        GOOGLE_SEARCH_CONSOLE_SITE_URL: "sc-domain:jimvio.com",
+        GOOGLE_SEARCH_CONSOLE_CREDENTIALS: serviceAccount(),
+      },
+      fetchImpl,
+      now,
+      attempts: 1,
+      backoffMs: 0,
+    });
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.pageRead, "read");
+    assert.equal(result.queries[0]?.query, "marketplace");
+    assert.equal(result.pages[0]?.page, "https://www.jimvio.com/marketplace");
+    assert.equal(JSON.stringify(result).includes("ya29"), false);
+    assert.equal(bodies.length, 2);
+    assert.equal(JSON.parse(bodies[0] ?? "{}").dimensions[0], "query");
+    assert.equal(JSON.parse(bodies[0] ?? "{}").rowLimit, 25);
+    assert.equal(JSON.parse(bodies[1] ?? "{}").dimensions[0], "page");
+    const probed = await probeIntegrations({
+      env: {
+        GOOGLE_SEARCH_CONSOLE_SITE_URL: "sc-domain:jimvio.com",
+        GOOGLE_SEARCH_CONSOLE_CREDENTIALS: serviceAccount(),
+      },
+      fetchImpl,
+      now,
+    });
+    assert.equal(probed.checks.searchConsole.state, "verified");
+    assert.equal(probed.searchConsoleReport?.queryRows?.[0]?.impressions, 40);
+    assert.equal(probed.searchConsoleReport?.pageRows?.[0]?.page, "https://www.jimvio.com/marketplace");
+    assert.equal(JSON.stringify(probed).includes("ya29"), false);
+    assert.equal(JSON.stringify(probed).includes("BEGIN"), false);
   });
 
   it("reads ads accounts with GET only and never submits spend", async () => {

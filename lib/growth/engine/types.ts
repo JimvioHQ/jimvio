@@ -239,6 +239,20 @@ export type MeasuredSignals = {
     status: "read" | "failed";
     rowCount: number;
     queries: string[];
+    queryRows?: Array<{
+      query: string;
+      clicks: number;
+      impressions: number;
+      position: number;
+    }>;
+    pageRows?: Array<{
+      page: string;
+      clicks: number;
+      impressions: number;
+      position: number;
+    }>;
+    /** Present when the cycle asked for page rows. A failed page read still keeps the query rows. */
+    pageRead?: "read" | "failed";
     code?: string;
   };
 };

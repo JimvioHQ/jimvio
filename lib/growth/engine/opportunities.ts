@@ -1,4 +1,5 @@
-import type { Evidence, MeasuredSignals, Opportunity, SeoFinding } from "./types";
+import { buildSearchConsoleInsights } from "./search-console-insights";
+import type { Evidence, MeasuredSignals, Opportunity, SeoFinding, SeoPage } from "./types";
 
 const FUNNEL = ["growth.welcome_intent_selected", "growth.welcome_completed", "growth.checklist_completed"] as const;
 
@@ -26,6 +27,8 @@ export function buildOpportunities(input: {
   findings: SeoFinding[];
   signals: MeasuredSignals;
   services: Array<{ id: string; title: string; href: string }>;
+  pages?: SeoPage[];
+  knownPaths?: string[];
 }): Opportunity[] {
   const items: Opportunity[] = [];
 
@@ -58,7 +61,9 @@ export function buildOpportunities(input: {
         { kind: "measured", statement: `${service.title} is linked to ${service.href}.`, source: "public-ecosystem" },
         {
           kind: "hypothesis",
-          statement: "A dedicated landing page might match searches for this service. No query volume was measured.",
+          statement: input.signals.searchConsoleReport?.status === "read"
+            ? "A dedicated landing page might match searches for this service. Measured query rows are listed separately and are not assumed to be this gap."
+            : "A dedicated landing page might match searches for this service. No query volume was measured.",
           source: "search-intent-hypothesis",
         },
       ],
@@ -67,9 +72,11 @@ export function buildOpportunities(input: {
       benefitBasis: "hypothesis",
       confidence: "low",
       risks: ["Do not publish a thin page.", "Search Console is required before treating a query as demand."],
-      nextAction: input.signals.searchConsoleConnected
-        ? "Credential names are present, but this run did not read a Search Console report. Do not treat a hypothesis as demand."
-        : "Connect Search Console before treating any query as demand. A draft can be prepared for review.",
+      nextAction: input.signals.searchConsoleReport?.status === "read"
+        ? "Search Console supplied measured queries. Use those rows before treating this service page as unmet demand."
+        : input.signals.searchConsoleConnected
+          ? "Credential names are present, but this run did not read a Search Console report. Do not treat a hypothesis as demand."
+          : "Connect Search Console before treating any query as demand. A draft can be prepared for review.",
       recommendedRiskClass: "draft",
     }));
   }
@@ -157,6 +164,13 @@ export function buildOpportunities(input: {
   const report = input.signals.searchConsoleReport;
   if (report?.status === "read") {
     const sample = report.queries.slice(0, 5).join(", ");
+    const insights = buildSearchConsoleInsights({
+      queries: report.queryRows ?? [],
+      pages: report.pageRows ?? [],
+      catalog: input.pages ?? [],
+      knownPaths: input.knownPaths ?? [],
+    });
+    const mapped = insights.filter((item) => item.path).length;
     items.push(opportunity({
       id: "search-console-read",
       title: "Search Console returned site queries",
@@ -164,18 +178,41 @@ export function buildOpportunities(input: {
       evidence: [{
         kind: "measured",
         statement: sample
-          ? `Search Console returned ${report.rowCount} queries. Top queries: ${sample}.`
-          : `Search Console returned ${report.rowCount} queries.`,
+          ? `Search Console returned ${report.rowCount} queries. Top queries: ${sample}. ${mapped} recommendations map to a known public page.`
+          : `Search Console returned ${report.rowCount} queries. ${mapped} recommendations map to a known public page.`,
         source: "search-console",
       }],
       effort: "medium",
       expectedBenefit: "These queries are measured demand for existing pages. A draft still needs review and does not change the live site.",
       benefitBasis: "measured",
       confidence: "high",
-      risks: ["Do not publish a thin page from a query alone."],
-      nextAction: "Review the queries before drafting a page. This record does not change the live site.",
+      risks: ["Do not publish a thin page from a query alone.", "The API returns this sample in clicks order, so zero-click queries can be absent."],
+      nextAction: "Review the measured rows. Drafts stay off the live site until a person edits the page.",
       recommendedRiskClass: "observe",
     }));
+    for (const insight of insights) {
+      const draft = Boolean(insight.path) && insight.kind !== "relevant_query";
+      items.push(opportunity({
+        id: insight.id,
+        title: insight.path
+          ? `Review the search snippet on ${insight.path}`
+          : insight.kind === "relevant_query"
+            ? "Relevant Search Console queries"
+            : "Unmapped Search Console queries",
+        kind: "seo",
+        evidence: [{ kind: "measured", statement: insight.statement, source: "search-console" }],
+        effort: "low",
+        expectedBenefit: insight.recommendation,
+        benefitBasis: "measured",
+        confidence: draft ? "high" : "medium",
+        risks: [
+          "This draft does not change the live title, canonical tag, robots rules, or sitemap.",
+          "A query without a unique public path stays unmapped.",
+        ],
+        nextAction: insight.recommendation,
+        recommendedRiskClass: draft ? "draft" : "observe",
+      }));
+    }
   } else if (report?.status === "failed") {
     items.push(opportunity({
       id: "search-console-read-failed",
