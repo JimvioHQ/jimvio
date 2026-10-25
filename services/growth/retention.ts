@@ -1,4 +1,5 @@
 import { getAdminDB } from "@/services/base";
+import { explicitReengagementGranted, explicitReengagementWrite } from "@/lib/notifications/explicit-consent";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { trackGrowthEvent } from "./events";
 
@@ -14,26 +15,54 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   email_daily: true,
   email_weekly_digest: true,
   email_achievements: true,
-  email_reengagement: true,
+  email_reengagement: false,
   push_enabled: false,
 };
 
-const db = () => getAdminDB() as any;
+const db = () => getAdminDB();
 
 export async function getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
   const { data, error } = await db().from("notification_preferences").select("*").eq("user_id", userId).maybeSingle();
   if (error) throw error;
-  return { ...DEFAULT_PREFERENCES, ...(data ?? {}) };
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...(data ?? {}),
+    email_reengagement: explicitReengagementGranted(data),
+  };
 }
 
 export async function upsertNotificationPreferences(userId: string, preferences: Partial<NotificationPreferences>) {
+  const { data: existing, error: readError } = await db()
+    .from("notification_preferences")
+    .select("email_daily, email_weekly_digest, email_achievements, email_reengagement, email_reengagement_explicit_at, push_enabled")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (readError) throw new Error("Notification preferences could not be saved.");
+  const reengagement = explicitReengagementWrite({
+    storedValue: existing?.email_reengagement,
+    storedExplicitAt: existing?.email_reengagement_explicit_at,
+    patch: preferences.email_reengagement,
+    now: new Date(),
+  });
   const { data, error } = await db()
     .from("notification_preferences")
-    .upsert({ user_id: userId, ...preferences, updated_at: new Date().toISOString() }, { onConflict: "user_id" })
+    .upsert({
+      user_id: userId,
+      email_daily: preferences.email_daily ?? existing?.email_daily ?? true,
+      email_weekly_digest: preferences.email_weekly_digest ?? existing?.email_weekly_digest ?? true,
+      email_achievements: preferences.email_achievements ?? existing?.email_achievements ?? true,
+      email_reengagement: reengagement.email_reengagement,
+      email_reengagement_explicit_at: reengagement.email_reengagement_explicit_at,
+      push_enabled: preferences.push_enabled ?? existing?.push_enabled ?? false,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" })
     .select()
     .single();
-  if (error) throw error;
-  return data as NotificationPreferences;
+  if (error) throw new Error("Notification preferences could not be saved.");
+  return {
+    ...(data as NotificationPreferences),
+    email_reengagement: explicitReengagementGranted(data),
+  };
 }
 
 export async function buildWeeklyCreatorReportSummary(userId: string) {

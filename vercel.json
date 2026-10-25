@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/community-stories-refresh",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/growth-engine",
+      "schedule": "20 5 * * *"
     }
   ]
 }

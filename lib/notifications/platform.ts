@@ -4,6 +4,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/types/supabase";
 import type { EmailPayload } from "@/lib/email/transactional";
 import { sendRenderedEmail } from "@/lib/email/transactional";
 import { createServiceRoleClient, hasSupabaseSecretKey } from "@/lib/supabase/service-role";
@@ -46,8 +47,10 @@ const GROUP_WINDOW_MS = 60 * 60 * 1000;
 const PER_USER_HOURLY_CAP = 120;
 const PER_ACTOR_HOURLY_CAP = 300;
 
-function adminDb(): SupabaseClient {
-  return createServiceRoleClient() as any;
+type AdminClient = SupabaseClient<Database>;
+
+function adminDb(): AdminClient {
+  return createServiceRoleClient() as AdminClient;
 }
 
 async function dispatchEmail(
@@ -68,12 +71,12 @@ async function dispatchEmail(
 }
 
 async function tryGroupExisting(
-  db: SupabaseClient,
+  db: AdminClient,
   input: PublishNotificationInput
 ): Promise<string | null> {
   if (!input.groupKey) return null;
   const since = new Date(Date.now() - GROUP_WINDOW_MS).toISOString();
-  const { data: existing } = await (db as any)
+  const { data: existing } = await db
     .from("notifications")
     .select("id, data, message")
     .eq("user_id", input.userId)
@@ -89,7 +92,7 @@ async function tryGroupExisting(
 
   const prevData = (existing.data ?? {}) as Record<string, unknown>;
   const repeat = Number(prevData.repeat_count ?? 1) + 1;
-  const { error } = await (db as any)
+  const { error } = await db
     .from("notifications")
     .update({
       title: input.title,
@@ -100,7 +103,7 @@ async function tryGroupExisting(
         ...(input.data ?? {}),
         repeat_count: repeat,
         last_grouped_at: new Date().toISOString(),
-      },
+      } as Json,
       delivered_at: new Date().toISOString(),
     })
     .eq("id", existing.id)
@@ -186,9 +189,12 @@ export async function publishNotification(
   const dbType = input.type ?? categoryToDbType(input.category);
   const now = new Date().toISOString();
 
-  // Dedup via event_key
+  // Idempotency is the unique partial index uq_notifications_user_event_key
+  // on (user_id, event_key) where event_key is set. The pre-select is not
+  // atomic; the index is. groupKey is not idempotency. The analytics event
+  // named "sent" is recorded before the insert and is not proof of a row.
   if (input.eventKey) {
-    const { data: dup } = await (db as any)
+    const { data: dup } = await db
       .from("notifications")
       .select("id")
       .eq("user_id", input.userId)
@@ -223,7 +229,7 @@ export async function publishNotification(
       quiet_hours: quiet,
       push_ready: Boolean(prefs?.push_enabled),
       sms_ready: Boolean(prefs?.sms_enabled),
-    },
+    } as Json,
     group_key: input.groupKey ?? null,
     event_key: input.eventKey ?? null,
     delivery_channel: "in_app",
@@ -231,7 +237,7 @@ export async function publishNotification(
     is_read: false,
   };
 
-  const { data: inserted, error } = await (db as any)
+  const { data: inserted, error } = await db
     .from("notifications")
     .insert(payload)
     .select("id")
@@ -240,21 +246,22 @@ export async function publishNotification(
   if (error) {
     // Unique race on event_key
     if (String(error.code) === "23505" && input.eventKey) {
-      const { data: existing } = await (db as any)
+      const { data: existing, error: readError } = await db
         .from("notifications")
         .select("id")
         .eq("user_id", input.userId)
         .eq("event_key", input.eventKey)
         .maybeSingle();
+      if (readError || !existing?.id) return { ok: false, reason: "duplicate_unconfirmed" };
       return {
         ok: true,
-        notificationId: existing?.id,
+        notificationId: existing.id,
         skipped: true,
         reason: "duplicate_event_key",
       };
     }
-    console.error("[publishNotification] insert failed:", error.message);
-    return { ok: false, reason: error.message };
+    console.error("[publishNotification] insert failed", error.code ?? "unknown");
+    return { ok: false, reason: "insert_failed" };
   }
 
   const notificationId = inserted?.id as string | undefined;
@@ -288,7 +295,7 @@ export async function publishNotification(
       });
     } else {
       try {
-        const { data: profile } = await (db as any)
+        const { data: profile } = await db
           .from("profiles")
           .select("email, full_name")
           .eq("id", input.userId)

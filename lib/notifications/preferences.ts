@@ -2,7 +2,10 @@
  * Notification preference store — categories, quiet hours, channel readiness.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { explicitReengagementGranted, explicitReengagementWrite } from "@/lib/notifications/explicit-consent";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import type { Database, Json } from "@/types/supabase";
 import {
   DEFAULT_CATEGORY_ENABLED,
   type NotificationCategory,
@@ -14,6 +17,7 @@ export type NotificationPreferenceRow = {
   email_weekly_digest: boolean;
   email_achievements: boolean;
   email_reengagement: boolean;
+  email_reengagement_explicit_at?: string | null;
   push_enabled: boolean;
   email_enabled: boolean;
   sms_enabled: boolean;
@@ -29,7 +33,7 @@ const DEFAULTS: Omit<NotificationPreferenceRow, "user_id"> = {
   email_daily: true,
   email_weekly_digest: true,
   email_achievements: true,
-  email_reengagement: true,
+  email_reengagement: false,
   push_enabled: false,
   email_enabled: true,
   sms_enabled: false,
@@ -40,8 +44,8 @@ const DEFAULTS: Omit<NotificationPreferenceRow, "user_id"> = {
   categories: { ...DEFAULT_CATEGORY_ENABLED },
 };
 
-function db() {
-  return createServiceRoleClient() as any;
+function db(): SupabaseClient<Database> {
+  return createServiceRoleClient() as SupabaseClient<Database>;
 }
 
 function mergeCategories(raw: unknown): Record<string, boolean> {
@@ -53,6 +57,10 @@ function mergeCategories(raw: unknown): Record<string, boolean> {
   return base;
 }
 
+/**
+ * Display projection. email_reengagement is true only when the row has an
+ * explicit grant timestamp. A missing row and a database default are false.
+ */
 export async function getPlatformPreferences(
   userId: string
 ): Promise<NotificationPreferenceRow> {
@@ -73,6 +81,10 @@ export async function getPlatformPreferences(
     quiet_hours_start: data?.quiet_hours_start ?? null,
     quiet_hours_end: data?.quiet_hours_end ?? null,
     quiet_hours_timezone: data?.quiet_hours_timezone ?? "UTC",
+    email_reengagement: explicitReengagementGranted(data),
+    email_reengagement_explicit_at: typeof data?.email_reengagement_explicit_at === "string"
+      ? data.email_reengagement_explicit_at
+      : null,
   };
 }
 
@@ -80,18 +92,32 @@ export async function upsertPlatformPreferences(
   userId: string,
   patch: Partial<NotificationPreferenceRow>
 ): Promise<NotificationPreferenceRow> {
+  const { data: stored, error: readError } = await db()
+    .from("notification_preferences")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (readError) throw new Error("Notification preferences could not be saved.");
+
   const current = await getPlatformPreferences(userId);
   const nextCategories =
     patch.categories != null
       ? mergeCategories({ ...current.categories, ...patch.categories })
       : current.categories;
+  const reengagement = explicitReengagementWrite({
+    storedValue: typeof stored?.email_reengagement === "boolean" ? stored.email_reengagement : undefined,
+    storedExplicitAt: typeof stored?.email_reengagement_explicit_at === "string" ? stored.email_reengagement_explicit_at : null,
+    patch: patch.email_reengagement,
+    now: new Date(),
+  });
 
   const payload = {
     user_id: userId,
     email_daily: patch.email_daily ?? current.email_daily,
     email_weekly_digest: patch.email_weekly_digest ?? current.email_weekly_digest,
     email_achievements: patch.email_achievements ?? current.email_achievements,
-    email_reengagement: patch.email_reengagement ?? current.email_reengagement,
+    email_reengagement: reengagement.email_reengagement,
+    email_reengagement_explicit_at: reengagement.email_reengagement_explicit_at,
     push_enabled: patch.push_enabled ?? current.push_enabled,
     email_enabled: patch.email_enabled ?? current.email_enabled,
     sms_enabled: patch.sms_enabled ?? current.sms_enabled,
@@ -104,7 +130,7 @@ export async function upsertPlatformPreferences(
       patch.quiet_hours_end !== undefined ? patch.quiet_hours_end : current.quiet_hours_end,
     quiet_hours_timezone:
       patch.quiet_hours_timezone ?? current.quiet_hours_timezone ?? "UTC",
-    categories: nextCategories,
+    categories: nextCategories as Json,
     updated_at: new Date().toISOString(),
   };
 
@@ -113,11 +139,15 @@ export async function upsertPlatformPreferences(
     .upsert(payload, { onConflict: "user_id" })
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error("Notification preferences could not be saved.");
 
   return {
     ...(data as NotificationPreferenceRow),
-    categories: mergeCategories((data as any)?.categories),
+    categories: mergeCategories(data?.categories),
+    email_reengagement: explicitReengagementGranted(data),
+    email_reengagement_explicit_at: typeof (data as NotificationPreferenceRow | null)?.email_reengagement_explicit_at === "string"
+      ? (data as NotificationPreferenceRow).email_reengagement_explicit_at
+      : null,
   };
 }
 

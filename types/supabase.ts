@@ -6974,6 +6974,7 @@ export type Database = {
           email_daily: boolean
           email_enabled: boolean
           email_reengagement: boolean
+          email_reengagement_explicit_at: string | null
           email_weekly_digest: boolean
           push_enabled: boolean
           quiet_hours_enabled: boolean
@@ -6990,6 +6991,7 @@ export type Database = {
           email_daily?: boolean
           email_enabled?: boolean
           email_reengagement?: boolean
+          email_reengagement_explicit_at?: string | null
           email_weekly_digest?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
@@ -7006,6 +7008,7 @@ export type Database = {
           email_daily?: boolean
           email_enabled?: boolean
           email_reengagement?: boolean
+          email_reengagement_explicit_at?: string | null
           email_weekly_digest?: boolean
           push_enabled?: boolean
           quiet_hours_enabled?: boolean
