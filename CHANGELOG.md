@@ -2,6 +2,19 @@
 
 # Jimvio v1.0.11
 
+Production release from `e7c2241085191dbae60f0c3c965357721d3539ee`.
+
+## Changes
+- feat: finish Jimvio AI chat verification and public catalog privacy (e7c22410)
+- chore(release): v1.0.11 [skip ci] (0af4b43a)
+- feat: ground Jimvio AI discovery and support answers (05b4ef49)
+- feat: draft Search Console reviews from measured queries (6afd6025)
+
+
+## v1.0.11 — 2026-10-25
+
+# Jimvio v1.0.11
+
 Production release from `05b4ef49b9488fec5c2e672c4b91c15242e693b2`.
 
 ## Changes
