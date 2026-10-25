@@ -1,3 +1,14 @@
+## v1.0.11 — 2026-10-25
+
+# Jimvio v1.0.11
+
+Production release from `05b4ef49b9488fec5c2e672c4b91c15242e693b2`.
+
+## Changes
+- feat: ground Jimvio AI discovery and support answers (05b4ef49)
+- feat: draft Search Console reviews from measured queries (6afd6025)
+
+
 ## v1.0.10 — 2026-10-25
 
 # Jimvio v1.0.10
