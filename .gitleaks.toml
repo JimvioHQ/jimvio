@@ -6,7 +6,7 @@ title = "Jimvio"
 useDefault = true
 
 [allowlist]
-description = "CI placeholders, localStorage key names, and demo rows"
+description = "CI placeholders, localStorage key names, demo rows, and the AI unit-test stand-in"
 regexTarget = "line"
 regexes = [
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVy''',
@@ -14,6 +14,8 @@ regexes = [
   '''pgp_sym_encrypt\(''',
   '''lastUsed:''',
   '''key: "faith\-reflection\-c1\"''',
+  # Exact stand-in passed to injected test doubles. Not a live credential.
+  '''sk-test-fixture-key-123456''',
 ]
 paths = [
   '''(^|/)node_modules/''',
