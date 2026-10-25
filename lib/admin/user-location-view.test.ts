@@ -116,6 +116,46 @@ describe("admin user location view", () => {
     assert.equal(shown.checkoutStreet, "KG 12 Ave");
   });
 
+  it("renders missing session and phone fields without throwing", () => {
+    const view = buildAdminUserLocationView({
+      country: null,
+      city: null,
+      createdAt: null,
+      updatedAt: null,
+      phone: null,
+      fullName: null,
+      username: null,
+      avatarUrl: null,
+      bio: null,
+      emailConfirmedAt: null,
+      lastSignInAt: null,
+      sessions: [
+        {
+          id: "",
+          device: undefined,
+          ip: undefined,
+          lastActivity: undefined,
+          location: undefined,
+        } as unknown as {
+          id: string;
+          device: string;
+          ip: string;
+          lastActivity: string;
+          location: string;
+        },
+      ],
+      orders: [],
+      includeCheckoutStreet: false,
+      latestIpCountry: null,
+      latestIpAt: null,
+    });
+    assert.equal(view.phone.value, null);
+    assert.equal(view.sessions[0]?.device, "Unknown device");
+    assert.equal(view.sessions[0]?.ip, "Not available");
+    assert.equal(view.sessions[0]?.ipCountry, null);
+    assert.equal(describeStoredDevice(undefined).category, "unknown");
+  });
+
   it("denies anonymous users and non-uuid ids", () => {
     assert.equal(adminUserDetailDecision({ ok: false }, "11111111-1111-4111-8111-111111111111"), "unauthorized");
     assert.equal(adminUserDetailDecision({ ok: true }, "not-a-user"), "invalid_id");

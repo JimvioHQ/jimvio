@@ -69,13 +69,17 @@ function factView(
   };
 }
 
-export function describeStoredDevice(device: string): {
+function storedText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function describeStoredDevice(device: unknown): {
   category: string;
   browser: string | null;
   operatingSystem: string | null;
   browserVersion: null;
 } {
-  const text = device.trim();
+  const text = storedText(device);
   const lower = text.toLowerCase();
   let category = "desktop";
   if (!text || lower.includes("unknown")) category = "unknown";
@@ -92,8 +96,8 @@ export function describeStoredDevice(device: string): {
   };
 }
 
-function sessionCountry(location: string): string | null {
-  const trimmed = location.trim();
+function sessionCountry(location: unknown): string | null {
+  const trimmed = storedText(location);
   if (!trimmed || trimmed.toLowerCase() === "unknown") return null;
   return trimmed;
 }
@@ -157,7 +161,7 @@ export function buildAdminUserLocationView(input: {
     ["Phone", input.phone],
     ["Country", account.useForPersonalization ? account.country : null],
   ];
-  const missing = completionFields.filter(([, value]) => !value?.trim()).map(([label]) => label);
+  const missing = completionFields.filter(([, value]) => !storedText(value)).map(([label]) => label);
 
   return {
     personalizationCountry: account.useForPersonalization ? account.country : null,
@@ -169,25 +173,27 @@ export function buildAdminUserLocationView(input: {
       factView("checkout", "Checkout address", checkout),
     ],
     checkoutStreet: checkout.street,
-    sessions: input.sessions.map((session) => {
+    sessions: input.sessions.flatMap((session, index) => {
+      if (!session || typeof session !== "object") return [];
       const described = describeStoredDevice(session.device);
-      return {
-        id: session.id,
-        device: session.device,
+      const device = storedText(session.device) || "Unknown device";
+      return [{
+        id: storedText(session.id) || `session-${index}`,
+        device,
         category: described.category,
         browser: described.browser,
         operatingSystem: described.operatingSystem,
         browserVersion: null,
-        ip: session.ip,
+        ip: storedText(session.ip) || "Not available",
         ipCountry: sessionCountry(session.location),
-        lastActiveAt: session.lastActivity,
+        lastActiveAt: storedText(session.lastActivity) || "Not available",
         current: Boolean(session.current),
-      };
+      }];
     }),
     emailConfirmedAt: input.emailConfirmedAt,
     lastSignInAt: input.lastSignInAt,
-    phone: input.phone?.trim()
-      ? { value: input.phone.trim(), sourceLabel: "User-provided", verified: false }
+    phone: storedText(input.phone)
+      ? { value: storedText(input.phone), sourceLabel: "User-provided", verified: false }
       : { value: null, sourceLabel: "Not available", verified: false },
     profileCompletion: {
       filled: completionFields.length - missing.length,

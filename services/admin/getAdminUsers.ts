@@ -3,6 +3,7 @@ import { getAdminDB } from "@/lib/supabase/admin";
 import { hasActiveTwoFactorSecret } from "@/lib/auth/repair-broken-2fa";
 import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 import { listStoredSessions } from "@/lib/auth/user-sessions";
+import { awaitQueryResult } from "@/lib/admin/await-query";
 import { adminUserDetailDecision } from "@/lib/admin/user-detail-access";
 import { buildAdminUserLocationView, type AdminUserLocationView } from "@/lib/admin/user-location-view";
 import { writeAuditEvent } from "@/services/ops/audit";
@@ -589,31 +590,32 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
                 admin.from("products").select("id", { count: "exact", head: true }).eq("vendor_id", v.id),
             )
             : Promise.resolve(0),
-        (admin as unknown as {
-            from: (table: string) => {
-                select: (columns: string) => {
-                    eq: (column: string, value: string) => {
-                        order: (column: string, options: { ascending: boolean }) => {
-                            limit: (count: number) => Promise<{
-                                data: Array<{
-                                    public_ref: string;
-                                    subject: string;
-                                    status: string;
-                                    created_at: string | null;
-                                }> | null;
-                                error: { message: string } | null;
-                            }>;
+        awaitQueryResult(
+            (admin as unknown as {
+                from: (table: string) => {
+                    select: (columns: string) => {
+                        eq: (column: string, value: string) => {
+                            order: (column: string, options: { ascending: boolean }) => {
+                                limit: (count: number) => PromiseLike<{
+                                    data: Array<{
+                                        public_ref: string;
+                                        subject: string;
+                                        status: string;
+                                        created_at: string | null;
+                                    }> | null;
+                                    error: { message: string } | null;
+                                }>;
+                            };
                         };
                     };
                 };
-            };
-        })
-            .from("support_tickets")
-            .select("public_ref, subject, status, created_at")
-            .eq("user_id", userId)
-            .order("created_at", { ascending: false })
-            .limit(5)
-            .catch(() => ({ data: null, error: { message: "unavailable" } })),
+            })
+                .from("support_tickets")
+                .select("public_ref, subject, status, created_at")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(5),
+        ),
     ]);
 
     const latestSession = sessions[0];

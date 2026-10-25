@@ -195,8 +195,8 @@ export function accountCountryFact(input: {
   createdAt: string | null;
   updatedAt: string | null;
 }): LocationFact {
-  const country = normalizeCountryCode(input.country);
-  const city = input.city?.trim() || null;
+  const country = normalizeCountryCode(typeof input.country === "string" ? input.country : null);
+  const city = typeof input.city === "string" ? input.city.trim() || null : null;
   if (!country && !city) return unavailable("No account country is stored.");
   if (!country) {
     return {
