@@ -126,7 +126,13 @@ export async function runGrowthCycle(input: CycleInput): Promise<{ state: Engine
       organizationSchema: input.signals.organizationSchema,
       websiteSchema: input.signals.websiteSchema,
     });
-    const opportunities = buildOpportunities({ findings, signals: input.signals, services: input.services });
+    const opportunities = buildOpportunities({
+      findings,
+      signals: input.signals,
+      services: input.services,
+      pages: input.pages,
+      knownPaths: input.knownPaths,
+    });
     const hypotheses = opportunities.filter((item) => item.evidence.some((evidence) => evidence.kind === "hypothesis")).length;
     state = { ...state, opportunities };
 

@@ -1,6 +1,6 @@
 import { googleAdsMissing, metaAdsMissing, readGoogleAdsCustomer, readMetaAdAccount, spendGate } from "./ads-connectivity";
 import { readResendDomains } from "./resend-probe";
-import { readSearchConsoleQueries } from "./search-console";
+import { readSearchConsoleSurface } from "./search-console";
 import type { IntegrationCheck, IntegrationChecks, MeasuredSignals } from "./types";
 
 function check(state: IntegrationCheck["state"], detail: string, checkedAt: string | null): IntegrationCheck {
@@ -33,7 +33,7 @@ export async function probeIntegrations(input: {
   const attempts = 2;
   const spend = spendGate(env);
 
-  const searchPromise = readSearchConsoleQueries({ env, fetchImpl, now, attempts });
+  const searchPromise = readSearchConsoleSurface({ env, fetchImpl, now, attempts });
   const resendPromise = readResendDomains({ env, fetchImpl, attempts });
   const googlePromise = readGoogleAdsCustomer({ env, fetchImpl, attempts });
   const metaPromise = readMetaAdAccount({ env, fetchImpl, attempts });
@@ -46,11 +46,28 @@ export async function probeIntegrations(input: {
     searchCheck = check(
       "verified",
       sample
-        ? `Search Console returned ${search.rowCount} queries. Top queries: ${sample}.`
-        : `Search Console returned ${search.rowCount} queries.`,
+        ? `Search Console returned ${search.queries.length} queries. Top queries: ${sample}.`
+        : `Search Console returned ${search.queries.length} queries.`,
       at,
     );
-    searchConsoleReport = { status: "read", rowCount: search.rowCount, queries: search.queries.map((row) => row.query) };
+    searchConsoleReport = {
+      status: "read",
+      rowCount: search.queries.length,
+      queries: search.queries.map((row) => row.query),
+      queryRows: search.queries.map((row) => ({
+        query: row.query,
+        clicks: row.clicks,
+        impressions: row.impressions,
+        position: row.position,
+      })),
+      pageRows: search.pages.map((row) => ({
+        page: row.page,
+        clicks: row.clicks,
+        impressions: row.impressions,
+        position: row.position,
+      })),
+      pageRead: search.pageRead,
+    };
   } else if (search.code === "missing") {
     searchCheck = check("missing", "Set GOOGLE_SEARCH_CONSOLE_SITE_URL and GOOGLE_SEARCH_CONSOLE_CREDENTIALS. The credential is a service-account JSON key with the Search Console readonly scope.", null);
   } else {
