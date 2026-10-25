@@ -1,3 +1,13 @@
+## v1.0.10 — 2026-10-25
+
+# Jimvio v1.0.10
+
+Production release from `ea2b5063fe8ffb43ce5f1f51db10df2852c7b382`.
+
+## Changes
+- fix: reorder Jimvio homepage sections (ea2b5063)
+
+
 ## v1.0.9 — 2026-10-25
 
 # Jimvio v1.0.9
