@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isConfidentialAiRequest } from "@/lib/ai/ai-guard";
 import { redactProviderMessage } from "@/lib/ai/gemini-model";
-import { completeText, readOpenAIKey, resolveOpenAIModel, shouldRetryProviderError } from "@/lib/ai/openai-runtime";
+import { wrapUntrusted } from "@/lib/ai/information-policy";
+import { readOpenAIKey, resolveOpenAIModel } from "@/lib/ai/openai-runtime";
+import { completePrimaryText } from "@/lib/ai/text-generation";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
 /**
@@ -20,6 +23,12 @@ export async function POST(req: NextRequest) {
 
     const { interest, product_context } = await req.json();
     if (!interest || !product_context) return NextResponse.json({ error: "Context required" }, { status: 400 });
+    if (isConfidentialAiRequest(String(interest))) {
+      return NextResponse.json(
+        { error: "Failed", message: "Describe the product and quantity you want to ask the supplier about." },
+        { status: 400 },
+      );
+    }
 
     const apiKey = readOpenAIKey();
     if (!apiKey) {
@@ -29,34 +38,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const prompt = `Act as a senior sourcing agent. Draft a professional, high-conversion message to a supplier for the following product: 
+    const prompt = `Act as a senior sourcing agent. Draft a professional, high-conversion message to a supplier for the following product.
 
-    PRODUCT: "${product_context.name}" (MOQ: ${product_context.moq}). 
-    BUYER INTEREST: "${interest}". 
+    ${wrapUntrusted("Product", `${product_context.name} (MOQ: ${product_context.moq})`, 500)}
+    ${wrapUntrusted("Buyer interest", String(interest), 2000)}
 
     Requirements:
     - Formal but direct tone.
     - Ask for specific price tiers, lead times, and shipping estimates.
-    - Keep it under 150 words. 
+    - Keep it under 150 words.
     - Output ONLY the draft message text.`;
 
-    let draft = "";
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        draft = await completeText({
-          apiKey,
-          model: resolveOpenAIModel().model,
-          input: prompt,
-          temperature: 0.4,
-          maxOutputTokens: 400,
-          timeoutMs: 20_000,
-        });
-        break;
-      } catch (error) {
-        if (attempt === 0 && shouldRetryProviderError(error)) continue;
-        throw error;
-      }
-    }
+    const draft = await completePrimaryText({
+      apiKey,
+      model: resolveOpenAIModel().model,
+      input: prompt,
+      temperature: 0.4,
+      maxOutputTokens: 400,
+      timeoutMs: 20_000,
+    });
 
     return NextResponse.json({
       draft,

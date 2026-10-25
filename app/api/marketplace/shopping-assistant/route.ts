@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
+import { generateGeminiText } from "@/lib/ai/gemini-fallback";
 import {
   parseGeminiProviderFailure,
   shouldContinueGeminiAttempts,
   type GeminiProviderFailure,
 } from "@/lib/ai/gemini-model";
+import { wrapUntrusted } from "@/lib/ai/information-policy";
 import {
   completeText,
   openaiAttemptModels,
   readOpenAIKey,
   shouldRetryProviderError,
 } from "@/lib/ai/openai-runtime";
+import { qualifiesForGeminiFallback } from "@/lib/ai/provider-policy";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 import {
@@ -92,6 +96,9 @@ export async function POST(req: NextRequest) {
   if (message.length < 1) {
     return NextResponse.json({ ok: false, error: "empty" }, { status: 400 });
   }
+  if (isConfidentialAiRequest(message)) {
+    return NextResponse.json({ ok: true, reply: CONFIDENTIAL_AI_REFUSAL, products: [] });
+  }
 
   const type = body.type === "digital" ? "digital" : "physical";
   const apiKey = readOpenAIKey();
@@ -132,6 +139,8 @@ export async function POST(req: NextRequest) {
     const attempts = openaiAttemptModels();
     let reply = "";
     let lastFailure: GeminiProviderFailure | null = null;
+    let lastError: unknown = null;
+    const shoppingInput = `${groundedCatalogBlock(products)}\n\n${wrapUntrusted("Shopper", message, 500)}`;
     for (const modelName of attempts) {
       let attempt = 0;
       while (attempt < 2) {
@@ -142,7 +151,7 @@ export async function POST(req: NextRequest) {
               apiKey,
               model: modelName,
               instructions: shoppingAssistantSystemPrompt(),
-              input: `${groundedCatalogBlock(products)}\n\nShopper: ${message}`,
+              input: shoppingInput,
               temperature: 0.3,
               maxOutputTokens: 220,
               timeoutMs: 20_000,
@@ -158,6 +167,7 @@ export async function POST(req: NextRequest) {
           attempt = 2;
           break;
         } catch (error) {
+          lastError = error;
           lastFailure = parseGeminiProviderFailure(error);
           console.warn("[shopping-assistant] provider failed", {
             model: modelName,
@@ -173,6 +183,19 @@ export async function POST(req: NextRequest) {
       if (reply) break;
       if (lastFailure?.category === "empty_output") break;
       if (lastFailure && !shouldContinueGeminiAttempts(lastFailure.category)) break;
+    }
+
+    if (!reply && lastError && qualifiesForGeminiFallback(lastError)) {
+      const text = await generateGeminiText({
+        instructions: shoppingAssistantSystemPrompt(),
+        prompt: shoppingInput,
+        temperature: 0.3,
+        maxOutputTokens: 220,
+        timeoutMs: 20_000,
+      });
+      if (text?.trim()) {
+        return NextResponse.json({ ok: true, reply: text.trim(), products });
+      }
     }
 
     if (!reply) {

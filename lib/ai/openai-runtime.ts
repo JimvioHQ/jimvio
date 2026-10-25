@@ -163,5 +163,6 @@ export async function embedText(apiKey: string, input: string, timeoutMs = 12_00
   );
   const values = response.data[0]?.embedding;
   if (!values?.length) throw new Error("empty embedding");
+  if (values.length !== OPENAI_EMBEDDING_DIMENSIONS) throw new Error("embedding dimension mismatch");
   return values;
 }

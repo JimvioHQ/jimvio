@@ -1,3 +1,4 @@
+import { generateGeminiText } from "@/lib/ai/gemini-fallback";
 import { isUsableApiKey, redactProviderMessage } from "@/lib/ai/gemini-model";
 import {
   OPENAI_API_KEY_ENV,
@@ -367,6 +368,28 @@ export async function createAffiliatePromotionResponse(
           return failureBody(lastError, lastError.code !== "authentication");
         }
         await sleep(backoffMs(attempt));
+      }
+    }
+  }
+
+  if (lastError.code === "network" || lastError.code === "provider") {
+    const text = await generateGeminiText({
+      prompt,
+      json: true,
+      temperature: 0.7,
+      maxOutputTokens: 1800,
+      timeoutMs: 25_000,
+      env,
+    });
+    if (text) {
+      try {
+        const data = parseAffiliatePromotionKit(text);
+        return {
+          status: 200,
+          body: { success: true, data, provider: AFFILIATE_AI_PROVIDER, providerReady: true },
+        };
+      } catch (error) {
+        lastError = classifyAffiliateProviderFailure(error);
       }
     }
   }

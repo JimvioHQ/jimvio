@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parseSearchIntent, generateTextEmbedding } from "@/lib/ai/ai-search-service";
+import { isConfidentialAiRequest } from "@/lib/ai/ai-guard";
+import { OPENAI_EMBEDDING_DIMENSIONS } from "@/lib/ai/openai-runtime";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import {
   expandSearchTerms,
@@ -33,18 +35,23 @@ export async function POST(req: NextRequest) {
       search_term: query,
     };
 
-    try {
-      intent = await parseSearchIntent(query);
-    } catch {
-      // Soft: continue with raw query
+    const confidential = isConfidentialAiRequest(query);
+    if (!confidential) {
+      try {
+        intent = await parseSearchIntent(query);
+      } catch {
+        // Soft: continue with raw query
+      }
     }
 
     const searchTerm = sanitizeSearchTerm(intent.search_term || query) || query;
     const supabase = await createClient();
 
-    // Try semantic RPC when available
-    try {
+    // Semantic RPC is optional. There is no stored vector column in this repo.
+    // The request asks for 768 dimensions and rejects any other width.
+    if (!confidential) try {
       const embedding = await generateTextEmbedding(searchTerm);
+      if (embedding.length !== OPENAI_EMBEDDING_DIMENSIONS) throw new Error("embedding dimension mismatch");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: products, error } = await (supabase as any).rpc("match_products", {
         query_embedding: embedding,

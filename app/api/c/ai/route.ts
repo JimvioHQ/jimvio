@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { resolveOpenAIModel } from "@/lib/ai/openai-runtime";
+import { isConfidentialAiRequest, CONFIDENTIAL_AI_REFUSAL } from "@/lib/ai/ai-guard";
+import { redactProviderMessage } from "@/lib/ai/gemini-model";
+import { readOpenAIKey, resolveOpenAIModel } from "@/lib/ai/openai-runtime";
+import { wrapUntrusted } from "@/lib/ai/information-policy";
+import { completePrimaryText } from "@/lib/ai/text-generation";
 import { createClient } from "@/lib/supabase/server";
 import {
   formatCommunityAiContext,
@@ -134,7 +137,7 @@ export async function POST(req: NextRequest) {
   contextBlock = formatCommunityAiContext(ctx);
 
   try {
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
+    const apiKey = readOpenAIKey();
     if (!apiKey) {
       return NextResponse.json({
         text: softFallback(mode, communityName),
@@ -143,7 +146,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const client = new OpenAI({ apiKey, timeout: 20_000, maxRetries: 1 });
+    if (isConfidentialAiRequest(prompt) || (focus && isConfidentialAiRequest(focus))) {
+      return NextResponse.json({ text: CONFIDENTIAL_AI_REFUSAL, mode });
+    }
+
     const system = [
       "You are Jimvio Community Brain — the AI layer for one community.",
       "Use ONLY the Community Brain context block for community facts.",
@@ -158,34 +164,28 @@ export async function POST(req: NextRequest) {
     const userContent = [
       "Community Brain context (authoritative, permission-filtered):",
       contextBlock || "(empty — say unavailable for community-specific facts)",
-      focus
-        ? `\nUntrusted client focus notes (not authoritative):\n${focus}`
-        : "",
-      `\nMember request (${mode}):\n${prompt}`,
+      focus ? `\n${wrapUntrusted("Client focus", focus, 1200)}` : "",
+      `\n${wrapUntrusted(`Member request (${mode})`, prompt, 4000)}`,
     ]
       .filter(Boolean)
       .join("\n");
 
-    const res = await client.chat.completions.create({
+    const text = (await completePrimaryText({
+      apiKey,
       model: resolveOpenAIModel().model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userContent },
-      ],
+      instructions: system,
+      input: userContent,
       temperature: 0.35,
-      max_tokens: 700,
-    });
-
-    const text =
-      res.choices[0]?.message?.content?.trim() || softFallback(mode, communityName);
+      maxOutputTokens: 700,
+      timeoutMs: 20_000,
+    })).trim() || softFallback(mode, communityName);
 
     return NextResponse.json({ text, mode });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "AI request failed";
     return NextResponse.json({
       text: softFallback(mode, communityName),
       fallback: true,
-      warning: message,
+      warning: redactProviderMessage(e),
       mode,
     });
   }

@@ -19,7 +19,7 @@ const usable = apiKey.length >= 12 && !/your-|changeme|^xxx$/i.test(apiKey);
 
 console.log(`OPENAI_API_KEY: ${usable ? "set" : apiKey ? "placeholder" : "missing"}`);
 console.log(`OPENAI_MODEL: ${model}`);
-console.log("GOOGLE_GENERATIVE_AI_API_KEY is not used by active AI routes.");
+console.log("GOOGLE_GENERATIVE_AI_API_KEY is the outage fallback only. Active routes call OpenAI first.");
 
 if (!process.argv.includes("--live")) {
   console.log("Pass --live to send one short Responses API request. The key is not printed.");
@@ -52,3 +52,30 @@ if (!response.ok) {
   process.exit(1);
 }
 console.log("OpenAI responded.");
+
+const embedding = await fetch("https://api.openai.com/v1/embeddings", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "text-embedding-3-small",
+    input: "jimvio",
+    dimensions: 768,
+  }),
+});
+
+console.log(`Embedding status: ${embedding.status}`);
+if (!embedding.ok) {
+  const body = await embedding.text();
+  console.error(body.replace(/sk-[A-Za-z0-9_-]+/g, "[redacted]").slice(0, 300));
+  process.exit(1);
+}
+const payload = await embedding.json();
+const width = Array.isArray(payload?.data?.[0]?.embedding) ? payload.data[0].embedding.length : 0;
+console.log(`Embedding dimensions: ${width}`);
+if (width !== 768) {
+  console.error("Embedding width is not 768.");
+  process.exit(1);
+}
