@@ -1,3 +1,13 @@
+## v1.0.7 — 2026-10-25
+
+# Jimvio v1.0.7
+
+Production release from `e8758c627db09347074eaddb7cc553281619ad06`.
+
+## Changes
+- feat: verify growth providers without spending or sending (e8758c62)
+
+
 ## v1.0.6 — 2026-10-25
 
 # Jimvio v1.0.6
