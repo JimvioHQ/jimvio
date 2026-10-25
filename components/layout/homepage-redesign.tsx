@@ -17,9 +17,9 @@ import {
  * 1. Hero
  * 2. What do you want to build today?
  * 3. Why people stick with Jimvio
- * 4. Choose Your Journey
- * 5. How Jimvio Works
- * 6. Your first 30 minutes on Jimvio
+ * 4. How Jimvio Works
+ * 5. Your first 30 minutes on Jimvio
+ * 6. Choose Your Journey
  * 7. Take Jimvio Everywhere
  * 8. Common questions
  */
@@ -29,9 +29,9 @@ export async function HomepageRedesign() {
       <Hero />
       <WhatToDoToday />
       <WhyChooseJimvio />
-      <ChooseYourJourney />
       <HowJimvioWorks />
       <First30Minutes />
+      <ChooseYourJourney />
       <TakeJimvioEverywhere />
       <FAQSection />
     </HomeCanvas>
