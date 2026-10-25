@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { SUPPORT_ARTICLES, articlesInCategory, getSupportArticle, relatedArticles } from "./articles";
-import { knowledgeAnswer } from "./knowledge-answer";
+import { knowledgeAnswer, preferDirectSupportAnswer } from "./knowledge-answer";
 import { searchSupportArticles } from "./search";
 import { SUPPORT_CATEGORIES } from "./types";
 import { customerVisibleMessages } from "./format";
@@ -44,6 +44,26 @@ const requiredTitles = [
   "What AI-powered tools are available on Jimvio?",
   "How do I follow up on an existing ticket?",
 ];
+
+describe("support direct answers", () => {
+  it("rejects a link list and keeps a stepped answer", () => {
+    const fallback = "Open the new ticket page.\n\n1. Sign in.\n\nI have not looked up your account.";
+    assert.equal(preferDirectSupportAnswer("See /help/articles/contact-support-team", fallback), fallback);
+    assert.equal(preferDirectSupportAnswer("", fallback), fallback);
+    const direct = "Create the ticket from the new ticket page after you sign in.\n\n1. Open /help/tickets/new.\n2. Describe the issue.\n\nI have not opened a ticket.";
+    assert.equal(preferDirectSupportAnswer(direct, fallback), direct);
+  });
+
+  it("tells the live support prompt to answer before linking", () => {
+    const source = readFileSync(new URL("./answer-question.ts", import.meta.url), "utf8");
+    assert.match(source, /direct answer in the first sentence/);
+    assert.match(source, /numbered steps/);
+    assert.match(source, /has not opened a ticket/);
+    assert.match(source, /Kinyarwanda/);
+    assert.match(source, /preferDirectSupportAnswer/);
+    assert.match(source, /geminiFallback: false/);
+  });
+});
 
 describe("support knowledge base", () => {
   it("publishes a real answer for every article in every category", () => {
@@ -92,6 +112,14 @@ describe("support knowledge base", () => {
     assert.notEqual(unknown.answer, otherUnknown.answer);
     assert.equal(unknown.slugs.length, 0);
     assert.equal(unknown.answer.includes(REMOVED_AVAILABILITY_BANNER), false);
+    const ticket = knowledgeAnswer(SUPPORT_ARTICLES, "How do I create a support ticket?");
+    assert.match(ticket.answer, /1\./);
+    assert.match(ticket.answer, /I have not looked up/);
+    assert.equal(/ticket was (opened|created)/i.test(ticket.answer), false);
+    const login = knowledgeAnswer(SUPPORT_ARTICLES, "I cannot sign in");
+    assert.match(login.answer, /1\./);
+    const publish = knowledgeAnswer(SUPPORT_ARTICLES, "How do I publish a product?");
+    assert.match(publish.answer, /seller products/i);
     const order = knowledgeAnswer(SUPPORT_ARTICLES, "How do I track an order?");
     const earnings = knowledgeAnswer(SUPPORT_ARTICLES, "How do I understand and withdraw my earnings?");
     assert.notEqual(order.answer, earnings.answer);

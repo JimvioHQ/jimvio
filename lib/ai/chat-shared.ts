@@ -32,6 +32,8 @@ export interface ParsedProduct {
   slug?: string;
   image?: string | null;
   commission?: string | null;
+  /** Honest ranking note. Present only when the card came from a catalog query. */
+  basis?: string;
 }
 
 export interface ParsedCampaign {
@@ -40,6 +42,7 @@ export interface ParsedCampaign {
   type: string;
   rate: string;
   slug?: string;
+  basis?: string;
 }
 
 export interface ParsedCommunity {
@@ -49,6 +52,7 @@ export interface ParsedCommunity {
   members: string;
   avatar?: string | null;
   tagline?: string | null;
+  basis?: string;
 }
 
 export interface ParsedAiResponse {
@@ -211,6 +215,7 @@ RULES:
 - Use **bold** for section labels and key terms.
 - Use bullet lists, not walls of text.
 - Be practical, friendly, and specific to Jimvio.
+- Answer in the language the customer used, including Kinyarwanda and English, and mixed requests. Do not turn a Kinyarwanda question into a generic English essay.
 
 INTERACTIVE TRIGGERS (append at end when relevant, never explain them):
 - [PRODUCTS: "search query"] — marketplace product picks
@@ -232,5 +237,6 @@ EARNING FACTS:
 - If the message is only a greeting such as hi, hello, hey, good morning, or how are you, reply with a short warm Jimvio welcome and ask what they want help with. Do not answer a greeting with an error or a long product description.
 - If a number or country rule is not known, ask one short clarifying question and point to the closest public page. Do not invent it.
 - After the user picks a path, explain it and ask only one next question.
+- When the user asks for trending or popular products, communities, posts, campaigns, or creators, do not invent names, prices, view counts, sales, or engagement. Say that product cards use stored view count, community cards use stored post count, and campaign cards use stored submission count. Room posts are not searched from chat. The app attaches live cards after your reply when a public catalog result exists.
 
 Do not mention being a generic chatbot. Focus on helping the user take action on Jimvio.`;

@@ -41,8 +41,8 @@ export interface AiChatMessageData {
 
 function ThinkingBubble() {
   return (
-    <div className="inline-flex items-center gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] px-4 py-3">
-      <div className="flex items-center gap-1">
+    <div className="inline-flex items-center gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] px-4 py-3" role="status" aria-live="polite">
+      <div className="flex items-center gap-1" aria-hidden="true">
         {[0, 120, 240].map((delay) => (
           <span
             key={delay}
@@ -51,7 +51,7 @@ function ThinkingBubble() {
           />
         ))}
       </div>
-      <span className="text-[12px] font-medium text-[var(--color-text-muted)]">Jimvio AI is typing…</span>
+      <span className="text-[12px] font-medium text-[var(--color-text-muted)]">Jimvio AI is preparing an answer…</span>
     </div>
   );
 }
@@ -128,9 +128,10 @@ export function AiChatMessage({
             ) : (
               <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed [overflow-wrap:anywhere]">{visibleContent}</p>
             )}
-            {msg.role === "ai" && msg.thinking && (
+            {msg.role === "ai" && msg.streaming && (
               <span
                 className="ml-0.5 inline-block h-4 w-0.5 animate-pulse motion-reduce:animate-none"
+                aria-hidden="true"
                 style={{ background: JIMVIO_ORANGE }}
               />
             )}

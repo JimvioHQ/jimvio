@@ -330,6 +330,12 @@ describe("streaming markdown", () => {
 
 describe("jimvio knowledge", () => {
   it("grounds marketplace and wallet answers in real routes", () => {
+    const trending = retrieveJimvioKnowledge("Show me trending products");
+    assert.match(trending, /view_count/);
+    assert.match(trending, /not a sales ranking/);
+    const community = retrieveJimvioKnowledge("What is trending in the community?");
+    assert.match(community, /post_count/);
+    assert.match(community, /not individual posts/);
     const market = retrieveJimvioKnowledge("How do I list a product on the marketplace?");
     assert.match(market, /\/marketplace/);
     assert.match(market, /\/seller\/products/);

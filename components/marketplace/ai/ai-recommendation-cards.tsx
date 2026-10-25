@@ -48,18 +48,19 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               </div>
               <div className="mb-1 flex items-center gap-1">
                 <ShieldCheck className="size-3" style={{ color: JIMVIO_ORANGE }} />
-                <span className="text-[10px] font-medium text-[var(--color-text-muted)]">Suggested product</span>
+                <span className="text-[10px] font-medium text-[var(--color-text-muted)]">{p.basis ? "Catalog result" : "Suggested product"}</span>
               </div>
               <h4 className="line-clamp-2 text-[13px] font-bold text-[var(--color-text-primary)]">{p.name}</h4>
+              {p.basis ? <p className="mt-1 text-[11px] leading-snug text-[var(--color-text-muted)]">{p.basis}</p> : null}
               <div className="mt-2 flex items-center justify-between text-[12px]">
                 <span className="font-bold" style={{ color: JIMVIO_ORANGE }}>{p.price}</span>
                 {p.commission ? (
                   <span className="rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-bold" style={{ color: JIMVIO_ORANGE }}>
                     {p.commission} comm.
                   </span>
-                ) : (
+                ) : p.mqo ? (
                   <span className="text-[var(--color-text-muted)]">MOQ {p.mqo}</span>
-                )}
+                ) : null}
               </div>
             </Link>
           ))}
@@ -85,6 +86,7 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               </div>
               <h4 className="line-clamp-2 text-[13px] font-bold text-[var(--color-text-primary)]">{c.title}</h4>
               <p className="mt-1.5 text-[12px] font-semibold" style={{ color: JIMVIO_ORANGE }}>{c.rate}</p>
+              {c.basis ? <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{c.basis}</p> : null}
             </Link>
           ))}
         </div>
@@ -112,6 +114,7 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
                   <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{c.tagline}</p>
                 )}
                 <p className="mt-1 text-[11px] font-medium text-[var(--color-text-muted)]">{c.members} members</p>
+                {c.basis ? <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{c.basis}</p> : null}
               </div>
             </Link>
           ))}

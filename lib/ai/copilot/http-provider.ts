@@ -1,8 +1,21 @@
 import { parseAiTriggers } from "@/lib/ai/chat-shared";
+import { resolveDiscoveryCards } from "@/lib/ai/discovery";
 import { parseSseBuffer, streamNeedsFallback, type ParsedSse } from "@/lib/ai/sse";
 import type { CopilotProvider, CopilotSendInput, CopilotStreamChunk } from "./types";
 
 const TIMEOUT_MS = 45_000;
+
+async function fetchDiscoveryJson(path: string, signal: AbortSignal): Promise<unknown | null> {
+  try {
+    const timeout = AbortSignal.timeout(4_000);
+    const combined = typeof AbortSignal.any === "function" ? AbortSignal.any([signal, timeout]) : timeout;
+    const response = await fetch(path, { signal: combined, headers: { Accept: "application/json" } });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
 
 async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncGenerator<CopilotStreamChunk> {
   const messages = [
@@ -72,6 +85,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
     throw new Error("Jimvio AI is unavailable right now.");
   }
   const triggers = parseAiTriggers(full);
+  const cards = await resolveDiscoveryCards(input.message, fetchDiscoveryJson, signal);
   yield {
     type: "metadata",
     message: {
@@ -79,6 +93,7 @@ async function* streamChat(input: CopilotSendInput, signal: AbortSignal): AsyncG
       followups: triggers.followups,
       links: triggers.links,
       fallback,
+      ...cards,
     },
   };
   yield { type: "done" };

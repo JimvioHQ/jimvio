@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     let query = supabase
       .from("products")
       .select(`
-        id, name, slug, short_description, price, compare_at_price,
+        id, name, slug, short_description, price, currency, compare_at_price,
         images, rating, review_count, is_featured, is_digital, source,
         affiliate_enabled, affiliate_commission_rate, sale_count, view_count,
         vendors!inner(id, business_name, business_slug, rating, verification_status),

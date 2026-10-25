@@ -7,6 +7,24 @@ function topicOf(question: string) {
   return question.trim().replace(/\s+/g, " ").slice(0, 180);
 }
 
+function isLinkOnly(text: string): boolean {
+  const withoutLinks = text
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/\/[a-z0-9][a-z0-9/_-]*/gi, " ")
+    .replace(/\[[^\]]+\]\([^)]+\)/g, " ");
+  return withoutLinks.split(/\s+/).filter(Boolean).length < 12;
+}
+
+/** Keep a model reply only when it answers directly. A title or link list falls back to the article steps. */
+export function preferDirectSupportAnswer(modelText: string, fallback: string): string {
+  const model = modelText.trim();
+  if (!model) return fallback;
+  if (isLinkOnly(model)) return fallback;
+  const hasSteps = /(?:^|\n)\s*(?:\d+\.|[-*])\s+\S/.test(model);
+  if (!hasSteps) return fallback;
+  return model;
+}
+
 export function knowledgeAnswer(articles: SupportArticle[], question: string) {
   const hits = searchSupportArticles(articles, question, { limit: 3 });
   const topic = topicOf(question);
