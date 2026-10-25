@@ -10,7 +10,7 @@ import { appendAudit, createInitialState, trimState } from "@/lib/growth/engine/
 import type { EngineState, FollowupPlan, FollowupTrigger, RiskClass } from "@/lib/growth/engine/types";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { PAGE_SEO } from "@/lib/seo";
-import { PUBLIC_SITEMAP_ROUTES } from "@/lib/seo/public-sitemap";
+import { PUBLIC_SITEMAP_ROUTES } from "@/lib/growth/engine/public-surface";
 import { getAdminDB } from "@/services/base";
 import { getGrowthKpis } from "@/services/growth/kpi";
 import { trackGrowthEvent } from "@/services/growth/events";

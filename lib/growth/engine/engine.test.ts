@@ -13,8 +13,7 @@ import { acquireRunLock, runScheduledTasks } from "./scheduler";
 import { auditSeo } from "./seo";
 import { createInitialState, parseEngineState } from "./state";
 import type { EngineState, Opportunity } from "./types";
-import { PUBLIC_SITEMAP_ROUTES } from "@/lib/seo/public-sitemap";
-import { ROBOTS_DISALLOW } from "@/lib/seo/robots-rules";
+import { PUBLIC_SITEMAP_ROUTES, ROBOTS_DISALLOW } from "./public-surface";
 
 const now = new Date("2026-10-25T12:00:00.000Z");
 

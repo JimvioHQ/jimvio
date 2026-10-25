@@ -1,4 +1,4 @@
-import { ROBOTS_DISALLOW } from "@/lib/seo/robots-rules";
+import { ROBOTS_DISALLOW } from "./public-surface";
 import type { SeoFinding, SeoPage } from "./types";
 
 const PROHIBITED_CLAIM = /paypal|pesapal|pawapay|afripay|\bstripe\b|guaranteed (income|earnings|returns)/i;
