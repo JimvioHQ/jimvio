@@ -20,12 +20,11 @@ export default function ApiDocsPage() {
           when they are issued. Do not put a key in client-side code or in a public page.
         </p>
         <p>
-          The old channel API key screen is retired, so this page cannot issue a key. For access
-          on an authorized merchant account,{" "}
-          <Link href="/help/contact" className="font-medium text-[var(--color-accent)] hover:underline">
-            contact support
+          The old channel API key screen is retired. Signed-in sellers create and revoke keys on{" "}
+          <Link href="/developers/api-keys" className="font-medium text-[var(--color-accent)] hover:underline">
+            API keys
           </Link>
-          . Use of the API is also covered by the{" "}
+          . This page still does not show or create a secret. Use of the API is also covered by the{" "}
           <Link href="/legal/developer" className="font-medium text-[var(--color-accent)] hover:underline">
             Developer Terms
           </Link>

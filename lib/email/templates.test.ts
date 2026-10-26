@@ -194,7 +194,8 @@ describe("Jimvio email templates", () => {
     const login = EMAIL_CATALOG.find((entry) => entry.id === "login.detected");
     const marketing = EMAIL_CATALOG.find((entry) => entry.id === "marketing.newsletter");
     assert.equal(login?.status, "NOT_APPLICABLE");
-    assert.equal(marketing?.status, "NOT_APPLICABLE");
+    assert.equal(marketing?.status, "IMPLEMENTED");
+    assert.match(marketing?.notes ?? "", /Double opt-in/);
     assert.ok(EMAIL_CATALOG.filter((entry) => entry.status === "IMPLEMENTED").length > 20);
   });
 });

@@ -31,13 +31,48 @@ type LegalLink = {
 /** Bottom legal bar — cookies sit immediately after About Us. */
 export const legalLinks: LegalLink[] = getFooterUtilityLinks();
 
+type NewsletterState =
+  | "idle"
+  | "submitting"
+  | "confirmation_sent"
+  | "already_subscribed"
+  | "invalid_email"
+  | "rate_limited"
+  | "delivery_failed"
+  | "not_configured"
+  | "server_error";
+
 function NewsletterStrip() {
   const [email, setEmail] = useState("");
-  const [submitted, setSubmit] = useState(false);
+  const [state, setState] = useState<NewsletterState>("idle");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (email) setSubmit(true);
+    if (state === "submitting") return;
+    setState("submitting");
+    try {
+      const response = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const payload = (await response.json().catch(() => null)) as { status?: NewsletterState } | null;
+      const next = payload?.status;
+      if (
+        next === "confirmation_sent" ||
+        next === "already_subscribed" ||
+        next === "invalid_email" ||
+        next === "rate_limited" ||
+        next === "delivery_failed" ||
+        next === "not_configured"
+      ) {
+        setState(next);
+        return;
+      }
+      setState("server_error");
+    } catch {
+      setState("server_error");
+    }
   }
 
   return (
@@ -49,39 +84,59 @@ function NewsletterStrip() {
               Stay ahead of the market
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-text-muted">
-              Weekly trade insights, flash deals & platform updates — no spam.
+              Send me Jimvio product and trade updates by email. I can unsubscribe at any time.
+              You are subscribed only after you confirm the message.{" "}
+              <Link href="/privacy" className="underline hover:text-text-primary">Privacy</Link>
             </p>
           </div>
 
-          {submitted ? (
-            <div className="flex items-center gap-2 rounded-md border border-[var(--color-success)]/30 bg-[var(--color-success)]/10 px-4 py-2.5 text-sm font-semibold text-[var(--color-success)]">
-              <ShieldCheck size={15} />
-              You&apos;re in — check your inbox!
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit}
-              className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
-            >
-              <FieldInput
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                aria-label="Email address"
-                className="h-[42px] w-full rounded-md px-4 pl-3 text-[13px] font-medium sm:w-[220px]"
-              />
-              <button
-                type="submit"
-                className={cn(
-                  "btn-premium inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 bg-accent px-4 text-white hover:bg-accent-hover",
-                )}
+          <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:items-end">
+            {state === "confirmation_sent" || state === "already_subscribed" ? (
+              <div className="max-w-sm rounded-md border border-[var(--color-success)]/30 bg-[var(--color-success)]/10 px-4 py-2.5 text-sm font-semibold text-[var(--color-success)]">
+                {state === "already_subscribed"
+                  ? "This address is already subscribed."
+                  : "Confirmation email accepted. Open it to finish subscribing."}
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center"
               >
-                Subscribe <ArrowRight size={14} />
-              </button>
-            </form>
-          )}
+                <FieldInput
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  aria-label="Email address"
+                  className="h-[42px] w-full rounded-md px-4 pl-3 text-[13px] font-medium sm:w-[220px]"
+                />
+                <button
+                  type="submit"
+                  disabled={state === "submitting"}
+                  className={cn(
+                    "btn-premium inline-flex h-[42px] shrink-0 items-center justify-center gap-1.5 bg-accent px-4 text-white hover:bg-accent-hover",
+                    "disabled:opacity-60",
+                  )}
+                >
+                  {state === "submitting" ? "Subscribing…" : "Subscribe"} <ArrowRight size={14} />
+                </button>
+              </form>
+            )}
+            {state === "invalid_email" || state === "rate_limited" || state === "delivery_failed" || state === "not_configured" || state === "server_error" ? (
+              <p className="max-w-sm text-[13px] text-red-600" role="alert">
+                {state === "invalid_email"
+                  ? "Enter a valid email address."
+                  : state === "rate_limited"
+                    ? "Too many attempts. Wait and try again."
+                    : state === "delivery_failed"
+                      ? "The address was not subscribed because the confirmation email was not accepted."
+                      : state === "not_configured"
+                        ? "Email delivery is not configured, so this address was not subscribed."
+                        : "The subscription could not be saved. Nothing was confirmed."}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

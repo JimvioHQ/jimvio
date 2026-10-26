@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { hashApiKey, type ApiScope } from "./idempotency";
+import { apiKeyHashMatches } from "./keys";
+import type { ApiScope } from "./idempotency";
 
 export type ApiAuthSuccess = {
   vendorId: string;
@@ -40,7 +41,7 @@ export async function authenticateApiKey(
   if (key.expires_at && new Date(key.expires_at) < new Date()) {
     return { ok: false, status: 401, error: "API key has expired." };
   }
-  if (key.key_hash !== hashApiKey(raw)) {
+  if (!apiKeyHashMatches(key.key_hash, raw)) {
     return { ok: false, status: 401, error: "API key is invalid or revoked." };
   }
 

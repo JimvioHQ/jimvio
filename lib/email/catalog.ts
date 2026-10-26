@@ -52,6 +52,6 @@ export const EMAIL_CATALOG: EmailCatalogEntry[] = [
   { id: "contact.form", subject: "Contact form", recipient: "Jimvio support inbox", trigger: "Public contact form", classification: "transactional", mechanism: "resend", status: "IMPLEMENTED" },
   { id: "login.detected", subject: "Login detected", recipient: "Account email", trigger: "No new-device detector exists", classification: "security", mechanism: "resend", status: "NOT_APPLICABLE" },
   { id: "account.deletion", subject: "Account deletion", recipient: "Account email", trigger: "Deletion is a support request, not an automated event", classification: "security", mechanism: "resend", status: "NOT_APPLICABLE" },
-  { id: "marketing.newsletter", subject: "Newsletter", recipient: "Consented users", trigger: "No marketing sender or consent campaign", classification: "marketing", mechanism: "resend", status: "NOT_APPLICABLE" },
+  { id: "marketing.newsletter", subject: "Confirm your Jimvio newsletter subscription", recipient: "Person who submitted the footer form", trigger: "Footer subscription is stored and Resend accepts the confirmation email", classification: "marketing", mechanism: "resend", status: "IMPLEMENTED", notes: "Double opt-in. Marketing email is allowed only after confirmation and is stopped by unsubscribe. A provider rejection does not count as subscribed." },
   { id: "community.mention", subject: "Mention", recipient: "Mentioned member", trigger: "In-app notification only", classification: "transactional", mechanism: "resend", status: "NOT_APPLICABLE" },
 ];
