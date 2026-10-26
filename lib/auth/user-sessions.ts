@@ -1,5 +1,10 @@
+import { parseClientSignals, parseDevice } from '@/lib/auth/client-signals'
+import { sessionMetaFromHeaders, type NetworkSignal } from '@/lib/auth/session-meta'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { SupabaseClient } from '@supabase/supabase-js'
+
+export { parseDevice }
+export type { NetworkSignal }
 
 export type Session = {
   id: string
@@ -8,12 +13,23 @@ export type Session = {
   lastActivity: string
   location: string
   current?: boolean
+  browser?: string | null
+  browserVersion?: string | null
+  os?: string | null
+  osVersion?: string | null
+  category?: string | null
+  ipRegion?: string | null
+  ipCity?: string | null
+  networkSignal?: NetworkSignal | null
 }
 
 export type SessionMeta = {
   userAgent: string
   ip: string
   country?: string
+  region?: string | null
+  city?: string | null
+  networkSignal?: NetworkSignal | null
 }
 
 type SessionStore = {
@@ -25,18 +41,6 @@ const MAX_SESSIONS = 12
 
 function sessionKey(userId: string) {
   return `sessions:${userId}`
-}
-
-export function parseDevice(userAgent: string): string {
-  const ua = userAgent || 'Unknown browser'
-  if (/Edg\//i.test(ua)) return 'Edge'
-  if (/iPhone|iPad/i.test(ua)) return /CriOS/i.test(ua) ? 'Chrome on iOS' : 'Safari on iOS'
-  if (/Android/i.test(ua)) return /Chrome/i.test(ua) ? 'Chrome on Android' : 'Android browser'
-  if (/Mac OS X/i.test(ua)) return /Chrome/i.test(ua) ? 'Chrome on macOS' : 'Safari on macOS'
-  if (/Windows/i.test(ua)) return /Chrome/i.test(ua) ? 'Chrome on Windows' : 'Browser on Windows'
-  if (/Firefox/i.test(ua)) return 'Firefox'
-  if (/Chrome/i.test(ua)) return 'Chrome'
-  return 'Web browser'
 }
 
 export async function buildSessionId(
@@ -53,15 +57,7 @@ export async function buildSessionId(
 }
 
 export function extractSessionMeta(headers: Headers): SessionMeta {
-  return {
-    userAgent: headers.get('user-agent') ?? 'Unknown browser',
-    ip:
-      headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      headers.get('x-real-ip') ||
-      headers.get('cf-connecting-ip') ||
-      'Unknown IP',
-    country: headers.get('x-vercel-ip-country') ?? undefined,
-  }
+  return sessionMetaFromHeaders(headers)
 }
 
 function formatLastActivity(iso: string): string {
@@ -176,13 +172,22 @@ export async function syncUserSession(
     }
   }
 
+  const signals = parseClientSignals(meta.userAgent)
   const current: Session = {
     id,
-    device: parseDevice(meta.userAgent),
+    device: signals.deviceLabel,
     ip: meta.ip,
     lastActivity: now,
     location: meta.country ?? 'Unknown',
     current: true,
+    browser: signals.browser,
+    browserVersion: signals.browserVersion,
+    os: signals.os,
+    osVersion: signals.osVersion,
+    category: signals.category,
+    ipRegion: meta.region ?? null,
+    ipCity: meta.city ?? null,
+    networkSignal: meta.networkSignal ?? null,
   }
 
   const others = store.sessions

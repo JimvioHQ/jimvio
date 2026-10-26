@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Eye, EyeOff, Save } from "lucide-react";
 import { toast } from "sonner";
 import type { IdentityPrivacyVisibility } from "@/lib/identity/types";
+import type { PreciseLocationSummary } from "@/lib/geo/precise-location";
+import { PreciseLocationCard } from "./PreciseLocationCard";
 import { cn } from "@/lib/utils";
 import { useSettingsCenter } from "./settings-center-context";
 import { SettingsButton, SettingsCard, SettingsPageHeader, SettingsStatus } from "./settings-ui";
@@ -46,9 +48,11 @@ type FieldFlags = {
 export function SettingsPrivacyForm({
   initialVisibility,
   initialCustom,
+  preciseLocation,
 }: {
   initialVisibility: IdentityPrivacyVisibility;
   initialCustom: Record<string, unknown>;
+  preciseLocation: PreciseLocationSummary;
 }) {
   const { menuButton } = useSettingsCenter();
   const [privacyVisibility, setPrivacyVisibility] =
@@ -169,6 +173,8 @@ export function SettingsPrivacyForm({
           <Save className="h-4 w-4" />
           Save privacy settings
         </SettingsButton>
+
+        <PreciseLocationCard initial={preciseLocation} />
       </div>
     </div>
   );

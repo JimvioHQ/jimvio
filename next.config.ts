@@ -240,7 +240,8 @@ const nextConfig: NextConfig = {
           {
             // Live Studio needs first-party camera/mic. Empty allowlists (camera=())
             // force NotAllowedError/"Permission denied" even when the user clicks Allow.
-            // Keep geolocation/payment locked; do not grant to third-party origins.
+            // Geolocation stays locked except on /settings/privacy, where the user
+            // can choose to share a one-time location. Do not grant it to third parties.
             key: "Permissions-Policy",
             value:
               "camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=()",
@@ -248,6 +249,17 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value: "frame-ancestors 'self'",
+          },
+        ],
+      },
+      {
+        // Later duplicate keys override earlier ones. This page alone may prompt.
+        source: "/settings/privacy",
+        headers: [
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), microphone=(self), display-capture=(self), geolocation=(self), payment=()",
           },
         ],
       },

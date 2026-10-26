@@ -6,6 +6,7 @@ import { listStoredSessions } from "@/lib/auth/user-sessions";
 import { awaitQueryResult } from "@/lib/admin/await-query";
 import { adminUserDetailDecision } from "@/lib/admin/user-detail-access";
 import { buildAdminUserLocationView, type AdminUserLocationView } from "@/lib/admin/user-location-view";
+import { lookupCheckoutPoint, readPreciseLocation, refreshPreciseAddress } from "@/lib/geo/precise-location-store";
 import { writeAuditEvent } from "@/services/ops/audit";
 import type { AccountStatus } from "@/lib/users/account-status";
 import { isDeletedAccountEmail } from "@/lib/users/account-status";
@@ -577,7 +578,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         },
     };
 
-    const [sessions, membershipCount, publishedPostCount, listingCount, ticketResult] = await Promise.all([
+    const [sessions, membershipCount, publishedPostCount, listingCount, ticketResult, preciseLocation] = await Promise.all([
         listStoredSessions(userId).catch(() => []),
         countOrNull(
             admin.from("community_memberships").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("status", "active"),
@@ -616,8 +617,21 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
                 .order("created_at", { ascending: false })
                 .limit(5),
         ),
+        readPreciseLocation(userId),
     ]);
 
+    let precise = preciseLocation;
+    try {
+        if (precise) precise = await refreshPreciseAddress(userId, precise);
+    } catch {
+        precise = preciseLocation;
+    }
+    const checkoutOrders = (ordersRes.data ?? []).map((order) => ({
+        shippingAddress: order.shipping_address,
+        paymentStatus: order.payment_status,
+        createdAt: order.created_at,
+    }));
+    const checkoutPoint = await lookupCheckoutPoint(checkoutOrders).catch(() => null);
     const latestSession = sessions[0];
     result.location = buildAdminUserLocationView({
         country: p.country ?? null,
@@ -632,14 +646,12 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         emailConfirmedAt: authRes.data?.user?.email_confirmed_at ?? null,
         lastSignInAt: authRes.data?.user?.last_sign_in_at ?? null,
         sessions,
-        orders: (ordersRes.data ?? []).map((order) => ({
-            shippingAddress: order.shipping_address,
-            paymentStatus: order.payment_status,
-            createdAt: order.created_at,
-        })),
+        orders: checkoutOrders,
         includeCheckoutStreet: true,
         latestIpCountry: latestSession?.location ?? null,
         latestIpAt: latestSession?.lastActivity ?? null,
+        precise,
+        checkoutPoint,
     });
     result.activity = {
         membershipCount,
@@ -660,7 +672,10 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         action: "admin.user_detail.view",
         entityType: "profile",
         entityId: userId,
-        metadata: { outcome: "ok" },
+        metadata: {
+            outcome: "ok",
+            preciseLocationShared: Boolean(precise?.permission === "granted" && precise.latitude != null),
+        },
     });
 
     return result;

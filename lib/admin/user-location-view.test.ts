@@ -154,6 +154,68 @@ describe("admin user location view", () => {
     assert.equal(view.sessions[0]?.ip, "Not available");
     assert.equal(view.sessions[0]?.ipCountry, null);
     assert.equal(describeStoredDevice(undefined).category, "unknown");
+    assert.equal(view.map, null);
+    assert.equal(view.network.isp, null);
+    assert.equal(view.device.browserVersion, null);
+    assert.equal(view.addressComponents.some((component) => component.label === "Village"), false);
+  });
+
+  it("shows a consented coordinate without turning an IP city into a street address", () => {
+    const view = buildAdminUserLocationView({
+      country: "KE",
+      city: "Nairobi",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-03-01T00:00:00.000Z",
+      phone: null,
+      fullName: null,
+      username: null,
+      avatarUrl: null,
+      bio: null,
+      emailConfirmedAt: null,
+      lastSignInAt: null,
+      sessions: [{
+        id: "s1",
+        device: "Chrome on macOS",
+        browser: "Chrome",
+        browserVersion: "120.0",
+        os: "macOS",
+        osVersion: "10.15",
+        ip: "203.0.113.8",
+        lastActivity: "2026-04-01T00:00:00.000Z",
+        location: "US",
+        ipRegion: "TX",
+        ipCity: "Austin",
+        networkSignal: "none",
+        current: true,
+      }],
+      orders: [],
+      includeCheckoutStreet: true,
+      latestIpCountry: "US",
+      latestIpAt: "2026-04-01T00:00:00.000Z",
+      precise: {
+        permission: "granted",
+        latitude: -1.944072,
+        longitude: 30.061885,
+        accuracyMeters: 40,
+        capturedAt: "2026-04-02T00:00:00.000Z",
+        expiresAt: "2026-07-01T00:00:00.000Z",
+        declinedAt: null,
+        geocodeState: "unconfigured",
+        components: [],
+        formattedAddress: null,
+      },
+    });
+    assert.equal(view.personalizationCountry, "KE");
+    assert.match(view.facts.find((fact) => fact.id === "ip")?.value ?? "", /Austin/);
+    assert.match(view.facts.find((fact) => fact.id === "ip")?.note ?? "", /not a street address/i);
+    assert.equal(view.facts.find((fact) => fact.id === "browser")?.useForPersonalization, undefined);
+    assert.equal(view.facts.find((fact) => fact.id === "browser")?.sourceLabel, "Browser permission");
+    assert.match(view.map?.googleMapsUrl ?? "", /-1\.944072,30\.061885/);
+    assert.equal(view.map?.sourceLabel, "Browser permission");
+    assert.equal(view.device.browserVersion, "120.0");
+    assert.equal(view.network.isp, null);
+    assert.match(view.geocoderNote, /GOOGLE_MAPS_GEOCODING_API_KEY/);
+    assert.equal(containsSensitiveKey(view), false);
   });
 
   it("denies anonymous users and non-uuid ids", () => {

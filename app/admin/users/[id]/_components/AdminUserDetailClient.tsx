@@ -37,6 +37,7 @@ import {
 import { Tile } from "@/components/ui/admin-tile";
 import { AdminUserDetail } from "@/services/admin/getAdminUsers";
 import { AdminUserModerationPanel } from "@/components/admin/admin-user-moderation-panel";
+import { AdminUserLocationIntel } from "./AdminUserLocationIntel";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -310,59 +311,7 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                         </div>
                     </Section>
 
-                    <Section title="Country and location" icon={MapPin}>
-                        <div className="px-4 py-1">
-                            {user.location?.conflict && (
-                                <p className="py-2.5 text-[12px] text-amber-700 dark:text-amber-400 border-b border-[var(--color-border)]/50">
-                                    The account country and the latest IP estimate do not match.
-                                </p>
-                            )}
-                            {(user.location?.facts ?? []).map((fact) => (
-                                <div key={fact.id} className="py-2.5 border-b border-[var(--color-border)]/50 last:border-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="text-[11.5px] text-[var(--color-text-muted)]">{fact.title}</span>
-                                        <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-                                            {fact.sourceLabel}
-                                        </span>
-                                    </div>
-                                    <p className="text-[12.5px] text-[var(--color-text-primary)] font-medium mt-0.5 break-words">{fact.value}</p>
-                                    {fact.note && (
-                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 leading-relaxed">{fact.note}</p>
-                                    )}
-                                    <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">
-                                        {fact.updatedAt ? `Updated ${fmtDate(fact.updatedAt)}` : "No update time recorded"}
-                                        {fact.confidence !== "none" ? ` · confidence ${fact.confidence}` : ""}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </Section>
-
-                    <Section title="Devices and sessions" icon={Globe}>
-                        {(user.location?.sessions?.length ?? 0) === 0 ? (
-                            <p className="px-4 py-3 text-[12px] text-[var(--color-text-muted)]">No sessions recorded.</p>
-                        ) : (
-                            <div className="px-4 py-1">
-                                {(user.location?.sessions ?? []).map((session) => (
-                                    <div key={session.id} className="py-2.5 border-b border-[var(--color-border)]/50 last:border-0">
-                                        <p className="text-[12.5px] font-medium text-[var(--color-text-primary)]">{session.device}</p>
-                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5">
-                                            {session.category}
-                                            {session.browser ? ` · ${session.browser}` : ""}
-                                            {session.operatingSystem ? ` · ${session.operatingSystem}` : ""}
-                                            {" · browser version not collected"}
-                                        </p>
-                                        <p className="text-[11.5px] text-[var(--color-text-muted)] mt-0.5 break-all">
-                                            IP {session.ip} · IP-estimated country {session.ipCountry ?? "Not available"}
-                                        </p>
-                                        <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5">
-                                            Last active {session.lastActiveAt}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </Section>
+                    <AdminUserLocationIntel location={user.location} />
 
                     {/* Wallet */}
                     {user.wallet && (

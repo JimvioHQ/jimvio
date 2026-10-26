@@ -1,7 +1,7 @@
 /**
  * Country and location facts from data Jimvio already has.
  * IP country comes from the hosting edge (Vercel or Cloudflare headers).
- * There is no street-level inference and no third-party geocoding call.
+ * These helpers do not call a geocoder. Precise-location geocoding lives in its own server module.
  */
 
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
@@ -249,6 +249,8 @@ export function browserLocationFact(input: {
   longitude?: number | null;
   accuracyMeters?: number | null;
   capturedAt?: string | null;
+  /** Present only after a configured geocoder returns an estimate. */
+  addressEstimate?: string | null;
 } | null): LocationFact {
   if (!input || input.permission === "unavailable" || input.permission === "prompt") {
     return unavailable("Browser location has not been requested.");
@@ -268,15 +270,20 @@ export function browserLocationFact(input: {
     typeof input.accuracyMeters === "number" && Number.isFinite(input.accuracyMeters)
       ? ` within about ${Math.round(input.accuracyMeters)} meters`
       : "";
+  const estimate = typeof input.addressEstimate === "string" ? input.addressEstimate.trim() : "";
   return {
     sourceLabel: "Browser permission",
     country: null,
     region: null,
     city: null,
-    value: `Coordinates supplied by the browser${accuracy}. No street address was derived.`,
+    value: estimate
+      ? `Coordinates supplied by the browser${accuracy}. Address estimate: ${estimate}. This is not proof of residence.`
+      : `Coordinates supplied by the browser${accuracy}. No street address was derived.`,
     confidence: "medium",
     updatedAt: input.capturedAt ?? null,
-    note: "Shown only because the user granted browser geolocation. Jimvio does not reverse-geocode this into an address.",
+    note: estimate
+      ? "The user granted browser geolocation. The address estimate comes from geocoding and is not proof of residence."
+      : "Shown only because the user granted browser geolocation. No address estimate is stored.",
     useForPersonalization: false,
   };
 }
