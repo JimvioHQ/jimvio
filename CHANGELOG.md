@@ -1,3 +1,21 @@
+## v1.0.11 — 2026-10-26
+
+# Jimvio v1.0.11
+
+Production release from `3bea3445524791d83942ccd0221ac09a16c4f38f`.
+
+## Changes
+- fix: stop admin user details from crashing on ticket lookup (3bea3445)
+- chore(release): v1.0.11 [skip ci] (6075a807)
+- fix: record Search Console page counts and real sitemap pages (#41) (a1b1c17f)
+- feat: rank discovery by country and show admin location sources (7e765dff)
+- chore(release): v1.0.11 [skip ci] (e650a896)
+- feat: finish Jimvio AI chat verification and public catalog privacy (e7c22410)
+- chore(release): v1.0.11 [skip ci] (0af4b43a)
+- feat: ground Jimvio AI discovery and support answers (05b4ef49)
+- feat: draft Search Console reviews from measured queries (6afd6025)
+
+
 ## v1.0.11 — 2026-10-25
 
 # Jimvio v1.0.11
