@@ -1,0 +1,76 @@
+/**
+ * Public site footer destinations.
+ * Company links are the live column — do not rename, reorder, or retarget them.
+ */
+
+export type FooterLink = {
+  label: string;
+  href: string;
+};
+
+export type FooterColumn = {
+  title: "Marketplace" | "Earn & Grow" | "Resources" | "Company";
+  links: readonly FooterLink[];
+};
+
+export const FOOTER_COLUMNS: readonly FooterColumn[] = [
+  {
+    title: "Marketplace",
+    links: [
+      { label: "Browse Products", href: "/marketplace" },
+      { label: "Top Suppliers", href: "/vendors" },
+      { label: "New Arrivals", href: "/marketplace/collections/new-arrivals" },
+      { label: "Digital Products", href: "/marketplace/digital" },
+      { label: "Global Shipping", href: "/shipping" },
+      { label: "Buyer Protection", href: "/protection" },
+    ],
+  },
+  {
+    title: "Earn & Grow",
+    links: [
+      { label: "Affiliate Program", href: "/affiliates" },
+      { label: "Creator Monetization", href: "/monetization" },
+      { label: "Brand Campaigns", href: "/ugc/brand-deals" },
+      { label: "UGC & Clipping", href: "/ugc" },
+      { label: "Earnings & Payouts", href: "/wallet" },
+      { label: "Influencer Hub", href: "/influencers" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Help Center", href: "/help" },
+      { label: "Trade Guides", href: "/guides" },
+      { label: "Creator Guides", href: "/help/topics/creators" },
+      { label: "API Docs", href: "/docs" },
+      { label: "Blog", href: "/blog" },
+      { label: "Platform Updates", href: "/updates" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About Us", href: "/about" },
+      { label: "Careers", href: "/careers" },
+      { label: "Press", href: "/press" },
+      { label: "Trust & Safety", href: "/community-guidelines" },
+      { label: "Legal Center", href: "/legal" },
+      { label: "Contact", href: "/contact" },
+    ],
+  },
+];
+
+export type FooterUtilityLink = FooterLink & { external?: boolean };
+
+export function getFooterUtilityLinks(
+  statusUrl = process.env.STATUS_WEBSITE_URL || "https://status.jimvio.com",
+): FooterUtilityLink[] {
+  return [
+    { label: "Status", href: statusUrl, external: true },
+    { label: "Legal", href: "/legal" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Terms", href: "/terms" },
+    { label: "About Us", href: "/about" },
+    { label: "Cookies", href: "/cookies" },
+  ];
+}

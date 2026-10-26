@@ -102,8 +102,39 @@ export const PAGE_SEO = {
   },
   protection: {
     title: "Buyer protection",
-    description: "How Jimvio protects buyers and sellers with secure checkout, dispute support, and verified vendors.",
+    description:
+      "Eligible Jimvio orders that do not match the listing or do not arrive can be reviewed through support.",
     path: "/protection",
+  },
+  shipping: {
+    title: "Global shipping",
+    description:
+      "Shipping on Jimvio is the information shown on the product and at checkout. Delivery dates are not guaranteed.",
+    path: "/shipping",
+  },
+  guides: {
+    title: "Trade guides",
+    description:
+      "Jimvio help articles for buying, selling, supplier fulfillment, and shipping.",
+    path: "/guides",
+  },
+  docs: {
+    title: "API docs",
+    description:
+      "Merchant API routes under /api/v1. Keys are not shown on this page.",
+    path: "/docs",
+  },
+  updates: {
+    title: "Platform updates",
+    description:
+      "Product announcements published in the Jimvio Journal, plus a link to system status.",
+    path: "/updates",
+  },
+  monetization: {
+    title: "Creator monetization",
+    description:
+      "Affiliate links, campaigns, and wallet tools creators can use on Jimvio. Income is not guaranteed.",
+    path: "/monetization",
   },
   verified: {
     title: "Verified program",

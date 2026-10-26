@@ -383,6 +383,7 @@ export async function getTopVendors(limit = 4, options?: { requireActiveProducts
         total_sales,
         business_country,
         created_at,
+        verification_status,
         products ( id, name, slug, images, price, currency )
       `,
       )
@@ -406,7 +407,7 @@ export async function getTopVendors(limit = 4, options?: { requireActiveProducts
 
   const { data } = await db
     .from("vendors")
-    .select("id, business_name, business_slug, business_logo, rating, total_sales, business_country, created_at")
+    .select("id, business_name, business_slug, business_logo, rating, total_sales, business_country, created_at, verification_status")
     .eq("is_active", true)
     .order("total_sales", { ascending: false })
     .order("created_at", { ascending: false })

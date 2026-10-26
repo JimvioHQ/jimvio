@@ -27,7 +27,7 @@ const ITEMS = [
   {
     icon: ShieldCheck,
     title: "Buyer Protection",
-    href: "/help",
+    href: "/protection",
   },
 ] as const;
 
