@@ -5,26 +5,47 @@ import { describe, it } from "node:test";
 import { FOOTER_COLUMNS, getFooterUtilityLinks } from "./public-footer";
 
 describe("public footer links", () => {
-  it("gives every column exactly six links and leaves Company unchanged", () => {
+  it("gives every column exactly five links and leaves the remaining Company links unchanged", () => {
     assert.deepEqual(
       FOOTER_COLUMNS.map((column) => column.title),
       ["Marketplace", "Earn & Grow", "Resources", "Company"],
     );
     for (const column of FOOTER_COLUMNS) {
-      assert.equal(column.links.length, 6, column.title);
-      assert.equal(new Set(column.links.map((link) => link.href)).size, 6, column.title);
+      assert.equal(column.links.length, 5, column.title);
+      assert.equal(new Set(column.links.map((link) => link.href)).size, 5, column.title);
     }
 
-    const company = FOOTER_COLUMNS.find((column) => column.title === "Company");
     assert.deepEqual(
-      company?.links.map((link) => [link.label, link.href]),
+      FOOTER_COLUMNS.map((column) => [column.title, column.links.map((link) => [link.label, link.href])]),
       [
-        ["About Us", "/about"],
-        ["Careers", "/careers"],
-        ["Press", "/press"],
-        ["Trust & Safety", "/community-guidelines"],
-        ["Legal Center", "/legal"],
-        ["Contact", "/contact"],
+        ["Marketplace", [
+          ["Browse Products", "/marketplace"],
+          ["Top Suppliers", "/vendors"],
+          ["New Arrivals", "/marketplace/collections/new-arrivals"],
+          ["Digital Products", "/marketplace/digital"],
+          ["Buyer Protection", "/protection"],
+        ]],
+        ["Earn & Grow", [
+          ["Affiliate Program", "/affiliates"],
+          ["Creator Monetization", "/monetization"],
+          ["Brand Campaigns", "/ugc/brand-deals"],
+          ["UGC & Clipping", "/ugc"],
+          ["Earnings & Payouts", "/wallet"],
+        ]],
+        ["Resources", [
+          ["Help Center", "/help"],
+          ["Trade Guides", "/guides"],
+          ["Creator Guides", "/help/topics/creators"],
+          ["API Docs", "/docs"],
+          ["Platform Updates", "/updates"],
+        ]],
+        ["Company", [
+          ["About Us", "/about"],
+          ["Careers", "/careers"],
+          ["Press", "/press"],
+          ["Legal Center", "/legal"],
+          ["Contact", "/contact"],
+        ]],
       ],
     );
   });
