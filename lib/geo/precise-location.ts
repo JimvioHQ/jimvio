@@ -1,4 +1,4 @@
-import type { GeocodeComponent, GeocodeOutcome } from "@/lib/geo/google-geocode";
+import type { GeocodeComponent, GeocodeOutcome } from "@/lib/geo/geoapify-geocode";
 import { mapLinksForCoordinates, type MapLinks } from "@/lib/geo/map-links";
 
 export const PRECISE_LOCATION_TTL_MS = 90 * 24 * 60 * 60 * 1000;

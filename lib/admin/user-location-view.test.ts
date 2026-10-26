@@ -214,7 +214,7 @@ describe("admin user location view", () => {
     assert.equal(view.map?.sourceLabel, "Browser permission");
     assert.equal(view.device.browserVersion, "120.0");
     assert.equal(view.network.isp, null);
-    assert.match(view.geocoderNote, /GOOGLE_MAPS_GEOCODING_API_KEY/);
+    assert.match(view.geocoderNote, /GEOAPIFY_API_KEY/);
     assert.equal(containsSensitiveKey(view), false);
   });
 

@@ -283,7 +283,7 @@ function geocoderNote(precise: StoredPreciseLocation | null, map: AdminMapView |
     return "The address estimate was reverse-geocoded from the shared coordinates. It is not proof of residence.";
   }
   if (precise.geocodeState === "unconfigured") {
-    return "Coordinates are stored. Address estimation needs the server environment variable GOOGLE_MAPS_GEOCODING_API_KEY.";
+    return "Coordinates are stored. Address estimation needs the server environment variable GEOAPIFY_API_KEY.";
   }
   if (precise.geocodeState === "rate_limited") {
     return "The geocoding provider rate-limited the address estimate. The shared coordinates are still shown.";

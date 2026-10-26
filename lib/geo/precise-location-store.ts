@@ -1,7 +1,7 @@
 import "server-only";
 
 import { checkoutGeocodeQuery } from "@/lib/geo/address-components";
-import { forwardGeocodeAddress, reverseGeocodeCoordinates } from "@/lib/geo/google-geocode";
+import { forwardGeocodeAddress, reverseGeocodeCoordinates } from "@/lib/geo/geoapify-geocode";
 import {
   applyGeocodeOutcome,
   deniedLocationRecord,
