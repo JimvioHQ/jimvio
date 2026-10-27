@@ -78,6 +78,12 @@ describe("editorial publishing guards", () => {
     assert.match(html, /rel="noopener noreferrer"/);
     assert.match(html, /href="\/media"/);
     assert.equal(html.includes('href="/media" target='), false);
+    assert.equal(html.includes("alert(1)"), false);
+    const hidden = sanitizeArticleHtml(`<p>Visible</p><!--<script>alert(1)</script>--><SCRIPT>alert(2)</SCRIPT><svg><img src=x onerror=alert(3)></svg>`);
+    assert.equal(hidden.includes("alert"), false);
+    assert.equal(hidden.includes("<svg"), false);
+    assert.equal(hidden.includes("<img"), false);
+    assert.match(hidden, /<p>Visible<\/p>/);
   });
 
   it("rejects editorial-team bylines and unsafe images", () => {
