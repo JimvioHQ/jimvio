@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, Share2, ShoppingBag, Wallet } from "lucide-react";
+import { CreditCard, Link2, Share2, Wallet } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AFFILIATE_SHELL,
@@ -27,25 +27,27 @@ const STEPS = [
     n: 3,
     title: "Earn",
     desc: "Get paid when someone makes a purchase.",
-    icon: ShoppingBag,
+    icon: Wallet,
   },
   {
     n: 4,
     title: "Get Paid",
     desc: "Receive payouts quickly and securely.",
-    icon: Wallet,
+    icon: CreditCard,
   },
 ] as const;
 
-export function AffiliateHowItWorks() {
+export function AffiliateHowItWorks({ bare = false }: { bare?: boolean }) {
   const reduceMotion = useReducedMotion() ?? false;
 
   return (
-    <section className={`${AFFILIATE_SHELL} pt-12 sm:pt-14`} id="tools">
-      <AffiliateSectionHeading
-        title="How It Works"
-        subtitle="Start earning in 4 simple steps."
-      />
+    <section className={`${AFFILIATE_SHELL} ${bare ? "pt-6 sm:pt-8" : "pt-12 sm:pt-14"}`} id="tools">
+      {bare ? null : (
+        <AffiliateSectionHeading
+          title="How It Works"
+          subtitle="Start earning in 4 simple steps."
+        />
+      )}
 
       <motion.div
         className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4"

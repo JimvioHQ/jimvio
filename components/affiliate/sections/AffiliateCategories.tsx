@@ -1,140 +1,213 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
-import { getCategoryImageSrc } from "@/lib/marketplace/category-images";
+import { useEffect, useId, useRef, useState } from "react";
 import {
-  AFFILIATE_CARD,
-  AFFILIATE_SHELL,
-  AffiliateSectionHeading,
-  fadeUp,
-  staggerContainer,
-} from "./shared";
+  BookOpen,
+  ChevronDown,
+  Globe,
+  GraduationCap,
+  Laptop,
+  LayoutGrid,
+  MoreHorizontal,
+  Search,
+  ShoppingBag,
+  Star,
+} from "lucide-react";
+import {
+  AFFILIATE_DISCOVERY_CATEGORIES,
+  filterDiscoveryCategories,
+  type AffiliateDiscoveryCategoryId,
+} from "@/lib/affiliate/discovery";
+import { AFFILIATE_SHELL } from "./shared";
 import { cn } from "@/lib/utils";
 
-/** Category browse tiles — rates are not claimed as fixed; products carry real rates. */
-const CATEGORIES = [
-  {
-    name: "Electronics",
-    image: getCategoryImageSrc("Electronics", "electronics"),
-    href: "/marketplace?category=electronics",
-  },
-  {
-    name: "Beauty",
-    image: getCategoryImageSrc("Beauty", "health-beauty"),
-    href: "/marketplace?category=beauty",
-  },
-  {
-    name: "Home",
-    image: getCategoryImageSrc("Home", "home-living"),
-    href: "/marketplace?category=home",
-  },
-  {
-    name: "Fitness",
-    image: getCategoryImageSrc("Fitness", "sports-outdoors"),
-    href: "/marketplace?category=fitness",
-  },
-  {
-    name: "Education",
-    image: getCategoryImageSrc("Education", "toys-kids"),
-    href: "/marketplace?category=education",
-  },
-  {
-    name: "Digital Products",
-    image: getCategoryImageSrc("Digital", "office-equipment"),
-    href: "/marketplace/digital",
-  },
-] as const;
+const ICONS = {
+  star: Star,
+  bag: ShoppingBag,
+  laptop: Laptop,
+  book: BookOpen,
+  globe: Globe,
+  cap: GraduationCap,
+  grid: LayoutGrid,
+  dots: MoreHorizontal,
+} as const;
 
-export function AffiliateCategories() {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion() ?? false;
+type AffiliateCategoriesProps = {
+  active: AffiliateDiscoveryCategoryId;
+  query: string;
+  onQueryChange: (value: string) => void;
+  onSelect: (id: AffiliateDiscoveryCategoryId) => void;
+  listFilter: "all" | AffiliateDiscoveryCategoryId;
+  onListFilter: (id: "all" | AffiliateDiscoveryCategoryId) => void;
+};
 
-  const scrollBy = (dir: -1 | 1) => {
-    scrollerRef.current?.scrollBy({
-      left: dir * 220,
-      behavior: reduceMotion ? "auto" : "smooth",
-    });
-  };
+export function AffiliateCategories({
+  active,
+  query,
+  onQueryChange,
+  onSelect,
+  listFilter,
+  onListFilter,
+}: AffiliateCategoriesProps) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const searchId = useId();
+  const listId = useId();
+  const searched = filterDiscoveryCategories(query);
+  const visible =
+    listFilter === "all"
+      ? searched
+      : searched.filter((category) => category.id === listFilter);
+  const menuLabel =
+    listFilter === "all"
+      ? "All categories"
+      : AFFILIATE_DISCOVERY_CATEGORIES.find((category) => category.id === listFilter)?.label ??
+        "All categories";
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   return (
-    <section className={`${AFFILIATE_SHELL} pt-10 sm:pt-12`} id="offers">
-      <AffiliateSectionHeading
-        title="Explore Top Categories"
-        subtitle="Each product has its own commission rate — browse categories to find offers that fit your audience."
-      />
-
-      <motion.div
-        className="relative"
-        initial={reduceMotion ? false : "hidden"}
-        whileInView="show"
-        viewport={{ once: true, margin: "-40px" }}
-        variants={staggerContainer}
-      >
-        <div
-          ref={scrollerRef}
-          className="flex snap-x snap-mandatory gap-3.5 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:gap-4 [&::-webkit-scrollbar]:hidden"
-          role="list"
-          aria-label="Top affiliate categories"
-        >
-          {CATEGORIES.map((cat) => (
-            <motion.div key={cat.name} variants={fadeUp} role="listitem" className="snap-start">
-              <Link
-                href={cat.href}
-                className={cn(
-                  AFFILIATE_CARD,
-                  "group flex w-[148px] shrink-0 flex-col items-center px-3 pb-4 pt-4 sm:w-[156px]",
-                  "transition-all duration-200 ease-out will-change-transform",
-                  "hover:-translate-y-1 hover:scale-[1.02] hover:border-[#FF5A1F]/30",
-                  "hover:shadow-[0_12px_28px_rgba(17,24,39,0.1)]",
-                  "active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 focus-visible:ring-offset-2",
-                  "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100"
-                )}
+    <section className={`${AFFILIATE_SHELL} pt-6 sm:pt-8`} aria-labelledby="affiliate-discover-heading">
+      <div className="rounded-[20px] border border-[#F3E6DF] bg-[#FFF8F6] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <h2 id="affiliate-discover-heading" className="text-[22px] font-bold tracking-tight text-[#172033] sm:text-[26px]">
+            Choose what you want to promote
+          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 sm:w-[240px]">
+              <label htmlFor={searchId} className="sr-only">
+                Search categories and products
+              </label>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
+              <input
+                id={searchId}
+                type="search"
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                placeholder="Search categories..."
+                autoComplete="off"
+                className="h-10 w-full rounded-full border border-[#E5E7EB] bg-white pl-9 pr-3 text-[13px] text-[#111827] outline-none placeholder:text-[#9CA3AF] focus-visible:border-[#FF5A1F] focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/25"
+              />
+            </div>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                aria-controls={listId}
+                onClick={() => setOpen((value) => !value)}
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 text-[13px] font-medium text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 sm:w-auto"
               >
-                <div className="relative mb-3 h-[88px] w-[88px]">
-                  <Image
-                    src={cat.image}
-                    alt=""
-                    fill
-                    loading="lazy"
-                    className="object-contain transition-transform duration-300 ease-out group-hover:scale-105 motion-reduce:group-hover:scale-100"
-                    sizes="88px"
-                  />
-                </div>
-                <p className="text-center text-[13.5px] font-bold text-[#111827]">
-                  {cat.name}
-                </p>
-                <p className="mt-1 text-center text-[12px] text-[#6B7280]">
-                  Variable commissions
-                </p>
-              </Link>
-            </motion.div>
-          ))}
+                <LayoutGrid className="h-4 w-4 text-[#6B7280]" />
+                <span className="truncate">{menuLabel}</span>
+                <ChevronDown className="h-4 w-4 text-[#6B7280]" />
+              </button>
+              {open ? (
+                <ul
+                  id={listId}
+                  role="listbox"
+                  aria-label="Categories"
+                  className="absolute right-0 z-30 mt-1 max-h-80 w-full min-w-[240px] overflow-auto rounded-xl border border-[#E5E7EB] bg-white p-1 shadow-[0_12px_32px_rgba(17,24,39,0.12)]"
+                >
+                  <li>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={listFilter === "all"}
+                      onClick={() => {
+                        onListFilter("all");
+                        setOpen(false);
+                      }}
+                      className="flex w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[#111827] hover:bg-[#FFF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30"
+                    >
+                      All categories
+                    </button>
+                  </li>
+                  {AFFILIATE_DISCOVERY_CATEGORIES.map((category) => (
+                    <li key={category.id}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={listFilter === category.id}
+                        onClick={() => {
+                          onListFilter(category.id);
+                          onSelect(category.id);
+                          setOpen(false);
+                        }}
+                        className="flex w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[#111827] hover:bg-[#FFF8F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30"
+                      >
+                        {category.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-8 bg-gradient-to-r from-[#F7F8FA] to-transparent md:block" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-10 bg-gradient-to-l from-[#F7F8FA] to-transparent md:block" />
-
-        <button
-          type="button"
-          aria-label="Scroll categories left"
-          onClick={() => scrollBy(-1)}
-          className="absolute -left-1 top-1/2 z-[1] hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#6B7280] shadow-[0_4px_12px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-all duration-200 hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 md:grid"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          aria-label="Scroll categories right"
-          onClick={() => scrollBy(1)}
-          className="absolute -right-1 top-1/2 z-[1] hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-[#E5E7EB] bg-white/95 text-[#6B7280] shadow-[0_4px_12px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-all duration-200 hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35 md:grid"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </motion.div>
+        {visible.length === 0 ? (
+          <p className="mt-4 rounded-[14px] border border-dashed border-[#E5E7EB] bg-white px-4 py-8 text-center text-[13px] text-[#6B7280]" role="status">
+            No categories match “{query.trim()}”.
+          </p>
+        ) : (
+          <div
+            className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[1180px]:grid-cols-8"
+            role="list"
+            aria-label="Affiliate categories"
+          >
+            {visible.map((category) => {
+              const Icon = ICONS[category.icon];
+              const selected = category.id === active;
+              return (
+                <div key={category.id} role="listitem" className="min-w-0">
+                  <button
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      onListFilter("all");
+                      onSelect(category.id);
+                    }}
+                    className={cn(
+                      "relative flex h-full min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border bg-white px-2 py-3 text-center shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+                      selected
+                        ? "border-[#FF5A1F] ring-1 ring-[#FF5A1F]"
+                        : "border-[#E8EAED] hover:border-[#FF5A1F]/35",
+                      category.id === "featured" && "pt-6",
+                    )}
+                  >
+                    {category.id === "featured" ? (
+                      <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-[#FF5A1F] px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
+                        <Star className="h-2.5 w-2.5 fill-white" aria-hidden />
+                        Featured
+                      </span>
+                    ) : null}
+                    <Icon className="h-6 w-6 text-[#FF5A1F]" strokeWidth={1.8} aria-hidden />
+                    <span className="text-[12px] font-semibold leading-tight text-[#172033]">
+                      {category.label}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

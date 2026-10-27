@@ -102,6 +102,40 @@ describe("affiliate workspace nav active", () => {
   });
 });
 
+describe("affiliate discovery route", () => {
+  it("filters on the server and ignores a client commission", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../app/api/affiliates/products/route.ts"),
+      "utf8",
+    );
+    assert.match(source, /parseAffiliateDiscoveryCategory/);
+    assert.match(source, /normalizeAffiliateSearch/);
+    assert.match(source, /getAffiliateDiscoveryProducts/);
+    assert.match(source, /Unknown affiliate category/);
+    assert.doesNotMatch(source, /commissionRate|clientPercent|searchParams\.get\("rate"\)/);
+  });
+
+  it("renders an unknown category as featured without throwing a redirect", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../app/(public)/affiliates/page.tsx"),
+      "utf8",
+    );
+    assert.match(source, /replaceUrl/);
+    assert.doesNotMatch(source, /redirect\(/);
+    assert.match(source, /requested \?\? "featured"/);
+  });
+
+  it("keeps Promote Now on the authenticated promote route", () => {
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/sections/AffiliateProducts.tsx"),
+      "utf8",
+    );
+    assert.match(source, /\/affiliates\/promote\/\$\{product\.slug\}/);
+    assert.match(source, /Promote Now/);
+    assert.doesNotMatch(source, /commissionRate/);
+  });
+});
+
 describe("attribution window", () => {
   it("allows missing timestamp for legacy cookies", () => {
     assert.equal(isWithinAttributionWindow(null, 30), true);

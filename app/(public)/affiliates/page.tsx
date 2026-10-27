@@ -1,85 +1,70 @@
 import type { Metadata } from "next";
 import { AffiliatesMarketingPage } from "@/components/affiliate/affiliates-marketing-page";
-import {
-  getTopAffiliates,
-  getAffiliateProgramStats,
-  getAffiliateSpotlightProducts,
-  getAffiliateById,
-} from "@/services/db";
-import {
-  formatPlatformCount,
-  getResolvedPlatformSettings,
-} from "@/lib/platform-settings";
-import { createClient } from "@/lib/supabase/server";
+import { getAffiliateDiscoveryProducts } from "@/services/affiliates";
+import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { pageMetadata } from "@/lib/seo";
-import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
+import { listPickedAffiliateProductIds } from "@/lib/affiliate/picked-products";
+import {
+  affiliateDiscoveryHref,
+  normalizeAffiliateSearch,
+  parseAffiliateDiscoveryCategory,
+  type AffiliateDiscoveryCategoryId,
+} from "@/lib/affiliate/discovery";
 
 export const metadata: Metadata = pageMetadata("affiliates");
 
-export default async function AffiliatesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
 
-  const [topEarners, stats, spotlightRes, settings, affiliateRow] =
-    await Promise.all([
-      getTopAffiliates(5),
-      getAffiliateProgramStats(),
-      getAffiliateSpotlightProducts(10),
-      getResolvedPlatformSettings(),
-      user ? getAffiliateById(user.id) : Promise.resolve(null),
-    ]);
+export default async function AffiliatesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string | string[]; q?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const rawCategory = firstParam(params.category);
+  const requested = parseAffiliateDiscoveryCategory(rawCategory);
+  const search = normalizeAffiliateSearch(firstParam(params.q));
+  const category: AffiliateDiscoveryCategoryId = requested ?? "featured";
+  const replaceUrl = rawCategory && !requested ? affiliateDiscoveryHref(category, search) : null;
+  const settings = await getResolvedPlatformSettings();
 
-  const spotlight = spotlightRes.products ?? [];
-  const topProducts = spotlight.map((p) =>
-    mapAffiliateSpotlightProduct(
-      p as Parameters<typeof mapAffiliateSpotlightProduct>[0],
-      settings.fees.default_affiliate_commission_percent
-    )
-  );
-  const maxRate = topProducts.reduce((m, p) => Math.max(m, p.rate), 0);
-  const heroRate =
-    maxRate > 0
-      ? maxRate
-      : settings.fees.default_affiliate_commission_percent;
+  let products: ReturnType<typeof mapAffiliateSpotlightProduct>[] = [];
+  let total: number | null = null;
+  let loadError: string | null = null;
+  let pickedProductIds: string[] = [];
 
-  const statsRow = [
-    {
-      label: "Active affiliates",
-      value: stats.affiliateCount ? formatPlatformCount(stats.affiliateCount) : "—",
-    },
-    {
-      label: "Affiliate SKUs",
-      value: stats.affiliateSkus ? formatPlatformCount(stats.affiliateSkus) : "—",
-    },
-    {
-      label: "Top commission",
-      value: `${formatAffiliateRate(heroRate)}%`,
-    },
-    {
-      label: "Live products",
-      value: stats.totalProducts ? formatPlatformCount(stats.totalProducts) : "—",
-    },
-  ];
-
-  const maxEarning =
-    topEarners.length > 0
-      ? Math.max(...topEarners.map((a) => Number(a.total_earnings ?? 0)))
-      : 1;
+  try {
+    const result = await getAffiliateDiscoveryProducts({
+      category,
+      search,
+      limit: 10,
+      offset: 0,
+    });
+    products = (result.products ?? []).map((product) =>
+      mapAffiliateSpotlightProduct(
+        product as Parameters<typeof mapAffiliateSpotlightProduct>[0],
+        settings.fees.default_affiliate_commission_percent,
+      ),
+    );
+    total = Number(result.total ?? 0);
+    pickedProductIds = await listPickedAffiliateProductIds(products.map((product) => product.id));
+  } catch (err) {
+    console.error("[affiliates] discovery", err);
+    loadError = "Could not load affiliate products";
+  }
 
   return (
     <AffiliatesMarketingPage
-      heroRate={heroRate}
-      statsRow={statsRow}
-      topProducts={topProducts}
-      catalogTotal={Number(spotlightRes.total ?? topProducts.length)}
-      topEarners={topEarners}
-      maxEarning={maxEarning}
-      settings={settings}
-      isLoggedIn={!!user}
-      hasAffiliateAccount={!!affiliateRow && affiliateRow.is_active !== false}
+      category={category}
+      search={search}
+      replaceUrl={replaceUrl}
+      products={products}
+      total={total}
+      pickedProductIds={pickedProductIds}
+      loadError={loadError}
     />
   );
 }

@@ -13,9 +13,6 @@ import {
 } from "react";
 import {
   ArrowRight,
-  Check,
-  ChevronDown,
-  Eye,
   Heart,
   Loader2,
   RefreshCw,
@@ -26,7 +23,6 @@ import {
   AFFILIATE_BTN_SECONDARY,
   AFFILIATE_CARD,
   AFFILIATE_SHELL,
-  AffiliateSectionHeading,
   formatAffiliateMoney,
   type AffiliateSpotlightProduct,
 } from "./shared";
@@ -40,10 +36,24 @@ import {
   mergeAffiliateCatalogPage,
   shouldFollowDuplicatePage,
 } from "@/lib/affiliate/catalog-feed";
+import {
+  affiliateDiscoveryLabel,
+  affiliateDiscoverySectionTitle,
+  normalizeAffiliateSearch,
+  type AffiliateDiscoveryCategoryId,
+} from "@/lib/affiliate/discovery";
 
 type AffiliateProductsProps = {
   products: AffiliateSpotlightProduct[];
   total?: number | null;
+  category: AffiliateDiscoveryCategoryId;
+  search: string;
+  pickedProductIds?: string[];
+  loadError?: string | null;
+  pending?: boolean;
+  onClearSearch: () => void;
+  onSelectCategory: (id: AffiliateDiscoveryCategoryId) => void;
+  onRetry: () => void;
 };
 
 const PAGE_SIZE = AFFILIATE_CATALOG_PAGE_SIZE;
@@ -75,15 +85,13 @@ const ProductCard = memo(function ProductCard({
             setWishlisted(!next);
             return;
           }
-          if (typeof res.inWishlist === "boolean") {
-            setWishlisted(res.inWishlist);
-          }
+          if (typeof res.inWishlist === "boolean") setWishlisted(res.inWishlist);
         } catch {
           setWishlisted(!next);
         }
       });
     },
-    [product.id, wishlisted]
+    [product.id, wishlisted],
   );
 
   return (
@@ -91,11 +99,7 @@ const ProductCard = memo(function ProductCard({
       className={cn(
         AFFILIATE_CARD,
         "group relative flex h-full flex-col overflow-hidden",
-        "transition-all duration-200 ease-out will-change-transform",
-        "hover:-translate-y-1.5 hover:border-[#FF5A1F]/35",
-        "hover:shadow-[0_16px_36px_rgba(17,24,39,0.12)]",
-        "focus-within:ring-2 focus-within:ring-[#FF5A1F]/25 focus-within:ring-offset-2",
-        "motion-reduce:hover:translate-y-0"
+        "transition-shadow duration-200 hover:border-[#FF5A1F]/30 hover:shadow-[0_12px_28px_rgba(17,24,39,0.08)]",
       )}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-[#F8FAFC]">
@@ -104,22 +108,10 @@ const ProductCard = memo(function ProductCard({
           alt={product.name}
           fill
           loading="lazy"
-          className="object-cover transition-transform duration-300 ease-out group-hover:scale-[1.06] motion-reduce:group-hover:scale-100"
+          className="object-cover"
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           unoptimized
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-60"
-        />
-
-        {picked ? (
-          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-            <Check className="h-3 w-3" strokeWidth={3} />
-            Picked
-          </span>
-        ) : null}
-
         <button
           type="button"
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
@@ -128,75 +120,52 @@ const ProductCard = memo(function ProductCard({
           onClick={onWishlist}
           className={cn(
             "absolute right-2.5 top-2.5 grid h-8 w-8 place-items-center rounded-full",
-            "border border-white/70 bg-white/85 text-[#6B7280] shadow-sm backdrop-blur-md",
-            "transition-all duration-200 hover:scale-105 hover:text-[#FF5A1F]",
+            "border border-white/80 bg-white text-[#9CA3AF] shadow-sm",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-            "disabled:opacity-60 motion-reduce:hover:scale-100",
-            wishlisted && "text-[#FF5A1F]"
+            "disabled:opacity-60",
+            wishlisted && "text-[#FF5A1F]",
           )}
         >
-          <Heart
-            className="h-3.5 w-3.5"
-            strokeWidth={2.2}
-            fill={wishlisted ? "currentColor" : "none"}
-          />
+          <Heart className="h-3.5 w-3.5" strokeWidth={2.2} fill={wishlisted ? "currentColor" : "none"} />
         </button>
-
-        <Link
-          href={`/affiliates/promote/${product.slug}`}
-          aria-label={`Quick preview ${product.name}`}
-          className={cn(
-            "absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full",
-            "border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#111827] backdrop-blur-md",
-            "opacity-0 translate-y-2 transition-all duration-200",
-            "group-hover:translate-y-0 group-hover:opacity-100",
-            "focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-            "motion-reduce:translate-y-0 motion-reduce:opacity-100"
-          )}
-        >
-          <Eye className="h-3 w-3" />
-          Preview
-        </Link>
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
         <Link
           href={`/affiliates/promote/${product.slug}`}
-          className="line-clamp-2 min-h-[2.4rem] rounded-sm text-[13px] font-semibold leading-snug text-[#111827] transition-colors duration-200 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30"
+          className="line-clamp-2 min-h-[2.4rem] rounded-sm text-[13px] font-semibold leading-snug text-[#172033] hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30"
         >
           {product.name}
         </Link>
 
-        <div className="mt-2.5 border-t border-[#F3F4F6] pt-2.5">
+        <div className="mt-2.5">
           <p className="text-[15px] font-bold tabular-nums leading-none text-[#111827]">
             {formatAffiliateMoney(product.price, product.currency)}
           </p>
-          {commissionPct != null ? (
-            <span className="mt-2 inline-flex rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FF5A1F] ring-1 ring-[#FF5A1F]/20">
-              {commissionPct}% commission
-            </span>
-          ) : null}
-          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
+              Earn per
+            </p>
+            {commissionPct != null ? (
+              <span className="inline-flex rounded-full bg-[#FFF1EA] px-2 py-0.5 text-[10px] font-semibold text-[#FF5A1F]">
+                {commissionPct}% commission
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">
             Earn per sale
           </p>
-          <p className="mt-0.5 text-[15px] font-bold tabular-nums leading-none text-[#FF5A1F]">
+          <p className="mt-1 text-[18px] font-bold tabular-nums leading-none text-[#FF5A1F]">
             {formatAffiliateMoney(product.avgEarning, product.currency)}
           </p>
         </div>
 
-        <div
-          className={cn(
-            "mt-auto pt-3 translate-y-1 opacity-95 transition-all duration-200",
-            "group-hover:translate-y-0 group-hover:opacity-100",
-            "motion-reduce:translate-y-0"
-          )}
-        >
+        <div className="mt-auto pt-3">
           <Link
             href={`/affiliates/promote/${product.slug}`}
             className={cn(
               picked ? AFFILIATE_BTN_SECONDARY : AFFILIATE_BTN_PRIMARY,
-              "h-9 w-full px-3 text-[12px]",
-              !picked && "shadow-[0_4px_14px_rgba(255,90,31,0.22)]"
+              "h-10 w-full px-3 text-[13px]",
             )}
           >
             {picked ? "Manage link" : "Promote Now"}
@@ -216,83 +185,77 @@ function ProductSkeleton() {
         <div className="h-4 w-[80%] animate-pulse rounded bg-[#F3F4F6]" />
         <div className="h-3 w-1/2 animate-pulse rounded bg-[#F3F4F6]" />
         <div className="h-5 w-1/3 animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="h-9 w-full animate-pulse rounded-[10px] bg-[#F3F4F6]" />
+        <div className="h-10 w-full animate-pulse rounded-[10px] bg-[#F3F4F6]" />
       </div>
     </div>
   );
 }
 
-export function AffiliateProducts({ products, total = null }: AffiliateProductsProps) {
+function snapshotFrom(products: AffiliateSpotlightProduct[], total: number | null, signature: string) {
   const initial = products.slice(0, PAGE_SIZE);
-  const [items, setItems] = useState<AffiliateSpotlightProduct[]>(initial);
-  const [pickedIds, setPickedIds] = useState<Set<string>>(new Set());
-  const [hasMore, setHasMore] = useState(
-    catalogHasMore({ loaded: initial.length, total, pageSize: PAGE_SIZE }),
-  );
+  return {
+    signature,
+    items: initial,
+    hasMore: catalogHasMore({ loaded: initial.length, total, pageSize: PAGE_SIZE }),
+    offset: initial.length,
+  };
+}
+
+export function AffiliateProducts({
+  products,
+  total = null,
+  category,
+  search,
+  pickedProductIds = [],
+  loadError = null,
+  pending = false,
+  onClearSearch,
+  onSelectCategory,
+  onRetry,
+}: AffiliateProductsProps) {
+  const signature = `${category}|${normalizeAffiliateSearch(search)}|${products.map((product) => product.id).join(",")}|${total ?? ""}|${loadError ?? ""}`;
+  const [snapshot, setSnapshot] = useState(() => snapshotFrom(products, total, signature));
+  const [pickedIds, setPickedIds] = useState<Set<string>>(() => new Set(pickedProductIds));
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
-  const seenIds = useRef(new Set(initial.map((p) => p.id)));
-  const offsetRef = useRef(initial.length);
-  const itemsRef = useRef(initial);
+  const [error, setError] = useState<string | null>(loadError);
+  const seenIds = useRef(new Set(snapshot.items.map((product) => product.id)));
+  const offsetRef = useRef(snapshot.offset);
+  const itemsRef = useRef(snapshot.items);
   const inFlight = useRef(false);
+  const signatureRef = useRef(signature);
 
   useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/affiliates/products?limit=${PAGE_SIZE}&offset=0`,
-          { credentials: "same-origin" }
-        );
-        if (!res.ok) return;
-        const body = await res.json();
-        if (cancelled) return;
-        if (Array.isArray(body.pickedProductIds)) {
-          setPickedIds(new Set(body.pickedProductIds as string[]));
-        }
-        const reportedTotal = typeof body.total === "number" ? body.total : total;
-        if (offsetRef.current === initial.length) {
-          setHasMore(
-            catalogHasMore({
-              loaded: initial.length,
-              total: reportedTotal,
-              pageSize: PAGE_SIZE,
-            }),
-          );
-        }
-      } catch {
-        /* non-blocking */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    signatureRef.current = signature;
+    seenIds.current = new Set(snapshot.items.map((product) => product.id));
+    offsetRef.current = snapshot.offset;
+    itemsRef.current = snapshot.items;
+  }, [signature, snapshot]);
 
   const loadMore = useCallback(async () => {
-    if (!canLoadMoreAffiliateProducts({ loading: inFlight.current, hasMore })) return;
+    if (!canLoadMoreAffiliateProducts({ loading: inFlight.current, hasMore: snapshot.hasMore })) return;
+    const requestSignature = signatureRef.current;
     inFlight.current = true;
     setLoading(true);
     setError(null);
-    setExpanded(true);
     let follows = 0;
     let firstAddedId: string | null = null;
     try {
       while (follows < 3) {
-        const res = await fetch(
-          `/api/affiliates/products?limit=${PAGE_SIZE}&offset=${offsetRef.current}`,
-          { credentials: "same-origin" }
-        );
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String(offsetRef.current),
+          category,
+          q: normalizeAffiliateSearch(search),
+        });
+        const res = await fetch(`/api/affiliates/products?${params.toString()}`, {
+          credentials: "same-origin",
+        });
         const body = await res.json().catch(() => null);
+        if (signatureRef.current !== requestSignature) return;
         if (!res.ok) {
           throw new Error(affiliateFeedErrorMessage(body, false) ?? "Could not load more products");
         }
+        if (body?.category !== category || (body?.q ?? "") !== normalizeAffiliateSearch(search)) return;
         const pageProducts = (body.products ?? []) as AffiliateSpotlightProduct[];
         const merged = mergeAffiliateCatalogPage(itemsRef.current, seenIds.current, {
           products: pageProducts,
@@ -304,8 +267,12 @@ export function AffiliateProducts({ products, total = null }: AffiliateProductsP
         seenIds.current = merged.seen;
         offsetRef.current = merged.nextOffset;
         itemsRef.current = merged.items;
-        setItems(merged.items);
-        setHasMore(merged.hasMore);
+        setSnapshot((current) => ({
+          ...current,
+          items: merged.items,
+          hasMore: merged.hasMore,
+          offset: merged.nextOffset,
+        }));
         if (Array.isArray(body.pickedProductIds)) {
           setPickedIds((prev) => {
             const next = new Set(prev);
@@ -326,91 +293,146 @@ export function AffiliateProducts({ products, total = null }: AffiliateProductsP
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load products");
+      if (signatureRef.current === requestSignature) {
+        setError(err instanceof Error ? err.message : "Could not load products");
+      }
     } finally {
       inFlight.current = false;
-      setLoading(false);
+      if (signatureRef.current === requestSignature) setLoading(false);
     }
-  }, [hasMore]);
+  }, [category, search, snapshot.hasMore]);
+
+  const title = affiliateDiscoverySectionTitle(category);
+  const label = affiliateDiscoveryLabel(category);
+  const query = normalizeAffiliateSearch(search);
+  const showSkeleton = pending || (loading && snapshot.items.length === 0);
+
+  const viewAll = () => {
+    if (query) {
+      onClearSearch();
+      return;
+    }
+    document.getElementById("affiliate-products")?.focus();
+  };
 
   return (
-    <section className={`${AFFILIATE_SHELL} pt-12 sm:pt-14`} id="creatives">
-      <AffiliateSectionHeading
-        title="Products to Promote Now"
-        subtitle="High-converting products with live commission rates — promote without leaving Affiliate Center."
-      />
+    <section className={`${AFFILIATE_SHELL} pt-8 sm:pt-10`} id="affiliate-products" tabIndex={-1}>
+      <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-[22px] font-bold tracking-tight text-[#172033] sm:text-[24px]">{title}</h2>
+        <button
+          type="button"
+          onClick={viewAll}
+          className="inline-flex h-10 items-center justify-center gap-1 self-start rounded-full border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/35"
+        >
+          View all products
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
-      {items.length === 0 && !loading ? (
-        <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center text-[14px] text-[#6B7280]">
-          Affiliate-enabled products are loading into the catalog. Check back
-          soon.
+      {showSkeleton ? (
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5" aria-busy="true">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <ProductSkeleton key={`sk-${index}`} />
+          ))}
+        </div>
+      ) : error && snapshot.items.length === 0 ? (
+        <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center" role="alert">
+          <p className="text-[14px] font-semibold text-[#111827]">Could not load products</p>
+          <p className="mt-1 text-[13px] text-[#6B7280]">{error}</p>
+          <button
+            type="button"
+            onClick={onRetry}
+            className={cn(AFFILIATE_BTN_SECONDARY, "mt-4 h-10 px-5 text-[13px]")}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Try again
+          </button>
+        </div>
+      ) : snapshot.items.length === 0 ? (
+        <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center" role="status">
+          <p className="text-[14px] font-semibold text-[#111827]">
+            {query
+              ? `No products match “${query}”`
+              : category === "featured"
+                ? "No featured products yet"
+                : `No ${label.toLowerCase()} to promote yet`}
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-[13px] text-[#6B7280]">
+            {query
+              ? `Nothing in ${label} matches that search.`
+              : category === "featured"
+                ? "No products are marked as featured right now."
+                : "Nothing in this category is open for affiliate promotion."}
+          </p>
+          {query ? (
+            <button
+              type="button"
+              onClick={onClearSearch}
+              className={cn(AFFILIATE_BTN_PRIMARY, "mt-4 h-10 px-5 text-[13px]")}
+            >
+              Clear search
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onSelectCategory(category === "featured" ? "physical" : "featured")}
+              className={cn(AFFILIATE_BTN_PRIMARY, "mt-4 h-10 px-5 text-[13px]")}
+            >
+              {category === "featured" ? "Browse physical products" : "Browse featured products"}
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
-          {items.map((product) => (
+          {snapshot.items.map((product) => (
             <div key={product.id} id={`affiliate-product-${product.id}`} className="h-full">
-              <ProductCard
-                product={product}
-                picked={pickedIds.has(product.id)}
-              />
+              <ProductCard product={product} picked={pickedIds.has(product.id)} />
             </div>
           ))}
           {loading
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <ProductSkeleton key={`sk-${i}`} />
-              ))
+            ? Array.from({ length: 5 }).map((_, index) => <ProductSkeleton key={`more-${index}`} />)
             : null}
         </div>
       )}
 
-      <div className="mt-8 flex flex-col items-center gap-3">
-        {error ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            <p className="text-[13px] text-red-600" role="alert">
-              {error}
-            </p>
+      {!showSkeleton && snapshot.items.length > 0 ? (
+        <div className="mt-8 flex flex-col items-center gap-3">
+          {error ? (
+            <div className="flex flex-col items-center gap-2 text-center">
+              <p className="text-[13px] text-red-600" role="alert">{error}</p>
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                className={cn(AFFILIATE_BTN_SECONDARY, "h-10 px-5 text-[13px]")}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry
+              </button>
+            </div>
+          ) : null}
+          {snapshot.hasMore ? (
             <button
               type="button"
               onClick={() => void loadMore()}
-              className={cn(AFFILIATE_BTN_SECONDARY, "h-10 px-5 text-[13px]")}
+              disabled={loading || !canLoadMoreAffiliateProducts({ loading, hasMore: snapshot.hasMore })}
+              aria-busy={loading}
+              className={cn(AFFILIATE_BTN_PRIMARY, "h-11 px-7 text-[14px] disabled:opacity-70")}
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Retry
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading products…
+                </>
+              ) : (
+                <>
+                  Load more
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </button>
-          </div>
-        ) : null}
-
-        {hasMore ? (
-          <button
-            type="button"
-            onClick={() => void loadMore()}
-            disabled={loading || !canLoadMoreAffiliateProducts({ loading, hasMore })}
-            aria-busy={loading}
-            className={cn(
-              AFFILIATE_BTN_PRIMARY,
-              "h-11 px-7 text-[14px] disabled:opacity-70"
-            )}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading products…
-              </>
-            ) : (
-              <>
-                Explore More to Promote
-                <ChevronDown className="h-4 w-4" strokeWidth={2.5} />
-              </>
-            )}
-          </button>
-        ) : items.length > 0 ? (
-          <p className="text-[13px] font-medium text-[#9CA3AF]">
-            {expanded
-              ? "You're caught up on affiliate products."
-              : "All spotlight products are shown."}
-          </p>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

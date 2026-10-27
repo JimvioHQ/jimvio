@@ -1,6 +1,14 @@
+import { cache } from "react";
 import { getAdminDB, getDB } from "./base";
 import { getProducts } from "./products";
 import { getPlatformStats } from "./platform";
+import {
+  affiliateSlugBucket,
+  discoveryCategorySlugs,
+  emptyDiscoveryCategoryIds,
+  type AffiliateDiscoveryCategoryId,
+  type DiscoveryCategoryIds,
+} from "@/lib/affiliate/discovery";
 
 // ─────────────────────────────────────────────────────────────
 // AFFILIATE LINKS
@@ -87,4 +95,45 @@ export async function getAffiliateProgramStats() {
 
 export async function getAffiliateSpotlightProducts(limit = 8) {
   return getProducts({ affiliate: true, limit, sort: "sales" });
+}
+
+export const getAffiliateDiscoveryCategoryIds = cache(async (): Promise<DiscoveryCategoryIds> => {
+  const slugs = discoveryCategorySlugs();
+  const ids = emptyDiscoveryCategoryIds();
+  if (!slugs.length) return ids;
+  const db = await getDB();
+  const { data, error } = await db
+    .from("product_categories")
+    .select("id, slug")
+    .in("slug", slugs);
+  if (error) throw new Error("Could not load affiliate categories");
+  for (const row of data ?? []) {
+    const bucket = affiliateSlugBucket(row.slug);
+    if (!bucket || !row.id) continue;
+    ids[bucket].push(row.id);
+  }
+  return ids;
+});
+
+export async function getAffiliateDiscoveryProducts(input: {
+  category?: AffiliateDiscoveryCategoryId | null;
+  search?: string | null;
+  limit?: number;
+  offset?: number;
+}) {
+  const category = input.category ?? null;
+  const ids =
+    category && category !== "featured"
+      ? await getAffiliateDiscoveryCategoryIds()
+      : emptyDiscoveryCategoryIds();
+  return getProducts({
+    affiliate: true,
+    featured: category === "featured" ? true : undefined,
+    affiliateDiscovery:
+      category && category !== "featured" ? { category, ids } : undefined,
+    search: input.search || undefined,
+    limit: input.limit ?? 10,
+    offset: input.offset ?? 0,
+    sort: "sales",
+  });
 }

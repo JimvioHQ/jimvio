@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProducts } from "@/services/products";
+import { getAffiliateDiscoveryProducts } from "@/services/affiliates";
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
-import { getSessionAffiliate } from "@/lib/affiliate/access";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { listPickedAffiliateProductIds } from "@/lib/affiliate/picked-products";
 import { affiliatePageHasMore, affiliateProductWindow } from "@/lib/affiliate/catalog-feed";
+import {
+  normalizeAffiliateSearch,
+  parseAffiliateDiscoveryCategory,
+} from "@/lib/affiliate/discovery";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/affiliates/products?limit=&offset=
+ * GET /api/affiliates/products?limit=&offset=&category=&q=
  * Paginated affiliate-eligible catalog for Affiliate Center discovery.
+ * Commission rates are computed on the server. Client rate params are ignored.
  */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -19,15 +23,21 @@ export async function GET(req: NextRequest) {
     Number(sp.get("limit") ?? 10),
   );
   const { limit, offset } = page;
+  const rawCategory = sp.get("category");
+  const category = rawCategory ? parseAffiliateDiscoveryCategory(rawCategory) : null;
+  if (rawCategory && !category) {
+    return NextResponse.json({ error: "Unknown affiliate category" }, { status: 400 });
+  }
+  const search = normalizeAffiliateSearch(sp.get("q"));
 
   try {
     const [settings, result] = await Promise.all([
       getResolvedPlatformSettings(),
-      getProducts({
-        affiliate: true,
+      getAffiliateDiscoveryProducts({
+        category,
+        search,
         limit,
         offset,
-        sort: "sales",
       }),
     ]);
 
@@ -35,8 +45,8 @@ export async function GET(req: NextRequest) {
     const mapped = (result.products ?? []).map((p) =>
       mapAffiliateSpotlightProduct(
         p as Parameters<typeof mapAffiliateSpotlightProduct>[0],
-        defaultRate
-      )
+        defaultRate,
+      ),
     );
     const total = Number(result.total ?? 0);
     const hasMore = affiliatePageHasMore({
@@ -45,32 +55,7 @@ export async function GET(req: NextRequest) {
       limit,
       total,
     });
-
-    let pickedProductIds: string[] = [];
-    try {
-      const affiliate = await getSessionAffiliate({ requireActive: true });
-      if (affiliate && mapped.length) {
-        const admin = createServiceRoleClient();
-        const { data: links } = await admin
-          .from("affiliate_links")
-          .select("product_id")
-          .eq("affiliate_id", affiliate.id)
-          .eq("is_active", true)
-          .in(
-            "product_id",
-            mapped.map((p) => p.id)
-          );
-        pickedProductIds = [
-          ...new Set(
-            (links ?? [])
-              .map((l) => l.product_id)
-              .filter((id): id is string => Boolean(id))
-          ),
-        ];
-      }
-    } catch {
-      pickedProductIds = [];
-    }
+    const pickedProductIds = await listPickedAffiliateProductIds(mapped.map((product) => product.id));
 
     return NextResponse.json({
       products: mapped,
@@ -80,12 +65,14 @@ export async function GET(req: NextRequest) {
       nextOffset: offset + mapped.length,
       hasMore,
       pickedProductIds,
+      category,
+      q: search,
     });
   } catch (err) {
     console.error("[api/affiliates/products]", err);
     return NextResponse.json(
       { error: "Could not load affiliate products" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

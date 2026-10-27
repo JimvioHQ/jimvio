@@ -25,6 +25,12 @@ import {
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
+import {
+  affiliateDiscoveryOrFilter,
+  affiliateSearchOrFilter,
+  type AffiliateDiscoveryBucket,
+  type DiscoveryCategoryIds,
+} from "@/lib/affiliate/discovery";
 
 // ─────────────────────────────────────────────────────────────
 // TYPES
@@ -96,6 +102,11 @@ export interface ProductQuery {
   brand?: string;
   /** When set to `shopify`, only products synced from Shopify. */
   catalog?: "shopify";
+  /** Affiliate Center category. Featured uses `featured` instead of this filter. */
+  affiliateDiscovery?: {
+    category: AffiliateDiscoveryBucket;
+    ids: DiscoveryCategoryIds;
+  };
 }
 
 export interface ProductPageData {
@@ -292,7 +303,7 @@ export async function getProducts(query: ProductQuery = {}) {
   const {
     limit = 24, offset = 0, category, type, search,
     sort = "trending", featured, affiliate, vendorId,
-    minPrice, maxPrice, minRating, brand, catalog,
+    minPrice, maxPrice, minRating, brand, catalog, affiliateDiscovery,
   } = query;
 
   let q = db
@@ -316,9 +327,19 @@ export async function getProducts(query: ProductQuery = {}) {
   if (affiliate) {
     q = q.eq("affiliate_enabled", true).is("deleted_at", null);
   }
+  if (affiliateDiscovery) {
+    q = q.or(affiliateDiscoveryOrFilter(affiliateDiscovery.category, affiliateDiscovery.ids));
+  }
   if (type) q = q.eq("product_type", type as any);
   if (category) q = q.eq("product_categories.slug", category);
-  if (search) q = q.ilike("name", `%${search}%`);
+  if (search) {
+    if (affiliate) {
+      const searchFilter = affiliateSearchOrFilter(search);
+      if (searchFilter) q = q.or(searchFilter);
+    } else {
+      q = q.ilike("name", `%${search}%`);
+    }
+  }
   if (minPrice != null) q = q.gte("price", minPrice);
   if (maxPrice != null) q = q.lte("price", maxPrice);
   if (minRating != null && minRating > 0) q = q.gte("rating", minRating);

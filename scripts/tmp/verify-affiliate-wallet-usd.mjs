@@ -73,12 +73,31 @@ assert.match(shared, /formatMoneyAsUSD/);
 assert.doesNotMatch(shared, /currency = "RWF"/);
 
 const categories = mustExist("components/affiliate/sections/AffiliateCategories.tsx");
-assert.match(categories, /Variable commissions/);
+assert.match(categories, /Choose what you want to promote/);
+assert.doesNotMatch(categories, /Travel & Experiences/);
+assert.doesNotMatch(categories, /UGC & Clipping Campaigns/);
 assert.doesNotMatch(categories, /commission: 20/);
+
+const discovery = mustExist("lib/affiliate/discovery.ts");
+for (const label of [
+  "Featured",
+  "Physical Products",
+  "Digital Products",
+  "eBooks & Guides",
+  "Websites & Online Services",
+  "Courses & Learning",
+  "Apps & Software",
+  "Others",
+]) {
+  assert.match(discovery, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+}
+assert.doesNotMatch(discovery, /Travel & Experiences/);
+assert.doesNotMatch(discovery, /UGC & Clipping Campaigns/);
 
 const products = mustExist("components/affiliate/sections/AffiliateProducts.tsx");
 assert.match(products, /Earn per sale/);
-assert.match(products, /% Commission/);
+assert.match(products, /% commission/);
+assert.match(products, /\/affiliates\/promote\//);
 
 const credit = mustExist("lib/affiliate/credit-wallet.ts");
 assert.match(credit, /creditWalletForApprovedCommission/);
