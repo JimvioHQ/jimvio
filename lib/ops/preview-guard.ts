@@ -12,6 +12,9 @@ export function isVercelPreview(): boolean {
 export function isPreviewPrivilegedPath(pathname: string): boolean {
   const p = pathname.replace(/\/+$/, "") || "/";
   if (p === "/admin" || p.startsWith("/admin/")) return true;
+  if (p === "/media/admin" || p.startsWith("/media/admin/")) return true;
+  if (p === "/media/preview" || p.startsWith("/media/preview/")) return true;
+  if (p === "/api/media" || p.startsWith("/api/media/")) return true;
   if (p.startsWith("/api/admin")) return true;
   if (p.startsWith("/api/identity/admin")) return true;
   if (p.startsWith("/api/notifications/admin")) return true;

@@ -38,6 +38,8 @@ export default function robots(): MetadataRoute.Robots {
           "/creator/",
           "/settings/",
           "/admin/",
+          "/media/admin",
+          "/media/preview",
           "/api/",
           "/c/",
           ...HUB_TOOL_DISALLOWS,
@@ -49,6 +51,6 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     host: SITE.url,
-    sitemap: `${SITE.url}/sitemap.xml`,
+    sitemap: [`${SITE.url}/sitemap.xml`, `${SITE.url}/media/sitemap.xml`],
   };
 }

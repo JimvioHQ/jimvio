@@ -113,4 +113,13 @@ describe("commerce host routing", () => {
     assert.equal(isMerchantHostBlockedPlatformPath("/product/x"), false);
     assert.equal(isMerchantHostBlockedPlatformPath("/login"), false);
   });
+
+  it("keeps Jimvio Media on the platform host and off merchant storefronts", () => {
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/media"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("brand.jimvio.com", "/media/article/sample"), false);
+    assert.equal(shouldAttemptStoreHostRewrite("www.jimvio.com", "/media"), false);
+    assert.equal(isMerchantHostBlockedPlatformPath("/media"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/media/admin"), true);
+    assert.equal(isMerchantHostBlockedPlatformPath("/media/article/sample"), true);
+  });
 });

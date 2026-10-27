@@ -1,0 +1,177 @@
+import { revalidatePath } from "next/cache";
+import { fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
+import { evaluateImage } from "@/lib/editorial/ingest/images";
+import { countPlans, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, serverAutopublishAuthorized, sourceDue } from "@/lib/editorial/ingest/plan";
+import { loadCycleContext, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
+import type { CycleCounts, SourceRecord } from "@/lib/editorial/ingest/types";
+import type { FeedItem } from "@/lib/editorial/ingest/types";
+
+export type CycleResult = {
+  ok: boolean;
+  unavailable: boolean;
+  skipped: "emergency" | "disabled" | "storage" | null;
+  counts: CycleCounts;
+};
+
+const EMPTY: CycleCounts = {
+  sources: 0,
+  fetched: 0,
+  discovered: 0,
+  duplicates: 0,
+  filtered: 0,
+  grouped: 0,
+  drafted: 0,
+  review: 0,
+  published: 0,
+  failed: 0,
+};
+
+function add(counts: CycleCounts, extra: ReturnType<typeof countPlans>) {
+  counts.discovered += extra.discovered;
+  counts.duplicates += extra.duplicates;
+  counts.filtered += extra.filtered;
+  counts.grouped += extra.grouped;
+  counts.drafted += extra.drafted;
+  counts.review += extra.review;
+  counts.published += extra.published;
+  counts.failed += extra.failed;
+}
+
+export async function runIngestCycle(options?: {
+  sourceId?: string;
+  force?: boolean;
+  actorId?: string | null;
+  fetchImpl?: typeof fetch;
+  now?: Date;
+}): Promise<CycleResult> {
+  const now = options?.now ?? new Date();
+  const counts = { ...EMPTY };
+  const context = await loadCycleContext(now);
+  if (context.unavailable) return { ok: false, unavailable: true, skipped: "storage", counts };
+  if (context.settings.emergencyStop) return { ok: true, unavailable: false, skipped: "emergency", counts };
+  if (context.settings.mode === "disabled") return { ok: true, unavailable: false, skipped: "disabled", counts };
+
+  for (const job of context.jobs) {
+    if (isStuckJob(job.status, job.startedAt, now)) {
+      await markJob(job.id, "failed", "interrupted", 0);
+      job.status = "failed";
+    }
+  }
+
+  const selected = context.sources.filter((source) => {
+    if (options?.sourceId && source.id !== options.sourceId) return false;
+    if (source.kind === "licensed" || source.kind === "api" || source.permittedUsage === "none") return false;
+    const forced = options?.force === true && (!options.sourceId || source.id === options.sourceId);
+    return sourceDue(source, now, forced);
+  });
+  const due = selected.slice(0, MAX_SOURCES_PER_CYCLE);
+  counts.sources = due.length;
+
+  for (const source of due) {
+    const forced = options?.force === true && (!options.sourceId || source.id === options.sourceId);
+    const outcome = await syncSource(source, context, now, options?.actorId ?? null, options?.fetchImpl ?? fetch, forced);
+    add(counts, outcome.counts);
+    counts.fetched += outcome.fetched;
+    if (outcome.wrote) {
+      revalidatePath("/media/admin");
+      revalidatePath("/media/admin/ingestion");
+      revalidatePath("/media/admin/articles");
+      if (outcome.publishedSlug) {
+        revalidatePath("/media");
+        revalidatePath("/media/sitemap.xml");
+        revalidatePath(`/media/article/${outcome.publishedSlug}`);
+      }
+    }
+  }
+  return { ok: true, unavailable: false, skipped: null, counts };
+}
+
+async function syncSource(
+  source: SourceRecord,
+  context: Awaited<ReturnType<typeof loadCycleContext>>,
+  now: Date,
+  actorId: string | null,
+  fetchImpl: typeof fetch,
+  force: boolean,
+): Promise<{ counts: ReturnType<typeof countPlans>; fetched: number; wrote: boolean; publishedSlug: string | null }> {
+  const empty = { discovered: 0, duplicates: 0, filtered: 0, grouped: 0, drafted: 0, review: 0, published: 0, failed: 0 };
+  const previous = context.jobs.filter((job) => job.sourceId === source.id);
+  if (previous.some((job) => job.status === "running")) return { counts: empty, fetched: 0, wrote: false, publishedSlug: null };
+  const recentFailures = previous.slice(0, context.settings.retryLimit);
+  if (!force && recentFailures.length >= context.settings.retryLimit && recentFailures.every((job) => job.status === "failed")) {
+    return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
+  }
+  const attempt = Math.min(8, Math.max(0, ...previous.map((job) => job.attempt), 0) + 1);
+  const key = force ? `retry:${source.id}:${now.getTime()}` : `sync:${source.id}:${now.toISOString().slice(0, 13)}`;
+  const job = await startJob({ sourceId: source.id, key, kind: force ? "retry" : "sync", attempt });
+  if (job.unavailable || !job.id) return { counts: empty, fetched: 0, wrote: false, publishedSlug: null };
+
+  if (source.kind !== "rss" && source.kind !== "atom" && source.kind !== "announcement" && source.kind !== "educational") {
+    await markJob(job.id, "failed", "This source needs credentials or is not a feed.", 0);
+    await markSourceHealth(source.id, "failed", "Credentials or a feed URL are required.", false);
+    return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
+  }
+
+  const fetched = await fetchFeed(source.locator, fetchImpl);
+  if (!fetched.ok) {
+    await markJob(job.id, "failed", fetched.error, 0);
+    await markSourceHealth(source.id, "failed", fetched.error, false);
+    return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
+  }
+
+  const images = new Map<string, ReturnType<typeof evaluateImage>>();
+  if (source.imageRights !== "none") {
+    for (const item of fetched.items.slice(0, 3)) {
+      if (!item.imageUrl) continue;
+      const bytes = await fetchImage(item.imageUrl, fetchImpl);
+      images.set(item.url, evaluateImage({
+        rights: source.imageRights,
+        url: item.imageUrl,
+        bytes,
+        attribution: source.name,
+        sourceName: source.name,
+        license: source.imageRights,
+      }));
+    }
+  }
+
+  const planned = planSourceItems({
+    settings: context.settings,
+    source,
+    items: fetched.items,
+    existingItems: context.existingItems,
+    existingArticles: context.existingArticles,
+    now,
+    serverAutopublish: serverAutopublishAuthorized(),
+    publishedToday: context.publishedToday,
+    otherReports: context.otherReports,
+    imageFor: (item: FeedItem) => images.get(item.url) ?? null,
+  });
+  let publishedSlug: string | null = null;
+  for (const item of planned) {
+    const saved = await persistPlannedItem(source.id, item, now, actorId);
+    if (saved.unavailable) {
+      await markJob(job.id, "failed", "Media storage is not ready.", planned.length);
+      await markSourceHealth(source.id, "failed", "Media storage is not ready.", false);
+      return { counts: countPlans(planned), fetched: 1, wrote: false, publishedSlug: null };
+    }
+    if (saved.articleId && item.article) {
+      context.existingArticles.push({ id: saved.articleId, title: item.article.title, sourceUrl: item.article.sourceUrl });
+      if (item.status === "published" && saved.slug) {
+        context.publishedToday += 1;
+        publishedSlug = saved.slug;
+      }
+    }
+    context.existingItems.push({
+      id: item.id,
+      externalKey: item.externalKey,
+      fingerprint: item.fingerprint,
+      articleId: saved.articleId,
+      url: item.url,
+    });
+  }
+  const counts = countPlans(planned);
+  await markJob(job.id, "succeeded", null, planned.length);
+  await markSourceHealth(source.id, "ok", null, true);
+  return { counts, fetched: 1, wrote: planned.length > 0, publishedSlug };
+}

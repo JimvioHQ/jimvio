@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Activity,
   Megaphone,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -35,6 +36,7 @@ const navSections = [
     label: "Main",
     items: [
       { label: "Overview",  href: "/admin",          icon: Gauge },
+      { label: "Media",     href: "/media/admin",    icon: Newspaper },
       { label: "Users",     href: "/admin/users",    icon: UsersRound },
       { label: "Vendors",   href: "/admin/vendors",  icon: Store },
       { label: "Products",  href: "/admin/products", icon: Boxes },
