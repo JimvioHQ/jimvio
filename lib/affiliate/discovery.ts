@@ -124,7 +124,15 @@ export function discoveryCategorySlugs(): string[] {
 }
 
 export function emptyDiscoveryCategoryIds(): DiscoveryCategoryIds {
-  return { ebooks: [], courses: [], software: [], services: [], others: [] };
+  return {
+    physical: [],
+    digital: [],
+    ebooks: [],
+    courses: [],
+    software: [],
+    services: [],
+    others: [],
+  };
 }
 
 export function parseAffiliateDiscoveryCategory(
