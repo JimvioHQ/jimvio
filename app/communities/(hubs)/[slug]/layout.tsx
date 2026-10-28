@@ -14,7 +14,7 @@ import {
   isCommunityWorkspaceSubroute,
 } from "@/lib/community/hub-auth";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
-import { FinancialRiskNotice } from "@/components/compliance/FinancialRiskNotice";
+import { FinancialRiskToast } from "@/components/compliance/FinancialRiskNotice";
 import { isFinancialRiskTopic } from "@/lib/compliance/financial-risk";
 
 function WorkspaceFallback() {
@@ -56,7 +56,9 @@ function renderWorkspace(slug: string, payload: CommunityWorkspacePayload, child
         hideSidebar
       >
         <CommunityWorkspaceFrame>
-          {isFinancialRiskTopic(payload.community) ? <FinancialRiskNotice /> : null}
+          {isFinancialRiskTopic(payload.community) ? (
+            <FinancialRiskToast communityId={payload.community.id} />
+          ) : null}
           {children}
         </CommunityWorkspaceFrame>
       </WorkspaceLayout>
