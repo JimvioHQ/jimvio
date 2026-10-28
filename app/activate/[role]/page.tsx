@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useTransition } from "react";
+import { MAX_AFFILIATE_COMMISSION_PERCENT } from "@/lib/affiliate/commission-tiers";
+import { DEFAULT_ATTRIBUTION_WINDOW_DAYS } from "@/lib/affiliate/attribution-window";
+import { AFFILIATE_MIN_WITHDRAWAL_USD, AFFILIATE_RELEASE_TEXT } from "@/lib/payments/payout-terms";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import {
@@ -52,13 +55,13 @@ const ROLES: Record<RoleKey, RoleConfig> = {
     title: "Activate affiliate",
     description: "Generate referral links for any product and earn commission on every sale you drive — no inventory needed.",
     stats: [
-      { label: "Commission", value: "Up to 20%" },
-      { label: "Cookie window", value: "30 days" },
-      { label: "Min payout", value: "$10" },
+      { label: "Commission", value: `Up to ${MAX_AFFILIATE_COMMISSION_PERCENT}%` },
+      { label: "Cookie window", value: `${DEFAULT_ATTRIBUTION_WINDOW_DAYS} days` },
+      { label: "Min payout", value: `$${AFFILIATE_MIN_WITHDRAWAL_USD}` },
     ],
     faq: [
-      { q: "How is commission calculated?", a: "You earn a percentage of each sale made through your referral link, set by the vendor (typically 5–20%)." },
-      { q: "When do I get paid?", a: "Earnings are cleared 7 days after the order is confirmed and paid out on request." },
+      { q: "How is commission calculated?", a: `You earn a percentage of each sale made through your referral link. The seller sets the rate, up to ${MAX_AFFILIATE_COMMISSION_PERCENT}% depending on the item price.` },
+      { q: "When do I get paid?", a: `${AFFILIATE_RELEASE_TEXT} You can withdraw once your available balance reaches $${AFFILIATE_MIN_WITHDRAWAL_USD}.` },
       { q: "Can I promote any product?", a: "You can generate affiliate links for any product on Jimvio that has affiliate enabled by the vendor." },
       { q: "Do I need a referral link before activating?", a: "No. Activate first, then pick products and create tracked /ref links from the Affiliate Hub." },
     ],

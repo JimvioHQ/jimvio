@@ -4,6 +4,9 @@
  * Do not invent fee rates, retention periods, or compliance certifications here.
  */
 
+import { MAX_AFFILIATE_COMMISSION_PERCENT } from "@/lib/affiliate/commission-tiers";
+import { payoutMethodTerms, payoutPolicyItems } from "@/lib/payments/payout-terms";
+
 export type TableRow = { col1: string; col2: string; col3: string };
 export type TableRow4 = { col1: string; col2: string; col3: string; col4: string };
 export type RightCard = { title: string; description: string };
@@ -32,10 +35,10 @@ export const AFFILIATE_OBLIGATIONS = [
 ];
 
 export const SELLER_FEES_ROWS: TableRow[] = [
-  { col1: "Platform Transaction Fee", col2: "5% – 10% of sale price", col3: "Deducted from seller earnings" },
-  { col1: "Payment Processing", col2: "2.9% + $0.30", col3: "Standard payment processor fee" },
-  { col1: "Affiliate Commission", col2: "Set by seller", col3: "Paid to affiliates from seller proceeds" },
-  { col1: "Payout Processing", col2: "Free above $50 threshold", col3: "Small fee for same-day payouts" },
+  { col1: "Platform fee", col2: "Listed on the Pricing & Fees page", col3: "Deducted from seller earnings on each sale" },
+  { col1: "Payment processing", col2: "Charged by the payment provider", col3: "Shown at checkout before the buyer pays" },
+  { col1: "Affiliate commission", col2: `Set by seller, up to ${MAX_AFFILIATE_COMMISSION_PERCENT}%`, col3: "Paid to affiliates from seller proceeds" },
+  ...payoutMethodTerms().map((m) => ({ col1: `Withdrawal · ${m.label}`, col2: m.fee, col3: m.speed })),
 ];
 
 export const CAMPAIGN_PAYMENT_ROWS: TableRow4[] = [
@@ -141,15 +144,8 @@ export const REFUND_ROWS: TableRow4[] = [
   { col1: "Campaign Earnings", col2: "Non-refundable", col3: "Once content is approved and paid", col4: "" },
 ];
 
-export const PAYOUT_POLICY_ITEMS = [
-  "Payouts are processed on a NET-30 basis (30 days after confirmed sale).",
-  "Minimum payout threshold: $20 USD (or local currency equivalent).",
-  "Payout methods: Stripe, PayPal, bank transfer, or local mobile money (country-dependent).",
-  "Earnings on hold pending fraud review are not eligible for payout until cleared.",
-  "Tax withholding applies as required by your country's tax regulations.",
-  "Failed payouts due to incorrect banking details are the account holder's responsibility.",
-  "Jimvio does not charge a fee for standard monthly payouts.",
-];
+// T-4: generated from the enforced wallet/affiliate rules.
+export const PAYOUT_POLICY_ITEMS = payoutPolicyItems();
 
 export const DATA_COLLECTION_ROWS: TableRow[] = [
   { col1: "Account Data", col2: "Name, email, username, password", col3: "Authentication" },

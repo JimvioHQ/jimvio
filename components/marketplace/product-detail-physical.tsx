@@ -1702,7 +1702,7 @@ export function PhysicalProductDetail({
                       )}
                       <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
                         <BadgeCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-                        <span>Reviews marked with a badge are from verified purchasers</span>
+                        <span>Every review comes from a buyer with a paid order for this item</span>
                       </div>
                       <ReviewForm productId={product.id} vendorId={product.vendor_id} />
                       <div className="mt-6">

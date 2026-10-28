@@ -221,6 +221,9 @@ export function ReviewForm({ productId, vendorId }: ReviewFormProps) {
       <p className="text-[15px] font-semibold text-[var(--color-text-primary)] mb-5">
         Leave a review
       </p>
+      <p className="-mt-3 mb-5 text-[12px] text-[var(--color-text-muted)]">
+        Reviews are open to buyers who ordered and paid for this item.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 

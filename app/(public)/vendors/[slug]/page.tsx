@@ -37,6 +37,8 @@ import {
 } from "@/lib/marketplace/store-product-query";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { FinancialRiskNotice } from "@/components/compliance/FinancialRiskNotice";
+import { isFinancialRiskTopic } from "@/lib/compliance/financial-risk";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -164,7 +166,7 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
                     <h1 className="text-3xl font-black text-[var(--color-text-primary)]">{vendor.business_name}</h1>
                     {vendor.verification_status === "verified" && (
                       <Badge className="bg-green-50 text-green-600 border border-green-200 font-bold">
-                        <ShieldCheck className="h-3 w-3 mr-1" /> VERIFIED SUPPLIER
+                        <ShieldCheck className="h-3 w-3 mr-1" /> VERIFIED STORE
                       </Badge>
                     )}
                   </div>
@@ -172,6 +174,9 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
                   <p className="text-[var(--color-text-secondary)] mb-6 max-w-2xl">
                     {vendor.business_description || vendor.about || `Welcome to ${vendor.business_name}. Shop creator-ready products from this Jimvio storefront.`}
                   </p>
+                  {isFinancialRiskTopic({ name: vendor.business_name, tagline: vendor.business_description }) ? (
+                    <FinancialRiskNotice className="mb-6 rounded-lg border" />
+                  ) : null}
 
                   <div className="grid grid-cols-3 gap-6">
                     <div>
