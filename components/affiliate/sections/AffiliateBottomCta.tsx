@@ -64,7 +64,7 @@ export function AffiliateBottomCta({ primaryCtaHref }: AffiliateBottomCtaProps) 
               Ready to start earning?
             </h2>
             <p className="mt-2 text-[14px] leading-relaxed text-[#6B7280]">
-              Join thousands of Affiliates who are earning daily with Jimvio.
+              Free to join. Pick a product, share your link, and earn a commission on each sale.
             </p>
           </div>
 

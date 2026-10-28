@@ -33,7 +33,7 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "illustrative stats module", pattern: /demo-platform-stats|getDemoPlatformStats/ },
   // P0-7: claims Jimvio cannot back up.
   { name: "unverified claim", pattern: /["'>]\s*(?:100% safe|Money-back guarantee|Instant Payouts|24\/7 Support|Fast & reliable delivery)/i },
-  { name: "unverified scale claim", pattern: /\bmillions of (?:products|buyers|creators|users|dropshipping products)\b/i },
+  { name: "unverified scale claim", pattern: /\b(?:millions|thousands) of (?:products|buyers|creators|users|affiliates|students|sellers|dropshipping products)\b/i },
 ];
 
 function walk(dir: string, acc: string[] = []): string[] {

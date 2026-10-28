@@ -101,16 +101,23 @@ export default async function AffiliatesPage({
   const rawCategory = firstParam(params.category);
   const requested = parseAffiliateDiscoveryCategory(rawCategory);
   const search = normalizeAffiliateSearch(firstParam(params.q));
-  const category: AffiliateDiscoveryCategoryId = requested ?? "featured";
+  let category: AffiliateDiscoveryCategoryId = requested ?? "featured";
   const replaceUrl = rawCategory && !requested ? affiliateDiscoveryHref(category, search) : null;
   const settings = await getResolvedPlatformSettings();
   const defaultRate = settings.fees.default_affiliate_commission_percent;
 
-  const [primaryCtaHref, heroRate, discovery] = await Promise.all([
+  const [primaryCtaHref, heroRate, firstDiscovery] = await Promise.all([
     loadAffiliateHeroCta(),
     loadAffiliateHeroRate(defaultRate),
     loadAffiliateDiscovery({ category, search, defaultRate }),
   ]);
+  let discovery = firstDiscovery;
+  // No product is marked featured yet: open on promotable physical products
+  // instead of an empty list (the visitor did not pick a category).
+  if (!requested && !search && !discovery.loadError && discovery.products.length === 0) {
+    category = "physical";
+    discovery = await loadAffiliateDiscovery({ category, search, defaultRate });
+  }
   const { products, total, pickedProductIds, loadError } = discovery;
 
   return (
