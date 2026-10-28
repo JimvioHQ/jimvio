@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiChatMessageData } from "@/components/marketplace/ai/ai-chat-message";
 import { affiliatePromotionUsesLiveModel } from "@/lib/ai/affiliate-workspace";
+import { shouldRouteToAgent } from "@/lib/ai/agent/plan";
 import { planGuideTurn, writePendingAction } from "@/lib/ai/action-guide";
 import {
   completeAssistantTurn,
@@ -19,6 +20,30 @@ import type { CopilotPageContext } from "@/lib/store/use-ai-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 
 const EMPTY_MESSAGES: AiChatMessageData[] = [];
+const EXECUTION_KEY = "jimvio_ai_execution_v1";
+const AGENT_CONFIRM =
+  /^(yes|yep|yeah|confirm|confirmed|create it|go ahead|do it|please create( it)?|try again|try the remaining steps)\b/i;
+const AGENT_CANCEL = /^(no|nope|cancel|stop|don't|do not)\b/i;
+
+function readExecutionId() {
+  if (typeof window === "undefined") return null;
+  try {
+    const value = sessionStorage.getItem(EXECUTION_KEY);
+    return value && value.startsWith("ai:") ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeExecutionId(id: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!id) sessionStorage.removeItem(EXECUTION_KEY);
+    else sessionStorage.setItem(EXECUTION_KEY, id);
+  } catch {
+    // Private browsing can block session storage. The reply is still shown.
+  }
+}
 const messageListeners = new Set<() => void>();
 let messageCache: AiChatMessageData[] | null = null;
 let messageCacheHydrated = false;
@@ -118,12 +143,152 @@ export function useCopilotChat() {
         ? baseMessages.find((message) => message.id === options.regenerateFromId)
         : undefined;
 
-      const guided = affiliatePromotionUsesLiveModel({
+      const liveAffiliate = affiliatePromotionUsesLiveModel({
         message: messageText,
         affiliateTask: options?.affiliateTask,
-      })
-        ? null
-        : planGuideTurn(messageText);
+      });
+      const executionId = readExecutionId();
+      const confirming = Boolean(executionId && AGENT_CONFIRM.test(messageText));
+      const cancelling = Boolean(executionId && AGENT_CANCEL.test(messageText));
+      if (!liveAffiliate && (confirming || cancelling || shouldRouteToAgent(messageText))) {
+        const userMsg: AiChatMessageData = {
+          id: `${Date.now()}-user`,
+          role: "user",
+          content: messageText,
+        };
+        setMessages((prev) => {
+          if (options?.regenerateFromId) {
+            const idx = prev.findIndex((message) => message.id === options.regenerateFromId);
+            return idx >= 0 ? prev.slice(0, idx) : prev;
+          }
+          return [...prev, userMsg];
+        });
+        sendingRef.current = true;
+        setIsSending(true);
+        setStatus("thinking");
+        const aiId = `${Date.now()}-ai`;
+        setMessages((prev) => [...prev, { id: aiId, role: "ai", content: "", thinking: true }]);
+        void (async () => {
+          try {
+            const response = await fetch("/api/ai/actions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(
+                cancelling
+                  ? { executionId, cancel: true }
+                  : confirming
+                    ? { executionId, confirm: true }
+                    : { task: messageText },
+              ),
+            });
+            const data = (await response.json().catch(() => null)) as {
+              handled?: boolean;
+              error?: string;
+              content?: string;
+              links?: AiChatMessageData["links"];
+              followups?: string[];
+              executionId?: string;
+              status?: string;
+            } | null;
+            if (response.status === 401) {
+              writeExecutionId(null);
+              setMessages((prev) =>
+                prev.map((message) =>
+                  message.id === aiId
+                    ? {
+                        ...message,
+                        thinking: false,
+                        content: "Sign in to use Jimvio AI on your account. Nothing was created.",
+                        links: [{ label: "Sign in", href: "/login?next=/ai" }],
+                      }
+                    : message,
+                ),
+              );
+              setStatus("ready");
+              return;
+            }
+            if (!response.ok || !data) {
+              setMessages((prev) =>
+                prev.map((message) =>
+                  message.id === aiId
+                    ? {
+                        ...message,
+                        thinking: false,
+                        content: data?.error || "Jimvio AI could not complete that action. Nothing further was run.",
+                      }
+                    : message,
+                ),
+              );
+              setStatus("ready");
+              return;
+            }
+            if (data.handled === false) {
+              const guided = planGuideTurn(messageText);
+              if (guided) writePendingAction(guided.pending);
+              setMessages((prev) =>
+                prev.map((message) =>
+                  message.id === aiId
+                    ? {
+                        ...message,
+                        thinking: false,
+                        content: guided?.content || "Tell me what you want to do on Jimvio.",
+                        links: guided?.links,
+                        followups: guided?.followups,
+                      }
+                    : message,
+                ),
+              );
+              setStatus("ready");
+              return;
+            }
+            const keep =
+              data.executionId &&
+              (data.status === "awaiting_confirmation" || data.status === "partial" || data.status === "failed")
+                ? data.executionId
+                : null;
+            writeExecutionId(keep);
+            const followups =
+              data.status === "awaiting_confirmation"
+                ? ["Yes, create it", "Cancel"]
+                : data.status === "partial" || data.status === "failed"
+                  ? ["Try the remaining steps"]
+                  : undefined;
+            setMessages((prev) =>
+              prev.map((message) =>
+                message.id === aiId
+                  ? {
+                      ...message,
+                      thinking: false,
+                      content: data.content || "Jimvio AI did not return a result.",
+                      links: data.links,
+                      followups,
+                    }
+                  : message,
+              ),
+            );
+            setStatus("ready");
+          } catch {
+            setMessages((prev) =>
+              prev.map((message) =>
+                message.id === aiId
+                  ? {
+                      ...message,
+                      thinking: false,
+                      content: "Jimvio AI could not reach the server. Nothing further was run.",
+                    }
+                  : message,
+              ),
+            );
+            setStatus("offline");
+          } finally {
+            sendingRef.current = false;
+            setIsSending(false);
+          }
+        })();
+        return true;
+      }
+
+      const guided = liveAffiliate ? null : planGuideTurn(messageText);
       if (guided) {
         writePendingAction(guided.pending);
         const userMsg: AiChatMessageData = {

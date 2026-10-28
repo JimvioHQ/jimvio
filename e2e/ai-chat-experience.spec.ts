@@ -40,7 +40,11 @@ async function installFetchControl(page: Page) {
         });
       }
       const action = (window as unknown as { __jimvioMockAction?: { status: number; body: unknown } }).__jimvioMockAction;
-      if (action && url.includes("/api/ai/actions")) {
+      if (action && url.includes("/api/ai/actions") && (init?.method || "GET").toUpperCase() === "POST") {
+        const calls = ((window as unknown as { __jimvioActionCalls?: unknown[] }).__jimvioActionCalls ??= []);
+        calls.push({
+          body: init?.body ? JSON.parse(String(init.body)) : null,
+        });
         return new Response(JSON.stringify(action.body), {
           status: action.status,
           headers: { "content-type": "application/json" },
@@ -343,8 +347,20 @@ test.describe("Jimvio AI chat experience", () => {
     await expect(page.getByText("This chat has not opened a ticket.")).toBeVisible();
     await expect(page.getByRole("button", { name: "New ticket" })).toBeVisible();
 
+    await page.evaluate(() => {
+      (window as unknown as { __jimvioMockAction?: { status: number; body: unknown } }).__jimvioMockAction = {
+        status: 200,
+        body: {
+          handled: true,
+          status: "awaiting_confirmation",
+          executionId: "ai:user-1:northstar",
+          content: "Review this plan. Nothing has been changed yet.",
+          links: [],
+        },
+      };
+    });
     await ask(page, "Help me create a community called Northstar");
-    await expect(page.getByText(/I have not created it yet/)).toBeVisible();
+    await expect(page.getByText(/Nothing has been changed yet/)).toBeVisible();
     await page.evaluate(() => {
       (window as unknown as { __jimvioMockAction?: { status: number; body: unknown } }).__jimvioMockAction = {
         status: 401,
@@ -355,21 +371,41 @@ test.describe("Jimvio AI chat experience", () => {
     await expect(page.getByText("Nothing was created.")).toBeVisible();
     await expect(page.getByText(/Created the free public community/)).toHaveCount(0);
 
-    await ask(page, "Help me create a community called Northstar");
     await page.evaluate(() => {
       (window as unknown as { __jimvioMockAction?: { status: number; body: unknown } }).__jimvioMockAction = {
         status: 200,
         body: {
-          ok: true,
-          community: { slug: "northstar", name: "Northstar" },
-          href: "/communities/northstar",
-          manageHref: "/owner/communities/northstar",
+          handled: true,
+          status: "awaiting_confirmation",
+          executionId: "ai:user-1:northstar",
+          content: "Review this plan. Nothing has been changed yet.",
+          links: [],
+        },
+      };
+    });
+    await ask(page, "Help me create a community called Northstar");
+    await expect(page.getByText(/Nothing has been changed yet/).last()).toBeVisible();
+    await page.evaluate(() => {
+      (window as unknown as { __jimvioMockAction?: { status: number; body: unknown } }).__jimvioMockAction = {
+        status: 200,
+        body: {
+          handled: true,
+          status: "completed",
+          executionId: "ai:user-1:northstar",
+          content: "Created the free public community “Northstar”.",
+          links: [{ label: "Open community", href: "/communities/northstar" }],
         },
       };
     });
     await ask(page, "Yes, create it");
     await expect(page.getByText(/Created the free public community “Northstar”/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Open community" })).toBeVisible();
+    const calls = await page.evaluate(() => {
+      return (window as unknown as { __jimvioActionCalls?: Array<{ body: Record<string, unknown> }> }).__jimvioActionCalls;
+    });
+    const confirmCall = calls?.find((call) => call.body.confirm === true);
+    expect(confirmCall?.body.executionId).toBe("ai:user-1:northstar");
+    expect(confirmCall?.body.tools).toBeUndefined();
   });
 });
 
