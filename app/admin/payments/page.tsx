@@ -498,7 +498,7 @@ function TableShell({
   title: string;
   count: number;
   total: number;
-  href: string;
+  href?: string;
   empty: React.ReactNode;
   children: React.ReactNode;
   page?: number;
@@ -523,12 +523,14 @@ function TableShell({
                 : `${count} of ${total.toLocaleString()} · newest first`}
           </p>
         </div>
-        <Link
-          href={href}
-          className="text-[12px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors inline-flex items-center gap-1"
-        >
-          View all <ArrowUpRight className="h-3.5 w-3.5" />
-        </Link>
+        {href ? (
+          <Link
+            href={href}
+            className="text-[12px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors inline-flex items-center gap-1"
+          >
+            View all <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        ) : null}
       </div>
       {count === 0 ? empty : (
         <>
@@ -745,7 +747,6 @@ function PayoutsTable({
       title="Payouts"
       count={rows.length}
       total={count}
-      href="/admin/payouts"
       empty={<EmptyState message="No payouts in this period" />}
       page={page}
       totalPages={totalPages}
@@ -777,10 +778,8 @@ function PayoutsTable({
                   {p.fee > 0 ? formatAdminMoney(p.fee, p.currency) : "—"}
                 </td>
                 <td className="px-3 py-3"><StatusPill status={p.status} /></td>
-                <td className="px-3 py-3 pr-5 text-right">
-                  <Link href={`/admin/payouts/${p.id}`} className="text-[var(--color-text-muted)] hover:text-orange-500 transition-colors inline-block">
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
+                <td className="px-3 py-3 pr-5 text-right text-[10.5px] text-[var(--color-text-muted)] tabular-nums" title={p.id}>
+                  {String(p.id).slice(0, 8)}
                 </td>
               </tr>
             );

@@ -850,7 +850,7 @@ export default async function OrderDetailPage({
                                 <div className="flex gap-3 mt-3">
                                     <Link href={`/admin/vendors/${vendor.id}`} className="text-[11px] text-orange-500 hover:underline">Admin view →</Link>
                                     {vendor.business_slug && (
-                                        <Link href={`/store/${vendor.business_slug}`} target="_blank" className="text-[11px] text-[var(--color-text-muted)] hover:text-orange-500 transition-colors">Storefront ↗</Link>
+                                        <Link href={`/vendors/${vendor.business_slug}`} target="_blank" className="text-[11px] text-[var(--color-text-muted)] hover:text-orange-500 transition-colors">Storefront ↗</Link>
                                     )}
                                 </div>
                             </div>
