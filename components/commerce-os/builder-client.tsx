@@ -773,7 +773,9 @@ export function BuilderClient({
               {storeStatus === "published" ? "Online" : "Offline"}
             </span>
             {dirty ? (
-              <span className="ml-1 text-[10px] font-semibold text-amber-700">Unsaved</span>
+              <span className="ml-1 text-[10px] font-semibold text-amber-700" role="status">
+                Unsaved
+              </span>
             ) : null}
           </p>
           </div>
@@ -915,8 +917,8 @@ export function BuilderClient({
               </div>
             ) : null}
           </div>
-          <button type="button" disabled={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] disabled:opacity-50">Save</button>
-          <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white disabled:opacity-50">Publish</button>
+          <button type="button" disabled={busy} aria-busy={busy} onClick={() => void saveDraft()} className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#374151] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F] disabled:opacity-50">Save</button>
+          <button type="button" disabled={busy} onClick={() => setConfirmPublish(true)} className="rounded-md bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111827] disabled:opacity-50">Publish</button>
           {showFullToolbar ? (
             <a href={liveUrl} target="_blank" rel="noreferrer" className="rounded-md border border-[#E5E7EB] px-2 py-1.5 text-[11px] font-semibold">View live</a>
           ) : null}
@@ -952,8 +954,16 @@ export function BuilderClient({
 
       {(error || message) && (
         <div className="border-b border-[#E5E7EB] bg-white px-4 py-2 text-xs">
-          {error ? <p className="font-semibold text-red-600">{error}</p> : null}
-          {message ? <p className="font-semibold text-emerald-700">{message}</p> : null}
+          {error ? (
+            <p className="font-semibold text-red-600" role="alert">
+              {error}
+            </p>
+          ) : null}
+          {message ? (
+            <p className="font-semibold text-emerald-700" role="status">
+              {message}
+            </p>
+          ) : null}
         </div>
       )}
 

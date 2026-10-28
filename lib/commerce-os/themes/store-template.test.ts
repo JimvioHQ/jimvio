@@ -5,8 +5,10 @@ import {
   PROVIDER_STORE_TEMPLATE_ID,
   applyStoreTemplate,
   buildProviderStoreDraft,
+  homeSectionsForTemplate,
   listStoreTemplates,
   storeThemeIsCustomized,
+  templateReplacesSections,
 } from "./store-template.ts";
 
 describe("provider store template", () => {
@@ -42,15 +44,20 @@ describe("provider store template", () => {
     }
   });
 
-  it("keeps logo and existing sections when applying a color preset", () => {
+  it("replaces the homepage with that template and keeps the rest of the store", () => {
     const current = buildProviderStoreDraft("Alpha");
     current.settings.logoUrl = "https://cdn.example/alpha.png";
+    current.settings.faviconUrl = "https://cdn.example/alpha.ico";
     current.sections.home.push({
       id: "faq-1",
       type: "faq",
       enabled: true,
       props: { title: "Questions" },
     });
+    current.sections.product = [
+      { id: "product_detail", type: "product_detail", enabled: true },
+    ];
+    current.sections.cart = [{ id: "cart", type: "cart", enabled: true }];
     const next = applyStoreTemplate({
       storeName: "Alpha",
       templateId: "fashion",
@@ -58,9 +65,49 @@ describe("provider store template", () => {
     });
     assert.ok(next);
     assert.equal(next?.settings.logoUrl, "https://cdn.example/alpha.png");
+    assert.equal(next?.settings.faviconUrl, "https://cdn.example/alpha.ico");
     assert.equal(next?.templateId, "fashion");
-    assert.ok(next?.sections.home.some((section) => section.type === "faq"));
+    assert.equal(next?.sections.home.some((section) => section.type === "faq"), false);
+    assert.equal(next?.sections.product?.[0]?.type, "product_detail");
+    assert.equal(next?.sections.cart?.[0]?.type, "cart");
+    const hero = next?.sections.home.find((section) => section.type === "hero");
+    assert.equal(hero?.props?.headline, "Alpha");
+    assert.equal(hero?.props?.subhead, "Shop Alpha");
+    assert.equal(hero?.props?.layout, "split");
     assert.equal(JSON.stringify(next).toLowerCase().includes("p7 provider"), false);
+    assert.equal(storeThemeIsCustomized(next, "Alpha"), false);
+  });
+
+  it("gives every template a different homepage stack", () => {
+    const cards = listStoreTemplates();
+    const sequence = (id: string) =>
+      homeSectionsForTemplate(id, "Alpha")
+        .map((section) => `${section.type}:${String(section.props?.layout || "")}`)
+        .join("|");
+    const sequences = cards.map((card) => {
+      assert.equal(card.layoutLabel.length > 0, true);
+      assert.equal(card.composition.length > 0, true);
+      return sequence(card.id);
+    });
+    assert.equal(new Set(sequences).size, sequences.length);
+    assert.notEqual(sequence("fashion"), sequence("electronics"));
+    assert.notEqual(sequence("beauty"), sequence("premium"));
+    const electronics = applyStoreTemplate({
+      storeName: "Alpha",
+      templateId: "electronics",
+      current: null,
+    });
+    assert.ok(electronics?.sections.home.some((section) => section.type === "best_sellers"));
+    assert.equal(
+      electronics?.sections.home.some((section) => section.type === "new_arrivals"),
+      false,
+    );
+    const homes = cards.map((card) => JSON.stringify(homeSectionsForTemplate(card.id, "Alpha"))).join("\n");
+    assert.equal(/testimonial|discount|% off|delivery|review/i.test(homes), false);
+    for (const id of ["fashion", "electronics", "provider", "editorial"]) {
+      assert.equal(templateReplacesSections(id), true);
+    }
+    assert.equal(templateReplacesSections("not-a-template"), false);
   });
 
   it("leaves an untouched provider draft unmarked as customized", () => {

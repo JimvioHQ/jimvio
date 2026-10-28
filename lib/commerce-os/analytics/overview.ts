@@ -34,13 +34,20 @@ export async function getStoreAnalytics(
 ) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: orders } = await db
-    .from("orders")
-    .select(
-      "id, total_amount, currency, payment_status, status, created_at, cj_order_id, tracking_number"
-    )
-    .eq("jimvio_store_id", storeId)
-    .gte("created_at", since);
+  const [ordersResult, productCountResult] = await Promise.all([
+    db
+      .from("orders")
+      .select(
+        "id, total_amount, currency, payment_status, status, created_at, cj_order_id, tracking_number"
+      )
+      .eq("jimvio_store_id", storeId)
+      .gte("created_at", since),
+    cosTable(db, "jimvio_store_products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("status", "published"),
+  ]);
+  const { data: orders } = ordersResult;
 
   const list = orders ?? [];
   const paid = list.filter((o) => isPaidStatus(o.payment_status));
@@ -94,10 +101,7 @@ export async function getStoreAnalytics(
     return st === "confirmed" || st === "processing" || st === "paid";
   }).length;
 
-  const { count: productCount } = await cosTable(db, "jimvio_store_products")
-    .select("id", { count: "exact", head: true })
-    .eq("store_id", storeId)
-    .eq("status", "published");
+  const { count: productCount } = productCountResult;
 
   return {
     orders: list.length,

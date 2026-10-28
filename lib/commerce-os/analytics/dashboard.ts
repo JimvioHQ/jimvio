@@ -19,54 +19,75 @@ export async function getCommerceOverviewDashboard(
   storeHandle: string,
   days = 30
 ) {
-  const analytics = await getStoreAnalytics(db, storeId, vendorId, days);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: recentOrders } = await db
-    .from("orders")
-    .select(
-      "id, order_number, total_amount, currency, payment_status, status, created_at"
-    )
-    .eq("jimvio_store_id", storeId)
-    .order("created_at", { ascending: false })
-    .limit(8);
+  // These reads do not depend on each other. Running them together does not
+  // change filters, ownership, or the values assembled below.
+  const [
+    analytics,
+    recentOrdersResult,
+    orderBuyersResult,
+    productLinksResult,
+    collectionCountResult,
+    shippingZoneCountResult,
+    domainCountResult,
+    storeRowResult,
+    paidStoreOrdersResult,
+  ] = await Promise.all([
+    getStoreAnalytics(db, storeId, vendorId, days),
+    db
+      .from("orders")
+      .select(
+        "id, order_number, total_amount, currency, payment_status, status, created_at"
+      )
+      .eq("jimvio_store_id", storeId)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    db
+      .from("orders")
+      .select("buyer_id")
+      .eq("jimvio_store_id", storeId)
+      .not("buyer_id", "is", null),
+    cosTable(db, "jimvio_store_products")
+      .select(
+        "id, status, products(id, name, price, currency, images, inventory_quantity)"
+      )
+      .eq("store_id", storeId)
+      .eq("vendor_id", vendorId)
+      .eq("status", "published")
+      .order("sort_order", { ascending: true })
+      .limit(8),
+    cosTable(db, "jimvio_store_collections")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    cosTable(db, "jimvio_shipping_zones")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    cosTable(db, "jimvio_store_domains")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId),
+    cosTable(db, "jimvio_stores")
+      .select("status, published_theme, theme_id, settings, primary_domain")
+      .eq("id", storeId)
+      .maybeSingle(),
+    db
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("jimvio_store_id", storeId)
+      .in("payment_status", ["paid", "completed"]),
+  ]);
 
-  const { data: orderBuyers } = await db
-    .from("orders")
-    .select("buyer_id")
-    .eq("jimvio_store_id", storeId)
-    .not("buyer_id", "is", null);
-
+  const { data: recentOrders } = recentOrdersResult;
+  const { data: orderBuyers } = orderBuyersResult;
   const customerIds = new Set(
     (orderBuyers ?? []).map((o) => o.buyer_id).filter(Boolean) as string[]
   );
-
-  const { data: productLinks } = await cosTable(db, "jimvio_store_products")
-    .select(
-      "id, status, products(id, name, price, currency, images, inventory_quantity)"
-    )
-    .eq("store_id", storeId)
-    .eq("vendor_id", vendorId)
-    .eq("status", "published")
-    .order("sort_order", { ascending: true })
-    .limit(8);
-
-  const { count: collectionCount } = await cosTable(db, "jimvio_store_collections")
-    .select("id", { count: "exact", head: true })
-    .eq("store_id", storeId);
-
-  const { count: shippingZoneCount } = await cosTable(db, "jimvio_shipping_zones")
-    .select("id", { count: "exact", head: true })
-    .eq("store_id", storeId);
-
-  const { count: domainCount } = await cosTable(db, "jimvio_store_domains")
-    .select("id", { count: "exact", head: true })
-    .eq("store_id", storeId);
-
-  const { data: storeRow } = await cosTable(db, "jimvio_stores")
-    .select("status, published_theme, theme_id, settings, primary_domain")
-    .eq("id", storeId)
-    .maybeSingle();
+  const { data: productLinks } = productLinksResult;
+  const { count: collectionCount } = collectionCountResult;
+  const { count: shippingZoneCount } = shippingZoneCountResult;
+  const { count: domainCount } = domainCountResult;
+  const { data: storeRow } = storeRowResult;
+  const { count: paidStoreOrders } = paidStoreOrdersResult;
 
   const storeSettings =
     storeRow?.settings && typeof storeRow.settings === "object" && !Array.isArray(storeRow.settings)
@@ -74,11 +95,6 @@ export async function getCommerceOverviewDashboard(
       : {};
 
   // Platform payments are shared — treat as configured when merchant marked ready or has paid store order
-  const { count: paidStoreOrders } = await db
-    .from("orders")
-    .select("id", { count: "exact", head: true })
-    .eq("jimvio_store_id", storeId)
-    .in("payment_status", ["paid", "completed"]);
 
   const hasProducts = (analytics.productsPublished ?? 0) > 0;
   const hasPayments =

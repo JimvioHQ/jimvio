@@ -26,6 +26,13 @@ type PreviewProduct = {
   images?: unknown;
 };
 
+type PreviewCollection = {
+  id: string;
+  title: string;
+  handle: string;
+  image_url?: string | null;
+};
+
 type Props = {
   storeId: string;
   storeName: string;
@@ -36,6 +43,7 @@ type Props = {
   initialDraft: ThemeDraft | null;
   previewTemplateId?: string | null;
   previewProducts: PreviewProduct[];
+  previewCollections?: PreviewCollection[];
 };
 
 export function BuilderHome({
@@ -48,6 +56,7 @@ export function BuilderHome({
   initialDraft,
   previewTemplateId,
   previewProducts,
+  previewCollections = [],
 }: Props) {
   const router = useRouter();
   const templates = useMemo(() => listStoreTemplates(), []);
@@ -89,7 +98,7 @@ export function BuilderHome({
     }
     if (customized || switching) {
       const detail = templateReplacesSections(templateId)
-        ? "Homepage sections return to the Provider Store layout. Your logo, products, pages, policies, and orders stay on this store."
+        ? "This replaces the homepage draft with this template's layout. Your logo, products, pages, policies, and orders stay on this store."
         : "Colors, typography, and buttons update. Homepage sections, products, pages, and orders stay in place.";
       const confirmed = window.confirm(
         `Use this template?\n\n${detail}\n\nThis saves a draft. It does not publish until you choose Publish.`,
@@ -132,29 +141,32 @@ export function BuilderHome({
             images: [],
           },
         ];
+    const illustrative = previewProducts.length === 0;
     return (
       <div className="mx-auto max-w-6xl space-y-5 px-4 py-6 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6B7280]">
               Template preview
             </p>
-            <h1 className="mt-1 text-2xl font-semibold text-[#111827]">{preview.label}</h1>
-            <p className="mt-1 max-w-xl text-sm text-[#6B7280]">{preview.description}</p>
-            <p className="mt-2 text-xs text-[#6B7280]">Best for {preview.bestFor}</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#111827]">{preview.label}</h1>
+            <p className="mt-1 max-w-xl text-sm leading-6 text-[#6B7280]">{preview.description}</p>
+            <p className="mt-2 text-xs font-medium text-[#374151]">{preview.layoutLabel}</p>
+            <p className="mt-1 text-xs text-[#6B7280]">Best for {preview.bestFor}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/commerce/builder?storeId=${storeId}`}
-              className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-semibold text-[#374151]"
+              className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm font-semibold text-[#374151] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]"
             >
               Back to templates
             </Link>
             <button
               type="button"
               disabled={busyId === preview.id}
+              aria-busy={busyId === preview.id}
               onClick={() => void applyTemplate(preview.id)}
-              className="rounded-lg bg-[#FF5A1F] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-[#FF5A1F] px-3 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111827] disabled:opacity-60"
             >
               {busyId === preview.id ? "Saving…" : "Use this template"}
             </button>
@@ -165,39 +177,45 @@ export function BuilderHome({
             {error}
           </p>
         ) : null}
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="group" aria-label="Preview width">
           {(["desktop", "mobile"] as const).map((item) => (
             <button
               key={item}
               type="button"
+              aria-pressed={device === item}
               onClick={() => setDevice(item)}
               className={
                 device === item
-                  ? "rounded-full bg-[#111827] px-3 py-1 text-xs font-semibold text-white"
-                  : "rounded-full border border-[#E5E7EB] px-3 py-1 text-xs font-semibold text-[#374151]"
+                  ? "rounded-full bg-[#111827] px-3 py-1 text-xs font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]"
+                  : "rounded-full border border-[#E5E7EB] bg-white px-3 py-1 text-xs font-semibold text-[#374151] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]"
               }
             >
               {item === "desktop" ? "Desktop" : "Mobile"}
             </button>
           ))}
         </div>
-        <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+        <p className="text-xs leading-5 text-[#6B7280]">
+          {illustrative
+            ? "This store has no products yet. The sample card is only for this preview and is not added to the catalog."
+            : "Preview uses this store's published products. Nothing here is published until you choose Publish."}
+        </p>
+        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F3F4F6] p-3 sm:p-4">
           <div
-            className="mx-auto"
-            style={{
-              width: device === "mobile" ? 390 : "100%",
-              ...themeSettingsToCssVars(previewDraft.settings),
-            }}
+            className="mx-auto overflow-hidden rounded-xl border border-[#E5E7EB] bg-white"
+            style={{ width: device === "mobile" ? 390 : "100%" }}
           >
-            <StorefrontHomeSections
-              sections={previewDraft.sections.home}
-              products={products}
-              handle={handle}
-              storeName={storeName}
-              themeSettings={previewDraft.settings}
-              device={device}
-              preview
-            />
+            <div style={themeSettingsToCssVars(previewDraft.settings)}>
+              <StorefrontHomeSections
+                sections={previewDraft.sections.home}
+                products={products}
+                collections={previewCollections}
+                handle={handle}
+                storeName={storeName}
+                themeSettings={previewDraft.settings}
+                device={device}
+                preview
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -234,6 +252,7 @@ export function BuilderHome({
             </a>
             <p className="mt-2 text-sm text-[#6B7280]">
               Current template: {current?.label || "Custom"}
+              {current?.layoutLabel ? ` · ${current.layoutLabel}` : ""}
             </p>
             <p className="mt-1 text-xs text-[#6B7280]">
               {updatedAt ? `Last saved ${new Date(updatedAt).toLocaleString()}` : "Not saved yet"}
@@ -281,9 +300,9 @@ export function BuilderHome({
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#111827]">Choose a template</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">
-          Provider Store is the default layout for new stores. Choosing a template saves a draft and does not publish it.
+        <h2 className="text-lg font-semibold tracking-tight text-[#111827]">Choose a template</h2>
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-[#6B7280]">
+          Each template is a homepage layout. Choosing one saves a draft and does not publish it. Products, pages, policies, and orders stay on this store.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {templates.map((template) => {
@@ -291,9 +310,17 @@ export function BuilderHome({
             return (
               <article
                 key={template.id}
-                className="flex flex-col rounded-2xl border border-[#E5E7EB] bg-white p-3"
+                className={
+                  selected
+                    ? "flex flex-col rounded-2xl border border-[#FF5A1F] bg-white p-3 shadow-sm"
+                    : "flex flex-col rounded-2xl border border-[#E5E7EB] bg-white p-3"
+                }
               >
-                <TemplateThumbnail settings={template.settings} label={template.label} />
+                <TemplateThumbnail
+                  settings={template.settings}
+                  label={template.label}
+                  composition={template.composition}
+                />
                 <div className="mt-3 flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold text-[#111827]">{template.label}</h3>
                   {selected ? (
@@ -302,20 +329,22 @@ export function BuilderHome({
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-1 text-sm text-[#6B7280]">{template.description}</p>
-                <p className="mt-2 text-xs font-medium text-[#374151]">Best for {template.bestFor}</p>
+                <p className="mt-1 text-xs font-medium leading-5 text-[#374151]">{template.layoutLabel}</p>
+                <p className="mt-1 text-sm leading-5 text-[#6B7280]">{template.description}</p>
+                <p className="mt-2 text-xs text-[#6B7280]">Best for {template.bestFor}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
                     href={`/commerce/builder?storeId=${storeId}&view=template&template=${template.id}`}
-                    className="rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold text-[#374151]"
+                    className="rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-xs font-semibold text-[#374151] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]"
                   >
                     Preview template
                   </Link>
                   <button
                     type="button"
                     disabled={busyId === template.id}
+                    aria-busy={busyId === template.id}
                     onClick={() => void applyTemplate(template.id)}
-                    className="rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    className="rounded-lg bg-[#111827] px-3 py-1.5 text-xs font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F] disabled:opacity-60"
                   >
                     {busyId === template.id ? "Saving…" : "Use template"}
                   </button>

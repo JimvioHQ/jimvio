@@ -52,11 +52,13 @@ describe("store order visibility + customer order detail", () => {
   it("analytics order pipeline does not require order.vendor_id match", () => {
     const overview = read("lib/commerce-os/analytics/overview.ts");
     const query = overview.slice(
-      overview.indexOf("const { data: orders }"),
+      overview.indexOf('.from("orders")'),
       overview.indexOf("const list = orders")
     );
     assert.ok(query.includes('.eq("jimvio_store_id", storeId)'));
     assert.equal(query.includes('.eq("vendor_id", vendorId)'), false);
+    assert.ok(query.includes('.eq("store_id", storeId)'));
+    assert.ok(query.includes('.eq("status", "published")'));
   });
 
   it("merchant host rewrites account order detail paths", () => {

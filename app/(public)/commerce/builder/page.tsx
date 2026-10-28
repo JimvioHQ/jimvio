@@ -56,7 +56,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
           <p className="text-sm text-[#6B7280]">Create a store to start designing.</p>
           <Link
             href="/commerce/stores"
-            className="inline-flex rounded-lg bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white"
+            className="inline-flex rounded-lg bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111827]"
           >
             Create a store
           </Link>
@@ -125,6 +125,7 @@ export default async function CommerceBuilderPage({ searchParams }: Props) {
         initialDraft={draft}
         previewTemplateId={view === "template" ? template : null}
         previewProducts={previewProducts}
+        previewCollections={collections}
       />
     );
   }
