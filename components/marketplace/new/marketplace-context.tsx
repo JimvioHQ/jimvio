@@ -135,6 +135,7 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const paramsKey = searchParams.toString();
   const currentHref = paramsKey ? `${pathname}?${paramsKey}` : pathname;
   const selfHref = useRef<string | null>(null);
+  const urlFix = useRef(0);
 
   const [filters, setFilters] = useState<AppliedFilters>(() =>
     snapshotToApplied(type, readMarketplaceFilters(searchParams, type)),
@@ -169,6 +170,18 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       if (href === currentHref) return false;
       selfHref.current = href;
       router.replace(href, { scroll: false });
+      // A same-page query change is fetched, then Next commits the prefetched
+      // pathname and the new search string never reaches the address bar.
+      // Write it back so refresh, back, and forward keep these filters.
+      const fixId = ++urlFix.current;
+      const started = Date.now();
+      const correctUrl = () => {
+        if (fixId !== urlFix.current) return;
+        const actual = `${window.location.pathname}${window.location.search}`;
+        if (actual !== href) window.history.replaceState(null, "", href);
+        if (Date.now() - started < 2500) window.setTimeout(correctUrl, 200);
+      };
+      window.setTimeout(correctUrl, 0);
       return true;
     },
     [currentHref, paramsKey, router, type],

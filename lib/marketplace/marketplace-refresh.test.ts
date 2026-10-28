@@ -144,6 +144,8 @@ describe("marketplace wiring", () => {
     assert.match(sidebar, /New arrivals/);
     assert.match(sidebar, /Purchased/);
     assert.match(sidebar, /AbortController/);
+    const filters = readFileSync(join(root, "components/marketplace/new/marketplace-context.tsx"), "utf8");
+    assert.match(filters, /history\.replaceState\(null, "", href\)/);
     assert.match(sidebar, /marketplaceCustomerUsd/);
     assert.doesNotMatch(sidebar, /step=\{type === "digital" \? 5 : 50\}/);
     assert.doesNotMatch(sidebar, /Jimvio Elite Club/);

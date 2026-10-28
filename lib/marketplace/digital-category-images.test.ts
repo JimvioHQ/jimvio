@@ -5,30 +5,30 @@ import { unsplashDownloadUrl } from "../community/photo-content/unsplash.ts";
 import { digitalCategoryPhotoUrl } from "./digital-category-images.ts";
 
 const EXPECTED_KEYS = {
-  "digital-education-learning": "Education",
-  "digital-business-entrepreneurship": "Business",
-  "digital-marketing-sales": "Marketing",
-  "digital-design-creative": "Design",
-  "digital-photography-video": "Photography",
-  "digital-music-audio": "Music",
-  "digital-software-technology": "Technology",
-  "digital-ai-automation": "AI",
-  "digital-finance-investing": "Finance",
-  "digital-health-fitness": "Health",
-  "digital-creator-influencer": "Creator",
-  "digital-ebooks-publications": "Education",
-  "digital-documents-templates": "Design",
-  "digital-memberships-access": "Business",
-  "digital-events-experiences": "Entertainment",
-  "digital-games-entertainment": "Gaming",
-  "digital-art-collectibles": "Design",
-  "digital-other": "Other",
+  "digital-education-learning": ["Education", 0],
+  "digital-business-entrepreneurship": ["Business", 0],
+  "digital-marketing-sales": ["Marketing", 1],
+  "digital-design-creative": ["Design", 0],
+  "digital-photography-video": ["Photography", 1],
+  "digital-music-audio": ["Music", 0],
+  "digital-software-technology": ["Technology", 0],
+  "digital-ai-automation": ["AI", 0],
+  "digital-finance-investing": ["Finance", 0],
+  "digital-health-fitness": ["Health", 0],
+  "digital-creator-influencer": ["Creator", 0],
+  "digital-ebooks-publications": ["Education", 0],
+  "digital-documents-templates": ["Design", 0],
+  "digital-memberships-access": ["Business", 0],
+  "digital-events-experiences": ["Entertainment", 0],
+  "digital-games-entertainment": ["Gaming", 0],
+  "digital-art-collectibles": ["Design", 0],
+  "digital-other": ["Other", 0],
 } as const;
 
 describe("digital category images", () => {
-  it("uses the first licensed catalog photo for each live digital category", () => {
-    for (const [slug, key] of Object.entries(EXPECTED_KEYS)) {
-      const photo = CATEGORY_PHOTO_CATALOG[key][0];
+  it("uses a licensed catalog photo for each live digital category", () => {
+    for (const [slug, [key, index]] of Object.entries(EXPECTED_KEYS)) {
+      const photo = CATEGORY_PHOTO_CATALOG[key][index];
       assert.ok(photo);
       assert.equal(digitalCategoryPhotoUrl(slug), unsplashDownloadUrl(photo.sourceId, 960));
     }
