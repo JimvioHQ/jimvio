@@ -232,7 +232,7 @@ export function mapInfluencerUserToCreatorProfile(influencer: {
     videoUrl: (clip.video_url as string | null) ?? null,
     views: Number(clip.total_views ?? 0),
     kind: "short" as const,
-    href: "/clippings",
+    href: "/shorts",
   }));
 
   return {

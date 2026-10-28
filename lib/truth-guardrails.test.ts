@@ -12,7 +12,7 @@ import { join, relative } from "node:path";
 import { APPROVED_PARTNER_LOGOS } from "@/lib/brand/payment-partners";
 
 const root = process.cwd();
-const SCAN_DIRS = ["app", "components", "lib"];
+const SCAN_DIRS = ["app", "components", "lib", "data"];
 // Admin dashboards render live database values; test files hold fixtures.
 const SKIP = [/\/admin\//, /\.test\.tsx?$/, /\/community\/editorial-/];
 
@@ -38,6 +38,8 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "hardcoded timer", pattern: />\s*\d{2}:\d{2}:\d{2}\s*</ },
   // P0-7: claims Jimvio cannot back up.
   { name: "unverified claim", pattern: /["'>]\s*(?:100% safe|Money-back guarantee|Instant Payouts|24\/7 Support|Fast & reliable delivery)/i },
+  // Invented activity ("Kevin earned $84 · 1m ago").
+  { name: "fake activity feed", pattern: /\b[A-Z][a-z]+ (?:earned|just earned|joined|bought) \$?\d/ },
   { name: "unverified scale claim", pattern: /\b(?:millions|thousands) of (?:products|buyers|creators|users|affiliates|students|sellers|dropshipping products)\b/i },
 ];
 

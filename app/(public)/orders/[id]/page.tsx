@@ -652,7 +652,7 @@ function VendorGroup({
             </Link>
           </div>
           <Link
-            href={`/messages/new?vendor=${vendor.id}&order=${orderId}`}
+            href={`/messages?vendor=${vendor.id}&order=${orderId}`}
             className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-light)]"
             style={{ borderRadius: "var(--radius-full)" }}
           >

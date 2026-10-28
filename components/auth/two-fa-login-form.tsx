@@ -264,7 +264,7 @@ export function TwoFALoginForm({ next }: { next: string }) {
                 </button>
 
                 <a
-                    href="/support/2fa-recovery"
+                    href="/help/articles/cannot-access-account"
                     className="text-[12.5px] font-medium transition-opacity hover:opacity-70"
                     style={{ color: "var(--color-text-muted)" }}
                 >

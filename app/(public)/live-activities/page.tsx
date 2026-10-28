@@ -28,7 +28,7 @@ export default function LiveActivity() {
                         Go to Dashboard
                     </button>
                 </Link>
-                <Link href="/activities" style={{ textDecoration: "none" }}>
+                <Link href="/ugc/activity" style={{ textDecoration: "none" }}>
                     <button style={{ padding: "12px 24px", fontSize: "14px", fontWeight: 600, borderRadius: "10px", border: "none", cursor: "pointer", background: "var(--color-surface-secondary)", color: "var(--color-text-primary)" }}>
                         Back to activity
                     </button>
