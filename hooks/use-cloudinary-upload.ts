@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import type { CloudinaryFolder } from "@/services/media/cloudinary";
+import { uploadToMediaStorage } from "@/lib/uploads/storage-fallback";
 
 export interface UploadResult {
   url: string;
@@ -87,7 +88,7 @@ export function useCloudinaryUpload(
 
         if (!sigRes.ok) {
           const j = await sigRes.json().catch(() => ({}));
-          return fail(j?.error ?? "Failed to get upload signature");
+          throw new Error(j?.error ?? "Failed to get upload signature");
         }
 
         const { data: sig } = await sigRes.json();
@@ -166,7 +167,24 @@ export function useCloudinaryUpload(
         return result;
 
       } catch (err: any) {
-        return fail(err?.message ?? "Upload failed");
+        const message: string = err?.message ?? "Upload failed";
+        if (message === "Upload cancelled" || accessType !== "public") return fail(message);
+        // Cloudinary refused or is unreachable — public media falls back to
+        // Jimvio storage so the upload still succeeds.
+        try {
+          setProgress(0);
+          const stored = await uploadToMediaStorage(file, folder, setProgress);
+          setProgress(100);
+          return {
+            url: stored.url,
+            publicId: stored.path,
+            resourceType,
+            accessType,
+            bytes: stored.bytes,
+          };
+        } catch (fallbackErr: any) {
+          return fail(fallbackErr?.message ?? message);
+        }
       } finally {
         setUploading(false);
       }

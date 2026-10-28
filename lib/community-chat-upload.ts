@@ -3,6 +3,8 @@
  * Upload community chat files to Cloudinary instead of Supabase Storage.
  */
 
+import { uploadToMediaStorage } from "@/lib/uploads/storage-fallback";
+
 export type ChatAttachmentPayload = {
   url: string;
   name: string;
@@ -58,6 +60,28 @@ export function toPlayableCommunityVideoUrl(url: string): string {
 
 /** Upload a file for community chat directly to Cloudinary via the signed upload API. */
 export async function uploadCommunityChatFile(
+  communityId: string,
+  roomId: string,
+  file: File
+): Promise<ChatAttachmentPayload> {
+  try {
+    return await uploadCommunityChatFileToCloudinary(communityId, roomId, file);
+  } catch (err) {
+    // Cloudinary refused or is unreachable — fall back to Jimvio storage.
+    const mime = file.type || guessMimeFromName(file.name) || "application/octet-stream";
+    try {
+      const stored = await uploadToMediaStorage(
+        file.type ? file : new File([file], file.name, { type: mime }),
+        "jimvio/communities",
+      );
+      return { url: stored.url, name: file.name, mime, size: file.size, publicId: stored.path };
+    } catch {
+      throw err instanceof Error ? err : new Error("Upload failed");
+    }
+  }
+}
+
+async function uploadCommunityChatFileToCloudinary(
   _communityId: string,
   _roomId: string,
   file: File
