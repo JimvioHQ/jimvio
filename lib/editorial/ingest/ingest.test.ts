@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { LICENSED_PROVIDERS, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catalog";
 import { buildOriginalBrief } from "@/lib/editorial/ingest/compose";
 import { canonicalUrl, externalKey, parseFeed, sharesLongPhrase } from "@/lib/editorial/ingest/feed";
-import { evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
+import { EDITORIAL_FALLBACK_IMAGE, evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
 import { isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId } from "@/lib/editorial/ingest/plan";
 import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS, type SourceRecord } from "@/lib/editorial/ingest/types";
 import { isArticleId, isPubliclyVisible } from "@/lib/editorial/validate";
@@ -331,6 +331,34 @@ describe("external ingestion", () => {
     });
     assert.equal(opened[0]?.status, "published");
     assert.equal(opened[0]?.article?.category, "technology");
+
+    const official = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
+      source: source({ imageRights: "none" }),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/official/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+    });
+    assert.equal(official[0]?.status, "published");
+    assert.equal(official[0]?.article?.imageUrl, EDITORIAL_FALLBACK_IMAGE);
+    assert.match(official[0]?.article?.imageAlt ?? "", /not a photograph/i);
+    assert.match(official[0]?.article?.bodyHtml ?? "", /one public source/);
+    assert.equal((official[0]?.article?.bodyHtml ?? "").includes("photograph of"), false);
+    const risky = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
+      source: source({ imageRights: "none" }),
+      items: [item("Agency confirms investigation after crash near the research center", "https://www.nasa.gov/news-release/risk/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+    });
+    assert.equal(risky[0]?.status, "review");
+    assert.notEqual(risky[0]?.article?.intent, "published");
   });
 
   it("honors poll windows, stuck jobs, link-only sources, and category blocks", () => {

@@ -2,6 +2,22 @@ import { sniffImageMime } from "@/lib/editorial/images";
 import { isSafeImageUrl } from "@/lib/editorial/validate";
 import type { ImageRights } from "@/lib/editorial/ingest/types";
 
+export const EDITORIAL_FALLBACK_IMAGE = "/editorial/desk-mark.png";
+
+export function editorialFallbackImage(): ImageDecision {
+  return {
+    status: "fallback",
+    url: EDITORIAL_FALLBACK_IMAGE,
+    alt: "Jimvio Media editorial mark. This is not a photograph of the subject.",
+    caption: "No licensed photograph was available. This mark is not a picture of the subject.",
+    license: "owned",
+    mime: "image/png",
+    width: 1200,
+    height: 675,
+    note: "Editorial mark used because the source did not grant a photograph.",
+  };
+}
+
 export type ImageDecision = {
   status: "rejected" | "verified" | "fallback";
   url: string;

@@ -11,7 +11,7 @@ import {
   titleTokens,
   wordCount,
 } from "@/lib/editorial/ingest/feed";
-import type { ImageDecision } from "@/lib/editorial/ingest/images";
+import { editorialFallbackImage } from "@/lib/editorial/ingest/images";
 import {
   DAILY_PUBLISH_MAX,
   type ExistingArticleRef,
@@ -99,7 +99,6 @@ function decideIntent(input: {
     return { intent: "review", reasons: ["autopublish_not_authorized"] };
   }
   if (needsReview) reasons.push("review_required");
-  if (input.independent < 2) reasons.push("single_source");
   if (!input.imageOk) reasons.push("image_rights");
   if (input.publishedToday >= input.settings.dailyPublishCap) reasons.push("publish_cap");
   if (input.source.permittedUsage !== "facts" && input.source.permittedUsage !== "full") reasons.push("usage");
@@ -216,8 +215,10 @@ export function planSourceItems(input: {
     ];
     const brief = buildOriginalBrief({ category, members });
     const sensitive = brief.sensitive || isSensitiveText(group.map((item) => item.title).join(" "));
-    const image = input.imageFor ? input.imageFor(primary) : null;
-    const imageOk = image?.status === "verified" || image?.status === "fallback";
+    const supplied = input.imageFor ? input.imageFor(primary) : null;
+    const granted = supplied && (supplied.status === "verified" || supplied.status === "fallback") && supplied.url ? supplied : null;
+    const chosen = granted ?? editorialFallbackImage();
+    const imageOk = true;
     const independent = new Set(members.map((member) => member.sourceName)).size;
     const decision = input.settings.mode === "discovery"
       ? { intent: null as MediaStatus | null, reasons: ["discovery_only"] }
@@ -245,7 +246,7 @@ export function planSourceItems(input: {
     else if (decision.intent === null && decision.reasons.includes("discovery_only")) {
       status = "discovered";
       reason = null;
-    } else if (decision.intent === "published" && imageOk && image && brief.originalityOk) {
+    } else if (decision.intent === "published" && brief.originalityOk) {
       status = "published";
       reason = null;
       publishedSlots += 1;
@@ -265,8 +266,8 @@ export function planSourceItems(input: {
       row.clusterKey = clusterKey;
       row.sensitive = sensitive;
       row.evidence = brief.evidence;
-      row.imageStatus = image?.status ?? "rejected";
-      row.imageNote = image?.note ?? "No granted image rights.";
+      row.imageStatus = granted?.status ?? (index === 0 && makeArticle ? chosen.status : "rejected");
+      row.imageNote = granted?.note ?? (index === 0 && makeArticle ? chosen.note : "No granted image rights.");
       if (index === 0 && makeArticle) {
         const intent: MediaStatus = status === "published" ? "published" : status === "review" ? "review" : "draft";
         row.article = {
@@ -274,17 +275,17 @@ export function planSourceItems(input: {
           idempotencyKey: row.id,
           title: brief.title,
           excerpt: brief.excerpt,
-          bodyHtml: `${brief.bodyHtml}${imageOk && image?.caption ? `<p>${escapeHtml(image.caption)}</p>` : ""}`,
+          bodyHtml: `${brief.bodyHtml}<p>${escapeHtml(chosen.caption)}</p>`,
           category,
           tags: brief.tags,
           seoTitle: brief.seoTitle,
           seoDescription: brief.seoDescription,
           sourceName: brief.sourceName,
           sourceUrl: brief.sourceUrl,
-          imageUrl: imageOk && image ? image.url : "",
-          imageAlt: imageOk && image ? image.alt : "",
-          imageCaption: image?.caption ?? "",
-          imageLicense: image?.license ?? "",
+          imageUrl: chosen.url,
+          imageAlt: chosen.alt,
+          imageCaption: chosen.caption,
+          imageLicense: chosen.license,
         };
       }
       planned.push(row);
