@@ -1,28 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useClientReady } from "@/lib/community/use-client-ready";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { useCreatorOSStore } from "@/lib/community/os";
 import {
-  buildWorkspaceFromOpportunity,
   deriveCareerCoach,
   deriveCreatorProfilePro,
   deriveGlobalDiscovery,
   deriveOpportunities,
   deriveReputation,
   recommendMatches,
-  useBrandCrmStore,
   type EconomyOverviewInput,
 } from "@/lib/community/economy";
 import { OpportunityMarketplace } from "./OpportunityMarketplace";
+import type { LiveCampaignLike } from "@/lib/community/economy/opportunities";
 import { CreatorProfileProCard } from "./CreatorProfileProCard";
 import { AiMatchingEngine } from "./AiMatchingEngine";
-import { CampaignWorkspacePanel } from "./CampaignWorkspacePanel";
 import { ReputationEngine } from "./ReputationEngine";
 import { AiCareerCoach, GlobalDiscovery } from "./AiCareerCoach";
-import { BrandCrmPanel } from "./BrandCrmPanel";
 
 /**
  * Global Creator Economy shell — additive to Creator OS / Commerce / Community.
@@ -40,7 +37,6 @@ export function GlobalCreatorEconomyShell({
   overview: EconomyOverviewInput | null | undefined;
 }) {
   const clientReady = useClientReady();
-  const [activeOppId, setActiveOppId] = useState<string | null>(null);
 
   const storeItemsRaw = useCreatorCommerceStore(
     useShallow((s) => s.itemsForCommunity(communityId))
@@ -56,15 +52,10 @@ export function GlobalCreatorEconomyShell({
     )
   );
 
-  const upsertWorkspace = useBrandCrmStore((s) => s.upsertWorkspace);
-  const setApproval = useBrandCrmStore((s) => s.setApproval);
-  const releasePayout = useBrandCrmStore((s) => s.releasePayout);
-  const workspacesRaw = useBrandCrmStore(useShallow((s) => s.workspaces));
 
   const storeItems = clientReady ? storeItemsRaw : [];
   const affiliateStats = clientReady ? affiliateRaw : [];
   const openTaskCount = clientReady ? openTasksRaw.length : 0;
-  const workspaces = clientReady ? workspacesRaw : [];
 
   const overviewWithName = useMemo(
     () => ({
@@ -74,9 +65,24 @@ export function GlobalCreatorEconomyShell({
     [communityName, overview]
   );
 
+  // Live UGC campaigns only — no placeholder catalog.
+  const [liveCampaigns, setLiveCampaigns] = useState<LiveCampaignLike[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/ugc/campaigns?limit=12&sort=newest")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { data?: LiveCampaignLike[]; campaigns?: LiveCampaignLike[] } | null) => {
+        if (!cancelled) setLiveCampaigns(j?.data ?? j?.campaigns ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const opportunities = useMemo(
-    () => deriveOpportunities({ base, overview: overviewWithName }),
-    [base, overviewWithName]
+    () => deriveOpportunities({ base, overview: overviewWithName, campaigns: liveCampaigns }),
+    [base, overviewWithName, liveCampaigns]
   );
 
   const reputation = useMemo(
@@ -130,61 +136,14 @@ export function GlobalCreatorEconomyShell({
     [base, overviewWithName, storeItems]
   );
 
-  const activeOpp =
-    opportunities.find((o) => o.id === activeOppId) ?? opportunities[0] ?? null;
-
-  // Ensure selected opportunity has a persisted workspace for approval/payout actions.
-  const workspace = useMemo(() => {
-    if (!clientReady || !activeOpp) return null;
-    const existing = workspaces.find((w) => w.opportunityId === activeOpp.id);
-    if (existing) return existing;
-    return buildWorkspaceFromOpportunity(communityId, activeOpp);
-  }, [activeOpp, clientReady, communityId, workspaces]);
-
-  function openWorkspace(id: string) {
-    setActiveOppId(id);
-    const opp = opportunities.find((o) => o.id === id);
-    if (!opp) return;
-    const existing = useBrandCrmStore.getState().workspaceFor(id);
-    if (!existing) {
-      upsertWorkspace(buildWorkspaceFromOpportunity(communityId, opp));
-    }
-  }
-
-  function ensureWorkspace() {
-    if (!activeOpp) return;
-    const existing = useBrandCrmStore.getState().workspaceFor(activeOpp.id);
-    if (!existing) {
-      upsertWorkspace(buildWorkspaceFromOpportunity(communityId, activeOpp));
-    }
-  }
-
   return (
     <div className="space-y-5" aria-label="Global creator economy">
-      <OpportunityMarketplace
-        opportunities={opportunities}
-        onOpenWorkspace={openWorkspace}
-      />
+      {/* Opportunities link to the real campaign page, where creators join and submit. */}
+      <OpportunityMarketplace opportunities={opportunities} />
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3 space-y-4">
           <AiMatchingEngine recommendations={matches} />
-          <CampaignWorkspacePanel
-            opportunity={activeOpp}
-            workspace={workspace}
-            onApprove={() => {
-              ensureWorkspace();
-              if (activeOpp) setApproval(activeOpp.id, "approved");
-            }}
-            onRequestChanges={() => {
-              ensureWorkspace();
-              if (activeOpp) setApproval(activeOpp.id, "changes_requested");
-            }}
-            onReleasePayout={() => {
-              ensureWorkspace();
-              if (activeOpp) releasePayout(activeOpp.id);
-            }}
-          />
         </div>
         <div className="lg:col-span-2 space-y-4">
           <ReputationEngine reputation={reputation} />
@@ -194,7 +153,6 @@ export function GlobalCreatorEconomyShell({
 
       <AiCareerCoach tips={tips} />
       <GlobalDiscovery items={discovery} />
-      <BrandCrmPanel communityId={communityId} overview={overviewWithName} />
     </div>
   );
 }

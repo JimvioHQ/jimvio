@@ -31,8 +31,8 @@ export const localCreatorMatchProvider: CreatorMatchProvider = {
         id: `match-${o.id}`,
         kind: o.kind === "affiliate_offer" ? "affiliate" : "campaign",
         title: o.title,
-        reason: `AI match ${o.matchScore} · ${o.reward}`,
-        score: o.matchScore,
+        reason: `Live campaign · ${o.reward}`,
+        score: 60,
         href: o.href,
       });
     }

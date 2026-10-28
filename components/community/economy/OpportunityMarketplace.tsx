@@ -35,6 +35,14 @@ export function OpportunityMarketplace({
         </Link>
       </div>
 
+      {opportunities.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-4 py-8 text-center">
+          <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">No live campaigns right now</p>
+          <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+            New brand campaigns appear here as soon as they go live.
+          </p>
+        </div>
+      ) : null}
       <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {opportunities.map((o) => (
           <article
@@ -48,32 +56,21 @@ export function OpportunityMarketplace({
               <span className="rounded-full bg-[var(--color-accent-subtle)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-accent)]">
                 {OPPORTUNITY_KIND_LABELS[o.kind]}
               </span>
-              <span className="text-[11px] font-black text-[var(--color-text-primary)]">
-                {o.matchScore}
-                <span className="ml-0.5 font-semibold text-[var(--color-text-muted)]">
-                  match
+              {o.deadline ? (
+                <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                  ends {o.deadline}
                 </span>
-              </span>
+              ) : null}
             </div>
             <h4 className="mt-2 line-clamp-2 text-[13.5px] font-bold text-[var(--color-text-primary)]">
               {o.title}
             </h4>
-            <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
-              {o.brand} · {o.difficulty} · due {o.deadline}
-            </p>
-            <dl className="mt-2.5 grid grid-cols-2 gap-1.5 text-[11px]">
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Reward</dt>
-                <dd className="font-semibold text-[var(--color-text-primary)]">{o.reward}</dd>
-              </div>
-              <div>
-                <dt className="text-[var(--color-text-muted)]">Est. earnings</dt>
-                <dd className="font-semibold text-[var(--color-text-primary)]">
-                  {o.estimatedEarnings > 0
-                    ? `$${o.estimatedEarnings.toLocaleString("en-US")}`
-                    : "Access"}
-                </dd>
-              </div>
+            {o.brand ? (
+              <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">by {o.brand}</p>
+            ) : null}
+            <dl className="mt-2.5 text-[11px]">
+              <dt className="text-[var(--color-text-muted)]">Reward</dt>
+              <dd className="font-semibold text-[var(--color-text-primary)]">{o.reward}</dd>
             </dl>
             <ul className="mt-2 space-y-0.5">
               {o.requirements.slice(0, 2).map((r) => (

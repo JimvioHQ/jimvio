@@ -108,7 +108,7 @@ export function deriveCreatorProfilePro(args: {
           : earned > 0
             ? "First revenue unlocked"
             : "Pre-revenue — ready to monetize",
-    campaignHistory: `${deriveOpportunities({ base: "/", overview }).filter((o) => o.matchScore > 70).length} high-match opportunities`,
+    campaignHistory: "See live campaigns in the UGC hub",
     successRate: `${clamp(reputation.delivery * 0.7 + reputation.quality * 0.3)}% estimated`,
     portfolio: (overview?.featuredPosts ?? [])
       .slice(0, 3)
@@ -219,9 +219,9 @@ export function deriveGlobalDiscovery(args: {
       id: `disc-camp-${o.id}`,
       bucket: "campaigns",
       title: o.title,
-      meta: `${o.matchScore} match · ${o.reward}`,
+      meta: o.reward,
       href: o.href,
-      score: o.matchScore,
+      score: 60,
     });
   }
 
