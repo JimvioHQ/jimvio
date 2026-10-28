@@ -197,7 +197,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
           </h1>
           <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
             {GROUP_STATUS_LABELS[group.status]} ·{" "}
-            {GROUP_PRIVACY_LABELS[group.privacy]} · {group.memberCount.toLocaleString()} members
+            {GROUP_PRIVACY_LABELS[group.privacy]} · {group.memberCount.toLocaleString()} {group.memberCount === 1 ? "member" : "members"}
           </p>
         </div>
         {saving && (

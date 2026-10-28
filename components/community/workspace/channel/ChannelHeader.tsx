@@ -108,7 +108,7 @@ export function ChannelHeader({
             className="inline-flex min-h-8 items-center gap-1 rounded-md px-1 transition hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
           >
             <Users className="h-3 w-3" aria-hidden />
-            {members > 0 ? `${members.toLocaleString()} members` : "Members"}
+            {members > 0 ? `${members.toLocaleString()} ${members === 1 ? "member" : "members"}` : "Members"}
           </button>
           {online > 0 ? (
             <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600">

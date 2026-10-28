@@ -180,7 +180,7 @@ export function HeroFeaturedShowcase({
         badgeColor: GREEN,
         image: communityImage(c),
         title: c.name,
-        meta: `${fmtCount(c.member_count ?? 0)} members`,
+        meta: `${fmtCount(c.member_count ?? 0)} ${c.member_count === 1 ? "member" : "members"}`,
         description: c.tagline ?? "Open group on Jimvio.",
         actionLabel: "Open community",
         exploreLabel: "All communities",

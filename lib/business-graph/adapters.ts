@@ -75,7 +75,7 @@ export function buildCreatorBusinessGraph(payload: CreatorProfilePayload): Busin
         id: `comm-${c.id}`,
         kind: "community",
         title: c.name,
-        subtitle: `${c.memberCount} members`,
+        subtitle: `${c.memberCount} ${c.memberCount === 1 ? "member" : "members"}`,
         href: `/communities/${c.slug}`,
         imageUrl: c.avatarImage ?? c.coverImage ?? null,
       },

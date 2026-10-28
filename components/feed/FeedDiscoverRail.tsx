@@ -163,7 +163,7 @@ function CommunityMiniCard({
           </p>
           {members ? (
             <p className="mt-1.5 text-[11px] font-medium tabular-nums text-[var(--color-text-secondary)]">
-              {members} members
+              {members} {memberCount === 1 ? "member" : "members"}
             </p>
           ) : null}
         </div>

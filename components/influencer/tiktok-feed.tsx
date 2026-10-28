@@ -652,7 +652,7 @@ export function TikTokFeed({ clips, className, initialIndex = 0, onClose }: TikT
                       {[1, 2, 3].map(i => <div key={i} className="h-5 w-5 rounded-sm bg-[#E8E3D8] border-2 border-white" />)}
                     </div>
                     <span className="text-[11px] font-bold text-[#9C978D]">
-                      {clip.communities.member_count ? formatViews(clip.communities.member_count) : "0"} members
+                      {clip.communities.member_count ? formatViews(clip.communities.member_count) : "0"} {clip.communities.member_count === 1 ? "member" : "members"}
                     </span>
                   </div>
                   {clip.communities.description

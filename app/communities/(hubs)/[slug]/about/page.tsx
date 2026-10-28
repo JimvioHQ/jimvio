@@ -79,7 +79,7 @@ export default function CommunityAboutPage() {
             {(isPrivate || overview?.isPrivate) && <Lock className="h-3.5 w-3.5" aria-hidden />}
             {isPrivate || overview?.isPrivate ? "Private" : "Public"}
           </span>
-          <span>{members.toLocaleString()} members</span>
+          <span>{members.toLocaleString()} {members === 1 ? "member" : "members"}</span>
           {category && <span>{category}</span>}
           <span>Founded by {founderName}</span>
         </div>

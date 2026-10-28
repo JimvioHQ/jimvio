@@ -81,7 +81,7 @@ async function recommendCommunities(
     id: row.id,
     entityType: "community" as const,
     title: row.name,
-    subtitle: row.tagline ?? `${row.member_count ?? 0} members`,
+    subtitle: row.tagline ?? `${row.member_count ?? 0} ${row.member_count === 1 ? "member" : "members"}`,
     href: `/communities/${row.slug}`,
     imageUrl: row.avatar_url,
     score: 100 - i,

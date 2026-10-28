@@ -359,7 +359,7 @@ export async function getRecommendedCommunitiesForYou(
         id: community.id,
         entityType: "community" as const,
         title: community.name,
-        subtitle: community.tagline ?? `${community.member_count ?? 0} members`,
+        subtitle: community.tagline ?? `${community.member_count ?? 0} ${community.member_count === 1 ? "member" : "members"}`,
         href: `/communities/${community.slug}`,
         imageUrl: community.avatar_url,
         score: Math.round(score * 10) / 10,
