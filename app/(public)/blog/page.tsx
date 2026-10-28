@@ -4,7 +4,11 @@ import { BlogListing } from "@/components/blog/blog-listing";
 import { pageMetadata } from "@/lib/seo";
 import { getPublishedBlogPosts } from "@/services/db";
 
-export const metadata: Metadata = pageMetadata("blog");
+export async function generateMetadata(): Promise<Metadata> {
+  const posts = await getPublishedBlogPosts(3).catch(() => []);
+  // R-9: an empty Journal is not offered to search engines.
+  return pageMetadata("blog", posts.length < 3 ? { noIndex: true } : {});
+}
 
 export default async function BlogListingPage() {
   const posts = await getPublishedBlogPosts(24).catch(() => []);

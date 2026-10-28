@@ -233,7 +233,7 @@ export function constructMetadata({
   path = "",
   type = "website",
   noIndex = false,
-  keywords = [...SITE.keywords],
+  keywords,
 }: SeoProps = {}): Metadata {
   const canonicalUrl = `${SITE.url}${path === "/" ? "" : path}`;
   // Pages without their own image get a real 1200×630 card with their title (N-9).
@@ -256,7 +256,8 @@ export function constructMetadata({
       : title,
     applicationName: SITE.name,
     description: metaDescription,
-    keywords,
+    // R-6: no site-wide keyword list; only pages that pass their own.
+    ...(keywords?.length ? { keywords } : {}),
     metadataBase: new URL(SITE.url),
     authors: [{ name: SITE.name, url: SITE.url }],
     creator: SITE.name,
@@ -349,20 +350,6 @@ export function pageMetadata(
     title: page.title,
     description: page.description,
     path: page.path,
-    // Homepage keywords stayed on the pre-positioning list. Other pages use SITE.keywords.
-    ...(key === "home"
-      ? {
-          keywords: [
-            "Jimvio",
-            "Jimvio marketplace",
-            "creator marketplace",
-            "affiliate program",
-            "UGC campaigns",
-            "sell online",
-            "creator community",
-          ],
-        }
-      : {}),
     ...overrides,
   });
 }

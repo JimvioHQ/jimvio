@@ -6,6 +6,8 @@ import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
+const MIN_JOURNAL_POSTS = 3;
+
 const STATIC_ROUTES: Array<{
   path: string;
   priority: number;
@@ -28,11 +30,9 @@ const STATIC_ROUTES: Array<{
   { path: "/press", priority: 0.5, changeFrequency: "monthly" },
   { path: "/help/contact", priority: 0.5, changeFrequency: "monthly" },
   { path: "/help", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
   { path: "/shipping", priority: 0.5, changeFrequency: "monthly" },
   { path: "/guides", priority: 0.55, changeFrequency: "monthly" },
   { path: "/docs", priority: 0.45, changeFrequency: "monthly" },
-  { path: "/updates", priority: 0.45, changeFrequency: "weekly" },
   { path: "/monetization", priority: 0.55, changeFrequency: "monthly" },
   { path: "/pricing", priority: 0.6, changeFrequency: "monthly" },
   { path: "/protection", priority: 0.5, changeFrequency: "monthly" },
@@ -92,6 +92,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from("communities")
         .select("slug, updated_at")
         .eq("is_active", true)
+        .is("archived_at", null)
+        .not("is_private", "is", true)
         .order("updated_at", { ascending: false })
         .limit(4_000),
       admin
@@ -133,7 +135,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.6,
       }));
 
-    return [...base, ...productEntries, ...communityEntries, ...blogEntries];
+    // R-9: the Journal and Updates index pages are listed only once the
+    // Journal has real articles, so the sitemap never points at empty pages.
+    const journalIndex: MetadataRoute.Sitemap =
+      blogEntries.length >= MIN_JOURNAL_POSTS
+        ? [
+            { url: `${SITE.url}/blog`, changeFrequency: "weekly", priority: 0.7 },
+            { url: `${SITE.url}/updates`, changeFrequency: "weekly", priority: 0.45 },
+          ]
+        : [];
+
+    return [...base, ...journalIndex, ...productEntries, ...communityEntries, ...blogEntries];
   } catch (err) {
     console.error("[sitemap] Failed to load dynamic entries:", err);
     return base;

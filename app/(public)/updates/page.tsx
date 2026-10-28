@@ -4,7 +4,10 @@ import { InfoLinkList, InfoSection, PublicInfoPage } from "@/components/layout/p
 import { pageMetadata } from "@/lib/seo";
 import { getPublishedBlogPosts } from "@/services/db";
 
-export const metadata: Metadata = pageMetadata("updates");
+export async function generateMetadata(): Promise<Metadata> {
+  const posts = await getPublishedBlogPosts(3).catch(() => []);
+  return pageMetadata("updates", posts.length < 3 ? { noIndex: true } : {});
+}
 
 const UPDATE_PATTERN = /update|release|announce|changelog|news/i;
 
