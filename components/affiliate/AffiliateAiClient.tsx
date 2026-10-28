@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import { sanitizeAffiliateAiCopy, shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { acceptOwnedTrackingUrl } from "@/lib/affiliate/owned-tracking-url";
 import { draftAffiliatePromotion } from "@/lib/affiliate/promotion-draft";
 import { AffiliateAiRecovery, persistAffiliateHandoff } from "./AffiliateAiRecovery";
 
@@ -29,6 +30,7 @@ type ProductOpt = {
   earning?: number;
   description?: string;
   features?: string[];
+  trackingUrl?: string | null;
 };
 
 type PromoResult = {
@@ -73,6 +75,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
   const [pending, startTransition] = useTransition();
 
   const selected = products.find((p) => p.id === selectedId) ?? products[0];
+  const trackedLink = acceptOwnedTrackingUrl(selected?.trackingUrl);
 
   useEffect(() => {
     if (!selectedId && products[0]) setSelectedId(products[0].id);
@@ -149,6 +152,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
       price: selected.price,
       currency: selected.currency,
       commissionRate: selected.rate,
+      trackingUrl: acceptOwnedTrackingUrl(selected.trackingUrl),
     });
     setError(null);
     setOfferWorkspace(false);
@@ -222,6 +226,26 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                 {selected.earning != null
                   ? ` · ${formatAffiliateMoney(selected.earning, "USD")} per sale`
                   : ""}
+              </p>
+            ) : null}
+            {selected && trackedLink ? (
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 break-all text-[12.5px] text-[#374151]">
+                  <span className="font-semibold text-[#111827]">Your tracked link. </span>
+                  {trackedLink}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void copyText("tracked-link", trackedLink)}
+                  className={cn(AFFILIATE_BTN_SECONDARY, "h-9 shrink-0 px-3 text-[12px]")}
+                >
+                  {copied === "tracked-link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  Copy tracked link
+                </button>
+              </div>
+            ) : selected ? (
+              <p className="mt-3 text-[12.5px] leading-relaxed text-[#6B7280]">
+                No tracked link for this product yet. Use Promote Now or Link Manager. Drafting does not create one.
               </p>
             ) : null}
             {error && offerWorkspace && selected ? (

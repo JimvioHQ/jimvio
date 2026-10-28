@@ -5,8 +5,18 @@
 
 import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/affiliate/payout-minimum";
 
+export const AFFILIATE_NEXT_ACTION_IDS = [
+  "withdraw",
+  "pending",
+  "discover",
+  "share",
+  "fit",
+] as const;
+
+export type AffiliateNextActionId = (typeof AFFILIATE_NEXT_ACTION_IDS)[number];
+
 export type AffiliateNextAction = {
-  id: "withdraw" | "pending" | "discover" | "share" | "fit";
+  id: AffiliateNextActionId;
   title: string;
   body: string;
   href: string;

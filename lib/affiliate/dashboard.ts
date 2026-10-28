@@ -219,6 +219,7 @@ export async function getAffiliateDashboardBundle(affiliateId: string, days = 30
   );
 
   return {
+    affiliateId,
     analytics,
     balances: {
       pending: balances.pendingBalance,

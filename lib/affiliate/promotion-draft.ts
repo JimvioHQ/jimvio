@@ -1,7 +1,10 @@
 /**
  * Editable promotion copy from fields already on a product.
  * This is a listing draft, not a model call and not a performance prediction.
+ * A tracked link is included only when it is already this affiliate's /ref/LNK-… URL.
  */
+
+import { acceptOwnedTrackingUrl } from "./owned-tracking-url";
 
 export const AFFILIATE_DISCLOSURE =
   "Affiliate disclosure: I may earn a commission if you buy through my link.";
@@ -56,6 +59,13 @@ function rateLabel(rate: number): string {
   return String(Math.round(rate * 100) / 100);
 }
 
+function publish(lead: string, shareLine: string, tracked: string | null, max: number): string {
+  const body = `${lead} ${shareLine}`.replace(/\s+/g, " ").trim();
+  const combined = `${body} ${AFFILIATE_DISCLOSURE}`.trim();
+  if (!tracked || combined.length <= max) return withDisclosure(body, max);
+  return withDisclosure(lead, max);
+}
+
 export function draftAffiliatePromotion(input: {
   name?: string | null;
   category?: string | null;
@@ -63,6 +73,7 @@ export function draftAffiliatePromotion(input: {
   price?: number | null;
   currency?: string | null;
   commissionRate?: number | null;
+  trackingUrl?: string | null;
 }): AffiliatePromotionDraft {
   const name = plain(input.name, 140) || "this product";
   const category = plain(input.category, 80);
@@ -70,14 +81,19 @@ export function draftAffiliatePromotion(input: {
   const currency = plain(input.currency, 8) || "USD";
   const price = Number(input.price);
   const rate = Number(input.commissionRate);
+  const tracked = acceptOwnedTrackingUrl(input.trackingUrl);
+  const shareLine = tracked
+    ? `Share this tracked link: ${tracked}.`
+    : "Share your Jimvio tracked link from Link Manager.";
   const facts = [
     category ? `Category: ${category}.` : "",
     Number.isFinite(price) && price > 0 ? `Listed price: ${currency} ${money(price)}.` : "",
     Number.isFinite(rate) && rate > 0 ? `Current commission rate: ${rateLabel(rate)}%.` : "",
     description ? `The listing says: “${description}”.` : "",
-    "Share your Jimvio tracked link from Link Manager.",
+    shareLine,
   ].filter(Boolean);
-  const detail = facts.join(" ");
+  const leadFacts = facts.filter((fact) => fact !== shareLine).join(" ");
+  const captionLead = `${name}. ${leadFacts}`.trim();
   const keywords = name
     .toLowerCase()
     .split(/[^a-z0-9]+/)
@@ -91,20 +107,22 @@ export function draftAffiliatePromotion(input: {
   }
 
   return {
-    tiktokCaption: withDisclosure(`${name}. ${detail}`, 500),
-    instagramCaption: withDisclosure(`${name}. ${detail}`, 900),
+    tiktokCaption: publish(captionLead, shareLine, tracked, 500),
+    instagramCaption: publish(captionLead, shareLine, tracked, 900),
     youtubeTitle: clip(name, 70),
-    facebookPost: withDisclosure(`${name}. ${detail}`, 900),
-    threadsPost: withDisclosure(`${name}. ${detail}`, 500),
-    xPost: withDisclosure(name, 240),
-    emailCopy: withDisclosure(`Hello, ${detail}`, 1200),
-    blogIntro: withDisclosure(`${name}. ${detail}`, 1200),
+    facebookPost: publish(captionLead, shareLine, tracked, 900),
+    threadsPost: publish(captionLead, shareLine, tracked, 500),
+    xPost: tracked ? publish(name, shareLine, tracked, 240) : withDisclosure(name, 240),
+    emailCopy: publish(`Hello, ${leadFacts}`.trim(), shareLine, tracked, 1200),
+    blogIntro: publish(captionLead, shareLine, tracked, 1200),
     seoTitle: clip(name, 60),
     keywords,
     hashtags,
     hooks: [`Here is ${name}.`],
     scripts: [
-      `Show ${name}. Share your tracked link and say that you may earn a commission.`,
+      tracked
+        ? `Show ${name}. Share your tracked link: ${tracked}. Say that you may earn a commission.`
+        : `Show ${name}. Share your tracked link and say that you may earn a commission.`,
     ],
     limitation: AFFILIATE_DRAFT_LIMITATION,
   };

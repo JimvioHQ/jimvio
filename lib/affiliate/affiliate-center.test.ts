@@ -224,6 +224,34 @@ describe("affiliate discovery route", () => {
   });
 });
 
+describe("affiliate workflow polish", () => {
+  it("keeps dashboard guidance dismissal on this affiliate's browser", () => {
+    const root = dirname(fileURLToPath(import.meta.url));
+    const client = readFileSync(join(root, "../../components/affiliate/AffiliateDashboardClient.tsx"), "utf8");
+    const bundle = readFileSync(join(root, "dashboard.ts"), "utf8");
+    assert.match(bundle, /affiliateId,/);
+    assert.match(client, /readDismissedAffiliateTip/);
+    assert.match(client, /writeDismissedAffiliateTip/);
+    assert.match(client, /clearDismissedAffiliateTip/);
+    assert.match(client, /Show tip/);
+    assert.doesNotMatch(client, /sessionStorage/);
+  });
+
+  it("drafts from the signed-in affiliate's own short link", () => {
+    const root = dirname(fileURLToPath(import.meta.url));
+    const page = readFileSync(join(root, "../../app/(public)/affiliates/ai/page.tsx"), "utf8");
+    const client = readFileSync(join(root, "../../components/affiliate/AffiliateAiClient.tsx"), "utf8");
+    assert.match(page, /link_code/);
+    assert.match(page, /trackingUrlForOwnedLink/);
+    assert.match(page, /\.eq\("affiliate_id", affiliate\.id\)/);
+    assert.doesNotMatch(page, /destination_url|full_url/);
+    assert.match(client, /Copy tracked link/);
+    assert.match(client, /acceptOwnedTrackingUrl\(selected\.trackingUrl\)/);
+    assert.match(client, /Drafting does not create one/);
+    assert.doesNotMatch(client, /\/api\/affiliates\/links/);
+  });
+});
+
 describe("attribution window", () => {
   it("allows missing timestamp for legacy cookies", () => {
     assert.equal(isWithinAttributionWindow(null, 30), true);

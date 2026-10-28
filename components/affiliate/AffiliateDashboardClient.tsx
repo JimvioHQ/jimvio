@@ -26,6 +26,11 @@ import {
 } from "@/lib/affiliate/dashboard-actions";
 import { affiliateNextAction, affiliatePerformanceNote } from "@/lib/affiliate/guidance";
 import {
+  clearDismissedAffiliateTip,
+  readDismissedAffiliateTip,
+  writeDismissedAffiliateTip,
+} from "@/lib/affiliate/dashboard-tip";
+import {
   AffiliateEmptyState,
   AffiliateMetricTile,
   AffiliatePageShell,
@@ -38,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type DashboardPayload = {
+  affiliateId?: string;
   today?: {
     clicks: number;
     conversions: number;
@@ -107,7 +113,9 @@ export function AffiliateDashboardClient() {
         return;
       }
       if (!dashRes.ok) throw new Error("Failed to load dashboard");
-      setData(await dashRes.json());
+      const payload = (await dashRes.json()) as DashboardPayload;
+      setData(payload);
+      setHiddenAction(readDismissedAffiliateTip(window.localStorage, payload.affiliateId));
     } catch {
       setError("Could not load affiliate dashboard.");
     } finally {
@@ -152,6 +160,14 @@ export function AffiliateDashboardClient() {
       })
     : null;
   const performanceNote = affiliatePerformanceNote(data?.series ?? [], 30);
+  const dismissTip = (actionId: string) => {
+    setHiddenAction(actionId);
+    writeDismissedAffiliateTip(window.localStorage, data?.affiliateId, actionId);
+  };
+  const restoreTip = () => {
+    setHiddenAction(null);
+    clearDismissedAffiliateTip(window.localStorage, data?.affiliateId);
+  };
 
   return (
     <AffiliatePageShell
@@ -215,12 +231,23 @@ export function AffiliateDashboardClient() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setHiddenAction(nextAction.id)}
+                  onClick={() => dismissTip(nextAction.id)}
                   className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
                 >
                   Dismiss
                 </button>
               </div>
+            </div>
+          ) : null}
+          {nextAction && hiddenAction === nextAction.id ? (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={restoreTip}
+                className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
+              >
+                Show tip
+              </button>
             </div>
           ) : null}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

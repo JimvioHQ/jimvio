@@ -5,6 +5,8 @@ import { AffiliateAiClient } from "@/components/affiliate/AffiliateAiClient";
 import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
 import { getSessionAffiliate } from "@/lib/affiliate/access";
+import { trackingUrlForOwnedLink } from "@/lib/affiliate/owned-tracking-url";
+import { getSiteUrl } from "@/lib/site-url";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type ProductOpt = {
@@ -18,6 +20,7 @@ type ProductOpt = {
   earning: number;
   description?: string;
   features?: string[];
+  trackingUrl?: string | null;
 };
 
 function mapProduct(
@@ -75,13 +78,14 @@ export default async function AffiliateAiPage() {
     byId.set(mapped.id, mapped);
   }
 
-  // Prefer the affiliate's picked products first when available.
+  // Prefer the affiliate's own active product links. The newest link for each product wins.
   if (affiliate?.id) {
     const admin = createServiceRoleClient() as any;
+    const siteUrl = getSiteUrl();
     const { data: picked } = await admin
       .from("affiliate_links")
       .select(
-        "product_id, products(id, slug, name, price, currency, product_type, description, features, affiliate_commission_rate, affiliate_price, product_categories(name))"
+        "product_id, link_code, expires_at, products(id, slug, name, price, currency, product_type, description, features, affiliate_commission_rate, affiliate_price, product_categories(name))"
       )
       .eq("affiliate_id", affiliate.id)
       .eq("is_active", true)
@@ -89,16 +93,29 @@ export default async function AffiliateAiPage() {
       .order("created_at", { ascending: false })
       .limit(40);
 
+    const trackedFor = new Set<string>();
     for (const row of picked ?? []) {
       const product = row.products as Parameters<typeof mapProduct>[0] | null;
       if (!product?.id) continue;
-      byId.set(product.id, mapProduct(product, defaultRate));
+      const mapped = mapProduct(product, defaultRate);
+      let trackingUrl = byId.get(product.id)?.trackingUrl ?? null;
+      if (!trackedFor.has(product.id)) {
+        trackedFor.add(product.id);
+        trackingUrl = trackingUrlForOwnedLink({
+          siteUrl,
+          linkCode: row.link_code,
+          expiresAt: row.expires_at,
+        });
+      }
+      byId.set(product.id, { ...mapped, trackingUrl });
     }
   }
 
   // Ensure auth session is evaluated (client generate still gates).
   void (await createClient());
 
-  const products = [...byId.values()];
+  const products = [...byId.values()].sort(
+    (a, b) => Number(Boolean(b.trackingUrl)) - Number(Boolean(a.trackingUrl)),
+  );
   return <AffiliateAiClient products={products} />;
 }
