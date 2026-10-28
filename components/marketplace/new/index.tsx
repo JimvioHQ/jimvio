@@ -6,7 +6,6 @@ import {
   Warehouse, MapPin, Flame, ChevronRight, ArrowRight,
 } from "lucide-react";
 import { FlashDealsClient } from "./FlashDealsClient";
-import { FlashDealsCountdown } from "./FlashDealsCountdown";
 import { TrendingProductsClient } from "./TrendingProductsClient";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -199,11 +198,10 @@ function FlashDealsSection({ deals }: { deals: DbProduct[] }) {
           <Zap className="size-4 fill-current" />
           <span className="font-bold">Flash Deals</span>
           <span className="hidden text-xs text-white/80 sm:inline">
-            Limited time offers – Don&apos;t miss out!
+            Discounted products from current listings
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <FlashDealsCountdown />
           <Link
             href="/marketplace/flash-deals"
             className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
