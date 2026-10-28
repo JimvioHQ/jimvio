@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { BarChart3, ShoppingBag, Users } from "lucide-react";
 
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
@@ -11,7 +12,7 @@ const TAKE_JIMVIO_FEATURES = [
   },
   {
     title: "Track earnings in real time",
-    desc: "Monitor sales, commissions and payouts instantly.",
+    desc: "See sales, commissions and payouts as they are recorded.",
     icon: BarChart3,
   },
   {
@@ -75,44 +76,11 @@ export function TakeJimvioEverywhere() {
 
             <div className="mt-6">
               <span className="mb-2.5 block text-[13px] font-bold tracking-[-0.01em] text-[#111827]">
-                Download the App
+                Get the app
               </span>
-              <div className="flex flex-row flex-wrap items-center gap-3">
-                <a
-                  href="#"
-                  aria-label="Download on the App Store"
-                  className="inline-flex min-h-11 shrink-0 items-center transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/app-store-badge.svg"
-                    alt="Download on the App Store"
-                    width={150}
-                    height={50}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-10 w-auto sm:h-11"
-                  />
-                </a>
-                <a
-                  href="#"
-                  aria-label="Get it on Google Play"
-                  className="inline-flex min-h-11 shrink-0 items-center transition-opacity hover:opacity-90 active:scale-[0.98] motion-reduce:active:scale-100"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/logos/google-play-badge.svg"
-                    alt="Get it on Google Play"
-                    width={168}
-                    height={50}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-10 w-auto sm:h-11"
-                  />
-                </a>
-              </div>
+              <InstallAppButton />
               <p className="mt-3 text-[12px] leading-relaxed text-[#9CA3AF]">
-                Secure · Easy to use · Available wherever supported
+                Installs from your browser. No app store needed.
               </p>
             </div>
           </div>

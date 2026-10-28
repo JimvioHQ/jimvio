@@ -74,12 +74,8 @@ describe("truth guardrails", () => {
 
 // P0-2: marketing pages may only show logos of payment methods Jimvio runs on.
 const MARKETING_DIRS = ["components/layout", "components/about", "components/affiliate", "app/(public)"];
-// App store badges are handled by P0-8 and removed there.
-const LOGO_ALLOWLIST = new Set([
-  ...APPROVED_PARTNER_LOGOS,
-  "/logos/app-store-badge.svg",
-  "/logos/google-play-badge.svg",
-]);
+// No app-store badges: Jimvio ships as an installable web app (P0-8).
+const LOGO_ALLOWLIST = new Set([...APPROVED_PARTNER_LOGOS]);
 
 describe("partner logo guardrail", () => {
   it("marketing pages only use approved payment partner logos", () => {
