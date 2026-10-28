@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import { APPROVED_PARTNER_LOGOS } from "@/lib/brand/payment-partners";
 
 const root = process.cwd();
 const SCAN_DIRS = ["app", "components", "lib"];
@@ -64,5 +65,30 @@ describe("truth guardrails", () => {
       }
     }
     assert.deepEqual(violations, [], `Fabricated public claims found:\n${violations.join("\n")}`);
+  });
+});
+
+// P0-2: marketing pages may only show logos of payment methods Jimvio runs on.
+const MARKETING_DIRS = ["components/layout", "components/about", "components/affiliate", "app/(public)"];
+// App store badges are handled by P0-8 and removed there.
+const LOGO_ALLOWLIST = new Set([
+  ...APPROVED_PARTNER_LOGOS,
+  "/logos/app-store-badge.svg",
+  "/logos/google-play-badge.svg",
+]);
+
+describe("partner logo guardrail", () => {
+  it("marketing pages only use approved payment partner logos", () => {
+    const violations: string[] = [];
+    for (const dir of MARKETING_DIRS) {
+      for (const file of walk(join(root, dir))) {
+        const rel = relative(root, file);
+        const text = readFileSync(file, "utf8");
+        for (const match of text.matchAll(/["'`](\/logos\/[^"'`]+)["'`]/g)) {
+          if (!LOGO_ALLOWLIST.has(match[1])) violations.push(`${rel} ${match[1]}`);
+        }
+      }
+    }
+    assert.deepEqual(violations, [], `Unapproved logos on marketing pages:\n${violations.join("\n")}`);
   });
 });

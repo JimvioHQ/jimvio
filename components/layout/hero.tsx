@@ -15,6 +15,7 @@ import {
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
+import { PAYMENT_PARTNERS } from "@/lib/brand/payment-partners";
 import {
   jimvioDuration,
   jimvioEase,
@@ -262,117 +263,43 @@ const TRUST_BADGES = [
 ] as const;
 
 /**
- * Official brand files only. Existing repo artwork is reused where it was
- * already verified. New files are the vendor SVG/PNG or the Wikimedia Commons
- * original. Float has no verified file in this set.
+ * Payment methods only — never other companies shown as "partners".
+ * Source of truth: lib/brand/payment-partners.ts (P0-2).
+ * Static row: six items do not need a marquee or duplicated DOM (R-7).
  */
-const ECOSYSTEM_LOGOS = [
-  { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", w: 148, h: 32 },
-  { src: "/logos/platforms/slack.svg", alt: "Slack", w: 126, h: 32 },
-  { src: "/logos/platforms/visa.svg", alt: "Visa", w: 98, h: 32 },
-  { src: "/logos/platforms/zepto.svg", alt: "Zepto", w: 96, h: 32 },
-  { src: "/logos/platforms/youtube.svg", alt: "YouTube", w: 144, h: 32 },
-  { src: "/logos/platforms/mastercard.svg", alt: "Mastercard", w: 52, h: 32 },
-  { src: "/logos/platforms/omniretail.png", alt: "OmniRetail", w: 102, h: 32 },
-  { src: "/logos/binance.svg", alt: "Binance", w: 160, h: 32 },
-  { src: "/logos/platforms/mailchimp.svg", alt: "Mailchimp", w: 129, h: 32 },
-  { src: "/logos/platforms/nowpayments.svg", alt: "NOWPayments", w: 210, h: 32 },
-  { src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", alt: "Payoneer", w: 165, h: 32 },
-  { src: "/logos/platforms/shopify.svg", alt: "Shopify", w: 108, h: 32 },
-  { src: "/logos/platforms/aliexpress.svg", alt: "AliExpress", w: 148, h: 32 },
-  { src: "/logos/platforms/perplexity.svg", alt: "Perplexity", w: 133, h: 32 },
-  { src: "/logos/platforms/ebay.svg", alt: "eBay", w: 80, h: 32 },
-  { src: "/logos/platforms/streamlabs.svg", alt: "Streamlabs", w: 191, h: 32 },
-  { src: "/logos/platforms/ahrefs.svg", alt: "Ahrefs", w: 141, h: 32 },
-  { src: "/logos/platforms/semrush.svg", alt: "Semrush", w: 160, h: 32 },
-  { src: "/logos/platforms/tiktok.svg", alt: "TikTok", w: 110, h: 32 },
-  { src: "/logos/platforms/content-rewards.svg", alt: "Content Rewards", w: 99, h: 32 },
-] as const;
-
-const LOGO_TRACK_GAP = "gap-10 sm:gap-14";
-const LOGO_TRACK_PAD = "pr-10 sm:pr-14";
-
-function EcosystemLogo({
-  logo,
-  decorative,
-}: {
-  logo: (typeof ECOSYSTEM_LOGOS)[number];
-  decorative?: boolean;
-}) {
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logo.src}
-      alt={decorative ? "" : logo.alt}
-      width={logo.w}
-      height={logo.h}
-      decoding="async"
-      draggable={false}
-      className="block h-8 shrink-0 object-contain"
-      style={{ width: logo.w, height: 32, maxWidth: logo.w, maxHeight: 32 }}
-    />
-  );
-}
-
-function EcosystemLogoTrack({ decorative }: { decorative?: boolean }) {
-  return (
-    <ul className={cn("flex w-max list-none flex-nowrap items-center p-0", LOGO_TRACK_GAP)}>
-      {ECOSYSTEM_LOGOS.map((logo) => (
-        <li key={logo.alt} className="flex h-8 shrink-0 items-center overflow-hidden">
-          <EcosystemLogo logo={logo} decorative={decorative} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-const HeroPartnerStrip = memo(function HeroPartnerStrip({
-  play,
-}: {
-  play: boolean;
-}) {
-  const reduced = usePrefersReducedMotion();
-  const animate = !reduced && play;
-
+const HeroPartnerStrip = memo(function HeroPartnerStrip() {
   return (
     <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-
-      <div
-        className="hidden w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain motion-reduce:block"
-        tabIndex={0}
-        aria-label="Platform logos"
+      <p className="mb-5 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:text-[13px]">
+        Pay and get paid with
+      </p>
+      <ul
+        className="flex list-none flex-wrap items-center justify-center gap-x-8 gap-y-4 p-0 sm:gap-x-12"
+        aria-label="Supported payment methods"
       >
-        <EcosystemLogoTrack />
-      </div>
-
-      <div
-        className={cn(
-          "group relative h-8 w-full min-w-0 overflow-hidden rounded-md motion-reduce:hidden",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
-          "[transform:translateZ(0)]",
-        )}
-        tabIndex={reduced ? -1 : 0}
-        aria-hidden={reduced ? true : undefined}
-        aria-label={reduced ? undefined : "Platform logos. Focus pauses the animation."}
-      >
-        <div
-          className={cn(
-            "flex w-max items-center",
-            animate && "animate-[hero-partner-marquee_60s_linear_infinite] motion-reduce:animate-none",
-            "group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused]",
-            !play && "[animation-play-state:paused]",
-          )}
-        >
-          <div className={cn("flex shrink-0 items-center", LOGO_TRACK_PAD)}>
-            <EcosystemLogoTrack />
-          </div>
-          <div className={cn("flex shrink-0 items-center", LOGO_TRACK_PAD)} aria-hidden="true">
-            <EcosystemLogoTrack decorative />
-          </div>
-        </div>
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#F8FAFC] to-transparent sm:w-12" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#F8FAFC] to-transparent sm:w-12" />
-      </div>
+        {PAYMENT_PARTNERS.map((partner) => (
+          <li key={partner.id} className="flex h-7 items-center opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0">
+            {partner.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={partner.logo}
+                alt={partner.name}
+                width={partner.width}
+                height={28}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+                className="block h-7 w-auto object-contain"
+                style={{ maxWidth: partner.width }}
+              />
+            ) : (
+              <span className="whitespace-nowrap text-[13px] font-semibold tracking-[-0.01em] text-[#4B5563] dark:text-[var(--color-text-secondary)]">
+                {partner.name}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 });
@@ -547,7 +474,7 @@ export function Hero() {
             animate="show"
             className="mt-5 w-full sm:mt-6"
           >
-            <HeroPartnerStrip play={inView} />
+            <HeroPartnerStrip />
           </motion.div>
         </div>
       </section>
