@@ -569,6 +569,8 @@ export async function getIdentityByUsername(
     .from("profiles")
     .select(PROFILE_CORE_SELECT)
     .ilike("username", username)
+    // Deactivated accounts (e.g. retired editorial personas) have no public profile.
+    .or("is_active.is.null,is_active.eq.true")
     .maybeSingle();
   if (!profile) return null;
 
