@@ -8,7 +8,8 @@ import { LICENSED_PROVIDERS, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catal
 import { buildOriginalBrief, type OriginalBrief } from "@/lib/editorial/ingest/compose";
 import { canonicalUrl, externalKey, parseFeed, sharesLongPhrase } from "@/lib/editorial/ingest/feed";
 import { evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
-import { cycleSourceOutcome, isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId, type ItemResearch } from "@/lib/editorial/ingest/plan";
+import { ingestUnavailable } from "@/lib/editorial/ingest/db-error";
+import { alreadyStoredDuplicate, cycleSourceOutcome, isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId, type ItemResearch } from "@/lib/editorial/ingest/plan";
 import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS, type SourceRecord } from "@/lib/editorial/ingest/types";
 import { isArticleId, isPubliclyVisible } from "@/lib/editorial/validate";
 
@@ -180,6 +181,8 @@ describe("external ingestion", () => {
       publishedToday: 0,
     });
     assert.equal(again[0]?.status, "duplicate");
+    assert.equal(again[0]?.filterReason, "already_stored");
+    assert.equal(alreadyStoredDuplicate(again[0]!), true);
     assert.equal(again[0]?.article, null);
     assert.equal(externalKey(first[0]!.url, first[0]!.guid), first[0]?.externalKey);
 
@@ -241,6 +244,22 @@ describe("external ingestion", () => {
     assert.notEqual(blocked[0]?.article?.intent, "published");
     assert.equal(serverAutopublishAuthorized({ MEDIA_AUTOPUBLISH_AUTHORIZED: "0" } as NodeJS.ProcessEnv), false);
     assert.equal(serverAutopublishAuthorized({ MEDIA_AUTOPUBLISH_AUTHORIZED: "1" } as NodeJS.ProcessEnv), true);
+  });
+
+  it("keeps a repeated external key from being treated as missing storage", () => {
+    assert.equal(ingestUnavailable(null), false);
+    assert.equal(
+      ingestUnavailable({ code: "23505", message: 'duplicate key value violates unique constraint "media_external_items_key"' }),
+      false,
+    );
+    assert.equal(ingestUnavailable({ code: "42P01", message: 'relation "public.media_articles" does not exist' }), true);
+    assert.equal(
+      ingestUnavailable({ code: "PGRST205", message: "Could not find the table public.media_external_items in the schema cache" }),
+      true,
+    );
+    assert.equal(alreadyStoredDuplicate({ status: "duplicate", filterReason: "already_stored" }), true);
+    assert.equal(alreadyStoredDuplicate({ status: "duplicate", filterReason: "matching_record" }), false);
+    assert.equal(alreadyStoredDuplicate({ status: "published", filterReason: null }), false);
   });
 
   it("publishes only when rights, evidence, and authorization all pass", () => {

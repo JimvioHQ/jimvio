@@ -13,6 +13,7 @@ import type {
   SourceKind,
   SourceRecord,
 } from "@/lib/editorial/ingest/types";
+import { ingestUnavailable } from "@/lib/editorial/ingest/db-error";
 import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS } from "@/lib/editorial/ingest/types";
 
 type Row = Record<string, unknown>;
@@ -59,20 +60,6 @@ export async function lookupProfileNames(names: string[]): Promise<ProfileMatch[
   } catch {
     return [];
   }
-}
-
-export function ingestUnavailable(error: DbError): boolean {
-  if (!error) return false;
-  const text = `${error.code ?? ""} ${error.message ?? ""}`.toLowerCase();
-  return (
-    error.code === "42P01" ||
-    error.code === "PGRST205" ||
-    text.includes("media_ingest") ||
-    text.includes("media_sources") ||
-    text.includes("media_external") ||
-    text.includes("media_image_rights") ||
-    text.includes("media_articles")
-  );
 }
 
 function asRows(data: unknown): Row[] {

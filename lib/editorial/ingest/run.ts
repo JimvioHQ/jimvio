@@ -2,7 +2,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { externalKey } from "@/lib/editorial/ingest/feed";
 import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
-import { countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
+import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
 import { writeGroundedReport } from "@/lib/editorial/ingest/report";
 import { loadCycleContext, lookupProfileNames, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
 import type { CycleCounts, FeedItem, SourceRecord } from "@/lib/editorial/ingest/types";
@@ -158,6 +158,7 @@ async function syncSource(
   let publishedSlug: string | null = null;
   for (const item of planned) {
     if (item.filterReason === "publish_pace") continue;
+    if (alreadyStoredDuplicate(item)) continue;
     const saved = await persistPlannedItem(source.id, item, now, actorId);
     if (saved.unavailable) {
       await markJob(job.id, "failed", "Media storage is not ready.", planned.length);

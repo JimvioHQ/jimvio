@@ -63,6 +63,11 @@ export function serverAutopublishAuthorized(env: NodeJS.ProcessEnv = process.env
   return env.MEDIA_AUTOPUBLISH_AUTHORIZED === "1";
 }
 
+/** An item already saved under this external key must not be inserted again. */
+export function alreadyStoredDuplicate(item: { status: string; filterReason: string | null }): boolean {
+  return item.status === "duplicate" && item.filterReason === "already_stored";
+}
+
 export function sourceDue(
   source: { enabled: boolean; lastSuccessAt: string | null; lastAttemptAt: string | null; pollMinutes: number },
   now: Date,
