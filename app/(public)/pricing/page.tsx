@@ -1,194 +1,149 @@
 import React from "react";
 import Link from "next/link";
-import { Check, Zap, Star, Building2, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, Check } from "lucide-react";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { loadSupplierSourcesSettings } from "@/lib/sources/supplier-settings";
+import { DEFAULT_SUPPLIER_SOURCES } from "@/lib/sources/supplier-settings-shared";
+import { WITHDRAWAL_FEE_RULES, type WithdrawalFeeRule } from "@/lib/payments/withdrawal-fees";
 
-const plans = [
-  {
-    name: "Starter",
-    description: "Perfect for getting started",
-    icon: <Zap className="h-5 w-5" />,
-    color: "from-blue-600 to-cyan-600",
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    badge: null,
-    cta: "Get Started Free",
-    features: [
-      "Buyer account (unlimited orders)",
-      "Affiliate role (up to 5 links)",
-      "5% platform fee on sales",
-      "Basic analytics",
-      "Saved products & wishlist",
-      "Email support",
-    ],
-    limitations: ["No vendor storefront", "Limited affiliate links", "Standard payouts (5—7 days)"],
-  },
-  {
-    name: "Creator",
-    description: "For serious creators & sellers",
-    icon: <Star className="h-5 w-5" />,
-    color: "from-brand-600 to-accent-600",
-    monthlyPrice: 15000,
-    yearlyPrice: 150000,
-    badge: "Most Popular",
-    cta: "Start Creator Plan",
-    features: [
-      "Everything in Starter",
-      "Vendor storefront (up to 100 products)",
-      "Unlimited affiliate links",
-      "Influencer dashboard",
-      "Extended storefront tools",
-      "3% platform fee (vs 5%)",
-      "Viral clip uploads (up to 20)",
-      "Advanced analytics",
-      "AI product descriptions (50/mo)",
-      "Priority support",
-      "Fast payouts (1—2 days)",
-    ],
-    limitations: [],
-  },
-  {
-    name: "Business",
-    description: "For scaling businesses",
-    icon: <Building2 className="h-5 w-5" />,
-    color: "from-accent-600 to-pink-600",
-    monthlyPrice: 50000,
-    yearlyPrice: 480000,
-    badge: "Best Value",
-    cta: "Start Business Plan",
-    features: [
-      "Everything in Creator",
-      "Unlimited products",
-      "Unlimited storefront expansion",
-      "2% platform fee",
-      "Unlimited viral clips",
-      "AI generation unlimited",
-      "Bulk pricing management",
-      "Advanced influencer tools",
-      "API access",
-      "Custom domain",
-      "Dedicated account manager",
-      "Instant payouts",
-      "White-label options",
-    ],
-    limitations: [],
-  },
-];
+/**
+ * Pricing — what Jimvio actually charges (T-9).
+ *
+ * Every number on this page is read from the same settings and rules the
+ * payment code uses. There are no paid plans: an earlier version sold
+ * "Creator" and "Business" plans that the product never implemented.
+ */
+export const revalidate = 300;
 
-const faqs = [
-  { q: "Can I change plans later?", a: "Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately." },
-  { q: "What payment methods are accepted?", a: "We accept major mobile money services (MTN, Airtel), bank transfers, and cryptocurrency at checkout where enabled." },
-  { q: "Is there a transaction fee?", a: "Platform fees vary by plan: 5% (Starter), 3% (Creator), 2% (Business). There are no hidden fees." },
-  { q: "Can I try paid features before subscribing?", a: "Yes! All new accounts get a 14-day free trial of the Creator plan." },
-  { q: "What happens to my data if I downgrade?", a: "Your data is always safe. Products and orders remain active, some features may become limited." },
-];
-
-export default function PricingPage() {
-  return (
-    <div className="pt-20 min-h-screen">
-      {/* Hero */}
-      <section className="py-16 px-4 text-center">
-        <Badge variant="default" className="mb-4">Pricing</Badge>
-        <h1 className="text-5xl font-black text-white mb-4">
-          Simple, <span className="gradient-text">Transparent</span> Pricing
-        </h1>
-        <p className="text-white/60 text-xl max-w-2xl mx-auto mb-8">
-          Start free. Upgrade when you&apos;re ready. No hidden fees, no surprises.
-        </p>
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <span className="text-sm text-white/50">Monthly</span>
-          <div className="relative">
-            <div className="w-12 h-6 bg-brand-600 rounded-sm" />
-            <div className="absolute top-1 left-1 w-4 h-4 bg-white dark:bg-surface rounded-sm shadow" />
-          </div>
-          <span className="text-sm text-white">Yearly</span>
-          <Badge variant="success" className="text-xs">Save 20%</Badge>
-        </div>
-      </section>
-
-      {/* Plans */}
-      <section className="py-10 px-4 dark:bg-black">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan, i) => (
-            <Card
-              key={plan.name}
-              className={`relative ${i === 1 ? "ring-2 ring-primary-500/30" : ""}`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge variant="default" className="px-3 py-1 shadow-brand">{plan.badge}</Badge>
-                </div>
-              )}
-              <CardContent className="p-6">
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`p-2.5 rounded-sm bg-gradient-to-br ${plan.color} text-white`}>
-                    {plan.icon}
-                  </div>
-                  <div>
-                    <h3 className="text-white font-black text-lg">{plan.name}</h3>
-                    <p className="text-white/50 text-xs">{plan.description}</p>
-                  </div>
-                </div>
-
-                {/* Price */}
-                <div className="mb-6">
-                  {plan.monthlyPrice === 0 ? (
-                    <div>
-                      <span className="text-4xl font-black text-white">Free</span>
-                      <p className="text-white/40 text-sm mt-1">Forever</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="text-4xl font-black text-white">
-                        RWF {plan.yearlyPrice.toLocaleString()}
-                      </span>
-                      <span className="text-white/40 text-sm">/year</span>
-                      <p className="text-white/40 text-xs mt-1">
-                        or RWF {plan.monthlyPrice.toLocaleString()}/month
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <Button className="w-full mb-6" variant={i === 1 ? "default" : "outline"} size="lg" asChild>
-                  <Link href="/register">
-                    {plan.cta} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-
-                {/* Features */}
-                <ul className="space-y-2.5">
-                  {plan.features.map((feature, fi) => (
-                    <li key={fi} className="flex items-start gap-2.5 text-sm">
-                      <Check className="h-4 w-4 text-emerald-40 flex-shrink-0 mt-0.5" />
-                      <span className="text-black/10 dark:text-white">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center mb-10">Frequently Asked Questions</h2>
-          <div className="space-y-4">
-            {faqs.map((faq, i) => (
-              <div key={i} className="bg-surface rounded-sm border border-base shadow-card p-5">
-                <h3 className="text-white font-semibold mb-2">{faq.q}</h3>
-                <p className="text-white/60 text-sm leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+async function loadFees() {
+  try {
+    const settings = await loadSupplierSourcesSettings(createServiceRoleClient());
+    return settings;
+  } catch {
+    return DEFAULT_SUPPLIER_SOURCES;
+  }
 }
 
+function formatRule(rule: WithdrawalFeeRule): string {
+  const parts: string[] = [];
+  if (rule.fixed > 0) parts.push(`$${rule.fixed}`);
+  if (rule.percent > 0) parts.push(`${rule.percent}%`);
+  const base = parts.join(" + ") || "$0";
+  return `${base} (min $${rule.min}, max $${rule.max})`;
+}
+
+const WITHDRAWAL_LABELS: Record<string, string> = {
+  mobile_money: "Mobile money",
+  bank: "Bank transfer",
+  binance_id: "Binance ID",
+  crypto: "Crypto wallet",
+};
+
+const FREE_ITEMS = [
+  "Create an account, buy, and join communities",
+  "Open a store and list products",
+  "Create affiliate links and join UGC or clipping campaigns",
+  "Wallet, earnings history and payout requests",
+];
+
+export default async function PricingPage() {
+  const fees = await loadFees();
+
+  const saleFees = [
+    { label: "Products you sell from your own store", value: fees.vendor.platform_commission_percent },
+    { label: "Products synced from a connected Shopify store", value: fees.shopify.platform_commission_percent },
+    { label: "Jimvio dropshipping catalog products", value: fees.cj.platform_commission_percent },
+  ];
+
+  const withdrawals = Object.entries(WITHDRAWAL_FEE_RULES).map(([method, rule]) => ({
+    method: WITHDRAWAL_LABELS[method] ?? method,
+    fee: formatRule(rule),
+  }));
+
+  return (
+    <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <section className="mx-auto max-w-3xl px-4 pb-10 pt-14 text-center sm:px-6">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-[#FF5A1F]">Pricing</p>
+        <h1 className="mt-3 text-[clamp(2rem,5vw,3rem)] font-black leading-[1.05] tracking-tight">
+          Free to join. A fee only when you earn.
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
+          Jimvio has no subscription plans. You pay a platform fee on sales and a small fee when
+          you withdraw. The figures below come from the same settings the payment system uses.
+        </p>
+      </section>
+
+      <section className="mx-auto grid max-w-5xl gap-5 px-4 pb-16 sm:px-6 md:grid-cols-2">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h2 className="text-lg font-bold">Always free</h2>
+          <ul className="mt-4 space-y-3">
+            {FREE_ITEMS.map((item) => (
+              <li key={item} className="flex gap-2.5 text-[14px] text-[var(--color-text-secondary)]">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h2 className="text-lg font-bold">Platform fee on sales</h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Taken from the sale amount before earnings reach your wallet.
+          </p>
+          <table className="mt-4 w-full text-left text-[14px]">
+            <tbody>
+              {saleFees.map((row) => (
+                <tr key={row.label} className="border-t border-[var(--color-border)]">
+                  <td className="py-2.5 pr-3 text-[var(--color-text-secondary)]">{row.label}</td>
+                  <td className="py-2.5 text-right font-bold tabular-nums">{row.value}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h2 className="text-lg font-bold">Affiliates and campaigns</h2>
+          <ul className="mt-4 space-y-3 text-[14px] text-[var(--color-text-secondary)]">
+            <li>Affiliate commission is set by each seller and shown on the product before you promote it.</li>
+            <li>UGC and clipping pay is set by each brand and shown on the campaign before you apply.</li>
+            <li>Joining either is free.</li>
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+          <h2 className="text-lg font-bold">Withdrawal fees</h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Jimvio&apos;s fee per withdrawal, in USD. The exact amount is shown before you confirm.
+          </p>
+          <table className="mt-4 w-full text-left text-[14px]">
+            <tbody>
+              {withdrawals.map((row) => (
+                <tr key={row.method} className="border-t border-[var(--color-border)]">
+                  <td className="py-2.5 pr-3 text-[var(--color-text-secondary)]">{row.method}</td>
+                  <td className="py-2.5 text-right font-semibold tabular-nums">{row.fee}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-3xl px-4 pb-20 text-center sm:px-6">
+        <p className="text-[13px] text-[var(--color-text-muted)]">
+          Payment providers may add their own charges. Payout timing depends on the method; the
+          wallet shows the processing note for each one. See{" "}
+          <Link href="/refunds-payouts" className="underline">refunds and payouts</Link>.
+        </p>
+        <Link
+          href="/register"
+          className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-[#FF5A1F] px-6 text-sm font-bold text-white hover:bg-[#e04e18]"
+        >
+          Create a free account
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Link>
+      </section>
+    </main>
+  );
+}

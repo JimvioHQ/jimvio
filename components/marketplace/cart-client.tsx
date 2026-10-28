@@ -987,22 +987,22 @@ export function CartClient({ initialItems }: CartClientProps) {
                   {
                     icon: <Shield className="h-5 w-5 text-[var(--color-accent)]" />,
                     title: "Buyer Protection",
-                    sub: "Shop with confidence",
+                    sub: "Eligible orders reviewed",
                   },
                   {
                     icon: <Lock className="h-5 w-5 text-blue-500" />,
                     title: "Secure Payment",
-                    sub: "100% safe & secure",
+                    sub: "Encrypted checkout",
                   },
                   {
                     icon: <Globe className="h-5 w-5 text-sky-500" />,
-                    title: "Worldwide Shipping",
-                    sub: "Fast & reliable delivery",
+                    title: "Shipping at Checkout",
+                    sub: "Rates and times shown before you pay",
                   },
                   {
                     icon: <ShieldCheck className="h-5 w-5 text-emerald-500" />,
-                    title: "Escrow Protected",
-                    sub: "Your money is safe",
+                    title: "Held Until Delivery",
+                    sub: "Seller earnings stay pending until the order completes",
                   },
                 ].map((b) => (
                   <div

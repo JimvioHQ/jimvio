@@ -678,7 +678,7 @@ function ProductsHeader({ refreshing, onRefresh }: { refreshing: boolean; onRefr
           <div className="max-w-[230px]">
             <p className="text-sm font-semibold leading-snug text-[#111827]">List physical or digital products</p>
             <p className="mt-1 text-xs leading-relaxed text-[#6B7280]">
-              Reach a global audience of millions of buyers and creators.
+              Reach buyers and creators on Jimvio.
             </p>
             <Link
               href="/help/articles/create-listing"
@@ -1249,7 +1249,7 @@ function EmptyCatalogState() {
       <EmptyCatalogArt />
       <h2 className="mt-2 text-[22px] font-bold tracking-tight text-[#111827]">Your product catalog starts here</h2>
       <p className="mt-2 max-w-[440px] text-sm leading-6 text-[#6B7280]">
-        List physical or digital products and reach a global audience of millions of buyers and creators on Jimvio.
+        List physical or digital products and reach buyers and creators on Jimvio.
       </p>
       <div className="mt-5 flex w-full flex-col items-center gap-2.5">
         <Link href="/marketplace/new" className={cn(primaryBtn, "min-w-[230px]")}>

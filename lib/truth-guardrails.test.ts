@@ -31,6 +31,9 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "happy customers claim", pattern: /happy customers/i },
   { name: "hardcoded star rating", pattern: />\s*4\.\d\/5\s*</ },
   { name: "illustrative stats module", pattern: /demo-platform-stats|getDemoPlatformStats/ },
+  // P0-7: claims Jimvio cannot back up.
+  { name: "unverified claim", pattern: /["'>]\s*(?:100% safe|Money-back guarantee|Instant Payouts|24\/7 Support|Fast & reliable delivery)/i },
+  { name: "unverified scale claim", pattern: /\bmillions of (?:products|buyers|creators|users|dropshipping products)\b/i },
 ];
 
 function walk(dir: string, acc: string[] = []): string[] {
@@ -58,6 +61,7 @@ describe("truth guardrails", () => {
         if (SKIP.some((re) => re.test(`/${rel}`))) continue;
         const lines = readFileSync(file, "utf8").split("\n");
         lines.forEach((line, i) => {
+          if (/^\s*(?:\/\/|\*)/.test(line)) return; // comments describe what is avoided
           for (const rule of FORBIDDEN) {
             if (rule.pattern.test(line)) violations.push(`${rel}:${i + 1} ${rule.name}`);
           }

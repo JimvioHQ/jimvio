@@ -270,7 +270,7 @@ export const ONBOARDING_ROLES: OnboardingRole[] = [
       "Access global suppliers",
       "Import products in one click",
       "Automatic order fulfillment",
-      "Worldwide shipping & tracking",
+      "Shipping & tracking where available",
       "Start your own storefront",
       "Scale your business globally",
     ],

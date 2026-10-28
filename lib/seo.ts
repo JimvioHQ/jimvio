@@ -97,7 +97,7 @@ export const PAGE_SEO = {
   },
   pricing: {
     title: "Pricing",
-    description: "Transparent pricing for selling, affiliates, and UGC on Jimvio. Start free and scale as you grow.",
+    description: "Free to join. See the platform fee on sales and the withdrawal fees Jimvio charges.",
     path: "/pricing",
   },
   protection: {

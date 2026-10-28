@@ -214,7 +214,7 @@ export const JOURNEY_PATHS: JourneyPathConfig[] = [
     eyebrow: "SHOP",
     headline: "Discover, buy and get inspired",
     description:
-      "Explore millions of products from global suppliers, trending deals, and digital products.",
+      "Explore physical and digital products from sellers and suppliers, plus current deals.",
     moreWaysTitle: "More ways to shop on Jimvio",
     exploreAllHref: "/marketplace",
     exploreAllLabel: "Explore marketplace",
@@ -570,7 +570,7 @@ export const JOURNEY_PATHS: JourneyPathConfig[] = [
     eyebrow: "DROPSHIP",
     headline: "Find, import and sell products worldwide",
     description:
-      "Access millions of dropshipping products, import them to your store and start selling with fast global fulfillment.",
+      "Browse dropshipping products, import them to your store and sell with supplier fulfillment.",
     moreWaysTitle: "More ways to dropship on Jimvio",
     exploreAllHref: "/commerce",
     exploreAllLabel: "Open Commerce",

@@ -132,10 +132,10 @@ async function fetchMarketplaceData() {
 // ─── TrustBadges (static, server) ────────────────────────────────────────────
 
 const BADGES = [
-  { icon: ShieldCheck, title: "Secure Payments", sub: "100% safe & secure", color: "var(--color-accent)" },
-  { icon: BadgeDollarSign, title: "Buyer Protection", sub: "Money-back guarantee", color: "var(--color-success)" },
-  { icon: CircleCheck, title: "Verified Suppliers", sub: "Trusted & reliable", color: "var(--color-success)" },
-  { icon: Truck, title: "Fast Delivery", sub: "Worldwide shipping", color: "var(--color-accent)" },
+  { icon: ShieldCheck, title: "Secure Payments", sub: "Encrypted checkout", color: "var(--color-accent)" },
+  { icon: BadgeDollarSign, title: "Buyer Protection", sub: "Eligible orders reviewed", color: "var(--color-success)" },
+  { icon: CircleCheck, title: "Verified Stores", sub: "Badge only after checks", color: "var(--color-success)" },
+  { icon: Truck, title: "Shipping Shown", sub: "Rates before you pay", color: "var(--color-accent)" },
 ];
 
 function TrustBadgesSection({

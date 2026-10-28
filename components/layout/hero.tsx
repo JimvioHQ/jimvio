@@ -32,7 +32,7 @@ const STAT_TRANSITION_S = 0.28;
 const HERO_PHRASES = [
   "Build Your Business",
   "Monetize Knowledge",
-  "Earn Globally",
+  "Run Affiliate Links",
   "Grow Your Audience",
   "Create UGC",
   "Sell Products",
@@ -41,7 +41,7 @@ const HERO_PHRASES = [
   "Start a Business",
   "Buy Products",
   "Grow Your Brand",
-  "Make Money Online",
+  "Sell Digital Products",
   "Teach Online",
   "Build Your Marketplace",
   "Earn From Your Influence",
@@ -254,12 +254,12 @@ function HeroSecondaryCTA() {
 }
 
 const TRUST_BADGES = [
-  { icon: CheckCircle, label: "Verified", color: "#16a34a" },
+  { icon: CheckCircle, label: "Verified stores", color: "#16a34a" },
   { icon: Lock, label: "Secure Payments", color: "#2563eb" },
   { icon: ShieldCheck, label: "Protected", color: "#7c3aed" },
-  { icon: Zap, label: "Instant Payouts", color: "#fd5000" },
-  { icon: Globe, label: "Global", color: "#6b7280" },
-  { icon: Headphones, label: "24/7 Support", color: "#2563eb" },
+  { icon: Zap, label: "Wallet payouts", color: "#fd5000" },
+  { icon: Globe, label: "Mobile money", color: "#6b7280" },
+  { icon: Headphones, label: "Help center", color: "#2563eb" },
 ] as const;
 
 /**
