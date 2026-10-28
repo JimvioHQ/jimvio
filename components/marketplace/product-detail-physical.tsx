@@ -808,7 +808,7 @@ type SellerProductRef = {
 
 function sellerTrustItems(verified: boolean) {
   return [
-    ...(verified ? [{ icon: BadgeCheck, label: "Verified Supplier" }] : []),
+    ...(verified ? [{ icon: BadgeCheck, label: "Verified Seller" }] : []),
     { icon: Lock, label: "Secure Transaction" },
     { icon: ShieldCheck, label: "Buyer Protection" },
   ];
@@ -878,11 +878,11 @@ function VendorSectionCard({
               {vendor.business_name ?? "Official Store"}
             </Link>
             {verified ? (
-              <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-label="Verified supplier" />
+              <BadgeCheck className="h-4 w-4 shrink-0 text-[var(--color-accent)]" aria-label="Verified seller: business details reviewed by Jimvio" />
             ) : null}
           </div>
           <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-            {[verified ? "Verified Supplier" : null, followersLabel || null].filter(Boolean).join(" · ")}
+            {[verified ? "Verified Seller" : null, followersLabel || null].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>

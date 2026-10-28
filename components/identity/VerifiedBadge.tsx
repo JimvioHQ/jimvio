@@ -14,6 +14,7 @@ export function VerifiedBadge({
   if (!verified) return null;
   return (
     <span
+      title="Verified: a Jimvio team member reviewed this store's business details. Not a product certification."
       className={cn(
         "inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50 font-semibold text-emerald-800",
         size === "sm" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]",
