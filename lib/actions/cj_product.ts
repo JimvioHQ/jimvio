@@ -1,4 +1,5 @@
 
+import { cleanSupplierProductName } from "@/lib/catalog/clean-product-name";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
     parseVariantKey,
@@ -486,7 +487,7 @@ export async function mapCJProductToJimvio(
     return {
         vendor_id: vendorId,
         source: "cj",
-        name: cjProduct.productNameEn,
+        name: cleanSupplierProductName(cjProduct.productNameEn),
         slug,
         short_description: cjProduct.productNameEn,
         description: cjProduct.remark,
