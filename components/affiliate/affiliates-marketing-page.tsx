@@ -140,6 +140,7 @@ export function AffiliatesMarketingPage({
         total={total}
         category={category}
         search={search}
+        categorySelected={pickedId !== null}
         pickedProductIds={pickedProductIds}
         loadError={loadError}
         pending={isPending}

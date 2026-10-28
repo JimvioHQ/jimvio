@@ -50,6 +50,7 @@ type AffiliateProductsProps = {
   total?: number | null;
   category: AffiliateDiscoveryCategoryId;
   search: string;
+  categorySelected?: boolean;
   pickedProductIds?: string[];
   loadError?: string | null;
   pending?: boolean;
@@ -221,6 +222,7 @@ export function AffiliateProducts({
   total = null,
   category,
   search,
+  categorySelected = false,
   pickedProductIds = [],
   loadError = null,
   pending = false,
@@ -322,7 +324,7 @@ export function AffiliateProducts({
     ? `Results for “${query}”`
     : affiliateDiscoverySectionTitle(category);
   const label = affiliateDiscoveryLabel(category);
-  const searchGuidance = affiliateSearchGuidance(query, query ? label : null);
+  const searchGuidance = affiliateSearchGuidance(query, query && categorySelected ? label : null);
   const showSkeleton = pending || (loading && snapshot.items.length === 0);
 
   const viewAll = () => {

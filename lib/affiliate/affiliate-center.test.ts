@@ -199,6 +199,8 @@ describe("affiliate discovery route", () => {
     assert.match(marketing, /<AffiliateHowItWorks bare/);
     assert.match(marketing, /<AffiliateBottomCta/);
     assert.match(marketing, /active=\{pickedId\}/);
+    assert.match(marketing, /categorySelected=\{pickedId !== null\}/);
+    assert.match(products, /categorySelected \? label : null/);
     assert.match(marketing, /categoryChosen \? category : null/);
     assert.match(categories, /Search anything\.\.\./);
     assert.doesNotMatch(categories, /Search categories\.\.\./);
