@@ -27,6 +27,7 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
     pattern: /\b\d+(?:\.\d+)?\s?[KM]\+?\s+(?:creators|users|affiliates|businesses|sellers|members|customers)\b/,
   },
   { name: "hardcoded N+ count in markup", pattern: />\s*\d{1,3}(?:,\d{3})+\+\s*</ },
+  { name: "hardcoded K/M+ figure in markup", pattern: />\s*\d+(?:\.\d+)?\s?[KkMm]\+\s*</ },
   { name: "trusted-by count", pattern: /Trusted by\s+(?:<[^>]+>|\d)/ },
   { name: "happy customers claim", pattern: /happy customers/i },
   { name: "hardcoded star rating", pattern: />\s*4\.\d\/5\s*</ },
