@@ -31,6 +31,11 @@ function normalizeRates(raw: Record<string, number>): Record<string, number> {
  * Fetches USD-based rates (how many units of each currency per 1 USD).
  * On fetch error, returns the last successful cache; never throws.
  */
+/** True when the current rates came from the live exchange-rate API (not fallback). */
+export function ratesAreLive(): boolean {
+  return cache !== null;
+}
+
 export async function getRates(): Promise<Record<string, number>> {
   const now = Date.now();
   if (cache && now - cache.fetchedAt < TTL_MS) {
