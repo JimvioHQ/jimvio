@@ -10,7 +10,7 @@ description = "CI placeholders, localStorage key names, demo rows, and the AI un
 regexTarget = "line"
 regexes = [
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVy''',
-  '''(?i)(storage_key|fixture_key|return_key|handoff_key)''',
+  '''(?i)(storage_key|fixture_key|return_key|handoff_key|execution_key)''',
   '''pgp_sym_encrypt\(''',
   '''lastUsed:''',
   '''key: "faith\-reflection\-c1\"''',
