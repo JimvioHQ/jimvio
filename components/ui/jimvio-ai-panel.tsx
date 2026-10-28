@@ -162,7 +162,7 @@ function JimvioAIHotSpotlight({
       image: communityImage(c),
       title: c.name,
       subtitle: c.tagline ?? "Join and connect with members",
-      metric: `${fmtCount(c.member_count ?? 0)} members`,
+      metric: `${fmtCount(c.member_count ?? 0)} ${c.member_count === 1 ? "member" : "members"}`,
     }));
 
     return interleave([productItems, campaignItems, communityItems]);

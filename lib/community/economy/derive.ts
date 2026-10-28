@@ -239,7 +239,7 @@ export function deriveGlobalDiscovery(args: {
     id: "disc-community",
     bucket: "communities",
     title: overview?.communityName ?? "This community",
-    meta: `${(overview?.memberCount ?? 0).toLocaleString("en-US")} members`,
+    meta: `${(overview?.memberCount ?? 0).toLocaleString("en-US")} ${overview?.memberCount === 1 ? "member" : "members"}`,
     href: base,
   });
 

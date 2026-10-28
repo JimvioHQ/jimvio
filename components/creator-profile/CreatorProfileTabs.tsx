@@ -104,7 +104,7 @@ export function CreatorProfileCommunitiesTab({ communities }: { communities: Cre
         <p className="mt-1 line-clamp-2 text-xs text-[var(--color-text-muted)]">{c.tagline}</p>
         <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-text-secondary)]">
           <Users className="size-3.5" />
-          {c.memberCount.toLocaleString()} members
+          {c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"}
         </p>
       </div>
     </Link>

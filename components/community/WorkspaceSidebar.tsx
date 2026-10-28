@@ -184,7 +184,7 @@ export function WorkspaceSidebar({
               {communityName}
             </p>
             <p className="text-[11px] text-[var(--color-text-muted)]">
-              {memberCount.toLocaleString()} members
+              {memberCount.toLocaleString()} {memberCount === 1 ? "member" : "members"}
             </p>
           </div>
           {showSettings && (

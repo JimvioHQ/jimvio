@@ -135,7 +135,7 @@ async function searchCommunities(pattern: string, query: string, limit: number) 
         id: row.id,
         entityType: "community" as const,
         title: row.name,
-        subtitle: row.tagline ?? `${row.member_count ?? 0} members`,
+        subtitle: row.tagline ?? `${row.member_count ?? 0} ${row.member_count === 1 ? "member" : "members"}`,
         href: `/communities/${row.slug}`,
         imageUrl: row.avatar_url,
         score,
@@ -162,6 +162,7 @@ async function searchCreators(pattern: string, query: string, limit: number) {
     admin()
       .from("profiles")
       .select("id, username, full_name, avatar_url")
+      .not("is_active", "is", false)
       .or(`username.ilike."${pattern.replace(/"/g, '""')}",full_name.ilike."${pattern.replace(/"/g, '""')}"`)
       .limit(limit),
   ]);

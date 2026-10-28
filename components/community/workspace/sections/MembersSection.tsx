@@ -138,7 +138,7 @@ export function MembersSection({ community, view, isAdmin }: Props) {
           />
         </div>
         <span className="text-[11px] font-semibold text-text-muted">
-          {community.member_count.toLocaleString()} members
+          {community.member_count.toLocaleString()} {community.member_count === 1 ? "member" : "members"}
         </span>
       </div>
 

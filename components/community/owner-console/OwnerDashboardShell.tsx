@@ -337,7 +337,7 @@ export function OwnerDashboardShell({
               <p className="mt-0.5 text-[13px] text-[#64748B]">
                 <span className="font-medium capitalize text-[#111827]">{role}</span>
                 <span className="mx-1.5 text-[#D1D5DB]">·</span>
-                <span>{community.memberCount.toLocaleString()} members</span>
+                <span>{community.memberCount.toLocaleString()} {community.memberCount === 1 ? "member" : "members"}</span>
               </p>
             </div>
           </div>
@@ -440,7 +440,7 @@ export function OwnerDashboardShell({
                       </p>
                       <p className="text-[12px] text-[#6B7280]">
                         {space.memberCount != null
-                          ? `${space.memberCount} members`
+                          ? `${space.memberCount} ${space.memberCount === 1 ? "member" : "members"}`
                           : "Space"}
                       </p>
                     </div>

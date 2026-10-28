@@ -89,6 +89,8 @@ export async function GET(req: NextRequest) {
       .from("communities")
       .select("id, name, slug, member_count, post_count")
       .eq("is_active", true)
+      .is("archived_at", null)
+      .not("is_private", "is", true)
       .order("member_count", { ascending: false })
       .limit(25);
     const failure = leaderboardFailure(error);

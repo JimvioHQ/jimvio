@@ -290,7 +290,7 @@ function CommunityModuleView({ data, meta }: { data: CommunityModuleSnapshot; me
                   </div>
                   <p className="truncate text-[11.5px] text-[#9A9388]">
                     {typeof c.memberCount === "number" && c.memberCount > 0
-                      ? `${formatNumber(c.memberCount)} members`
+                      ? `${formatNumber(c.memberCount)} ${c.memberCount === 1 ? "member" : "members"}`
                       : `Level ${c.level}`}
                     {c.totalPoints > 0 ? ` · ${formatNumber(c.totalPoints)} pts` : ""}
                   </p>

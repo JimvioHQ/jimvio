@@ -137,7 +137,7 @@ export function AiRecommendationCards({ products, campaigns, communities, posts,
                 {c.tagline && (
                   <p className="mt-0.5 line-clamp-1 text-[11px] text-[var(--color-text-muted)]">{c.tagline}</p>
                 )}
-                <p className="mt-1 text-[11px] font-medium text-[var(--color-text-muted)]">{c.members} members</p>
+                <p className="mt-1 text-[11px] font-medium text-[var(--color-text-muted)]">{c.members} {c.members === "1" ? "member" : "members"}</p>
                 {c.basis ? <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{c.basis}</p> : null}
               </div>
             </Link>
