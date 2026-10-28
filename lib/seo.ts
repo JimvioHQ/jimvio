@@ -9,7 +9,7 @@ export const SITE = {
   url: siteUrl,
   logo: `${siteUrl}/jimvio-logo.svg`,
   ogImage: `${siteUrl}/icons/icon-512.png`,
-  twitter: "@jimvio",
+  twitter: "@Jimvio_Official",
   /** Brand-first title for Google site name & homepage SERP */
   title: "Jimvio",
   tagline: "All-in-one creator commerce and digital business platform",
@@ -236,7 +236,12 @@ export function constructMetadata({
   keywords = [...SITE.keywords],
 }: SeoProps = {}): Metadata {
   const canonicalUrl = `${SITE.url}${path === "/" ? "" : path}`;
-  const absoluteImage = image.startsWith("http") ? image : `${SITE.url}${image}`;
+  // Pages without their own image get a real 1200×630 card with their title (N-9).
+  const resolvedImage =
+    image === SITE.ogImage
+      ? `/og?title=${encodeURIComponent(title === SITE.title ? SITE.name : title)}&subtitle=${encodeURIComponent(truncateDescription(description, 120))}`
+      : image;
+  const absoluteImage = resolvedImage.startsWith("http") ? resolvedImage : `${SITE.url}${resolvedImage}`;
   const metaDescription = truncateDescription(description);
 
   const ogType: "website" | "article" = type === "article" ? "article" : "website";

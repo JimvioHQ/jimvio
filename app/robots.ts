@@ -22,7 +22,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        // "/og?*" is longer than "/*?*", so link-preview crawlers may fetch OG cards.
+        allow: ["/", "/og?*"],
         disallow: [
           "/login",
           "/register",
