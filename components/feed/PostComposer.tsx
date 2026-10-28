@@ -23,6 +23,7 @@ import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 import { cn } from "@/lib/utils";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
+import { PostAiAssist } from "@/components/feed/PostAiAssist";
 import {
   clearLocalDraft,
   COMPOSER_MAX_CHARS,
@@ -78,11 +79,14 @@ export function PostComposer({
   initialCommunitySlug = null,
   variant = "inline",
   onPublished,
+  initialAiOpen = false,
 }: {
   /** Prefill community from `?community=slug` on /create/post */
   initialCommunitySlug?: string | null;
   variant?: "inline" | "page";
   onPublished?: (result: PublishedPostResult) => void;
+  /** Open the AI writer on load (/create/post?ai=1). */
+  initialAiOpen?: boolean;
 } = {}) {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useFeedUser();
@@ -91,6 +95,7 @@ export function PostComposer({
   const isPage = variant === "page";
 
   const [expanded, setExpanded] = useState(isPage);
+  const [aiOpen, setAiOpen] = useState(isPage && initialAiOpen);
   const [preview, setPreview] = useState(false);
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<Audience>("public");
@@ -401,7 +406,7 @@ export function PostComposer({
       : "";
   const readyMedia = media.filter((m) => m.status === "ready" && m.url);
 
-  function openComposer(nextMode?: "discussion" | "poll") {
+  function openComposer(nextMode?: "discussion" | "poll" | "ai") {
     if (!isAuthenticated) return;
     // Feed entry must open the dedicated Create Post page (same as Create → Post).
     if (!isPage) {
@@ -412,11 +417,13 @@ export function PostComposer({
         initialCommunitySlug;
       if (slug) params.set("community", slug);
       if (nextMode === "poll") params.set("mode", "poll");
+      if (nextMode === "ai") params.set("ai", "1");
       const qs = params.toString();
       router.push(qs ? `/create/post?${qs}` : "/create/post");
       return;
     }
-    if (nextMode) setMode(nextMode);
+    if (nextMode === "ai") setAiOpen(true);
+    else if (nextMode) setMode(nextMode);
     setExpanded(true);
     requestAnimationFrame(() => textRef.current?.focus());
   }
@@ -791,6 +798,18 @@ export function PostComposer({
             </span>
           </div>
 
+          {aiOpen ? (
+            <PostAiAssist
+              body={body}
+              communityName={selectedCommunity?.name ?? null}
+              onUse={(text) => {
+                setBody(text.slice(0, COMPOSER_MAX_CHARS));
+                requestAnimationFrame(() => textRef.current?.focus());
+              }}
+              onClose={() => setAiOpen(false)}
+            />
+          ) : null}
+
           <div className="flex flex-col gap-3 border-t border-[var(--color-border)] pt-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5 scrollbar-hide">
               <button
@@ -833,9 +852,17 @@ export function PostComposer({
               >
                 <SquareArrowUpRight className="h-3.5 w-3.5" /> Mission
               </Link>
-              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs text-orange-600">
-                <Sparkles className="h-3.5 w-3.5" /> GIF-ready
-              </span>
+              <button
+                type="button"
+                onClick={() => setAiOpen((v) => !v)}
+                aria-expanded={aiOpen}
+                className={cn(
+                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors",
+                  aiOpen ? "bg-[#fd5000] text-white" : "bg-[#fd5000]/10 text-[#fd5000] hover:bg-[#fd5000]/15"
+                )}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> AI Assist
+              </button>
             </div>
             <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
               <span
@@ -869,7 +896,7 @@ export function PostComposer({
       )}
 
       {!expanded && !isPage && (
-        <div className="-mx-1 mt-3 flex gap-1 overflow-x-auto border-t border-[var(--color-border)] px-1 pt-3 scrollbar-hide">
+        <div className="-mx-1 mt-3 flex gap-1 overflow-x-auto border-t border-[var(--color-border)] px-1 pt-3 scrollbar-hide sm:flex-wrap sm:overflow-visible">
           <button
             type="button"
             onClick={() => {
@@ -916,23 +943,23 @@ export function PostComposer({
           </Link>
           <Link
             href="/communities/missions"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)]"
           >
-            <SquareArrowUpRight className="h-3.5 w-3.5 text-gray-500" /> Mission
+            <SquareArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)]" /> Mission
           </Link>
           <button
             type="button"
             onClick={() => {
               window.dispatchEvent(new CustomEvent(OPEN_HUB_SEARCH_EVENT));
             }}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-surface-secondary)]"
           >
-            <Search className="h-3.5 w-3.5 text-gray-500" /> Search
+            <Search className="h-3.5 w-3.5 text-[var(--color-text-muted)]" /> Search
           </button>
           <button
             type="button"
-            onClick={() => openComposer()}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-1.5 text-xs font-medium text-[#fd5000] hover:bg-[#fd5000]/15"
+            onClick={() => openComposer("ai")}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-2 text-xs font-semibold text-[#fd5000] transition-colors hover:bg-[#fd5000]/15"
           >
             <Sparkles className="h-3.5 w-3.5 text-[#fd5000]" /> AI Assist
           </button>
