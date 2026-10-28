@@ -217,7 +217,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     tools: [
       { id: "products", label: "Products", href: "/marketplace", icon: "package" },
       { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag" },
-      { id: "customers", label: "Customers", href: "/ugc/campaign-center/orders", icon: "users" },
+      { id: "customers", label: "Customers", href: "/ugc/campaign-center/crm", icon: "users" },
       { id: "store", label: "Store", href: "/ugc/campaign-center/store", icon: "store" },
     ],
     quickActions: [

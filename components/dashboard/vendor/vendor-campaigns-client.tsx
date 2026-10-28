@@ -117,7 +117,7 @@ export function VendorCampaignsClient() {
         subtitle="Run UGC and clipping campaigns, review submissions, and track spend."
         actions={
           <>
-            <Link href="/ugc/campaign-center/campaigns/analytics" className={adminBtnSecondary}>
+            <Link href="/ugc/campaign-center/analytics" className={adminBtnSecondary}>
               <BarChart3 className="h-3.5 w-3.5" />
               Analytics
             </Link>

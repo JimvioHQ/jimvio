@@ -71,7 +71,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { label: "Products", href: "/marketplace", icon: Package },
   { label: "Orders", href: "/orders", icon: Truck },
-  { label: "Customers", href: "/ugc/campaign-center/orders", icon: Users },
+  { label: "Customers", href: "/ugc/campaign-center/crm", icon: Users },
   { label: "Revenue", href: "/wallet", icon: DollarSign },
   { label: "Analytics", href: "/", icon: BarChart3 },
   { label: "Wishlist", href: "/marketplace", icon: Heart },
