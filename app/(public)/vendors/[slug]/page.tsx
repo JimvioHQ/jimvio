@@ -38,6 +38,9 @@ import {
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { FinancialRiskNotice } from "@/components/compliance/FinancialRiskNotice";
+import { TrustReceipt } from "@/components/trust/TrustReceipt";
+import { ShareLinkButton } from "@/components/marketplace/share-link-button";
+import { loadStoreTrustFacts } from "@/lib/trust/store-receipt";
 import { isFinancialRiskTopic } from "@/lib/compliance/financial-risk";
 
 interface PageProps {
@@ -97,7 +100,7 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
 
   const vendor = vendorData as any;
 
-  const [productPage, clips, cartProductIds, followedVendorIds] = await Promise.all([
+  const [productPage, clips, cartProductIds, followedVendorIds, trustFacts] = await Promise.all([
     queryVendorStoreProducts(vendor.id, {
       search: searchQuery || undefined,
       sort,
@@ -107,10 +110,12 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
     getVendorClipsWithDetails(vendor.id),
     getCartProductIds().catch(() => [] as string[]),
     getFollowedVendorIds().catch(() => [] as string[]),
+    loadStoreTrustFacts(admin, vendor, 0),
   ]);
 
   const products = productPage.products;
   const totalProducts = productPage.total;
+  trustFacts.liveProducts = totalProducts;
   const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
   const cartSet = new Set(cartProductIds);
   const isFollowing = followedVendorIds.includes(vendor.id);
@@ -393,33 +398,21 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                 <Button className="w-full bg-ink-dark hover:opacity-90 font-black text-[13px] h-12 rounded-xl shadow-lg shadow-ink-dark/20" asChild>
-                  <Link href="/messages">
+                  <Link href={`/messages?vendor=${vendor.id}`}>
                     <MessageCircle className="mr-2 h-4 w-4" /> Chat Now
                   </Link>
                 </Button>
-                  <Button variant="outline" className="w-full font-black text-[13px] h-12 rounded-xl border-2 hover:bg-[var(--color-surface-secondary)]">
-                    <Share2 className="mr-2 h-4 w-4" /> Share
-                  </Button>
+                  <ShareLinkButton
+                    title={vendor.business_name ?? "Jimvio store"}
+                    className="w-full font-black text-[13px] h-12 rounded-xl border-2 hover:bg-[var(--color-surface-secondary)]"
+                  />
                 </div>
                 
                 {vendor.id && <FollowButton vendorId={vendor.id} initialFollowing={isFollowing} className="w-full h-12 font-black text-[13px] rounded-xl border-2" />}
               </div>
 
               <div className="mt-8 pt-8 border-t border-[var(--color-border)] space-y-4">
-                {isVerified && (
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span className="font-medium">Verified Supplier</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-                  <ShieldCheck className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">Secure Transaction</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)]">
-                  <Package className="h-4 w-4 text-emerald-500" />
-                  <span className="font-medium">Buyer Protection</span>
-                </div>
+                <TrustReceipt facts={trustFacts} />
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                     <Users className="h-4 w-4 text-blue-500" />
@@ -432,13 +425,6 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
               </div>
             </div>
 
-            <div className="bg-ink-dark text-white rounded-2xl p-6">
-              <h4 className="font-black text-lg mb-3">Custom Sourcing</h4>
-              <p className="text-white/60 text-sm mb-6">Need something custom built? Ask this store about OEM/ODM availability.</p>
-              <Button className="w-full bg-white dark:bg-surface text-text-primary hover:bg-white dark:bg-surface/90 font-black h-12 rounded-xl">
-                Send RFQ
-              </Button>
-            </div>
           </aside>
         </div>
       </div>
