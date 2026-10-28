@@ -1,3 +1,5 @@
+import { uploadToMediaStorage } from "@/lib/uploads/storage-fallback";
+
 
 export type CloudinaryFolder =
   | "jimvio/products"
@@ -95,7 +97,7 @@ export class CloudinaryService {
 
     const endpoint = `https://api.cloudinary.com/v1_1/${signatureParams.cloudName}/${resourceType}/upload`;
 
-    return new Promise((resolve) => {
+    const first = await new Promise<{ success: boolean; data?: CloudinaryUploadResult; error?: string }>((resolve) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", endpoint);
 
@@ -121,6 +123,31 @@ export class CloudinaryService {
       xhr.onerror = () => resolve({ success: false, error: "Network error" });
       xhr.send(formData);
     });
+    if (first.success || accessType !== "public" || typeof window === "undefined") return first;
+
+    // Cloudinary refused or is unreachable — public media falls back to
+    // Jimvio storage so the upload still succeeds.
+    try {
+      const asFile =
+        file instanceof File ? file : new File([file], "upload", { type: file.type || "application/octet-stream" });
+      const stored = await uploadToMediaStorage(asFile, signatureParams.folder, onProgress);
+      return {
+        success: true,
+        data: {
+          public_id: stored.path,
+          secure_url: stored.url,
+          url: stored.url,
+          width: 0,
+          height: 0,
+          format: stored.path.split(".").pop() ?? "",
+          bytes: stored.bytes,
+          resource_type: resourceType,
+          created_at: new Date().toISOString(),
+        },
+      };
+    } catch {
+      return first;
+    }
   }
 
   getOptimizedUrl(

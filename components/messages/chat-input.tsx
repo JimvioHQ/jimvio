@@ -5,6 +5,7 @@ import { Send, Image as ImageIcon, Paperclip, Package, Quote, Smile, X } from "l
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { EMOJI_LIST } from "./message-bubble";
+import { uploadToMediaStorage } from "@/lib/uploads/storage-fallback";
 
 export function ChatInput({
   conversationId,
@@ -32,7 +33,21 @@ export function ChatInput({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
-  async function uploadFile(file: File, _type: "image" | "file"): Promise<{ url: string; file_name: string }> {
+  async function uploadFile(file: File, type: "image" | "file"): Promise<{ url: string; file_name: string }> {
+    try {
+      return await uploadFileToCloudinary(file, type);
+    } catch (err) {
+      // Cloudinary refused or is unreachable — fall back to Jimvio storage.
+      try {
+        const stored = await uploadToMediaStorage(file, "jimvio/chat");
+        return { url: stored.url, file_name: file.name };
+      } catch {
+        throw err;
+      }
+    }
+  }
+
+  async function uploadFileToCloudinary(file: File, _type: "image" | "file"): Promise<{ url: string; file_name: string }> {
     // Get server-signed upload params
     const sigRes = await fetch("/api/uploads/signature", {
       method: "POST",

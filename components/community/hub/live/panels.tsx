@@ -23,6 +23,7 @@ import type { LeftPanel, RightTab, SpeakerUi, StudioMode } from "./studio-types"
 import { LAYOUTS } from "./studio-types";
 import { formatCount, formatTime } from "./studio-utils";
 import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./studio-ui";
+import { uploadToMediaStorage } from "@/lib/uploads/storage-fallback";
 
 function Empty({ hint }: { hint: string }) {
   return (
@@ -1257,7 +1258,14 @@ export function SettingsPanel({
                         setDraftAvatar(upJson.secure_url);
                         setProfileMsg("Photo ready — Save to apply");
                       } catch (err) {
-                        setProfileMsg(err instanceof Error ? err.message : "Upload failed");
+                        // Cloudinary refused — fall back to Jimvio storage.
+                        try {
+                          const stored = await uploadToMediaStorage(file, "jimvio/avatars");
+                          setDraftAvatar(stored.url);
+                          setProfileMsg("Photo ready — Save to apply");
+                        } catch {
+                          setProfileMsg(err instanceof Error ? err.message : "Upload failed");
+                        }
                       } finally {
                         setProfileBusy(false);
                       }
