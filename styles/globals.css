@@ -825,16 +825,6 @@
     }
   }
 
-  @keyframes hero-partner-marquee {
-    0% {
-      transform: translate3d(0, 0, 0);
-    }
-
-    100% {
-      transform: translate3d(-50%, 0, 0);
-    }
-  }
-
   /* Homepage section reveal — once on enter, GPU-friendly */
   @keyframes jimvio-reveal-up {
     from {
