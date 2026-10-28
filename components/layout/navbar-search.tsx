@@ -15,7 +15,7 @@
 
 // const EXTRA: NavLinkConfig[] = [
 //   { label: "Help",    href: "/help"    },
-//   { label: "Deals",   href: "/deals"   },
+//   { label: "Deals",   href: "/marketplace/flash-deals" },
 //   { label: "Contact", href: "/contact" },
 //   { label: "Blog",    href: "/blog"    },
 //   { label: "Cart",    href: "/cart"    },

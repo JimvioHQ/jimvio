@@ -55,6 +55,14 @@ const nextConfig: NextConfig = {
         destination: "https://www.jimvio.com/:path*",
         permanent: true,
       },
+      // /deals was a duplicate page with randomised "HOT DEAL" badges and
+      // invented B2B figures; the data-driven deals page is canonical.
+      {
+        source: "/deals",
+        has: [{ type: "host", value: "www.jimvio.com" }],
+        destination: "/marketplace/flash-deals",
+        permanent: true,
+      },
       // Platform-only marketplace aliases. Merchant hosts (*.jimvio.com) must
       // NOT hit these — proxy maps /products → /s/{handle}/collections/all.
       {

@@ -43,7 +43,7 @@ export const PUBLIC_SITEMAP_ROUTES = [
   { path: "/communities", priority: 0.85, changeFrequency: "daily" },
   { path: "/affiliates", priority: 0.85, changeFrequency: "weekly" },
   { path: "/ugc", priority: 0.85, changeFrequency: "daily" },
-  { path: "/deals", priority: 0.8, changeFrequency: "daily" },
+  { path: "/marketplace/flash-deals", priority: 0.8, changeFrequency: "daily" },
   { path: "/influencers", priority: 0.75, changeFrequency: "weekly" },
   { path: "/influencers/browse", priority: 0.7, changeFrequency: "weekly" },
   { path: "/vendors", priority: 0.75, changeFrequency: "weekly" },

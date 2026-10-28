@@ -572,24 +572,6 @@ function getMetaString(product: ProductWithRelations, key: string): string | und
   return undefined;
 }
 
-// ─── Live viewers hook ────────────────────────────────────────────────────────
-
-function useLiveViewers(baseCount: number = 0) {
-  const base = Math.max(baseCount, 3);
-  const [viewers, setViewers] = useState(base);
-  useEffect(() => {
-    setViewers(base + Math.floor(Math.random() * 8));
-    const interval = setInterval(() => {
-      setViewers((prev) => {
-        const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(base, Math.min(prev + delta, base + 15));
-      });
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [base]);
-  return viewers;
-}
-
 // ─── Preview modal ────────────────────────────────────────────────────────────
 
 function PreviewModal({
