@@ -346,13 +346,13 @@ type VendorRow  = { id: string; business_name: string; business_slug: string };
 
 const EXTRA: NavLinkConfig[] = [
   { label: "Help",    href: "/help"    },
-  { label: "Deals",   href: "/deals"   },
+  { label: "Deals",   href: "/marketplace/flash-deals" },
   { label: "Contact", href: "/contact" },
-  { label: "Blog",    href: "/blog"    },
   { label: "Cart",    href: "/cart"    },
 ];
 
-const TRENDING = ["Power bank", "Smartwatch", "USB Hub", "Drone", "Gaming chair", "Solar panel"];
+// Suggestions that match live catalogue listings — not a popularity claim.
+const TRENDING = ["Dress", "Bag", "Necklace", "Phone case", "LED light", "Watch"];
 
 function mergeLinks(navLinks: NavLinkConfig[]) {
   const seen = new Set<string>();
@@ -765,7 +765,7 @@ export function NavbarSearch({
                           )}
 
                           <div>
-                            <SectionTitle>Trending now</SectionTitle>
+                            <SectionTitle>Try searching</SectionTitle>
                             <div className="flex flex-wrap gap-1.5">
                               {TRENDING.map((t) => (
                                 <button
