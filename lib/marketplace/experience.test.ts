@@ -66,11 +66,17 @@ describe("marketplace canonical routes", () => {
       "/marketplace/digital?maxPrice=40&format=course",
     );
     assert.equal(
-      marketplaceSwitchHref("digital", new URLSearchParams("arrivals=1&purchased=1&offer=free_shipping")),
-      "/marketplace/digital?arrivals=1&purchased=1",
+      marketplaceSwitchHref("digital", new URLSearchParams("arrivals=1&trending=1&fast=1&offer=free_shipping")),
+      "/marketplace/digital?arrivals=1&trending=1",
+    );
+    assert.equal(
+      marketplaceSwitchHref("physical", new URLSearchParams("aipowered=1&fast=1&arrivals=1")),
+      "/marketplace/physical?arrivals=1&fast=1",
     );
     const invalid = marketplaceEntryDecision("physical", { arrivals: "no", purchased: "1" });
-    assert.equal(invalid.redirectTo, "/marketplace/physical?purchased=1");
+    assert.equal(invalid.redirectTo, "/marketplace/physical?trending=1");
+    const legacy = marketplaceEntryDecision("digital", { purchased: "1", aipowered: "1" });
+    assert.equal(legacy.redirectTo, "/marketplace/digital?trending=1&aipowered=1");
   });
 
   it("normalizes a conflicting type query and a legacy cat param", () => {
@@ -140,10 +146,12 @@ describe("marketplace canonical routes", () => {
         offer: "free_shipping",
         format: "course",
         arrivals: true,
-        purchased: true,
+        trending: true,
+        fastShipping: true,
+        aiPowered: true,
         priceRange: [0, 5000],
       }),
-      "/marketplace/search?q=headphones&type=physical&offer=free_shipping&arrivals=1&purchased=1",
+      "/marketplace/search?q=headphones&type=physical&offer=free_shipping&arrivals=1&trending=1&fast=1",
     );
   });
 });
@@ -202,12 +210,12 @@ describe("marketplace type-specific content", () => {
 
 describe("marketplace route wiring", () => {
   it("renders both canonical pages from the shared marketplace", () => {
-    const physical = readFileSync(join(root, "app/(public)/marketplace/physical/page.tsx"), "utf8");
-    const digital = readFileSync(join(root, "app/(public)/marketplace/digital/page.tsx"), "utf8");
+    const physical = readFileSync(join(root, "app/(public)/marketplace/(browse)/physical/page.tsx"), "utf8");
+    const digital = readFileSync(join(root, "app/(public)/marketplace/(browse)/digital/page.tsx"), "utf8");
+    const shell = readFileSync(join(root, "app/(public)/marketplace/(browse)/layout.tsx"), "utf8");
     const index = readFileSync(join(root, "app/(public)/marketplace/page.tsx"), "utf8");
-    assert.match(physical, /MarketplacePage/);
+    assert.match(shell, /MarketplacePage/);
     assert.match(physical, /"physical"/);
-    assert.match(digital, /MarketplacePage/);
     assert.match(digital, /"digital"/);
     assert.match(index, /marketplaceIndexHref/);
     assert.doesNotMatch(digital, /MarketplaceClient/);
@@ -217,6 +225,8 @@ describe("marketplace route wiring", () => {
     const client = readFileSync(join(root, "components/marketplace/new/MarketplacePageClient.tsx"), "utf8");
     const hub = readFileSync(join(root, "components/marketplace/new/MarketplaceEngagementHub.tsx"), "utf8");
     const strip = readFileSync(join(root, "components/marketplace/new/MarketplaceTrustStrip.tsx"), "utf8");
+    const context = readFileSync(join(root, "components/marketplace/new/marketplace-context.tsx"), "utf8");
+    assert.match(context, /__NA/);
     assert.match(client, /marketplaceSwitchHref/);
     assert.match(client, /\/marketplace\/digital/);
     assert.match(client, /\/marketplace\/physical/);

@@ -17,10 +17,10 @@ import {
   categoryTypeOrFilter,
   DIGITAL_FORMATS,
   MARKETPLACE_PRICE_CEILING,
-  marketplaceNewArrivalSince,
   type MarketplaceFormat,
 } from "@/lib/marketplace/experience";
 import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
+import { isDigitalShopCategorySlug } from "@/lib/marketplace/digital-shop-categories";
 import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
 import { SHOPPING_SUGGESTIONS } from "@/lib/marketplace/shopping-assistant";
 
@@ -77,12 +77,6 @@ type AssistantProduct = {
 
 const CATEGORY_LIMIT = 200;
 
-function fmtCount(n: number | null | undefined): string {
-  if (!n) return "";
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
-  return String(n);
-}
-
 // ─── Skeleton components ──────────────────────────────────────────────────────
 
 function SkeletonRow({ width = "full" }: { width?: "full" | "3/4" | "2/3" | "1/2" }) {
@@ -129,60 +123,13 @@ function CategorySkeleton() {
 
 function FilterSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      {/* Shipping section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        <div className="flex flex-col gap-1.5">
-          {["full", "3/4", "2/3", "full", "1/2"].map((w, i) => (
-            <div key={i} className="flex items-center gap-2" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-              <div
-                className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : w === "2/3" ? "w-2/3" : "w-1/2"}`}
-                style={{ background: "var(--color-border)" }}
-              />
-            </div>
-          ))}
+    <div className="flex flex-col gap-1.5" aria-hidden="true">
+      {["w-full", "w-3/4", "w-2/3"].map((width) => (
+        <div key={width} className="flex items-center gap-2">
+          <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+          <div className={`h-3 animate-pulse rounded ${width}`} style={{ background: "var(--color-border)" }} />
         </div>
-      </div>
-
-      {/* Price range section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/4 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        <div className="h-2 w-full animate-pulse rounded-full" style={{ background: "var(--color-border)" }} />
-        <div className="flex justify-between">
-          <div className="h-3 w-6 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-          <div className="h-3 w-10 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        </div>
-      </div>
-
-      {/* Delivery section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-2/5 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        {["full", "3/4", "2/3"].map((w, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-            <div
-              className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : "w-2/3"}`}
-              style={{ background: "var(--color-border)" }}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Rating section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        {[0, 1].map((i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-            <div className="h-3 w-16 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-          </div>
-        ))}
-      </div>
-
-      {/* Apply button skeleton */}
-      <div className="h-8 w-full animate-pulse rounded-lg" style={{ background: "var(--color-border)" }} />
+      ))}
     </div>
   );
 }
@@ -201,19 +148,23 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 function CheckRow({
-  label, count, checked, onToggle,
+  label, checked, onToggle, pressedLabel,
 }: {
-  label: string; count?: string; checked: boolean; onToggle: () => void;
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+  pressedLabel?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={checked}
-      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
+      aria-label={pressedLabel ?? label}
+      className="flex w-full items-center rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
       style={{ color: "var(--color-text-secondary)" }}
     >
-      <span className="flex items-center gap-1.5">
+      <span className="flex min-w-0 items-center gap-1.5">
         <span
           className="grid size-3.5 shrink-0 place-items-center rounded transition-all"
           style={{
@@ -226,14 +177,6 @@ function CheckRow({
         </span>
         <span className="truncate">{label}</span>
       </span>
-      {count && (
-        <span
-          className="ml-1 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-          style={{ background: "var(--color-border)", color: "var(--color-text-muted)" }}
-        >
-          {count}
-        </span>
-      )}
     </button>
   );
 }
@@ -250,7 +193,8 @@ export function Sidebar({ type = "physical" }: Props) {
   const {
     filters, pending,
     setCategory, toggleShippingFrom, toggleDeliveryTime,
-    setPriceRange, setOffer, setFormat, setArrivals, setPurchased, applyFilters, clearFilters,
+    setPriceRange, setOffer, setFormat, setArrivals, setTrending, setFastShipping, setAiPowered,
+    applyFilters, clearFilters,
   } = useMarketplace();
 
   const { formatMoney } = useCurrency();
@@ -339,7 +283,6 @@ export function Sidebar({ type = "physical" }: Props) {
   const [shippingCounts, setShippingCounts] = useState<ShippingCount[]>([]);
   const [deliveryCounts, setDeliveryCounts] = useState<DeliveryCount[]>([]);
   const [offerCounts, setOfferCounts] = useState({ free_shipping: 0, flash_deal: 0 });
-  const [listingCounts, setListingCounts] = useState({ arrivals: 0, purchased: 0 });
   const [formatCounts, setFormatCounts] = useState<Partial<Record<MarketplaceFormat, number>>>({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [categoryLoad, setCategoryLoad] = useState<"loading" | "ready" | "error">("loading");
@@ -385,7 +328,7 @@ export function Sidebar({ type = "physical" }: Props) {
     if (categoryLoad !== "ready" || loadingCats) return;
     if (sidebarCategories.length >= CATEGORY_LIMIT) return;
     const valid = new Set(sidebarCategories.map((c) => c.slug));
-    if (filters.category && !valid.has(filters.category)) {
+    if (filters.category && !valid.has(filters.category) && !isDigitalShopCategorySlug(filters.category)) {
       setCategory("");
     }
   }, [categoryLoad, loadingCats, sidebarCategories, filters.category, setCategory]);
@@ -405,7 +348,7 @@ export function Sidebar({ type = "physical" }: Props) {
           .eq("is_active", true)
           .is("deleted_at", null);
 
-      const [{ data: sd }, { data: dd }, freeRes, flashRes, formatRes, arrivalRes, purchasedRes] = await Promise.all([
+      const [{ data: sd }, { data: dd }, freeRes, flashRes, formatRes] = await Promise.all([
         supabase
           .from("products")
           .select("shipping_from")
@@ -438,8 +381,6 @@ export function Sidebar({ type = "physical" }: Props) {
               }),
             )
           : Promise.resolve([] as const),
-        active().in("product_type", typeFilter as any[]).gte("created_at", marketplaceNewArrivalSince()),
-        active().in("product_type", typeFilter as any[]).gt("sale_count", 0),
       ]);
 
       if (sd) {
@@ -461,10 +402,6 @@ export function Sidebar({ type = "physical" }: Props) {
         flash_deal: flashRes.count ?? 0,
       });
       setFormatCounts(Object.fromEntries(formatRes));
-      setListingCounts({
-        arrivals: arrivalRes.count ?? 0,
-        purchased: purchasedRes.count ?? 0,
-      });
 
       setLoadingFilters(false);
     }
@@ -472,15 +409,15 @@ export function Sidebar({ type = "physical" }: Props) {
   }, [type]);
 
   const shippingItems = shippingCounts.slice(0, 5).map((s) => ({
-    name: s.shipping_from, count: fmtCount(s.count),
+    name: s.shipping_from,
   }));
 
   const deliveryItems = deliveryOrder
     .map((key) => {
       const found = deliveryCounts.find((d) => d.delivery_time === key);
-      return { key, label: deliveryLabel[key] ?? key, count: found ? fmtCount(found.count) : "" };
+      return { key, label: deliveryLabel[key] ?? key, count: found?.count ?? 0 };
     })
-    .filter((d) => d.count !== "");
+    .filter((d) => d.count > 0);
 
   const offerItems = OFFER_ROWS.filter(
     (row) => offerCounts[row.key] > 0 || pending.offer === row.key,
@@ -528,7 +465,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 options={[
                   { label: "All", value: "" },
                   ...allCategories.map((c) => ({
-                    label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
+                    label: c.name,
                     value: c.slug,
                   })),
                 ]}
@@ -565,13 +502,11 @@ export function Sidebar({ type = "physical" }: Props) {
             </button>
           </div>
 
-          {loadingFilters ? (
-            <FilterSkeleton />
-          ) : (
             <div className="flex flex-col gap-3">
+              {loadingFilters && type === "physical" ? <FilterSkeleton /> : null}
 
               {/* Shipping From — only for physical */}
-              {type === "physical" && shippingItems.length > 0 && (
+              {!loadingFilters && type === "physical" && shippingItems.length > 0 && (
                 <div>
                   <SectionLabel>Shipping From</SectionLabel>
                   <div className="flex flex-col gap-0.5">
@@ -579,7 +514,6 @@ export function Sidebar({ type = "physical" }: Props) {
                       <CheckRow
                         key={item.name}
                         label={item.name}
-                        count={item.count}
                         checked={pending.shippingFrom.includes(item.name)}
                         onToggle={() => toggleShippingFrom(item.name)}
                       />
@@ -617,7 +551,7 @@ export function Sidebar({ type = "physical" }: Props) {
               </div>
 
               {/* Delivery Time — only for physical */}
-              {type === "physical" && deliveryItems.length > 0 && (
+              {!loadingFilters && type === "physical" && deliveryItems.length > 0 && (
                 <div>
                   <SectionLabel>Delivery Time</SectionLabel>
                   <div className="flex flex-col gap-0.5">
@@ -625,7 +559,6 @@ export function Sidebar({ type = "physical" }: Props) {
                       <CheckRow
                         key={d.key}
                         label={d.label}
-                        count={d.count}
                         checked={pending.deliveryTimes.includes(d.key as DeliveryTime)}
                         onToggle={() => toggleDeliveryTime(d.key as DeliveryTime)}
                       />
@@ -634,7 +567,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 </div>
               )}
 
-              {type === "physical" && offerItems.length > 0 && (
+              {!loadingFilters && type === "physical" && offerItems.length > 0 && (
                 <div data-filter-offer>
                   <SectionLabel>Offers</SectionLabel>
                   <div className="flex flex-col gap-0.5">
@@ -642,7 +575,6 @@ export function Sidebar({ type = "physical" }: Props) {
                       <CheckRow
                         key={row.key}
                         label={row.label}
-                        count={fmtCount(offerCounts[row.key])}
                         checked={pending.offer === row.key}
                         onToggle={() => setOffer(pending.offer === row.key ? "" : row.key)}
                       />
@@ -651,31 +583,45 @@ export function Sidebar({ type = "physical" }: Props) {
                 </div>
               )}
 
-              {(listingCounts.arrivals > 0 || pending.arrivals || listingCounts.purchased > 0 || pending.purchased) && (
-                <div data-filter-listings>
-                  <SectionLabel>Listings</SectionLabel>
-                  <div className="flex flex-col gap-0.5">
-                    {(listingCounts.arrivals > 0 || pending.arrivals) && (
-                      <CheckRow
-                        label="New arrivals"
-                        count={fmtCount(listingCounts.arrivals)}
-                        checked={Boolean(pending.arrivals)}
-                        onToggle={() => setArrivals(!pending.arrivals)}
-                      />
-                    )}
-                    {(listingCounts.purchased > 0 || pending.purchased) && (
-                      <CheckRow
-                        label="Purchased"
-                        count={fmtCount(listingCounts.purchased)}
-                        checked={Boolean(pending.purchased)}
-                        onToggle={() => setPurchased(!pending.purchased)}
-                      />
-                    )}
-                  </div>
+              <div data-filter-listings>
+                <SectionLabel>Listings</SectionLabel>
+                <div className="flex flex-col gap-0.5">
+                  <CheckRow
+                    label="New arrivals"
+                    checked={Boolean(pending.arrivals)}
+                    onToggle={() => setArrivals(!pending.arrivals)}
+                  />
+                  <CheckRow
+                    label="Trending"
+                    checked={Boolean(pending.trending)}
+                    onToggle={() => setTrending(!pending.trending)}
+                  />
+                  {type === "physical" && (
+                    <CheckRow
+                      label="Fast shipping"
+                      checked={Boolean(pending.fastShipping)}
+                      onToggle={() => setFastShipping(!pending.fastShipping)}
+                    />
+                  )}
+                  {type === "digital" && (
+                    <CheckRow
+                      label="Verified"
+                      checked
+                      pressedLabel="Verified. Digital listings on Jimvio are verified before they appear."
+                      onToggle={() => undefined}
+                    />
+                  )}
+                  {type === "digital" && (
+                    <CheckRow
+                      label="AI-powered"
+                      checked={Boolean(pending.aiPowered)}
+                      onToggle={() => setAiPowered(!pending.aiPowered)}
+                    />
+                  )}
                 </div>
-              )}
+              </div>
 
-              {type === "digital" && formatItems.length > 0 && (
+              {!loadingFilters && type === "digital" && formatItems.length > 0 && (
                 <div data-filter-format>
                   <SectionLabel>Format</SectionLabel>
                   <div className="flex flex-col gap-0.5">
@@ -683,7 +629,6 @@ export function Sidebar({ type = "physical" }: Props) {
                       <CheckRow
                         key={format}
                         label={FORMAT_LABELS[format]}
-                        count={fmtCount(formatCounts[format])}
                         checked={pending.format === format}
                         onToggle={() => setFormat(pending.format === format ? "" : format)}
                       />
@@ -693,14 +638,12 @@ export function Sidebar({ type = "physical" }: Props) {
               )}
 
             </div>
-          )}
 
           <button
             type="button"
             onClick={applyFilters}
-            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
             style={{ background: "var(--color-accent)" }}
-            disabled={loadingFilters}
           >
             Apply Filters
           </button>

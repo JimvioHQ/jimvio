@@ -10,7 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from "next/navigation";
 import {
   type AppliedFilters,
   type DeliveryTime,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/utils";
 import {
   marketplaceFiltersHref,
+  marketplaceSwitchHref,
   marketplaceTypeFromPathname,
   readMarketplaceFilters,
   type MarketplaceFilterSnapshot,
@@ -25,7 +27,16 @@ import {
 
 type PendingFilters = Pick<
   AppliedFilters,
-  "shippingFrom" | "deliveryTimes" | "priceRange" | "minRating" | "offer" | "format" | "arrivals" | "purchased"
+  | "shippingFrom"
+  | "deliveryTimes"
+  | "priceRange"
+  | "minRating"
+  | "offer"
+  | "format"
+  | "arrivals"
+  | "trending"
+  | "fastShipping"
+  | "aiPowered"
 >;
 
 const DEFAULT_PENDING: PendingFilters = {
@@ -36,7 +47,9 @@ const DEFAULT_PENDING: PendingFilters = {
   offer: "",
   format: "",
   arrivals: false,
-  purchased: false,
+  trending: false,
+  fastShipping: false,
+  aiPowered: false,
 };
 
 type MarketplaceContextValue = {
@@ -53,11 +66,16 @@ type MarketplaceContextValue = {
   setOffer: (offer: AppliedFilters["offer"]) => void;
   setFormat: (format: AppliedFilters["format"]) => void;
   setArrivals: (arrivals: boolean) => void;
-  setPurchased: (purchased: boolean) => void;
+  setTrending: (trending: boolean) => void;
+  setFastShipping: (fastShipping: boolean) => void;
+  setAiPowered: (aiPowered: boolean) => void;
   applyFilters: () => void;
   clearFilters: () => void;
   /** Writes `page` without refetching. Returns false when the URL is unchanged. */
   setPage: (page: number) => boolean;
+  /** Active catalog. A type click updates this before the route commit. */
+  marketplaceType: ProductType;
+  navigateMarketplace: (destination: ProductType) => void;
 };
 
 const MarketplaceContext = createContext<MarketplaceContextValue | null>(null);
@@ -78,7 +96,9 @@ function snapshotToApplied(type: ProductType, snap: MarketplaceFilterSnapshot): 
     offer: type === "physical" ? snap.offer : "",
     format: type === "digital" ? snap.format : "",
     arrivals: snap.arrivals,
-    purchased: snap.purchased,
+    trending: snap.trending,
+    fastShipping: snap.fastShipping,
+    aiPowered: snap.aiPowered,
   };
 }
 
@@ -91,7 +111,9 @@ function snapshotToPending(snap: MarketplaceFilterSnapshot): PendingFilters {
     offer: snap.offer,
     format: snap.format,
     arrivals: snap.arrivals,
-    purchased: snap.purchased,
+    trending: snap.trending,
+    fastShipping: snap.fastShipping,
+    aiPowered: snap.aiPowered,
   };
 }
 
@@ -103,7 +125,9 @@ function sameApplied(a: AppliedFilters, b: AppliedFilters) {
     (a.offer ?? "") === (b.offer ?? "") &&
     (a.format ?? "") === (b.format ?? "") &&
     Boolean(a.arrivals) === Boolean(b.arrivals) &&
-    Boolean(a.purchased) === Boolean(b.purchased) &&
+    Boolean(a.trending) === Boolean(b.trending) &&
+    Boolean(a.fastShipping) === Boolean(b.fastShipping) &&
+    Boolean(a.aiPowered) === Boolean(b.aiPowered) &&
     a.priceRange[0] === b.priceRange[0] &&
     a.priceRange[1] === b.priceRange[1] &&
     sameList(a.shippingFrom, b.shippingFrom) &&
@@ -119,7 +143,9 @@ function toSnapshot(filters: AppliedFilters, page: number): MarketplaceFilterSna
     offer: filters.offer ?? "",
     format: filters.format ?? "",
     arrivals: Boolean(filters.arrivals),
-    purchased: Boolean(filters.purchased),
+    trending: Boolean(filters.trending),
+    fastShipping: Boolean(filters.fastShipping),
+    aiPowered: Boolean(filters.aiPowered),
     shippingFrom: filters.shippingFrom,
     deliveryTimes: filters.deliveryTimes,
     page,
@@ -129,13 +155,22 @@ function toSnapshot(filters: AppliedFilters, page: number): MarketplaceFilterSna
 /** Filter state for the canonical marketplace route. The pathname owns product type. */
 export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const type = marketplaceTypeFromPathname(pathname) ?? "physical";
+  const pathType: ProductType =
+    segment === "digital" || segment === "physical"
+      ? segment
+      : marketplaceTypeFromPathname(pathname) ?? "physical";
   const paramsKey = searchParams.toString();
   const currentHref = paramsKey ? `${pathname}?${paramsKey}` : pathname;
   const selfHref = useRef<string | null>(null);
   const urlFix = useRef(0);
+  const navGen = useRef(0);
+  const [announcedType, setAnnouncedType] = useState<ProductType | null>(null);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const type = announcedType ?? pathType;
+  const effectiveParamsKey = pendingHref != null ? (pendingHref.split("?")[1] ?? "") : paramsKey;
 
   const [filters, setFilters] = useState<AppliedFilters>(() =>
     snapshotToApplied(type, readMarketplaceFilters(searchParams, type)),
@@ -145,20 +180,31 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   );
 
   const page = useMemo(
-    () => readMarketplaceFilters(new URLSearchParams(paramsKey), type).page,
-    [paramsKey, type],
+    () => readMarketplaceFilters(new URLSearchParams(effectiveParamsKey), type).page,
+    [effectiveParamsKey, type],
   );
 
   useEffect(() => {
-    if (selfHref.current === currentHref) {
+    const onPop = () => {
       selfHref.current = null;
-      return;
-    }
+      urlFix.current += 1;
+      setAnnouncedType(null);
+      setPendingHref(null);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  useEffect(() => {
+    if (selfHref.current && selfHref.current !== currentHref) return;
+    if (selfHref.current === currentHref) selfHref.current = null;
+    if (pendingHref && (pendingHref === currentHref || announcedType === pathType)) setPendingHref(null);
+    if (announcedType && announcedType === pathType) setAnnouncedType(null);
     const snap = readMarketplaceFilters(new URLSearchParams(paramsKey), type);
     const next = snapshotToApplied(type, snap);
     setFilters((prev) => (sameApplied(prev, next) ? prev : next));
     setPending(snapshotToPending(snap));
-  }, [currentHref, paramsKey, type]);
+  }, [announcedType, currentHref, paramsKey, pathType, pendingHref, type]);
 
   const publish = useCallback(
     (next: AppliedFilters, nextPage: number) => {
@@ -242,8 +288,16 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     setPending((prev) => ({ ...prev, arrivals }));
   }, []);
 
-  const setPurchased = useCallback((purchased: boolean) => {
-    setPending((prev) => ({ ...prev, purchased }));
+  const setTrending = useCallback((trending: boolean) => {
+    setPending((prev) => ({ ...prev, trending }));
+  }, []);
+
+  const setFastShipping = useCallback((fastShipping: boolean) => {
+    setPending((prev) => ({ ...prev, fastShipping }));
+  }, []);
+
+  const setAiPowered = useCallback((aiPowered: boolean) => {
+    setPending((prev) => ({ ...prev, aiPowered }));
   }, []);
 
   const applyFilters = useCallback(() => {
@@ -257,7 +311,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       offer: type === "physical" ? pending.offer ?? "" : "",
       format: type === "digital" ? pending.format ?? "" : "",
       arrivals: Boolean(pending.arrivals),
-      purchased: Boolean(pending.purchased),
+      trending: Boolean(pending.trending),
+      fastShipping: type === "physical" ? Boolean(pending.fastShipping) : false,
+      aiPowered: type === "digital" ? Boolean(pending.aiPowered) : false,
     };
     setFilters(next);
     setPending({
@@ -268,7 +324,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       offer: next.offer,
       format: next.format,
       arrivals: Boolean(next.arrivals),
-      purchased: Boolean(next.purchased),
+      trending: Boolean(next.trending),
+      fastShipping: Boolean(next.fastShipping),
+      aiPowered: Boolean(next.aiPowered),
     });
     publish(next, 1);
   }, [filters, pending, publish, type]);
@@ -285,7 +343,9 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       offer: "",
       format: "",
       arrivals: false,
-      purchased: false,
+      trending: false,
+      fastShipping: false,
+      aiPowered: false,
     };
     setPending(DEFAULT_PENDING);
     setFilters(next);
@@ -295,6 +355,35 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
   const setPage = useCallback(
     (nextPage: number) => publish(filters, nextPage),
     [filters, publish],
+  );
+
+  const navigateMarketplace = useCallback(
+    (destination: ProductType) => {
+      if (destination === type) return;
+      const href = marketplaceSwitchHref(destination, new URLSearchParams(paramsKey));
+      const snap = readMarketplaceFilters(new URLSearchParams(href.split("?")[1] ?? ""), destination);
+      const next = snapshotToApplied(destination, snap);
+      selfHref.current = href;
+      urlFix.current += 1;
+      setPendingHref(href);
+      setAnnouncedType(destination);
+      setFilters(next);
+      setPending(snapshotToPending(snap));
+      // Show the new URL immediately. The __NA marker keeps Next from turning this
+      // into a full document load; router.replace then syncs the App Router entry.
+      const currentState = window.history.state;
+      const markedState =
+        currentState && typeof currentState === "object"
+          ? { ...currentState, __NA: true }
+          : { __NA: true };
+      window.history.pushState(markedState, "", href);
+      const navId = ++navGen.current;
+      window.setTimeout(() => {
+        if (navId !== navGen.current) return;
+        router.replace(href, { scroll: false });
+      }, 0);
+    },
+    [paramsKey, router, type],
   );
 
   const value = useMemo<MarketplaceContextValue>(
@@ -312,10 +401,14 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setOffer,
       setFormat,
       setArrivals,
-      setPurchased,
+      setTrending,
+      setFastShipping,
+      setAiPowered,
       applyFilters,
       clearFilters,
       setPage,
+      marketplaceType: type,
+      navigateMarketplace,
     }),
     [
       filters,
@@ -331,10 +424,14 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setOffer,
       setFormat,
       setArrivals,
-      setPurchased,
+      setTrending,
+      setFastShipping,
+      setAiPowered,
       applyFilters,
       clearFilters,
       setPage,
+      type,
+      navigateMarketplace,
     ],
   );
 

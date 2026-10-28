@@ -142,7 +142,12 @@ describe("marketplace wiring", () => {
     assert.match(sidebar, /data-filter-format/);
     assert.match(sidebar, /data-filter-listings/);
     assert.match(sidebar, /New arrivals/);
-    assert.match(sidebar, /Purchased/);
+    assert.match(sidebar, /Trending/);
+    assert.match(sidebar, /Fast shipping/);
+    assert.match(sidebar, /Verified/);
+    assert.match(sidebar, /AI-powered/);
+    assert.doesNotMatch(sidebar, /Purchased/);
+    assert.doesNotMatch(sidebar, /fmtCount/);
     assert.match(sidebar, /AbortController/);
     const filters = readFileSync(join(root, "components/marketplace/new/marketplace-context.tsx"), "utf8");
     assert.match(filters, /history\.replaceState\(null, "", href\)/);
@@ -168,6 +173,12 @@ describe("marketplace wiring", () => {
     assert.match(page, /digitalCategoryPhotoUrl/);
     assert.match(page, /price_usd/);
     assert.match(page, /arrivals/);
+    assert.match(page, /DIGITAL_SHOP_CATEGORIES/);
+    assert.match(page, /navigateMarketplace/);
+    assert.match(page, /applyBrowseViewOrder\(applyFilters/);
+    const trendingSelect = readFileSync(join(root, "lib/marketplace/trending-selection.ts"), "utf8");
+    assert.match(trendingSelect, /price_usd/);
+    assert.match(trendingSelect, /applyDigitalVerification/);
     const assistant = readFileSync(join(root, "app/api/marketplace/shopping-assistant/route.ts"), "utf8");
     assert.match(assistant, /timeoutMs: MODEL_TIMEOUT_MS/);
     assert.match(assistant, /MODEL_TIMEOUT_MS = 8_000/);

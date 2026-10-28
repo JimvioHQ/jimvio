@@ -34,7 +34,10 @@ const MANAGED_QUERY_KEYS = [
   "offer",
   "format",
   "arrivals",
+  "trending",
   "purchased",
+  "fast",
+  "aipowered",
   "page",
   "brand",
   "shipping",
@@ -207,7 +210,7 @@ export function marketplaceEmptyCopy(
     title: `No ${type} products match your filters`,
     body:
       type === "digital"
-        ? "Clear filters to browse every digital product."
+        ? "Digital listings here are verified before they are shown. Clear filters to see every verified digital product."
         : "Clear filters to browse every physical product.",
   };
 }
@@ -288,7 +291,11 @@ export function compatibleMarketplaceSearch(
   if (offer) next.set("offer", offer);
   if (format) next.set("format", format);
   if (readMarketplaceFlag(source.get("arrivals"))) next.set("arrivals", "1");
-  if (readMarketplaceFlag(source.get("purchased"))) next.set("purchased", "1");
+  if (readMarketplaceFlag(source.get("trending")) || readMarketplaceFlag(source.get("purchased"))) {
+    next.set("trending", "1");
+  }
+  if (destination === "physical" && readMarketplaceFlag(source.get("fast"))) next.set("fast", "1");
+  if (destination === "digital" && readMarketplaceFlag(source.get("aipowered"))) next.set("aipowered", "1");
 
   if (!options.dropPage) {
     const page = parseMarketplacePage(source.get("page"));
@@ -412,7 +419,12 @@ export type MarketplaceFilterSnapshot = {
   offer: MarketplaceOffer | "";
   format: MarketplaceFormat | "";
   arrivals: boolean;
-  purchased: boolean;
+  /** sale_count > 0. Legacy purchased=1 is read as this flag. */
+  trending: boolean;
+  /** delivery_time is fast or a whole day count from 1 through 7. */
+  fastShipping: boolean;
+  /** Digital AI & Automation category family. */
+  aiPowered: boolean;
   shippingFrom: string[];
   deliveryTimes: Array<"fast" | "standard" | "economy">;
   page: number;
@@ -434,7 +446,9 @@ export function readMarketplaceFilters(
     offer: readMarketplaceOffer(normalized.get("offer"), type),
     format: readMarketplaceFormat(normalized.get("format"), type),
     arrivals: readMarketplaceFlag(normalized.get("arrivals")),
-    purchased: readMarketplaceFlag(normalized.get("purchased")),
+    trending: readMarketplaceFlag(normalized.get("trending")) || readMarketplaceFlag(normalized.get("purchased")),
+    fastShipping: type === "physical" && readMarketplaceFlag(normalized.get("fast")),
+    aiPowered: type === "digital" && readMarketplaceFlag(normalized.get("aipowered")),
     shippingFrom: (normalized.get("shipping") ?? "").split(",").filter(Boolean),
     deliveryTimes: (normalized.get("delivery") ?? "")
       .split(",")
@@ -458,7 +472,9 @@ export function filtersToSearchParams(
   if (type === "physical" && filters.offer) next.set("offer", filters.offer);
   if (type === "digital" && filters.format) next.set("format", filters.format);
   if (filters.arrivals) next.set("arrivals", "1");
-  if (filters.purchased) next.set("purchased", "1");
+  if (filters.trending) next.set("trending", "1");
+  if (type === "physical" && filters.fastShipping) next.set("fast", "1");
+  if (type === "digital" && filters.aiPowered) next.set("aipowered", "1");
   if (type === "physical" && filters.shippingFrom.length) {
     next.set("shipping", filters.shippingFrom.join(","));
   }
@@ -492,7 +508,9 @@ export function marketplaceSearchResultsHref(
   if (type === "physical" && filters?.offer) params.set("offer", filters.offer);
   if (type === "digital" && filters?.format) params.set("format", filters.format);
   if (filters?.arrivals) params.set("arrivals", "1");
-  if (filters?.purchased) params.set("purchased", "1");
+  if (filters?.trending) params.set("trending", "1");
+  if (type === "physical" && filters?.fastShipping) params.set("fast", "1");
+  if (type === "digital" && filters?.aiPowered) params.set("aipowered", "1");
   return `/marketplace/search?${params.toString()}`;
 }
 

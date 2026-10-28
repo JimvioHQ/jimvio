@@ -405,9 +405,19 @@ export function ProductCardClient({
           </h3>
 
           <div className={cn("flex items-baseline leading-none", isDigital ? "mt-1.5 gap-2" : "mt-0.5 gap-1")}>
+            {displayUsd == null ? (
+              <span className={cn(
+                isDigital
+                  ? "font-black tracking-tight text-[#0f0f0f] dark:text-white"
+                  : "font-bold tabular-nums tracking-tight text-[#FF5A1F] text-[12px] md:text-[14px]",
+                isDigital && (compact ? "text-[17px]" : "text-[20px]"),
+              )}>
+                Price unavailable
+              </span>
+            ) : (
             <LocalizedPrice
-              amount={displayUsd ?? price}
-              currency={displayUsd == null ? p.currency : "USD"}
+              amount={displayUsd}
+              currency="USD"
               period={p.pricing_type === "recurring" ? p.billing_period : null}
               className={cn(
                 isDigital
@@ -416,10 +426,11 @@ export function ProductCardClient({
                 isDigital && (compact ? "text-[17px]" : "text-[20px]"),
               )}
             />
-            {discount > 0 && (compareUsd ?? compareAtPrice) != null && (
+            )}
+            {discount > 0 && compareUsd != null && (
               <LocalizedPrice
-                amount={compareUsd ?? compareAtPrice ?? 0}
-                currency={compareUsd == null ? p.currency : "USD"}
+                amount={compareUsd}
+                currency="USD"
                 className={cn(
                   "line-through",
                   isDigital
@@ -488,8 +499,9 @@ export function ProductCardClient({
         product={{
           name: p.name,
           slug: p.slug,
-          price: p.price,
-          currency: p.currency,
+          price: displayUsd ?? p.price,
+          currency: displayUsd == null ? p.currency : "USD",
+          priceLabel: displayUsd == null ? "Price unavailable" : null,
           images: p.images ?? null,
           rating: p.rating ?? null,
           inventory_quantity: p.inventory_quantity ?? null,

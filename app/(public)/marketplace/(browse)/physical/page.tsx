@@ -1,5 +1,4 @@
-﻿import type { Metadata } from "next";
-import { MarketplacePage } from "@/components/marketplace/new/Marketplacepage ";
+import type { Metadata } from "next";
 import { redirectIfMarketplaceLocationNeedsNormalization } from "@/lib/marketplace/experience-server";
 import type { MarketplaceQueryRecord } from "@/lib/marketplace/experience";
 import { pageMetadata } from "@/lib/seo";
@@ -16,5 +15,5 @@ export default async function MarketplacePhysicalPage({
 }) {
   const params = await searchParams;
   await redirectIfMarketplaceLocationNeedsNormalization("physical", params);
-  return <MarketplacePage searchParams={{ type: "physical" }} />;
+  return null;
 }

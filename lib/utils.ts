@@ -386,7 +386,9 @@ export type AppliedFilters = {
   offer?: "" | "free_shipping" | "flash_deal";
   format?: "" | "digital" | "course" | "ebook" | "software" | "template" | "coaching";
   arrivals?: boolean;
-  purchased?: boolean;
+  trending?: boolean;
+  fastShipping?: boolean;
+  aiPowered?: boolean;
 };
 
 export const SELECT_CATEGORY_LABEL = "Select category";
@@ -402,7 +404,9 @@ export const DEFAULT_FILTERS: AppliedFilters = {
   offer: "",
   format: "",
   arrivals: false,
-  purchased: false,
+  trending: false,
+  fastShipping: false,
+  aiPowered: false,
 };
 
 export function parsePrice(price: string): number {

@@ -14,6 +14,10 @@ describe("marketplace customer USD", () => {
     );
     assert.equal(marketplaceCustomerUsd({ price: 8320, currency: "RWF" }), null);
     assert.equal(marketplaceCustomerUsd({ price: 19.5, currency: "USD" }), 19.5);
+    assert.equal(marketplaceCustomerUsd({ price: 0, price_usd: 5.63, currency: "RWF" }), 5.63);
+    assert.equal(marketplaceCustomerUsd({ price: "8320", price_usd: "5.63", currency: "RWF" }), 5.63);
+    assert.equal(marketplaceCustomerUsd({ price: "nope", price_usd: "nope", currency: "USD" }), null);
+    assert.equal(marketplaceCustomerUsd({ price: 0, currency: "USD" }), 0);
   });
 
   it("scales a variant with the listing's own price pair", () => {
@@ -27,6 +31,14 @@ describe("marketplace customer USD", () => {
     assert.equal(
       marketplaceCustomerUsd({ price: 8320, currency: "RWF", variantPrice: 9000 }),
       null,
+    );
+    assert.equal(
+      marketplaceCustomerUsd({ price: 8320, price_usd: 5.63, currency: "RWF", variantPrice: 8320 }),
+      5.63,
+    );
+    assert.equal(
+      marketplaceCustomerUsd({ price: 0, price_usd: 5.63, currency: "RWF", variantPrice: 9000 }),
+      5.63,
     );
   });
 });

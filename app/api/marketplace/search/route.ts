@@ -40,7 +40,11 @@ export async function GET(req: NextRequest) {
         offer: readMarketplaceOffer(req.nextUrl.searchParams.get("offer"), type),
         format: readMarketplaceFormat(req.nextUrl.searchParams.get("format"), type),
         arrivals: readMarketplaceFlag(req.nextUrl.searchParams.get("arrivals")),
-        purchased: readMarketplaceFlag(req.nextUrl.searchParams.get("purchased")),
+        trending:
+          readMarketplaceFlag(req.nextUrl.searchParams.get("trending")) ||
+          readMarketplaceFlag(req.nextUrl.searchParams.get("purchased")),
+        fastShipping: type === "physical" && readMarketplaceFlag(req.nextUrl.searchParams.get("fast")),
+        aiPowered: type === "digital" && readMarketplaceFlag(req.nextUrl.searchParams.get("aipowered")),
       },
     });
 

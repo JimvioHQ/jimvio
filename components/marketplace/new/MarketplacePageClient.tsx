@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from "next/navigation";
 import {
   Zap, ChevronRight,
   Sparkles, Camera, Search,
@@ -44,6 +44,15 @@ import {
 import { validateVisualFile } from "@/lib/marketplace/visual-search";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import { digitalCategoryPhotoUrl } from "@/lib/marketplace/digital-category-images";
+import { DIGITAL_SHOP_CATEGORIES } from "@/lib/marketplace/digital-shop-categories";
+import {
+  applyBrowseViewOrder,
+  applyDigitalVerification,
+  applyFastShipping,
+  applyTrendingSales,
+  isAiCategorySlug,
+  isVerificationColumnError,
+} from "@/lib/marketplace/catalog-filters";
 import {
   MarketplaceSearchBar,
   MarketplaceSearchIcon,
@@ -94,7 +103,9 @@ function isDefaultBrowseState(
     (filters.offer ?? "") === "" &&
     (filters.format ?? "") === "" &&
     !filters.arrivals &&
-    !filters.purchased
+    !filters.trending &&
+    !filters.fastShipping &&
+    !filters.aiPowered
   );
 }
 
@@ -178,6 +189,23 @@ async function resolveCategoryIds(
   return [rowId, ...childRows.map((child) => child.id).filter(Boolean)];
 }
 
+async function resolveAiCategoryIds(
+  client: ReturnType<typeof createClient>,
+  type: ProductType,
+): Promise<string[] | null> {
+  const { data, error } = await client
+    .from("product_categories")
+    .select("id, slug")
+    .eq("is_active", true)
+    .or(categoryTypeOrFilter(type))
+    .ilike("slug", "digital-ai-%")
+    .limit(80);
+  if (error) return null;
+  return ((data ?? []) as { id: string; slug: string }[])
+    .filter((row) => isAiCategorySlug(row.slug) && row.id)
+    .map((row) => row.id);
+}
+
 type Props = {
   initialType: ProductType;
   initialBundles: Record<ProductType, MarketplacePageBundle>;
@@ -188,7 +216,15 @@ type Props = {
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
 
-function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
+function CategoryCard({
+  c,
+  type,
+  onSelect,
+}: {
+  c: DbCategory;
+  type: ProductType;
+  onSelect: (slug: string) => void;
+}) {
   const fallbacks = useMemo(() => {
     if (type === "digital") {
       const urls: string[] = [];
@@ -214,8 +250,9 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   }, [c.id, c.image_url, c.name, c.slug]);
 
   return (
-    <Link
-      href={`${TYPE_PATH[type]}?category=${encodeURIComponent(c.slug)}`}
+    <button
+      type="button"
+      onClick={() => onSelect(c.slug)}
       className="group relative mx-auto flex w-[84%] max-w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface)] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.02] hover:border-[var(--color-border)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.1)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 md:w-full md:rounded-2xl"
     >
       <div className="relative aspect-[5/3] w-full overflow-hidden md:aspect-[4/3]">
@@ -254,7 +291,7 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
           {c.name}
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
 
@@ -312,21 +349,29 @@ export function MarketplacePageClient({
   heroDigital,
 }: Props) {
   const supabase = createClient();
-  const startingBundle = initialBundles[initialType];
-
-  const { filters, setCategory, page, setPage } = useMarketplace();
+  const { filters, setCategory, page, setPage, marketplaceType, navigateMarketplace } = useMarketplace();
   const openAssistant = useAIStore((s) => s.openAssistant);
 
   const router = useRouter();
   const pathname = usePathname();
+  const segment = useSelectedLayoutSegment();
   const searchParams = useSearchParams();
-  const type = marketplaceTypeFromPathname(pathname) ?? initialType;
+  const routeType: ProductType =
+    segment === "digital" || segment === "physical"
+      ? segment
+      : marketplaceTypeFromPathname(pathname) ?? initialType;
+  const type = marketplaceType ?? routeType;
+  const startingBundle = initialBundles[routeType];
   const landing = readMarketplaceFilters(searchParams, type);
   const constrainedLanding =
     landing.page > 1 ||
     Boolean(landing.category) ||
     Boolean(landing.offer) ||
     Boolean(landing.format) ||
+    landing.arrivals ||
+    landing.trending ||
+    landing.fastShipping ||
+    landing.aiPowered ||
     landing.priceRange[0] > 0 ||
     landing.priceRange[1] < MARKETPLACE_PRICE_CEILING ||
     landing.shippingFrom.length > 0 ||
@@ -345,6 +390,7 @@ export function MarketplacePageClient({
     },
   });
   const loadGenRef = useRef(0);
+  const rotationGenRef = useRef(0);
   /** Separate from browse generation so browse loads cannot discard in-flight search results */
   const searchGenRef = useRef(0);
   const skipInitialFetchRef = useRef(!constrainedLanding);
@@ -387,7 +433,7 @@ export function MarketplacePageClient({
   );
   const [productsLoading, setProductsLoading] = useState(false);
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
-  const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
+  const [categoriesType, setCategoriesType] = useState<ProductType>(routeType);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(constrainedLanding);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -416,6 +462,30 @@ export function MarketplacePageClient({
   });
 
   const [visitNonce, setVisitNonce] = useState(0);
+  const [shownType, setShownType] = useState(type);
+  if (shownType !== type) {
+    setShownType(type);
+    const cached = cacheRef.current[type];
+    const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch);
+    if (defaultBrowse && cached) {
+      setFlashDeals(dedupeProductsByIdentity(cached.flashDeals));
+      setTrending(dedupeProductsByIdentity(cached.trending));
+      setCategories(cached.categories);
+      setCategoriesType(type);
+      setListingCount(cached.listingCount);
+      setLoading(false);
+      setProductsLoading(false);
+    } else {
+      setFlashDeals([]);
+      setTrending([]);
+      setListingCount(0);
+      setCategoriesType(type);
+      setLoading(!debouncedSearch);
+      setProductsLoading(Boolean(debouncedSearch));
+    }
+    setBrowseError(false);
+    setNewProductIds(new Set());
+  }
 
   useEffect(() => {
     const onShow = (event: PageTransitionEvent) => {
@@ -436,6 +506,11 @@ export function MarketplacePageClient({
     const snap = readMarketplaceFilters(searchParams, type);
     router.replace(marketplaceSearchResultsHref(type, urlQ, snap));
   }, [urlQ, type, router, searchParams]);
+
+  useEffect(() => {
+    const other = type === "physical" ? TYPE_PATH.digital : TYPE_PATH.physical;
+    router.prefetch(other);
+  }, [router, type]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -474,14 +549,23 @@ export function MarketplacePageClient({
         if (generation !== loadGenRef.current) return null;
         if (categoryIds && categoryIds.length === 0) return [];
       }
+      if (type === "digital" && filters.aiPowered) {
+        const aiIds = await resolveAiCategoryIds(supabaseRef.current, type);
+        if (generation !== loadGenRef.current) return null;
+        if (!aiIds || aiIds.length === 0) return [];
+        categoryIds = categoryIds ? categoryIds.filter((id) => aiIds.includes(id)) : aiIds;
+        if (categoryIds.length === 0) return [];
+      }
 
       function applyFilters(q: any): any {
+        q = applyDigitalVerification(q, type);
         if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
         if (hasPriceMax) q = q.lte("price_usd", filters.priceRange[1]);
         if (hasPriceMin) q = q.gte("price_usd", filters.priceRange[0]);
         if (filters.arrivals) q = q.gte("created_at", marketplaceNewArrivalSince());
-        if (filters.purchased) q = q.gt("sale_count", 0);
+        if (filters.trending) q = applyTrendingSales(q);
+        if (type === "physical" && filters.fastShipping) q = applyFastShipping(q);
         if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
         if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
         if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
@@ -489,7 +573,7 @@ export function MarketplacePageClient({
         return q;
       }
 
-      const { data: trend, error: trendError } = await applyFilters(
+      const { data: trend, error: trendError } = await applyBrowseViewOrder(applyFilters(
         supabaseRef.current
           .from("products")
           .select(`
@@ -503,11 +587,10 @@ export function MarketplacePageClient({
           .eq("status", "active")
           .eq("is_active", true)
           .is("deleted_at", null)
-          .in("product_type", [...typeFilter])
-          .order("view_count", { ascending: false })
-          .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
-      );
+          .in("product_type", [...typeFilter]),
+      )).range(offset, offset + MARKETPLACE_PAGE_SIZE - 1);
       if (trendError) {
+        if (type === "digital" && isVerificationColumnError(trendError)) return [];
         console.error("[marketplace] trending slice failed:", trendError);
         return null;
       }
@@ -683,14 +766,10 @@ export function MarketplacePageClient({
     }
 
     if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
-      const cached = cacheRef.current[type];
-      // Empty stub from deferred SSR — fall through and load the tab.
-      if (cached.trending.length > 0 || cached.listingCount > 0) {
-        applyCachedType(type);
-        setLoading(false);
-        setProductsLoading(false);
-        return;
-      }
+      applyCachedType(type);
+      setLoading(false);
+      setProductsLoading(false);
+      return;
     }
 
     const loadGeneration = ++loadGenRef.current;
@@ -716,14 +795,25 @@ export function MarketplacePageClient({
         categoryIds = await resolveCategoryIds(supabaseRef.current, type, filters.category);
         if (loadGeneration !== loadGenRef.current) return;
       }
+      if (type === "digital" && filters.aiPowered) {
+        const aiIds = await resolveAiCategoryIds(supabaseRef.current, type);
+        if (loadGeneration !== loadGenRef.current) return;
+        if (!aiIds || aiIds.length === 0) {
+          categoryIds = [];
+        } else {
+          categoryIds = categoryIds ? categoryIds.filter((id) => aiIds.includes(id)) : aiIds;
+        }
+      }
 
       function applyFilters(q: any): any {
+        q = applyDigitalVerification(q, type);
         if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
         if (hasPriceMax) q = q.lte("price_usd", filters.priceRange[1]);
         if (hasPriceMin) q = q.gte("price_usd", filters.priceRange[0]);
         if (filters.arrivals) q = q.gte("created_at", marketplaceNewArrivalSince());
-        if (filters.purchased) q = q.gt("sale_count", 0);
+        if (filters.trending) q = applyTrendingSales(q);
+        if (type === "physical" && filters.fastShipping) q = applyFastShipping(q);
         if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
         if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
         if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
@@ -772,7 +862,7 @@ export function MarketplacePageClient({
 
           categoryMiss || skipTrending
             ? Promise.resolve({ data: null, error: null })
-            : applyFilters(
+            : applyBrowseViewOrder(applyFilters(
                 supabaseRef.current
                   .from("products")
                   .select(`
@@ -786,10 +876,8 @@ export function MarketplacePageClient({
                   .eq("status", "active")
                   .eq("is_active", true)
                   .is("deleted_at", null)
-                  .in("product_type", [...typeFilter])
-                  .order("view_count", { ascending: false })
-                  .range(0, windowEnd),
-              ),
+                  .in("product_type", [...typeFilter]),
+              )).range(0, windowEnd),
 
           categoryMiss
             ? emptyProducts
@@ -807,6 +895,14 @@ export function MarketplacePageClient({
       if (loadGeneration !== loadGenRef.current) return;
 
       const productError = dealsRes.error || trendRes.error || countRes.error;
+      if (productError && type === "digital" && isVerificationColumnError(productError)) {
+        setFlashDeals([]);
+        setTrending([]);
+        setListingCount(0);
+        setLoading(false);
+        setProductsLoading(false);
+        return;
+      }
       if (productError) {
         console.error("[marketplace] browse load failed:", productError);
         setBrowseError(true);
@@ -823,7 +919,9 @@ export function MarketplacePageClient({
       const nextCategories = (catRows ?? []) as DbCategory[];
 
       const dealList = dedupeProductsByIdentity((deals ?? []) as DbProduct[]);
-      const trendList = dedupeProductsByIdentity((trend ?? []) as DbProduct[]);
+      const trendList = dedupeProductsByIdentity((trend ?? []) as DbProduct[]).filter(
+        (product) => type !== "digital" || product.product_type !== "physical",
+      );
       const dealPool = dedupeProductsByIdentity([...dealList, ...trendList]);
       const resolvedDeals = resolveMarketplaceFlashDeals(
         dealPool,
@@ -908,7 +1006,9 @@ export function MarketplacePageClient({
         if (snap.offer) searchParamsForApi.set("offer", snap.offer);
         if (snap.format) searchParamsForApi.set("format", snap.format);
         if (snap.arrivals) searchParamsForApi.set("arrivals", "1");
-        if (snap.purchased) searchParamsForApi.set("purchased", "1");
+        if (snap.trending) searchParamsForApi.set("trending", "1");
+        if (type === "physical" && snap.fastShipping) searchParamsForApi.set("fast", "1");
+        if (type === "digital" && snap.aiPowered) searchParamsForApi.set("aipowered", "1");
         const res = await fetch(`/api/marketplace/search?${searchParamsForApi.toString()}`, {
           signal: controller.signal,
         });
@@ -950,6 +1050,7 @@ export function MarketplacePageClient({
     if (!isDefaultBrowseState(filters, debouncedSearch)) return;
 
     const controller = new AbortController();
+    const rotationGeneration = ++rotationGenRef.current;
     const seed =
       typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
         ? crypto.randomUUID()
@@ -963,7 +1064,12 @@ export function MarketplacePageClient({
         );
         if (!res.ok) return;
         const data = (await res.json()) as { products?: DbProduct[] };
-        if (controller.signal.aborted || !Array.isArray(data.products) || data.products.length === 0) return;
+        if (
+          controller.signal.aborted ||
+          rotationGeneration !== rotationGenRef.current ||
+          !Array.isArray(data.products) ||
+          data.products.length === 0
+        ) return;
         const next = dedupeProductsByIdentity(data.products);
         setTrending(next);
         const cached = cacheRef.current[type];
@@ -1006,14 +1112,31 @@ export function MarketplacePageClient({
   );
 
   const displayCategories = useMemo(() => {
+    if (type === "digital") {
+      return DIGITAL_SHOP_CATEGORIES.map((category) => ({
+        id: category.slug,
+        name: category.name,
+        slug: category.slug,
+        product_count: null,
+        image_url: digitalCategoryPhotoUrl(category.slug),
+        tint_color: null,
+      }));
+    }
     const target = isMobile ? 6 : 7;
     return shopCategories.slice(0, target);
-  }, [shopCategories, isMobile]);
+  }, [isMobile, shopCategories, type]);
 
   const POPULAR_SEARCHES = marketplacePopularSearches(type);
-  const emptyCopy = marketplaceEmptyCopy(type, debouncedSearch);
+  const emptyCopy = isDefaultBrowseState(filters, debouncedSearch) && type === "digital"
+    ? {
+        title: "No verified digital products yet",
+        body: "Digital products appear here after they pass Jimvio verification. Categories and filters stay available.",
+      }
+    : marketplaceEmptyCopy(type, debouncedSearch);
   const activeCategoryName =
-    categories.find((category) => category.slug === filters.category)?.name || filters.category;
+    DIGITAL_SHOP_CATEGORIES.find((category) => category.slug === filters.category)?.name
+    || categories.find((category) => category.slug === filters.category)?.name
+    || filters.category;
 
   const RECENT_KEY = "marketplace_recent_searches_v1";
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -1270,7 +1393,18 @@ export function MarketplacePageClient({
               AI
             </button>
 
-            <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-[var(--color-border)] p-1 sm:flex">
+            <div
+              className="hidden shrink-0 items-center gap-1 rounded-xl border border-[var(--color-border)] p-1 sm:flex"
+              data-marketplace-type-switch
+              onClickCapture={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                const destination = (event.target as HTMLElement).closest("a")?.textContent?.trim().toLowerCase();
+                if (destination !== "physical" && destination !== "digital") return;
+                event.preventDefault();
+                event.stopPropagation();
+                navigateMarketplace(destination);
+              }}
+            >
               {(["physical", "digital"] as ProductType[]).map((t) => (
                 <Link
                   key={t}
@@ -1343,7 +1477,18 @@ export function MarketplacePageClient({
             onClearRecent={clearRecentHistory}
           />
 
-          <div className="flex items-center justify-center gap-2 sm:hidden">
+          <div
+            className="flex items-center justify-center gap-2 sm:hidden"
+            data-marketplace-type-switch
+            onClickCapture={(event) => {
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+              const destination = (event.target as HTMLElement).closest("a")?.textContent?.trim().toLowerCase();
+              if (destination !== "physical" && destination !== "digital") return;
+              event.preventDefault();
+              event.stopPropagation();
+              navigateMarketplace(destination);
+            }}
+          >
             {(["physical", "digital"] as ProductType[]).map((t) => (
               <Link
                 key={t}
@@ -1429,7 +1574,7 @@ export function MarketplacePageClient({
             <h2 className="mb-4 text-lg font-black tracking-[-0.02em] text-[var(--color-text-primary)]">Shop by Category</h2>
             <div className="grid grid-cols-3 gap-2.5 md:grid-cols-4 md:gap-3.5 lg:grid-cols-4 xl:grid-cols-7">
               {displayCategories.map((c) => (
-                <CategoryCard key={c.id} c={c} type={type} />
+                <CategoryCard key={c.id} c={c} type={type} onSelect={setCategory} />
               ))}
             </div>
           </section>

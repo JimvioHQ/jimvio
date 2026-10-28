@@ -22,6 +22,9 @@ export default async function MarketplaceSearchPage({
     format?: string;
     arrivals?: string;
     purchased?: string;
+    trending?: string;
+    fast?: string;
+    aipowered?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -51,7 +54,9 @@ export default async function MarketplaceSearchPage({
           offer: readMarketplaceOffer(params.offer, initialType),
           format: readMarketplaceFormat(params.format, initialType),
           arrivals: readMarketplaceFlag(params.arrivals),
-          purchased: readMarketplaceFlag(params.purchased),
+          trending: readMarketplaceFlag(params.trending) || readMarketplaceFlag(params.purchased),
+          fastShipping: initialType === "physical" && readMarketplaceFlag(params.fast),
+          aiPowered: initialType === "digital" && readMarketplaceFlag(params.aipowered),
         },
       });
       products = payload.products;

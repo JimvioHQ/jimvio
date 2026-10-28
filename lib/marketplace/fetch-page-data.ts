@@ -11,6 +11,7 @@ import {
 } from "@/lib/marketplace/homepage-ranking";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 import { categoryTypeOrFilter } from "@/lib/marketplace/experience";
+import { applyDigitalVerification, isVerificationColumnError } from "@/lib/marketplace/catalog-filters";
 import { slimListingImages } from "@/lib/media/optimize-url";
 import type { MarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 
@@ -103,30 +104,44 @@ export async function fetchCategoriesForType(
   return (categoryRows ?? []) as MarketplaceCategory[];
 }
 
+function scopeCatalog(query: any, type: MarketplaceProductType) {
+  return applyDigitalVerification(query, type);
+}
+
 async function fetchMarketplaceProductPool(
   supabase: SupabaseLike,
+  type: MarketplaceProductType,
   typeFilter: readonly string[],
   visibilitySets: MarketplaceVisibilitySets,
 ): Promise<{ pool: DbProduct[]; listingCount: number }> {
   const [countRes, dataRes] = await Promise.all([
-    supabase
-      .from("products")
-      .select("id", { count: "estimated", head: true })
-      .eq("status", "active")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .in("product_type", [...typeFilter]),
-    supabase
-      .from("products")
-      .select(PRODUCT_SELECT)
-      .eq("status", "active")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .in("product_type", [...typeFilter])
-      .order("view_count", { ascending: false })
-      .limit(FIRST_PAINT_POOL_LIMIT),
+    scopeCatalog(
+      supabase
+        .from("products")
+        .select("id", { count: "estimated", head: true })
+        .eq("status", "active")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .in("product_type", [...typeFilter]),
+      type,
+    ),
+    scopeCatalog(
+      supabase
+        .from("products")
+        .select(PRODUCT_SELECT)
+        .eq("status", "active")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .in("product_type", [...typeFilter])
+        .order("view_count", { ascending: false })
+        .limit(FIRST_PAINT_POOL_LIMIT),
+      type,
+    ),
   ]);
 
+  if (type === "digital" && (isVerificationColumnError(countRes.error) || isVerificationColumnError(dataRes.error))) {
+    return { pool: [], listingCount: 0 };
+  }
   if (countRes.error) {
     console.error("[marketplace] product count failed:", countRes.error);
     throw new Error(countRes.error.message);
@@ -144,17 +159,23 @@ async function fetchMarketplaceProductPool(
   );
 
   if (pool.length === 0 && listingCount > 0) {
-    const { data: fallback, error: fallbackError } = await supabase
-      .from("products")
-      .select(PRODUCT_SELECT)
-      .eq("status", "active")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .in("product_type", [...typeFilter])
-      .order("created_at", { ascending: false })
-      .limit(FIRST_PAINT_POOL_LIMIT);
+    const { data: fallback, error: fallbackError } = await scopeCatalog(
+      supabase
+        .from("products")
+        .select(PRODUCT_SELECT)
+        .eq("status", "active")
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .in("product_type", [...typeFilter])
+        .order("created_at", { ascending: false })
+        .limit(FIRST_PAINT_POOL_LIMIT),
+      type,
+    );
 
     if (fallbackError) {
+      if (type === "digital" && isVerificationColumnError(fallbackError)) {
+        return { pool: [], listingCount: 0 };
+      }
       console.error("[marketplace] product fallback pool failed:", fallbackError);
       throw new Error(fallbackError.message);
     }
@@ -166,6 +187,9 @@ async function fetchMarketplaceProductPool(
     );
   }
 
+  if (type === "digital") {
+    pool = pool.filter((product) => product.product_type !== "physical");
+  }
   return { pool, listingCount };
 }
 
@@ -181,7 +205,7 @@ export async function fetchMarketplacePageBundle(
   const visibilitySets = SSR_VISIBILITY_SETS;
 
   const [{ pool, listingCount }, categories] = await Promise.all([
-    fetchMarketplaceProductPool(supabase, typeFilter, visibilitySets),
+    fetchMarketplaceProductPool(supabase, type, typeFilter, visibilitySets),
     fetchCategoriesForType(supabase, typeFilter),
   ]);
 

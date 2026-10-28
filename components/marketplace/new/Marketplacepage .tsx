@@ -50,7 +50,7 @@ const getCachedMarketplacePageBundle = (type: MarketplaceProductType) =>
       const supabase = createAdminClient();
       return fetchMarketplacePageBundle(supabase, type);
     },
-    ["marketplace-page-bundle-v3", type],
+    ["marketplace-page-bundle-v4", type],
     { revalidate: 60 },
   )();
 
@@ -88,45 +88,31 @@ const getCachedMarketplaceChrome = (type: MarketplaceProductType) =>
     { revalidate: 60 },
   )();
 
-export async function MarketplacePage({
-  searchParams,
-}: {
-  searchParams?: { type?: string; page?: string };
-}) {
-  const initialType: MarketplaceProductType =
-    searchParams?.type === "digital" ? "digital" : "physical";
-
-  const emptyBundle: MarketplacePageBundle = {
-    flashDeals: [],
-    trending: [],
-    categories: [],
-    listingCount: 0,
-  };
-
-  // SSR only the active type. The other canonical route loads its own bundle.
-  const [primaryBundle, chrome, stats] = await Promise.all([
-    getCachedMarketplacePageBundle(initialType),
-    getCachedMarketplaceChrome(initialType),
+export async function MarketplacePage() {
+  const [physicalBundle, digitalBundle, physicalChrome, digitalChrome, stats] = await Promise.all([
+    getCachedMarketplacePageBundle("physical"),
+    getCachedMarketplacePageBundle("digital"),
+    getCachedMarketplaceChrome("physical"),
+    getCachedMarketplaceChrome("digital"),
     getCachedMarketplaceStats(),
   ]);
 
   const initialBundles: Record<MarketplaceProductType, MarketplacePageBundle> = {
-    physical: initialType === "physical" ? primaryBundle : emptyBundle,
-    digital: initialType === "digital" ? primaryBundle : emptyBundle,
+    physical: physicalBundle,
+    digital: digitalBundle,
   };
 
   return (
-    <div className="min-w-0">
-      <MarketplaceProvider key={initialType}>
+    <div className="min-w-0" data-marketplace-shell>
+      <MarketplaceProvider>
         <div className="mx-auto flex w-full max-w-8xl min-w-0 gap-4 px-4 py-4 sm:px-6">
           <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3">
             <MarketplacePageClient
-              key={initialType}
-              initialType={initialType}
+              initialType="physical"
               initialBundles={initialBundles}
               initialStats={stats}
-              heroPhysical={chrome.hero.physical ?? []}
-              heroDigital={chrome.hero.digital ?? []}
+              heroPhysical={physicalChrome.hero.physical ?? []}
+              heroDigital={digitalChrome.hero.digital ?? []}
             />
           </div>
         </div>

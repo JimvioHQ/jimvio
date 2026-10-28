@@ -35,15 +35,18 @@ export function marketplaceCustomerUsd(input: MarketplacePriceSource): number | 
   const storedUsd = finiteAmount(input.price_usd);
   const variant = finiteAmount(input.variantPrice);
 
-  if (variant != null && variant > 0) {
+  const variantDiffers =
+    variant != null && variant > 0 && listed != null && listed > 0 && variant !== listed;
+  if (variantDiffers) {
     if (currency === "USD") return roundUsd(variant);
-    if (storedUsd != null && storedUsd > 0 && listed != null && listed > 0) {
-      return roundUsd(variant * (storedUsd / listed));
+    if (storedUsd != null && storedUsd > 0) {
+      return roundUsd((variant as number) * (storedUsd / (listed as number)));
     }
     return null;
   }
 
-  if (currency === "USD" && listed != null && listed >= 0) return roundUsd(listed);
+  if (currency === "USD" && listed != null && listed > 0) return roundUsd(listed);
   if (storedUsd != null && storedUsd > 0) return roundUsd(storedUsd);
+  if (currency === "USD" && listed === 0) return 0;
   return null;
 }

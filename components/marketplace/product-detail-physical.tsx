@@ -28,6 +28,7 @@ import {
 import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 import { formatFollowersLabel, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
 import { useCurrency } from "@/context/CurrencyContext";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import {
   ProductBreadcrumb, SaveShareBar,
   AffiliateBanner, FaqSection, RelatedProducts,
@@ -1223,7 +1224,25 @@ export function PhysicalProductDetail({
   );
 
   const savings = activeCompareAt ? getProductDiscountPercent(productDiscountFields) : null;
-  const savingsAmount = activeCompareAt ? activeCompareAt - activePrice : 0;
+  const displayUsd = marketplaceCustomerUsd({
+    price: product.price,
+    price_usd: product.price_usd,
+    currency: product.currency,
+    variantPrice: selectedVariant ? selectedVariant.price : null,
+  });
+  const compareUsd = activeCompareAt == null
+    ? null
+    : marketplaceCustomerUsd({
+        price: product.price,
+        price_usd: product.price_usd,
+        currency: product.currency,
+        variantPrice: activeCompareAt,
+      });
+  const displayPriceLabel = displayUsd == null ? "Price unavailable" : formatMoney(displayUsd, "USD");
+  const comparePriceLabel = compareUsd == null ? null : formatMoney(compareUsd, "USD");
+  const savingsAmount = displayUsd != null && compareUsd != null && compareUsd > displayUsd
+    ? Math.round((compareUsd - displayUsd) * 100) / 100
+    : 0;
   const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : (product.review_count ?? 0);
   const ratingBreakdown: RatingBreakdown | null = product.rating_breakdown ?? null;
   const hasReviews = reviewCount > 0;
@@ -1379,11 +1398,11 @@ export function PhysicalProductDetail({
               <div>
                 <div className="flex flex-wrap items-baseline gap-2.5">
                   <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)]">
-                    {formatMoney(activePrice, product.currency, "USD")}
+                    {displayPriceLabel}
                   </span>
-                  {activeCompareAt && (
+                  {comparePriceLabel && compareUsd != null && displayUsd != null && compareUsd > displayUsd && (
                     <span className="text-[15px] font-medium text-[var(--color-text-muted)] line-through decoration-[var(--color-border-strong)]">
-                      {formatMoney(activeCompareAt, product.currency, "USD")}
+                      {comparePriceLabel}
                     </span>
                   )}
                   {savings !== null && savings > 0 && (
@@ -1394,7 +1413,7 @@ export function PhysicalProductDetail({
                 </div>
                 {savingsAmount > 0 && (
                   <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    You save {formatMoney(savingsAmount, product.currency, "USD")}
+                    You save {formatMoney(savingsAmount, "USD")}
                   </p>
                 )}
               </div>
@@ -1715,10 +1734,10 @@ export function PhysicalProductDetail({
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
         </div>
       <MobileStickyBuyBar
-        priceLabel={formatMoney(activePrice, product.currency, "USD")}
+        priceLabel={displayPriceLabel}
         compareLabel={
-          activeCompareAt && activeCompareAt > activePrice
-            ? formatMoney(activeCompareAt, product.currency, "USD")
+          comparePriceLabel && compareUsd != null && displayUsd != null && compareUsd > displayUsd
+            ? comparePriceLabel
             : null
         }
         savings={savings}
