@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { MIN_WITHDRAWAL_AMOUNT } from "./attribution";
+import { MIN_WITHDRAWAL_AMOUNT } from "./payout-minimum";
 import {
   affiliateLinkStatus,
   affiliateNextAction,
   affiliatePayoutExplanation,
   affiliatePerformanceNote,
 } from "./guidance";
+
+describe("affiliate guidance client boundary", () => {
+  it("does not import the server attribution module", () => {
+    const source = readFileSync(new URL("./guidance.ts", import.meta.url), "utf8");
+    assert.match(source, /payout-minimum/);
+    assert.doesNotMatch(source, /affiliate\/attribution|next\/headers/);
+  });
+});
 
 describe("affiliate next action", () => {
   it("sends a new affiliate to product discovery", () => {

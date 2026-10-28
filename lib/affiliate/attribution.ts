@@ -23,7 +23,7 @@ export const AFFILIATE_REF_FIRST_COOKIE = "jimvio_ref_ft";
 export const AFFILIATE_REF_TS_COOKIE = "jimvio_ref_ts";
 
 export const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30;
-export const MIN_WITHDRAWAL_AMOUNT = 10;
+export { MIN_WITHDRAWAL_AMOUNT } from "./payout-minimum";
 
 export type AttributionModel = "first_touch" | "last_touch";
 

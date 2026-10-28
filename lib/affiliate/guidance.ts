@@ -3,7 +3,7 @@
  * Callers pass counts they already loaded. This module does not query or invent them.
  */
 
-import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/affiliate/attribution";
+import { MIN_WITHDRAWAL_AMOUNT } from "@/lib/affiliate/payout-minimum";
 
 export type AffiliateNextAction = {
   id: "withdraw" | "pending" | "discover" | "share" | "fit";
