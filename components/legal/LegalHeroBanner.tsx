@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight, Globe2, Lock, ShieldCheck } from "lucide-react";
-import { LEGAL_COUNTRIES, type LegalDocument } from "@/lib/legal/catalog";
+import { type LegalDocument } from "@/lib/legal/catalog";
 import { cn } from "@/lib/utils";
 import { LegalEyebrow } from "./legal-ui";
 import { LegalIllustration } from "./LegalIllustration";
@@ -141,7 +141,7 @@ export function LegalHeroBanner({ document, mode = "document", className }: Prop
                   {
                     icon: Globe2,
                     title: "Globally Accessible",
-                    subtitle: `${LEGAL_COUNTRIES}+ countries`,
+                    subtitle: "Readable on any device",
                   },
                   {
                     icon: Lock,

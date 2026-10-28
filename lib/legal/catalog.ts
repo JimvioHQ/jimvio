@@ -19,7 +19,6 @@ import {
   Megaphone,
   Handshake,
 } from "lucide-react";
-import { PLATFORM_STATS } from "@/lib/platform-stats";
 
 export type LegalCategoryId =
   | "general"
@@ -84,7 +83,6 @@ export type LegalCategory = {
 
 export const LEGAL_EFFECTIVE_DATE = "May 06, 2026";
 export const LEGAL_VERSION = "1.0";
-export const LEGAL_COUNTRIES = PLATFORM_STATS.countries;
 
 export const LEGAL_CATEGORIES: LegalCategory[] = [
   { id: "general", label: "General policies" },

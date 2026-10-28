@@ -8,7 +8,6 @@ import {
     ArrowRight, Pencil, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 import type { CartOrder, CartItem } from "@/types";
 import { FieldInput } from "../ui/field-input";
 
@@ -35,7 +34,6 @@ interface OrderSummaryCardProps {
     paySubmitting: boolean;
     payDisabled: boolean;
 
-    socialProofAvatars?: (string | null)[];
 }
 
 export function OrderSummaryCard({
@@ -43,7 +41,6 @@ export function OrderSummaryCard({
     isAllDigital, features,
     promoCode, onPromoChange, onPromoApply, promoApplying,
     onEditOrder, onPay, paySubmitting, payDisabled,
-    socialProofAvatars = [],
 }: OrderSummaryCardProps) {
     const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -284,38 +281,12 @@ export function OrderSummaryCard({
                 You won&apos;t be charged until payment is confirmed.
             </p>
 
-            {/* Social proof */}
-            <div className="flex items-center gap-2.5 pt-1">
-                <div className="flex -space-x-2">
-                    {(socialProofAvatars.length > 0 ? socialProofAvatars : [null, null, null]).slice(0, 3).map((src, i) => (
-                        <div
-                            key={i}
-                            className="w-6 h-6 rounded-full border-2 border-[var(--color-surface)] bg-gradient-to-br from-orange-200 to-orange-400 overflow-hidden flex items-center justify-center text-[9px] font-bold text-white"
-                        >
-                            {src ? (
-                                <img src={src} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                                ["A", "B", "C"][i]
-                            )}
-                        </div>
-                    ))}
-                </div>
-                <p className="text-[11px] text-[var(--color-text-muted)] flex-1">
-                    Trusted by <AnimatedPlatformStatValue statKey="users" /> happy customers
-                </p>
-                <div className="flex items-center gap-1">
-                    <div className="flex">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <svg key={i} className="h-3 w-3 text-amber-400 fill-current" viewBox="0 0 20 20">
-                                <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                            </svg>
-                        ))}
-                    </div>
-                    <span className="text-[11px] font-bold text-[var(--color-text-primary)] tabular-nums">
-                        4.9/5
-                    </span>
-                </div>
-            </div>
+            <p className="flex items-center justify-center gap-1.5 pt-1 text-[11px] text-[var(--color-text-muted)]">
+                <svg className="h-3.5 w-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Eligible orders are covered by Jimvio Buyer Protection.
+            </p>
         </div>
     );
 }

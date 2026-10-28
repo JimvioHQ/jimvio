@@ -17,7 +17,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { jimvioStagger } from "@/lib/motion/jimvio-motion";
 import { RevealItem, SectionReveal } from "@/components/motion/section-reveal";
 import {
@@ -106,7 +105,7 @@ const CARDS: HowCard[] = [
 ];
 
 const TRUST = [
-  { icon: null as typeof Globe | null, label: `${getDemoPlatformStats().countries} Countries` },
+  { icon: Globe as typeof Globe | null, label: "Free to Start" },
   { icon: Users, label: "Global Community" },
   { icon: Shield, label: "Secure & Trusted" },
   { icon: Zap, label: "Built for Creators" },

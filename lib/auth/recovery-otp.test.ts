@@ -46,12 +46,10 @@ describe("auth marketing panel", () => {
   it("keeps the desktop panel and omits the mobile marketing strip", () => {
     const layout = readFileSync(new URL("app/(auth)/layout.tsx", root), "utf8");
     assert.match(layout, /hidden flex-1 overflow-hidden bg-zinc-950 lg:block/);
-    assert.match(layout, /108,211/);
-    assert.match(layout, /23,429/);
-    assert.match(layout, /1,134,150/);
+    // P0-1: the auth panel must not show hardcoded platform counts.
+    assert.equal(/\d{1,3}(,\d{3})+/.test(layout), false);
     assert.equal(layout.includes("lg:hidden"), false);
     const mobileBlock = layout.slice(layout.indexOf("{children}"), layout.indexOf("<aside"));
     assert.equal(mobileBlock.includes("Create. Sell. Promote. Earn. Grow."), false);
-    assert.equal(mobileBlock.includes("108,211"), false);
   });
 });

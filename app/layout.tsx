@@ -15,7 +15,6 @@ import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
-import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
@@ -71,9 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             shadow="0 0 10px #fd5000,0 0 5px #fd5000"
           />
           <ReferralTracker />
-          <PlatformStatsProvider>
-            <CurrencyProvider>{children}</CurrencyProvider>
-          </PlatformStatsProvider>
+          <CurrencyProvider>{children}</CurrencyProvider>
           {!onMerchantStoreHost ? (
             <>
               <JimvioCopilotLoader />

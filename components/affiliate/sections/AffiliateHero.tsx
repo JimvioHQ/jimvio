@@ -22,13 +22,6 @@ const CHECKLIST = [
   "Marketing tools & creatives",
 ];
 
-const SOCIAL_AVATARS = [
-  { bg: "from-[#FD7E14] to-[#FF5A1F]", initials: "AM" },
-  { bg: "from-[#6366F1] to-[#4F46E5]", initials: "JK" },
-  { bg: "from-[#10B981] to-[#059669]", initials: "SL" },
-  { bg: "from-[#F59E0B] to-[#D97706]", initials: "NR" },
-];
-
 type AffiliateHeroProps = {
   heroRate: number;
   primaryCtaHref: string;
@@ -166,23 +159,9 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
               </Link>
             </div>
 
-            <div className="mt-6 flex items-center gap-3">
-              <div className="flex -space-x-2.5" aria-hidden>
-                {SOCIAL_AVATARS.map((avatar) => (
-                  <span
-                    key={avatar.initials}
-                    className={`relative grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br ${avatar.bg} text-[10px] font-bold text-white ring-2 ring-white`}
-                  >
-                    {avatar.initials}
-                  </span>
-                ))}
-              </div>
-              <p className="text-[12.5px] font-medium text-[#6B7280]">
-                Join{" "}
-                <span className="font-semibold text-[#111827]">25,000+</span>{" "}
-                affiliates earning with Jimvio
-              </p>
-            </div>
+            <p className="mt-6 text-[12.5px] font-medium text-[#6B7280]">
+              Free to join. Commission rates are shown on each product before you promote it.
+            </p>
           </motion.div>
 
           <motion.div
