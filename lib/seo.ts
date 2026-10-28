@@ -57,7 +57,7 @@ export const PAGE_SEO = {
     title: "Flash deals",
     description:
       "Products on sale right now. We refresh the list often, so check back if you don't see what you want.",
-    path: "/deals",
+    path: "/marketplace/flash-deals",
   },
   ugc: {
     title: "UGC & clipping campaigns",

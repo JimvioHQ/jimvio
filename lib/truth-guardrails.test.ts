@@ -34,6 +34,7 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   // M-6: fake urgency — countdowns that reset at midnight, scarcity copy.
   { name: "fake midnight countdown", pattern: /setHours\(23,\s*59/ },
   { name: "fake urgency copy", pattern: /Don(?:&apos;|')t miss out|Limited time offers|Time Remaining/i },
+  { name: "random badge or counter", pattern: /Math\.random\(\)\s*>\s*0\.\d/ },
   { name: "hardcoded timer", pattern: />\s*\d{2}:\d{2}:\d{2}\s*</ },
   // P0-7: claims Jimvio cannot back up.
   { name: "unverified claim", pattern: /["'>]\s*(?:100% safe|Money-back guarantee|Instant Payouts|24\/7 Support|Fast & reliable delivery)/i },
