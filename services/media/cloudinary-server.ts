@@ -1,9 +1,10 @@
 import { v2 as cloudinarySDK } from "cloudinary";
 import { CloudinaryFolder, CloudinarySignature } from "./cloudinary";
+import { serverCloudinaryCloudName } from "@/services/media/cloudinary-account";
 
 // Ensure SDK is configured
 cloudinarySDK.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+  cloud_name: serverCloudinaryCloudName(),
   api_key:    process.env.CLOUDINARY_API_KEY!,
   api_secret: process.env.CLOUDINARY_API_SECRET!,
   secure:     true,
@@ -45,7 +46,7 @@ export const cloudinaryServer = {
       timestamp,
       signature,
       apiKey: process.env.CLOUDINARY_API_KEY!,
-      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "",
+      cloudName: serverCloudinaryCloudName(),
       folder,
       type,
     };
