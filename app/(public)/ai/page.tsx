@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { JimvioAiExperience } from "@/components/ai/JimvioAiExperience";
+import { constructMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = constructMetadata({
   title: "Jimvio AI",
   description: "Ask Jimvio AI for help selling, creating, and growing on Jimvio.",
-};
+  path: "/ai",
+});
 
 export default function JimvioAiPage() {
   return (

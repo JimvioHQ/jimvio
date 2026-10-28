@@ -1,5 +1,9 @@
+import type { Metadata } from "next";
 import { FeedPageContent } from "@/components/feed/FeedPageContent";
 import { normalizeHashtagQuery } from "@/lib/feed/hashtag-query";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("communities");
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 import type { ApiPost } from "@/components/feed/FeedPostCard";
 import { isCommunityVerified } from "@/lib/community/trending-score";

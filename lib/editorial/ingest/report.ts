@@ -58,9 +58,27 @@ export function uniqueProfileHref(name: string, profiles: readonly ProfileMatch[
   return publicProfilePath(matches[0].username);
 }
 
-function candidateNames(text: string): string[] {
-  const found = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2}\b/g) ?? [];
-  return [...new Set(found)].slice(0, 8);
+const NOT_PERSON = /\b(?:nasa|university|center|space|mission|program|office|system|health|media|crew|mars|moon|base|network|analog|director|simulation|completion|invites|performance|exploration|yearlong|surveyor|sunshade)\b/i;
+
+function candidateNames(text: string, limit = 40): string[] {
+  const found = text.match(/\b[A-Z][a-z]+(?:-[A-Z][a-z]+)?(?:\s+[A-Z][a-z]+(?:-[A-Z][a-z]+)?){1,2}\b/g) ?? [];
+  return [...new Set(found)].slice(0, limit);
+}
+
+function sourcePeople(text: string): string[] {
+  return candidateNames(text).filter((name) => {
+    const parts = name.split(" ");
+    if (parts.length < 2 || parts.length > 3) return false;
+    if (NOT_PERSON.test(name)) return false;
+    return parts.every((part) => /^[A-Z][a-z]+(?:-[A-Z][a-z]+)?$/.test(part));
+  });
+}
+
+function knownWord(word: string, corpusWords: Set<string>): boolean {
+  const lower = word.toLowerCase().replace(/['’]s$/, "");
+  if (corpusWords.has(lower) || corpusWords.has(word.toLowerCase())) return true;
+  const parts = lower.split(/[-'’]/).filter(Boolean);
+  return parts.length > 1 && parts.every((part) => corpusWords.has(part));
 }
 
 function parseDraft(raw: string): ReportDraft | null {
@@ -80,9 +98,12 @@ function parseDraft(raw: string): ReportDraft | null {
     if (!entry || typeof entry !== "object") return [];
     const section = entry as Record<string, unknown>;
     const heading = typeof section.heading === "string" ? section.heading.replace(/\s+/g, " ").trim().slice(0, 90) : "";
-    const paragraphs = Array.isArray(section.paragraphs)
-      ? section.paragraphs.filter((paragraph): paragraph is string => typeof paragraph === "string").map((paragraph) => paragraph.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 4)
-      : [];
+    const paragraphSource = Array.isArray(section.paragraphs)
+      ? section.paragraphs
+      : typeof section.paragraphs === "string"
+        ? [section.paragraphs]
+        : [];
+    const paragraphs = paragraphSource.filter((paragraph): paragraph is string => typeof paragraph === "string").map((paragraph) => paragraph.replace(/\s+/g, " ").trim()).filter(Boolean).slice(0, 4);
     if (!paragraphs.length) return [];
     return [{ heading, paragraphs }];
   });
@@ -90,8 +111,8 @@ function parseDraft(raw: string): ReportDraft | null {
   const links = linksRaw.slice(0, 12).flatMap((entry) => {
     if (!entry || typeof entry !== "object") return [];
     const link = entry as Record<string, unknown>;
-    const phrase = typeof link.phrase === "string" ? link.phrase.replace(/\s+/g, " ").trim() : "";
-    const href = typeof link.href === "string" ? link.href.trim() : "";
+    const phrase = (typeof link.phrase === "string" ? link.phrase : typeof link.text === "string" ? link.text : "").replace(/\s+/g, " ").trim();
+    const href = (typeof link.href === "string" ? link.href : typeof link.url === "string" ? link.url : "").trim();
     if (phrase.length < 2 || phrase.length > 120 || !href) return [];
     return [{ phrase, href }];
   });
@@ -158,6 +179,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   corpusParts: string[];
   allowedHrefs: string[];
   profiles?: readonly ProfileMatch[];
+  pageLinks?: readonly { text: string; href: string }[];
 }): ReportResult {
   const issues: string[] = [];
   const corpus = input.corpusParts.join(" ");
@@ -185,6 +207,20 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   for (const name of candidateNames(plain)) {
     const href = uniqueProfileHref(name, profiles);
     if (href) annotations.push({ phrase: name, href });
+  }
+  const people = sourcePeople(corpus);
+  const namedPeople = people.filter((name) => `${headline} ${plain}`.toLowerCase().includes(name.toLowerCase()));
+  if (people.length >= 2 && namedPeople.length === 0) issues.push("missing_names");
+  const corpusWords = new Set(corpus.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+  for (const sentence of plain.split(/(?<=[.!?])\s+/)) {
+    const words = sentence.match(/\b[A-Z][A-Za-z0-9'-]{2,}\b/g) ?? [];
+    if (words.slice(1).some((word) => !knownWord(word, corpusWords))) issues.push("unsupported_name");
+  }
+  for (const link of input.pageLinks ?? []) {
+    if (plain.includes(link.text) || headline.includes(link.text)) {
+      const href = acceptHref(link.href, allowed);
+      if (href) annotations.push({ phrase: link.text, href });
+    }
   }
   for (const link of draft.links) {
     const href = acceptHref(link.href, allowed);
@@ -253,7 +289,10 @@ const INSTRUCTIONS = [
   "Do not repeat the source headline.",
   "If the dossier is long, write a developed article with at least two sections and at least 120 words.",
   "If the dossier is short, write a short notice and stop. Do not pad.",
+  "Use the specific people, dates, places, numbers, and program names from the dossier. Do not replace them with general claims about importance, innovation, or the future.",
+  "When people lists two or more names, the body must include at least two of those exact full names.",
   "links may only use an href copied from allowedUrls. The phrase must appear exactly in the article.",
+  "Add a link when an organization, program, or announcement in the article has an allowed URL.",
   "Return one JSON object with keys headline, excerpt, sections, and links.",
   "sections is an array of objects with heading and paragraphs. paragraphs are plain text, not HTML.",
 ].join(" ");
@@ -280,6 +319,7 @@ export async function writeGroundedReport(input: {
   profiles?: readonly ProfileMatch[];
   lookup?: (names: string[]) => Promise<ProfileMatch[]>;
   complete?: (request: { instructions: string; input: string }) => Promise<string>;
+  revision?: string;
 }): Promise<ReportResult> {
   if (input.page.wordCount < MIN_PAGE_WORDS) return { ok: false, reason: "thin_source", issues: ["thin_source"] };
   const allowed = new Set<string>();
@@ -291,33 +331,6 @@ export async function writeGroundedReport(input: {
     const href = canonicalUrl(link.href);
     if (href) allowed.add(href);
   }
-  const dossier = JSON.stringify({
-    feedName: input.sourceName,
-    sourceTitle: input.page.title || input.sourceTitle,
-    sourceUrl: source,
-    allowedUrls: [...allowed],
-    headings: input.page.headings,
-    paragraphs: input.page.paragraphs,
-    captions: input.page.captions,
-  });
-  const complete = input.complete ?? defaultComplete;
-  let raw = "";
-  try {
-    raw = await complete({ instructions: INSTRUCTIONS, input: dossier });
-  } catch {
-    return { ok: false, reason: "writer_unavailable", issues: ["writer_unavailable"] };
-  }
-  const draft = parseDraft(raw);
-  if (!draft) return { ok: false, reason: "quality_gate", issues: ["unreadable"] };
-  let profiles = [...(input.profiles ?? [])];
-  if (input.lookup) {
-    try {
-      const names = candidateNames(draft.sections.flatMap((section) => section.paragraphs).join(" "));
-      if (names.length) profiles = [...profiles, ...(await input.lookup(names))];
-    } catch {
-      profiles = input.profiles ? [...input.profiles] : [];
-    }
-  }
   const corpusParts = [
     input.page.title,
     input.sourceTitle,
@@ -326,6 +339,38 @@ export async function writeGroundedReport(input: {
     ...input.page.captions,
     input.sourceName,
   ].filter(Boolean);
+  const dossier = JSON.stringify({
+    feedName: input.sourceName,
+    sourceTitle: input.page.title || input.sourceTitle,
+    sourceUrl: source,
+    allowedUrls: [...allowed],
+    people: sourcePeople(corpusParts.join(" ")),
+    headings: input.page.headings,
+    paragraphs: input.page.paragraphs,
+    captions: input.page.captions,
+  });
+  const complete = input.complete ?? defaultComplete;
+  const revision = (input.revision ?? "").replace(/[^\w, ]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 180);
+  let raw = "";
+  try {
+    raw = await complete({
+      instructions: INSTRUCTIONS,
+      input: revision ? `Return json only. Revise the article. ${revision}\n${dossier}` : `Return json only.\n${dossier}`,
+    });
+  } catch {
+    return { ok: false, reason: "writer_unavailable", issues: ["writer_unavailable"] };
+  }
+  const draft = parseDraft(raw);
+  if (!draft) return { ok: false, reason: "quality_gate", issues: ["unreadable"] };
+  let profiles = [...(input.profiles ?? [])];
+  if (input.lookup) {
+    try {
+      const names = candidateNames(draft.sections.flatMap((section) => section.paragraphs).join(" "), 12);
+      if (names.length) profiles = [...profiles, ...(await input.lookup(names))];
+    } catch {
+      profiles = input.profiles ? [...input.profiles] : [];
+    }
+  }
   const result = assessEditorialDraft(draft, {
     sourceName: input.sourceName,
     sourceTitle: input.page.title || input.sourceTitle,
@@ -333,6 +378,7 @@ export async function writeGroundedReport(input: {
     corpusParts,
     allowedHrefs: [...allowed],
     profiles,
+    pageLinks: input.page.links,
   });
   if (result.ok && meaningfulCaption(input.page.captions[0] ?? "") && containsDiagnosticProse(result.brief.bodyHtml)) {
     return { ok: false, reason: "quality_gate", issues: ["diagnostic"] };

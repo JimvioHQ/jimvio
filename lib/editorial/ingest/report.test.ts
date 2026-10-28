@@ -118,14 +118,20 @@ describe("editorial research", () => {
   it("accepts a grounded article and keeps provenance out of the public prose", async () => {
     const page = extractArticlePage(pageHtml(), PAGE);
     assert.ok(page);
+    let requestInput = "";
     const written = await writeGroundedReport({
       sourceName: "NASA News Releases",
       sourceTitle: page?.title ?? "",
       sourceUrl: PAGE,
       page: page!,
       profiles: [{ name: "Ross Elder", username: "ross_elder" }],
-      complete: async () => JSON.stringify(draft()),
+      complete: async (request) => {
+        requestInput = request.input;
+        return JSON.stringify(draft());
+      },
     });
+    assert.match(requestInput, /\bjson\b/i);
+    assert.match(requestInput, /Ross Elder/);
     assert.equal(written.ok, true);
     if (!written.ok) return;
     assert.equal(/public notice|what is in the record|one public source|topic words/i.test(written.brief.bodyHtml), false);
@@ -167,6 +173,39 @@ describe("editorial research", () => {
     });
     assert.equal(unsafe.ok, false);
     if (!unsafe.ok) assert.equal(unsafe.issues.includes("unsafe_link"), true);
+
+    const shared = {
+      sourceName: "NASA News Releases",
+      sourceTitle: page!.title,
+      sourceUrl: PAGE,
+      corpusParts: corpus,
+      allowedHrefs: [PAGE],
+    };
+    const nameless = assessEditorialDraft(draft({
+      sections: [
+        { heading: "The departure", paragraphs: ["Four volunteers are due to leave the simulated habitat after 378 days."] },
+        { heading: "The mission", paragraphs: ["The analog study started Oct. 19, 2025. Its habitat measures 1,700 square feet."] },
+      ],
+    }), shared);
+    assert.equal(nameless.ok, false);
+    if (!nameless.ok) assert.equal(nameless.issues.includes("missing_names"), true);
+
+    const inventedName = assessEditorialDraft(draft({
+      sections: [
+        { heading: "The departure", paragraphs: ["Ross Elder will discuss Artemis after 378 days at Johnson Space Center."] },
+        { heading: "The mission", paragraphs: ["Matthew Montgomery joined the analog study on Oct. 19, 2025 inside the 1,700 square foot habitat."] },
+      ],
+    }), shared);
+    assert.equal(inventedName.ok, false);
+    if (!inventedName.ok) assert.equal(inventedName.issues.includes("unsupported_name"), true);
+
+    const possessive = assessEditorialDraft(draft({
+      sections: [
+        { heading: "The departure", paragraphs: ["Ross Elder joined NASA's analog study and will leave after 378 days."] },
+        { heading: "The mission", paragraphs: ["Matthew Montgomery has been inside the 1,700 square foot habitat since Oct. 19, 2025."] },
+      ],
+    }), shared);
+    if (!possessive.ok) assert.equal(possessive.issues.includes("unsupported_name"), false);
   });
 
   it("links a real profile only when the name is unique", () => {
