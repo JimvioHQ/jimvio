@@ -14,6 +14,10 @@ describe("owned affiliate tracking URL", () => {
   it("builds a short link from the affiliate's own code", () => {
     assert.equal(ownedAffiliateTrackingUrl(site, code.toLowerCase()), tracked);
     assert.equal(ownedAffiliateTrackingUrl("http://localhost:3000", code), `http://localhost:3000/ref/${code}`);
+    assert.equal(
+      ownedAffiliateTrackingUrl(site, "lnk-abcdef12-3"),
+      `${site}/ref/LNK-ABCDEF12-3`,
+    );
   });
 
   it("rejects another host, a query, a hash, or a destination path", () => {

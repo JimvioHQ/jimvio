@@ -3,7 +3,8 @@
  * Callers pass a link code they already loaded for the signed-in affiliate.
  */
 
-const LINK_CODE = /^LNK-[A-F0-9]{12}$/;
+/** App-created codes are 12 hex characters. The column default is the first 10 characters of a UUID, which keeps one hyphen. */
+const LINK_CODE = /^LNK-(?:[A-F0-9]{12}|[A-F0-9]{8}-[A-F0-9])$/;
 const TRUSTED_HOSTS = new Set(["jimvio.com", "www.jimvio.com", "localhost", "127.0.0.1"]);
 
 function trustedOrigin(siteUrl: string): string | null {
