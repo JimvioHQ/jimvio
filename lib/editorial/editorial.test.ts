@@ -261,6 +261,7 @@ describe("editorial publishing guards", () => {
     assert.match(read("app/robots.ts"), /\/media\/admin/);
     assert.match(read("app/robots.ts"), /\/media\/preview/);
     assert.equal(read("app/media/sitemap.ts").includes("EDITORIAL_FIXTURES"), false);
+    assert.match(read("app/media/sitemap.ts"), /export const revalidate = 60/);
     const reader = read("lib/editorial/public-store.ts");
     assert.equal(reader.includes("getAdminDB"), false);
     assert.match(reader, /getSupabasePublishableKey/);
