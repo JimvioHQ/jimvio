@@ -148,8 +148,8 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     platform_fee_fixed_rwf: 0,
   },
   social_proof: {
-    success_rate_display: "99.2%",
-    countries_display: "195",
+    success_rate_display: "",
+    countries_display: "",
     fallback_verified_vendors: "",
     fallback_total_products: "",
   },

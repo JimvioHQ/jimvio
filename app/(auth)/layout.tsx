@@ -80,35 +80,21 @@ export default async function AuthLayout({
             Discover products, sell digital and physical goods, earn through affiliate promotions, join UGC and clipping campaigns, create content, and build communities — all on Jimvio.
           </p>
 
-          <div className="grid max-w-lg grid-cols-3 gap-x-6 gap-y-8">
-            <div>
-              <p className="mb-1.5 text-[1.35rem] font-black tracking-tight text-white xl:text-[1.65rem]">
-                108,211
-              </p>
-              <p className="text-[12px] font-medium leading-snug text-stone-300">
-                Creators & users
-              </p>
-              <div className="mt-4 h-0.5 w-8 rounded-full bg-orange-500/50" />
-            </div>
-            <div>
-              <p className="mb-1.5 text-[1.35rem] font-black tracking-tight text-white xl:text-[1.65rem]">
-                23,429
-              </p>
-              <p className="text-[12px] font-medium leading-snug text-stone-300">
-                Businesses
-              </p>
-              <div className="mt-4 h-0.5 w-8 rounded-full bg-amber-500/50" />
-            </div>
-            <div>
-              <p className="mb-1.5 text-[1.35rem] font-black tracking-tight text-white xl:text-[1.65rem]">
-                1,134,150
-              </p>
-              <p className="text-[12px] font-medium leading-snug text-stone-300">
-                Products & listings
-              </p>
-              <div className="mt-4 h-0.5 w-8 rounded-full bg-orange-400/50" />
-            </div>
-          </div>
+          <ul className="grid max-w-lg grid-cols-3 gap-x-6 gap-y-8">
+            {[
+              { title: "Free", body: "to start", bar: "bg-orange-500/50" },
+              { title: "One account", body: "Sell, promote and create", bar: "bg-amber-500/50" },
+              { title: "Mobile money", body: "Payouts where supported", bar: "bg-orange-400/50" },
+            ].map((item) => (
+              <li key={item.title}>
+                <p className="mb-1.5 text-[1.35rem] font-black tracking-tight text-white xl:text-[1.65rem]">
+                  {item.title}
+                </p>
+                <p className="text-[12px] font-medium leading-snug text-stone-300">{item.body}</p>
+                <div className={`mt-4 h-0.5 w-8 rounded-full ${item.bar}`} />
+              </li>
+            ))}
+          </ul>
 
           <p className="absolute bottom-10 left-14 text-[12px] font-medium text-zinc-600 xl:left-20">
             &copy; {new Date().getFullYear()} Jimvio Inc.

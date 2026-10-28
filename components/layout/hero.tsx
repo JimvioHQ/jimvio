@@ -13,7 +13,6 @@ import {
   Zap,
 } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
-import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import {
@@ -52,107 +51,24 @@ const LONGEST_HERO_PHRASE = HERO_PHRASES.reduce((a, b) =>
   a.length >= b.length ? a : b,
 );
 
-export type HeroLiveStats = {
-  users: number;
-  businesses: number;
-  products: number;
-};
-
 type HeroStatItem = {
   value: string;
   label: string;
 };
 
-function heroStatItems(): HeroStatItem[] {
-  const demo = getDemoPlatformStats();
-  const format = (value: number) => value.toLocaleString("en-US");
-  return [
-    { value: format(demo.countries), label: "Countries" },
-    { value: format(demo.users), label: "Users" },
-    { value: format(demo.businesses), label: "Businesses" },
-    { value: format(demo.products), label: "Products" },
-  ];
-}
+/**
+ * Hero badge items. Factual product statements only — never platform counts.
+ * Public numbers must come from live data (see the transparency plan, T-1),
+ * not from constants in code.
+ */
+const HERO_BADGE_ITEMS: readonly HeroStatItem[] = [
+  { value: "Free", label: "to start" },
+  { value: "One account", label: "to sell, promote and create" },
+  { value: "Mobile money", label: "payouts" },
+];
 
-function countUpStart(target: number): number {
-  if (!Number.isFinite(target) || target <= 20) return target;
-  const start = Math.round(target * 0.9);
-  return start >= target ? target - 1 : start;
-}
-
-function useHeroCountUp(target: number) {
-  const [display, setDisplay] = useState(target);
-  const displayRef = useRef(target);
-  const rafRef = useRef<number | null>(null);
-  const countedTarget = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let frame = 0;
-
-    if (reduceMotion || target <= 0) {
-      countedTarget.current = target;
-      if (displayRef.current !== target) {
-        frame = requestAnimationFrame(() => {
-          displayRef.current = target;
-          setDisplay(target);
-        });
-        rafRef.current = frame;
-      }
-      return () => {
-        cancelAnimationFrame(frame);
-        rafRef.current = null;
-      };
-    }
-
-    const start =
-      countedTarget.current === null ? countUpStart(target) : displayRef.current;
-    const diff = target - start;
-    if (diff === 0) {
-      countedTarget.current = target;
-      return;
-    }
-
-    const duration = 800;
-    const startTime = performance.now();
-    const tick = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const next = progress === 1 ? target : Math.round(start + diff * eased);
-      displayRef.current = next;
-      setDisplay(next);
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
-        rafRef.current = frame;
-      } else {
-        countedTarget.current = target;
-        rafRef.current = null;
-      }
-    };
-
-    frame = requestAnimationFrame(tick);
-    rafRef.current = frame;
-    return () => {
-      cancelAnimationFrame(frame);
-      rafRef.current = null;
-    };
-  }, [target]);
-
-  return display;
-}
-
-function HeroTrustedCount({ value }: { value: number }) {
-  const display = useHeroCountUp(value);
-  return (
-    <span className="font-semibold tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
-      {display.toLocaleString("en-US")}
-    </span>
-  );
+function heroStatItems(): readonly HeroStatItem[] {
+  return HERO_BADGE_ITEMS;
 }
 
 function useInViewActive(ref: React.RefObject<HTMLElement | null>, enabled: boolean) {
@@ -412,19 +328,14 @@ function EcosystemLogoTrack({ decorative }: { decorative?: boolean }) {
 
 const HeroPartnerStrip = memo(function HeroPartnerStrip({
   play,
-  users,
 }: {
   play: boolean;
-  users: number;
 }) {
   const reduced = usePrefersReducedMotion();
   const animate = !reduced && play;
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-      <p className="mb-7 px-2 text-center text-[12px] font-medium leading-snug tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-[22px] sm:text-[13px]">
-        Trusted by <HeroTrustedCount value={users} /> creators and businesses worldwide
-      </p>
 
       <div
         className="hidden w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain motion-reduce:block"
@@ -542,7 +453,6 @@ export function Hero() {
   const inView = useInViewActive(sectionRef, !reduced);
   const enter = reduced ? HERO_ENTER_REDUCED : HERO_ENTER;
   const stats = heroStatItems();
-  const users = getDemoPlatformStats().users;
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-transparent">
@@ -637,7 +547,7 @@ export function Hero() {
             animate="show"
             className="mt-5 w-full sm:mt-6"
           >
-            <HeroPartnerStrip play={inView} users={users} />
+            <HeroPartnerStrip play={inView} />
           </motion.div>
         </div>
       </section>

@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getDemoPlatformStats } from "@/lib/demo-platform-stats";
 
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
@@ -24,7 +23,7 @@ const WHY: readonly { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Globe,
     title: "Works across borders",
-    desc: `Buyers and sellers in ${getDemoPlatformStats().countries} countries.`,
+    desc: "Sell and get paid in the markets Jimvio supports.",
   },
   { icon: Users, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
   { icon: BarChart3, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },

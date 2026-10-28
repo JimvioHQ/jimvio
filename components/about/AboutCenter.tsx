@@ -13,7 +13,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
-import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 import {
   ABOUT_AUDIENCES,
   ABOUT_COLORS,
@@ -21,7 +20,6 @@ import {
   ABOUT_ECOSYSTEM,
   ABOUT_FEATURES,
   ABOUT_GOVERNANCE_LINKS,
-  ABOUT_IMPACT,
   ABOUT_QUICK_LINKS,
   ABOUT_RESOURCE_LINKS,
   ABOUT_TIMELINE,
@@ -106,7 +104,6 @@ const SECTION_IDS: AboutSectionId[] = [
   "origin",
   "audience",
   "ecosystem",
-  "impact",
   "positioning",
   "promise",
   "personality",
@@ -457,26 +454,6 @@ export function AboutCenter() {
                     </p>
                   </Card>
                 ))}
-              </div>
-            </Section>
-
-            <Section id="impact">
-              <h2 className="text-2xl font-black tracking-tight text-[#111827] dark:text-[var(--color-text-primary)]">
-                Impact & global reach
-              </h2>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4">
-                {ABOUT_IMPACT.map((item) => {
-                  return (
-                    <Card key={item.key} className="px-3 py-4 text-center sm:px-4 sm:py-5">
-                      <p className="text-[clamp(1.05rem,4.4vw,1.75rem)] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
-                        <AnimatedPlatformStatValue statKey={item.key} />
-                      </p>
-                      <p className="mt-2 text-[11px] font-medium leading-snug text-[var(--color-text-muted)] sm:text-xs">
-                        {item.subtitle}
-                      </p>
-                    </Card>
-                  );
-                })}
               </div>
             </Section>
 
@@ -887,26 +864,6 @@ export function AboutCenter() {
           </div>
 
           <aside className="hidden space-y-4 xl:sticky xl:top-24 xl:block">
-            <Card className="overflow-hidden border-[rgba(255,90,31,0.2)] bg-[linear-gradient(160deg,#FFF8F4_0%,#FFFFFF_55%)]">
-              <div className="mb-3 flex items-center gap-2">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(255,90,31,0.12)] text-[#FF5A1F]">
-                  <Globe2 className="h-4 w-4" aria-hidden="true" />
-                </span>
-                <p className="text-sm font-bold text-[#111827]">Global impact</p>
-              </div>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-                {ABOUT_IMPACT.map((stat) => (
-                  <div key={stat.key} className="min-w-0">
-                    <p className="text-[1.15rem] font-black tabular-nums leading-none tracking-[-0.03em] text-[#111827]">
-                      <AnimatedPlatformStatValue statKey={stat.key} />
-                    </p>
-                    <p className="mt-1.5 text-[11px] font-medium leading-snug text-[var(--color-text-muted)]">
-                      {stat.subtitle}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </Card>
             <Card>
               <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
                 “A fairer, more open internet for creators everywhere. We&apos;re building a

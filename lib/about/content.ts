@@ -29,10 +29,6 @@ import {
   Wand2,
 } from "lucide-react";
 import { PUBLIC_ECOSYSTEM } from "@/lib/brand/positioning";
-import {
-  formatPlatformStat,
-  getPlatformStatsLaunchSnapshot,
-} from "@/lib/platform-stats";
 
 export const ABOUT_ORANGE = "#FF5A1F";
 export const ABOUT_INK = "#111827";
@@ -46,7 +42,6 @@ export type AboutSectionId =
   | "origin"
   | "audience"
   | "ecosystem"
-  | "impact"
   | "positioning"
   | "promise"
   | "personality"
@@ -89,7 +84,6 @@ export const ABOUT_NAV: AboutNavGroup[] = [
       { id: "origin", label: "Origin", href: "#origin", icon: Lightbulb },
       { id: "audience", label: "Who are we building for?", href: "#audience", icon: Users },
       { id: "ecosystem", label: "Our Ecosystem", href: "#ecosystem", icon: Layers },
-      { id: "impact", label: "Impact & Global Reach", href: "#impact", icon: Globe2 },
     ],
   },
   {
@@ -211,35 +205,6 @@ export const ABOUT_QUICK_LINKS: Array<{ href: string; label: string; icon: Lucid
   { href: "#origin", label: "Our Origin", icon: Lightbulb },
   { href: "#audience", label: "Who we are building for", icon: Users },
   { href: "#ecosystem", label: "Our Ecosystem", icon: Layers },
-];
-
-const stats = getPlatformStatsLaunchSnapshot();
-
-export const ABOUT_IMPACT = [
-  {
-    key: "users" as const,
-    title: formatPlatformStat("users", stats.users),
-    subtitle: "Creators & users",
-    icon: Users,
-  },
-  {
-    key: "countries" as const,
-    title: formatPlatformStat("countries", stats.countries),
-    subtitle: "Countries",
-    icon: Globe2,
-  },
-  {
-    key: "businesses" as const,
-    title: formatPlatformStat("businesses", stats.businesses),
-    subtitle: "Businesses",
-    icon: Store,
-  },
-  {
-    key: "products" as const,
-    title: formatPlatformStat("products", stats.products),
-    subtitle: "Products & listings",
-    icon: ShoppingBag,
-  },
 ];
 
 const ABOUT_FEATURE_ICONS: Record<string, LucideIcon> = {

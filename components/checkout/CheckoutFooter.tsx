@@ -1,7 +1,6 @@
 "use client";
 
 import { Headphones } from "lucide-react";
-import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 
 export function CheckoutFooter() {
     return (
@@ -15,29 +14,13 @@ export function CheckoutFooter() {
                         </svg>
                     </div>
                     <p className="text-[12px] font-medium truncate">
-                        Trusted by <AnimatedPlatformStatValue statKey="users" /> customers worldwide
+                        Secure checkout <span className="text-slate-400 mx-1">·</span> Buyer Protection on eligible orders
                     </p>
-                    <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-                        <div className="flex">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <svg key={i} className="h-3 w-3 text-amber-400 fill-current" viewBox="0 0 20 20">
-                                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                                </svg>
-                            ))}
-                        </div>
-                        <span className="font-bold tabular-nums">4.9/5</span>
-                    </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-[12px] shrink-0">
                     <Headphones className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="hidden md:inline">
-                        Secure <span className="text-slate-400 mx-1">·</span>
-                        Fast <span className="text-slate-400 mx-1">·</span>
-                        Reliable <span className="text-slate-400 mx-1">·</span>
-                        24/7 Support
-                    </span>
-                    <span className="md:hidden">24/7 Support</span>
+                    <a href="/help/contact" className="hover:underline">Contact support</a>
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-1" />
                 </div>
             </div>
