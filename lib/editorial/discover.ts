@@ -1,5 +1,6 @@
 import type { MediaCategory, MediaStatus, PublicArticle } from "@/lib/editorial/types";
 import { MEDIA_CATEGORIES, MEDIA_STATUSES } from "@/lib/editorial/types";
+import { isEditorialMarkUrl } from "@/lib/editorial/image-display";
 import { categoryLabel, isSafeHref, isSafeImageUrl, plainText } from "@/lib/editorial/validate";
 
 export const READING_WORDS_PER_MINUTE = 200;
@@ -32,7 +33,7 @@ export function mediaTitle(title: string): string | { absolute: string } {
 }
 
 export function absoluteImageUrl(site: string, value: string | null | undefined): string | null {
-  if (!value || !isSafeImageUrl(value)) return null;
+  if (!value || !isSafeImageUrl(value) || isEditorialMarkUrl(value)) return null;
   const trimmed = value.trim();
   const origin = site.replace(/\/$/, "");
   if (trimmed.startsWith("/")) return `${origin}${trimmed}`;

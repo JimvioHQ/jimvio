@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
+import { containsDiagnosticProse, withHeroCaption } from "@/lib/editorial/caption";
+import { isEditorialMarkUrl } from "@/lib/editorial/image-display";
 import type { MediaCategory, MediaStatus } from "@/lib/editorial/types";
 import { resolveMediaCategory } from "@/lib/editorial/validate";
-import { buildOriginalBrief, isSensitiveText } from "@/lib/editorial/ingest/compose";
+import { isSensitiveText, type OriginalBrief } from "@/lib/editorial/ingest/compose";
 import {
-  escapeHtml,
   externalKey,
   fingerprintTitle,
   jaccard,
@@ -11,7 +12,7 @@ import {
   titleTokens,
   wordCount,
 } from "@/lib/editorial/ingest/feed";
-import { editorialFallbackImage, type ImageDecision } from "@/lib/editorial/ingest/images";
+import type { ImageDecision } from "@/lib/editorial/ingest/images";
 import {
   DAILY_PUBLISH_MAX,
   type ExistingArticleRef,
@@ -26,12 +27,32 @@ export const STUCK_JOB_MS = 15 * 60 * 1000;
 export const MAX_SOURCES_PER_CYCLE = 2;
 
 /** How many stories may publish by this UTC hour so a daily cap is spread across the day. */
-export function publishPaceOpen(publishedToday: number, cap: number, now: Date): boolean {
+export function publishSlotsRemaining(publishedToday: number, cap: number, now: Date): number {
   const limit = Math.min(DAILY_PUBLISH_MAX, Math.max(0, Math.floor(cap)));
-  if (limit <= 0 || publishedToday >= limit) return false;
+  if (limit <= 0 || publishedToday >= limit) return 0;
   const opened = Math.max(1, Math.ceil(((now.getUTCHours() + 1) / 24) * limit));
-  return publishedToday < Math.min(limit, opened);
+  return Math.max(0, Math.min(limit, opened) - publishedToday);
 }
+
+export function publishPaceOpen(publishedToday: number, cap: number, now: Date): boolean {
+  return publishSlotsRemaining(publishedToday, cap, now) > 0;
+}
+
+/** A finished feed read may advance the poll clock. A pace hold or a missed writer must not. */
+export function cycleSourceOutcome(input: {
+  heldForPace: boolean;
+  writerUnavailable: boolean;
+}): { note: string | null; markSuccess: boolean } {
+  if (input.heldForPace) return { note: "Held for the daily publication pace.", markSuccess: false };
+  if (input.writerUnavailable) return { note: "Writer unavailable.", markSuccess: false };
+  return { note: null, markSuccess: true };
+}
+
+export type ItemResearch = {
+  brief: OriginalBrief | null;
+  image: ImageDecision | null;
+  reason: "thin_source" | "writer_unavailable" | "quality_gate" | string | null;
+};
 
 export function stableItemId(externalKey: string): string {
   const hex = createHash("sha256").update(externalKey).digest("hex");
@@ -99,7 +120,7 @@ function decideIntent(input: {
     return { intent: "review", reasons: ["autopublish_not_authorized"] };
   }
   if (needsReview) reasons.push("review_required");
-  if (!input.imageOk) reasons.push("image_rights");
+  if (!input.imageOk) reasons.push("image_unavailable");
   if (input.publishedToday >= input.settings.dailyPublishCap) reasons.push("publish_cap");
   if (input.source.permittedUsage !== "facts" && input.source.permittedUsage !== "full") reasons.push("usage");
   if (reasons.length) return { intent: "review", reasons };
@@ -119,6 +140,7 @@ export function planSourceItems(input: {
   serverAutopublish: boolean;
   publishedToday: number;
   imageFor?: (item: FeedItem) => ImageDecision | null;
+  researchFor?: (item: FeedItem) => ItemResearch | null;
   otherReports?: readonly { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[];
   ids?: (externalKey: string) => string;
 }): PlannedItem[] & { heldForPace: number } {
@@ -202,72 +224,94 @@ export function planSourceItems(input: {
       if (report.sourceName === input.source.name) return false;
       return withinWindow(report.publishedAt, primary.publishedAt) && jaccard(titleTokens(report.title), primary.tokens) >= 0.6;
     }).slice(0, 2);
-    const members = [
-      ...group.map((item) => ({
-        sourceName: input.source.name,
-        title: item.title,
-        url: item.url,
-        summary: item.summary,
-        publishedAt: item.publishedAt,
-        creator: item.creator,
-      })),
-      ...related.map((report) => ({ ...report, creator: null })),
-    ];
-    const brief = buildOriginalBrief({ category, members });
-    const sensitive = brief.sensitive || isSensitiveText(group.map((item) => item.title).join(" "));
-    const supplied = input.imageFor ? input.imageFor(primary) : null;
-    const granted = supplied && (supplied.status === "verified" || supplied.status === "fallback") && supplied.url ? supplied : null;
-    const chosen = granted ?? editorialFallbackImage();
-    const imageOk = true;
-    const independent = new Set(members.map((member) => member.sourceName)).size;
-    const decision = input.settings.mode === "discovery"
-      ? { intent: null as MediaStatus | null, reasons: ["discovery_only"] }
-      : decideIntent({
-          settings: input.settings,
-          source: input.source,
-          sensitive,
-          undated: !primary.publishedAt,
-          independent,
-          imageOk,
-          category,
-          publishedToday: publishedSlots,
-          serverAutopublish: input.serverAutopublish,
-          now,
-        });
+    const ordered = [primary, ...group.filter((item) => item !== primary)];
+    const sourceUrls = [primary.url, ...related.map((report) => report.url)].join(" ");
+    if (input.settings.mode === "discovery") {
+      for (const item of ordered) {
+        const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, "discovered", null, null);
+        row.clusterKey = clusterKey;
+        planned.push(row);
+      }
+      const primaryRow = planned.find((entry) => entry.externalKey === primary.externalKey);
+      for (const row of planned) {
+        if (row.clusterKey === clusterKey && row.externalKey !== primary.externalKey && primaryRow) row.duplicateOf = primaryRow.id;
+      }
+      continue;
+    }
+    if (blocked) {
+      for (const item of ordered) {
+        const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, "filtered", "category_blocked", null);
+        row.clusterKey = clusterKey;
+        planned.push(row);
+      }
+      continue;
+    }
+    const research = input.researchFor ? input.researchFor(primary) : null;
+    if (!research || research.reason === "writer_unavailable") continue;
+    const supplied = input.imageFor ? input.imageFor(primary) : research.image;
+    const verified = supplied && supplied.status === "verified" && supplied.url && !isEditorialMarkUrl(supplied.url) ? supplied : null;
+    const prose = research.brief ? `${research.brief.title}\n${research.brief.excerpt}\n${research.brief.bodyHtml}` : "";
+    const brief = research.brief && research.brief.sufficient && research.brief.originalityOk && research.brief.bodyHtml && !containsDiagnosticProse(prose)
+      ? research.brief
+      : null;
+    const sensitive = isSensitiveText(group.map((item) => `${item.title} ${item.summary}`).join(" ")) || Boolean(brief?.sensitive);
+    if (!brief) {
+      const reason = research.reason || "thin_source";
+      const status: PlannedItem["status"] = reason === "quality_gate" || sensitive ? "review" : "filtered";
+      ordered.forEach((item, index) => {
+        const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, index === 0 ? status : "grouped", index === 0 ? reason : "grouped", null);
+        row.clusterKey = clusterKey;
+        row.sensitive = sensitive;
+        row.evidence = `Held: ${reason}. ${sourceUrls}`.slice(0, 2000);
+        row.imageStatus = "rejected";
+        row.imageNote = supplied?.note ?? "No verified official image.";
+        planned.push(row);
+      });
+      const primaryRow = planned.find((entry) => entry.externalKey === primary.externalKey);
+      for (const row of planned) {
+        if (row.clusterKey === clusterKey && row.externalKey !== primary.externalKey && primaryRow) row.duplicateOf = primaryRow.id;
+      }
+      continue;
+    }
+    const decision = decideIntent({
+      settings: input.settings,
+      source: input.source,
+      sensitive,
+      undated: !primary.publishedAt,
+      independent: new Set([input.source.name, ...related.map((report) => report.sourceName)]).size,
+      imageOk: Boolean(verified),
+      category,
+      publishedToday: publishedSlots,
+      serverAutopublish: input.serverAutopublish,
+      now,
+    });
     if (decision.reasons.includes("publish_pace")) {
       heldForPace += group.length;
       continue;
     }
     let status: PlannedItem["status"] = "filtered";
-    let reason: string | null = "insufficient";
-    if (blocked) reason = "category_blocked";
-    else if (!brief.sufficient) reason = "insufficient";
-    else if (input.settings.mode !== "discovery" && !brief.originalityOk) reason = "originality";
-    else if (decision.intent === null && decision.reasons.includes("discovery_only")) {
-      status = "discovered";
-      reason = null;
-    } else if (decision.intent === "published" && brief.originalityOk) {
+    let reason: string | null = "quality_gate";
+    if (decision.intent === "published") {
       status = "published";
       reason = null;
       publishedSlots += 1;
-    } else if (decision.intent === "review" && brief.originalityOk) {
+    } else if (decision.intent === "review") {
       status = "review";
       reason = decision.reasons[0] ?? "review_required";
-    } else if (decision.intent === "draft" && brief.originalityOk) {
+    } else if (decision.intent === "draft") {
       status = "drafted";
       reason = null;
     } else {
       reason = decision.reasons[0] ?? reason;
     }
     const makeArticle = status === "drafted" || status === "review" || status === "published";
-    const ordered = [primary, ...group.filter((item) => item !== primary)];
     ordered.forEach((item, index) => {
       const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, index === 0 ? status : "grouped", index === 0 ? reason : "grouped", null);
       row.clusterKey = clusterKey;
       row.sensitive = sensitive;
-      row.evidence = brief.evidence;
-      row.imageStatus = granted?.status ?? (index === 0 && makeArticle ? chosen.status : "rejected");
-      row.imageNote = granted?.note ?? (index === 0 && makeArticle ? chosen.note : "No granted image rights.");
+      row.evidence = `${brief.evidence} Sources: ${sourceUrls}`.slice(0, 2000);
+      row.imageStatus = verified ? "verified" : "rejected";
+      row.imageNote = verified?.note ?? supplied?.note ?? "No verified official image.";
       if (index === 0 && makeArticle) {
         const intent: MediaStatus = status === "published" ? "published" : status === "review" ? "review" : "draft";
         row.article = {
@@ -275,17 +319,17 @@ export function planSourceItems(input: {
           idempotencyKey: row.id,
           title: brief.title,
           excerpt: brief.excerpt,
-          bodyHtml: `${brief.bodyHtml}<p>${escapeHtml(chosen.caption)}</p>`,
+          bodyHtml: withHeroCaption(brief.bodyHtml, verified?.caption),
           category,
           tags: brief.tags,
           seoTitle: brief.seoTitle,
           seoDescription: brief.seoDescription,
-          sourceName: brief.sourceName,
-          sourceUrl: brief.sourceUrl,
-          imageUrl: chosen.url,
-          imageAlt: chosen.alt,
-          imageCaption: chosen.caption,
-          imageLicense: chosen.license,
+          sourceName: input.source.name.slice(0, 120),
+          sourceUrl: primary.url,
+          imageUrl: verified?.url ?? "",
+          imageAlt: verified?.alt ?? "",
+          imageCaption: verified?.caption ?? "",
+          imageLicense: verified?.license ?? "",
         };
       }
       planned.push(row);

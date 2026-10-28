@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
-import { publicCorrection, publicSource, readingMinutes } from "@/lib/editorial/discover";
+import { splitHeroCaption } from "@/lib/editorial/caption";
+import { publicCorrection, readingMinutes } from "@/lib/editorial/discover";
+import { editorialPhotoSrc } from "@/lib/editorial/image-display";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import type { PublicArticle } from "@/lib/editorial/types";
 import { categoryLabel, displayKicker } from "@/lib/editorial/validate";
@@ -28,10 +30,11 @@ export function ArticleView({
   next?: PublicArticle | null;
   shareUrl?: string | null;
 }) {
-  const html = sanitizeArticleHtml(article.bodyHtml);
+  const story = splitHeroCaption(article.bodyHtml, article.title);
+  const html = sanitizeArticleHtml(story.bodyHtml);
   const label = categoryLabel(article.category);
   const minutes = readingMinutes(html);
-  const source = publicSource(article);
+  const photo = editorialPhotoSrc(article.imageUrl);
   const correction = publicCorrection(article.correctionNote);
   const neighbors = previous || next;
 
@@ -91,46 +94,20 @@ export function ArticleView({
             {correction}
           </p>
         ) : null}
-        {article.imageUrl ? (
+        {photo ? (
           <figure className="mt-6">
             <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-[#f4f5f7]">
               <StoryImage
-                src={article.imageUrl}
+                src={photo}
                 alt={article.imageAlt || article.title}
                 priority
                 sizes="(min-width: 760px) 760px, 100vw"
               />
             </div>
-            {source ? (
-              <figcaption className="mt-2 text-sm text-[#667085]">
-                {source.url ? (
-                  <a
-                    href={source.url}
-                    rel="noopener noreferrer"
-                    className="font-semibold text-[#3b5ccc] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-                  >
-                    Source: {source.name}
-                  </a>
-                ) : (
-                  <>Source: {source.name}</>
-                )}
-              </figcaption>
+            {story.caption ? (
+              <figcaption className="mt-2 max-w-[65ch] text-sm leading-relaxed text-[#667085]">{story.caption}</figcaption>
             ) : null}
           </figure>
-        ) : source ? (
-          <p className="mt-4 text-sm text-[#667085]">
-            {source.url ? (
-              <a
-                href={source.url}
-                rel="noopener noreferrer"
-                className="font-semibold text-[#3b5ccc] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-              >
-                Source: {source.name}
-              </a>
-            ) : (
-              <>Source: {source.name}</>
-            )}
-          </p>
         ) : null}
         <div className={`${styles.body} mt-8 text-[1.125rem]`} dangerouslySetInnerHTML={{ __html: html }} />
         <p className="mt-10 text-sm text-[#667085]">

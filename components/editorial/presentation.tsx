@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { editorialPhotoSrc } from "@/lib/editorial/image-display";
 import type { StoryCardModel } from "@/lib/editorial/types";
 import { displayKicker, kickerColor } from "@/lib/editorial/validate";
 import { cn } from "@/lib/utils";
@@ -40,12 +41,17 @@ export function StoryImage({
   priority?: boolean;
   sizes: string;
 }) {
-  if (!src) {
-    return <div className="h-full w-full bg-[linear-gradient(160deg,#172033_0%,#fd5000_140%)]" aria-hidden="true" />;
+  const photo = editorialPhotoSrc(src);
+  if (!photo) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-[#f4f5f7] text-[#98a2b3]" aria-hidden="true">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">Jimvio Media</span>
+      </div>
+    );
   }
   return (
     <Image
-      src={src}
+      src={photo}
       alt={alt}
       fill
       priority={priority}
@@ -94,6 +100,21 @@ export function OverlayCard({
   sizes: string;
   scrim?: "hero" | "rail";
 }) {
+  const photo = editorialPhotoSrc(card.imageUrl);
+  if (!photo) {
+    return (
+      <Link
+        href={card.href}
+        className="block rounded-2xl border border-[#eceff3] bg-[#fafbfc] p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000] sm:p-5"
+      >
+        <Kicker label={card.kicker} />
+        <h3 className={cn("mt-2 font-bold leading-snug tracking-[-0.02em] text-[#172033]", titleClassName ?? "text-[18px]")}>
+          {card.title}
+        </h3>
+        {card.excerpt ? <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#4b5568]">{card.excerpt}</p> : null}
+      </Link>
+    );
+  }
   return (
     <Link
       href={card.href}
@@ -102,7 +123,7 @@ export function OverlayCard({
         className,
       )}
     >
-      <StoryImage src={card.imageUrl} alt="" priority={priority} sizes={sizes} />
+      <StoryImage src={photo} alt="" priority={priority} sizes={sizes} />
       <span className="sr-only">{card.imageAlt}</span>
       <div
         className={cn(
@@ -139,17 +160,21 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
         stacked ? "flex-col" : "gap-3 md:flex-col md:gap-0",
       )}
     >
-      <div
-        className={cn(
-          "relative shrink-0",
-          stacked ? "aspect-[16/10] w-full" : "h-[76px] w-[112px] md:aspect-[16/10] md:h-auto md:w-full",
-        )}
-      >
-        <StoryImage src={card.imageUrl} alt={card.imageAlt} sizes="(min-width: 768px) 25vw, 112px" />
-        <Kicker label={card.kicker} className={cn("absolute left-2.5 top-2.5", stacked ? "inline-flex" : "hidden md:inline-flex")} />
-      </div>
+      {editorialPhotoSrc(card.imageUrl) ? (
+        <div
+          className={cn(
+            "relative shrink-0",
+            stacked ? "aspect-[16/10] w-full" : "h-[76px] w-[112px] md:aspect-[16/10] md:h-auto md:w-full",
+          )}
+        >
+          <StoryImage src={card.imageUrl} alt={card.imageAlt} sizes="(min-width: 768px) 25vw, 112px" />
+          <Kicker label={card.kicker} className={cn("absolute left-2.5 top-2.5", stacked ? "inline-flex" : "hidden md:inline-flex")} />
+        </div>
+      ) : null}
       <div className={cn("min-w-0 flex-1", stacked ? "px-3 py-3" : "py-1 pr-2 md:px-3 md:py-3")}>
-        {stacked ? null : <Kicker label={card.kicker} className="md:hidden" />}
+        {!editorialPhotoSrc(card.imageUrl) || !stacked ? (
+          <Kicker label={card.kicker} className={editorialPhotoSrc(card.imageUrl) ? "md:hidden" : undefined} />
+        ) : null}
         <h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-[1.35] text-[#172033] md:mt-0 md:line-clamp-2">
           {card.title}
         </h3>
@@ -239,7 +264,7 @@ export function toCard(article: {
     title: article.title,
     excerpt: withExcerpt ? article.excerpt : undefined,
     kicker,
-    imageUrl: article.imageUrl,
+    imageUrl: editorialPhotoSrc(article.imageUrl),
     imageAlt: article.imageAlt || article.title,
   };
 }

@@ -1,10 +1,11 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
-import { evaluateImage } from "@/lib/editorial/ingest/images";
-import { countPlans, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, serverAutopublishAuthorized, sourceDue } from "@/lib/editorial/ingest/plan";
-import { loadCycleContext, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
-import type { CycleCounts, SourceRecord } from "@/lib/editorial/ingest/types";
-import type { FeedItem } from "@/lib/editorial/ingest/types";
+import { externalKey } from "@/lib/editorial/ingest/feed";
+import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
+import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
+import { countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
+import { writeGroundedReport } from "@/lib/editorial/ingest/report";
+import { loadCycleContext, lookupProfileNames, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
+import type { CycleCounts, FeedItem, SourceRecord } from "@/lib/editorial/ingest/types";
 
 export type CycleResult = {
   ok: boolean;
@@ -124,20 +125,21 @@ async function syncSource(
     return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
   }
 
-  const images = new Map<string, ReturnType<typeof evaluateImage>>();
-  if (source.imageRights !== "none") {
-    for (const item of fetched.items.slice(0, 3)) {
-      if (!item.imageUrl) continue;
-      const bytes = await fetchImage(item.imageUrl, fetchImpl);
-      images.set(item.url, evaluateImage({
-        rights: source.imageRights,
-        url: item.imageUrl,
-        bytes,
-        attribution: source.name,
-        sourceName: source.name,
-        license: source.imageRights,
-      }));
-    }
+  const known = new Set(context.existingItems.map((item) => item.externalKey));
+  const fresh = fetched.items.filter((item) => !known.has(externalKey(item.url, item.guid)));
+  const slots = context.settings.mode === "auto"
+    ? publishSlotsRemaining(context.publishedToday, context.settings.dailyPublishCap, now)
+    : context.settings.mode === "draft" || context.settings.mode === "review" ? 2 : 0;
+  const paceClosed = context.settings.mode === "auto" && slots === 0 && fresh.length > 0;
+  const research = new Map<string, ItemResearch>();
+  const deadline = Date.now() + 45_000;
+  const budget = fresh.slice(0, paceClosed ? 0 : Math.min(2, slots));
+  let writerUnavailable = false;
+  for (const item of budget) {
+    if (Date.now() > deadline) break;
+    const result = await researchItem(source, item, fetchImpl);
+    if (result.reason === "writer_unavailable") writerUnavailable = true;
+    research.set(item.url, result);
   }
 
   const planned = planSourceItems({
@@ -150,8 +152,9 @@ async function syncSource(
     serverAutopublish: serverAutopublishAuthorized(),
     publishedToday: context.publishedToday,
     otherReports: context.otherReports,
-    imageFor: (item: FeedItem) => images.get(item.url) ?? null,
+    researchFor: (item: FeedItem) => research.get(item.url) ?? null,
   });
+  if (paceClosed) planned.heldForPace += fresh.length;
   let publishedSlug: string | null = null;
   for (const item of planned) {
     if (item.filterReason === "publish_pace") continue;
@@ -177,8 +180,39 @@ async function syncSource(
     });
   }
   const counts = countPlans(planned);
-  const heldForPace = planned.heldForPace > 0;
-  await markJob(job.id, "succeeded", heldForPace ? "Held for the daily publication pace." : null, planned.length);
-  if (!heldForPace) await markSourceHealth(source.id, "ok", null, true);
+  const outcome = cycleSourceOutcome({
+    heldForPace: planned.heldForPace > 0,
+    writerUnavailable,
+  });
+  await markJob(job.id, "succeeded", outcome.note, planned.length);
+  if (outcome.markSuccess) await markSourceHealth(source.id, "ok", null, true);
   return { counts, fetched: 1, wrote: planned.length > 0, publishedSlug };
+}
+
+async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch): Promise<ItemResearch> {
+  const loaded = await fetchArticlePage(item.url, fetchImpl);
+  if (!loaded.ok) return { brief: null, image: null, reason: "thin_source" };
+  const imageTask = selectOfficialImage(loaded.page, fetchImpl).then(async (official) => {
+    if (official.status === "verified" || source.imageRights === "none" || !item.imageUrl) return official;
+    const bytes = await fetchImage(item.imageUrl, fetchImpl);
+    return evaluateImage({
+      rights: source.imageRights,
+      url: item.imageUrl,
+      bytes,
+      attribution: source.name,
+      sourceName: source.name,
+      license: source.imageRights,
+    });
+  });
+  const written = await writeGroundedReport({
+    sourceName: source.name,
+    sourceTitle: item.title,
+    sourceUrl: item.url,
+    page: loaded.page,
+    lookup: lookupProfileNames,
+  });
+  const image = await imageTask;
+  const verified = image.status === "verified" ? image : null;
+  if (!written.ok) return { brief: null, image: verified, reason: written.reason };
+  return { brief: written.brief, image: verified, reason: null };
 }

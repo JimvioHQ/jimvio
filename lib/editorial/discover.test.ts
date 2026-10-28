@@ -10,6 +10,7 @@ import {
   metaDescription,
   neighborArticles,
   parseDeskRange,
+  absoluteImageUrl,
   publicCorrection,
   publicSource,
   readingMinutes,
@@ -125,6 +126,11 @@ describe("editorial discovery", () => {
       url: null,
     });
     assert.equal(publicSource({ sourceUrl: "https://www.reuters.com/world/story" })?.url, "https://www.reuters.com/world/story");
+    assert.equal(absoluteImageUrl("https://www.jimvio.com", "/editorial/desk-mark.png"), null);
+    assert.equal(
+      absoluteImageUrl("https://www.jimvio.com", "https://www.nasa.gov/wp-content/uploads/2026/10/chapeamission2.jpg"),
+      "https://www.nasa.gov/wp-content/uploads/2026/10/chapeamission2.jpg",
+    );
     assert.equal(publicCorrection("   "), null);
     assert.equal(publicCorrection("Fixed the date."), "Fixed the date.");
   });

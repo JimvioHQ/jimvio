@@ -1,4 +1,5 @@
 import { getAdminDB } from "@/services/base";
+import type { ProfileMatch } from "@/lib/editorial/ingest/report";
 import { planArticleWrite, suffixedSlug } from "@/lib/editorial/publish";
 import type { MediaCategory } from "@/lib/editorial/types";
 import { isArticleId, isMediaCategory, isValidSlug } from "@/lib/editorial/validate";
@@ -32,6 +33,32 @@ interface Chain<T> extends PromiseLike<DbResult<T>> {
 function from<T = Row>(name: string): Chain<T> {
   const client = getAdminDB() as unknown as { from: (tableName: string) => Chain<T> };
   return client.from(name);
+}
+
+export async function lookupProfileNames(names: string[]): Promise<ProfileMatch[]> {
+  const wanted = [...new Set(names.map((name) => name.trim()).filter((name) => name.length >= 3 && name.length <= 80))].slice(0, 8);
+  if (!wanted.length) return [];
+  try {
+    const db = getAdminDB() as unknown as {
+      from: (table: string) => {
+        select: (columns: string) => {
+          in: (column: string, values: string[]) => {
+            limit: (count: number) => Promise<{ data: Row[] | null; error: DbError }>;
+          };
+        };
+      };
+    };
+    const { data, error } = await db.from("profiles").select("full_name, username").in("full_name", wanted).limit(16);
+    if (error || !Array.isArray(data)) return [];
+    return data.flatMap((row) => {
+      const name = String(row.full_name ?? "").trim();
+      const username = String(row.username ?? "").trim();
+      if (!name || !username) return [];
+      return [{ name, username }];
+    });
+  } catch {
+    return [];
+  }
 }
 
 export function ingestUnavailable(error: DbError): boolean {

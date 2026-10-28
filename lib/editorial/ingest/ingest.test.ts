@@ -5,10 +5,10 @@ import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { LICENSED_PROVIDERS, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catalog";
-import { buildOriginalBrief } from "@/lib/editorial/ingest/compose";
+import { buildOriginalBrief, type OriginalBrief } from "@/lib/editorial/ingest/compose";
 import { canonicalUrl, externalKey, parseFeed, sharesLongPhrase } from "@/lib/editorial/ingest/feed";
-import { EDITORIAL_FALLBACK_IMAGE, evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
-import { isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId } from "@/lib/editorial/ingest/plan";
+import { evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
+import { cycleSourceOutcome, isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId, type ItemResearch } from "@/lib/editorial/ingest/plan";
 import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS, type SourceRecord } from "@/lib/editorial/ingest/types";
 import { isArticleId, isPubliclyVisible } from "@/lib/editorial/validate";
 
@@ -68,6 +68,29 @@ function item(title: string, url: string, summary = SUMMARY) {
 const settings = { ...DEFAULT_INGEST_SETTINGS, mode: "draft" as const };
 const now = new Date("2026-10-27T20:00:00.000Z");
 
+function readyBrief(url: string): OriginalBrief {
+  return {
+    title: "Simulation crew completes fourteen communication checks",
+    excerpt: "A research crew completed fourteen communication checks ahead of a scheduled media event, according to the public record.",
+    bodyHtml: "<p>A research crew completed fourteen communication checks ahead of a scheduled media event.</p><h2>The preparation</h2><p>The checks were completed at the research center. The announcement is the public account of that work.</p>",
+    category: "news",
+    tags: "simulation, crew",
+    seoTitle: "Simulation crew completes communication checks",
+    seoDescription: "A research crew completed fourteen communication checks ahead of a media event.",
+    sourceName: "NASA News Releases",
+    sourceUrl: url,
+    evidence: "Grounded report.",
+    sensitive: false,
+    originalityOk: true,
+    sufficient: true,
+    issues: [],
+  };
+}
+
+function researched(url: string): ItemResearch {
+  return { brief: readyBrief(url), image: null, reason: null };
+}
+
 describe("external ingestion", () => {
   it("parses RSS, strips markup, and rejects unsafe XML", () => {
     const xml = `<?xml version="1.0"?><rss version="2.0"><channel><language>en-US</language><item>
@@ -108,7 +131,7 @@ describe("external ingestion", () => {
     assert.equal(canonicalUrl("https://www.nasa.gov/feed/")?.startsWith("https://www.nasa.gov/"), true);
   });
 
-  it("writes an original briefing and does not copy the source", () => {
+  it("does not turn a feed title and description into a public article", () => {
     const brief = buildOriginalBrief({
       category: "news",
       members: [{
@@ -120,15 +143,13 @@ describe("external ingestion", () => {
         creator: "Feed Editor",
       }],
     });
-    assert.equal(brief.originalityOk, true);
-    assert.equal(brief.sufficient, true);
-    assert.notEqual(brief.title.toLowerCase(), "nasa confirms mars crew simulation communication checks");
-    assert.equal(sharesLongPhrase(`${brief.title} ${brief.excerpt} ${brief.bodyHtml}`, [SUMMARY]), false);
-    assert.equal(brief.bodyHtml.includes("<script"), false);
-    assert.equal(brief.bodyHtml.includes("fourteen communication checks before"), false);
-    assert.match(brief.bodyHtml, /https:\/\/www\.nasa\.gov\/news-release\/example\//);
-    assert.match(brief.bodyHtml, /one public source/);
-    assert.equal(brief.bodyHtml.includes("Ignore previous"), false);
+    assert.equal(brief.originalityOk, false);
+    assert.equal(brief.sufficient, false);
+    assert.equal(brief.bodyHtml, "");
+    assert.equal(brief.title, "");
+    assert.match(brief.evidence, /not an article/);
+    assert.equal(sharesLongPhrase(brief.evidence, [SUMMARY]), false);
+    assert.equal(/what is in the record|one public source|topic words drawn/i.test(brief.bodyHtml), false);
   });
 
   it("keeps drafts private, filters stale and duplicate items, and sends sensitive items to review", () => {
@@ -141,6 +162,7 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: false,
       publishedToday: 0,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(first[0]?.status, "drafted");
     assert.equal(first[0]?.article?.intent, "draft");
@@ -183,6 +205,7 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: false,
       publishedToday: 0,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(sensitive[0]?.status, "review");
     assert.equal(sensitive[0]?.article?.intent, "review");
@@ -212,6 +235,7 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: false,
       publishedToday: 0,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(blocked[0]?.status, "review");
     assert.notEqual(blocked[0]?.article?.intent, "published");
@@ -256,11 +280,14 @@ describe("external ingestion", () => {
         publishedAt: "2026-10-27T18:00:00.000Z",
       }],
       imageFor: () => image,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(published[0]?.status, "published");
     assert.equal(published[0]?.article?.intent, "published");
     assert.equal(published[0]?.imageStatus, "verified");
-    assert.match(published[0]?.article?.bodyHtml ?? "", /NIST News/);
+    assert.equal(published[0]?.article?.sourceUrl, "https://www.nasa.gov/news-release/live/");
+    assert.match(published[0]?.evidence ?? "", /nist\.gov/);
+    assert.equal(/what is in the record|one public source|topic words drawn/i.test(published[0]?.article?.bodyHtml ?? ""), false);
     assert.equal(isPubliclyVisible({ status: "published", publishedAt: now.toISOString(), scheduledAt: null }, now), true);
 
     const capped = planSourceItems({
@@ -280,6 +307,7 @@ describe("external ingestion", () => {
         publishedAt: "2026-10-27T18:00:00.000Z",
       }],
       imageFor: () => image,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(capped[0]?.status, "review");
     assert.equal(capped.heldForPace, 0);
@@ -289,6 +317,18 @@ describe("external ingestion", () => {
     assert.equal(publishPaceOpen(1, 10, dawn), false);
     assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), true);
     assert.equal(publishPaceOpen(0, 0, dawn), false);
+    assert.deepEqual(cycleSourceOutcome({ heldForPace: true, writerUnavailable: false }), {
+      note: "Held for the daily publication pace.",
+      markSuccess: false,
+    });
+    assert.deepEqual(cycleSourceOutcome({ heldForPace: false, writerUnavailable: true }), {
+      note: "Writer unavailable.",
+      markSuccess: false,
+    });
+    assert.deepEqual(cycleSourceOutcome({ heldForPace: false, writerUnavailable: false }), {
+      note: null,
+      markSuccess: true,
+    });
     assert.equal(clampDailyPublishCap(50), 10);
     assert.equal(clampDailyPublishCap("nope"), 10);
     const held = planSourceItems({
@@ -308,6 +348,7 @@ describe("external ingestion", () => {
         publishedAt: "2026-10-27T00:00:00.000Z",
       }],
       imageFor: () => image,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(held.heldForPace, 1);
     assert.equal(held.length, 0);
@@ -328,6 +369,7 @@ describe("external ingestion", () => {
         publishedAt: "2026-10-27T00:00:00.000Z",
       }],
       imageFor: () => image,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(opened[0]?.status, "published");
     assert.equal(opened[0]?.article?.category, "technology");
@@ -341,12 +383,13 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: true,
       publishedToday: 0,
+      researchFor: (entry) => researched(entry.url),
     });
-    assert.equal(official[0]?.status, "published");
-    assert.equal(official[0]?.article?.imageUrl, EDITORIAL_FALLBACK_IMAGE);
-    assert.match(official[0]?.article?.imageAlt ?? "", /not a photograph/i);
-    assert.match(official[0]?.article?.bodyHtml ?? "", /one public source/);
-    assert.equal((official[0]?.article?.bodyHtml ?? "").includes("photograph of"), false);
+    assert.equal(official[0]?.status, "review");
+    assert.equal(official[0]?.filterReason, "image_unavailable");
+    assert.equal(official[0]?.article?.imageUrl ?? "", "");
+    assert.equal(/desk-mark|one public source|what is in the record/i.test(official[0]?.article?.bodyHtml ?? ""), false);
+    assert.equal(official[0]?.article?.sourceUrl, "https://www.nasa.gov/news-release/official/");
     const risky = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
       source: source({ imageRights: "none" }),
@@ -356,9 +399,51 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: true,
       publishedToday: 0,
+      researchFor: (entry) => researched(entry.url),
     });
     assert.equal(risky[0]?.status, "review");
     assert.notEqual(risky[0]?.article?.intent, "published");
+  });
+
+  it("does not publish a feed item that was never retrieved", () => {
+    const missing = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true },
+      source: source(),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/rss-only/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+    });
+    assert.equal(missing.length, 0);
+    const thin = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true },
+      source: source(),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/thin/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+      researchFor: () => ({ brief: null, image: null, reason: "thin_source" }),
+    });
+    assert.equal(thin[0]?.status, "filtered");
+    assert.equal(thin[0]?.filterReason, "thin_source");
+    assert.equal(thin[0]?.article, null);
+    assert.match(thin[0]?.evidence ?? "", /https:\/\/www\.nasa\.gov\/news-release\/thin\//);
+    const offline = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true },
+      source: source(),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/offline/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+      researchFor: () => ({ brief: null, image: null, reason: "writer_unavailable" }),
+    });
+    assert.equal(offline.length, 0);
   });
 
   it("honors poll windows, stuck jobs, link-only sources, and category blocks", () => {

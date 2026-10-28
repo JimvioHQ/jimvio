@@ -6,7 +6,7 @@ import type { SafeHtml } from "@/lib/editorial/types";
  * Do not import isomorphic-dompurify here. Its jsdom dependency fails Vercel
  * serverless rendering with ERR_REQUIRE_ESM and takes /media down with it.
  */
-const ALLOWED = new Set(["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "h2", "h3", "blockquote"]);
+const ALLOWED = new Set(["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "h2", "h3", "blockquote", "figure", "figcaption"]);
 const DROP_WITH_CONTENT = new Set([
   "script",
   "style",

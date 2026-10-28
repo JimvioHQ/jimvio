@@ -16,8 +16,8 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     enabled: false,
     alwaysReview: false,
     termsNote:
-      "Checked 2026-10-27: this URL returned RSS 2.0 as application/rss+xml. The older breaking-news address redirects here. US government works are not copyrighted under 17 USC 105. Briefings are original. Feed images are not reused.",
-    rateNote: "No rate-limit header on the check. One GET, 8 second timeout, poll every 360 minutes.",
+      "Checked 2026-10-27: this URL returned RSS 2.0 as application/rss+xml. The older breaking-news address redirects here. US government works are not copyrighted under 17 USC 105. Briefings are original. Feed images are not reused. A same-site NASA photograph can be used only after its bytes are checked.",
+    rateNote: "No rate-limit header on the check. Feed poll every 360 minutes. A cycle reads at most two article pages and one official image.",
     accessMethod: "rss",
     verifiedAt: CHECKED,
   },
