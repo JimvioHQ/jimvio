@@ -36,21 +36,16 @@ export default async function FlashDealsPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="max-w-2xl">
               <Badge className="bg-[var(--color-accent)] text-white border-none mb-4 px-4 py-1 flex items-center gap-2 w-fit">
-                <Zap className="h-4 w-4 fill-white stroke-none" /> FLASH DEALS
+                <Zap className="h-4 w-4 fill-white stroke-none" /> DEALS
               </Badge>
               <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-none">
-                Limited Time <span className="text-[var(--color-accent)] underline decoration-white/20">Offers</span>
+                Current <span className="text-[var(--color-accent)] underline decoration-white/20">Deals</span>
               </h1>
               <p className="text-white/60 text-xl font-medium mb-8 leading-relaxed max-w-xl">
-                Premium products at wholesale prices. Updated every 24 hours. Don&apos;t miss out on these verified global sourcing deals.
+                Products listed below their regular price right now. Prices and stock come from each listing.
               </p>
               
               <div className="flex items-center gap-6">
-                <div className="flex flex-col">
-                  <span className="text-3xl font-black tracking-tighter">23:54:12</span>
-                  <span className="text-[10px] text-white/40 capitalize font-black tracking-widest text-center mt-1">Time Remaining</span>
-                </div>
-                <div className="h-10 w-[1px] bg-white dark:bg-surface/10" />
                 <Button className="bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black h-14 px-8 rounded-sm shadow-none shadow-[var(--color-accent)]/20">
                   Shop All Deals
                 </Button>

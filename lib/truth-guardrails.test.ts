@@ -33,7 +33,8 @@ const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: "illustrative stats module", pattern: /demo-platform-stats|getDemoPlatformStats/ },
   // M-6: fake urgency — countdowns that reset at midnight, scarcity copy.
   { name: "fake midnight countdown", pattern: /setHours\(23,\s*59/ },
-  { name: "fake urgency copy", pattern: /Don(?:&apos;|')t miss out|Limited time offers/i },
+  { name: "fake urgency copy", pattern: /Don(?:&apos;|')t miss out|Limited time offers|Time Remaining/i },
+  { name: "hardcoded timer", pattern: />\s*\d{2}:\d{2}:\d{2}\s*</ },
   // P0-7: claims Jimvio cannot back up.
   { name: "unverified claim", pattern: /["'>]\s*(?:100% safe|Money-back guarantee|Instant Payouts|24\/7 Support|Fast & reliable delivery)/i },
   { name: "unverified scale claim", pattern: /\bmillions of (?:products|buyers|creators|users|dropshipping products)\b/i },
