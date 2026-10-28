@@ -564,13 +564,17 @@ export async function signIn(formData: FormData) {
     }
 
     // ── 2FA gate ──
+    // user_2fa_secrets is service-role only (20260909230619 revoked it from
+    // authenticated), so it must be read with the admin client — reading it
+    // with the session client always failed and silently skipped 2FA.
+    const twoFaAdmin = createAdminClient()
     const [profileResult, secretResult] = await Promise.all([
       supabase
         .from("profiles")
         .select("two_factor_enabled")
         .eq("id", userId)
         .maybeSingle(),
-      supabase
+      twoFaAdmin
         .from("user_2fa_secrets")
         .select("secret")
         .eq("user_id", userId)
@@ -578,7 +582,12 @@ export async function signIn(formData: FormData) {
     ])
 
     if (profileResult.error) console.error("[auth] 2FA profile lookup error:", profileResult.error)
-    if (secretResult.error) console.error("[auth] 2FA secret lookup error:", secretResult.error)
+    if (secretResult.error) {
+      // Fail closed: never let a lookup failure skip the second factor.
+      console.error("[auth] 2FA secret lookup error:", secretResult.error)
+      await supabase.auth.signOut()
+      return { error: "Sign in failed. Please try again." }
+    }
 
     const hasActiveSecret = hasActiveTwoFactorSecret(secretResult.data?.secret)
     if (profileResult.data?.two_factor_enabled && !hasActiveSecret) {
