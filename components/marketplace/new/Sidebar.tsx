@@ -17,8 +17,10 @@ import {
   categoryTypeOrFilter,
   DIGITAL_FORMATS,
   MARKETPLACE_PRICE_CEILING,
+  marketplaceNewArrivalSince,
   type MarketplaceFormat,
 } from "@/lib/marketplace/experience";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
 import { SHOPPING_SUGGESTIONS } from "@/lib/marketplace/shopping-assistant";
 
@@ -67,6 +69,7 @@ type AssistantProduct = {
   name: string;
   slug: string;
   price: number | string | null;
+  price_usd?: number | null;
   currency?: string | null;
   image?: string | null;
   reason?: string | null;
@@ -247,7 +250,7 @@ export function Sidebar({ type = "physical" }: Props) {
   const {
     filters, pending,
     setCategory, toggleShippingFrom, toggleDeliveryTime,
-    setPriceRange, setOffer, setFormat, applyFilters, clearFilters,
+    setPriceRange, setOffer, setFormat, setArrivals, setPurchased, applyFilters, clearFilters,
   } = useMarketplace();
 
   const { formatMoney } = useCurrency();
@@ -259,6 +262,8 @@ export function Sidebar({ type = "physical" }: Props) {
   const [retryAfterMs, setRetryAfterMs] = useState<number | null>(null);
   const lastAiMessage = useRef("");
   const aiInFlight = useRef(false);
+  const aiAbort = useRef<AbortController | null>(null);
+  const aiGeneration = useRef(0);
 
   useEffect(() => {
     if (!retryAfterMs) return;
@@ -269,7 +274,12 @@ export function Sidebar({ type = "physical" }: Props) {
 
   async function askShoppingAssistant(message: string) {
     const text = message.replace(/\s+/g, " ").trim();
-    if (!text || aiInFlight.current || retryAfterMs != null) return;
+    if (!text || retryAfterMs != null) return;
+    if (aiInFlight.current && lastAiMessage.current === text) return;
+    aiAbort.current?.abort();
+    const controller = new AbortController();
+    aiAbort.current = controller;
+    const generation = ++aiGeneration.current;
     aiInFlight.current = true;
     lastAiMessage.current = text;
     setAiStatus("loading");
@@ -281,7 +291,9 @@ export function Sidebar({ type = "physical" }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, type }),
+        signal: controller.signal,
       });
+      if (generation !== aiGeneration.current) return;
       const data = (await res.json()) as {
         ok?: boolean;
         reply?: string;
@@ -290,6 +302,7 @@ export function Sidebar({ type = "physical" }: Props) {
         retryAfterSeconds?: number | null;
         products?: AssistantProduct[];
       };
+      if (generation !== aiGeneration.current) return;
       if (!res.ok || !data.ok || !data.reply) {
         const wait = Number(data.retryAfterSeconds);
         if (data.error === "rate_limit" && Number.isFinite(wait) && wait > 0) {
@@ -312,11 +325,13 @@ export function Sidebar({ type = "physical" }: Props) {
       setAiProducts(Array.isArray(data.products) ? data.products : []);
       setAiStatus("ready");
       setAiQuery("");
-    } catch {
+    } catch (error) {
+      if (generation !== aiGeneration.current) return;
+      if (error instanceof DOMException && error.name === "AbortError") return;
       setAiStatus("error");
       setAiError("The assistant couldn’t answer. Try again.");
     } finally {
-      aiInFlight.current = false;
+      if (generation === aiGeneration.current) aiInFlight.current = false;
     }
   }
 
@@ -324,6 +339,7 @@ export function Sidebar({ type = "physical" }: Props) {
   const [shippingCounts, setShippingCounts] = useState<ShippingCount[]>([]);
   const [deliveryCounts, setDeliveryCounts] = useState<DeliveryCount[]>([]);
   const [offerCounts, setOfferCounts] = useState({ free_shipping: 0, flash_deal: 0 });
+  const [listingCounts, setListingCounts] = useState({ arrivals: 0, purchased: 0 });
   const [formatCounts, setFormatCounts] = useState<Partial<Record<MarketplaceFormat, number>>>({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [categoryLoad, setCategoryLoad] = useState<"loading" | "ready" | "error">("loading");
@@ -389,7 +405,7 @@ export function Sidebar({ type = "physical" }: Props) {
           .eq("is_active", true)
           .is("deleted_at", null);
 
-      const [{ data: sd }, { data: dd }, freeRes, flashRes, formatRes] = await Promise.all([
+      const [{ data: sd }, { data: dd }, freeRes, flashRes, formatRes, arrivalRes, purchasedRes] = await Promise.all([
         supabase
           .from("products")
           .select("shipping_from")
@@ -422,6 +438,8 @@ export function Sidebar({ type = "physical" }: Props) {
               }),
             )
           : Promise.resolve([] as const),
+        active().in("product_type", typeFilter as any[]).gte("created_at", marketplaceNewArrivalSince()),
+        active().in("product_type", typeFilter as any[]).gt("sale_count", 0),
       ]);
 
       if (sd) {
@@ -443,6 +461,10 @@ export function Sidebar({ type = "physical" }: Props) {
         flash_deal: flashRes.count ?? 0,
       });
       setFormatCounts(Object.fromEntries(formatRes));
+      setListingCounts({
+        arrivals: arrivalRes.count ?? 0,
+        purchased: purchasedRes.count ?? 0,
+      });
 
       setLoadingFilters(false);
     }
@@ -572,7 +594,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 <Slider
                   min={0}
                   max={type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING}
-                  step={type === "digital" ? 5 : 50}
+                  step={1}
                   value={[Math.min(pending.priceRange[1], type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING)]}
                   onValueChange={(v) => {
                     const cap = type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING;
@@ -625,6 +647,30 @@ export function Sidebar({ type = "physical" }: Props) {
                         onToggle={() => setOffer(pending.offer === row.key ? "" : row.key)}
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {(listingCounts.arrivals > 0 || pending.arrivals || listingCounts.purchased > 0 || pending.purchased) && (
+                <div data-filter-listings>
+                  <SectionLabel>Listings</SectionLabel>
+                  <div className="flex flex-col gap-0.5">
+                    {(listingCounts.arrivals > 0 || pending.arrivals) && (
+                      <CheckRow
+                        label="New arrivals"
+                        count={fmtCount(listingCounts.arrivals)}
+                        checked={Boolean(pending.arrivals)}
+                        onToggle={() => setArrivals(!pending.arrivals)}
+                      />
+                    )}
+                    {(listingCounts.purchased > 0 || pending.purchased) && (
+                      <CheckRow
+                        label="Purchased"
+                        count={fmtCount(listingCounts.purchased)}
+                        checked={Boolean(pending.purchased)}
+                        onToggle={() => setPurchased(!pending.purchased)}
+                      />
+                    )}
                   </div>
                 </div>
               )}
@@ -704,13 +750,12 @@ export function Sidebar({ type = "physical" }: Props) {
               maxLength={500}
               rows={3}
               aria-label="AI Shopping Assistant"
-              disabled={aiStatus === "loading"}
               className="max-h-28 min-h-[3.25rem] w-full resize-none bg-transparent text-[11px] leading-relaxed text-white outline-none placeholder:text-white/55 focus-visible:outline-none"
             />
             <button
               type="submit"
               aria-label="Send message"
-              disabled={aiStatus === "loading" || !aiQuery.trim()}
+              disabled={!aiQuery.trim()}
               className="mb-0.5 rounded p-0.5 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-50"
             >
               <Send className="size-3 text-white" />
@@ -730,10 +775,8 @@ export function Sidebar({ type = "physical" }: Props) {
               {aiProducts.length > 0 && (
                 <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
                   {aiProducts.map((product) => {
-                    const amount = typeof product.price === "number" ? product.price : Number(product.price);
-                    const priceLabel = Number.isFinite(amount)
-                      ? formatMoney(amount, product.currency || "USD")
-                      : null;
+                    const usd = marketplaceCustomerUsd(product);
+                    const priceLabel = usd == null ? null : formatMoney(usd, "USD");
                     return (
                       <a
                         key={product.slug}
@@ -781,7 +824,6 @@ export function Sidebar({ type = "physical" }: Props) {
                 key={item.intent}
                 type="button"
                 onClick={() => void askShoppingAssistant(item.message)}
-                disabled={aiStatus === "loading"}
                 className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-50"
               >
                 {item.label}

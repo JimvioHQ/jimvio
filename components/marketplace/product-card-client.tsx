@@ -27,6 +27,7 @@ import { ProductCardVideoMedia } from "./product-card-video-media";
 import { productHasVideos } from "@/lib/product-videos";
 import { isPurchaseBlockedByStock } from "@/lib/marketplace/stock-status";
 import { isOfficialJimvioStoreLabel } from "@/lib/marketplace/store-display";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { ProductCardCommerceActions } from "@/components/marketplace/product-card-commerce-actions";
 
 /* ─────────────────────────── types ─────────────────────────── */
@@ -35,6 +36,7 @@ interface Product {
   name: string;
   slug: string;
   price: number;
+  price_usd?: number | null;
   compare_at_price?: number | null;
   discount_label?: string | null;
   is_flash_deal?: boolean | null;
@@ -103,6 +105,11 @@ export function ProductCardClient({
   }, [images, p.slug]);
 
   const price = Number(p.price ?? 0);
+  const displayUsd = marketplaceCustomerUsd({
+    price: p.price,
+    price_usd: p.price_usd,
+    currency: p.currency,
+  });
   const discountFields = {
     price,
     compare_at_price: p.compare_at_price ?? null,
@@ -110,6 +117,14 @@ export function ProductCardClient({
     is_flash_deal: p.is_flash_deal ?? null,
   };
   const compareAtPrice = getEffectiveCompareAtPrice(discountFields);
+  const compareUsd = compareAtPrice == null
+    ? null
+    : marketplaceCustomerUsd({
+        price: p.price,
+        price_usd: p.price_usd,
+        currency: p.currency,
+        variantPrice: compareAtPrice,
+      });
   const discount = getProductDiscountPercent(discountFields);
   const isDigital =
     p.product_type === "digital" ||
@@ -391,8 +406,8 @@ export function ProductCardClient({
 
           <div className={cn("flex items-baseline leading-none", isDigital ? "mt-1.5 gap-2" : "mt-0.5 gap-1")}>
             <LocalizedPrice
-              amount={price}
-              currency={p.currency}
+              amount={displayUsd ?? price}
+              currency={displayUsd == null ? p.currency : "USD"}
               period={p.pricing_type === "recurring" ? p.billing_period : null}
               className={cn(
                 isDigital
@@ -401,10 +416,10 @@ export function ProductCardClient({
                 isDigital && (compact ? "text-[17px]" : "text-[20px]"),
               )}
             />
-            {discount > 0 && compareAtPrice != null && (
+            {discount > 0 && (compareUsd ?? compareAtPrice) != null && (
               <LocalizedPrice
-                amount={compareAtPrice}
-                currency={p.currency}
+                amount={compareUsd ?? compareAtPrice ?? 0}
+                currency={compareUsd == null ? p.currency : "USD"}
                 className={cn(
                   "line-through",
                   isDigital

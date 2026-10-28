@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
@@ -637,15 +638,27 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   if (products.length === 0 || !product) return null;
 
-  const currency = product.currency ?? "USD";
   const rawName = product.name ?? "";
   const rawDesc = product.short_description ?? "";
   const displayDesc = rawDesc.length > 70 ? `${rawDesc.slice(0, 67)}…` : rawDesc;
   const discount = getProductDiscountLabel(product);
   const discountNum = discount.replace(/[^0-9]/g, "");
-  const price = formatMoney(product.price, currency);
+  const displayUsd = marketplaceCustomerUsd({
+    price: product.price,
+    price_usd: product.price_usd,
+    currency: product.currency,
+  });
+  const price = displayUsd == null ? "" : formatMoney(displayUsd, "USD");
   const compareAt = getEffectiveCompareAtPrice(product);
-  const oldPrice = compareAt ? formatMoney(compareAt, currency) : null;
+  const compareUsd = compareAt == null
+    ? null
+    : marketplaceCustomerUsd({
+        price: product.price,
+        price_usd: product.price_usd,
+        currency: product.currency,
+        variantPrice: compareAt,
+      });
+  const oldPrice = compareUsd != null && compareUsd > (displayUsd ?? 0) ? formatMoney(compareUsd, "USD") : null;
   const {
     count: bannerReviewCount,
     hasReviews: bannerHasReviews,

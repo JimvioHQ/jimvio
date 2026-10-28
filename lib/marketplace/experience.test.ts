@@ -65,6 +65,12 @@ describe("marketplace canonical routes", () => {
       marketplaceSwitchHref("digital", new URLSearchParams("offer=free_shipping&format=course&maxPrice=40")),
       "/marketplace/digital?maxPrice=40&format=course",
     );
+    assert.equal(
+      marketplaceSwitchHref("digital", new URLSearchParams("arrivals=1&purchased=1&offer=free_shipping")),
+      "/marketplace/digital?arrivals=1&purchased=1",
+    );
+    const invalid = marketplaceEntryDecision("physical", { arrivals: "no", purchased: "1" });
+    assert.equal(invalid.redirectTo, "/marketplace/physical?purchased=1");
   });
 
   it("normalizes a conflicting type query and a legacy cat param", () => {
@@ -133,9 +139,11 @@ describe("marketplace canonical routes", () => {
       marketplaceSearchResultsHref("physical", "headphones", {
         offer: "free_shipping",
         format: "course",
+        arrivals: true,
+        purchased: true,
         priceRange: [0, 5000],
       }),
-      "/marketplace/search?q=headphones&type=physical&offer=free_shipping",
+      "/marketplace/search?q=headphones&type=physical&offer=free_shipping&arrivals=1&purchased=1",
     );
   });
 });

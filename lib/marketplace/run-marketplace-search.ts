@@ -11,8 +11,10 @@ import {
   type SearchableProduct,
 } from "@/lib/marketplace/search-engine";
 import type { DbProduct } from "@/lib/utils";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import {
   categoryTypeOrFilter,
+  MARKETPLACE_NEW_ARRIVAL_MS,
   MARKETPLACE_PRICE_CEILING,
   readMarketplaceFormat,
   readMarketplaceOffer,
@@ -24,7 +26,7 @@ const PHYSICAL_TYPES = ["physical"] as const;
 const DIGITAL_TYPES = ["digital", "course", "ebook", "software", "template", "coaching"] as const;
 
 const PRODUCT_SELECT = `
-  id, name, slug, price, currency, compare_at_price, images, product_type,
+  id, name, slug, price, price_usd, currency, compare_at_price, images, product_type, created_at,
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
@@ -101,6 +103,8 @@ export type MarketplaceSearchConstraints = {
   maxPrice?: number;
   offer?: MarketplaceOffer | "";
   format?: MarketplaceFormat | "";
+  arrivals?: boolean;
+  purchased?: boolean;
 };
 
 export async function runMarketplaceSearch(
@@ -240,13 +244,33 @@ async function applySearchConstraints<T extends SearchableProduct>(
   return products.filter((product) => {
     const row = product as T & {
       price?: number | string | null;
+      price_usd?: number | string | null;
+      currency?: string | null;
+      created_at?: string | null;
       is_free_shipping?: boolean | null;
       is_flash_deal?: boolean | null;
     };
     if (allowedCategories && (!product.category_id || !allowedCategories.has(product.category_id))) return false;
-    const price = Number(row.price);
-    if (Number.isFinite(minPrice) && minPrice > 0 && !(price >= minPrice)) return false;
-    if (Number.isFinite(maxPrice) && maxPrice > 0 && maxPrice < MARKETPLACE_PRICE_CEILING && !(price <= maxPrice)) return false;
+    const priceFilterActive =
+      (Number.isFinite(minPrice) && minPrice > 0) ||
+      (Number.isFinite(maxPrice) && maxPrice > 0 && maxPrice < MARKETPLACE_PRICE_CEILING);
+    if (priceFilterActive) {
+      const usd = marketplaceCustomerUsd({
+        price: row.price,
+        price_usd: row.price_usd,
+        currency: row.currency,
+      });
+      if (usd == null) return false;
+      if (Number.isFinite(minPrice) && minPrice > 0 && usd < minPrice) return false;
+      if (Number.isFinite(maxPrice) && maxPrice > 0 && maxPrice < MARKETPLACE_PRICE_CEILING && usd > maxPrice) {
+        return false;
+      }
+    }
+    if (constraints.arrivals) {
+      const created = Date.parse(String(row.created_at ?? ""));
+      if (!Number.isFinite(created) || Date.now() - created > MARKETPLACE_NEW_ARRIVAL_MS) return false;
+    }
+    if (constraints.purchased && !(Number(product.sale_count ?? 0) > 0)) return false;
     if (offer === "free_shipping" && row.is_free_shipping !== true) return false;
     if (offer === "flash_deal" && row.is_flash_deal !== true) return false;
     if (format && product.product_type !== format) return false;

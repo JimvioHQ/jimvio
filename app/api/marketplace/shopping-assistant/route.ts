@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
-import { generateGeminiText } from "@/lib/ai/gemini-fallback";
-import {
-  parseGeminiProviderFailure,
-  shouldContinueGeminiAttempts,
-  type GeminiProviderFailure,
-} from "@/lib/ai/gemini-model";
+import { parseGeminiProviderFailure } from "@/lib/ai/gemini-model";
 import { wrapUntrusted } from "@/lib/ai/information-policy";
-import {
-  completeText,
-  openaiAttemptModels,
-  readOpenAIKey,
-  shouldRetryProviderError,
-} from "@/lib/ai/openai-runtime";
-import { qualifiesForGeminiFallback } from "@/lib/ai/provider-policy";
+import { completeText, openaiAttemptModels, readOpenAIKey } from "@/lib/ai/openai-runtime";
 import { rateLimit } from "@/lib/ops/rate-limit";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
 import {
@@ -34,6 +24,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const ASSISTANT_CACHE_TTL_MS = 60_000;
+const ASSISTANT_CACHE_MAX = 32;
+const MODEL_TIMEOUT_MS = 8_000;
+
+type CachedAssistant = {
+  at: number;
+  reply: string;
+  products: GroundedShoppingProduct[];
+};
+
+const assistantCache = new Map<string, CachedAssistant>();
+
 function clientIp(request: Request): string {
   return (
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -42,7 +44,43 @@ function clientIp(request: Request): string {
   );
 }
 
+function cacheKey(type: "physical" | "digital", message: string): string {
+  return `${type}:${message.toLowerCase()}`;
+}
+
+function readAssistantCache(key: string): CachedAssistant | null {
+  const hit = assistantCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > ASSISTANT_CACHE_TTL_MS) {
+    assistantCache.delete(key);
+    return null;
+  }
+  return hit;
+}
+
+function rememberAssistant(key: string, reply: string, products: GroundedShoppingProduct[]) {
+  assistantCache.set(key, { at: Date.now(), reply, products: products.slice(0, 6) });
+  if (assistantCache.size <= ASSISTANT_CACHE_MAX) return;
+  const oldest = assistantCache.keys().next().value;
+  if (oldest) assistantCache.delete(oldest);
+}
+
+function assistantJson(
+  body: { ok: boolean; reply?: string; products?: GroundedShoppingProduct[]; error?: string },
+  timing: Record<string, number>,
+  status = 200,
+) {
+  const serverTiming = Object.entries(timing)
+    .map(([name, dur]) => `${name};dur=${Math.max(0, Math.round(dur))}`)
+    .join(", ");
+  return NextResponse.json(body, {
+    status,
+    headers: serverTiming ? { "Server-Timing": serverTiming } : undefined,
+  });
+}
+
 export async function POST(req: NextRequest) {
+  const started = Date.now();
   const limited = rateLimit(`shopping-assistant:${clientIp(req)}`, 12, 60_000);
   if (!limited.allowed) {
     return NextResponse.json(
@@ -68,9 +106,18 @@ export async function POST(req: NextRequest) {
 
   const type = body.type === "digital" ? "digital" : "physical";
   const intent = shoppingIntentForMessage(message);
-  const apiKey = readOpenAIKey();
+  const key = cacheKey(type, message);
+  const cached = readAssistantCache(key);
+  if (cached) {
+    return assistantJson(
+      { ok: true, reply: cached.reply, products: cached.products },
+      { cache: Date.now() - started },
+    );
+  }
 
+  const apiKey = readOpenAIKey();
   let products: GroundedShoppingProduct[] = [];
+  const catalogStarted = Date.now();
   try {
     const supabase = await createClient();
     products = await loadShoppingProducts(supabase, type, message, intent);
@@ -78,99 +125,41 @@ export async function POST(req: NextRequest) {
     console.error("[shopping-assistant] catalog lookup failed:", error);
     return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
   }
+  const catalogMs = Date.now() - catalogStarted;
 
   if (products.length === 0) {
-    return NextResponse.json({
-      ok: true,
-      reply: emptyCatalogReply(type, intent),
-      products: [],
-    });
+    const reply = emptyCatalogReply(type, intent);
+    if (intent) rememberAssistant(key, reply, []);
+    return assistantJson({ ok: true, reply, products: [] }, { catalog: catalogMs, model: 0 });
   }
 
-  if (!apiKey) {
-    return NextResponse.json({
-      ok: true,
-      reply: groundedFallbackReply(type, products),
-      products,
-    });
+  // Chip intents are exact catalog sorts. The model can only rephrase the same rows.
+  if (intent || !apiKey) {
+    const reply = groundedFallbackReply(type, products);
+    rememberAssistant(key, reply, products);
+    return assistantJson(
+      { ok: true, reply, products },
+      { catalog: catalogMs, model: 0 },
+    );
   }
 
+  const modelStarted = Date.now();
+  let reply = "";
   try {
-    const attempts = openaiAttemptModels();
-    let reply = "";
-    let lastFailure: GeminiProviderFailure | null = null;
-    let lastError: unknown = null;
-    const shoppingInput = `${groundedCatalogBlock(products)}\n\n${wrapUntrusted("Shopper", message, 500)}`;
-    for (const modelName of attempts) {
-      let attempt = 0;
-      while (attempt < 2) {
-        attempt += 1;
-        try {
-          reply = (
-            await completeText({
-              apiKey,
-              model: modelName,
-              instructions: shoppingAssistantSystemPrompt(),
-              input: shoppingInput,
-              temperature: 0.3,
-              maxOutputTokens: 220,
-              timeoutMs: 20_000,
-            })
-          ).trim();
-          if (reply) break;
-          lastFailure = {
-            category: "empty_output",
-            retryAfterSeconds: null,
-            quotaScope: null,
-            detail: "empty output",
-          };
-          attempt = 2;
-          break;
-        } catch (error) {
-          lastError = error;
-          lastFailure = parseGeminiProviderFailure(error);
-          console.warn("[shopping-assistant] provider failed", {
-            model: modelName,
-            category: lastFailure.category,
-            quotaScope: lastFailure.quotaScope,
-            retryAfterSeconds: lastFailure.retryAfterSeconds,
-            detail: lastFailure.detail,
-          });
-          if (attempt === 1 && shouldRetryProviderError(error)) continue;
-          break;
-        }
-      }
-      if (reply) break;
-      if (lastFailure?.category === "empty_output") break;
-      if (lastFailure && !shouldContinueGeminiAttempts(lastFailure.category)) break;
+    const model = openaiAttemptModels()[0];
+    if (model) {
+      reply = (
+        await completeText({
+          apiKey,
+          model,
+          instructions: shoppingAssistantSystemPrompt(),
+          input: `${groundedCatalogBlock(products)}\n\n${wrapUntrusted("Shopper", message, 500)}`,
+          temperature: 0.3,
+          maxOutputTokens: 220,
+          timeoutMs: MODEL_TIMEOUT_MS,
+        })
+      ).trim();
     }
-
-    if (!reply && lastError && qualifiesForGeminiFallback(lastError)) {
-      const text = await generateGeminiText({
-        instructions: shoppingAssistantSystemPrompt(),
-        prompt: shoppingInput,
-        temperature: 0.3,
-        maxOutputTokens: 220,
-        timeoutMs: 20_000,
-      });
-      if (text?.trim()) {
-        return NextResponse.json({ ok: true, reply: text.trim(), products });
-      }
-    }
-
-    if (!reply) {
-      return NextResponse.json({
-        ok: true,
-        reply: groundedFallbackReply(type, products),
-        products,
-      });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      reply,
-      products,
-    });
   } catch (error) {
     const failure = parseGeminiProviderFailure(error);
     console.warn("[shopping-assistant] provider failed", {
@@ -178,31 +167,40 @@ export async function POST(req: NextRequest) {
       quotaScope: failure.quotaScope,
       detail: failure.detail,
     });
-    return NextResponse.json({
-      ok: true,
-      reply: groundedFallbackReply(type, products),
-      products,
-    });
   }
+  const modelMs = Date.now() - modelStarted;
+
+  if (!reply) reply = groundedFallbackReply(type, products);
+  return assistantJson({ ok: true, reply, products }, { catalog: catalogMs, model: modelMs });
 }
 
 const SHOPPING_SELECT =
-  "id, name, slug, price, currency, images, product_type, sale_count, view_count, affiliate_commission_rate";
+  "id, name, slug, price, price_usd, currency, images, product_type, sale_count, view_count, affiliate_commission_rate";
 
 function toGrounded(
   rows: Array<Record<string, unknown>>,
   reason: string,
 ): GroundedShoppingProduct[] {
-  return rows.slice(0, 6).map((row) => ({
-    id: String(row.id ?? ""),
-    name: String(row.name ?? ""),
-    slug: String(row.slug ?? ""),
-    price: (row.price as number | string | null) ?? null,
-    currency: (row.currency as string | null) ?? null,
-    product_type: (row.product_type as string | null) ?? null,
-    image: firstProductImage(row.images),
-    reason,
-  })).filter((product) => product.id && product.slug && product.name);
+  return rows.slice(0, 6).map((row) => {
+    const currency = (row.currency as string | null) ?? null;
+    const price = (row.price as number | string | null) ?? null;
+    const storedUsd = marketplaceCustomerUsd({
+      price,
+      price_usd: row.price_usd as number | string | null,
+      currency,
+    });
+    return {
+      id: String(row.id ?? ""),
+      name: String(row.name ?? ""),
+      slug: String(row.slug ?? ""),
+      price: storedUsd ?? price,
+      price_usd: storedUsd,
+      currency: storedUsd != null ? "USD" : currency,
+      product_type: (row.product_type as string | null) ?? null,
+      image: firstProductImage(row.images),
+      reason,
+    };
+  }).filter((product) => product.id && product.slug && product.name);
 }
 
 async function loadShoppingProducts(
@@ -261,14 +259,8 @@ async function loadShoppingProducts(
     page: 1,
     pageSize: 6,
   });
-  return search.products.slice(0, 6).map((product) => ({
-    id: product.id,
-    name: product.name,
-    slug: product.slug,
-    price: product.price,
-    currency: product.currency,
-    product_type: product.product_type,
-    image: firstProductImage(product.images),
-    reason: shoppingIntentReason(null),
-  }));
+  return toGrounded(
+    search.products as unknown as Array<Record<string, unknown>>,
+    shoppingIntentReason(null),
+  );
 }

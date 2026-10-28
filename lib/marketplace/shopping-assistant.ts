@@ -1,3 +1,5 @@
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
+
 export const SHOPPING_MESSAGE_MAX = 500;
 
 export type GroundedShoppingProduct = {
@@ -5,6 +7,7 @@ export type GroundedShoppingProduct = {
   name: string;
   slug: string;
   price: number | string | null;
+  price_usd?: number | null;
   currency?: string | null;
   product_type?: string | null;
   image?: string | null;
@@ -132,7 +135,8 @@ export function groundedCatalogBlock(products: GroundedShoppingProduct[]): strin
     return "Grounded catalog: none. Do not recommend specific products.";
   }
   const lines = products.slice(0, 6).map((product) => {
-    const price = product.price == null ? "price unavailable" : `${product.currency ?? "USD"} ${product.price}`;
+    const usd = marketplaceCustomerUsd(product);
+    const price = usd == null ? "price unavailable" : `USD ${usd.toFixed(2)}`;
     const reason = product.reason ? ` | ${product.reason}` : "";
     return `- ${product.name} | ${price} | /marketplace/${product.slug}${reason}`;
   });

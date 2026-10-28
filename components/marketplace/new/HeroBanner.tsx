@@ -11,7 +11,7 @@ import { getMarketplaceTypeFilter, type MarketplaceProductType } from "@/lib/mar
 export type { HeroProduct };
 
 const HERO_SELECT = `
-  id, name, slug, price, currency, compare_at_price, discount_label,
+  id, name, slug, price, price_usd, currency, compare_at_price, discount_label,
   images, short_description, affiliate_commission_rate,
   sale_count, claimed_pct, product_type, rating, review_count,
   is_featured, is_flash_deal, view_count, delivery_time, created_at,

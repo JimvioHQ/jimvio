@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { addToCart, getCartProductIds, removeProductFromCart } from "@/lib/actions/marketplace";
@@ -360,6 +361,20 @@ function ProductCard({
 
   const displayPrice = activeVariant?.price ?? p.price;
   const compareAtPrice = activeVariant?.compare_at_price ?? p.compare_at_price;
+  const displayUsd = marketplaceCustomerUsd({
+    price: p.price,
+    price_usd: p.price_usd,
+    currency: p.currency,
+    variantPrice: activeVariant ? activeVariant.price : null,
+  });
+  const compareUsd = compareAtPrice == null
+    ? null
+    : marketplaceCustomerUsd({
+        price: p.price,
+        price_usd: p.price_usd,
+        currency: p.currency,
+        variantPrice: compareAtPrice,
+      });
   const displayImage = activeVariant?.image_url ?? getImage(p.images);
   const previewImages = useMemo(() => {
     const base = normalizeImages(p.images).filter(isRenderableImageSrc).slice(0, 3);
@@ -377,8 +392,6 @@ function ProductCard({
   };
   const discount = getProductDiscountLabel(discountFields);
   const effectiveCompareAt = getEffectiveCompareAtPrice(discountFields);
-  const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
-
   const outOfStock =
     activeVariant != null &&
     activeVariant.inventory_quantity != null &&
@@ -722,11 +735,11 @@ function ProductCard({
 
         <div className="flex min-h-[20px] items-baseline gap-1.5">
           <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
-            {formatMoney(displayPrice, currency, "USD")}
+            {displayUsd == null ? "Price unavailable" : formatMoney(displayUsd, "USD")}
           </span>
-          {effectiveCompareAt && (
+          {compareUsd != null && compareUsd > (displayUsd ?? 0) && (
             <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(effectiveCompareAt, currency, "USD")}
+              {formatMoney(compareUsd, "USD")}
             </span>
           )}
         </div>

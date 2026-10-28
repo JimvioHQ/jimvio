@@ -16,6 +16,7 @@ function toCardProduct(p: FeedProduct) {
     name: p.name,
     slug: p.slug,
     price: p.price,
+    price_usd: p.price_usd,
     compare_at_price: p.compare_at_price,
     discount_label: p.discount_label,
     is_flash_deal: p.is_flash_deal,

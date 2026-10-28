@@ -1,6 +1,6 @@
 /**
  * Public site footer destinations.
- * Company links are the live column — do not rename, reorder, or retarget them.
+ * Company links stay in this order. Press & Media opens the Jimvio Media page.
  */
 
 export type FooterLink = {
@@ -49,7 +49,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: "About Us", href: "/about" },
       { label: "Careers", href: "/careers" },
-      { label: "Press", href: "/press" },
+      { label: "Press & Media", href: "/media" },
       { label: "Legal Center", href: "/legal" },
       { label: "Contact", href: "/contact" },
     ],

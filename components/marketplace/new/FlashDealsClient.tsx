@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import {
   type DbProduct,
   getImage,
@@ -76,6 +77,19 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const { formatMoney } = useCurrency();
   const discount = getDiscount(d);
   const compareAtPrice = getEffectiveCompareAtPrice(d);
+  const displayUsd = marketplaceCustomerUsd({
+    price: d.price,
+    price_usd: d.price_usd,
+    currency: d.currency,
+  });
+  const compareUsd = compareAtPrice == null
+    ? null
+    : marketplaceCustomerUsd({
+        price: d.price,
+        price_usd: d.price_usd,
+        currency: d.currency,
+        variantPrice: compareAtPrice,
+      });
   const [hovered, setHovered] = useState(false);
   const [imgReady, setImgReady] = useState(false);
   const displayImage = safeMediaUrl(getImage(d.images), 480);
@@ -147,16 +161,23 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           className="text-[10px] font-bold leading-none md:text-[12px]"
           style={{ color: "#FF5A1F" }}
         >
-          {formatMoney(d.price, d.currency)}
+          {displayUsd == null ? formatMoney(d.price, d.currency) : formatMoney(displayUsd, "USD")}
         </span>
-        {compareAtPrice && (
+        {compareUsd != null && compareUsd > (displayUsd ?? 0) ? (
+          <span
+            className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
+            style={{ color: "#9CA3AF" }}
+          >
+            {formatMoney(compareUsd, "USD")}
+          </span>
+        ) : compareAtPrice && displayUsd == null ? (
           <span
             className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
             style={{ color: "#9CA3AF" }}
           >
             {formatMoney(compareAtPrice, d.currency)}
           </span>
-        )}
+        ) : null}
       </div>
     </Link>
   );

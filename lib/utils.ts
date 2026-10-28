@@ -385,6 +385,8 @@ export type AppliedFilters = {
   minRating: number;
   offer?: "" | "free_shipping" | "flash_deal";
   format?: "" | "digital" | "course" | "ebook" | "software" | "template" | "coaching";
+  arrivals?: boolean;
+  purchased?: boolean;
 };
 
 export const SELECT_CATEGORY_LABEL = "Select category";
@@ -399,6 +401,8 @@ export const DEFAULT_FILTERS: AppliedFilters = {
   minRating: 0,
   offer: "",
   format: "",
+  arrivals: false,
+  purchased: false,
 };
 
 export function parsePrice(price: string): number {
@@ -542,6 +546,7 @@ export type DbProduct = {
   category_id: string | null;
   inventory_quantity?: number | null;
   source_metadata?: unknown;
+  price_usd?: number | null;
 };
 
 export function fmtPrice(amount: number | null | undefined): string {

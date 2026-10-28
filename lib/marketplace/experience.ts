@@ -33,6 +33,8 @@ const MANAGED_QUERY_KEYS = [
   "minRating",
   "offer",
   "format",
+  "arrivals",
+  "purchased",
   "page",
   "brand",
   "shipping",
@@ -64,6 +66,19 @@ export function readMarketplaceFormat(
 ): MarketplaceFormat | "" {
   if (type !== "digital") return "";
   return DIGITAL_FORMATS.includes(value as MarketplaceFormat) ? (value as MarketplaceFormat) : "";
+}
+
+/** products.created_at within this window. Both marketplaces can query it. */
+export const MARKETPLACE_NEW_ARRIVAL_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function marketplaceNewArrivalSince(now = Date.now()): string {
+  return new Date(now - MARKETPLACE_NEW_ARRIVAL_MS).toISOString();
+}
+
+/** URL flags are only "1" or "true". Anything else is dropped. */
+export function readMarketplaceFlag(value: string | null | undefined): boolean {
+  const text = (value ?? "").trim().toLowerCase();
+  return text === "1" || text === "true";
 }
 
 /** Open price ceiling. A max below this is an active price filter. */
@@ -272,6 +287,8 @@ export function compatibleMarketplaceSearch(
   const format = readMarketplaceFormat(source.get("format"), destination);
   if (offer) next.set("offer", offer);
   if (format) next.set("format", format);
+  if (readMarketplaceFlag(source.get("arrivals"))) next.set("arrivals", "1");
+  if (readMarketplaceFlag(source.get("purchased"))) next.set("purchased", "1");
 
   if (!options.dropPage) {
     const page = parseMarketplacePage(source.get("page"));
@@ -394,6 +411,8 @@ export type MarketplaceFilterSnapshot = {
   minRating: number;
   offer: MarketplaceOffer | "";
   format: MarketplaceFormat | "";
+  arrivals: boolean;
+  purchased: boolean;
   shippingFrom: string[];
   deliveryTimes: Array<"fast" | "standard" | "economy">;
   page: number;
@@ -414,6 +433,8 @@ export function readMarketplaceFilters(
     minRating: 0,
     offer: readMarketplaceOffer(normalized.get("offer"), type),
     format: readMarketplaceFormat(normalized.get("format"), type),
+    arrivals: readMarketplaceFlag(normalized.get("arrivals")),
+    purchased: readMarketplaceFlag(normalized.get("purchased")),
     shippingFrom: (normalized.get("shipping") ?? "").split(",").filter(Boolean),
     deliveryTimes: (normalized.get("delivery") ?? "")
       .split(",")
@@ -436,6 +457,8 @@ export function filtersToSearchParams(
   }
   if (type === "physical" && filters.offer) next.set("offer", filters.offer);
   if (type === "digital" && filters.format) next.set("format", filters.format);
+  if (filters.arrivals) next.set("arrivals", "1");
+  if (filters.purchased) next.set("purchased", "1");
   if (type === "physical" && filters.shippingFrom.length) {
     next.set("shipping", filters.shippingFrom.join(","));
   }
@@ -468,6 +491,8 @@ export function marketplaceSearchResultsHref(
   }
   if (type === "physical" && filters?.offer) params.set("offer", filters.offer);
   if (type === "digital" && filters?.format) params.set("format", filters.format);
+  if (filters?.arrivals) params.set("arrivals", "1");
+  if (filters?.purchased) params.set("purchased", "1");
   return `/marketplace/search?${params.toString()}`;
 }
 

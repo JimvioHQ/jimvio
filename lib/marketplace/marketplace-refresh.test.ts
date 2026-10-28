@@ -80,9 +80,20 @@ describe("shopping assistant grounding", () => {
       { id: "1", name: "Wireless Earbuds", slug: "wireless-earbuds", price: 19.5, currency: "USD" },
     ]);
     assert.match(block, /Wireless Earbuds/);
+    assert.match(block, /USD 19.50/);
     assert.match(block, /\/marketplace\/wireless-earbuds/);
     assert.doesNotMatch(block, /Sleeping Bag/);
     assert.match(groundedCatalogBlock([]), /none/);
+    const stored = groundedCatalogBlock([
+      { id: "2", name: "Desk Lamp", slug: "desk-lamp", price: 8320, price_usd: 5.63, currency: "RWF" },
+    ]);
+    assert.match(stored, /USD 5\.63/);
+    assert.doesNotMatch(stored, /RWF|8320|6\.66/);
+    const unlabeled = groundedCatalogBlock([
+      { id: "3", name: "Desk Lamp", slug: "desk-lamp", price: 8320, currency: "RWF" },
+    ]);
+    assert.match(unlabeled, /price unavailable/);
+    assert.doesNotMatch(unlabeled, /USD 8320|RWF 8320/);
   });
 
   it("maps suggestion chips to real catalog intents for the active marketplace", () => {
@@ -129,6 +140,12 @@ describe("marketplace wiring", () => {
     assert.match(sidebar, /\/api\/marketplace\/shopping-assistant/);
     assert.match(sidebar, /data-filter-offer/);
     assert.match(sidebar, /data-filter-format/);
+    assert.match(sidebar, /data-filter-listings/);
+    assert.match(sidebar, /New arrivals/);
+    assert.match(sidebar, /Purchased/);
+    assert.match(sidebar, /AbortController/);
+    assert.match(sidebar, /marketplaceCustomerUsd/);
+    assert.doesNotMatch(sidebar, /step=\{type === "digital" \? 5 : 50\}/);
     assert.doesNotMatch(sidebar, /Jimvio Elite Club/);
     assert.doesNotMatch(sidebar, /Join Elite Now/);
     assert.doesNotMatch(sidebar, /Exclusive perks/);
@@ -146,6 +163,16 @@ describe("marketplace wiring", () => {
     assert.match(page, /Search by photo/);
     assert.match(page, /\/api\/marketplace\/trending/);
     assert.match(page, /TrendingProductsClient/);
+    assert.match(page, /digitalCategoryPhotoUrl/);
+    assert.match(page, /price_usd/);
+    assert.match(page, /arrivals/);
+    const assistant = readFileSync(join(root, "app/api/marketplace/shopping-assistant/route.ts"), "utf8");
+    assert.match(assistant, /timeoutMs: MODEL_TIMEOUT_MS/);
+    assert.match(assistant, /MODEL_TIMEOUT_MS = 8_000/);
+    assert.match(assistant, /price_usd/);
+    assert.match(assistant, /shoppingIntentForMessage/);
+    assert.doesNotMatch(assistant, /generateGeminiText/);
+    assert.doesNotMatch(assistant, /while \(attempt < 2\)/);
     assert.match(searchPage, /runMarketplaceSearch/);
     assert.doesNotMatch(page, /\.gte\("rating"/);
     assert.match(tabs, /Best Selling/);

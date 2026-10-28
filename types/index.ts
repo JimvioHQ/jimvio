@@ -40,6 +40,8 @@ export type HeroProduct = {
   name:                      string;
   slug:                      string;
   price:                     number;
+  price_usd?:                number | null;
+  currency?:                 string | null;
   compare_at_price:          number | null;
   discount_label:            string | null;
   images:                    unknown;

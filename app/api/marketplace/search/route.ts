@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
+import { readMarketplaceFlag, readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
         maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
         offer: readMarketplaceOffer(req.nextUrl.searchParams.get("offer"), type),
         format: readMarketplaceFormat(req.nextUrl.searchParams.get("format"), type),
+        arrivals: readMarketplaceFlag(req.nextUrl.searchParams.get("arrivals")),
+        purchased: readMarketplaceFlag(req.nextUrl.searchParams.get("purchased")),
       },
     });
 

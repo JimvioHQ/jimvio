@@ -25,7 +25,7 @@ import {
 
 type PendingFilters = Pick<
   AppliedFilters,
-  "shippingFrom" | "deliveryTimes" | "priceRange" | "minRating" | "offer" | "format"
+  "shippingFrom" | "deliveryTimes" | "priceRange" | "minRating" | "offer" | "format" | "arrivals" | "purchased"
 >;
 
 const DEFAULT_PENDING: PendingFilters = {
@@ -35,6 +35,8 @@ const DEFAULT_PENDING: PendingFilters = {
   minRating: 0,
   offer: "",
   format: "",
+  arrivals: false,
+  purchased: false,
 };
 
 type MarketplaceContextValue = {
@@ -50,6 +52,8 @@ type MarketplaceContextValue = {
   setMinRating: (rating: number) => void;
   setOffer: (offer: AppliedFilters["offer"]) => void;
   setFormat: (format: AppliedFilters["format"]) => void;
+  setArrivals: (arrivals: boolean) => void;
+  setPurchased: (purchased: boolean) => void;
   applyFilters: () => void;
   clearFilters: () => void;
   /** Writes `page` without refetching. Returns false when the URL is unchanged. */
@@ -73,6 +77,8 @@ function snapshotToApplied(type: ProductType, snap: MarketplaceFilterSnapshot): 
     minRating: 0,
     offer: type === "physical" ? snap.offer : "",
     format: type === "digital" ? snap.format : "",
+    arrivals: snap.arrivals,
+    purchased: snap.purchased,
   };
 }
 
@@ -84,6 +90,8 @@ function snapshotToPending(snap: MarketplaceFilterSnapshot): PendingFilters {
     minRating: 0,
     offer: snap.offer,
     format: snap.format,
+    arrivals: snap.arrivals,
+    purchased: snap.purchased,
   };
 }
 
@@ -94,6 +102,8 @@ function sameApplied(a: AppliedFilters, b: AppliedFilters) {
     a.minRating === b.minRating &&
     (a.offer ?? "") === (b.offer ?? "") &&
     (a.format ?? "") === (b.format ?? "") &&
+    Boolean(a.arrivals) === Boolean(b.arrivals) &&
+    Boolean(a.purchased) === Boolean(b.purchased) &&
     a.priceRange[0] === b.priceRange[0] &&
     a.priceRange[1] === b.priceRange[1] &&
     sameList(a.shippingFrom, b.shippingFrom) &&
@@ -108,6 +118,8 @@ function toSnapshot(filters: AppliedFilters, page: number): MarketplaceFilterSna
     minRating: filters.minRating,
     offer: filters.offer ?? "",
     format: filters.format ?? "",
+    arrivals: Boolean(filters.arrivals),
+    purchased: Boolean(filters.purchased),
     shippingFrom: filters.shippingFrom,
     deliveryTimes: filters.deliveryTimes,
     page,
@@ -213,6 +225,14 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
     setPending((prev) => ({ ...prev, format: format ?? "" }));
   }, []);
 
+  const setArrivals = useCallback((arrivals: boolean) => {
+    setPending((prev) => ({ ...prev, arrivals }));
+  }, []);
+
+  const setPurchased = useCallback((purchased: boolean) => {
+    setPending((prev) => ({ ...prev, purchased }));
+  }, []);
+
   const applyFilters = useCallback(() => {
     const next: AppliedFilters = {
       ...filters,
@@ -223,6 +243,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       minRating: 0,
       offer: type === "physical" ? pending.offer ?? "" : "",
       format: type === "digital" ? pending.format ?? "" : "",
+      arrivals: Boolean(pending.arrivals),
+      purchased: Boolean(pending.purchased),
     };
     setFilters(next);
     setPending({
@@ -232,6 +254,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       minRating: 0,
       offer: next.offer,
       format: next.format,
+      arrivals: Boolean(next.arrivals),
+      purchased: Boolean(next.purchased),
     });
     publish(next, 1);
   }, [filters, pending, publish, type]);
@@ -247,6 +271,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       minRating: 0,
       offer: "",
       format: "",
+      arrivals: false,
+      purchased: false,
     };
     setPending(DEFAULT_PENDING);
     setFilters(next);
@@ -272,6 +298,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setMinRating,
       setOffer,
       setFormat,
+      setArrivals,
+      setPurchased,
       applyFilters,
       clearFilters,
       setPage,
@@ -289,6 +317,8 @@ export function MarketplaceProvider({ children }: { children: ReactNode }) {
       setMinRating,
       setOffer,
       setFormat,
+      setArrivals,
+      setPurchased,
       applyFilters,
       clearFilters,
       setPage,

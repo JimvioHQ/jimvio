@@ -42,7 +42,7 @@ describe("public footer links", () => {
         ["Company", [
           ["About Us", "/about"],
           ["Careers", "/careers"],
-          ["Press", "/press"],
+          ["Press & Media", "/media"],
           ["Legal Center", "/legal"],
           ["Contact", "/contact"],
         ]],

@@ -69,7 +69,7 @@ export function getMarketplaceTypeFilter(
 }
 
 const PRODUCT_SELECT = `
-  id, name, slug, price, currency, compare_at_price, images, product_type,
+  id, name, slug, price, price_usd, currency, compare_at_price, images, product_type,
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,

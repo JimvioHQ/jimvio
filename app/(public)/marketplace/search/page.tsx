@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { MarketplaceSearchResultsClient } from "@/components/marketplace/new/MarketplaceSearchResultsClient";
 import { parseMarketplacePage } from "@/lib/marketplace/constants";
-import { readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
+import { readMarketplaceFlag, readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 import { createClient } from "@/lib/supabase/server";
 import type { DbProduct } from "@/lib/utils";
@@ -20,6 +20,8 @@ export default async function MarketplaceSearchPage({
     maxPrice?: string;
     offer?: string;
     format?: string;
+    arrivals?: string;
+    purchased?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -48,6 +50,8 @@ export default async function MarketplaceSearchPage({
           maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
           offer: readMarketplaceOffer(params.offer, initialType),
           format: readMarketplaceFormat(params.format, initialType),
+          arrivals: readMarketplaceFlag(params.arrivals),
+          purchased: readMarketplaceFlag(params.purchased),
         },
       });
       products = payload.products;

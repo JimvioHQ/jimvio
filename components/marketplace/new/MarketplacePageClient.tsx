@@ -36,12 +36,14 @@ import {
   marketplaceEmptyCopy,
   marketplacePopularSearches,
   marketplaceSearchResultsHref,
+  marketplaceNewArrivalSince,
   marketplaceSwitchHref,
   marketplaceTypeFromPathname,
   readMarketplaceFilters,
 } from "@/lib/marketplace/experience";
 import { validateVisualFile } from "@/lib/marketplace/visual-search";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
+import { digitalCategoryPhotoUrl } from "@/lib/marketplace/digital-category-images";
 import {
   MarketplaceSearchBar,
   MarketplaceSearchIcon,
@@ -90,7 +92,9 @@ function isDefaultBrowseState(
     filters.priceRange[1] === DEFAULT_FILTERS.priceRange[1] &&
     filters.minRating === DEFAULT_FILTERS.minRating &&
     (filters.offer ?? "") === "" &&
-    (filters.format ?? "") === ""
+    (filters.format ?? "") === "" &&
+    !filters.arrivals &&
+    !filters.purchased
   );
 }
 
@@ -187,8 +191,11 @@ type Props = {
 function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   const fallbacks = useMemo(() => {
     if (type === "digital") {
-      const url = c.image_url && isRenderableUrl(c.image_url) ? c.image_url.trim() : "";
-      return url ? [url] : [];
+      const urls: string[] = [];
+      if (c.image_url && isRenderableUrl(c.image_url)) urls.push(c.image_url.trim());
+      const photo = digitalCategoryPhotoUrl(c.slug);
+      if (photo && !urls.includes(photo)) urls.push(photo);
+      return urls;
     }
     const mapped = getCategoryImageFallbacks(c.name, c.slug);
     if (c.image_url && isRenderableUrl(c.image_url)) {
@@ -471,8 +478,10 @@ export function MarketplacePageClient({
       function applyFilters(q: any): any {
         if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
-        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
-        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
+        if (hasPriceMax) q = q.lte("price_usd", filters.priceRange[1]);
+        if (hasPriceMin) q = q.gte("price_usd", filters.priceRange[0]);
+        if (filters.arrivals) q = q.gte("created_at", marketplaceNewArrivalSince());
+        if (filters.purchased) q = q.gt("sale_count", 0);
         if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
         if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
         if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
@@ -484,7 +493,7 @@ export function MarketplacePageClient({
         supabaseRef.current
           .from("products")
           .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
+              id, name, slug, price, price_usd, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
               rating, review_count, is_free_shipping, vendor_id, category_id, sku,
@@ -711,8 +720,10 @@ export function MarketplacePageClient({
       function applyFilters(q: any): any {
         if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
-        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
-        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
+        if (hasPriceMax) q = q.lte("price_usd", filters.priceRange[1]);
+        if (hasPriceMin) q = q.gte("price_usd", filters.priceRange[0]);
+        if (filters.arrivals) q = q.gte("created_at", marketplaceNewArrivalSince());
+        if (filters.purchased) q = q.gt("sale_count", 0);
         if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
         if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
         if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
@@ -743,7 +754,7 @@ export function MarketplacePageClient({
             supabaseRef.current
               .from("products")
               .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
+              id, name, slug, price, price_usd, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sold_count,
               claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
@@ -765,7 +776,7 @@ export function MarketplacePageClient({
                 supabaseRef.current
                   .from("products")
                   .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
+              id, name, slug, price, price_usd, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
               rating, review_count, is_free_shipping, vendor_id, category_id, sku,
@@ -896,6 +907,8 @@ export function MarketplacePageClient({
         }
         if (snap.offer) searchParamsForApi.set("offer", snap.offer);
         if (snap.format) searchParamsForApi.set("format", snap.format);
+        if (snap.arrivals) searchParamsForApi.set("arrivals", "1");
+        if (snap.purchased) searchParamsForApi.set("purchased", "1");
         const res = await fetch(`/api/marketplace/search?${searchParamsForApi.toString()}`, {
           signal: controller.signal,
         });
