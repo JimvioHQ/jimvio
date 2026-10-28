@@ -157,9 +157,13 @@ export function SupplierDirectory({ suppliers }: { suppliers: SupplierRecord[] }
                           )}
                         </h3>
                         {supplier.verification_status === "verified" ? (
-                          <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary">
+                          <Link
+                            href="/verified"
+                            title="A Jimvio team member reviewed this store's business details"
+                            className="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-secondary hover:border-[var(--color-accent)]"
+                          >
                             Verified
-                          </span>
+                          </Link>
                         ) : null}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-secondary">

@@ -137,8 +137,8 @@ export const PAGE_SEO = {
     path: "/monetization",
   },
   verified: {
-    title: "Verified program",
-    description: "Learn how Jimvio verifies vendors and creators to keep the marketplace trustworthy.",
+    title: "What Verified means",
+    description: "What the Verified badge on a Jimvio store covers, what it does not, and which stores carry it.",
     path: "/verified",
   },
   careers: {
@@ -192,7 +192,7 @@ export const PAGE_SEO = {
   },
   marketplacePhysical: {
     title: "Physical products",
-    description: "Shop physical products from verified suppliers on Jimvio with shipping options for your region.",
+    description: "Shop physical products on Jimvio. Shipping options and rates are shown for your region before you pay.",
     path: "/marketplace/physical",
   },
   marketplaceDigital: {
