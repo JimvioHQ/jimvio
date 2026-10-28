@@ -2,6 +2,72 @@
 
 # Jimvio v1.0.11
 
+Production release from `4644daa6209634a4dc32aea6a80a23561b0a959e`.
+
+## Changes
+- fix: ground media names and set public page canonicals (4644daa6)
+- chore(release): v1.0.11 [skip ci] (2578aa3c)
+- fix(marketplace): improve filters pricing and route performance (4c9011c1)
+- chore(release): v1.0.11 [skip ci] (a5cc2e8e)
+- fix: write Jimvio Media articles from the source page (78b7f69a)
+- chore(release): v1.0.11 [skip ci] (a4df568d)
+- fix: allow the AI session storage key in secret scanning (cd5facc9)
+- chore(release): v1.0.11 [skip ci] (4b7daea4)
+- fix: accept the stored affiliate short-link code shapes (63075cec)
+- feat: persist affiliate tips and use owned tracking links (26a9d8e2)
+- chore(release): v1.0.11 [skip ci] (ce71c776)
+- fix: refresh the Jimvio Media sitemap after publication (1643da20)
+- chore(release): v1.0.11 [skip ci] (bcb3a089)
+- feat(ai): execute account-scoped Jimvio AI actions (949baf5e)
+- chore(release): v1.0.11 [skip ci] (11108c45)
+- feat(commerce): give store templates distinct homepage layouts (a1bf72c8)
+- fix: keep affiliate guidance off the server attribution module (071cfe78)
+- fix: mention a selected affiliate category only when it is selected (f806ff62)
+- feat: guide affiliates from real catalog and payout data (6633d06d)
+- fix(marketplace): keep filter URLs and live category photos (d9615477)
+- fix: type the editorial image decision in ingest planning (e054ee3b)
+- feat: publish official Jimvio Media notices with an editorial mark (fd814d2c)
+- chore(release): v1.0.11 [skip ci] (725ab4af)
+- feat: pace Jimvio Media discovery and clean the public desk (296291fc)
+- chore(release): v1.0.11 [skip ci] (4f2cc174)
+- feat(marketplace): speed shopping help and show stored USD (b7503eb5)
+- chore(release): v1.0.11 [skip ci] (eabdb963)
+- feat: restore the affiliate hero and catalog search (9501c3b7)
+- feat: replace the affiliate dashboard notifications card (ba72f9c9)
+- chore(release): v1.0.11 [skip ci] (4825f7f5)
+- feat(marketplace): harden physical and digital shopping experience (48e82b2b)
+- chore(release): v1.0.11 [skip ci] (b2fc336e)
+- fix: type the empty affiliate category id map (9bfba67a)
+- feat: filter the Affiliate Center by eight promotion categories (628b375f)
+- chore(release): v1.0.11 [skip ci] (a2c86f38)
+- fix: render Jimvio Media without loading jsdom (c8caf80e)
+- chore(release): v1.0.11 [skip ci] (7197f302)
+- feat: add Jimvio Media with external discovery kept off (7a9ccdcb)
+- feat: estimate shared locations with Geoapify (70745f05)
+- feat: remove four unused public footer links (dcde163a)
+- feat: confirm newsletter signup and issue developer API keys (06092c5f)
+- chore(release): v1.0.11 [skip ci] (fc278acc)
+- feat: show consented location and device detail in admin (959b0cf4)
+- chore(release): v1.0.11 [skip ci] (02a3d852)
+- feat: redesign the public footer and connect its destinations (f37a67a0)
+- chore(release): v1.0.11 [skip ci] (2e396928)
+- feat: add an admin-only Resend domains diagnostic (#42) (ec4f4573)
+- chore(release): v1.0.11 [skip ci] (26a0cf4c)
+- fix: stop admin user details from crashing on ticket lookup (3bea3445)
+- chore(release): v1.0.11 [skip ci] (6075a807)
+- fix: record Search Console page counts and real sitemap pages (#41) (a1b1c17f)
+- feat: rank discovery by country and show admin location sources (7e765dff)
+- chore(release): v1.0.11 [skip ci] (e650a896)
+- feat: finish Jimvio AI chat verification and public catalog privacy (e7c22410)
+- chore(release): v1.0.11 [skip ci] (0af4b43a)
+- feat: ground Jimvio AI discovery and support answers (05b4ef49)
+- feat: draft Search Console reviews from measured queries (6afd6025)
+
+
+## v1.0.11 — 2026-10-28
+
+# Jimvio v1.0.11
+
 Production release from `4c9011c1c6f62fa2e94bcbe65c3eec72731e771a`.
 
 ## Changes
