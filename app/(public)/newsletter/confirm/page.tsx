@@ -15,7 +15,7 @@ export default async function ConfirmNewsletterPage({
   const token = (await searchParams).token ?? "";
   const result = token ? await confirmNewsletterToken(token) : "invalid";
   const copy = {
-    confirmed: "Your subscription is confirmed. Jimvio can send product and trade updates to this address.",
+    confirmed: "Your subscription is confirmed. Jimvio can send product updates to this address.",
     already_subscribed: "This address is already subscribed.",
     unsubscribed: "This address is unsubscribed. Submit the footer form again if you want a new confirmation email.",
     expired: "This confirmation link has expired. Submit the footer form again.",

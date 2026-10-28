@@ -35,9 +35,9 @@ export const HELP_FAQ_ITEMS: FaqItem[] = [
       "Complete your vendor profile, submit business verification documents in the dashboard, and wait for the Jimvio team to review your application. Verified vendors receive a badge on their storefront.",
   },
   {
-    question: "What is Jimvio Trade Assurance?",
+    question: "What is Jimvio Buyer Protection?",
     answer:
-      "Trade Assurance helps protect buyers when orders do not match the listing or fail to arrive. Eligible orders can be reviewed for refunds or resolution through Jimvio support.",
+      "Buyer Protection helps protect buyers when orders do not match the listing or fail to arrive. Eligible orders can be reviewed for refunds or resolution through Jimvio support.",
   },
   {
     question: "How do I withdraw affiliate earnings?",

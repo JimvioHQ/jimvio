@@ -2,7 +2,7 @@ import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 import { renderJimvioEmail } from "@/lib/email/shell";
 
 export const NEWSLETTER_CONSENT_TEXT =
-  "Send me Jimvio product and trade updates by email. I can unsubscribe at any time.";
+  "Send me Jimvio product updates by email. I can unsubscribe at any time.";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CONFIRM_TTL_SEC = 7 * 24 * 60 * 60;

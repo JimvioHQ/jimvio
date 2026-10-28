@@ -10,7 +10,7 @@ export default function BuyerProtectionPage() {
     <PublicInfoPage
       eyebrow="Marketplace"
       title="Buyer Protection"
-      lede="Trade Assurance helps protect buyers when an order does not match the listing or does not arrive. Eligible orders can be reviewed for a refund or another resolution through Jimvio support."
+      lede="Jimvio Buyer Protection helps protect buyers when an order does not match the listing or does not arrive. Eligible orders can be reviewed for a refund or another resolution through Jimvio support."
     >
       <InfoSection title="What review covers">
         <p>

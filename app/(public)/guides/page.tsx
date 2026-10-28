@@ -20,7 +20,7 @@ export default function TradeGuidesPage() {
   return (
     <PublicInfoPage
       eyebrow="Resources"
-      title="Trade Guides"
+      title="Guides"
       lede="These guides are the existing Jimvio help articles for buying, selling, supplier fulfillment, and shipping. They describe the product as it works today."
     >
       {sections.map(({ category, articles }) => (

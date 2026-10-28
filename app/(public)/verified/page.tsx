@@ -15,7 +15,7 @@ export default async function VerifiedExportersPage() {
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[var(--color-accent)]/5 to-transparent" />
         <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10 flex flex-col items-center text-center">
           <Badge className="bg-ink-dark text-white border-none mb-6 px-4 py-1.5 capitalize tracking-widest font-black text-[10px]">
-            <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Verified Exporters
+            <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Verified Sellers
           </Badge>
           <h1 className="text-5xl md:text-7xl font-[900] text-[var(--color-text-primary)] mb-8 tracking-tighter leading-[0.95]">
             Hand-Picked <span className="text-[var(--color-accent)]">Top Tier</span> Factories
