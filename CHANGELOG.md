@@ -2,6 +2,42 @@
 
 # Jimvio v1.0.11
 
+Production release from `48e82b2b4144e50aad5b86cde46fc630f3df4dd2`.
+
+## Changes
+- feat(marketplace): harden physical and digital shopping experience (48e82b2b)
+- chore(release): v1.0.11 [skip ci] (b2fc336e)
+- fix: type the empty affiliate category id map (9bfba67a)
+- feat: filter the Affiliate Center by eight promotion categories (628b375f)
+- chore(release): v1.0.11 [skip ci] (a2c86f38)
+- fix: render Jimvio Media without loading jsdom (c8caf80e)
+- chore(release): v1.0.11 [skip ci] (7197f302)
+- feat: add Jimvio Media with external discovery kept off (7a9ccdcb)
+- feat: estimate shared locations with Geoapify (70745f05)
+- feat: remove four unused public footer links (dcde163a)
+- feat: confirm newsletter signup and issue developer API keys (06092c5f)
+- chore(release): v1.0.11 [skip ci] (fc278acc)
+- feat: show consented location and device detail in admin (959b0cf4)
+- chore(release): v1.0.11 [skip ci] (02a3d852)
+- feat: redesign the public footer and connect its destinations (f37a67a0)
+- chore(release): v1.0.11 [skip ci] (2e396928)
+- feat: add an admin-only Resend domains diagnostic (#42) (ec4f4573)
+- chore(release): v1.0.11 [skip ci] (26a0cf4c)
+- fix: stop admin user details from crashing on ticket lookup (3bea3445)
+- chore(release): v1.0.11 [skip ci] (6075a807)
+- fix: record Search Console page counts and real sitemap pages (#41) (a1b1c17f)
+- feat: rank discovery by country and show admin location sources (7e765dff)
+- chore(release): v1.0.11 [skip ci] (e650a896)
+- feat: finish Jimvio AI chat verification and public catalog privacy (e7c22410)
+- chore(release): v1.0.11 [skip ci] (0af4b43a)
+- feat: ground Jimvio AI discovery and support answers (05b4ef49)
+- feat: draft Search Console reviews from measured queries (6afd6025)
+
+
+## v1.0.11 — 2026-10-28
+
+# Jimvio v1.0.11
+
 Production release from `9bfba67a932bcb807876c6f207dd855abf0b091d`.
 
 ## Changes
