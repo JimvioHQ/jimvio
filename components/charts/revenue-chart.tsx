@@ -12,20 +12,8 @@ export interface ChartDataPoint {
   [key: string]: string | number | undefined;
 }
 
-const defaultData: ChartDataPoint[] = [
-  { month: "Jan", revenue: 420000, orders: 42, affiliate: 85000 },
-  { month: "Feb", revenue: 380000, orders: 38, affiliate: 72000 },
-  { month: "Mar", revenue: 590000, orders: 61, affiliate: 115000 },
-  { month: "Apr", revenue: 710000, orders: 74, affiliate: 138000 },
-  { month: "May", revenue: 650000, orders: 68, affiliate: 122000 },
-  { month: "Jun", revenue: 880000, orders: 91, affiliate: 170000 },
-  { month: "Jul", revenue: 760000, orders: 82, affiliate: 148000 },
-  { month: "Aug", revenue: 920000, orders: 97, affiliate: 184000 },
-  { month: "Sep", revenue: 1050000, orders: 108, affiliate: 210000 },
-  { month: "Oct", revenue: 980000, orders: 104, affiliate: 195000 },
-  { month: "Nov", revenue: 1240000, orders: 128, affiliate: 248000 },
-  { month: "Dec", revenue: 1480000, orders: 156, affiliate: 296000 },
-];
+// No sample figures: charts render only the data they are given.
+const defaultData: ChartDataPoint[] = [];
 
 function pctChange(current: number, prev: number): number | null {
   if (!prev) return null;
