@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
 import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils";
-import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
 import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
@@ -39,7 +38,7 @@ type Theme = {
 const THEMES: Record<"physical" | "digital", Theme> = {
   physical: {
     badge: JIMVIO_ORANGE.gradient,
-    badgeText: "FLASH SALE",
+    badgeText: "FEATURED DEAL",
     headline: "#ffffff",
     sub: "rgba(255,255,255,0.70)",
     price: "#fd8c00",
@@ -766,11 +765,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           </div>
         </div>
       )}
-
-      {/* ── Countdown ── */}
-      <div className="absolute bottom-10 right-3 z-20 hidden sm:block">
-        <HeroBannerClient claimedPct={product.claimed_pct ?? 0} />
-      </div>
 
       {/* ── Desktop content panel ── */}
       <div className="absolute inset-0 z-10 hidden flex-col justify-center p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">

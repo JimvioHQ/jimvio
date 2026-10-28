@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Zap, ChevronLeft, SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { FlashDealCard } from "./FlashDealsClient";
-import { FlashDealsCountdown } from "./FlashDealsCountdown";
 import type { DbProduct } from "@/lib/utils";
 import { getEffectiveCompareAtPrice } from "@/lib/utils";
 import { canonicalMarketplacePath, type MarketplaceProductType } from "@/lib/marketplace/experience";
@@ -144,7 +143,6 @@ export function FlashDealsPageClient({
               <span className="font-bold">All Flash Deals</span>
             </div>
           </div>
-          <FlashDealsCountdown />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] px-3 py-2 sm:px-4">
