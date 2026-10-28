@@ -38,6 +38,7 @@ function UploadPostPageInner() {
       <PostComposer
         variant="page"
         initialCommunitySlug={communitySlug}
+        initialAiOpen={searchParams.get("ai") === "1"}
         onPublished={onPublished}
       />
     </div>
