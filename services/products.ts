@@ -268,17 +268,25 @@ export const getCategories = cache(async () => {
 /** Categories that actually have active listings. Falls back to [] if none. */
 export const getMarketplaceCategories = cache(async () => {
   const db = await getDB();
-  const { data: productRows } = await db
-    .from("products")
-    .select("category_id")
-    .eq("status", "active")
-    .eq("is_active", true)
-    .not("category_id", "is", null);
+  // Page through: the API returns at most 1,000 rows per request.
+  const productRows: { category_id: string | null }[] = [];
+  for (let from = 0; from < 50_000; from += 1000) {
+    const { data: page } = await db
+      .from("products")
+      .select("category_id")
+      .eq("status", "active")
+      .eq("is_active", true)
+      .not("category_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, from + 999);
+    productRows.push(...((page ?? []) as { category_id: string | null }[]));
+    if (!page || page.length < 1000) break;
+  }
 
   const ids = [
     ...new Set(
-      (productRows ?? [])
-        .map((r: { category_id: string | null }) => r.category_id)
+      productRows
+        .map((r) => r.category_id)
         .filter((id): id is string => id != null && id !== ""),
     ),
   ];

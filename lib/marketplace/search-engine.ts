@@ -13,6 +13,8 @@ export type SearchableProduct = {
   view_count?: number | null;
   sale_count?: number | null;
   vendor_id?: string | null;
+  /** "cj" / "shopify" for supplier listings; null or "vendor" for a seller's own product. */
+  source?: string | null;
 };
 
 export type SearchableCategory = {
@@ -204,7 +206,17 @@ export function scoreProduct(
   score += Math.min(Number(product.sale_count ?? 0) / 100, 8);
   score += Math.min(Number(product.view_count ?? 0) / 500, 5);
 
+  // M-9: a seller's own listing ranks ahead of an equally relevant
+  // dropshipped one. Only applied to products that already match.
+  if (score > 0 && !isSupplierSource(product.source)) score += 12;
+
   return score;
+}
+
+const SUPPLIER_SOURCES = new Set(["cj", "shopify", "aliexpress", "dropship"]);
+
+export function isSupplierSource(source: string | null | undefined): boolean {
+  return typeof source === "string" && SUPPLIER_SOURCES.has(source.toLowerCase());
 }
 
 export function paginateSearchResults<T>(items: T[], page: number, pageSize: number) {

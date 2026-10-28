@@ -60,20 +60,21 @@ export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
     description,
     image: absoluteImage,
     sku: product.sku ?? product.slug,
-    brand: product.brand
-      ? { "@type": "Brand", name: product.brand }
-      : { "@type": "Brand", name: "Jimvio" },
+    // No invented brand: only a real brand or seller name is emitted.
+    ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
     url: `${SITE.url}/marketplace/${product.slug}`,
-    offers: {
+    ...(product.price == null || !Number.isFinite(Number(product.price))
+      ? {}
+      : { offers: {
       "@type": "Offer",
       url: `${SITE.url}/marketplace/${product.slug}`,
       priceCurrency: (product.currency ?? "USD").toUpperCase(),
-      price: String(product.price ?? 0),
+      price: String(product.price),
       availability: product.in_stock === false
         ? "https://schema.org/OutOfStock"
         : "https://schema.org/InStock",
       seller: { "@type": "Organization", name: SITE.name },
-    },
+    } }),
     ...(product.average_rating && product.review_count
       ? {
           aggregateRating: {

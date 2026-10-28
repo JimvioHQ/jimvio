@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { notFound } from "next/navigation";
 import { getProductPageData, getUserCountry, getProductBySlug } from "@/services/db";
 import { loadPublicTrust } from "@/lib/digital-products/trust/service";
@@ -60,8 +61,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
     slug: product.slug,
     description: product.description,
     short_description: product.short_description,
-    price: product.price,
-    currency: product.currency,
+    // M-7: structured data matches the USD price shown on the page.
+    price: marketplaceCustomerUsd({
+      price: product.price,
+      price_usd: (product as { price_usd?: number | null }).price_usd,
+      currency: product.currency,
+    }),
+    currency: "USD",
     images: product.images,
     sku: product.sku,
     brand: vendor?.business_name ?? null,

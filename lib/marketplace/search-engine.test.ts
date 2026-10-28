@@ -52,6 +52,16 @@ describe("marketplace search-engine", () => {
     assert.ok(scoreProduct(tote, terms) >= 20);
   });
 
+  it("ranks a seller's own listing ahead of an equal supplier listing (M-9)", () => {
+    const terms = expandSearchTerms("tote bag");
+    const base = { name: "Canvas Tote Bag", slug: "canvas-tote-bag" };
+    const own: SearchableProduct = { id: "a", ...base, source: null };
+    const supplier: SearchableProduct = { id: "b", ...base, source: "cj" };
+    assert.ok(scoreProduct(own, terms) > scoreProduct(supplier, terms));
+    const miss: SearchableProduct = { id: "c", name: "Desk Lamp", slug: "desk-lamp", source: null };
+    assert.equal(scoreProduct(miss, terms), 0);
+  });
+
   it("does not soft-match spring coats for ring queries", () => {
     const terms = expandSearchTerms("ring");
     const jewelry: SearchableProduct = {
