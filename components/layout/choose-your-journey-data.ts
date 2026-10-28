@@ -38,7 +38,7 @@ export const JOURNEY_CARDS: readonly JourneyCardConfig[] = [
     description:
       "Discover, buy, and sell physical and digital products from verified sellers worldwide.",
     bullets: [
-      "Millions of products",
+      "Physical & digital products",
       "Verified suppliers",
       "Secure checkout",
       "Global shipping",

@@ -105,10 +105,10 @@ export type MarketplaceBenefit = {
 
 export const MARKETPLACE_BENEFITS: Record<MarketplaceProductType, readonly MarketplaceBenefit[]> = {
   physical: [
-    { title: "Secure Payments", subtitle: "100% safe", icon: "shield" },
-    { title: "Buyer Protection", subtitle: "Money-back guarantee", icon: "badge" },
-    { title: "Verified Suppliers", subtitle: "Trusted & reliable", icon: "check" },
-    { title: "Fast Delivery", subtitle: "Worldwide shipping", icon: "truck" },
+    { title: "Secure Payments", subtitle: "Encrypted checkout", icon: "shield" },
+    { title: "Buyer Protection", subtitle: "Eligible orders reviewed", icon: "badge" },
+    { title: "Verified Stores", subtitle: "Badge only after checks", icon: "check" },
+    { title: "Shipping Shown", subtitle: "Rates before you pay", icon: "truck" },
   ],
   digital: [
     { title: "Digital Delivery", subtitle: "Hosted files after payment", icon: "download" },

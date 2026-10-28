@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const shell = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
 const WHY: readonly { icon: LucideIcon; title: string; desc: string }[] = [
-  { icon: ShieldCheck, title: "Checked vendors", desc: "We review suppliers before they list." },
+  { icon: ShieldCheck, title: "Verified stores", desc: "The verified badge appears only after store checks." },
   { icon: Wallet, title: "Wallet payouts", desc: "Earnings land in your Jimvio balance." },
   {
     icon: Globe,

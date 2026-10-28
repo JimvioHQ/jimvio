@@ -161,10 +161,10 @@ describe("marketplace type-specific content", () => {
     assert.deepEqual(
       MARKETPLACE_BENEFITS.physical.map((item) => [item.title, item.subtitle]),
       [
-        ["Secure Payments", "100% safe"],
-        ["Buyer Protection", "Money-back guarantee"],
-        ["Verified Suppliers", "Trusted & reliable"],
-        ["Fast Delivery", "Worldwide shipping"],
+        ["Secure Payments", "Encrypted checkout"],
+        ["Buyer Protection", "Eligible orders reviewed"],
+        ["Verified Stores", "Badge only after checks"],
+        ["Shipping Shown", "Rates before you pay"],
       ],
     );
     const digital = MARKETPLACE_BENEFITS.digital.map((item) => `${item.title} ${item.subtitle}`).join(" | ");
