@@ -29,7 +29,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+    <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:p-5">
       <header>
         <h2 className="text-base font-bold text-[var(--color-text-primary)]">
           {title}
@@ -70,15 +70,22 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-[13px]">
+    <label
+      className={`flex min-h-[48px] items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-[13px] ${
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+      }`}
+    >
       <span className="font-semibold text-[var(--color-text-primary)]">
         {label}
       </span>
       <input
         type="checkbox"
+        role="switch"
+        aria-checked={checked}
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
+        className="relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-[#D1D5DB] transition-colors before:absolute before:left-0.5 before:top-0.5 before:h-5 before:w-5 before:rounded-full before:bg-white before:shadow before:transition-transform before:content-[''] checked:bg-[#FF5A1F] checked:before:translate-x-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 disabled:cursor-not-allowed"
       />
     </label>
   );
