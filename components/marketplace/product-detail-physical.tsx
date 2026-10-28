@@ -47,6 +47,7 @@ import {
   sanitizeSupplierFacingText,
 } from "@/lib/cj/customer-facing";
 import { resolveWarehouseCountryLabel } from "@/lib/shipping/warehouse-country";
+import { computeLandedPrice } from "@/lib/shipping/landed-price";
 import { useRegionalShipping } from "@/hooks/use-regional-shipping";
 import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
 import { StockStatusBadge } from "@/components/marketplace/stock-status-badge";
@@ -1240,6 +1241,9 @@ export function PhysicalProductDetail({
       });
   const displayPriceLabel = displayUsd == null ? "Price unavailable" : formatMoney(displayUsd, "USD");
   const comparePriceLabel = compareUsd == null ? null : formatMoney(compareUsd, "USD");
+  const landed = shippingLoading
+    ? null
+    : computeLandedPrice(displayUsd, regionalShippingOptions, isFreeShipping);
   const savingsAmount = displayUsd != null && compareUsd != null && compareUsd > displayUsd
     ? Math.round((compareUsd - displayUsd) * 100) / 100
     : 0;
@@ -1416,6 +1420,21 @@ export function PhysicalProductDetail({
                     You save {formatMoney(savingsAmount, "USD")}
                   </p>
                 )}
+                {landed && buyerCountryLabel ? (
+                  <p className="mt-1.5 text-[12px] text-[var(--color-text-secondary)]">
+                    {landed.isFree ? (
+                      <>Free delivery to {buyerCountryLabel}</>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-[var(--color-text-primary)]">
+                          {formatMoney(landed.totalUsd, "USD")}
+                        </span>{" "}
+                        delivered to {buyerCountryLabel} (incl. {formatMoney(landed.shippingUsd, "USD")} shipping)
+                      </>
+                    )}
+                    <span className="text-[var(--color-text-muted)]"> · import duties, if any, not included</span>
+                  </p>
+                ) : null}
               </div>
             </section>
 
