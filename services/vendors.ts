@@ -384,9 +384,10 @@ export async function getTopVendors(limit = 4, options?: { requireActiveProducts
         business_country,
         created_at,
         verification_status,
-        products ( id, name, slug, images, price, currency )
+        products!inner ( id, name, slug, images, price, currency )
       `,
       )
+      // !inner: only vendors with at least one active, published product (P0-5).
       .eq("is_active", true)
       .eq("products.status", "active")
       .eq("products.is_active", true)
