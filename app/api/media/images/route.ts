@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requirePlatformAdmin } from "@/lib/auth/platform-admin";
 import { imageExtension, MAX_IMAGE_BYTES, sniffImageMime } from "@/lib/editorial/images";
 import { uploadOriginAllowed } from "@/lib/editorial/publish";
+import { serverCloudinaryCloudName } from "@/services/media/cloudinary-account";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const cloudName = serverCloudinaryCloudName();
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   if (!cloudName || !apiKey || !apiSecret) {

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { v2 as cloudinary } from "cloudinary";
 import type { ValidatedImage } from "./validate-image";
 import type { LicensedPhotoSpec, PhotoMediaProvenance } from "./types";
+import { serverCloudinaryCloudName } from "@/services/media/cloudinary-account";
 
 export type CloudinaryPhotoUpload = {
   secureUrl: string;
@@ -17,9 +18,7 @@ export type CloudinaryPhotoUpload = {
 
 export function hasCloudinaryCredentials(): boolean {
   const cloudName =
-    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() ||
-    process.env.CLOUDINARY_CLOUD_NAME?.trim() ||
-    "";
+    serverCloudinaryCloudName();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim() || "";
   const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim() || "";
   const looksReal = (v: string) =>
@@ -31,9 +30,7 @@ export function hasCloudinaryCredentials(): boolean {
 
 function requireCloudinaryConfig() {
   const cloudName =
-    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() ||
-    process.env.CLOUDINARY_CLOUD_NAME?.trim() ||
-    "";
+    serverCloudinaryCloudName();
   const apiKey = process.env.CLOUDINARY_API_KEY?.trim() || "";
   const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim() || "";
   if (!cloudName || !apiKey || !apiSecret) {
