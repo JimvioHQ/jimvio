@@ -11,7 +11,7 @@ import {
   titleTokens,
   wordCount,
 } from "@/lib/editorial/ingest/feed";
-import { editorialFallbackImage } from "@/lib/editorial/ingest/images";
+import { editorialFallbackImage, type ImageDecision } from "@/lib/editorial/ingest/images";
 import {
   DAILY_PUBLISH_MAX,
   type ExistingArticleRef,
