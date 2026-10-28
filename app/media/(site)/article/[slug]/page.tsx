@@ -4,7 +4,7 @@ import { ArticleView } from "@/components/editorial/article-view";
 import { JsonLd } from "@/components/editorial/json-ld";
 import { MediaErrorState } from "@/components/editorial/presentation";
 import { loadCatalog } from "@/lib/editorial/catalog";
-import { breadcrumbJsonLd, mediaTitle, metaDescription, neighborArticles, relatedArticles, showUpdated, absoluteImageUrl } from "@/lib/editorial/discover";
+import { absoluteImageUrl, breadcrumbJsonLd, mediaTitle, metaDescription, neighborArticles, publicCorrection, relatedArticles } from "@/lib/editorial/discover";
 import { articleJsonLd } from "@/lib/editorial/publish";
 import { getPublishedArticle } from "@/lib/editorial/public-store";
 import { getSiteUrl } from "@/lib/site-url";
@@ -52,7 +52,6 @@ export async function generateMetadata({
     description,
     alternates: { canonical },
     robots: indexable ? { index: true, follow: true } : { index: false, follow: false },
-    authors: article.authorName ? [{ name: article.authorName }] : undefined,
     openGraph: {
       title: socialTitle,
       description,
@@ -62,7 +61,7 @@ export async function generateMetadata({
       locale: "en_US",
       publishedTime: article.fixture ? undefined : article.publishedAt ?? undefined,
       modifiedTime:
-        !article.fixture && showUpdated(article.publishedAt, article.updatedAt) ? article.updatedAt ?? undefined : undefined,
+        !article.fixture && publicCorrection(article.correctionNote) ? article.updatedAt ?? undefined : undefined,
       images: image ? [{ url: image, alt: article.imageAlt || article.title }] : undefined,
     },
     twitter: {

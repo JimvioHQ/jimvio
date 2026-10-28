@@ -1,4 +1,5 @@
 import type { HomeComposition, PublicArticle } from "@/lib/editorial/types";
+import { resolveMediaCategory } from "@/lib/editorial/validate";
 
 function take(articles: PublicArticle[], used: Set<string>, predicate: (article: PublicArticle) => boolean, limit: number) {
   const picked: PublicArticle[] = [];
@@ -57,7 +58,9 @@ export function searchArticles(articles: PublicArticle[], query: string): Public
 }
 
 export function articlesInCategory(articles: PublicArticle[], category: string): PublicArticle[] {
-  return articles.filter((article) => article.category === category);
+  const canonical = resolveMediaCategory(category);
+  if (!canonical) return [];
+  return articles.filter((article) => resolveMediaCategory(article.category) === canonical);
 }
 
 export function searchPublishedArticles(
@@ -67,5 +70,5 @@ export function searchPublishedArticles(
 ): PublicArticle[] {
   const matched = searchArticles(articles, query);
   if (!category) return matched;
-  return matched.filter((article) => article.category === category);
+  return articlesInCategory(matched, category);
 }

@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
+import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
-import { publicCorrection, publicSource, readingMinutes, showUpdated } from "@/lib/editorial/discover";
+import { publicCorrection, publicSource, readingMinutes } from "@/lib/editorial/discover";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import type { PublicArticle } from "@/lib/editorial/types";
-import { categoryLabel, publicAuthorName } from "@/lib/editorial/validate";
+import { categoryLabel, displayKicker } from "@/lib/editorial/validate";
 
 function formatDate(iso: string) {
   const time = Date.parse(iso);
@@ -29,11 +29,8 @@ export function ArticleView({
   shareUrl?: string | null;
 }) {
   const html = sanitizeArticleHtml(article.bodyHtml);
-  const author = publicAuthorName(article.authorName);
-  const kicker = (article.kicker || article.category).toUpperCase();
   const label = categoryLabel(article.category);
   const minutes = readingMinutes(html);
-  const updated = showUpdated(article.publishedAt, article.updatedAt);
   const source = publicSource(article);
   const correction = publicCorrection(article.correctionNote);
   const neighbors = previous || next;
@@ -67,31 +64,24 @@ export function ArticleView({
             </li>
           </ol>
         </nav>
-        <p className="mt-4 text-[12px] font-bold uppercase tracking-[0.12em] text-[#fd5000]">{kicker}</p>
-        <h1 className="mt-3 text-[34px] font-bold leading-[1.15] tracking-[-0.03em] text-[#141820] sm:text-[42px]">
+        <Kicker label={displayKicker(article)} className="mt-4" />
+        <h1 className={`${styles.display} mt-3 text-[1.75rem] text-[#141820] sm:text-[2.15rem]`}>
           {article.title}
         </h1>
-        {article.excerpt ? <p className="mt-4 text-lg leading-relaxed text-[#4b5568]">{article.excerpt}</p> : null}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        {article.excerpt ? <p className="mt-4 max-w-[65ch] text-lg leading-relaxed text-[#4b5568]">{article.excerpt}</p> : null}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-[#667085]">
-            {author ? <span>{author}</span> : null}
-            {author && (article.publishedAt || minutes > 0) ? <span aria-hidden="true"> · </span> : null}
             {article.publishedAt ? (
               <time dateTime={article.publishedAt}>Published {formatDate(article.publishedAt)}</time>
-            ) : null}
-            {updated && article.updatedAt ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                <time dateTime={article.updatedAt}>Updated {formatDate(article.updatedAt)}</time>
-              </>
+            ) : article.fixture ? (
+              <span>Design fixture</span>
             ) : null}
             {minutes > 0 ? (
               <>
-                {(author || article.publishedAt || updated) ? <span aria-hidden="true"> · </span> : null}
+                {article.publishedAt || article.fixture ? <span aria-hidden="true"> · </span> : null}
                 <span>{minutes} min read</span>
               </>
             ) : null}
-            {!author && !article.publishedAt && article.fixture ? <span>Design fixture</span> : null}
           </p>
           {shareUrl ? <ShareStory title={article.title} url={shareUrl} /> : null}
         </div>
@@ -142,7 +132,7 @@ export function ArticleView({
             )}
           </p>
         ) : null}
-        <div className={`${styles.body} mt-8 text-[17px] text-[#1c2430]`} dangerouslySetInnerHTML={{ __html: html }} />
+        <div className={`${styles.body} mt-8 text-[1.125rem]`} dangerouslySetInnerHTML={{ __html: html }} />
         <p className="mt-10 text-sm text-[#667085]">
           Filed in{" "}
           <Link

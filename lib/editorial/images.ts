@@ -1,4 +1,5 @@
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/** Stay under the platform request-body limit so a large file returns JSON instead of an empty failure. */
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 export function sniffImageMime(bytes: Uint8Array): "image/jpeg" | "image/png" | "image/webp" | "image/gif" | null {
   if (bytes.length > MAX_IMAGE_BYTES) return null;

@@ -47,6 +47,15 @@ export function categoryLabel(slug: string): string {
   return MEDIA_CATEGORIES.find((item) => item.slug === slug)?.label ?? slug;
 }
 
+/** One category key for manual publishing, ingestion, and public listings. */
+export function resolveMediaCategory(value: string | null | undefined): MediaCategory | null {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  if (isMediaCategory(raw)) return raw;
+  const match = MEDIA_CATEGORIES.find((item) => item.label.toLowerCase() === raw);
+  return match ? match.slug : null;
+}
+
 export function slugifyTitle(title: string): string {
   return title
     .normalize("NFKD")
@@ -271,8 +280,8 @@ export function validateArticle(
   return { errors, scheduledAt };
 }
 
-export function displayKicker(article: { kicker: string; category: string }): string {
-  return (article.kicker || article.category).toUpperCase();
+export function displayKicker(article: { category: string; kicker?: string }): string {
+  return categoryLabel(article.category).toUpperCase();
 }
 
 export const KICKER_COLORS: Record<string, string> = {

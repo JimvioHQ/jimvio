@@ -1,4 +1,4 @@
-import { absoluteImageUrl, articleLastModified, metaDescription, showUpdated } from "@/lib/editorial/discover";
+import { absoluteImageUrl, articleLastModified, metaDescription, publicCorrection } from "@/lib/editorial/discover";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import {
   MEDIA_CATEGORIES,
@@ -209,13 +209,13 @@ export function articleJsonLd(
     authorName: string | null;
     category?: string;
     seoDescription?: string | null;
+    correctionNote?: string | null;
   },
   site: string,
 ): Record<string, unknown> | null {
   if (article.fixture || !isValidSlug(article.slug)) return null;
   const origin = site.replace(/\/$/, "");
   const description = metaDescription(article.seoDescription, article.excerpt);
-  const author = publicAuthorName(article.authorName);
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": article.category === "news" ? "NewsArticle" : "Article",
@@ -226,12 +226,11 @@ export function articleJsonLd(
   };
   if (description) data.description = description;
   if (article.publishedAt) data.datePublished = article.publishedAt;
-  if (showUpdated(article.publishedAt, article.updatedAt) && article.updatedAt) {
+  if (publicCorrection(article.correctionNote) && article.updatedAt) {
     data.dateModified = article.updatedAt;
   }
   const image = absoluteImageUrl(origin, article.imageUrl);
   if (image) data.image = [image];
-  if (author) data.author = { "@type": "Person", name: author };
   return data;
 }
 

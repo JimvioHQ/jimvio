@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { MediaCategory, MediaStatus } from "@/lib/editorial/types";
-import { isMediaCategory } from "@/lib/editorial/validate";
+import { resolveMediaCategory } from "@/lib/editorial/validate";
 import { buildOriginalBrief, isSensitiveText } from "@/lib/editorial/ingest/compose";
 import {
   escapeHtml,
@@ -12,17 +12,26 @@ import {
   wordCount,
 } from "@/lib/editorial/ingest/feed";
 import type { ImageDecision } from "@/lib/editorial/ingest/images";
-import type {
-  ExistingArticleRef,
-  ExistingItemRef,
-  FeedItem,
-  IngestSettings,
-  PlannedItem,
-  SourceRecord,
+import {
+  DAILY_PUBLISH_MAX,
+  type ExistingArticleRef,
+  type ExistingItemRef,
+  type FeedItem,
+  type IngestSettings,
+  type PlannedItem,
+  type SourceRecord,
 } from "@/lib/editorial/ingest/types";
 
 export const STUCK_JOB_MS = 15 * 60 * 1000;
 export const MAX_SOURCES_PER_CYCLE = 2;
+
+/** How many stories may publish by this UTC hour so a daily cap is spread across the day. */
+export function publishPaceOpen(publishedToday: number, cap: number, now: Date): boolean {
+  const limit = Math.min(DAILY_PUBLISH_MAX, Math.max(0, Math.floor(cap)));
+  if (limit <= 0 || publishedToday >= limit) return false;
+  const opened = Math.max(1, Math.ceil(((now.getUTCHours() + 1) / 24) * limit));
+  return publishedToday < Math.min(limit, opened);
+}
 
 export function stableItemId(externalKey: string): string {
   const hex = createHash("sha256").update(externalKey).digest("hex");
@@ -73,6 +82,7 @@ function decideIntent(input: {
   category: MediaCategory;
   publishedToday: number;
   serverAutopublish: boolean;
+  now: Date;
 }): { intent: MediaStatus | null; reasons: string[] } {
   const reasons: string[] = [];
   if (input.settings.blockedCategories.includes(input.category)) {
@@ -94,6 +104,9 @@ function decideIntent(input: {
   if (input.publishedToday >= input.settings.dailyPublishCap) reasons.push("publish_cap");
   if (input.source.permittedUsage !== "facts" && input.source.permittedUsage !== "full") reasons.push("usage");
   if (reasons.length) return { intent: "review", reasons };
+  if (!publishPaceOpen(input.publishedToday, input.settings.dailyPublishCap, input.now)) {
+    return { intent: null, reasons: ["publish_pace"] };
+  }
   return { intent: "published", reasons: [] };
 }
 
@@ -109,7 +122,7 @@ export function planSourceItems(input: {
   imageFor?: (item: FeedItem) => ImageDecision | null;
   otherReports?: readonly { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[];
   ids?: (externalKey: string) => string;
-}): PlannedItem[] {
+}): PlannedItem[] & { heldForPace: number } {
   const ids = input.ids ?? stableItemId;
   const now = input.now;
   const staleBefore = now.getTime() - input.settings.staleDays * 24 * 60 * 60 * 1000;
@@ -123,6 +136,7 @@ export function planSourceItems(input: {
 
   const fresh: Working[] = [];
   const planned: PlannedItem[] = [];
+  let heldForPace = 0;
   const seen = new Set<string>();
   for (const item of input.items) {
     if (planned.length + fresh.length >= input.settings.maxItemsPerRun) break;
@@ -180,7 +194,10 @@ export function planSourceItems(input: {
       }
       continue;
     }
-    const category = input.source.categories.find((value) => isMediaCategory(value)) ?? "news";
+    const category =
+      input.source.categories
+        .map((value) => resolveMediaCategory(value))
+        .find((value): value is NonNullable<typeof value> => value !== null) ?? "news";
     const blocked = input.settings.blockedCategories.includes(category);
     const related = (input.otherReports ?? []).filter((report) => {
       if (report.sourceName === input.source.name) return false;
@@ -214,7 +231,12 @@ export function planSourceItems(input: {
           category,
           publishedToday: publishedSlots,
           serverAutopublish: input.serverAutopublish,
+          now,
         });
+    if (decision.reasons.includes("publish_pace")) {
+      heldForPace += group.length;
+      continue;
+    }
     let status: PlannedItem["status"] = "filtered";
     let reason: string | null = "insufficient";
     if (blocked) reason = "category_blocked";
@@ -272,7 +294,7 @@ export function planSourceItems(input: {
       if (row.clusterKey === clusterKey && row.externalKey !== primary.externalKey && primaryRow) row.duplicateOf = primaryRow.id;
     }
   }
-  return planned;
+  return Object.assign(planned, { heldForPace });
 }
 
 function blank(

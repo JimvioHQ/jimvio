@@ -7,8 +7,10 @@ import { saveMediaArticle } from "@/lib/editorial/actions";
 import { RichTextEditor } from "@/components/editorial/admin/rich-text";
 import styles from "@/components/editorial/editorial.module.css";
 import { MEDIA_CATEGORIES, MEDIA_SECTIONS, type AdminArticle, type ArticleInput, type FieldErrors, type MediaStatus } from "@/lib/editorial/types";
+import { MAX_IMAGE_BYTES } from "@/lib/editorial/images";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import { statusLabel } from "@/lib/editorial/status";
+import { categoryLabel } from "@/lib/editorial/validate";
 
 const TABS = ["Content", "SEO", "Settings", "Preview"] as const;
 type Tab = (typeof TABS)[number];
@@ -122,12 +124,16 @@ export function ArticleEditor({
   async function onFile(file: File | undefined) {
     if (!file) return;
     setUploadError("");
+    if (file.size > MAX_IMAGE_BYTES) {
+      setUploadError("Images must be 4 MB or smaller.");
+      return;
+    }
     const body = new FormData();
     body.set("file", file);
     const response = await fetch("/api/media/images", { method: "POST", body });
     const payload = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
     if (!response.ok || !payload?.url) {
-      setUploadError(payload?.error || "The image could not be uploaded. Paste an https URL instead.");
+      setUploadError(payload?.error || "The image could not be uploaded. Use a JPEG, PNG, WebP, or GIF under 4 MB, or paste an https URL.");
       return;
     }
     setImageUrl(payload.url);
@@ -342,12 +348,14 @@ export function ArticleEditor({
             </select>
           </label>
           <label className="text-sm font-semibold">
-            Badge label
-            <input value={kicker} onChange={(event) => setKicker(event.target.value)} placeholder="Defaults to the category" className={fieldClass} />
+            Internal label
+            <input value={kicker} onChange={(event) => setKicker(event.target.value)} placeholder="Not shown on the public site" className={fieldClass} />
+            <span className="mt-1 block text-xs font-medium text-[#667085]">Public cards use the category name.</span>
           </label>
           <label className="text-sm font-semibold">
-            Writer
+            Internal attribution
             <input value={authorName} onChange={(event) => setAuthorName(event.target.value)} className={fieldClass} />
+            <span className="mt-1 block text-xs font-medium text-[#667085]">Not shown on the public site.</span>
             {fieldErrors.authorName ? <span className="mt-1 block text-xs font-medium text-[#b42318]">{fieldErrors.authorName}</span> : null}
           </label>
           <label className="text-sm font-semibold sm:col-span-2">
@@ -433,7 +441,7 @@ export function ArticleEditor({
 
       {tab === "Preview" ? (
         <div className="mt-5">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#fd5000]">{(kicker || category).toUpperCase()}</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#fd5000]">{categoryLabel(category)}</p>
           <h2 className="mt-2 text-3xl font-bold tracking-[-0.03em]">{title || "Untitled story"}</h2>
           <p className="mt-3 text-[#4b5568]">{excerpt}</p>
           <div className={`${styles.body} mt-6 text-[16px]`} dangerouslySetInnerHTML={{ __html: previewHtml }} />

@@ -101,10 +101,7 @@ export default async function MediaCategoryPage({
           </div>
         ) : (
           <>
-            <p className="mt-4 text-sm text-[#667085]">
-              Showing {listing.from}–{listing.to} of {listing.total}
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {articles.map((article) => (
                 <StoryCard key={article.id} card={toCard(article)} stacked />
               ))}

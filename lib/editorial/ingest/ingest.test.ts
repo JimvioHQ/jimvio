@@ -8,8 +8,8 @@ import { LICENSED_PROVIDERS, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catal
 import { buildOriginalBrief } from "@/lib/editorial/ingest/compose";
 import { canonicalUrl, externalKey, parseFeed, sharesLongPhrase } from "@/lib/editorial/ingest/feed";
 import { evaluateImage, imageDimensions } from "@/lib/editorial/ingest/images";
-import { isStuckJob, planSourceItems, serverAutopublishAuthorized, sourceDue, stableItemId } from "@/lib/editorial/ingest/plan";
-import { DEFAULT_INGEST_SETTINGS, type SourceRecord } from "@/lib/editorial/ingest/types";
+import { isStuckJob, planSourceItems, publishPaceOpen, serverAutopublishAuthorized, sourceDue, stableItemId } from "@/lib/editorial/ingest/plan";
+import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS, type SourceRecord } from "@/lib/editorial/ingest/types";
 import { isArticleId, isPubliclyVisible } from "@/lib/editorial/validate";
 
 const require = createRequire(import.meta.url);
@@ -282,6 +282,55 @@ describe("external ingestion", () => {
       imageFor: () => image,
     });
     assert.equal(capped[0]?.status, "review");
+    assert.equal(capped.heldForPace, 0);
+
+    const dawn = new Date("2026-10-27T00:30:00.000Z");
+    assert.equal(publishPaceOpen(0, 10, dawn), true);
+    assert.equal(publishPaceOpen(1, 10, dawn), false);
+    assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), true);
+    assert.equal(publishPaceOpen(0, 0, dawn), false);
+    assert.equal(clampDailyPublishCap(50), 10);
+    assert.equal(clampDailyPublishCap("nope"), 10);
+    const held = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
+      source: source({ imageRights: "attributed" }),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/pace/")],
+      existingItems: [],
+      existingArticles: [],
+      now: dawn,
+      serverAutopublish: true,
+      publishedToday: 1,
+      otherReports: [{
+        sourceName: "NIST News",
+        title: "NIST confirms mars crew simulation communication checks",
+        url: "https://www.nist.gov/news-events/news/pace",
+        summary: SUMMARY,
+        publishedAt: "2026-10-27T00:00:00.000Z",
+      }],
+      imageFor: () => image,
+    });
+    assert.equal(held.heldForPace, 1);
+    assert.equal(held.length, 0);
+    const opened = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
+      source: source({ imageRights: "attributed", categories: ["technology"] }),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/open/")],
+      existingItems: [],
+      existingArticles: [],
+      now: dawn,
+      serverAutopublish: true,
+      publishedToday: 0,
+      otherReports: [{
+        sourceName: "NIST News",
+        title: "NIST confirms mars crew simulation communication checks",
+        url: "https://www.nist.gov/news-events/news/open",
+        summary: SUMMARY,
+        publishedAt: "2026-10-27T00:00:00.000Z",
+      }],
+      imageFor: () => image,
+    });
+    assert.equal(opened[0]?.status, "published");
+    assert.equal(opened[0]?.article?.category, "technology");
   });
 
   it("honors poll windows, stuck jobs, link-only sources, and category blocks", () => {
@@ -314,7 +363,7 @@ describe("external ingestion", () => {
     assert.equal(blocked[0]?.filterReason, "category_blocked");
   });
 
-  it("keeps the ingestion migration additive and the scheduler off the deploy config", () => {
+  it("keeps the ingestion migration additive and the cron behind authorization", () => {
     const sql = read("supabase/migrations/20261027200000_media_ingestion.sql");
     assert.deepEqual(destructiveFindings(sql), []);
     assert.match(sql, /media_sources/);
@@ -328,9 +377,12 @@ describe("external ingestion", () => {
     const allowlist = read("scripts/release/eligible-migrations.json");
     assert.equal(allowlist.includes("20261027200000"), true);
     assert.equal(allowlist.includes("20261027180000"), true);
-    assert.equal(read("vercel.json").includes("media-ingest"), false);
+    const vercel = read("vercel.json");
+    assert.match(vercel, /\/api\/cron\/media-ingest/);
+    assert.match(vercel, /17 \*\/2 \* \* \*/);
     const cron = read("app/api/cron/media-ingest/route.ts");
     assert.ok(cron.indexOf("assertCronAuthorized") < cron.indexOf("runIngestCycle"));
+    assert.equal(cron.includes("CRON_SECRET"), false);
     const actions = read("lib/editorial/ingest/actions.ts");
     assert.match(actions, /assertPlatformAdmin/);
     for (const name of ["saveIngestControls", "enableVerifiedSource", "setIngestSourceEnabled", "addIngestSource", "runIngestNow", "retryIngestSource"]) {

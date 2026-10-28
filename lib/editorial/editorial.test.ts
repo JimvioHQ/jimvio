@@ -27,8 +27,10 @@ import {
   isPubliclyVisible,
   isSafeHref,
   isSafeImageUrl,
+  displayKicker,
   paginate,
   publicAuthorName,
+  resolveMediaCategory,
   shouldUseFixtures,
   validateArticle,
 } from "@/lib/editorial/validate";
@@ -152,6 +154,37 @@ describe("editorial publishing guards", () => {
     assert.equal(searchArticles(EDITORIAL_FIXTURES, "r").length, 0);
     assert.ok(searchArticles(EDITORIAL_FIXTURES, "rwanda").length >= 1);
     assert.equal(articlesInCategory(EDITORIAL_FIXTURES, "guides").length, 3);
+    assert.equal(resolveMediaCategory("Technology"), "technology");
+  });
+
+  it("puts News, Technology, and Business stories on their own listings", () => {
+    const story = (category: PublicArticle["category"], slug: string): PublicArticle => ({
+      id: slug,
+      slug,
+      title: slug,
+      excerpt: "An excerpt that is public.",
+      bodyHtml: "<p>This body is long enough to publish today.</p>",
+      category,
+      kicker: "Custom",
+      imageUrl: null,
+      imageAlt: "",
+      section: "standard",
+      tags: [],
+      seoTitle: null,
+      seoDescription: null,
+      authorName: "Aline Uwase",
+      publishedAt: "2026-10-01T00:00:00.000Z",
+      updatedAt: "2026-10-02T00:00:00.000Z",
+      fixture: false,
+    });
+    const rows = [story("news", "desk-note"), story("technology", "chip-note"), story("business", "market-note")];
+    assert.deepEqual(articlesInCategory(rows, "news").map((item) => item.slug), ["desk-note"]);
+    assert.deepEqual(articlesInCategory(rows, "News").map((item) => item.slug), ["desk-note"]);
+    assert.deepEqual(articlesInCategory(rows, "technology").map((item) => item.slug), ["chip-note"]);
+    assert.deepEqual(articlesInCategory(rows, "business").map((item) => item.slug), ["market-note"]);
+    assert.equal(articlesInCategory(rows, "sports").length, 0);
+    assert.equal(displayKicker({ category: "technology", kicker: "AI" }), "TECHNOLOGY");
+    assert.equal(displayKicker({ category: "business", kicker: "Markets" }), "BUSINESS");
   });
 
   it("accepts real image bytes and rejects markup", () => {
@@ -165,7 +198,17 @@ describe("editorial publishing guards", () => {
     webp.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
     assert.equal(sniffImageMime(webp), "image/webp");
     assert.equal(sniffImageMime(Uint8Array.from([0x3c, 0x73, 0x76, 0x67])), null);
-    assert.equal(sniffImageMime(new Uint8Array(5 * 1024 * 1024 + 1)), null);
+    const over = new Uint8Array(4 * 1024 * 1024 + 1);
+    over[0] = 0xff;
+    over[1] = 0xd8;
+    over[2] = 0xff;
+    assert.equal(sniffImageMime(over), null);
+    const route = read("app/api/media/images/route.ts");
+    assert.match(route, /Images must be 4 MB or smaller/);
+    assert.ok(route.indexOf("try {") < route.indexOf("secure_url"));
+    const editor = read("components/editorial/admin/editor.tsx");
+    assert.match(editor, /Images must be 4 MB or smaller/);
+    assert.equal(editor.includes("The image could not be uploaded. Paste an https URL instead."), false);
   });
 
   it("keeps the media migration additive and unpublished", () => {
@@ -431,9 +474,27 @@ describe("editorial lifecycle decisions", () => {
     );
     assert.equal(news?.["@type"], "NewsArticle");
     assert.equal(news?.datePublished, "2026-10-01T08:00:00.000Z");
-    assert.equal(news?.dateModified, "2026-10-01T08:02:00.000Z");
+    assert.equal("dateModified" in (news ?? {}), false);
     assert.deepEqual(news?.image, ["https://www.jimvio.com/editorial/skyline.jpg"]);
     assert.equal("author" in (news ?? {}), false);
+    const corrected = articleJsonLd(
+      {
+        fixture: false,
+        category: "news",
+        title: "A local report",
+        excerpt: "An excerpt that is public.",
+        publishedAt: "2026-10-01T08:00:00.000Z",
+        updatedAt: "2026-10-02T08:00:00.000Z",
+        imageUrl: "/editorial/skyline.jpg",
+        slug: "a-local-report",
+        authorName: "Aline Uwase",
+        correctionNote: "Fixed the date of the announcement.",
+      },
+      "https://www.jimvio.com",
+    );
+    assert.equal(corrected?.datePublished, "2026-10-01T08:00:00.000Z");
+    assert.equal(corrected?.dateModified, "2026-10-02T08:00:00.000Z");
+    assert.equal("author" in (corrected ?? {}), false);
     const recent = articleJsonLd(
       {
         fixture: false,
@@ -512,5 +573,16 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(urls.length, 12);
     const articleEntry = entries.find((entry) => entry.url.endsWith("/real-story"));
     assert.equal(articleEntry?.lastModified?.toISOString(), "2026-10-02T00:00:00.000Z");
+    const articleView = read("components/editorial/article-view.tsx");
+    assert.equal(articleView.includes("Updated {"), false);
+    assert.equal(articleView.includes("publicAuthorName"), false);
+    assert.match(articleView, /Published /);
+    const categoryPage = read("app/media/(site)/category/[slug]/page.tsx");
+    const searchPage = read("app/media/(site)/search/page.tsx");
+    assert.equal(categoryPage.includes("Showing "), false);
+    assert.equal(searchPage.includes("Showing "), false);
+    assert.match(read("app/media/admin/articles/page.tsx"), /Showing /);
+    const metadata = read("app/media/(site)/article/[slug]/page.tsx");
+    assert.equal(metadata.includes("authors:"), false);
   });
 });

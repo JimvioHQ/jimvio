@@ -6,8 +6,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * Authorized ingestion cycle.
- * This route is not listed in vercel.json. A hosted schedule is not active
- * until a release explicitly adds it.
+ * Vercel cron calls this path. assertCronAuthorized runs before any fetch.
+ * Catalog sources stay disabled until an administrator enables a verified feed.
+ * Automatic publication still requires the server flag and the owner confirmation.
  */
 export async function GET(request: NextRequest) {
   const authError = assertCronAuthorized(request);

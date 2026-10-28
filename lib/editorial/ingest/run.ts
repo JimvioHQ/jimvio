@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage } from "@/lib/editorial/ingest/images";
 import { countPlans, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, serverAutopublishAuthorized, sourceDue } from "@/lib/editorial/ingest/plan";
@@ -77,8 +77,13 @@ export async function runIngestCycle(options?: {
       revalidatePath("/media/admin/ingestion");
       revalidatePath("/media/admin/articles");
       if (outcome.publishedSlug) {
+        revalidateTag("editorial", "max");
+        revalidateTag(`editorial:${outcome.publishedSlug}`, "max");
         revalidatePath("/media");
+        revalidatePath("/media/search");
         revalidatePath("/media/sitemap.xml");
+        revalidatePath("/media/category/[slug]", "page");
+        revalidatePath("/media/article/[slug]", "page");
         revalidatePath(`/media/article/${outcome.publishedSlug}`);
       }
     }
@@ -149,6 +154,7 @@ async function syncSource(
   });
   let publishedSlug: string | null = null;
   for (const item of planned) {
+    if (item.filterReason === "publish_pace") continue;
     const saved = await persistPlannedItem(source.id, item, now, actorId);
     if (saved.unavailable) {
       await markJob(job.id, "failed", "Media storage is not ready.", planned.length);
@@ -171,7 +177,8 @@ async function syncSource(
     });
   }
   const counts = countPlans(planned);
-  await markJob(job.id, "succeeded", null, planned.length);
-  await markSourceHealth(source.id, "ok", null, true);
+  const heldForPace = planned.heldForPace > 0;
+  await markJob(job.id, "succeeded", heldForPace ? "Held for the daily publication pace." : null, planned.length);
+  if (!heldForPace) await markSourceHealth(source.id, "ok", null, true);
   return { counts, fetched: 1, wrote: planned.length > 0, publishedSlug };
 }

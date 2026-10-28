@@ -21,6 +21,13 @@ export default async function MediaIngestionPage({
   const params = await searchParams;
   const desk = await loadIngestDesk();
   const names = new Map(desk.sources.map((source) => [source.id, source.name]));
+  const failedJobs = desk.jobs.filter((job) => String(job.status ?? "") === "failed").length;
+  const lastSuccess =
+    desk.sources
+      .map((source) => source.lastSuccessAt)
+      .filter((value): value is string => Boolean(value))
+      .sort()
+      .at(-1) ?? null;
   const message = params.notice ? NOTICES[params.notice] ?? "" : "";
   const counts = ["drafted", "review", "published", "failed"]
     .map((key) => {
@@ -45,7 +52,14 @@ export default async function MediaIngestionPage({
       {desk.unavailable ? <div className="mt-4"><StorageNotice /></div> : null}
       <p className="mt-4 text-sm text-[#344054]">
         Mode: <span className="font-semibold">{desk.settings.mode}</span>. Emergency stop: <span className="font-semibold">{desk.settings.emergencyStop ? "on" : "off"}</span>.
+        Daily cap: <span className="font-semibold">{desk.settings.dailyPublishCap}</span>.
         Owner automatic publication: <span className="font-semibold">{desk.settings.ownerAutopublishAuthorized ? "recorded" : "not authorized"}</span>.
+        Queue: <span className="font-semibold">{desk.items.length}</span> stored items, <span className="font-semibold">{failedJobs}</span> failed jobs in this view.
+        {lastSuccess ? (
+          <> Last source success: <time dateTime={lastSuccess}>{lastSuccess}</time>.</>
+        ) : (
+          <> No source has succeeded yet.</>
+        )}
       </p>
       <div className="mt-3 flex flex-wrap gap-4 text-sm font-semibold">
         <Link href="/media/admin/articles?status=review" className="text-[#fd5000]">Editorial review queue</Link>

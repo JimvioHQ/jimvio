@@ -1,5 +1,15 @@
+.display {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
 .body {
   max-width: 65ch;
+  color: #243044;
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  line-height: 1.75;
 }
 
 .body p,
@@ -37,8 +47,14 @@
 }
 
 .body a {
-  color: #fd5000;
+  color: #c2410c;
+  text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.body strong,
+.body b {
+  font-weight: 700;
 }
 
 .body blockquote,

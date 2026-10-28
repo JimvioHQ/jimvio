@@ -96,9 +96,6 @@ export default async function MediaSearchPage({
           </div>
         ) : (
           <div className="mt-6 grid gap-3">
-            <p className="text-sm text-[#667085]">
-              Showing {listing.from}–{listing.to} of {listing.total} {listing.total === 1 ? "story" : "stories"}
-            </p>
             {results.map((article) => (
               <StoryCard key={article.id} card={toCard(article)} />
             ))}

@@ -11,7 +11,7 @@ import { canonicalUrl } from "@/lib/editorial/ingest/feed";
 import { serverAutopublishAuthorized } from "@/lib/editorial/ingest/plan";
 import { getIngestSource, insertSource, loadIngestDesk, saveIngestSettings, setSourceEnabled } from "@/lib/editorial/ingest/store";
 import { runIngestCycle } from "@/lib/editorial/ingest/run";
-import type { IngestMode } from "@/lib/editorial/ingest/types";
+import { DAILY_PUBLISH_MAX, type IngestMode } from "@/lib/editorial/ingest/types";
 import { isArticleId, isMediaCategory } from "@/lib/editorial/validate";
 
 const CONFIRM = "AUTHORIZE AUTOMATIC PUBLICATION";
@@ -64,7 +64,7 @@ export async function saveIngestControls(formData: FormData) {
     mode: modeOf(formData.get("mode")),
     emergencyStop: formData.get("emergency") === "on",
     ownerAutopublishAuthorized: owner,
-    dailyPublishCap: bounded(formData.get("cap"), 3, 0, 50),
+    dailyPublishCap: bounded(formData.get("cap"), DAILY_PUBLISH_MAX, 0, DAILY_PUBLISH_MAX),
     maxItemsPerRun: bounded(formData.get("items"), 20, 1, 40),
     retryLimit: bounded(formData.get("retries"), 3, 1, 8),
     staleDays: bounded(formData.get("stale"), 21, 1, 90),

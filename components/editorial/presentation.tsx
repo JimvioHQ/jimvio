@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { StoryCardModel } from "@/lib/editorial/types";
-import { kickerColor } from "@/lib/editorial/validate";
+import { displayKicker, kickerColor } from "@/lib/editorial/validate";
 import { cn } from "@/lib/utils";
 
 export function SampleBanner() {
@@ -150,7 +150,7 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
       </div>
       <div className={cn("min-w-0 flex-1", stacked ? "px-3 py-3" : "py-1 pr-2 md:px-3 md:py-3")}>
         {stacked ? null : <Kicker label={card.kicker} className="md:hidden" />}
-        <h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-snug text-[#172033] md:mt-0 md:line-clamp-2">
+        <h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-[1.35] text-[#172033] md:mt-0 md:line-clamp-2">
           {card.title}
         </h3>
       </div>
@@ -233,7 +233,7 @@ export function toCard(article: {
   imageUrl: string | null;
   imageAlt: string;
 }, withExcerpt = false): StoryCardModel {
-  const kicker = (article.kicker || article.category).toUpperCase();
+  const kicker = displayKicker(article);
   return {
     href: `/media/article/${article.slug}`,
     title: article.title,

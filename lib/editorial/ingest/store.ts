@@ -12,7 +12,7 @@ import type {
   SourceKind,
   SourceRecord,
 } from "@/lib/editorial/ingest/types";
-import { DEFAULT_INGEST_SETTINGS } from "@/lib/editorial/ingest/types";
+import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS } from "@/lib/editorial/ingest/types";
 
 type Row = Record<string, unknown>;
 type DbError = { message?: string; code?: string } | null;
@@ -68,7 +68,7 @@ export function mapSettings(row: Row | null): IngestSettings {
     mode: modeOf(row.mode),
     emergencyStop: row.emergency_stop === true,
     ownerAutopublishAuthorized: row.owner_autopublish_authorized === true,
-    dailyPublishCap: Number.isFinite(cap) ? Math.min(50, Math.max(0, cap)) : 3,
+    dailyPublishCap: clampDailyPublishCap(cap),
     maxItemsPerRun: Number.isFinite(items) ? Math.min(40, Math.max(1, items)) : 20,
     retryLimit: Number.isFinite(retry) ? Math.min(8, Math.max(1, retry)) : 3,
     staleDays: Number.isFinite(stale) ? Math.min(90, Math.max(1, stale)) : 21,

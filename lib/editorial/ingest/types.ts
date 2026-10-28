@@ -34,11 +34,21 @@ export type IngestSettings = {
   blockedCategories: string[];
 };
 
+/** Quality target. The desk publishes fewer when a cycle lacks credible stories. */
+export const DAILY_PUBLISH_MIN = 5;
+export const DAILY_PUBLISH_MAX = 10;
+
+export function clampDailyPublishCap(value: unknown): number {
+  const number = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(number)) return DAILY_PUBLISH_MAX;
+  return Math.min(DAILY_PUBLISH_MAX, Math.max(0, Math.floor(number)));
+}
+
 export const DEFAULT_INGEST_SETTINGS: IngestSettings = {
   mode: "draft",
   emergencyStop: false,
   ownerAutopublishAuthorized: false,
-  dailyPublishCap: 3,
+  dailyPublishCap: DAILY_PUBLISH_MAX,
   maxItemsPerRun: 20,
   retryLimit: 3,
   staleDays: 21,

@@ -55,7 +55,8 @@ export default async function MediaSourcesPage({
         </label>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="text-sm">Daily publication cap
-            <input name="cap" type="number" min={0} max={50} defaultValue={desk.settings.dailyPublishCap} className="mt-1 h-11 w-full rounded-lg border border-[#e6e8ee] px-3" />
+            <input name="cap" type="number" min={0} max={10} defaultValue={desk.settings.dailyPublishCap} className="mt-1 h-11 w-full rounded-lg border border-[#e6e8ee] px-3" />
+            <span className="mt-1 block text-xs font-medium text-[#667085]">Target 5–10 articles a day. Stories are spaced through the UTC day. Fewer run when the checks do not pass. A cap of 0 keeps new stories in review.</span>
           </label>
           <label className="text-sm">Items per run
             <input name="items" type="number" min={1} max={40} defaultValue={desk.settings.maxItemsPerRun} className="mt-1 h-11 w-full rounded-lg border border-[#e6e8ee] px-3" />
