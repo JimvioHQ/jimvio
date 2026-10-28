@@ -18,7 +18,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     title: "Marketplace",
     links: [
       { label: "Browse Products", href: "/marketplace" },
-      { label: "Top Suppliers", href: "/vendors" },
+      { label: "Sellers", href: "/vendors" },
       { label: "New Arrivals", href: "/marketplace/collections/new-arrivals" },
       { label: "Digital Products", href: "/marketplace/digital" },
       { label: "Buyer Protection", href: "/protection" },
@@ -38,10 +38,10 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     title: "Resources",
     links: [
       { label: "Help Center", href: "/help" },
-      { label: "Trade Guides", href: "/guides" },
+      { label: "Guides", href: "/guides" },
       { label: "Creator Guides", href: "/help/topics/creators" },
       { label: "API Docs", href: "/docs" },
-      { label: "Platform Updates", href: "/updates" },
+      { label: "Pricing & Fees", href: "/pricing" },
     ],
   },
   {

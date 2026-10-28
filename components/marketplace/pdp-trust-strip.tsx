@@ -11,7 +11,7 @@ import Link from "next/link";
 const ITEMS = [
   {
     icon: ShieldCheck,
-    title: "Trade Assurance Protected",
+    title: "Buyer Protection",
     href: "/protection",
   },
   {

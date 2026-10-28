@@ -161,7 +161,7 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
       "Creator & affiliate tools",
     ],
     trust_bar: [
-      { title: "Trade Assurance", desc: "Payment protection & peace of mind" },
+      { title: "Buyer Protection", desc: "Eligible orders reviewed by support" },
       { title: "Verified Partners", desc: "Audited manufacturer profiles" },
       { title: "Global Logistics", desc: "Freight & fulfillment partners" },
       { title: "Secure Payouts", desc: "Multi-currency payout options" },

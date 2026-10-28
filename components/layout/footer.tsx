@@ -17,7 +17,7 @@ import { FieldInput } from "../ui/field-input";
 import JimvioLogo from "../ui/logo";
 
 const trustBadges = [
-  { icon: ShieldCheck, label: "Trade Assurance" },
+  { icon: ShieldCheck, label: "Buyer Protection" },
   { icon: CreditCard, label: "Secure Payments" },
   { icon: Lock, label: "SSL Encrypted" },
 ];
@@ -81,10 +81,10 @@ function NewsletterStrip() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-[-0.02em] text-text-primary sm:text-lg">
-              Stay ahead of the market
+              Product updates from Jimvio
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-text-muted">
-              Send me Jimvio product and trade updates by email. I can unsubscribe at any time.
+              Send me Jimvio product updates by email. I can unsubscribe at any time.
               You are subscribed only after you confirm the message.{" "}
               <Link href="/privacy" className="underline hover:text-text-primary">Privacy</Link>
             </p>
