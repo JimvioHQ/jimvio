@@ -1423,7 +1423,16 @@ export async function submitReview({
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // T-3: the database only accepts reviews from buyers with a paid order.
+      if (/paid order/i.test(error.message ?? "")) {
+        return {
+          success: false,
+          error: "Only buyers who ordered and paid for this item can review it.",
+        };
+      }
+      throw error;
+    }
 
     let slug = productSlug;
     if (!slug && productId) {

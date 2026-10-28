@@ -15,6 +15,12 @@ const TIER_CAPS = [
 
 const ABOVE_SIXTY_CAP = 12.1;
 
+/** Highest commission any listing can pay (lowest price tier). */
+export const MAX_AFFILIATE_COMMISSION_PERCENT: number = Math.max(
+  ...TIER_CAPS.map((t) => t.rate),
+  ABOVE_SIXTY_CAP,
+);
+
 export function priceToCents(priceUsd: number): number | null {
   if (!Number.isFinite(priceUsd)) return null;
   return Math.round(priceUsd * 100);

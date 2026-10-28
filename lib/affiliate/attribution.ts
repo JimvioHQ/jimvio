@@ -22,7 +22,8 @@ export const AFFILIATE_REF_COOKIE_LEGACY = "_aff_ref";
 export const AFFILIATE_REF_FIRST_COOKIE = "jimvio_ref_ft";
 export const AFFILIATE_REF_TS_COOKIE = "jimvio_ref_ts";
 
-export const DEFAULT_ATTRIBUTION_WINDOW_DAYS = 30;
+import { DEFAULT_ATTRIBUTION_WINDOW_DAYS } from "./attribution-window";
+export { DEFAULT_ATTRIBUTION_WINDOW_DAYS };
 export { MIN_WITHDRAWAL_AMOUNT } from "./payout-minimum";
 
 export type AttributionModel = "first_touch" | "last_touch";
