@@ -64,3 +64,23 @@ export const PAYMENT_PARTNERS: readonly PaymentPartner[] = [
 export const APPROVED_PARTNER_LOGOS: readonly string[] = PAYMENT_PARTNERS.flatMap((p) =>
   p.logo ? [p.logo] : [],
 );
+
+export type PaymentMethodGroupId = "cards" | "bank" | "mobile-money" | "binance" | "crypto" | "apple-pay";
+
+/**
+ * Groups shown in the homepage "Pay and get paid with" strip. Each one is a
+ * method that runs at checkout or payout today; brand marks are rendered
+ * inline from lib/brand/payment-marks.ts.
+ */
+export const PAYMENT_METHOD_GROUPS: readonly {
+  id: PaymentMethodGroupId;
+  label: string;
+  integration: string;
+}[] = [
+  { id: "cards", label: "Cards", integration: "Visa, Mastercard, Amex, Discover via Flutterwave card checkout (app/api/payments/card)" },
+  { id: "bank", label: "Bank Transfer", integration: "Flutterwave banktransfer option (app/api/payments/card, lib/flutterwave.ts)" },
+  { id: "mobile-money", label: "Mobile Money", integration: "app/api/payments/mobile-money, lib/payments/payout-provider-catalog.ts" },
+  { id: "binance", label: "Binance Pay", integration: "app/api/payments/binancepay" },
+  { id: "crypto", label: "Crypto", integration: "BTC, ETH, USDT via NOWPayments (lib/payments/nowpayments.ts)" },
+  { id: "apple-pay", label: "Apple Pay", integration: "Flutterwave applepay option (lib/flutterwave.ts)" },
+] as const;

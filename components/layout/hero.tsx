@@ -15,7 +15,7 @@ import {
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
-import { PAYMENT_PARTNERS } from "@/lib/brand/payment-partners";
+import { PaymentMethodsStrip } from "@/components/layout/payment-methods-strip";
 import {
   jimvioDuration,
   jimvioEase,
@@ -262,47 +262,6 @@ const TRUST_BADGES = [
   { icon: Headphones, label: "Help center", color: "#2563eb" },
 ] as const;
 
-/**
- * Payment methods only — never other companies shown as "partners".
- * Source of truth: lib/brand/payment-partners.ts (P0-2).
- * Static row: six items do not need a marquee or duplicated DOM (R-7).
- */
-const HeroPartnerStrip = memo(function HeroPartnerStrip() {
-  return (
-    <div className="mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-      <p className="mb-5 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:text-[13px]">
-        Pay and get paid with
-      </p>
-      <ul
-        className="flex list-none flex-wrap items-center justify-center gap-x-8 gap-y-4 p-0 sm:gap-x-12"
-        aria-label="Supported payment methods"
-      >
-        {PAYMENT_PARTNERS.map((partner) => (
-          <li key={partner.id} className="flex h-7 items-center opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0">
-            {partner.logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={partner.logo}
-                alt={partner.name}
-                width={partner.width}
-                height={28}
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-                className="block h-7 w-auto object-contain"
-                style={{ maxWidth: partner.width }}
-              />
-            ) : (
-              <span className="whitespace-nowrap text-[13px] font-semibold tracking-[-0.01em] text-[#4B5563] dark:text-[var(--color-text-secondary)]">
-                {partner.name}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-});
 
 const HeroTrustBadges = memo(function HeroTrustBadges() {
   return (
@@ -474,7 +433,7 @@ export function Hero() {
             animate="show"
             className="mt-5 w-full sm:mt-6"
           >
-            <HeroPartnerStrip />
+            <PaymentMethodsStrip />
           </motion.div>
         </div>
       </section>
