@@ -9,8 +9,8 @@ import {
   resolveMarketplaceProductPool,
   sortByHomepagePriority,
 } from "@/lib/marketplace/homepage-ranking";
-import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
+import { categoryTypeOrFilter } from "@/lib/marketplace/experience";
 import { slimListingImages } from "@/lib/media/optimize-url";
 import type { MarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 
@@ -56,9 +56,13 @@ export type MarketplacePageBundle = {
 
 type SupabaseLike = SupabaseClient<any, any, any>;
 
+type MarketplaceTypeValue =
+  | (typeof MARKETPLACE_DIGITAL_TYPES)[number]
+  | (typeof MARKETPLACE_PHYSICAL_TYPES)[number];
+
 export function getMarketplaceTypeFilter(
   type: MarketplaceProductType,
-): readonly string[] {
+): readonly MarketplaceTypeValue[] {
   return type === "digital"
     ? MARKETPLACE_DIGITAL_TYPES
     : MARKETPLACE_PHYSICAL_TYPES;
@@ -81,21 +85,22 @@ export async function fetchCategoriesForType(
   supabase: SupabaseLike,
   typeFilter: readonly string[],
 ): Promise<MarketplaceCategory[]> {
-  // Prefer category table directly — avoid scanning every product row for category_ids.
-  const { data: fallbackCats } = await supabase
+  const categoryType = typeFilter.length === 1 && typeFilter[0] === "physical" ? "physical" : "digital";
+  const { data: categoryRows, error } = await supabase
     .from("product_categories")
     .select("id, name, slug, product_count, image_url, tint_color")
     .eq("is_active", true)
     .eq("visible", true)
     .is("parent_id", null)
-    .order("product_count", { ascending: false })
-    .limit(40);
+    .or(categoryTypeOrFilter(categoryType))
+    .order("sort_order", { ascending: true })
+    .limit(24);
 
-  const catRows = (fallbackCats ?? []) as MarketplaceCategory[];
-  if (catRows.length > 0) return catRows;
-
-  const type = typeFilter.includes("physical") ? "physical" : "digital";
-  return resolveShopCategories(type, []);
+  if (error) {
+    console.error("[marketplace] category load failed:", error);
+    return [];
+  }
+  return (categoryRows ?? []) as MarketplaceCategory[];
 }
 
 async function fetchMarketplaceProductPool(

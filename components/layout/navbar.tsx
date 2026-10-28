@@ -259,7 +259,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     pathname.startsWith("/marketplace") ? "marketplace" : "home";
 
   const marketplaceVariants = [
-    { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
+    { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace/digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
     { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace/physical", icon: Package, color: "#f59e0b" },
   ];
 

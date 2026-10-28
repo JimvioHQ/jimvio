@@ -2,51 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, X } from "lucide-react";
+import { marketplaceSearchPlaceholders } from "@/lib/marketplace/experience";
 import { cn } from "@/lib/utils";
-
-const PRODUCT_SUGGESTIONS = [
-  "Wireless Earbuds",
-  "Gaming Headset",
-  "Smart Watch",
-  "Portable Speaker",
-  "Mechanical Keyboard",
-  "Power Bank",
-];
-
-const CATEGORY_SUGGESTIONS = [
-  "Electronics",
-  "Fashion",
-  "Home & Living",
-  "Health & Beauty",
-  "Creator Equipment",
-  "Gaming Accessories",
-];
-
-type RotatingSuggestion = {
-  prefix: string;
-  label: string;
-};
-
-function buildSuggestions(type: "physical" | "digital"): RotatingSuggestion[] {
-  const products = PRODUCT_SUGGESTIONS.map((label) => ({
-    prefix: "Search for",
-    label,
-  }));
-  const categories = CATEGORY_SUGGESTIONS.map((label) => ({
-    prefix: "Search in",
-    label,
-  }));
-  const mixed = [...products, ...categories];
-  if (type === "digital") {
-    return [
-      { prefix: "Search for", label: "Design Templates" },
-      { prefix: "Search for", label: "Online Courses" },
-      { prefix: "Search in", label: "Software" },
-      ...mixed,
-    ];
-  }
-  return mixed;
-}
 
 type Props = {
   value: string;
@@ -75,7 +32,7 @@ export function MarketplaceSearchBar({
   const [index, setIndex] = useState(0);
   const [exiting, setExiting] = useState(false);
 
-  const suggestions = useMemo(() => buildSuggestions(type), [type]);
+  const suggestions = useMemo(() => marketplaceSearchPlaceholders(type), [type]);
   const current = suggestions[index % suggestions.length];
   const showRotating = value.length === 0 && !focused;
   const showClear = value.length > 0 && Boolean(onClear) && !loading;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,8 @@ export async function GET(req: NextRequest) {
   const type = req.nextUrl.searchParams.get("type") === "digital" ? "digital" : "physical";
   const page = Number(req.nextUrl.searchParams.get("page") ?? 1);
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit") ?? 24), 60);
+  const minPrice = Number(req.nextUrl.searchParams.get("minPrice"));
+  const maxPrice = Number(req.nextUrl.searchParams.get("maxPrice"));
 
   if (rawQ.trim().length < 1) {
     return NextResponse.json({
@@ -30,6 +33,13 @@ export async function GET(req: NextRequest) {
       type,
       page: Number.isFinite(page) ? page : 1,
       pageSize: Number.isFinite(limit) ? limit : 24,
+      constraints: {
+        categorySlug: req.nextUrl.searchParams.get("category") ?? undefined,
+        minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
+        maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+        offer: readMarketplaceOffer(req.nextUrl.searchParams.get("offer"), type),
+        format: readMarketplaceFormat(req.nextUrl.searchParams.get("format"), type),
+      },
     });
 
     return NextResponse.json({

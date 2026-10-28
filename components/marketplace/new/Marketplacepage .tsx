@@ -7,7 +7,6 @@ import {
   type MarketplacePageBundle,
   type MarketplaceProductType,
 } from "@/lib/marketplace/fetch-page-data";
-import { fetchFeaturedCollections } from "@/lib/marketplace/collections";
 import { slimListingImages } from "@/lib/media/optimize-url";
 import { unstable_cache } from "next/cache";
 
@@ -64,33 +63,30 @@ const getCachedMarketplaceStats = unstable_cache(
   { revalidate: 60 },
 );
 
-const getCachedMarketplaceChrome = unstable_cache(
-  async () => {
-    const supabase = createAdminClient();
-    const [hero, collections] = await Promise.all([
-      fetchHeroProducts(supabase),
-      fetchFeaturedCollections(supabase, 8),
-    ]);
-    const slimHero = (list: typeof hero.physical) =>
-      list.map((p) => ({
-        ...p,
-        images: slimListingImages(p.images, 1, 720),
-        short_description:
-          typeof p.short_description === "string"
-            ? p.short_description.slice(0, 160)
-            : p.short_description,
-      }));
-    return {
-      hero: {
-        physical: slimHero(hero.physical ?? []),
-        digital: slimHero(hero.digital ?? []),
-      },
-      collections,
-    };
-  },
-  ["marketplace-chrome-v5"],
-  { revalidate: 60 },
-);
+const getCachedMarketplaceChrome = (type: MarketplaceProductType) =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const hero = await fetchHeroProducts(supabase, type);
+      const slimHero = (list: typeof hero.physical) =>
+        list.map((p) => ({
+          ...p,
+          images: slimListingImages(p.images, 1, 720),
+          short_description:
+            typeof p.short_description === "string"
+              ? p.short_description.slice(0, 160)
+              : p.short_description,
+        }));
+      return {
+        hero: {
+          physical: type === "physical" ? slimHero(hero.physical ?? []) : [],
+          digital: type === "digital" ? slimHero(hero.digital ?? []) : [],
+        },
+      };
+    },
+    ["marketplace-chrome-v6", type],
+    { revalidate: 60 },
+  )();
 
 export async function MarketplacePage({
   searchParams,
@@ -107,10 +103,10 @@ export async function MarketplacePage({
     listingCount: 0,
   };
 
-  // SSR only the active tab bundle — the other type loads on tab switch.
+  // SSR only the active type. The other canonical route loads its own bundle.
   const [primaryBundle, chrome, stats] = await Promise.all([
     getCachedMarketplacePageBundle(initialType),
-    getCachedMarketplaceChrome(),
+    getCachedMarketplaceChrome(initialType),
     getCachedMarketplaceStats(),
   ]);
 
@@ -121,16 +117,16 @@ export async function MarketplacePage({
 
   return (
     <div className="min-w-0">
-      <MarketplaceProvider>
+      <MarketplaceProvider key={initialType}>
         <div className="mx-auto flex w-full max-w-8xl min-w-0 gap-4 px-4 py-4 sm:px-6">
           <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3">
             <MarketplacePageClient
+              key={initialType}
               initialType={initialType}
               initialBundles={initialBundles}
               initialStats={stats}
               heroPhysical={chrome.hero.physical ?? []}
               heroDigital={chrome.hero.digital ?? []}
-              initialCollections={chrome.collections}
             />
           </div>
         </div>

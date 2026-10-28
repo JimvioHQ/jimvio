@@ -6,13 +6,9 @@ import {
   resolveMarketplaceProductPool,
   selectTrendingProducts,
 } from "@/lib/marketplace/homepage-ranking";
+import { getMarketplaceTypeFilter, type MarketplaceProductType } from "@/lib/marketplace/fetch-page-data";
 
 export type { HeroProduct };
-
-const DIGITAL_TYPES = [
-  "digital", "course", "ebook", "software",
-  "template", "coaching", "bundle",
-] as const;
 
 const HERO_SELECT = `
   id, name, slug, price, currency, compare_at_price, discount_label,
@@ -68,10 +64,23 @@ async function fetchFeaturedProducts(
 
 export async function fetchHeroProducts(
   supabase: Awaited<ReturnType<typeof createClient>>,
+  only?: MarketplaceProductType,
 ): Promise<{ physical: HeroProduct[]; digital: HeroProduct[] }> {
+  if (only === "physical") {
+    return {
+      physical: await fetchFeaturedProducts(supabase, "physical"),
+      digital: [],
+    };
+  }
+  if (only === "digital") {
+    return {
+      physical: [],
+      digital: await fetchFeaturedProducts(supabase, getMarketplaceTypeFilter("digital")),
+    };
+  }
   const [physical, digital] = await Promise.all([
     fetchFeaturedProducts(supabase, "physical"),
-    fetchFeaturedProducts(supabase, DIGITAL_TYPES),
+    fetchFeaturedProducts(supabase, getMarketplaceTypeFilter("digital")),
   ]);
   return { physical, digital };
 }

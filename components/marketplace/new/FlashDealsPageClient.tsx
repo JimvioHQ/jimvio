@@ -8,15 +8,14 @@ import { FlashDealCard } from "./FlashDealsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
 import type { DbProduct } from "@/lib/utils";
 import { getEffectiveCompareAtPrice } from "@/lib/utils";
+import { canonicalMarketplacePath, type MarketplaceProductType } from "@/lib/marketplace/experience";
+import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
 
 type FlashDealProduct = DbProduct & { currency?: string | null };
 
 type SortKey = "discount" | "price_asc" | "price_desc" | "newest";
-type TypeFilter = "all" | "physical" | "digital";
 
 const PAGE_SIZE = 24;
-
-const DIGITAL_TYPES = ["digital", "course", "ebook", "software", "template", "coaching"] as const;
 
 function discountPercent(p: FlashDealProduct): number {
   const compare = getEffectiveCompareAtPrice(p);
@@ -26,13 +25,14 @@ function discountPercent(p: FlashDealProduct): number {
 
 export function FlashDealsPageClient({
   initialDeals,
+  productType = null,
 }: {
   initialDeals: FlashDealProduct[];
+  productType?: MarketplaceProductType | null;
 }) {
   const supabase = useRef(createClient());
   const [deals, setDeals] = useState<FlashDealProduct[]>(initialDeals);
   const [sort, setSort] = useState<SortKey>("discount");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initialDeals.length >= PAGE_SIZE);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -40,10 +40,11 @@ export function FlashDealsPageClient({
 
   const filtered = useMemo(() => {
     let list = [...deals];
-    if (typeFilter === "physical") {
+    if (productType === "physical") {
       list = list.filter((p) => p.product_type === "physical");
-    } else if (typeFilter === "digital") {
-      list = list.filter((p) => DIGITAL_TYPES.includes(p.product_type as (typeof DIGITAL_TYPES)[number]));
+    } else if (productType === "digital") {
+      const allowed = new Set<string>(getMarketplaceTypeFilter("digital"));
+      list = list.filter((p) => p.product_type != null && allowed.has(p.product_type));
     }
 
     switch (sort) {
@@ -62,13 +63,13 @@ export function FlashDealsPageClient({
         break;
     }
     return list;
-  }, [deals, sort, typeFilter]);
+  }, [deals, sort, productType]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     const offset = page * PAGE_SIZE;
-    const { data } = await supabase.current
+    let query = supabase.current
       .from("products")
       .select(`
         id, name, slug, price, compare_at_price, currency, images, product_type,
@@ -79,7 +80,11 @@ export function FlashDealsPageClient({
       .eq("is_flash_deal", true)
       .eq("status", "active")
       .eq("is_active", true)
-      .is("deleted_at", null)
+      .is("deleted_at", null);
+    if (productType) {
+      query = query.in("product_type", [...getMarketplaceTypeFilter(productType)]);
+    }
+    const { data } = await query
       .order("view_count", { ascending: false })
       .range(offset, offset + PAGE_SIZE - 1);
 
@@ -95,7 +100,7 @@ export function FlashDealsPageClient({
       setHasMore(false);
     }
     setLoadingMore(false);
-  }, [hasMore, loadingMore, page]);
+  }, [hasMore, loadingMore, page, productType]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -128,8 +133,8 @@ export function FlashDealsPageClient({
         >
           <div className="flex min-w-0 items-center gap-3">
             <Link
-              href="/marketplace"
-              className="flex items-center gap-1 rounded-lg bg-black/20 px-2 py-1 text-xs font-semibold text-white/90 transition-colors hover:bg-black/30 hover:text-white"
+              href={productType ? canonicalMarketplacePath(productType) : "/marketplace/physical"}
+              className="flex items-center gap-1 rounded-lg bg-black/20 px-2 py-1 text-xs font-semibold text-white/90 transition-colors hover:bg-black/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
             >
               <ChevronLeft className="size-3.5" />
               Marketplace
@@ -147,20 +152,27 @@ export function FlashDealsPageClient({
             <SlidersHorizontal className="size-3.5" />
             Filter
           </div>
-          {(["all", "physical", "digital"] as TypeFilter[]).map((f) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setTypeFilter(f)}
-              className="rounded-full px-3 py-1 text-[11px] font-bold capitalize transition-colors"
-              style={{
-                background: typeFilter === f ? "var(--color-accent)" : "var(--color-surface-secondary)",
-                color: typeFilter === f ? "white" : "var(--color-text-muted)",
-              }}
-            >
-              {f}
-            </button>
-          ))}
+          {([
+            { id: "all", label: "All", href: "/marketplace/flash-deals" },
+            { id: "physical", label: "Physical", href: "/marketplace/flash-deals?type=physical" },
+            { id: "digital", label: "Digital", href: "/marketplace/flash-deals?type=digital" },
+          ] as const).map((item) => {
+            const selected = item.id === "all" ? productType == null : productType === item.id;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-current={selected ? "page" : undefined}
+                className="rounded-full px-3 py-1 text-[11px] font-bold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+                style={{
+                  background: selected ? "var(--color-accent)" : "var(--color-surface-secondary)",
+                  color: selected ? "white" : "var(--color-text-muted)",
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
 
           <div className="ml-auto flex items-center gap-2">
             <label htmlFor="flash-sort" className="text-[11px] font-semibold text-[var(--color-text-muted)]">

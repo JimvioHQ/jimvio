@@ -58,7 +58,7 @@ const DIGITAL_TABS = [
   { label: "New Arrivals", icon: Sparkles, filter: (_p: Product) => true },
   { label: "Best Selling", icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0 },
   { label: "Top Rated", icon: Star, filter: (p: Product) => (p.rating ?? 0) >= 4 },
-  { label: "Instant Access", icon: Warehouse, filter: (p: Product) => p.product_type !== "physical" },
+  { label: "All formats", icon: Warehouse, filter: (p: Product) => p.product_type !== "physical" },
 ];
 
 function normaliseVariant(v: any): DbVariant {

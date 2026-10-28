@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Flame, Cpu, Smartphone, Shirt, Sparkles, Sofa, Dumbbell,
-  Car, Watch, Baby, Briefcase, Wrench, Star, Crown, Send,
+  Car, Watch, Baby, Briefcase, Wrench, Send,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,8 +11,16 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
-import { SELECT_CATEGORY_LABEL, type DeliveryTime } from "@/lib/utils";
-import { JIMVIO_ORANGE, resolveShopCategories } from "@/lib/marketplace/category-catalog";
+import { type DeliveryTime } from "@/lib/utils";
+import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
+import {
+  categoryTypeOrFilter,
+  DIGITAL_FORMATS,
+  MARKETPLACE_PRICE_CEILING,
+  type MarketplaceFormat,
+} from "@/lib/marketplace/experience";
+import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
+import { SHOPPING_SUGGESTIONS } from "@/lib/marketplace/shopping-assistant";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,8 +49,30 @@ const deliveryLabel: Record<string, string> = {
 
 const deliveryOrder: DeliveryTime[] = ["fast", "standard", "economy"];
 
-const PHYSICAL_TYPES = ["physical"] as const;
-const DIGITAL_TYPES = ["digital", "course", "ebook", "software", "template", "coaching", "bundle"] as const;
+const OFFER_ROWS = [
+  { key: "free_shipping" as const, label: "Free shipping" },
+  { key: "flash_deal" as const, label: "Flash deal" },
+];
+
+const FORMAT_LABELS: Record<MarketplaceFormat, string> = {
+  digital: "Digital files",
+  course: "Courses",
+  ebook: "Ebooks",
+  software: "Software",
+  template: "Templates",
+  coaching: "Coaching",
+};
+
+type AssistantProduct = {
+  name: string;
+  slug: string;
+  price: number | string | null;
+  currency?: string | null;
+  image?: string | null;
+  reason?: string | null;
+};
+
+const CATEGORY_LIMIT = 200;
 
 function fmtCount(n: number | null | undefined): string {
   if (!n) return "";
@@ -217,13 +247,13 @@ export function Sidebar({ type = "physical" }: Props) {
   const {
     filters, pending,
     setCategory, toggleShippingFrom, toggleDeliveryTime,
-    setPriceRange, setMinRating, applyFilters, clearFilters,
+    setPriceRange, setOffer, setFormat, applyFilters, clearFilters,
   } = useMarketplace();
 
   const { formatMoney } = useCurrency();
   const [aiQuery, setAiQuery] = useState("");
   const [aiReply, setAiReply] = useState("");
-  const [aiProducts, setAiProducts] = useState<{ name: string; slug: string; price: number | string | null; currency?: string | null }[]>([]);
+  const [aiProducts, setAiProducts] = useState<AssistantProduct[]>([]);
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [aiError, setAiError] = useState("");
   const [retryAfterMs, setRetryAfterMs] = useState<number | null>(null);
@@ -258,7 +288,7 @@ export function Sidebar({ type = "physical" }: Props) {
         error?: string;
         quotaScope?: "minute" | "daily" | "overload" | null;
         retryAfterSeconds?: number | null;
-        products?: { name: string; slug: string; price: number | string | null; currency?: string | null }[];
+        products?: AssistantProduct[];
       };
       if (!res.ok || !data.ok || !data.reply) {
         const wait = Number(data.retryAfterSeconds);
@@ -293,62 +323,73 @@ export function Sidebar({ type = "physical" }: Props) {
   const [sidebarCategories, setSidebarCategories] = useState<SidebarCategory[]>([]);
   const [shippingCounts, setShippingCounts] = useState<ShippingCount[]>([]);
   const [deliveryCounts, setDeliveryCounts] = useState<DeliveryCount[]>([]);
+  const [offerCounts, setOfferCounts] = useState({ free_shipping: 0, flash_deal: 0 });
+  const [formatCounts, setFormatCounts] = useState<Partial<Record<MarketplaceFormat, number>>>({});
   const [loadingCats, setLoadingCats] = useState(true);
+  const [categoryLoad, setCategoryLoad] = useState<"loading" | "ready" | "error">("loading");
   const [loadingFilters, setLoadingFilters] = useState(true);
-
-  const supabase = createClient();
 
   // ── Categories filtered by product type ───────────────────────────────────
   useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
     async function load() {
       setLoadingCats(true);
+      setCategoryLoad("loading");
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("product_categories")
         .select("name, slug, product_count, icon")
         .eq("is_active", true)
         .eq("visible", true)
-        .is("parent_id", null)
-        .order("product_count", { ascending: false })
-        .limit(14);
+        .or(categoryTypeOrFilter(type))
+        .order("sort_order", { ascending: true })
+        .limit(CATEGORY_LIMIT);
 
-      let categories: SidebarCategory[] = (data ?? []) as SidebarCategory[];
-
-      if (categories.length === 0) {
-        categories = resolveShopCategories(type, []).map((c) => ({
-          name: c.name,
-          slug: c.slug,
-          product_count: c.product_count,
-          icon: null,
-        }));
+      if (cancelled) return;
+      if (error) {
+        setSidebarCategories([]);
+        setCategoryLoad("error");
+        setLoadingCats(false);
+        return;
       }
 
-      setSidebarCategories(categories);
+      setSidebarCategories((data ?? []) as SidebarCategory[]);
+      setCategoryLoad("ready");
       setLoadingCats(false);
     }
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [type]);
 
-  // Drop stale category when switching product type (physical ↔ digital lists differ)
+  // Clear a slug that is not in this type's category set. Skip errors and truncated lists.
   useEffect(() => {
-    if (loadingCats) return;
-    const valid = new Set([
-      "",
-      SELECT_CATEGORY_LABEL,
-      ...sidebarCategories.map((c) => c.name),
-    ]);
+    if (categoryLoad !== "ready" || loadingCats) return;
+    if (sidebarCategories.length >= CATEGORY_LIMIT) return;
+    const valid = new Set(sidebarCategories.map((c) => c.slug));
     if (filters.category && !valid.has(filters.category)) {
       setCategory("");
     }
-  }, [type, loadingCats, sidebarCategories, filters.category, setCategory]);
+  }, [categoryLoad, loadingCats, sidebarCategories, filters.category, setCategory]);
 
   // ── Filter counts filtered by product type ────────────────────────────────
   useEffect(() => {
+    const supabase = createClient();
     async function load() {
       setLoadingFilters(true);
-      const typeFilter = type === "digital" ? [...DIGITAL_TYPES] : [...PHYSICAL_TYPES];
+      const typeFilter = [...getMarketplaceTypeFilter(type)];
 
-      const [{ data: sd }, { data: dd }] = await Promise.all([
+      const active = () =>
+        supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null);
+
+      const [{ data: sd }, { data: dd }, freeRes, flashRes, formatRes] = await Promise.all([
         supabase
           .from("products")
           .select("shipping_from")
@@ -367,6 +408,20 @@ export function Sidebar({ type = "physical" }: Props) {
           .in("product_type", typeFilter as any[])
           .not("delivery_time", "is", null)
           .limit(800),
+        type === "physical"
+          ? active().in("product_type", typeFilter as any[]).eq("is_free_shipping", true)
+          : Promise.resolve({ count: 0 }),
+        type === "physical"
+          ? active().in("product_type", typeFilter as any[]).eq("is_flash_deal", true)
+          : Promise.resolve({ count: 0 }),
+        type === "digital"
+          ? Promise.all(
+              DIGITAL_FORMATS.map(async (format) => {
+                const { count } = await active().eq("product_type", format);
+                return [format, count ?? 0] as const;
+              }),
+            )
+          : Promise.resolve([] as const),
       ]);
 
       if (sd) {
@@ -383,6 +438,12 @@ export function Sidebar({ type = "physical" }: Props) {
         setDeliveryCounts(Object.entries(c).map(([delivery_time, count]) => ({ delivery_time, count })));
       }
 
+      setOfferCounts({
+        free_shipping: freeRes.count ?? 0,
+        flash_deal: flashRes.count ?? 0,
+      });
+      setFormatCounts(Object.fromEntries(formatRes));
+
       setLoadingFilters(false);
     }
     load();
@@ -398,6 +459,13 @@ export function Sidebar({ type = "physical" }: Props) {
       return { key, label: deliveryLabel[key] ?? key, count: found ? fmtCount(found.count) : "" };
     })
     .filter((d) => d.count !== "");
+
+  const offerItems = OFFER_ROWS.filter(
+    (row) => offerCounts[row.key] > 0 || pending.offer === row.key,
+  );
+  const formatItems = DIGITAL_FORMATS.filter(
+    (format) => (formatCounts[format] ?? 0) > 0 || pending.format === format,
+  );
 
   const allCategories = [...sidebarCategories];
 
@@ -439,7 +507,7 @@ export function Sidebar({ type = "physical" }: Props) {
                   { label: "All", value: "" },
                   ...allCategories.map((c) => ({
                     label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
-                    value: c.name,
+                    value: c.slug,
                   })),
                 ]}
                 value={filters.category || ""}
@@ -503,10 +571,14 @@ export function Sidebar({ type = "physical" }: Props) {
                 <SectionLabel>Price Range</SectionLabel>
                 <Slider
                   min={0}
-                  max={type === "digital" ? 500 : 5000}
+                  max={type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING}
                   step={type === "digital" ? 5 : 50}
-                  value={[pending.priceRange[1]]}
-                  onValueChange={(v) => setPriceRange([0, v[0] ?? 5000])}
+                  value={[Math.min(pending.priceRange[1], type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING)]}
+                  onValueChange={(v) => {
+                    const cap = type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING;
+                    const raw = v[0] ?? cap;
+                    setPriceRange([0, raw >= cap ? MARKETPLACE_PRICE_CEILING : raw]);
+                  }}
                   className="py-1"
                 />
                 <div
@@ -515,8 +587,8 @@ export function Sidebar({ type = "physical" }: Props) {
                 >
                   <span>{formatMoney(0, "USD")}</span>
                   <span style={{ color: "var(--color-text-primary)" }}>
-                    {pending.priceRange[1] >= (type === "digital" ? 500 : 5000)
-                      ? `${formatMoney(type === "digital" ? 500 : 5000, "USD")}+`
+                    {pending.priceRange[1] >= (type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING)
+                      ? `${formatMoney(type === "digital" ? 500 : MARKETPLACE_PRICE_CEILING, "USD")}+`
                       : formatMoney(pending.priceRange[1], "USD")}
                   </span>
                 </div>
@@ -540,22 +612,39 @@ export function Sidebar({ type = "physical" }: Props) {
                 </div>
               )}
 
-              {/* Rating */}
-              <div>
-                <SectionLabel>
-                  {type === "digital" ? "Product Rating" : "Supplier Rating"}
-                </SectionLabel>
-                <div className="flex flex-col gap-0.5">
-                  {[4, 3].map((r) => (
-                    <CheckRow
-                      key={r}
-                      label={`${r}+ stars`}
-                      checked={pending.minRating === r}
-                      onToggle={() => setMinRating(pending.minRating === r ? 0 : r)}
-                    />
-                  ))}
+              {type === "physical" && offerItems.length > 0 && (
+                <div data-filter-offer>
+                  <SectionLabel>Offers</SectionLabel>
+                  <div className="flex flex-col gap-0.5">
+                    {offerItems.map((row) => (
+                      <CheckRow
+                        key={row.key}
+                        label={row.label}
+                        count={fmtCount(offerCounts[row.key])}
+                        checked={pending.offer === row.key}
+                        onToggle={() => setOffer(pending.offer === row.key ? "" : row.key)}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {type === "digital" && formatItems.length > 0 && (
+                <div data-filter-format>
+                  <SectionLabel>Format</SectionLabel>
+                  <div className="flex flex-col gap-0.5">
+                    {formatItems.map((format) => (
+                      <CheckRow
+                        key={format}
+                        label={FORMAT_LABELS[format]}
+                        count={fmtCount(formatCounts[format])}
+                        checked={pending.format === format}
+                        onToggle={() => setFormat(pending.format === format ? "" : format)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           )}
@@ -571,9 +660,10 @@ export function Sidebar({ type = "physical" }: Props) {
           </button>
         </div>
 
-        {/* ── AI Shopping Assistant ── */}
+        {/* ── AI Shopping Assistant — fills the sidebar space below the filters ── */}
         <div
-          className="rounded-xl p-3.5"
+          data-marketplace-assistant
+          className="flex flex-col rounded-xl p-3.5"
           style={{
             background: JIMVIO_ORANGE.gradient135,
             boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
@@ -589,58 +679,85 @@ export function Sidebar({ type = "physical" }: Props) {
               Beta
             </span>
           </div>
-          <p className="mb-2.5 text-[10px] leading-relaxed text-white/75">
+          <p className="mb-2.5 text-[10px] leading-relaxed text-white/80">
             {type === "digital"
-              ? "Find top digital products, courses and tools."
-              : "Find winning products, trending items and profitable opportunities."}
+              ? "Ask about courses, templates, software, or a budget. Answers use digital listings only."
+              : "Ask about a product, category, or budget. Answers use physical listings only."}
           </p>
           <form
-            className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
+            className="flex items-end gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 transition-all focus-within:ring-white/40"
             onSubmit={(e) => {
               e.preventDefault();
               void askShoppingAssistant(aiQuery);
             }}
           >
-            <input
+            <textarea
               value={aiQuery}
               onChange={(e) => setAiQuery(e.target.value)}
-              placeholder={type === "digital" ? "Find digital products..." : "Ask AI anything..."}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  void askShoppingAssistant(aiQuery);
+                }
+              }}
+              placeholder={type === "digital" ? "Find a course or template..." : "Ask about a product..."}
               maxLength={500}
+              rows={3}
               aria-label="AI Shopping Assistant"
               disabled={aiStatus === "loading"}
-              className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/55"
+              className="max-h-28 min-h-[3.25rem] w-full resize-none bg-transparent text-[11px] leading-relaxed text-white outline-none placeholder:text-white/55 focus-visible:outline-none"
             />
             <button
               type="submit"
               aria-label="Send message"
               disabled={aiStatus === "loading" || !aiQuery.trim()}
-              className="rounded p-0.5 transition-colors hover:bg-white/20 disabled:opacity-50"
+              className="mb-0.5 rounded p-0.5 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-50"
             >
               <Send className="size-3 text-white" />
             </button>
           </form>
+          <p className="mt-1.5 text-[9px] text-white/60">Enter to send. Shift+Enter for a new line.</p>
           {aiStatus === "loading" && (
             <p className="mt-2 text-[10px] text-white/80" aria-live="polite">
-              Looking through the marketplace…
+              Looking through {type} listings…
             </p>
           )}
           {aiStatus === "ready" && aiReply && (
             <div className="mt-2 space-y-1.5" aria-live="polite">
-              <p className="max-h-28 overflow-y-auto whitespace-pre-wrap text-[10px] leading-relaxed text-white/90">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-[10px] leading-relaxed text-white/90">
                 {aiReply}
               </p>
               {aiProducts.length > 0 && (
-                <div className="flex flex-col gap-0.5">
-                  {aiProducts.map((product) => (
-                    <a
-                      key={product.slug}
-                      href={`/marketplace/${product.slug}`}
-                      className="truncate text-[10px] font-semibold text-white underline"
-                    >
-                      {product.name}
-                      {product.price != null ? ` · ${product.currency ?? "USD"} ${product.price}` : ""}
-                    </a>
-                  ))}
+                <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                  {aiProducts.map((product) => {
+                    const amount = typeof product.price === "number" ? product.price : Number(product.price);
+                    const priceLabel = Number.isFinite(amount)
+                      ? formatMoney(amount, product.currency || "USD")
+                      : null;
+                    return (
+                      <a
+                        key={product.slug}
+                        href={`/marketplace/${product.slug}`}
+                        className="flex items-center gap-2 rounded-lg bg-white/10 p-1.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      >
+                        {product.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={product.image} alt="" className="size-10 shrink-0 rounded-md object-cover" />
+                        ) : (
+                          <span className="grid size-10 shrink-0 place-items-center rounded-md bg-white/15 text-[9px] text-white/70">
+                            No photo
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-[10px] font-semibold">{product.name}</span>
+                          {priceLabel && <span className="block text-[10px] text-white/80">{priceLabel}</span>}
+                          {product.reason && (
+                            <span className="block text-[9px] leading-snug text-white/70">{product.reason}</span>
+                          )}
+                        </span>
+                      </a>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -652,64 +769,25 @@ export function Sidebar({ type = "physical" }: Props) {
                 type="button"
                 onClick={() => void askShoppingAssistant(lastAiMessage.current)}
                 disabled={retryAfterMs != null}
-                className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white disabled:opacity-50"
+                className="rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-50"
               >
                 Retry
               </button>
             </div>
           )}
           <div className="mt-2.5 flex flex-wrap gap-1 text-[9px] font-semibold">
-            {(type === "digital"
-              ? ["Top courses", "AI tools", "Templates"]
-              : ["Winning products", "Viral now", "High commission"]
-            ).map((t) => (
+            {SHOPPING_SUGGESTIONS[type].map((item) => (
               <button
-                key={t}
+                key={item.intent}
                 type="button"
-                onClick={() => void askShoppingAssistant(t)}
-                className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
+                onClick={() => void askShoppingAssistant(item.message)}
+                disabled={aiStatus === "loading"}
+                className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:opacity-50"
               >
-                {t}
+                {item.label}
               </button>
             ))}
           </div>
-        </div>
-
-        {/* ── Elite Club ── */}
-        <div
-          className="rounded-xl p-3.5"
-          style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
-        >
-          <div className="mb-2 flex items-center gap-1.5">
-            <Crown className="size-3.5" style={{ color: "var(--color-accent)" }} />
-            <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
-              Jimvio Elite Club
-            </span>
-            <span
-              className="ml-auto rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
-              style={{ background: "var(--color-accent)" }}
-            >
-              New
-            </span>
-          </div>
-          <ul className="mb-3 space-y-1 text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
-            {["Exclusive perks", "Higher commissions", "VIP support"].map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <span
-                  className="size-1.5 shrink-0 rounded-full"
-                  style={{ background: "var(--color-accent)" }}
-                />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <a
-            href="https://www.jimvio.com/help"
-            className="block w-full rounded-lg py-1.5 text-center text-xs font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: "var(--color-accent)" }}
-          >
-            Join Elite Now
-          </a>
         </div>
 
       </div>

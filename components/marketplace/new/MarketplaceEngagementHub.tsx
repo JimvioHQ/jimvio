@@ -11,7 +11,9 @@ import {
   Zap,
   Star,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
+import { MARKETPLACE_GROWTH_PATHS } from "@/lib/marketplace/experience";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 
@@ -23,44 +25,12 @@ type Props = {
   onSearchPick?: (term: string) => void;
 };
 
-const GROWTH_PATHS = [
-  {
-    title: "Earn commissions",
-    desc: "Share products, get paid per sale",
-    href: "/affiliates",
-    cta: "Start earning",
-    icon: BadgeDollarSign,
-    color: "#16a34a",
-    bg: "rgba(22,163,74,0.1)",
-  },
-  {
-    title: "Join UGC campaigns",
-    desc: "Create content brands pay for",
-    href: "/ugc",
-    cta: "Browse campaigns",
-    icon: Clapperboard,
-    color: "#7c3aed",
-    bg: "rgba(124,58,237,0.1)",
-  },
-  {
-    title: "Open your store",
-    desc: "List products & reach buyers",
-    href: "/activate/vendor",
-    cta: "Sell on Jimvio",
-    icon: Store,
-    color: "#fd5000",
-    bg: "rgba(253,80,0,0.1)",
-  },
-  {
-    title: "Join communities",
-    desc: "Learn, network & grow together",
-    href: "/communities",
-    cta: "Explore groups",
-    icon: Users,
-    color: "#2563eb",
-    bg: "rgba(37,99,235,0.1)",
-  },
-] as const;
+const GROWTH_ICONS: Record<(typeof MARKETPLACE_GROWTH_PATHS)[number]["id"], LucideIcon> = {
+  affiliates: BadgeDollarSign,
+  ugc: Clapperboard,
+  dropshipping: Store,
+  communities: Users,
+};
 
 function getDiscoveryChips(type: ProductType) {
   const shared = [
@@ -76,7 +46,10 @@ function getDiscoveryChips(type: ProductType) {
       label: "AI deal finder",
       icon: Sparkles,
       action: "ai" as const,
-      prompt: "Show me the best deals and discounts on Jimvio right now.",
+      prompt:
+        type === "digital"
+          ? "Show me the best deals on digital products, courses, ebooks, and templates."
+          : "Show me the best deals and discounts on physical products right now.",
     },
     {
       id: "affiliate",
@@ -121,7 +94,6 @@ function getDiscoveryChips(type: ProductType) {
 
 export function MarketplaceEngagementHub({
   productType = "physical",
-  listingCount = 0,
   onSearchPick,
 }: Props) {
   const openAssistant = useAIStore((s) => s.openAssistant);
@@ -163,37 +135,36 @@ export function MarketplaceEngagementHub({
       </div>
 
       <div className="grid grid-cols-2 gap-2 p-3 sm:gap-3 sm:p-4 lg:grid-cols-4">
-        {GROWTH_PATHS.map((path) => (
-          <Link
-            key={path.href}
-            href={path.href}
-            className={cn(
-              "group flex min-h-[108px] flex-col rounded-xl border border-[var(--color-border)] p-3 transition-all",
-              "hover:border-[var(--color-border-strong)] hover:shadow-sm active:scale-[0.98]",
-            )}
-            style={{ background: "var(--color-surface)" }}
-          >
-            <span
-              className="mb-2 grid size-9 place-items-center rounded-lg"
-              style={{ background: path.bg, color: path.color }}
+        {MARKETPLACE_GROWTH_PATHS.map((path) => {
+          const Icon = GROWTH_ICONS[path.id];
+          return (
+            <Link
+              key={path.id}
+              href={path.href}
+              aria-label={`${path.title}. ${path.cta}`}
+              className={cn(
+                "group flex min-h-[108px] flex-col rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-all",
+                "hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] hover:shadow-sm",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2",
+                "active:scale-[0.98]",
+              )}
             >
-              <path.icon className="size-4" strokeWidth={2.25} />
-            </span>
-            <p className="text-[12px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[13px]">
-              {path.title}
-            </p>
-            <p className="mt-1 flex-1 text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-[11px]">
-              {path.desc}
-            </p>
-            <span
-              className="mt-2 inline-flex items-center gap-0.5 text-[10px] font-bold transition-opacity group-hover:opacity-80 sm:text-[11px]"
-              style={{ color: path.color }}
-            >
-              {path.cta}
-              <ArrowRight className="size-3" />
-            </span>
-          </Link>
-        ))}
+              <span className="mb-2 grid size-9 place-items-center rounded-lg bg-[var(--color-accent-light)] text-[var(--color-accent)] transition-colors group-hover:bg-[var(--color-surface)]">
+                <Icon className="size-4" strokeWidth={2.25} aria-hidden />
+              </span>
+              <p className="text-[12px] font-bold leading-tight text-[var(--color-accent-hover)] sm:text-[13px]">
+                {path.title}
+              </p>
+              <p className="mt-1 flex-1 text-[10px] leading-snug text-[var(--color-text-muted)] sm:text-[11px]">
+                {path.description}
+              </p>
+              <span className="mt-2 inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--color-accent)] group-hover:text-[var(--color-accent-hover)] sm:text-[11px]">
+                {path.cta}
+                <ArrowRight className="size-3" aria-hidden />
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="border-t border-[var(--color-border)] px-3 pb-3 pt-2 sm:px-4 sm:pb-4">

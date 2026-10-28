@@ -152,6 +152,42 @@ export async function completeText(options: {
   return (response.output_text ?? "").trim();
 }
 
+/**
+ * One image plus a text instruction. Uses the same server-side OpenAI key and model.
+ * The caller must not log or store the image.
+ */
+export async function completeVisionText(options: {
+  apiKey: string;
+  model: string;
+  instructions: string;
+  prompt: string;
+  imageDataUrl: string;
+  maxOutputTokens?: number;
+  timeoutMs?: number;
+}): Promise<string> {
+  const timeoutMs = options.timeoutMs ?? 20_000;
+  const response = await clientFor(options.apiKey).responses.create(
+    {
+      model: options.model,
+      instructions: options.instructions,
+      input: [
+        {
+          role: "user",
+          content: [
+            { type: "input_text", text: options.prompt },
+            { type: "input_image", image_url: options.imageDataUrl, detail: "low" },
+          ],
+        },
+      ],
+      temperature: 0,
+      max_output_tokens: options.maxOutputTokens ?? 80,
+      store: false,
+    },
+    { timeout: timeoutMs, maxRetries: 0, signal: AbortSignal.timeout(timeoutMs) },
+  );
+  return (response.output_text ?? "").trim();
+}
+
 export async function embedText(apiKey: string, input: string, timeoutMs = 12_000): Promise<number[]> {
   const response = await clientFor(apiKey).embeddings.create(
     {

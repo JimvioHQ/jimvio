@@ -7,6 +7,11 @@ import { ArrowLeft, Search, Sparkles, TrendingUp } from "lucide-react";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import type { DbProduct } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import {
+  canonicalMarketplacePath,
+  marketplacePopularSearches,
+  type MarketplaceProductType,
+} from "@/lib/marketplace/experience";
 
 type Props = {
   initialType: "physical" | "digital";
@@ -17,13 +22,6 @@ type Props = {
   initialPageCount?: number;
   initialError?: boolean;
 };
-
-const POPULAR_FALLBACK = [
-  "Wireless Earbuds",
-  "Gaming Headset",
-  "Smart Watch",
-  "Portable Speaker",
-];
 
 function ProductGrid({ products, className }: { products: DbProduct[]; className?: string }) {
   return (
@@ -67,10 +65,12 @@ function EmptySearchState({
   query,
   type,
   popular,
+  browseTo,
 }: {
   query: string;
-  type: string;
+  type: MarketplaceProductType;
   popular: string[];
+  browseTo: string;
 }) {
   return (
     <div
@@ -106,7 +106,7 @@ function EmptySearchState({
         </div>
       </div>
       <Link
-        href={`/marketplace?type=${type}`}
+        href={browseTo}
         className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
       >
         <Sparkles className="size-4" />
@@ -116,10 +116,25 @@ function EmptySearchState({
   );
 }
 
-function searchHref(query: string, type: string, page: number) {
+function browseHref(type: MarketplaceProductType, current: URLSearchParams) {
+  const params = new URLSearchParams();
+  for (const key of ["category", "minPrice", "maxPrice", "offer", "format", "shipping", "delivery", "sort", "brand"]) {
+    const value = current.get(key);
+    if (value) params.set(key, value);
+  }
+  const qs = params.toString();
+  const path = canonicalMarketplacePath(type);
+  return qs ? `${path}?${qs}` : path;
+}
+
+function searchHref(query: string, type: string, page: number, current: URLSearchParams) {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   params.set("type", type);
+  for (const key of ["category", "minPrice", "maxPrice", "offer", "format", "visual"]) {
+    const value = current.get(key);
+    if (value) params.set(key, value);
+  }
   if (page > 1) params.set("page", String(page));
   return `/marketplace/search?${params.toString()}`;
 }
@@ -136,7 +151,8 @@ export function MarketplaceSearchResultsClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const q = (searchParams.get("q") ?? initialQuery).trim();
-  const type = searchParams.get("type") === "digital" ? "digital" : initialType;
+  const type: MarketplaceProductType =
+    searchParams.get("type") === "digital" ? "digital" : initialType;
   const aiMode = searchParams.get("ai") === "1";
   const page = Math.max(1, Number(searchParams.get("page") ?? initialPage) || 1);
 
@@ -219,7 +235,7 @@ export function MarketplaceSearchResultsClient({
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
       <Link
-        href={`/marketplace?type=${type}`}
+        href={browseHref(type, searchParams)}
         className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md"
       >
         <ArrowLeft className="size-3.5" />
@@ -236,7 +252,7 @@ export function MarketplaceSearchResultsClient({
         </span>
         <div>
           <h1 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
-            {q ? `${aiMode ? "AI results" : "Results"} for “${q}”` : "Search"}
+            {q ? `${aiMode ? "AI results" : searchParams.get("visual") === "1" ? "Photo matches" : "Results"} for “${q}”` : "Search"}
           </h1>
           {!loading && q && aiIntent && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{aiIntent}</p>
@@ -253,7 +269,7 @@ export function MarketplaceSearchResultsClient({
             {categories.map((c) => (
               <Link
                 key={c.slug}
-                href={`/marketplace?type=${type}&category=${c.slug}`}
+                href={`${canonicalMarketplacePath(type)}?category=${encodeURIComponent(c.slug)}`}
                 className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)] transition-all duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40"
               >
                 {c.name}
@@ -291,7 +307,7 @@ export function MarketplaceSearchResultsClient({
             <div className="mt-6 flex items-center justify-center gap-3 text-xs font-semibold">
               {page > 1 ? (
                 <Link
-                  href={searchHref(q, type, page - 1)}
+                  href={searchHref(q, type, page - 1, searchParams)}
                   className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
                 >
                   Previous
@@ -302,7 +318,7 @@ export function MarketplaceSearchResultsClient({
               </span>
               {page < pageCount ? (
                 <Link
-                  href={searchHref(q, type, page + 1)}
+                  href={searchHref(q, type, page + 1, searchParams)}
                   className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-[var(--color-text-primary)]"
                 >
                   Next
@@ -312,9 +328,9 @@ export function MarketplaceSearchResultsClient({
           )}
         </>
       ) : isEmpty && q ? (
-        <EmptySearchState query={q} type={type} popular={POPULAR_FALLBACK} />
+        <EmptySearchState query={q} type={type} popular={marketplacePopularSearches(type)} browseTo={browseHref(type, searchParams)} />
       ) : !q ? (
-        <EmptySearchState query="" type={type} popular={POPULAR_FALLBACK} />
+        <EmptySearchState query="" type={type} popular={marketplacePopularSearches(type)} browseTo={browseHref(type, searchParams)} />
       ) : null}
     </div>
   );

@@ -8,15 +8,26 @@ import {
   HOMEPAGE_FLASH_DEALS_LIMIT,
   resolveMarketplaceFlashDeals,
 } from "@/lib/marketplace/homepage-ranking";
+import { getMarketplaceTypeFilter, type MarketplaceProductType } from "@/lib/marketplace/fetch-page-data";
+import type { Database } from "@/types/supabase";
+
+type CatalogProductType = Database["public"]["Enums"]["product_type"];
 
 export const metadata: Metadata = pageMetadata("deals");
 
 const FLASH_SALE_LIMIT = 48;
 
-export default async function MarketplaceFlashDealsPage() {
+export default async function MarketplaceFlashDealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
+  const params = await searchParams;
+  const productType: MarketplaceProductType | null =
+    params.type === "digital" || params.type === "physical" ? params.type : null;
   const supabase = await createClient();
 
-  const { data } = await supabase
+  let query = supabase
     .from("products")
     .select(`
       id, name, slug, price, compare_at_price, currency, images, product_type,
@@ -28,7 +39,16 @@ export default async function MarketplaceFlashDealsPage() {
     `)
     .eq("status", "active")
     .eq("is_active", true)
-    .is("deleted_at", null)
+    .is("deleted_at", null);
+
+  if (productType) {
+    query = query.in(
+      "product_type",
+      [...getMarketplaceTypeFilter(productType)] as CatalogProductType[],
+    );
+  }
+
+  const { data } = await query
     .order("view_count", { ascending: false })
     .limit(200);
 
@@ -49,7 +69,11 @@ export default async function MarketplaceFlashDealsPage() {
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-8xl px-4 py-4 sm:px-6">
-      <FlashDealsPageClient initialDeals={attachProductVideos(ranked, videoMap)} />
+      <FlashDealsPageClient
+        key={productType ?? "all"}
+        productType={productType}
+        initialDeals={attachProductVideos(ranked, videoMap)}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
-import { MarketplacePage } from "@/components/marketplace/new/Marketplacepage ";
+import { marketplaceIndexHref, type MarketplaceQueryRecord } from "@/lib/marketplace/experience";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("marketplace");
@@ -11,12 +11,9 @@ export const revalidate = 60;
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; page?: string }>;
+  searchParams: Promise<MarketplaceQueryRecord>;
 }) {
   const params = await searchParams;
-  // Physical Marketplace is canonical at /marketplace/physical (one implementation).
-  if (!params.type || params.type === "physical") {
-    permanentRedirect("/marketplace/physical");
-  }
-  return <MarketplacePage searchParams={params} />;
+  // One marketplace implementation. Physical and Digital each have a canonical path.
+  permanentRedirect(marketplaceIndexHref(params));
 }

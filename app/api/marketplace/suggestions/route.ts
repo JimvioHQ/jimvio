@@ -7,7 +7,7 @@ import {
   type SearchableCategory,
   type SearchableProduct,
 } from "@/lib/marketplace/search-engine";
-import { PHYSICAL_CATEGORY_CATALOG, DIGITAL_CATEGORY_CATALOG } from "@/lib/marketplace/category-catalog";
+import { categoryTypeOrFilter } from "@/lib/marketplace/experience";
 
 const PHYSICAL_TYPES = ["physical"] as const;
 const DIGITAL_TYPES = ["digital", "course", "ebook", "software", "template", "coaching"] as const;
@@ -41,12 +41,15 @@ export async function GET(req: NextRequest) {
       .order("view_count", { ascending: false })
       .limit(40);
 
-    const catalog = type === "digital" ? DIGITAL_CATEGORY_CATALOG : PHYSICAL_CATEGORY_CATALOG;
-    const categories: SearchableCategory[] = catalog.map((c) => ({
-      id: c.slug,
-      name: c.name,
-      slug: c.slug,
-    }));
+    const { data: categoryRows } = await supabase
+      .from("product_categories")
+      .select("id, name, slug")
+      .eq("is_active", true)
+      .eq("visible", true)
+      .or(categoryTypeOrFilter(type))
+      .order("sort_order", { ascending: true })
+      .limit(80);
+    const categories = (categoryRows ?? []) as SearchableCategory[];
 
     const suggestions = buildSuggestions(
       q,

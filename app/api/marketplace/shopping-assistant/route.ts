@@ -17,56 +17,22 @@ import {
 import { qualifiesForGeminiFallback } from "@/lib/ai/provider-policy";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
+import { getMarketplaceTypeFilter } from "@/lib/marketplace/fetch-page-data";
 import {
+  emptyCatalogReply,
+  firstProductImage,
   groundedCatalogBlock,
+  groundedFallbackReply,
   isBroadShoppingQuestion,
   sanitizeShoppingMessage,
   shoppingAssistantSystemPrompt,
+  shoppingIntentForMessage,
+  shoppingIntentReason,
   type GroundedShoppingProduct,
+  type ShoppingIntent,
 } from "@/lib/marketplace/shopping-assistant";
 
 export const dynamic = "force-dynamic";
-
-type ProviderBlock = {
-  until: number;
-  failure: GeminiProviderFailure;
-};
-
-let providerBlock: ProviderBlock | null = null;
-
-function blockRemainingSeconds(): number {
-  if (!providerBlock) return 0;
-  const left = providerBlock.until - Date.now();
-  if (left <= 0) {
-    providerBlock = null;
-    return 0;
-  }
-  return Math.ceil(left / 1000);
-}
-
-function rememberProviderBlock(failure: GeminiProviderFailure): number | null {
-  if (failure.category !== "rate_limit") return failure.retryAfterSeconds;
-  const wait = failure.quotaScope === "daily"
-    ? 15 * 60
-    : Math.min(90, Math.max(failure.retryAfterSeconds ?? 20, 8));
-  providerBlock = { until: Date.now() + wait * 1000, failure };
-  return failure.quotaScope === "daily" ? failure.retryAfterSeconds : wait;
-}
-
-function limitResponse(failure: GeminiProviderFailure, retryAfterSeconds: number | null) {
-  const status = failure.category === "rate_limit" ? 429 : 503;
-  const headers: Record<string, string> = {};
-  if (retryAfterSeconds && retryAfterSeconds > 0) headers["Retry-After"] = String(retryAfterSeconds);
-  return NextResponse.json(
-    {
-      ok: false,
-      error: failure.category === "rate_limit" ? "rate_limit" : "unavailable",
-      quotaScope: failure.quotaScope,
-      retryAfterSeconds,
-    },
-    { status, headers },
-  );
-}
 
 function clientIp(request: Request): string {
   return (
@@ -101,38 +67,32 @@ export async function POST(req: NextRequest) {
   }
 
   const type = body.type === "digital" ? "digital" : "physical";
+  const intent = shoppingIntentForMessage(message);
   const apiKey = readOpenAIKey();
-  if (!apiKey) {
-    return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
-  }
 
   let products: GroundedShoppingProduct[] = [];
   try {
-    if (!isBroadShoppingQuestion(message)) {
     const supabase = await createClient();
-    const search = await runMarketplaceSearch(supabase, {
-      query: message,
-      type,
-      page: 1,
-      pageSize: 6,
-    });
-    products = search.products.slice(0, 6).map((product) => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      price: product.price,
-      currency: product.currency,
-      product_type: product.product_type,
-    }));
-    }
+    products = await loadShoppingProducts(supabase, type, message, intent);
   } catch (error) {
     console.error("[shopping-assistant] catalog lookup failed:", error);
     return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503 });
   }
 
-  const remaining = blockRemainingSeconds();
-  if (remaining > 0 && providerBlock) {
-    return limitResponse(providerBlock.failure, providerBlock.failure.quotaScope === "daily" ? null : remaining);
+  if (products.length === 0) {
+    return NextResponse.json({
+      ok: true,
+      reply: emptyCatalogReply(type, intent),
+      products: [],
+    });
+  }
+
+  if (!apiKey) {
+    return NextResponse.json({
+      ok: true,
+      reply: groundedFallbackReply(type, products),
+      products,
+    });
   }
 
   try {
@@ -199,13 +159,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (!reply) {
-      const failure = lastFailure ?? {
-        category: "provider" as const,
-        retryAfterSeconds: null,
-        quotaScope: null,
-        detail: "no model response",
-      };
-      return limitResponse(failure, rememberProviderBlock(failure));
+      return NextResponse.json({
+        ok: true,
+        reply: groundedFallbackReply(type, products),
+        products,
+      });
     }
 
     return NextResponse.json({
@@ -220,6 +178,97 @@ export async function POST(req: NextRequest) {
       quotaScope: failure.quotaScope,
       detail: failure.detail,
     });
-    return limitResponse(failure, rememberProviderBlock(failure));
+    return NextResponse.json({
+      ok: true,
+      reply: groundedFallbackReply(type, products),
+      products,
+    });
   }
+}
+
+const SHOPPING_SELECT =
+  "id, name, slug, price, currency, images, product_type, sale_count, view_count, affiliate_commission_rate";
+
+function toGrounded(
+  rows: Array<Record<string, unknown>>,
+  reason: string,
+): GroundedShoppingProduct[] {
+  return rows.slice(0, 6).map((row) => ({
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    slug: String(row.slug ?? ""),
+    price: (row.price as number | string | null) ?? null,
+    currency: (row.currency as string | null) ?? null,
+    product_type: (row.product_type as string | null) ?? null,
+    image: firstProductImage(row.images),
+    reason,
+  })).filter((product) => product.id && product.slug && product.name);
+}
+
+async function loadShoppingProducts(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  type: "physical" | "digital",
+  message: string,
+  intent: ShoppingIntent | null,
+): Promise<GroundedShoppingProduct[]> {
+  const typeFilter = [...getMarketplaceTypeFilter(type)];
+  if (intent) {
+    if (
+      (intent === "courses" || intent === "templates" || intent === "software") &&
+      type !== "digital"
+    ) {
+      return [];
+    }
+    let query = supabase
+      .from("products")
+      .select(SHOPPING_SELECT)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null);
+    if (intent === "courses") query = query.eq("product_type", "course");
+    else if (intent === "templates") query = query.eq("product_type", "template");
+    else if (intent === "software") query = query.eq("product_type", "software");
+    else query = query.in("product_type", typeFilter);
+    if (intent === "high_commission") query = query.not("affiliate_commission_rate", "is", null).gt("affiliate_commission_rate", 0);
+    if (intent === "most_sales") query = query.order("sale_count", { ascending: false });
+    else if (intent === "high_commission") query = query.order("affiliate_commission_rate", { ascending: false });
+    else query = query.order("view_count", { ascending: false });
+    const { data, error } = await query.limit(6);
+    if (error) throw new Error(error.message);
+    return toGrounded((data ?? []) as Array<Record<string, unknown>>, shoppingIntentReason(intent));
+  }
+
+  if (isBroadShoppingQuestion(message)) {
+    const { data, error } = await supabase
+      .from("products")
+      .select(SHOPPING_SELECT)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .in("product_type", typeFilter)
+      .order("view_count", { ascending: false })
+      .limit(4);
+    if (error) throw new Error(error.message);
+    return toGrounded(
+      (data ?? []) as Array<Record<string, unknown>>,
+      "Currently listed in this marketplace",
+    );
+  }
+
+  const search = await runMarketplaceSearch(supabase, {
+    query: message,
+    type,
+    page: 1,
+    pageSize: 6,
+  });
+  return search.products.slice(0, 6).map((product) => ({
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    price: product.price,
+    currency: product.currency,
+    product_type: product.product_type,
+    image: firstProductImage(product.images),
+    reason: shoppingIntentReason(null),
+  }));
 }

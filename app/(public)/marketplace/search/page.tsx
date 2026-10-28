@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { MarketplaceSearchResultsClient } from "@/components/marketplace/new/MarketplaceSearchResultsClient";
 import { parseMarketplacePage } from "@/lib/marketplace/constants";
+import { readMarketplaceFormat, readMarketplaceOffer } from "@/lib/marketplace/experience";
 import { runMarketplaceSearch } from "@/lib/marketplace/run-marketplace-search";
 import { createClient } from "@/lib/supabase/server";
 import type { DbProduct } from "@/lib/utils";
@@ -10,12 +11,23 @@ export const dynamic = "force-dynamic";
 export default async function MarketplaceSearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string; page?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    page?: string;
+    category?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    offer?: string;
+    format?: string;
+  }>;
 }) {
   const params = await searchParams;
   const initialType = params.type === "digital" ? "digital" : "physical";
   const page = parseMarketplacePage(params.page);
   const query = params.q ?? "";
+  const minPrice = Number(params.minPrice);
+  const maxPrice = Number(params.maxPrice);
 
   let products: DbProduct[] = [];
   let total = 0;
@@ -30,6 +42,13 @@ export default async function MarketplaceSearchPage({
         query,
         type: initialType,
         page,
+        constraints: {
+          categorySlug: params.category,
+          minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
+          maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
+          offer: readMarketplaceOffer(params.offer, initialType),
+          format: readMarketplaceFormat(params.format, initialType),
+        },
       });
       products = payload.products;
       total = payload.total;

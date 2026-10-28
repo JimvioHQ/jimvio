@@ -1,21 +1,20 @@
 ﻿import type { Metadata } from "next";
 import { MarketplacePage } from "@/components/marketplace/new/Marketplacepage ";
+import { redirectIfMarketplaceLocationNeedsNormalization } from "@/lib/marketplace/experience-server";
+import type { MarketplaceQueryRecord } from "@/lib/marketplace/experience";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("marketplacePhysical");
 
-/** Canonical Physical Marketplace — same experience as the former ?type=physical hub. */
+/** Canonical Physical Marketplace. Product type comes from this pathname. */
 export const revalidate = 60;
 
 export default async function MarketplacePhysicalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; category?: string; q?: string }>;
+  searchParams: Promise<MarketplaceQueryRecord>;
 }) {
   const params = await searchParams;
-  return (
-    <MarketplacePage
-      searchParams={{ type: "physical", page: params.page }}
-    />
-  );
+  await redirectIfMarketplaceLocationNeedsNormalization("physical", params);
+  return <MarketplacePage searchParams={{ type: "physical" }} />;
 }

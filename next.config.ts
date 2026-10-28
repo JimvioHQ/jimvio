@@ -138,11 +138,17 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
 
-      // Canonical Physical Marketplace (avoid duplicate ?type=physical indexation)
+      // Canonical marketplaces (avoid duplicate ?type= indexation)
       {
         source: "/marketplace",
         has: [{ type: "query", key: "type", value: "physical" }],
         destination: "/marketplace/physical",
+        permanent: true,
+      },
+      {
+        source: "/marketplace",
+        has: [{ type: "query", key: "type", value: "digital" }],
+        destination: "/marketplace/digital",
         permanent: true,
       },
       // Community hub: /c → /communities (permanent for bookmarks + SEO)

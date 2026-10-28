@@ -383,6 +383,8 @@ export type AppliedFilters = {
   deliveryTimes: DeliveryTime[];
   priceRange: [number, number];
   minRating: number;
+  offer?: "" | "free_shipping" | "flash_deal";
+  format?: "" | "digital" | "course" | "ebook" | "software" | "template" | "coaching";
 };
 
 export const SELECT_CATEGORY_LABEL = "Select category";
@@ -395,6 +397,8 @@ export const DEFAULT_FILTERS: AppliedFilters = {
   deliveryTimes: [],
   priceRange: [0, 5000],
   minRating: 0,
+  offer: "",
+  format: "",
 };
 
 export function parsePrice(price: string): number {

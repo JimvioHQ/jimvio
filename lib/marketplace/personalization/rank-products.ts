@@ -4,8 +4,8 @@ import type {
   PersonalizedSection,
   PersonalizedSectionId,
   ProductLane,
-  ViewedProductStub,
 } from "./types";
+import { canonicalMarketplacePath } from "@/lib/marketplace/experience";
 import { getSectionDefinition } from "./sections-config";
 
 const SECTION_LIMIT = 12;
@@ -77,31 +77,9 @@ function matchesSearchInterest(product: FeedProduct, terms: string[]) {
   return terms.some((term) => haystack.includes(term.toLowerCase()));
 }
 
-function stubToFeedProduct(stub: ViewedProductStub): FeedProduct {
-  return {
-    id: stub.id,
-    name: stub.name,
-    slug: stub.slug,
-    price: Number(stub.price) || 0,
-    compare_at_price: null,
-    images: stub.images ?? [],
-    product_type: "physical",
-    currency: stub.currency ?? "USD",
-    status: "active",
-    is_flash_deal: null,
-    discount_label: null,
-    shipping_from: null,
-    delivery_time: null,
-    affiliate_commission_rate: null,
-    view_count: null,
-    sale_count: null,
-    sold_count: null,
-    claimed_pct: null,
-    rating: null,
-    review_count: null,
-    is_free_shipping: null,
-    category_id: stub.category_id ?? null,
-  };
+function matchesRouteType(product: FeedProduct, productType: "physical" | "digital"): boolean {
+  if (productType === "physical") return product.product_type === "physical";
+  return Boolean(product.product_type) && product.product_type !== "physical";
 }
 
 function matchesViewedCategory(product: FeedProduct, categoryIds: string[]) {
@@ -136,15 +114,21 @@ function buildSection(
   if (diversified.length < MIN_PRODUCTS) return null;
 
   const def = getSectionDefinition(id);
-  const baseHref = productType === "digital" ? "/marketplace?type=digital" : "/marketplace";
+  const baseHref = canonicalMarketplacePath(productType);
   const viewAllHref =
     viewAllOverride ??
     (def.viewAllHash.startsWith("/") ? def.viewAllHash : `${baseHref}${def.viewAllHash}`);
+  const description =
+    productType === "digital" && id === "trending-near-you"
+      ? "Popular digital picks right now."
+      : productType === "digital" && id === "popular-in-country"
+        ? "Digital products shoppers are buying."
+        : def.description;
 
   return {
     id,
     title: def.title,
-    description: def.description,
+    description,
     viewAllHref,
     products: diversified,
     rankingMeta: {
@@ -160,9 +144,9 @@ function buildSection(
  */
 export function buildPersonalizedFeed(input: BuildFeedInput): PersonalizedSection[] {
   const { catalog, flashDeals, newProductIds, signals, productType } = input;
-  if (!catalog.length) return [];
-
-  const pool = [...catalog];
+  const pool = catalog.filter((product) => matchesRouteType(product, productType));
+  const typedFlashDeals = flashDeals.filter((product) => matchesRouteType(product, productType));
+  if (!pool.length) return [];
   const usedAcrossSections = new Set<string>();
   const sections: PersonalizedSection[] = [];
 
@@ -235,7 +219,7 @@ export function buildPersonalizedFeed(input: BuildFeedInput): PersonalizedSectio
   );
 
   const viewedProducts = signals.viewedProducts
-    .map((stub) => pool.find((p) => p.id === stub.id) ?? stubToFeedProduct(stub))
+    .map((stub) => pool.find((p) => p.id === stub.id))
     .filter((p): p is FeedProduct => Boolean(p));
   push("recently-viewed", viewedProducts.slice(0, SECTION_LIMIT), undefined, false);
 
@@ -258,8 +242,12 @@ export function buildPersonalizedFeed(input: BuildFeedInput): PersonalizedSectio
     : [...pool].sort(byViewCount).slice(0, SECTION_LIMIT * 2);
   push("new-arrivals-for-you", pick(newArrivals, SECTION_LIMIT));
 
-  const topPool = [...flashDeals, ...pool].sort(byViewCount);
-  push("top-picks-today", pick(topPool, SECTION_LIMIT), "/marketplace#flash-deals-section");
+  const topPool = [...typedFlashDeals, ...pool].sort(byViewCount);
+  push(
+    "top-picks-today",
+    pick(topPool, SECTION_LIMIT),
+    `${canonicalMarketplacePath(productType)}#flash-deals-section`,
+  );
 
   return sections;
 }

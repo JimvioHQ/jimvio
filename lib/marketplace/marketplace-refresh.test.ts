@@ -8,11 +8,16 @@ import {
   selectRotatedTrending,
 } from "./trending-rotation.ts";
 import {
+  emptyCatalogReply,
   groundedCatalogBlock,
+  groundedFallbackReply,
   isBroadShoppingQuestion,
   sanitizeShoppingMessage,
   shoppingAssistantSystemPrompt,
+  shoppingIntentForMessage,
+  SHOPPING_SUGGESTIONS,
 } from "./shopping-assistant.ts";
+import { parseVisualDataUrl, parseVisualQuery, validateVisualFile } from "./visual-search.ts";
 
 const root = process.cwd();
 
@@ -79,23 +84,70 @@ describe("shopping assistant grounding", () => {
     assert.doesNotMatch(block, /Sleeping Bag/);
     assert.match(groundedCatalogBlock([]), /none/);
   });
+
+  it("maps suggestion chips to real catalog intents for the active marketplace", () => {
+    assert.deepEqual(
+      SHOPPING_SUGGESTIONS.physical.map((item) => item.label),
+      ["Winning products", "Viral now", "High commission"],
+    );
+    assert.deepEqual(
+      SHOPPING_SUGGESTIONS.digital.map((item) => item.label),
+      ["Top courses", "Templates", "Software"],
+    );
+    assert.equal(shoppingIntentForMessage("Show digital courses I can buy"), "courses");
+    assert.equal(shoppingIntentForMessage("Show physical products with the most sales"), "most_sales");
+    assert.equal(shoppingIntentForMessage("wireless earbuds"), null);
+    assert.match(emptyCatalogReply("digital", "courses"), /No courses/);
+    assert.match(emptyCatalogReply("digital", null), /No digital products/);
+    assert.doesNotMatch(emptyCatalogReply("digital", null), /physical listings from the marketplace/);
+    const fallback = groundedFallbackReply("physical", [
+      { id: "1", name: "Phone Case", slug: "phone-case", price: 12, currency: "USD" },
+    ]);
+    assert.match(fallback, /Phone Case/);
+    assert.doesNotMatch(fallback, /\$12|discount|in stock/i);
+  });
+
+  it("accepts only small JPEG, PNG, and WebP photos and a short search query", () => {
+    assert.equal(validateVisualFile({ type: "image/png", size: 1200 }).ok, true);
+    assert.equal(validateVisualFile({ type: "image/gif", size: 1200 }).ok, false);
+    assert.equal(validateVisualFile({ type: "image/jpeg", size: 5 * 1024 * 1024 }).ok, false);
+    const png = `data:image/png;base64,${"a".repeat(8)}`;
+    assert.equal(parseVisualDataUrl(png)?.mediaType, "image/png");
+    assert.equal(parseVisualDataUrl("data:image/gif;base64,aaaa"), null);
+    assert.equal(parseVisualQuery('{"query":"phone case"}'), "phone case");
+    assert.equal(parseVisualQuery('{"query":""}'), "");
+    assert.equal(parseVisualQuery("not json"), "");
+  });
 });
 
 describe("marketplace wiring", () => {
-  it("sends Join Elite Now to the help center", () => {
+  it("removes the Elite Club card and keeps the shopping assistant", () => {
     const sidebar = readFileSync(join(root, "components/marketplace/new/Sidebar.tsx"), "utf8");
     assert.match(sidebar, /AI Shopping Assistant/);
-    assert.match(sidebar, /https:\/\/www\.jimvio\.com\/help/);
-    assert.match(sidebar, /Join Elite Now/);
+    assert.match(sidebar, /data-marketplace-assistant/);
+    assert.match(sidebar, /SHOPPING_SUGGESTIONS/);
     assert.match(sidebar, /\/api\/marketplace\/shopping-assistant/);
+    assert.match(sidebar, /data-filter-offer/);
+    assert.match(sidebar, /data-filter-format/);
+    assert.doesNotMatch(sidebar, /Jimvio Elite Club/);
+    assert.doesNotMatch(sidebar, /Join Elite Now/);
+    assert.doesNotMatch(sidebar, /Exclusive perks/);
+    assert.doesNotMatch(sidebar, /Supplier Rating/);
+    assert.doesNotMatch(sidebar, /Product Rating/);
   });
 
-  it("keeps trending tabs and routes search to the results page", () => {
+  it("keeps trending tabs and routes text and photo search through the catalog", () => {
     const page = readFileSync(join(root, "components/marketplace/new/MarketplacePageClient.tsx"), "utf8");
     const tabs = readFileSync(join(root, "components/marketplace/new/TrendingProductsClient.tsx"), "utf8");
-    assert.match(page, /\/marketplace\/search\?q=/);
+    const searchPage = readFileSync(join(root, "app/(public)/marketplace/search/page.tsx"), "utf8");
+    assert.match(page, /marketplaceSearchResultsHref/);
+    assert.match(page, /\/api\/marketplace\/visual-search/);
+    assert.match(page, /validateVisualFile/);
+    assert.match(page, /Search by photo/);
     assert.match(page, /\/api\/marketplace\/trending/);
     assert.match(page, /TrendingProductsClient/);
+    assert.match(searchPage, /runMarketplaceSearch/);
+    assert.doesNotMatch(page, /\.gte\("rating"/);
     assert.match(tabs, /Best Selling/);
     assert.match(tabs, /Free Shipping/);
     assert.match(tabs, /New Arrivals/);

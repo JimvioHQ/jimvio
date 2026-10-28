@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight,
   Sparkles, Camera, Search,
@@ -28,8 +28,19 @@ import {
   type MarketplaceProductType,
 } from "@/lib/marketplace/fetch-page-data";
 import { DEFAULT_FILTERS } from "@/lib/utils";
-import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { dedupeProductsByIdentity, resolveMarketplaceFlashDeals, HOMEPAGE_FLASH_DEALS_LIMIT } from "@/lib/marketplace/homepage-ranking";
+import {
+  MARKETPLACE_PRICE_CEILING,
+  canonicalMarketplacePath,
+  categoryTypeOrFilter,
+  marketplaceEmptyCopy,
+  marketplacePopularSearches,
+  marketplaceSearchResultsHref,
+  marketplaceSwitchHref,
+  marketplaceTypeFromPathname,
+  readMarketplaceFilters,
+} from "@/lib/marketplace/experience";
+import { validateVisualFile } from "@/lib/marketplace/visual-search";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
   MarketplaceSearchBar,
@@ -42,15 +53,29 @@ import {
 } from "./MarketplaceSearchPopover";
 import Link from "next/link";
 import { PersonalizedMarketplaceFeed } from "./personalized/PersonalizedMarketplaceFeed";
-import type { MarketplaceCollection } from "@/lib/marketplace/collections";
 
 type ProductType = MarketplaceProductType;
 
-function parseUrlType(raw: string | null, fallback: ProductType): ProductType {
-  if (raw === "digital") return "digital";
-  if (raw === "physical") return "physical";
-  return fallback;
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result : "";
+      if (!value.startsWith("data:image/")) {
+        reject(new Error("unreadable"));
+        return;
+      }
+      resolve(value);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("unreadable"));
+    reader.readAsDataURL(file);
+  });
 }
+
+const TYPE_PATH = {
+  physical: "/marketplace/physical",
+  digital: "/marketplace/digital",
+} as const;
 
 function isDefaultBrowseState(
   filters: typeof DEFAULT_FILTERS & { shippingFrom: string[] },
@@ -63,7 +88,9 @@ function isDefaultBrowseState(
     filters.deliveryTimes.length === 0 &&
     filters.priceRange[0] === DEFAULT_FILTERS.priceRange[0] &&
     filters.priceRange[1] === DEFAULT_FILTERS.priceRange[1] &&
-    filters.minRating === DEFAULT_FILTERS.minRating
+    filters.minRating === DEFAULT_FILTERS.minRating &&
+    (filters.offer ?? "") === "" &&
+    (filters.format ?? "") === ""
   );
 }
 
@@ -100,19 +127,51 @@ type Stats = {
   creators_active: number;
 };
 
-async function resolveCategoryId(
+/**
+ * Category ids for a slug on this product type, including child categories.
+ * `null` means no category filter. An empty array means the slug is not valid here.
+ * A lookup error fails open (`null`) so a blip does not wipe the typed catalog.
+ */
+async function resolveCategoryIds(
   client: ReturnType<typeof createClient>,
+  type: ProductType,
   category: string,
-): Promise<string | null> {
+): Promise<string[] | null> {
   const value = category.trim();
   if (!value || value === SELECT_CATEGORY_LABEL) return null;
 
-  const [{ data: bySlug }, { data: byName }] = await Promise.all([
-    client.from("product_categories").select("id").eq("is_active", true).eq("slug", value).maybeSingle(),
-    client.from("product_categories").select("id").eq("is_active", true).ilike("name", value).maybeSingle(),
-  ]);
+  const typed = client
+    .from("product_categories")
+    .select("id")
+    .eq("is_active", true)
+    .or(categoryTypeOrFilter(type));
 
-  return bySlug?.id ?? byName?.id ?? null;
+  const { data: bySlug, error } = await typed.eq("slug", value).limit(1);
+  if (error) return null;
+
+  let rowId = bySlug?.[0]?.id as string | undefined;
+  if (!rowId) {
+    const { data: byName, error: nameError } = await client
+      .from("product_categories")
+      .select("id")
+      .eq("is_active", true)
+      .or(categoryTypeOrFilter(type))
+      .ilike("name", value)
+      .limit(1);
+    if (nameError) return null;
+    rowId = byName?.[0]?.id as string | undefined;
+  }
+  if (!rowId) return [];
+
+  const { data: children, error: childError } = await client
+    .from("product_categories")
+    .select("id")
+    .eq("is_active", true)
+    .eq("parent_id", rowId)
+    .or(categoryTypeOrFilter(type));
+  if (childError) return [rowId];
+  const childRows = (children ?? []) as { id: string }[];
+  return [rowId, ...childRows.map((child) => child.id).filter(Boolean)];
 }
 
 type Props = {
@@ -121,7 +180,6 @@ type Props = {
   initialStats: Stats;
   heroPhysical: HeroProduct[] | null;
   heroDigital: HeroProduct[] | null;
-  initialCollections?: MarketplaceCollection[];
 };
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
@@ -141,44 +199,46 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   }, [c.image_url, c.name, c.slug, type]);
   const [fallbackIdx, setFallbackIdx] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const imgSrc = fallbacks[fallbackIdx] ?? fallbacks[0];
+  const imgSrc = fallbacks[fallbackIdx] ?? "";
 
   useEffect(() => {
     setFallbackIdx(0);
     setImgLoaded(false);
   }, [c.id, c.image_url, c.name, c.slug]);
 
-  if (!imgSrc) return null;
-
   return (
     <Link
-      href={
-        type === "physical"
-          ? `/marketplace/physical?category=${c.slug}`
-          : `/marketplace?type=${type}&category=${c.slug}`
-      }
+      href={`${TYPE_PATH[type]}?category=${encodeURIComponent(c.slug)}`}
       className="group relative mx-auto flex w-[84%] max-w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-surface)] text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.02] hover:border-[var(--color-border)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.1)] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 md:w-full md:rounded-2xl"
     >
       <div className="relative aspect-[5/3] w-full overflow-hidden md:aspect-[4/3]">
-        {!imgLoaded && (
-          <div
-            className="absolute inset-0 animate-pulse"
-            style={{ background: "var(--color-surface-secondary)" }}
-            aria-hidden
-          />
+        {imgSrc ? (
+          <>
+            {!imgLoaded && (
+              <div
+                className="absolute inset-0 animate-pulse"
+                style={{ background: "var(--color-surface-secondary)" }}
+                aria-hidden
+              />
+            )}
+            <img
+              src={imgSrc}
+              alt={c.name}
+              loading="lazy"
+              decoding="async"
+              className={`absolute inset-0 h-full w-full object-cover object-center transition-[transform,opacity] duration-300 ease-out group-hover:scale-[1.04] ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => {
+                setImgLoaded(false);
+                setFallbackIdx((i) => i + 1);
+              }}
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 grid place-items-center bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+            <span className="text-lg font-black">{c.name.slice(0, 1)}</span>
+          </div>
         )}
-        <img
-          src={imgSrc}
-          alt={c.name}
-          loading="lazy"
-          decoding="async"
-          className={`absolute inset-0 h-full w-full object-cover object-center transition-[transform,opacity] duration-300 ease-out group-hover:scale-[1.04] ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-          onLoad={() => setImgLoaded(true)}
-          onError={() => {
-            setImgLoaded(false);
-            setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
-          }}
-        />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-50 transition-opacity duration-200 group-hover:opacity-70" />
       </div>
 
@@ -247,18 +307,23 @@ export function MarketplacePageClient({
   const supabase = createClient();
   const startingBundle = initialBundles[initialType];
 
-  const { filters, setCategory, clearFilters } = useMarketplace();
+  const { filters, setCategory, page, setPage } = useMarketplace();
   const openAssistant = useAIStore((s) => s.openAssistant);
 
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const urlType = parseUrlType(searchParams.get("type"), initialType);
-  const [type, setType] = useState<ProductType>(urlType);
-
-  useEffect(() => {
-    setType(urlType);
-  }, [urlType]);
+  const type = marketplaceTypeFromPathname(pathname) ?? initialType;
+  const landing = readMarketplaceFilters(searchParams, type);
+  const constrainedLanding =
+    landing.page > 1 ||
+    Boolean(landing.category) ||
+    Boolean(landing.offer) ||
+    Boolean(landing.format) ||
+    landing.priceRange[0] > 0 ||
+    landing.priceRange[1] < MARKETPLACE_PRICE_CEILING ||
+    landing.shippingFrom.length > 0 ||
+    landing.deliveryTimes.length > 0;
 
   const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>({
     physical: {
@@ -275,7 +340,9 @@ export function MarketplacePageClient({
   const loadGenRef = useRef(0);
   /** Separate from browse generation so browse loads cannot discard in-flight search results */
   const searchGenRef = useRef(0);
-  const skipInitialFetchRef = useRef(true);
+  const skipInitialFetchRef = useRef(!constrainedLanding);
+  /** Load-more writes `page` itself. Ignore that URL change so the grid is not fetched twice. */
+  const ignorePageRef = useRef(false);
   const prefetchRef = useRef<Map<string, DbProduct[]>>(new Map());
   const prefetchingRef = useRef<Set<string>>(new Set());
 
@@ -292,65 +359,53 @@ export function MarketplacePageClient({
     return true;
   }
 
-  function handleTypeChange(t: ProductType) {
-    loadGenRef.current += 1;
-    setType(t);
-    setCategory("");
-    clearFilters();
-    setSearch("");
-    setDebouncedSearch("");
-    setNewProductIds(new Set());
-    prefetchRef.current.clear();
-    prefetchingRef.current.clear();
-    applyCachedType(t);
-    setLoading(false);
-    setProductsLoading(false);
-    setLoadingMore(false);
-
-    // Physical Marketplace is canonical at /marketplace/physical
-    if (t === "physical") {
-      router.replace("/marketplace/physical", { scroll: false });
-      return;
+  function typeHref(destination: ProductType) {
+    if (destination === type) {
+      const qs = searchParams.toString();
+      const path = canonicalMarketplacePath(destination);
+      return qs ? `${path}?${qs}` : path;
     }
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("type", t);
-    params.delete("category");
-    params.delete("page");
-    router.replace(`/marketplace?${params.toString()}`, { scroll: false });
+    return marketplaceSwitchHref(destination, searchParams);
   }
 
   const urlQ = (searchParams.get("q") ?? "").trim();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
-    dedupeProductsByIdentity(startingBundle.flashDeals),
+    constrainedLanding ? [] : dedupeProductsByIdentity(startingBundle.flashDeals),
   );
-  // When landing with ?q=, do not paint SSR browse products as fake "results"
+  // Filtered or paged landings must not paint the unfiltered SSR page as results.
   const [trending, setTrending] = useState<DbProduct[]>(() =>
-    dedupeProductsByIdentity(startingBundle.trending),
+    constrainedLanding ? [] : dedupeProductsByIdentity(startingBundle.trending),
   );
   const [productsLoading, setProductsLoading] = useState(false);
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(constrainedLanding);
   const [loadingMore, setLoadingMore] = useState(false);
   const [newProductIds, setNewProductIds] = useState<Set<string>>(() => new Set());
-  const [listingCount, setListingCount] = useState(startingBundle.listingCount);
+  const [listingCount, setListingCount] = useState(constrainedLanding ? 0 : startingBundle.listingCount);
   const [isMobile, setIsMobile] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [searchExactMatch, setSearchExactMatch] = useState(true);
   const [searchError, setSearchError] = useState(false);
   const [searchRetry, setSearchRetry] = useState(0);
   const [browseError, setBrowseError] = useState(false);
   const [browseRetry, setBrowseRetry] = useState(0);
+  const visualInputRef = useRef<HTMLInputElement>(null);
+  const visualInFlight = useRef(false);
+  const [visualPreview, setVisualPreview] = useState<string | null>(null);
+  const [visualName, setVisualName] = useState("");
+  const [visualStatus, setVisualStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [visualError, setVisualError] = useState("");
 
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
   const loadDepsRef = useRef({
-    type: urlType,
+    type,
     filtersKey,
     debouncedSearch: "",
+    page,
   });
 
   const [visitNonce, setVisitNonce] = useState(0);
@@ -368,11 +423,12 @@ export function MarketplacePageClient({
     };
   }, []);
 
-  // Shared ?q= links land on the dedicated results page.
+  // Shared ?q= links land on the dedicated results page, keeping valid filters.
   useEffect(() => {
     if (!urlQ) return;
-    router.replace(`/marketplace/search?q=${encodeURIComponent(urlQ)}&type=${type}`);
-  }, [urlQ, type, router]);
+    const snap = readMarketplaceFilters(searchParams, type);
+    router.replace(marketplaceSearchResultsHref(type, urlQ, snap));
+  }, [urlQ, type, router, searchParams]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -398,18 +454,18 @@ export function MarketplacePageClient({
 
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
-      const hasPriceMax = filters.priceRange[1] < 5000;
+      const hasPriceMax = filters.priceRange[1] < MARKETPLACE_PRICE_CEILING;
       const hasPriceMin = filters.priceRange[0] > 0;
-      const hasRating = filters.minRating > 0;
       const hasCategory =
         filters.category &&
         filters.category !== "" &&
         filters.category !== SELECT_CATEGORY_LABEL;
 
-      let categoryId: string | null = null;
+      let categoryIds: string[] | null = null;
       if (hasCategory) {
-        categoryId = await resolveCategoryId(supabaseRef.current, filters.category);
+        categoryIds = await resolveCategoryIds(supabaseRef.current, type, filters.category);
         if (generation !== loadGenRef.current) return null;
+        if (categoryIds && categoryIds.length === 0) return [];
       }
 
       function applyFilters(q: any): any {
@@ -417,8 +473,10 @@ export function MarketplacePageClient({
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
         if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
         if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
-        if (hasRating) q = q.gte("rating", filters.minRating);
-        if (categoryId) q = q.eq("category_id", categoryId);
+        if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
+        if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
+        if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
+        if (categoryIds && categoryIds.length > 0) q = q.in("category_id", categoryIds);
         return q;
       }
 
@@ -507,6 +565,8 @@ export function MarketplacePageClient({
     if (toAdd.length > 0) {
       setNewProductIds(new Set(toAdd.map((p) => p.id)));
       setTrending((prev) => dedupeProductsByIdentity([...prev, ...toAdd]));
+      const nextPage = Math.ceil((offset + toAdd.length) / MARKETPLACE_PAGE_SIZE);
+      if (nextPage > page && setPage(nextPage)) ignorePageRef.current = true;
     }
 
     setLoadingMore(false);
@@ -517,8 +577,10 @@ export function MarketplacePageClient({
     fetchTrendingSlice,
     listingCount,
     loadingMore,
+    page,
     prefetchNextPage,
-    trending.length,
+    setPage,
+    trending,
   ]);
 
   // Warm the next page after first paint so the first "View More" feels instant.
@@ -528,7 +590,7 @@ export function MarketplacePageClient({
 
     let cancelled = false;
     const run = () => {
-      if (!cancelled) void prefetchNextPage(MARKETPLACE_PAGE_SIZE);
+      if (!cancelled) void prefetchNextPage(trending.length);
     };
 
     let idleId: number | null = null;
@@ -549,34 +611,23 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, listingCount, prefetchNextPage, trending.length, type]);
 
-  // Apply ?category=slug from URL (e.g. category cards)
   useEffect(() => {
-    const slug = searchParams.get("category");
-    if (!slug || slug === "trending") return;
+    if (ignorePageRef.current) {
+      const prev = loadDepsRef.current;
+      const pageOnly =
+        prev.filtersKey === filtersKey &&
+        prev.type === type &&
+        prev.debouncedSearch === debouncedSearch;
+      ignorePageRef.current = false;
+      if (pageOnly) {
+        loadDepsRef.current = { type, filtersKey, debouncedSearch, page };
+        return;
+      }
+    }
 
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabaseRef.current
-        .from("product_categories")
-        .select("name")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (cancelled || !data?.name) return;
-      setCategory(data.name);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, setCategory]);
-
-  useEffect(() => {
     if (skipInitialFetchRef.current) {
       skipInitialFetchRef.current = false;
-      loadDepsRef.current = { type, filtersKey, debouncedSearch };
-      if (urlType !== initialType) {
-        applyCachedType(urlType);
-      }
+      loadDepsRef.current = { type, filtersKey, debouncedSearch, page };
       return;
     }
 
@@ -593,7 +644,7 @@ export function MarketplacePageClient({
       setLoadingMore(false);
     }
 
-    loadDepsRef.current = { type, filtersKey, debouncedSearch };
+    loadDepsRef.current = { type, filtersKey, debouncedSearch, page };
 
     const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch);
     const searchCleared = Boolean(prev.debouncedSearch) && !debouncedSearch;
@@ -607,8 +658,9 @@ export function MarketplacePageClient({
       hadActiveFilters = false;
     }
     const filtersClearedToDefault = hadActiveFilters && defaultBrowse && !debouncedSearch;
+    const returnedToFirstPage = prev.page !== page && page === 1 && defaultBrowse && !debouncedSearch;
 
-    if ((searchCleared || filtersClearedToDefault) && cacheRef.current[type]) {
+    if ((searchCleared || filtersClearedToDefault || returnedToFirstPage) && cacheRef.current[type]) {
       applyCachedType(type);
       setLoading(false);
       setProductsLoading(false);
@@ -643,17 +695,16 @@ export function MarketplacePageClient({
 
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
-      const hasPriceMax = filters.priceRange[1] < 5000;
+      const hasPriceMax = filters.priceRange[1] < MARKETPLACE_PRICE_CEILING;
       const hasPriceMin = filters.priceRange[0] > 0;
-      const hasRating = filters.minRating > 0;
       const hasCategory =
         filters.category &&
         filters.category !== "" &&
         filters.category !== SELECT_CATEGORY_LABEL;
 
-      let categoryId: string | null = null;
+      let categoryIds: string[] | null = null;
       if (hasCategory) {
-        categoryId = await resolveCategoryId(supabaseRef.current, filters.category);
+        categoryIds = await resolveCategoryIds(supabaseRef.current, type, filters.category);
         if (loadGeneration !== loadGenRef.current) return;
       }
 
@@ -662,12 +713,17 @@ export function MarketplacePageClient({
         if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
         if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
         if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
-        if (hasRating) q = q.gte("rating", filters.minRating);
-        if (categoryId) q = q.eq("category_id", categoryId);
+        if (type === "physical" && filters.offer === "free_shipping") q = q.eq("is_free_shipping", true);
+        if (type === "physical" && filters.offer === "flash_deal") q = q.eq("is_flash_deal", true);
+        if (type === "digital" && filters.format) q = q.eq("product_type", filters.format);
+        if (categoryIds && categoryIds.length > 0) q = q.in("category_id", categoryIds);
         return q;
       }
 
       const skipTrending = Boolean(debouncedSearch);
+      const categoryMiss = Boolean(categoryIds && categoryIds.length === 0);
+      const windowEnd = Math.max(page, 1) * MARKETPLACE_PAGE_SIZE - 1;
+      const emptyProducts = Promise.resolve({ data: [] as DbProduct[], error: null, count: 0 });
 
       // Prefer category table directly — avoid scanning every product row for category_ids.
       const [catsRes, dealsRes, trendRes, countRes] = await Promise.all([
@@ -677,10 +733,13 @@ export function MarketplacePageClient({
             .eq("is_active", true)
             .eq("visible", true)
             .is("parent_id", null)
-            .order("product_count", { ascending: false })
-            .limit(40),
+            .or(categoryTypeOrFilter(type))
+            .order("sort_order", { ascending: true })
+            .limit(24),
 
-          applyFilters(
+          categoryMiss
+            ? emptyProducts
+            : applyFilters(
             supabaseRef.current
               .from("products")
               .select(`
@@ -700,7 +759,7 @@ export function MarketplacePageClient({
               .limit(12),
           ),
 
-          skipTrending
+          categoryMiss || skipTrending
             ? Promise.resolve({ data: null, error: null })
             : applyFilters(
                 supabaseRef.current
@@ -718,10 +777,12 @@ export function MarketplacePageClient({
                   .is("deleted_at", null)
                   .in("product_type", [...typeFilter])
                   .order("view_count", { ascending: false })
-                  .range(0, MARKETPLACE_PAGE_SIZE - 1),
+                  .range(0, windowEnd),
               ),
 
-          applyFilters(
+          categoryMiss
+            ? emptyProducts
+            : applyFilters(
             supabaseRef.current
               .from("products")
               .select("*", { count: "exact", head: true })
@@ -748,10 +809,7 @@ export function MarketplacePageClient({
       const trend = trendRes.data;
       const count = countRes.count;
 
-      let nextCategories = (catRows ?? []) as DbCategory[];
-      if (nextCategories.length === 0 && (count ?? 0) > 0) {
-        nextCategories = resolveShopCategories(type, []) as DbCategory[];
-      }
+      const nextCategories = (catRows ?? []) as DbCategory[];
 
       const dealList = dedupeProductsByIdentity((deals ?? []) as DbProduct[]);
       const trendList = dedupeProductsByIdentity((trend ?? []) as DbProduct[]);
@@ -801,11 +859,10 @@ export function MarketplacePageClient({
         setProductsLoading(false);
       }
     });
-  }, [type, filtersKey, debouncedSearch, urlType, initialType, browseRetry]);
+  }, [type, filtersKey, debouncedSearch, page, browseRetry, filters]);
 
   useEffect(() => {
     if (!debouncedSearch) {
-      setSearchExactMatch(true);
       setSearchError(false);
       return;
     }
@@ -826,19 +883,27 @@ export function MarketplacePageClient({
 
     (async () => {
       try {
-        const res = await fetch(
-          `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
-          { signal: controller.signal },
-        );
+        const snap = readMarketplaceFilters(searchParams, type);
+        const searchParamsForApi = new URLSearchParams({
+          q: debouncedSearch,
+          type,
+          limit: "40",
+        });
+        if (snap.category) searchParamsForApi.set("category", snap.category);
+        if (snap.priceRange[0] > 0) searchParamsForApi.set("minPrice", String(snap.priceRange[0]));
+        if (snap.priceRange[1] < MARKETPLACE_PRICE_CEILING) {
+          searchParamsForApi.set("maxPrice", String(snap.priceRange[1]));
+        }
+        if (snap.offer) searchParamsForApi.set("offer", snap.offer);
+        if (snap.format) searchParamsForApi.set("format", snap.format);
+        const res = await fetch(`/api/marketplace/search?${searchParamsForApi.toString()}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         if (controller.signal.aborted || searchGeneration !== searchGenRef.current) return;
 
-        // Exact results only for the primary grid. Similar stays labeled; never dump popular as "results".
-        const primary = (
-          data.exactMatch ? data.results : data.similar
-        ) as DbProduct[] | undefined;
-        const list = Array.isArray(primary) ? primary : [];
+        const list = (Array.isArray(data.results) ? data.results : []) as DbProduct[];
 
         const videoMap = await fetchProductVideosMap(
           supabaseRef.current,
@@ -847,7 +912,6 @@ export function MarketplacePageClient({
         if (controller.signal.aborted || searchGeneration !== searchGenRef.current) return;
 
         setTrending(dedupeProductsByIdentity(attachProductVideos(list, videoMap)));
-        setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(list.length);
       } catch (err) {
         if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
@@ -867,7 +931,7 @@ export function MarketplacePageClient({
     return () => {
       controller.abort();
     };
-  }, [debouncedSearch, type, searchRetry]);
+  }, [debouncedSearch, filtersKey, searchParams, searchRetry, type]);
 
   useEffect(() => {
     if (!isDefaultBrowseState(filters, debouncedSearch)) return;
@@ -924,7 +988,7 @@ export function MarketplacePageClient({
   }, [flashDeals, displayTrending, listingCount]);
 
   const shopCategories = useMemo(
-    () => resolveShopCategories(type, categoriesType === type ? categories : []),
+    () => (categoriesType === type ? categories : []),
     [categories, type, categoriesType],
   );
 
@@ -933,10 +997,10 @@ export function MarketplacePageClient({
     return shopCategories.slice(0, target);
   }, [shopCategories, isMobile]);
 
-  const POPULAR_SEARCHES = useMemo(
-    () => ["Wireless Earbuds", "Gaming Headset", "Smart Watch", "Portable Speaker"],
-    [],
-  );
+  const POPULAR_SEARCHES = marketplacePopularSearches(type);
+  const emptyCopy = marketplaceEmptyCopy(type, debouncedSearch);
+  const activeCategoryName =
+    categories.find((category) => category.slug === filters.category)?.name || filters.category;
 
   const RECENT_KEY = "marketplace_recent_searches_v1";
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
@@ -990,11 +1054,14 @@ export function MarketplacePageClient({
 
   function applyCategoryFilter(categoryName: string) {
     const name = categoryName.trim();
-    if (!name) return;
+    const match = categories.find(
+      (category) => category.slug === name || category.name.toLowerCase() === name.toLowerCase(),
+    );
+    if (!match) return;
     setSearch("");
     setDebouncedSearch("");
     setSearchFocused(false);
-    setCategory(name);
+    setCategory(match.slug);
   }
 
   function clearSearch() {
@@ -1008,7 +1075,85 @@ export function MarketplacePageClient({
     if (!t) return;
     pushRecent(t);
     setSearchFocused(false);
-    router.push(`/marketplace/search?q=${encodeURIComponent(t)}&type=${type}`);
+    const snap = readMarketplaceFilters(searchParams, type);
+    router.push(marketplaceSearchResultsHref(type, t, snap));
+  }
+
+  function clearVisualSearch() {
+    visualInFlight.current = false;
+    setVisualPreview(null);
+    setVisualName("");
+    setVisualStatus("idle");
+    setVisualError("");
+    if (visualInputRef.current) visualInputRef.current.value = "";
+  }
+
+  async function chooseVisualFile(file: File) {
+    const check = validateVisualFile({ type: file.type, size: file.size });
+    if (!check.ok) {
+      setVisualPreview(null);
+      setVisualName("");
+      setVisualStatus("error");
+      setVisualError(check.error);
+      if (visualInputRef.current) visualInputRef.current.value = "";
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setVisualPreview(dataUrl);
+      setVisualName(file.name);
+      setVisualStatus("idle");
+      setVisualError("");
+    } catch {
+      setVisualPreview(null);
+      setVisualStatus("error");
+      setVisualError("That photo couldn’t be read. Try a JPEG, PNG, or WebP.");
+    }
+  }
+
+  async function submitVisualSearch() {
+    if (!visualPreview || visualInFlight.current) return;
+    visualInFlight.current = true;
+    setVisualStatus("loading");
+    setVisualError("");
+    try {
+      const res = await fetch("/api/marketplace/visual-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: visualPreview, type }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        query?: string;
+        error?: string;
+        reply?: string;
+      };
+      if (!res.ok || !data.ok) {
+        setVisualStatus("error");
+        setVisualError(
+          data.error === "rate_limit"
+            ? "Photo search is busy. Wait a moment, then try again."
+            : data.error === "unavailable"
+              ? "Photo search is unavailable right now. Try a text search."
+              : typeof data.error === "string" && data.error !== "invalid"
+                ? data.error
+                : "Photo search couldn’t finish. Try again.",
+        );
+        return;
+      }
+      if (!data.query) {
+        setVisualStatus("error");
+        setVisualError(data.reply || "That photo doesn’t look like a product we can search for.");
+        return;
+      }
+      const snap = readMarketplaceFilters(searchParams, type);
+      router.push(`${marketplaceSearchResultsHref(type, data.query, snap)}&visual=1`);
+    } catch {
+      setVisualStatus("error");
+      setVisualError("Photo search couldn’t finish. Try again.");
+    } finally {
+      visualInFlight.current = false;
+    }
   }
 
   const q = search.trim();
@@ -1026,7 +1171,7 @@ export function MarketplacePageClient({
   const searchPending = productsLoading && search.trim() === debouncedSearch && debouncedSearch.length > 0;
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+    <div data-marketplace-type={type} className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
       {/* Stretch with the grid so sticky can pin; do not self-start this column. */}
       <div className="hidden lg:block lg:w-[15rem] lg:shrink-0">
         <div
@@ -1063,7 +1208,10 @@ export function MarketplacePageClient({
               onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               onKeyDown={(e) => {
                 if (showSearchPopover && searchPopoverRef.current?.onKeyDown(e)) return;
-                if (e.key === "Enter") submitSearch();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitSearch();
+                }
                 if (e.key === "Escape") {
                   setSearchFocused(false);
                   (e.target as HTMLInputElement)?.blur();
@@ -1073,20 +1221,25 @@ export function MarketplacePageClient({
 
             <button
               type="button"
-              aria-label="AI visual search — describe what you want"
-              title="Describe a product with AI"
-              onClick={() => {
-                const q = search.trim();
-                if (q) {
-                  router.push(`/marketplace/search?q=${encodeURIComponent(q)}&ai=1&type=${type}`);
-                } else {
-                  openAssistant("Help me find a product. Describe what you're looking for.");
-                }
-              }}
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[#fd5000]"
+              aria-label="Search by photo"
+              title="Search by photo"
+              disabled={visualStatus === "loading"}
+              onClick={() => visualInputRef.current?.click()}
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[#fd5000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 disabled:opacity-50"
             >
               <Camera className="size-4" />
             </button>
+            <input
+              ref={visualInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              aria-label="Choose a product photo"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void chooseVisualFile(file);
+              }}
+            />
 
             <button
               type="button"
@@ -1106,20 +1259,62 @@ export function MarketplacePageClient({
 
             <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-[var(--color-border)] p-1 sm:flex">
               {(["physical", "digital"] as ProductType[]).map((t) => (
-                <button
+                <Link
                   key={t}
-                  onClick={() => handleTypeChange(t)}
-                  className="rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all"
+                  href={typeHref(t)}
+                  aria-current={type === t ? "page" : undefined}
+                  className="rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                   style={{
                     background: type === t ? "var(--color-accent)" : "transparent",
                     color: type === t ? "white" : "var(--color-text-muted)",
                   }}
                 >
                   {t}
-                </button>
+                </Link>
               ))}
             </div>
           </div>
+
+          {(visualPreview || visualError) && (
+            <div
+              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2"
+              data-visual-search
+            >
+              {visualPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={visualPreview} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-[var(--color-text-primary)]">
+                  {visualStatus === "loading" ? "Searching this photo…" : visualName || "Product photo"}
+                </p>
+                {visualError ? (
+                  <p className="text-[11px] text-[var(--color-text-muted)]" role="alert">{visualError}</p>
+                ) : (
+                  <p className="text-[11px] text-[var(--color-text-muted)]">
+                    Search {type} products that match this photo.
+                  </p>
+                )}
+              </div>
+              {visualPreview && visualStatus !== "loading" && (
+                <button
+                  type="button"
+                  onClick={() => void submitVisualSearch()}
+                  className="rounded-lg bg-[var(--color-accent)] px-2.5 py-1.5 text-[11px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
+                >
+                  Search photo
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={clearVisualSearch}
+                disabled={visualStatus === "loading"}
+                className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 disabled:opacity-50"
+              >
+                Remove
+              </button>
+            </div>
+          )}
 
           <MarketplaceSearchPopover
             ref={searchPopoverRef}
@@ -1137,10 +1332,11 @@ export function MarketplacePageClient({
 
           <div className="flex items-center justify-center gap-2 sm:hidden">
             {(["physical", "digital"] as ProductType[]).map((t) => (
-              <button
+              <Link
                 key={t}
-                onClick={() => handleTypeChange(t)}
-                className="flex-1 rounded-full px-4 py-2 text-sm font-bold capitalize transition-all"
+                href={typeHref(t)}
+                aria-current={type === t ? "page" : undefined}
+                className="flex-1 rounded-full px-4 py-2 text-center text-sm font-bold capitalize transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
                 style={{
                   background: type === t ? "var(--color-accent)" : "var(--color-surface-secondary)",
                   color: type === t ? "white" : "var(--color-text-muted)",
@@ -1148,7 +1344,7 @@ export function MarketplacePageClient({
                 }}
               >
                 {t}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -1159,7 +1355,7 @@ export function MarketplacePageClient({
         <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
 
         <div className="w-full min-w-0">
-        <MarketplaceTrustStrip stats={stats} listingCount={listingCount} />
+        <MarketplaceTrustStrip productType={type} stats={stats} listingCount={listingCount} />
         </div>
 
         {isDefaultBrowseState(filters, debouncedSearch) && (
@@ -1198,8 +1394,8 @@ export function MarketplacePageClient({
             <div className="flex items-center gap-4">
               <FlashDealsCountdown />
               <Link
-                href="/marketplace/flash-deals"
-                className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
+                href={`/marketplace/flash-deals?type=${type}`}
+                className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
               >
                 View All Deals <ChevronRight className="size-3.5" />
               </Link>
@@ -1235,7 +1431,7 @@ export function MarketplacePageClient({
                 : filters.category &&
                     filters.category !== "" &&
                     filters.category !== SELECT_CATEGORY_LABEL
-                  ? filters.category
+                  ? activeCategoryName
                   : `Trending ${type === "digital" ? "Digital " : ""}Products`}
             </h2>
             {debouncedSearch ? (
@@ -1260,11 +1456,6 @@ export function MarketplacePageClient({
               </button>
             ) : null}
           </div>
-          {debouncedSearch && !searchError && !searchExactMatch && !productsLoading && (
-            <p className="mb-2 text-xs text-[var(--color-text-muted)]">
-              No exact matches found — showing similar products
-            </p>
-          )}
           {(loading || productsLoading) && displayTrending.length === 0 ? (
             <SkeletonGrid />
           ) : searchError && debouncedSearch ? (
@@ -1330,12 +1521,10 @@ export function MarketplacePageClient({
                 <Search className="size-6 text-[var(--color-accent)]" />
               </div>
               <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-                {debouncedSearch ? `No products found for “${debouncedSearch}”` : "No products match your filters"}
+                {emptyCopy.title}
               </p>
               <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                {debouncedSearch
-                  ? "Try another keyword or clear search to browse all products."
-                  : "Try adjusting or clearing your filters."}
+                {emptyCopy.body}
               </p>
               {debouncedSearch && (
                 <div className="mt-5 flex flex-wrap justify-center gap-2">

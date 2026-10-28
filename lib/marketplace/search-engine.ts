@@ -327,7 +327,7 @@ export function buildSuggestions(
       id: `cat-${c.id}`,
       label: c.name,
       kind: "category",
-      href: `/marketplace?type=${type}&category=${c.slug}`,
+      href: `/marketplace/${type}?category=${encodeURIComponent(c.slug)}`,
       score: score + 20,
     });
   }

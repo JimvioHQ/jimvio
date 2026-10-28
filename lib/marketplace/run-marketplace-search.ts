@@ -11,6 +11,14 @@ import {
   type SearchableProduct,
 } from "@/lib/marketplace/search-engine";
 import type { DbProduct } from "@/lib/utils";
+import {
+  categoryTypeOrFilter,
+  MARKETPLACE_PRICE_CEILING,
+  readMarketplaceFormat,
+  readMarketplaceOffer,
+  type MarketplaceFormat,
+  type MarketplaceOffer,
+} from "@/lib/marketplace/experience";
 
 const PHYSICAL_TYPES = ["physical"] as const;
 const DIGITAL_TYPES = ["digital", "course", "ebook", "software", "template", "coaching"] as const;
@@ -87,9 +95,23 @@ async function fetchMatch(
   return (data ?? []) as SearchableProduct[];
 }
 
+export type MarketplaceSearchConstraints = {
+  categorySlug?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  offer?: MarketplaceOffer | "";
+  format?: MarketplaceFormat | "";
+};
+
 export async function runMarketplaceSearch(
   supabase: SupabaseLike,
-  input: { query: string; type: "physical" | "digital"; page?: number; pageSize?: number },
+  input: {
+    query: string;
+    type: "physical" | "digital";
+    page?: number;
+    pageSize?: number;
+    constraints?: MarketplaceSearchConstraints;
+  },
 ): Promise<MarketplaceSearchPayload> {
   const query = sanitizeSearchTerm(input.query).replace(/\s+/g, " ").trim();
   const type = input.type === "digital" ? "digital" : "physical";
@@ -117,6 +139,7 @@ export async function runMarketplaceSearch(
       .select("id, name, slug")
       .eq("is_active", true)
       .eq("visible", true)
+      .or(categoryTypeOrFilter(type))
       .limit(80),
   ]);
 
@@ -154,7 +177,8 @@ export async function runMarketplaceSearch(
   }
 
   const ranked = rankProducts([...merged.values()], query, categoryById, vendorById, 15);
-  const page = paginateSearchResults(ranked, input.page ?? 1, pageSize);
+  const constrained = await applySearchConstraints(supabase, type, ranked, input.constraints);
+  const page = paginateSearchResults(constrained, input.page ?? 1, pageSize);
   const pageItems = page.items.map((product) => {
     const copy = { ...(product as object) } as DbProduct & { _searchScore?: number; description?: string | null };
     delete copy._searchScore;
@@ -176,4 +200,56 @@ export async function runMarketplaceSearch(
     pageCount: page.pageCount,
     products: attachProductVideos(pageItems, videoMap),
   };
+}
+
+async function applySearchConstraints<T extends SearchableProduct>(
+  supabase: SupabaseLike,
+  type: "physical" | "digital",
+  products: T[],
+  constraints: MarketplaceSearchConstraints | undefined,
+): Promise<T[]> {
+  if (!constraints) return products;
+  const offer = readMarketplaceOffer(constraints.offer, type);
+  const format = readMarketplaceFormat(constraints.format, type);
+  const minPrice = Number(constraints.minPrice);
+  const maxPrice = Number(constraints.maxPrice);
+  const categorySlug = constraints.categorySlug?.trim() ?? "";
+
+  let allowedCategories: Set<string> | null = null;
+  if (categorySlug) {
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("id")
+      .eq("slug", categorySlug)
+      .eq("is_active", true)
+      .or(categoryTypeOrFilter(type))
+      .limit(1);
+    if (error) throw new Error(error.message);
+    const parentId = data?.[0]?.id;
+    if (!parentId) return [];
+    const { data: children, error: childError } = await supabase
+      .from("product_categories")
+      .select("id")
+      .eq("is_active", true)
+      .eq("parent_id", parentId)
+      .or(categoryTypeOrFilter(type));
+    if (childError) throw new Error(childError.message);
+    allowedCategories = new Set([parentId, ...((children ?? []) as { id: string }[]).map((row) => row.id)]);
+  }
+
+  return products.filter((product) => {
+    const row = product as T & {
+      price?: number | string | null;
+      is_free_shipping?: boolean | null;
+      is_flash_deal?: boolean | null;
+    };
+    if (allowedCategories && (!product.category_id || !allowedCategories.has(product.category_id))) return false;
+    const price = Number(row.price);
+    if (Number.isFinite(minPrice) && minPrice > 0 && !(price >= minPrice)) return false;
+    if (Number.isFinite(maxPrice) && maxPrice > 0 && maxPrice < MARKETPLACE_PRICE_CEILING && !(price <= maxPrice)) return false;
+    if (offer === "free_shipping" && row.is_free_shipping !== true) return false;
+    if (offer === "flash_deal" && row.is_flash_deal !== true) return false;
+    if (format && product.product_type !== format) return false;
+    return true;
+  });
 }
