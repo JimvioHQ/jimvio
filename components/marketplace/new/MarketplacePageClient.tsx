@@ -177,15 +177,24 @@ async function resolveCategoryIds(
   }
   if (!rowId) return [];
 
-  const { data: children, error: childError } = await client
-    .from("product_categories")
-    .select("id")
-    .eq("is_active", true)
-    .eq("parent_id", rowId)
-    .or(categoryTypeOrFilter(type));
-  if (childError) return [rowId];
-  const childRows = (children ?? []) as { id: string }[];
-  return [rowId, ...childRows.map((child) => child.id).filter(Boolean)];
+  // M-8: listings sit on leaf categories (often two levels below a top
+  // category), so collect every descendant, not just direct children.
+  const ids = new Set<string>([rowId]);
+  let frontier = [rowId];
+  for (let depth = 0; depth < 4 && frontier.length; depth += 1) {
+    const { data: children, error: childError } = await client
+      .from("product_categories")
+      .select("id")
+      .eq("is_active", true)
+      .in("parent_id", frontier)
+      .or(categoryTypeOrFilter(type));
+    if (childError) break;
+    frontier = ((children ?? []) as { id: string }[])
+      .map((child) => child.id)
+      .filter((id) => id && !ids.has(id));
+    frontier.forEach((id) => ids.add(id));
+  }
+  return [...ids];
 }
 
 async function resolveAiCategoryIds(

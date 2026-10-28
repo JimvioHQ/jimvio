@@ -283,14 +283,23 @@ async function applySearchConstraints<T extends SearchableProduct>(
     if (error) throw new Error(error.message);
     const parentId = data?.[0]?.id;
     if (!parentId) return [];
-    const { data: children, error: childError } = await supabase
-      .from("product_categories")
-      .select("id")
-      .eq("is_active", true)
-      .eq("parent_id", parentId)
-      .or(categoryTypeOrFilter(type));
-    if (childError) throw new Error(childError.message);
-    allowedCategories = new Set([parentId, ...((children ?? []) as { id: string }[]).map((row) => row.id)]);
+    // M-8: include every descendant — listings sit on leaf categories.
+    const ids = new Set<string>([parentId]);
+    let frontier: string[] = [parentId];
+    for (let depth = 0; depth < 4 && frontier.length; depth += 1) {
+      const { data: children, error: childError } = await supabase
+        .from("product_categories")
+        .select("id")
+        .eq("is_active", true)
+        .in("parent_id", frontier)
+        .or(categoryTypeOrFilter(type));
+      if (childError) throw new Error(childError.message);
+      frontier = ((children ?? []) as { id: string }[])
+        .map((row) => row.id)
+        .filter((id) => id && !ids.has(id));
+      frontier.forEach((id) => ids.add(id));
+    }
+    allowedCategories = ids;
   }
 
   const filtered = products.filter((product) => {
