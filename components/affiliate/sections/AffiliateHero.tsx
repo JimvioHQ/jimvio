@@ -127,10 +127,7 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
 
         <div className="relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 xl:gap-10">
           <motion.div variants={fadeUp} className="max-w-xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#FF5A1F]">
-              Jimvio Affiliate Program
-            </p>
-            <h1 className="mt-3 text-[clamp(1.85rem,4vw,2.65rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
+            <h1 className="text-[clamp(1.85rem,4vw,2.65rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
               Jimvio{" "}
               <span className="text-[#FF5A1F]">Affiliate Program</span>
             </h1>

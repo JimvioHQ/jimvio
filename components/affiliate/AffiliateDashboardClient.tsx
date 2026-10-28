@@ -13,12 +13,17 @@ import {
   YAxis,
 } from "recharts";
 import {
-  Bell,
+  DollarSign,
   FileSpreadsheet,
   Link2,
+  Package,
   Sparkles,
   Wallet,
 } from "lucide-react";
+import {
+  affiliateQuickActions,
+  type AffiliateQuickActionId,
+} from "@/lib/affiliate/dashboard-actions";
 import {
   AffiliateEmptyState,
   AffiliateMetricTile,
@@ -65,22 +70,24 @@ type DashboardPayload = {
   ledger?: Array<{ id: string; entry_type: string; amount: number; created_at: string; note?: string }>;
 };
 
-type Notif = { id: string; title?: string; body?: string; created_at?: string; read?: boolean };
+const QUICK_ACTION_ICONS: Record<AffiliateQuickActionId, typeof Package> = {
+  products: Package,
+  links: Link2,
+  earnings: DollarSign,
+  payouts: Wallet,
+};
 
 export function AffiliateDashboardClient() {
   const [data, setData] = useState<DashboardPayload | null>(null);
-  const [notifs, setNotifs] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const quickActions = affiliateQuickActions();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [dashRes, notifRes] = await Promise.all([
-        fetch("/api/affiliates/dashboard?days=30", { cache: "no-store" }),
-        fetch("/api/notifications?limit=8", { cache: "no-store" }).catch(() => null),
-      ]);
+      const dashRes = await fetch("/api/affiliates/dashboard?days=30", { cache: "no-store" });
       if (dashRes.status === 401) {
         setError("Sign in to view your affiliate dashboard.");
         setData(null);
@@ -93,25 +100,6 @@ export function AffiliateDashboardClient() {
       }
       if (!dashRes.ok) throw new Error("Failed to load dashboard");
       setData(await dashRes.json());
-      if (notifRes?.ok) {
-        const n = await notifRes.json();
-        const items = Array.isArray(n?.items)
-          ? n.items
-          : Array.isArray(n?.notifications)
-            ? n.notifications
-            : Array.isArray(n)
-              ? n
-              : [];
-        setNotifs(
-          items.map((item: Record<string, unknown>) => ({
-            id: String(item.id ?? crypto.randomUUID()),
-            title: String(item.title ?? item.type ?? "Update"),
-            body: String(item.message ?? item.body ?? item.description ?? ""),
-            created_at: item.created_at ? String(item.created_at) : undefined,
-            read: Boolean(item.read_at ?? item.is_read),
-          }))
-        );
-      }
     } catch {
       setError("Could not load affiliate dashboard.");
     } finally {
@@ -260,26 +248,24 @@ export function AffiliateDashboardClient() {
             </div>
 
             <div className="rounded-[18px] border border-[#E8EAED] bg-white p-4 shadow-sm sm:p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <Bell className="h-4 w-4 text-[#FF5A1F]" />
-                <h2 className="text-[14px] font-bold text-[#111827]">Notifications</h2>
+              <h2 className="mb-3 text-[14px] font-bold text-[#111827]">Affiliate Quick Actions</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {quickActions.map((action) => {
+                  const Icon = QUICK_ACTION_ICONS[action.id];
+                  return (
+                    <Link
+                      key={action.id}
+                      href={action.href}
+                      className="flex min-h-[76px] flex-col justify-between rounded-[14px] border border-[#E8EAED] bg-[#FAFAFB] px-3 py-2.5 transition-colors hover:border-[#FF5A1F]/40 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+                    >
+                      <Icon className="h-4 w-4 text-[#FF5A1F]" aria-hidden />
+                      <span className="text-[12.5px] font-semibold leading-tight text-[#111827]">
+                        {action.label}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
-              {notifs.length === 0 ? (
-                <p className="text-[13px] text-[#6B7280]">No recent notifications.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {notifs.slice(0, 6).map((n) => (
-                    <li key={n.id} className="border-b border-[#F3F4F6] pb-2 last:border-0">
-                      <p className="text-[13px] font-semibold text-[#111827]">
-                        {n.title ?? "Update"}
-                      </p>
-                      {n.body ? (
-                        <p className="mt-0.5 line-clamp-2 text-[12px] text-[#6B7280]">{n.body}</p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           </div>
 

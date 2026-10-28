@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { mergeLinkMetrics } from "./link-metrics";
 import { resolveWorkspaceNavActive, WORKSPACES } from "../workspace/config";
 import { isWithinAttributionWindow } from "./attribution";
+import { affiliateQuickActions } from "./dashboard-actions";
 
 describe("affiliate link metrics merge", () => {
   it("prefers the higher of live vs denormalized counters", () => {
@@ -123,6 +124,41 @@ describe("affiliate discovery route", () => {
     assert.match(source, /replaceUrl/);
     assert.doesNotMatch(source, /redirect\(/);
     assert.match(source, /requested \?\? "featured"/);
+  });
+
+  it("replaces the dashboard notifications card with existing quick-action routes", () => {
+    const actions = affiliateQuickActions();
+    assert.deepEqual(
+      actions.map((action) => [action.label, action.href]),
+      [
+        ["Discover Products", "/affiliates"],
+        ["My Affiliate Links", "/affiliates/links"],
+        ["Earnings", "/affiliates/dashboard"],
+        ["Payouts", "/affiliates/payouts"],
+      ],
+    );
+    const dashboard = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/AffiliateDashboardClient.tsx"),
+      "utf8",
+    );
+    assert.match(dashboard, /Affiliate Quick Actions/);
+    assert.match(dashboard, /affiliateQuickActions/);
+    assert.doesNotMatch(dashboard, /\/api\/notifications/);
+    assert.doesNotMatch(dashboard, />Notifications</);
+    assert.doesNotMatch(dashboard, /No recent notifications/);
+  });
+
+  it("keeps the affiliate hero heading and drops the uppercase eyebrow", () => {
+    const hero = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/sections/AffiliateHero.tsx"),
+      "utf8",
+    );
+    assert.match(hero, /<h1[\s\S]*Jimvio\{" "\}[\s\S]*Affiliate Program[\s\S]*<\/h1>/);
+    assert.equal(hero.includes("Jimvio Affiliate Program"), false);
+    assert.match(hero, /Start Promoting Now/);
+    assert.match(hero, /View Top Campaigns/);
+    assert.doesNotMatch(hero, /tracking-\[0\.16em\]/);
+    assert.doesNotMatch(hero, /text-\[11px\] font-bold uppercase/);
   });
 
   it("keeps Promote Now on the authenticated promote route", () => {
