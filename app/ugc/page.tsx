@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { UGCDiscoverPage } from "@/components/ugc/workspace/UGCDiscoverPage";
+import { loadPublicActiveCampaigns } from "@/lib/ugc/public-campaigns-server";
+
+export const revalidate = 60;
 
 function PageFallback() {
   return (
@@ -9,10 +12,11 @@ function PageFallback() {
   );
 }
 
-export default function UGCPage() {
+export default async function UGCPage() {
+  const { campaigns, total } = await loadPublicActiveCampaigns(24);
   return (
     <Suspense fallback={<PageFallback />}>
-      <UGCDiscoverPage />
+      <UGCDiscoverPage initialCampaigns={campaigns} initialTotal={total} />
     </Suspense>
   );
 }

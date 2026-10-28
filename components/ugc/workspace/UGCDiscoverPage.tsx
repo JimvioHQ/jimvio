@@ -43,18 +43,25 @@ function FeaturedSkeleton() {
   return <UGCFeaturedHeaderSkeleton />;
 }
 
-export function UGCDiscoverPage() {
+export function UGCDiscoverPage({
+  initialCampaigns,
+  initialTotal,
+}: {
+  /** Server-rendered first page (P0-6) so the page is never an empty shell. */
+  initialCampaigns?: UGCCampaign[];
+  initialTotal?: number;
+} = {}) {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const typeParam = searchParams.get("type");
   const sortParam = searchParams.get("sort");
 
-  const [rawCampaigns, setRawCampaigns] = useState<UGCCampaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rawCampaigns, setRawCampaigns] = useState<UGCCampaign[]>(initialCampaigns ?? []);
+  const [loading, setLoading] = useState(!initialCampaigns);
   const [loadingMore, setLoadingMore] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [total, setTotal] = useState(initialTotal ?? 0);
   const [hasMore, setHasMore] = useState(true);
   const [contentType, setContentType] = useState<ContentTypeFilter>(() => {
     if (typeParam === "clipping") return "clipping";
