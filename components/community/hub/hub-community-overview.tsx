@@ -17,6 +17,7 @@ import {
   LogOut,
   MoreHorizontal,
   Newspaper,
+  Settings,
   Share2,
   UserPlus,
   Users,
@@ -416,6 +417,17 @@ export function HubCommunityOverview() {
                     Join Community
                   </button>
                 )}
+                {canManage ? (
+                  <Link
+                    href={manageCommunityHref(slug, "settings")}
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+                    title="Community settings"
+                    aria-label="Community settings"
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Settings</span>
+                  </Link>
+                ) : null}
                 <Link
                   href={`${base}/members`}
                   className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
@@ -456,6 +468,16 @@ export function HubCommunityOverview() {
                           onClick={() => setMoreOpen(false)}
                         >
                           Manage Community
+                        </Link>
+                      ) : null}
+                      {canManage ? (
+                        <Link
+                          href={manageCommunityHref(slug, "settings")}
+                          role="menuitem"
+                          className="block min-h-11 px-3.5 py-2.5 text-[13px] font-medium leading-[28px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+                          onClick={() => setMoreOpen(false)}
+                        >
+                          Community Settings
                         </Link>
                       ) : null}
                       <Link
