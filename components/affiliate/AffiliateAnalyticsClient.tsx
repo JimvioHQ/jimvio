@@ -20,6 +20,7 @@ import {
   AffiliateMetricTile,
   AffiliatePageShell,
 } from "./AffiliatePageShell";
+import { affiliatePerformanceNote } from "@/lib/affiliate/guidance";
 import { formatAffiliateMoney } from "./sections/shared";
 
 const COLORS = ["#FF5A1F", "#111827", "#F59E0B", "#10B981", "#6366F1", "#EC4899"];
@@ -122,6 +123,9 @@ export function AffiliateAnalyticsClient() {
               hint={`CTR ${data.analytics?.ctr ?? 0}%`}
             />
           </div>
+          <p className="text-[12.5px] leading-relaxed text-[#6B7280]">
+            {affiliatePerformanceNote(data.series ?? [], 30)}
+          </p>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <ChartCard title="Clicks & conversions">
@@ -204,7 +208,11 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
 
 function Donut({ data }: { data: Array<{ name: string; value: number }> }) {
   if (!data.length) {
-    return <p className="grid h-full place-items-center text-[13px] text-[#9CA3AF]">No data yet</p>;
+    return (
+      <p className="grid h-full place-items-center px-4 text-center text-[13px] text-[#9CA3AF]">
+        No recorded values for this breakdown yet.
+      </p>
+    );
   }
   return (
     <ResponsiveContainer width="100%" height="100%">

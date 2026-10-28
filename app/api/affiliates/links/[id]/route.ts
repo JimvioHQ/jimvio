@@ -83,7 +83,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Could not update this link" }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true, link: data });

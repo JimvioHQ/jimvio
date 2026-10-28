@@ -10,6 +10,10 @@ import {
   mergeLinkMetrics,
 } from "@/lib/affiliate/link-metrics";
 import { offerForAffiliateProduct } from "@/lib/affiliate/commission-tiers";
+import {
+  affiliateDestinationMatchesProduct,
+  isAcceptedAffiliateDestination,
+} from "@/lib/affiliate/tracking-guard";
 import { DEFAULT_AFFILIATE_COMMISSION_PERCENT } from "@/lib/currency/platform";
 
 export const dynamic = "force-dynamic";
@@ -168,10 +172,7 @@ export async function POST(req: NextRequest) {
     const site = getSiteUrl();
     const canonicalDest = `${site}/marketplace/${product.slug}`;
     // Never trust a client destination that points away from this product.
-    if (
-      !destinationUrl ||
-      !destinationUrl.includes(`/marketplace/${product.slug}`)
-    ) {
+    if (!affiliateDestinationMatchesProduct(destinationUrl, req.url, product.slug)) {
       destinationUrl = canonicalDest;
     }
     vendorId = product.vendor_id ?? vendorId;
@@ -188,6 +189,12 @@ export async function POST(req: NextRequest) {
   if (!destinationUrl) {
     return NextResponse.json({ error: "destinationUrl is required" }, { status: 400 });
   }
+  if (!productId && !isAcceptedAffiliateDestination(destinationUrl, req.url)) {
+    return NextResponse.json(
+      { error: "Use a Jimvio page URL. External destinations are not tracked." },
+      { status: 400 },
+    );
+  }
 
   try {
     const link = await createAffiliateLink({
@@ -199,6 +206,7 @@ export async function POST(req: NextRequest) {
       commissionRate,
     });
 
+    let warning: string | undefined;
     if (typeof body?.customSlug === "string" && body.customSlug.trim()) {
       const slug = body.customSlug
         .trim()
@@ -207,12 +215,16 @@ export async function POST(req: NextRequest) {
         .replace(/-+/g, "-")
         .slice(0, 48);
       if (slug) {
-        await client
+        const { error: slugError } = await client
           .from("affiliate_links")
           .update({ custom_slug: slug })
           .eq("id", link.id)
           .eq("affiliate_id", auth.affiliate!.id);
-        link.custom_slug = slug;
+        if (slugError) {
+          warning = "The link is ready, but that custom name could not be saved. Rename it from the list.";
+        } else {
+          link.custom_slug = slug;
+        }
       }
     }
 
@@ -221,6 +233,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       picked: true,
+      ...(warning ? { warning } : {}),
       link: {
         ...link,
         short_url: shortUrl,

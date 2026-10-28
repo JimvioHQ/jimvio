@@ -12,6 +12,7 @@ import {
   AFFILIATE_BTN_SECONDARY,
   formatAffiliateMoney,
 } from "./sections/shared";
+import { affiliatePayoutExplanation } from "@/lib/affiliate/guidance";
 import { cn } from "@/lib/utils";
 
 type LedgerRow = {
@@ -29,6 +30,7 @@ type Bundle = {
     available: number;
     paid: number;
     total?: number;
+    minWithdrawal?: number;
   };
   ledger?: LedgerRow[];
   analytics?: {
@@ -152,6 +154,14 @@ export function AffiliatePayoutsClient() {
             />
             <AffiliateMetricTile label="Paid" value={formatAffiliateMoney(paid, "USD")} />
           </div>
+          <p className="text-[12.5px] leading-relaxed text-[#6B7280]">
+            {affiliatePayoutExplanation({
+              pending,
+              available,
+              paid,
+              minWithdrawal: data.balances?.minWithdrawal,
+            })}
+          </p>
 
           <div className="flex flex-wrap gap-2">
             {(["all", "pending", "approved", "paid"] as const).map((f) => (

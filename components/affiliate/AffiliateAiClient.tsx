@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatAffiliateRate } from "@/lib/affiliate/commission-tiers";
 import { sanitizeAffiliateAiCopy, shouldOfferAffiliateWorkspace } from "@/lib/ai/affiliate-workspace";
+import { draftAffiliatePromotion } from "@/lib/affiliate/promotion-draft";
 import { AffiliateAiRecovery, persistAffiliateHandoff } from "./AffiliateAiRecovery";
 
 type ProductOpt = {
@@ -46,7 +47,9 @@ type PromoResult = {
   scripts?: string[];
 };
 
-const FIELDS: Array<{ key: keyof PromoResult; label: string }> = [
+type PromoTextKey = Exclude<keyof PromoResult, "keywords" | "hashtags" | "hooks" | "scripts">;
+
+const FIELDS: Array<{ key: PromoTextKey; label: string }> = [
   { key: "tiktokCaption", label: "TikTok caption" },
   { key: "instagramCaption", label: "Instagram caption" },
   { key: "youtubeTitle", label: "YouTube title" },
@@ -66,6 +69,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
   const [error, setError] = useState<string | null>(null);
   const [offerWorkspace, setOfferWorkspace] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const selected = products.find((p) => p.id === selectedId) ?? products[0];
@@ -78,6 +82,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
     if (!selected) return;
     startTransition(async () => {
       setError(null);
+      setDraftNote(null);
       setOfferWorkspace(false);
       setResult(null);
       try {
@@ -117,6 +122,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
           return;
         }
         setResult(data.data);
+        setDraftNote("Edit any block before you copy it. Nothing is posted for you.");
       } catch {
         if (
           selected &&
@@ -134,13 +140,29 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
     });
   }, [pathname, router, selected]);
 
+  const draftFromListing = () => {
+    if (!selected) return;
+    const draft = draftAffiliatePromotion({
+      name: selected.name,
+      category: selected.category,
+      description: selected.description,
+      price: selected.price,
+      currency: selected.currency,
+      commissionRate: selected.rate,
+    });
+    setError(null);
+    setOfferWorkspace(false);
+    setDraftNote(draft.limitation);
+    setResult(draft);
+  };
+
   const copyText = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(key);
       window.setTimeout(() => setCopied(null), 1400);
     } catch {
-      /* ignore */
+      setError("Could not copy automatically. Select the text and copy it.");
     }
   };
 
@@ -149,15 +171,25 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
       title="AI Promotion"
       subtitle="Generate TikTok, Instagram, YouTube, Facebook, Threads, X, email, blog, SEO, hashtags, hooks, and scripts."
       actions={
-        <button
-          type="button"
-          onClick={generate}
-          disabled={pending || !selected}
-          className={cn(AFFILIATE_BTN_PRIMARY, "h-10 px-3.5 text-[12.5px] disabled:opacity-60")}
-        >
-          {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          Generate assets
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={draftFromListing}
+            disabled={!selected}
+            className={cn(AFFILIATE_BTN_SECONDARY, "h-10 px-3.5 text-[12.5px] disabled:opacity-60")}
+          >
+            Draft from listing
+          </button>
+          <button
+            type="button"
+            onClick={generate}
+            disabled={pending || !selected}
+            className={cn(AFFILIATE_BTN_PRIMARY, "h-10 px-3.5 text-[12.5px] disabled:opacity-60")}
+          >
+            {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            Generate assets
+          </button>
+        </div>
       }
     >
       {products.length === 0 ? (
@@ -209,9 +241,12 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
 
           {result ? (
             <div className="grid gap-3 lg:grid-cols-2">
+              {draftNote ? (
+                <p className="text-[12.5px] leading-relaxed text-[#6B7280] lg:col-span-2">{draftNote}</p>
+              ) : null}
               {FIELDS.map(({ key, label }) => {
                 const value = result[key];
-                if (typeof value !== "string" || !value) return null;
+                if (typeof value !== "string") return null;
                 return (
                   <div
                     key={key}
@@ -228,9 +263,16 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                         Copy
                       </button>
                     </div>
-                    <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-[#4B5563]">
-                      {value}
-                    </p>
+                    <textarea
+                      value={value}
+                      onChange={(event) =>
+                        setResult((current) =>
+                          current ? { ...current, [key]: event.target.value } : current,
+                        )
+                      }
+                      rows={key === "youtubeTitle" || key === "seoTitle" ? 2 : 5}
+                      className="w-full resize-y rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563] outline-none focus:border-[#FF5A1F]/40"
+                    />
                   </div>
                 );
               })}
@@ -247,6 +289,21 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                       Copy all
                     </button>
                   </div>
+                  <textarea
+                    value={result.hashtags.join(" ")}
+                    onChange={(event) =>
+                      setResult((current) =>
+                        current
+                          ? {
+                              ...current,
+                              hashtags: event.target.value.split(/\s+/).filter(Boolean),
+                            }
+                          : current,
+                      )
+                    }
+                    rows={2}
+                    className="mb-2 w-full resize-y rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563] outline-none focus:border-[#FF5A1F]/40"
+                  />
                   <div className="flex flex-wrap gap-1.5">
                     {result.hashtags.map((tag) => (
                       <span
@@ -260,32 +317,73 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
                 </div>
               ) : null}
 
-              {result.keywords?.length ? (
+              {result.keywords ? (
                 <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-sm">
                   <h3 className="mb-2 text-[13px] font-bold text-[#111827]">Keywords</h3>
-                  <p className="text-[13px] text-[#4B5563]">{result.keywords.join(", ")}</p>
+                  <textarea
+                    value={result.keywords.join(", ")}
+                    onChange={(event) =>
+                      setResult((current) =>
+                        current
+                          ? {
+                              ...current,
+                              keywords: event.target.value
+                                .split(",")
+                                .map((word) => word.trim())
+                                .filter(Boolean),
+                            }
+                          : current,
+                      )
+                    }
+                    rows={2}
+                    className="w-full resize-y rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563] outline-none focus:border-[#FF5A1F]/40"
+                  />
                 </div>
               ) : null}
 
-              {result.hooks?.length ? (
+              {result.hooks ? (
                 <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-sm">
                   <h3 className="mb-2 text-[13px] font-bold text-[#111827]">Hooks</h3>
-                  <ul className="space-y-1.5 text-[13px] text-[#4B5563]">
-                    {result.hooks.map((h) => (
-                      <li key={h}>• {h}</li>
+                  <div className="space-y-2">
+                    {result.hooks.map((hook, index) => (
+                      <textarea
+                        key={`hook-${index}`}
+                        value={hook}
+                        onChange={(event) =>
+                          setResult((current) => {
+                            if (!current?.hooks) return current;
+                            const hooks = [...current.hooks];
+                            hooks[index] = event.target.value;
+                            return { ...current, hooks };
+                          })
+                        }
+                        rows={2}
+                        className="w-full resize-y rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563] outline-none focus:border-[#FF5A1F]/40"
+                      />
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : null}
 
-              {result.scripts?.length ? (
+              {result.scripts ? (
                 <div className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-sm lg:col-span-2">
                   <h3 className="mb-2 text-[13px] font-bold text-[#111827]">Scripts</h3>
-                  <div className="space-y-3">
-                    {result.scripts.map((s, i) => (
-                      <div key={i} className="rounded-xl bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563]">
-                        {s}
-                      </div>
+                  <div className="space-y-2">
+                    {result.scripts.map((script, index) => (
+                      <textarea
+                        key={`script-${index}`}
+                        value={script}
+                        onChange={(event) =>
+                          setResult((current) => {
+                            if (!current?.scripts) return current;
+                            const scripts = [...current.scripts];
+                            scripts[index] = event.target.value;
+                            return { ...current, scripts };
+                          })
+                        }
+                        rows={3}
+                        className="w-full resize-y rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-[13px] leading-relaxed text-[#4B5563] outline-none focus:border-[#FF5A1F]/40"
+                      />
                     ))}
                   </div>
                 </div>
@@ -296,7 +394,7 @@ export function AffiliateAiClient({ products }: { products: ProductOpt[] }) {
               <Sparkles className="mx-auto h-6 w-6 text-[#FF5A1F]" />
               <p className="mt-3 text-[14px] font-bold text-[#111827]">Ready when you are</p>
               <p className="mt-1 text-[13px] text-[#6B7280]">
-                Select a product and generate a full promotional kit in one click.
+                Generate with Jimvio AI, or draft editable copy from the listing. Nothing is posted for you.
               </p>
             </div>
           )}

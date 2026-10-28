@@ -76,6 +76,15 @@ describe("affiliate workspace nav active", () => {
     assert.match(source, /clientPercent: body\?\.commissionRate/);
     assert.doesNotMatch(source, /body\?\.commissionRate != null && Number\.isFinite/);
     assert.doesNotMatch(source, /commissionRate = Number\(product\.affiliate_commission_rate\)/);
+    assert.match(source, /isAcceptedAffiliateDestination/);
+    assert.match(source, /affiliateDestinationMatchesProduct/);
+    assert.match(source, /External destinations are not tracked/);
+    const patch = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../app/api/affiliates/links/[id]/route.ts"),
+      "utf8",
+    );
+    assert.doesNotMatch(patch, /error\.message/);
+    assert.match(patch, /Could not update this link/);
   });
 
   it("caps the legacy order action and leaves refunds on the recorded amount", () => {

@@ -157,6 +157,11 @@ export function AffiliateCategories({
             </div>
           </div>
         </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">
+          {active
+            ? "Search checks every eligible product by name, link, and description. The category you selected stays selected."
+            : "Search checks every eligible product by name, link, and description."}
+        </p>
 
         <div
           className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[1180px]:grid-cols-8"

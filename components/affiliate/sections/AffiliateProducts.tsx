@@ -39,6 +39,8 @@ import {
 import {
   affiliateDiscoveryLabel,
   affiliateDiscoverySectionTitle,
+  affiliateSearchGuidance,
+  affiliateSearchMatchReason,
   normalizeAffiliateSearch,
   type AffiliateDiscoveryCategoryId,
 } from "@/lib/affiliate/discovery";
@@ -61,10 +63,20 @@ const PAGE_SIZE = AFFILIATE_CATALOG_PAGE_SIZE;
 const ProductCard = memo(function ProductCard({
   product,
   picked,
+  search,
 }: {
   product: AffiliateSpotlightProduct;
   picked: boolean;
+  search: string;
 }) {
+  const matchReason = affiliateSearchMatchReason(
+    {
+      name: product.name,
+      slug: product.slug,
+      shortDescription: product.shortDescription,
+    },
+    search,
+  );
   const [wishlisted, setWishlisted] = useState(false);
   const [pending, startTransition] = useTransition();
   const commissionPct =
@@ -137,6 +149,9 @@ const ProductCard = memo(function ProductCard({
         >
           {product.name}
         </Link>
+        {matchReason ? (
+          <p className="mt-1 text-[11px] leading-snug text-[#6B7280]">{matchReason}</p>
+        ) : null}
 
         <div className="mt-2.5">
           <p className="text-[15px] font-bold tabular-nums leading-none text-[#111827]">
@@ -307,6 +322,7 @@ export function AffiliateProducts({
     ? `Results for “${query}”`
     : affiliateDiscoverySectionTitle(category);
   const label = affiliateDiscoveryLabel(category);
+  const searchGuidance = affiliateSearchGuidance(query, query ? label : null);
   const showSkeleton = pending || (loading && snapshot.items.length === 0);
 
   const viewAll = () => {
@@ -320,7 +336,12 @@ export function AffiliateProducts({
   return (
     <section className={`${AFFILIATE_SHELL} pt-8 sm:pt-10`} id="campaigns" tabIndex={-1}>
       <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-[22px] font-bold tracking-tight text-[#172033] sm:text-[24px]">{title}</h2>
+        <div>
+          <h2 className="text-[22px] font-bold tracking-tight text-[#172033] sm:text-[24px]">{title}</h2>
+          {searchGuidance ? (
+            <p className="mt-1 max-w-2xl text-[12.5px] leading-relaxed text-[#6B7280]">{searchGuidance}</p>
+          ) : null}
+        </div>
         <button
           type="button"
           onClick={viewAll}
@@ -388,7 +409,7 @@ export function AffiliateProducts({
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
           {snapshot.items.map((product) => (
             <div key={product.id} id={`affiliate-product-${product.id}`} className="h-full">
-              <ProductCard product={product} picked={pickedIds.has(product.id)} />
+              <ProductCard product={product} picked={pickedIds.has(product.id)} search={query} />
             </div>
           ))}
           {loading

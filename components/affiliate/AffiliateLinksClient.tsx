@@ -20,6 +20,8 @@ import {
   AFFILIATE_BTN_SECONDARY,
   formatAffiliateMoney,
 } from "./sections/shared";
+import { affiliateLinkStatus } from "@/lib/affiliate/guidance";
+import { isAcceptedAffiliateDestination } from "@/lib/affiliate/tracking-guard";
 import { cn } from "@/lib/utils";
 
 type AffLink = {
@@ -43,6 +45,7 @@ export function AffiliateLinksClient() {
   const [links, setLinks] = useState<AffLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [qrFor, setQrFor] = useState<{ id: string; url: string; dataUrl: string } | null>(null);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -82,7 +85,17 @@ export function AffiliateLinksClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.ok) await load();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNotice(
+          typeof data?.error === "string" && data.error.length < 180
+            ? data.error
+            : "Could not update that link.",
+        );
+        return;
+      }
+      setNotice("Link updated.");
+      await load();
     });
   };
 
@@ -90,9 +103,10 @@ export function AffiliateLinksClient() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(id);
+      setNotice("Link copied.");
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      /* ignore */
+      setNotice("Could not copy automatically. Select the short link and copy it.");
     }
   };
 
@@ -118,11 +132,23 @@ export function AffiliateLinksClient() {
           customSlug: newSlug.trim() || undefined,
         }),
       });
-      if (res.ok) {
-        setNewDest("");
-        setNewSlug("");
-        await load();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setNotice(
+          typeof data?.error === "string" && data.error.length < 180
+            ? data.error
+            : "Could not create that link.",
+        );
+        return;
       }
+      setNewDest("");
+      setNewSlug("");
+      setNotice(
+        typeof data?.warning === "string" && data.warning.length < 180
+          ? data.warning
+          : "Link ready. Copy the short link below.",
+      );
+      await load();
     });
   };
 
@@ -171,6 +197,12 @@ export function AffiliateLinksClient() {
         </div>
       </div>
 
+      {notice ? (
+        <p className="mb-3 text-[13px] font-medium text-[#111827]" role="status">
+          {notice}
+        </p>
+      ) : null}
+
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -203,7 +235,16 @@ export function AffiliateLinksClient() {
 
       {!loading && !error && links.length > 0 ? (
         <div className="space-y-3">
-          {links.map((link) => (
+          {links.map((link) => {
+            const status = affiliateLinkStatus({
+              isActive: link.isActive,
+              expiresAt: link.expiresAt,
+            });
+            const destinationTracked = isAcceptedAffiliateDestination(
+              link.destinationUrl,
+              "https://www.jimvio.com/",
+            );
+            return (
             <div
               key={link.id}
               className="rounded-[16px] border border-[#E8EAED] bg-white p-4 shadow-sm"
@@ -217,14 +258,22 @@ export function AffiliateLinksClient() {
                     <span
                       className={cn(
                         "rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase",
-                        link.isActive
+                        status.label === "Active"
                           ? "bg-emerald-50 text-emerald-700"
                           : "bg-stone-100 text-stone-500"
                       )}
                     >
-                      {link.isActive ? (link.product ? "Picked" : "Active") : "Expired"}
+                      {status.label}
                     </span>
                   </div>
+                  {status.detail ? (
+                    <p className="mt-1 text-[12px] text-[#6B7280]">{status.detail}</p>
+                  ) : null}
+                  {!destinationTracked ? (
+                    <p className="mt-1 text-[12px] text-[#6B7280]">
+                      Visits open the marketplace because this destination is not a Jimvio page.
+                    </p>
+                  ) : null}
                   {link.product?.slug ? (
                     <p className="mt-0.5 text-[12px] text-[#6B7280]">
                       Product:{" "}
@@ -272,7 +321,7 @@ export function AffiliateLinksClient() {
                   >
                     Rename
                   </button>
-                  {link.isActive ? (
+                  {status.label === "Active" ? (
                     <button
                       type="button"
                       onClick={() => patchLink(link.id, { expire: true })}
@@ -339,7 +388,8 @@ export function AffiliateLinksClient() {
                 </div>
               ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </AffiliatePageShell>

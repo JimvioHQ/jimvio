@@ -15,6 +15,7 @@ type RawAffiliateProduct = {
   affiliate_price?: number | null;
   sale_count?: number | null;
   view_count?: number | null;
+  short_description?: string | null;
   product_categories?: { name?: string | null } | null;
   vendors?: {
     business_name?: string | null;
@@ -52,6 +53,10 @@ export function mapAffiliateSpotlightProduct(
     currency: PLATFORM_CURRENCY,
     image: getImage(p.images),
     price: priceUsd,
+    shortDescription:
+      typeof p.short_description === "string"
+        ? p.short_description.replace(/\s+/g, " ").trim().slice(0, 180)
+        : null,
     sellerName: p.vendors?.business_name ?? null,
     verified:
       verification === "verified" ||

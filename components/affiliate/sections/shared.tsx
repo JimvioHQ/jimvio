@@ -31,6 +31,7 @@ export type AffiliateSpotlightProduct = {
   currency: string;
   image: string;
   price: number;
+  shortDescription?: string | null;
   sellerName?: string | null;
   verified?: boolean;
 };

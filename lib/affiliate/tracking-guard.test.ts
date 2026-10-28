@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  affiliateDestinationMatchesProduct,
+  isAcceptedAffiliateDestination,
   isLikelyAutomatedClick,
   isRepeatReferralHit,
   safeAffiliateDestination,
@@ -33,6 +35,40 @@ describe("affiliate redirect safety", () => {
 
   it("rejects an invalid referral code as a destination", () => {
     assert.equal(safeAffiliateDestination("javascript:alert(1)", origin), "/marketplace");
+  });
+
+  it("accepts a Jimvio destination and rejects an external one", () => {
+    assert.equal(
+      isAcceptedAffiliateDestination("https://www.jimvio.com/marketplace/widget", origin),
+      true,
+    );
+    assert.equal(isAcceptedAffiliateDestination("/marketplace/widget", origin), true);
+    assert.equal(isAcceptedAffiliateDestination("https://evil.example/phish", origin), false);
+    assert.equal(isAcceptedAffiliateDestination("javascript:alert(1)", origin), false);
+    assert.equal(isAcceptedAffiliateDestination("", origin), false);
+  });
+
+  it("does not treat an external URL as the product because it contains the slug", () => {
+    assert.equal(
+      affiliateDestinationMatchesProduct(
+        "https://www.jimvio.com/marketplace/widget",
+        origin,
+        "widget",
+      ),
+      true,
+    );
+    assert.equal(
+      affiliateDestinationMatchesProduct("https://evil.example/marketplace/widget", origin, "widget"),
+      false,
+    );
+    assert.equal(
+      affiliateDestinationMatchesProduct(
+        "https://www.jimvio.com/other?next=/marketplace/widget",
+        origin,
+        "widget",
+      ),
+      false,
+    );
   });
 });
 

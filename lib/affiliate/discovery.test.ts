@@ -17,7 +17,10 @@ import {
   emptyDiscoveryCategoryIds,
   filterDiscoveryCategories,
   normalizeAffiliateSearch,
+  affiliateSearchGuidance,
+  affiliateSearchMatchReason,
   productMatchesDiscoveryView,
+  suggestAffiliateCategory,
 } from "./discovery";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -247,3 +250,36 @@ describe("affiliate discovery queries", () => {
 function unknownProduct(productType: string) {
   return { productType, name: "Trip" };
 }
+
+describe("affiliate search explanations", () => {
+  it("names the field that matched and does not invent a reason for an empty query", () => {
+    assert.equal(
+      affiliateSearchMatchReason(
+        { name: "Logo Hat", slug: "logo-hat", shortDescription: "Cotton cap" },
+        "hat",
+      ),
+      "Matches the product name and link.",
+    );
+    assert.equal(
+      affiliateSearchMatchReason(
+        { name: "Logo Hat", slug: "logo-hat", shortDescription: "Cotton cap" },
+        "cotton",
+      ),
+      "Matches the product description.",
+    );
+    assert.equal(affiliateSearchMatchReason({ name: "Logo Hat" }, ""), null);
+  });
+
+  it("keeps a selected category out of the search scope and avoids a sales forecast", () => {
+    const guidance = affiliateSearchGuidance("phone case", "Featured");
+    assert.match(guidance, /Featured stays selected/);
+    assert.match(guidance, /not a sales forecast/);
+    assert.equal(suggestAffiliateCategory("phone case"), null);
+  });
+
+  it("suggests one category only when the words name that category", () => {
+    assert.equal(suggestAffiliateCategory("online course"), "courses");
+    assert.equal(suggestAffiliateCategory("course app"), null);
+    assert.equal(suggestAffiliateCategory("featured"), null);
+  });
+});

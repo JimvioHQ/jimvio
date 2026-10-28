@@ -55,3 +55,37 @@ export function safeAffiliateDestination(
   const path = `${target.pathname}${target.search}${target.hash}`;
   return path.startsWith("/") ? path : fallback;
 }
+
+const REJECTED_DESTINATION = "/__jimvio_rejected__";
+
+/**
+ * True when a stored destination would survive the redirect guard.
+ * External, protocol-relative, and non-http URLs are rejected so a new
+ * link cannot count clicks and then silently open the marketplace.
+ */
+export function isAcceptedAffiliateDestination(
+  raw: string | null | undefined,
+  requestUrl: string,
+): boolean {
+  const value = raw?.trim() ?? "";
+  if (!value) return false;
+  return safeAffiliateDestination(value, requestUrl, REJECTED_DESTINATION) !== REJECTED_DESTINATION;
+}
+
+/** True only when the destination is a same-site marketplace path for this product. */
+export function affiliateDestinationMatchesProduct(
+  raw: string | null | undefined,
+  requestUrl: string,
+  slug: string,
+): boolean {
+  const safeSlug = slug.trim();
+  if (!safeSlug || safeSlug.includes("/") || !isAcceptedAffiliateDestination(raw, requestUrl)) {
+    return false;
+  }
+  try {
+    const path = new URL(raw!.trim(), requestUrl).pathname.replace(/\/+$/, "");
+    return path === `/marketplace/${safeSlug}`;
+  } catch {
+    return false;
+  }
+}

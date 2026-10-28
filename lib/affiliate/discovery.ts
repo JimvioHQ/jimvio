@@ -247,6 +247,73 @@ export function productMatchesAffiliateSearch(
   );
 }
 
+const CATEGORY_SIGNALS: Array<{ id: AffiliateDiscoveryBucket; pattern: RegExp }> = [
+  { id: "ebooks", pattern: /\b(ebooks?|e-books?|guides?|workbooks?)\b/i },
+  { id: "courses", pattern: /\b(courses?|learning|tutorials?|classes?)\b/i },
+  { id: "software", pattern: /\b(apps?|software|saas)\b/i },
+  { id: "services", pattern: /\b(websites?|services?|memberships?)\b/i },
+  { id: "physical", pattern: /\b(physical|clothing|shoes|fashion)\b/i },
+  { id: "digital", pattern: /\b(digital downloads?|digital products?)\b/i },
+  { id: "others", pattern: /\bothers?\b|\bmisc\b/i },
+];
+
+/** A category named by the query. Ambiguous queries return null. Featured is never inferred. */
+export function suggestAffiliateCategory(search: string): AffiliateDiscoveryBucket | null {
+  const q = normalizeAffiliateSearch(search).toLowerCase();
+  if (!q) return null;
+  const hits = new Set<AffiliateDiscoveryBucket>();
+  for (const category of AFFILIATE_DISCOVERY_CATEGORIES) {
+    if (category.id === "featured") continue;
+    if (q.includes(category.label.toLowerCase()) || q === category.id) hits.add(category.id);
+  }
+  for (const signal of CATEGORY_SIGNALS) {
+    if (signal.pattern.test(q)) hits.add(signal.id);
+  }
+  if (hits.size !== 1) return null;
+  return [...hits][0] ?? null;
+}
+
+function joinMatchFields(fields: string[]): string {
+  if (fields.length <= 1) return fields[0] ?? "";
+  if (fields.length === 2) return `${fields[0]} and ${fields[1]}`;
+  return `${fields.slice(0, -1).join(", ")}, and ${fields[fields.length - 1]}`;
+}
+
+/**
+ * Why a catalog search can show this product.
+ * Uses only the name, link, and description already on the product.
+ */
+export function affiliateSearchMatchReason(
+  product: Pick<AffiliateClassifiableProduct, "name" | "slug" | "shortDescription">,
+  search: string,
+): string | null {
+  const q = normalizeAffiliateSearch(search).toLowerCase();
+  if (!q) return null;
+  const fields: string[] = [];
+  if ((product.name ?? "").toLowerCase().includes(q)) fields.push("name");
+  if ((product.slug ?? "").toLowerCase().includes(q)) fields.push("link");
+  if ((product.shortDescription ?? "").toLowerCase().includes(q)) fields.push("description");
+  if (fields.length === 0) return "Matches the product description.";
+  return `Matches the product ${joinMatchFields(fields)}.`;
+}
+
+/** One sentence that explains catalog search without treating it as a sales forecast. */
+export function affiliateSearchGuidance(
+  search: string,
+  selectedLabel: string | null,
+): string {
+  const q = normalizeAffiliateSearch(search);
+  if (!q) return "";
+  const selected = selectedLabel
+    ? ` ${selectedLabel} stays selected and applies again after you clear the search.`
+    : "";
+  const suggestion = suggestAffiliateCategory(q);
+  const related = suggestion
+    ? ` These words also match the ${affiliateDiscoveryLabel(suggestion)} category, but this search still checks every eligible product.`
+    : "";
+  return `Matches use the product name, link, or description.${selected}${related} Commission rates are the current offer, not a sales forecast.`;
+}
+
 export type AffiliateDiscoveryQueryPlan = {
   /** Normalized catalog search. Non-empty searches ignore the selected category. */
   search: string;

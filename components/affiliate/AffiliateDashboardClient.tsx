@@ -24,6 +24,7 @@ import {
   affiliateQuickActions,
   type AffiliateQuickActionId,
 } from "@/lib/affiliate/dashboard-actions";
+import { affiliateNextAction, affiliatePerformanceNote } from "@/lib/affiliate/guidance";
 import {
   AffiliateEmptyState,
   AffiliateMetricTile,
@@ -50,7 +51,13 @@ type DashboardPayload = {
     ctr: number;
     balances?: { pending: number; available: number; paid: number };
   };
-  balances?: { pending: number; available: number; paid: number; total?: number };
+  balances?: {
+    pending: number;
+    available: number;
+    paid: number;
+    total?: number;
+    minWithdrawal?: number;
+  };
   series?: Array<{ date: string; clicks: number; conversions: number; commission: number }>;
   topProducts?: Array<{
     id: string;
@@ -81,6 +88,7 @@ export function AffiliateDashboardClient() {
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hiddenAction, setHiddenAction] = useState<string | null>(null);
   const quickActions = affiliateQuickActions();
 
   const load = useCallback(async () => {
@@ -122,7 +130,28 @@ export function AffiliateDashboardClient() {
 
   const pending = Number(data?.balances?.pending ?? data?.analytics?.balances?.pending ?? 0);
   const paid = Number(data?.balances?.paid ?? data?.analytics?.balances?.paid ?? 0);
+  const available = Number(data?.balances?.available ?? 0);
   const commission = Number(data?.analytics?.commission ?? 0);
+  const recentLinks = data?.recentLinks ?? [];
+  const recordedClicks = Math.max(
+    Number(data?.analytics?.clicks ?? 0),
+    recentLinks.reduce((sum, link) => sum + Number(link.clicks ?? 0), 0),
+  );
+  const recordedConversions = Math.max(
+    Number(data?.analytics?.conversions ?? 0),
+    recentLinks.reduce((sum, link) => sum + Number(link.conversions ?? 0), 0),
+  );
+  const nextAction = data
+    ? affiliateNextAction({
+        linkCount: recentLinks.length,
+        clicks: recordedClicks,
+        conversions: recordedConversions,
+        pending,
+        available,
+        minWithdrawal: data.balances?.minWithdrawal,
+      })
+    : null;
+  const performanceNote = affiliatePerformanceNote(data?.series ?? [], 30);
 
   return (
     <AffiliatePageShell
@@ -171,6 +200,29 @@ export function AffiliateDashboardClient() {
 
       {!loading && !error && data ? (
         <div className="space-y-6">
+          {nextAction && hiddenAction !== nextAction.id ? (
+            <div className="flex flex-col gap-3 rounded-[16px] border border-[#E8EAED] bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[13px] font-bold text-[#111827]">{nextAction.title}</p>
+                <p className="mt-0.5 text-[12.5px] leading-relaxed text-[#6B7280]">{nextAction.body}</p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Link
+                  href={nextAction.href}
+                  className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
+                >
+                  {nextAction.action}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setHiddenAction(nextAction.id)}
+                  className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <AffiliateMetricTile label="Today's clicks" value={String(data.today?.clicks ?? 0)} />
             <AffiliateMetricTile
@@ -245,6 +297,7 @@ export function AffiliateDashboardClient() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+              <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">{performanceNote}</p>
             </div>
 
             <div className="rounded-[18px] border border-[#E8EAED] bg-white p-4 shadow-sm sm:p-5">
@@ -308,7 +361,9 @@ export function AffiliateDashboardClient() {
                 </Link>
               </div>
               {(data.recentLinks ?? []).length === 0 ? (
-                <p className="text-[13px] text-[#6B7280]">No links yet.</p>
+                <p className="text-[13px] text-[#6B7280]">
+                  No links yet. Discover a product and choose Promote Now.
+                </p>
               ) : (
                 <ul className="space-y-2.5">
                   {(data.recentLinks ?? []).slice(0, 6).map((l) => (
