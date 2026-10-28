@@ -370,43 +370,6 @@ export async function loadFeedSidebarPopularUsers(
     }
   }
 
-  // Designated demo creators (editorial personas) fill remaining slots only —
-  // never displace priority brand accounts, and never invent followers.
-  if (candidates.length < POPULAR_USER_COUNT) {
-    const { data: demoRows } = (await admin
-      .from("profiles")
-      .select(
-        "id, full_name, username, avatar_url, follower_count, is_verified, is_active, email"
-      )
-      .eq("is_active", true)
-      .ilike("email", "editorial+%@jimvio.com")
-      .order("follower_count", { ascending: false })
-      .order("id", { ascending: true })
-      .limit(48)) as { data: ProfileRow[] | null };
-
-    for (const profile of demoRows ?? []) {
-      if (candidates.length >= POPULAR_USER_COUNT) break;
-      if (!profile.id || seen.has(profile.id) || profile.id === excludeUserId) continue;
-      if (!isPublicUsername(profile.username) || !isValidAvatar(profile.avatar_url)) {
-        continue;
-      }
-      const username = normalizeUsername(profile.username!);
-      const name = displayName(profile.full_name, username);
-      if (!name) continue;
-      pushCandidate({
-        userId: profile.id,
-        name,
-        username,
-        avatarUrl: mediaUrlOrNull(profile.avatar_url, 96),
-        followerCount: resolveProfileFollowerCount({
-          username,
-          follower_count: profile.follower_count,
-        }),
-        verified: Boolean(profile.is_verified),
-      });
-    }
-  }
-
   return candidates.slice(0, POPULAR_USER_COUNT);
 }
 
