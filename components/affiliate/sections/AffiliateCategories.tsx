@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import {
   AFFILIATE_DISCOVERY_CATEGORIES,
-  filterDiscoveryCategories,
   type AffiliateDiscoveryCategoryId,
 } from "@/lib/affiliate/discovery";
 import { AFFILIATE_SHELL } from "./shared";
@@ -33,7 +32,7 @@ const ICONS = {
 } as const;
 
 type AffiliateCategoriesProps = {
-  active: AffiliateDiscoveryCategoryId;
+  active: AffiliateDiscoveryCategoryId | null;
   query: string;
   onQueryChange: (value: string) => void;
   onSelect: (id: AffiliateDiscoveryCategoryId) => void;
@@ -53,11 +52,10 @@ export function AffiliateCategories({
   const menuRef = useRef<HTMLDivElement>(null);
   const searchId = useId();
   const listId = useId();
-  const searched = filterDiscoveryCategories(query);
   const visible =
     listFilter === "all"
-      ? searched
-      : searched.filter((category) => category.id === listFilter);
+      ? [...AFFILIATE_DISCOVERY_CATEGORIES]
+      : AFFILIATE_DISCOVERY_CATEGORIES.filter((category) => category.id === listFilter);
   const menuLabel =
     listFilter === "all"
       ? "All categories"
@@ -90,7 +88,7 @@ export function AffiliateCategories({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="relative min-w-0 sm:w-[240px]">
               <label htmlFor={searchId} className="sr-only">
-                Search categories and products
+                Search anything...
               </label>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
               <input
@@ -98,7 +96,7 @@ export function AffiliateCategories({
                 type="search"
                 value={query}
                 onChange={(event) => onQueryChange(event.target.value)}
-                placeholder="Search categories..."
+                placeholder="Search anything..."
                 autoComplete="off"
                 className="h-10 w-full rounded-full border border-[#E5E7EB] bg-white pl-9 pr-3 text-[13px] text-[#111827] outline-none placeholder:text-[#9CA3AF] focus-visible:border-[#FF5A1F] focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/25"
               />
@@ -160,53 +158,40 @@ export function AffiliateCategories({
           </div>
         </div>
 
-        {visible.length === 0 ? (
-          <p className="mt-4 rounded-[14px] border border-dashed border-[#E5E7EB] bg-white px-4 py-8 text-center text-[13px] text-[#6B7280]" role="status">
-            No categories match “{query.trim()}”.
-          </p>
-        ) : (
-          <div
-            className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[1180px]:grid-cols-8"
-            role="list"
-            aria-label="Affiliate categories"
-          >
-            {visible.map((category) => {
-              const Icon = ICONS[category.icon];
-              const selected = category.id === active;
-              return (
-                <div key={category.id} role="listitem" className="min-w-0">
-                  <button
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => {
-                      onListFilter("all");
-                      onSelect(category.id);
-                    }}
-                    className={cn(
-                      "relative flex h-full min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border bg-white px-2 py-3 text-center shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-                      selected
-                        ? "border-[#FF5A1F] ring-1 ring-[#FF5A1F]"
-                        : "border-[#E8EAED] hover:border-[#FF5A1F]/35",
-                      category.id === "featured" && "pt-6",
-                    )}
-                  >
-                    {category.id === "featured" ? (
-                      <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-full bg-[#FF5A1F] px-1.5 py-0.5 text-[9px] font-bold leading-none text-white">
-                        <Star className="h-2.5 w-2.5 fill-white" aria-hidden />
-                        Featured
-                      </span>
-                    ) : null}
-                    <Icon className="h-6 w-6 text-[#FF5A1F]" strokeWidth={1.8} aria-hidden />
-                    <span className="text-[12px] font-semibold leading-tight text-[#172033]">
-                      {category.label}
-                    </span>
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div
+          className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 min-[1180px]:grid-cols-8"
+          role="list"
+          aria-label="Affiliate categories"
+        >
+          {visible.map((category) => {
+            const Icon = ICONS[category.icon];
+            const selected = category.id === active;
+            return (
+              <div key={category.id} role="listitem" className="min-w-0">
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    onListFilter("all");
+                    onSelect(category.id);
+                  }}
+                  className={cn(
+                    "relative flex h-full min-h-[96px] w-full flex-col items-center justify-center gap-2 rounded-[14px] border bg-white px-2 py-3 text-center shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+                    selected
+                      ? "border-[#FF5A1F] ring-1 ring-[#FF5A1F]"
+                      : "border-[#E8EAED] hover:border-[#FF5A1F]/35",
+                  )}
+                >
+                  <Icon className="h-6 w-6 text-[#FF5A1F]" strokeWidth={1.8} aria-hidden />
+                  <span className="text-[12px] font-semibold leading-tight text-[#172033]">
+                    {category.label}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

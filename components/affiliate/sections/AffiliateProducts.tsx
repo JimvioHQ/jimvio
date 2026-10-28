@@ -302,9 +302,11 @@ export function AffiliateProducts({
     }
   }, [category, search, snapshot.hasMore]);
 
-  const title = affiliateDiscoverySectionTitle(category);
-  const label = affiliateDiscoveryLabel(category);
   const query = normalizeAffiliateSearch(search);
+  const title = query
+    ? `Results for “${query}”`
+    : affiliateDiscoverySectionTitle(category);
+  const label = affiliateDiscoveryLabel(category);
   const showSkeleton = pending || (loading && snapshot.items.length === 0);
 
   const viewAll = () => {
@@ -312,11 +314,11 @@ export function AffiliateProducts({
       onClearSearch();
       return;
     }
-    document.getElementById("affiliate-products")?.focus();
+    document.getElementById("campaigns")?.focus();
   };
 
   return (
-    <section className={`${AFFILIATE_SHELL} pt-8 sm:pt-10`} id="affiliate-products" tabIndex={-1}>
+    <section className={`${AFFILIATE_SHELL} pt-8 sm:pt-10`} id="campaigns" tabIndex={-1}>
       <div className="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-[22px] font-bold tracking-tight text-[#172033] sm:text-[24px]">{title}</h2>
         <button
@@ -359,7 +361,7 @@ export function AffiliateProducts({
           </p>
           <p className="mx-auto mt-1 max-w-md text-[13px] text-[#6B7280]">
             {query
-              ? `Nothing in ${label} matches that search.`
+              ? "Nothing in the promotable catalog matches that search."
               : category === "featured"
                 ? "No products are marked as featured right now."
                 : "Nothing in this category is open for affiliate promotion."}

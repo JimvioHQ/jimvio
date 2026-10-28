@@ -3,6 +3,7 @@ import { getAdminDB, getDB } from "./base";
 import { getProducts } from "./products";
 import { getPlatformStats } from "./platform";
 import {
+  affiliateDiscoveryQuery,
   affiliateSlugBucket,
   discoveryCategorySlugs,
   emptyDiscoveryCategoryIds,
@@ -121,17 +122,14 @@ export async function getAffiliateDiscoveryProducts(input: {
   limit?: number;
   offset?: number;
 }) {
-  const category = input.category ?? null;
-  const ids =
-    category && category !== "featured"
-      ? await getAffiliateDiscoveryCategoryIds()
-      : emptyDiscoveryCategoryIds();
+  const plan = affiliateDiscoveryQuery(input);
+  const scoped = plan.category && plan.category !== "featured" ? plan.category : null;
+  const ids = scoped ? await getAffiliateDiscoveryCategoryIds() : emptyDiscoveryCategoryIds();
   return getProducts({
     affiliate: true,
-    featured: category === "featured" ? true : undefined,
-    affiliateDiscovery:
-      category && category !== "featured" ? { category, ids } : undefined,
-    search: input.search || undefined,
+    featured: plan.category === "featured" ? true : undefined,
+    affiliateDiscovery: scoped ? { category: scoped, ids } : undefined,
+    search: plan.search || undefined,
     limit: input.limit ?? 10,
     offset: input.offset ?? 0,
     sort: "sales",

@@ -8,6 +8,7 @@ import {
   KNOWN_AFFILIATE_PRODUCT_TYPES,
   affiliateDiscoveryHref,
   affiliateDiscoveryOrFilter,
+  affiliateDiscoveryQuery,
   affiliateDiscoverySectionTitle,
   parseAffiliateDiscoveryCategory,
   affiliateSearchOrFilter,
@@ -167,15 +168,26 @@ describe("affiliate product classification", () => {
     );
   });
 
-  it("composes search with the active category and restores results when cleared", () => {
+  it("searches the whole catalog and restores the selected category when cleared", () => {
     const digital = { productType: "digital", name: "Logo Kit", slug: "logo-kit", shortDescription: "Brand pack" };
-    const physical = { productType: "physical", name: "Logo Hat", slug: "logo-hat" };
+    const physical = { productType: "physical", name: "Logo Hat", slug: "logo-hat", isFeatured: false };
     assert.equal(productMatchesDiscoveryView(digital, "digital", "logo"), true);
-    assert.equal(productMatchesDiscoveryView(physical, "digital", "logo"), false);
-    assert.equal(productMatchesDiscoveryView(digital, "digital", "brand"), true);
+    assert.equal(productMatchesDiscoveryView(physical, "digital", "LOGO"), true);
+    assert.equal(productMatchesDiscoveryView(physical, "featured", "logo"), true);
+    assert.equal(productMatchesDiscoveryView(digital, "featured", "brand"), true);
     assert.equal(productMatchesDiscoveryView(digital, "digital", "missing"), false);
+    assert.equal(productMatchesDiscoveryView(physical, "digital", ""), false);
+    assert.equal(productMatchesDiscoveryView(physical, "featured", ""), false);
     assert.equal(productMatchesDiscoveryView(digital, "digital", ""), true);
     assert.equal(productMatchesDiscoveryView(digital, "digital", "   "), true);
+    assert.deepEqual(affiliateDiscoveryQuery({ category: "featured", search: "logo" }), {
+      search: "logo",
+      category: null,
+    });
+    assert.deepEqual(affiliateDiscoveryQuery({ category: "physical", search: " " }), {
+      search: "",
+      category: "physical",
+    });
   });
 });
 
@@ -187,6 +199,11 @@ describe("affiliate discovery queries", () => {
       "/affiliates?category=digital&q=Logo+Kit",
     );
     assert.equal(affiliateDiscoveryHref("featured"), "/affiliates?category=featured");
+    assert.equal(
+      affiliateDiscoveryHref("featured", "hat", { includeCategory: false }),
+      "/affiliates?q=hat",
+    );
+    assert.equal(affiliateDiscoveryHref("physical", "", { includeCategory: false }), "/affiliates");
     assert.equal(parseAffiliateDiscoveryCategory("Featured"), "featured");
     assert.equal(parseAffiliateDiscoveryCategory("travel"), null);
     assert.equal(parseAffiliateDiscoveryCategory("ugc"), null);

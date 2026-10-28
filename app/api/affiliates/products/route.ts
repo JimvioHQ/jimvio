@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/affiliates/products?limit=&offset=&category=&q=
  * Paginated affiliate-eligible catalog for Affiliate Center discovery.
- * Commission rates are computed on the server. Client rate params are ignored.
+ * `q` matches name, slug, and short description across every category.
+ * `category` applies only when `q` is empty. Commission rates are computed
+ * on the server. Client rate params are ignored.
  */
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;

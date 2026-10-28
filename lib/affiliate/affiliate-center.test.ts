@@ -161,6 +161,47 @@ describe("affiliate discovery route", () => {
     assert.doesNotMatch(hero, /text-\[11px\] font-bold uppercase/);
   });
 
+  it("restores the affiliate hero and searches products across categories", () => {
+    const page = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../app/(public)/affiliates/page.tsx"),
+      "utf8",
+    );
+    const marketing = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/affiliates-marketing-page.tsx"),
+      "utf8",
+    );
+    const categories = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/sections/AffiliateCategories.tsx"),
+      "utf8",
+    );
+    const products = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/sections/AffiliateProducts.tsx"),
+      "utf8",
+    );
+    const service = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), "../../services/affiliates.ts"),
+      "utf8",
+    );
+    assert.match(page, /requested \?\? "featured"/);
+    assert.match(page, /categoryChosen=\{Boolean\(requested\)\}/);
+    assert.match(page, /heroRate/);
+    assert.match(page, /primaryCtaHref/);
+    assert.match(marketing, /<AffiliateHero/);
+    assert.match(marketing, /<AffiliateHowItWorks bare/);
+    assert.match(marketing, /<AffiliateBottomCta/);
+    assert.match(marketing, /active=\{pickedId\}/);
+    assert.match(marketing, /categoryChosen \? category : null/);
+    assert.match(categories, /Search anything\.\.\./);
+    assert.doesNotMatch(categories, /Search categories\.\.\./);
+    assert.doesNotMatch(categories, /absolute left-1\.5 top-1\.5/);
+    assert.doesNotMatch(categories, /filterDiscoveryCategories/);
+    assert.match(categories, /star: Star/);
+    assert.match(categories, /category\.id === active/);
+    assert.match(products, /Nothing in the promotable catalog matches that search/);
+    assert.match(products, /\/affiliates\/promote\/\$\{product\.slug\}/);
+    assert.match(service, /affiliateDiscoveryQuery/);
+  });
+
   it("keeps Promote Now on the authenticated promote route", () => {
     const source = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), "../../components/affiliate/sections/AffiliateProducts.tsx"),

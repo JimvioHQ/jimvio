@@ -166,12 +166,14 @@ export function normalizeAffiliateSearch(raw: string | null | undefined): string
 export function affiliateDiscoveryHref(
   category: AffiliateDiscoveryCategoryId,
   search = "",
+  options?: { includeCategory?: boolean },
 ): string {
   const params = new URLSearchParams();
-  params.set("category", category);
+  if (options?.includeCategory !== false) params.set("category", category);
   const q = normalizeAffiliateSearch(search);
   if (q) params.set("q", q);
-  return `/affiliates?${params.toString()}`;
+  const query = params.toString();
+  return query ? `/affiliates?${query}` : "/affiliates";
 }
 
 export function filterDiscoveryCategories(query: string) {
@@ -245,15 +247,37 @@ export function productMatchesAffiliateSearch(
   );
 }
 
-/** Category and search together. Featured uses only the featured flag. */
+export type AffiliateDiscoveryQueryPlan = {
+  /** Normalized catalog search. Non-empty searches ignore the selected category. */
+  search: string;
+  /** Category scope used only when search is empty. */
+  category: AffiliateDiscoveryCategoryId | null;
+};
+
+/**
+ * A product search covers every eligible affiliate product.
+ * The selected category applies again only after the search is cleared.
+ */
+export function affiliateDiscoveryQuery(input: {
+  category?: AffiliateDiscoveryCategoryId | null;
+  search?: string | null;
+}): AffiliateDiscoveryQueryPlan {
+  const search = normalizeAffiliateSearch(input.search);
+  if (search) return { search, category: null };
+  return { search: "", category: input.category ?? null };
+}
+
+/** Category filter, or a catalog-wide search when a query is present. */
 export function productMatchesDiscoveryView(
   product: AffiliateClassifiableProduct,
   category: AffiliateDiscoveryCategoryId,
   search = "",
 ): boolean {
-  if (!productMatchesAffiliateSearch(product, search)) return false;
-  if (category === "featured") return product.isFeatured === true;
-  return classifyAffiliateProduct(product).category === category;
+  const plan = affiliateDiscoveryQuery({ category, search });
+  if (plan.search) return productMatchesAffiliateSearch(product, plan.search);
+  if (plan.category === "featured") return product.isFeatured === true;
+  if (plan.category) return classifyAffiliateProduct(product).category === plan.category;
+  return true;
 }
 
 function quoteIlike(term: string): string {
