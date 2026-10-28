@@ -1,5 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
+// P0-3: persona seeding is retired. Editorial content must be published as
+// the community or as "Jimvio Editorial" — never under invented people.
+if (process.env.JIMVIO_ALLOW_PERSONA_SEED !== "retired-p0-3") {
+  console.error("Disabled: persona seeding creates fake members (see P0-3 audit).");
+  process.exit(1);
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY);
 

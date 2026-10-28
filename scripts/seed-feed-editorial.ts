@@ -38,6 +38,13 @@ import {
 import { readCommunityEditorialOrigin } from "../lib/community/editorial-origin";
 import { assertProductionScriptAllowed } from "../lib/ops/script-safety";
 
+// P0-3: persona seeding is retired. Editorial content must be published as
+// the community or as "Jimvio Editorial" — never under invented people.
+if (process.env.JIMVIO_ALLOW_PERSONA_SEED !== "retired-p0-3") {
+  console.error("Disabled: persona seeding creates fake members (see P0-3 audit).");
+  process.exit(1);
+}
+
 const cloudinaryFromProcess = {
   cloudName:
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() ||
