@@ -28,6 +28,7 @@ import {
 import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 import { formatFollowersLabel, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
 import { useCurrency } from "@/context/CurrencyContext";
+import { detectCurrencyFromCountry } from "@/lib/currency/detect";
 import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -1132,7 +1133,7 @@ export function PhysicalProductDetail({
   followedVendorIds,
   recentActivity,
 }: PhysicalProductDetailProps) {
-  const { formatMoney } = useCurrency();
+  const { formatMoney, rates, ratesLive } = useCurrency();
   const [activeTab, setActiveTab] = useState<string>("overview");
 
   const title = useMemo(() => getCJTitle({ productNameEn: product.name, productName: null }) || product.name, [product.name]);
@@ -1173,6 +1174,7 @@ export function PhysicalProductDetail({
   const handleVariantSelect = useCallback((v: ProductVariant) => setSelectedVariant(v), []);
 
   const {
+    buyerCountry,
     buyerCountryLabel,
     shippingOptions: regionalShippingOptions,
     shippingDisplay,
@@ -1241,6 +1243,12 @@ export function PhysicalProductDetail({
       });
   const displayPriceLabel = displayUsd == null ? "Price unavailable" : formatMoney(displayUsd, "USD");
   const comparePriceLabel = compareUsd == null ? null : formatMoney(compareUsd, "USD");
+  // M-4: approximate price in the buyer's local currency (live rates only).
+  const localCurrency = buyerCountry ? detectCurrencyFromCountry(buyerCountry) : "USD";
+  const localPriceLabel =
+    displayUsd != null && localCurrency !== "USD" && ratesLive && Number(rates[localCurrency]) > 0
+      ? formatMoney(displayUsd, "USD", localCurrency)
+      : null;
   const landed = shippingLoading
     ? null
     : computeLandedPrice(displayUsd, regionalShippingOptions, isFreeShipping);
@@ -1415,6 +1423,11 @@ export function PhysicalProductDetail({
                     </span>
                   )}
                 </div>
+                {localPriceLabel ? (
+                  <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+                    ≈ {localPriceLabel} <span className="opacity-80">· approximate, you pay in USD</span>
+                  </p>
+                ) : null}
                 {savingsAmount > 0 && (
                   <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
                     You save {formatMoney(savingsAmount, "USD")}

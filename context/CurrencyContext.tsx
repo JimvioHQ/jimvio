@@ -31,6 +31,8 @@ type CurrencyContextValue = {
   /** Alias for userCurrency — use whichever reads clearer at the call site. */
   displayCurrency: CurrencyCode;
   loading: boolean;
+  /** Rates came from the live exchange-rate API (safe to show local estimates). */
+  ratesLive: boolean;
   setUserCurrency: (code: CurrencyCode) => void;
   formatPrice: (amountUSD: number) => string;
   /**
@@ -53,6 +55,7 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [ratesLive, setRatesLive] = useState(false);
   const [userCurrency, setUserCurrencyState] = useState<CurrencyCode>("USD");
 
   useEffect(() => {
@@ -75,9 +78,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch("/api/rates", { cache: "no-store" });
         if (!res.ok) throw new Error("rates fetch failed");
-        const data = (await res.json()) as { rates?: Record<string, number> };
+        const data = (await res.json()) as { rates?: Record<string, number>; live?: boolean };
         if (!cancelled && data.rates && typeof data.rates === "object") {
           setRates(data.rates);
+          setRatesLive(data.live === true);
         }
       } catch {
         console.warn("[CurrencyContext] Failed to fetch rates, using fallback");
@@ -155,12 +159,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       userCurrency,
       displayCurrency: userCurrency,
       loading,
+      ratesLive,
       setUserCurrency,
       formatPrice,
       formatMoney,
       formatCartTotalsLabel,
     }),
-    [rates, userCurrency, loading, setUserCurrency, formatPrice, formatMoney, formatCartTotalsLabel]
+    [rates, userCurrency, loading, ratesLive, setUserCurrency, formatPrice, formatMoney, formatCartTotalsLabel]
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
@@ -174,6 +179,7 @@ export function useCurrency(): CurrencyContextValue {
       userCurrency: "USD",
       displayCurrency: "USD",
       loading: false,
+      ratesLive: false,
       setUserCurrency: () => { },
       formatPrice: (amountUSD: number) => formatCurrency(toPlatformUsd(amountUSD, PLATFORM_CURRENCY), PLATFORM_CURRENCY),
       formatMoney: (amount: number, from: string | null | undefined) =>
