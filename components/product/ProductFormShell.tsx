@@ -427,7 +427,7 @@ function LivePreview({ form }: { form: FormState }) {
                     : "Physical product · ships to customer"
             : "Ships worldwide"
         : subtype?.id === "course"
-            ? "Join thousands of students"
+            ? "Online course"
             : "Instant digital access";
 
     const t = {
