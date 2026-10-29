@@ -25,8 +25,12 @@ export type CreatorProfileSnapshot = {
   niche: string[];
   accountAgeDays: number | null;
   isVerified: boolean;
-  /** ISO code or the profile country text. Missing means the country is not verified. */
+  /** Jimvio-verified country (network history). Missing means the country is not verified yet. */
   country?: string | null;
+  /** Country the person typed on their profile. Shown, never trusted for eligibility. */
+  declaredCountry?: string | null;
+  countryConfidence?: "none" | "low" | "medium" | "high";
+  vpnSuspected?: boolean;
 };
 
 export type CampaignInsights = {

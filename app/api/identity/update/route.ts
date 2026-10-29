@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import {
-  evaluateCreatorProfileCompletion,
+  evaluateBasicIdentity,
   isCreatorWorkspaceReady,
 } from "@/lib/identity/creator-profile-completion";
+import { cleanCategories } from "@/lib/identity/creator-categories";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import {
   ensureInfluencerMirror,
   loadCreatorProfileCompletion,
@@ -42,7 +44,10 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.fullName === "string") profileUpdates.full_name = body.fullName.trim();
   if (typeof body.bio === "string") profileUpdates.bio = body.bio.trim();
   if (typeof body.website === "string") profileUpdates.website = body.website;
-  if (typeof body.country === "string") profileUpdates.country = body.country;
+  if (typeof body.country === "string") {
+    const trimmed = body.country.trim();
+    profileUpdates.country = trimmed ? normalizeCountryCode(trimmed) ?? trimmed.slice(0, 60) : null;
+  }
   if (typeof body.city === "string") profileUpdates.city = body.city;
   if (typeof body.language === "string") profileUpdates.language = body.language;
   if (typeof body.avatarUrl === "string") profileUpdates.avatar_url = body.avatarUrl;
@@ -73,7 +78,7 @@ export async function PATCH(req: NextRequest) {
   if (Array.isArray(body.skills)) identityUpdates.skills = body.skills;
   if (Array.isArray(body.specialties)) identityUpdates.specialties = body.specialties;
   if (Array.isArray(body.equipment)) identityUpdates.equipment = body.equipment;
-  if (Array.isArray(body.industries)) identityUpdates.industries = body.industries;
+  if (Array.isArray(body.industries)) identityUpdates.industries = cleanCategories(body.industries);
   if (typeof body.availabilityNote === "string") identityUpdates.availability_note = body.availabilityNote;
   if (typeof body.mediaKitUrl === "string") identityUpdates.media_kit_url = body.mediaKitUrl;
   if (body.responseTimeHours !== undefined) {
@@ -152,12 +157,13 @@ export async function PATCH(req: NextRequest) {
   }
 
   const completion = await loadCreatorProfileCompletion(user.id);
-  const submitted = evaluateCreatorProfileCompletion({
+  const submitted = evaluateBasicIdentity({
     fullName: typeof body.fullName === "string" ? body.fullName.trim() : undefined,
     headline: typeof body.headline === "string" ? body.headline.trim() : undefined,
     bio: typeof body.bio === "string" ? body.bio.trim() : undefined,
   });
-  if (submitted.complete && !completion.complete) {
+  const basicIds = new Set(["fullName", "headline", "bio"]);
+  if (submitted.complete && completion.missing.some((m) => basicIds.has(m.id))) {
     logSave({
       event: "persist-mismatch",
       userId: user.id,

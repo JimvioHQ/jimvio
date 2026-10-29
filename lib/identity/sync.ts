@@ -14,6 +14,7 @@
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  evaluateBasicIdentity,
   evaluateCreatorProfileCompletion,
   type CreatorProfileCompletion,
 } from "@/lib/identity/creator-profile-completion";
@@ -46,7 +47,7 @@ export function isIdentityReadyForCreatorMirror(profile: {
   headline?: string | null;
   bio?: string | null;
 }): boolean {
-  return evaluateCreatorProfileCompletion({
+  return evaluateBasicIdentity({
     fullName: profile.full_name,
     headline: profile.headline,
     bio: profile.bio,
@@ -64,14 +65,23 @@ export async function loadCreatorProfileCompletion(
     return evaluateCreatorProfileCompletion({});
   }
   const db = createServiceRoleClient();
-  const [{ data: profile }, { data: identity }] = await Promise.all([
-    db.from("profiles").select("full_name, bio").eq("id", userId).maybeSingle(),
-    db.from("jip_identity").select("headline").eq("user_id", userId).maybeSingle(),
+  const [{ data: profile }, { data: identity }, { count: socialCount }] = await Promise.all([
+    db.from("profiles").select("full_name, bio, username, country").eq("id", userId).maybeSingle(),
+    db.from("jip_identity").select("headline, industries").eq("user_id", userId).maybeSingle(),
+    db
+      .from("jip_social_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .neq("platform", "website"),
   ]);
   return evaluateCreatorProfileCompletion({
     fullName: profile?.full_name,
+    username: profile?.username,
+    categories: (identity as { industries?: string[] | null } | null)?.industries ?? [],
     headline: identity?.headline,
     bio: profile?.bio,
+    country: profile?.country,
+    socialCount: socialCount ?? 0,
   });
 }
 
@@ -89,11 +99,11 @@ export async function ensureInfluencerMirror(
   const [{ data: profile, error: profileErr }, { data: identity, error: jipErr }, { data: existing, error: existingErr }] =
     await Promise.all([
       db.from("profiles").select("id, bio, avatar_url, full_name, username").eq("id", userId).maybeSingle(),
-      db.from("jip_identity").select("user_id, headline").eq("user_id", userId).maybeSingle(),
+      db.from("jip_identity").select("user_id, headline, industries").eq("user_id", userId).maybeSingle(),
       db.from("influencers").select("id").eq("user_id", userId).maybeSingle(),
     ]);
 
-  const completion = evaluateCreatorProfileCompletion({
+  const completion = evaluateBasicIdentity({
     fullName: profile?.full_name,
     headline: identity?.headline,
     bio: profile?.bio,
@@ -124,12 +134,23 @@ export async function ensureInfluencerMirror(
     return { id: null, created: false, reason: "no-profile" };
   }
 
+  const { data: socials } = await db
+    .from("jip_social_accounts")
+    .select("platform, followers")
+    .eq("user_id", userId)
+    .neq("platform", "website");
+  const socialRows = (socials ?? []) as { platform: string; followers: number | null }[];
+  const categories = ((identity as { industries?: string[] | null } | null)?.industries ?? []).filter(Boolean);
   const payload = {
     display_name: identityDisplayName(profile),
     bio: profile.bio ?? null,
     profile_image: profile.avatar_url ?? null,
+    niche: categories,
+    social_platforms: [...new Set(socialRows.map((r) => r.platform.toLowerCase()))],
     updated_at: new Date().toISOString(),
-  };
+  } as Record<string, unknown>;
+  const followers = socialRows.reduce((sum, r) => sum + Math.max(0, Number(r.followers ?? 0)), 0);
+  if (followers > 0) payload.total_followers = followers;
 
   if (existing?.id) {
     const { data: updated, error: updateErr } = await db

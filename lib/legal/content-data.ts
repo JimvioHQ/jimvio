@@ -42,10 +42,18 @@ export const SELLER_FEES_ROWS: TableRow[] = [
 ];
 
 export const CAMPAIGN_PAYMENT_ROWS: TableRow4[] = [
-  { col1: "UGC — Per Submission", col2: "Fixed rate per approved content", col3: "Within 14 days of approval", col4: "" },
-  { col1: "UGC — Performance", col2: "Bonus per view/engagement milestone", col3: "Monthly, based on analytics", col4: "" },
-  { col1: "Clipping — Per View", col2: "Earnings per 1,000 verified views", col3: "Monthly payout", col4: "" },
-  { col1: "Clipping — Fixed", col2: "One-time payment per clip published", col3: "Within 14 days of verification", col4: "" },
+  {
+    col1: "Per 1,000 views (CPM)",
+    col2: "Views gained after you submit, read from the platform's official API on your connected account and accepted by the brand",
+    col3: "Held 48 hours after approval, then released to your Jimvio wallet",
+    col4: "",
+  },
+  {
+    col1: "Fixed per post",
+    col2: "A set amount for each post the brand approves",
+    col3: "Held 48 hours after approval, then released to your Jimvio wallet",
+    col4: "",
+  },
 ];
 
 export const CAMPAIGN_CREATOR_OBLIGATIONS = [
@@ -57,6 +65,55 @@ export const CAMPAIGN_CREATOR_OBLIGATIONS = [
   "Disclose that content is brand-sponsored per FTC and applicable advertising guidelines.",
   "Do not submit the same content to multiple competing campaigns.",
   "Do not artificially inflate views, likes, or engagement metrics.",
+];
+
+/** Plain-language summary of each term a creator accepts when joining a campaign. */
+export const UGC_TERM_SUMMARIES: { id: string; title: string; body: string }[] = [
+  {
+    id: "campaign-rules",
+    title: "Campaign Rules",
+    body: "Follow the brief: format, length, platforms, dates and anything the brand asks you to say or avoid. Posts that miss the brief can be declined.",
+  },
+  {
+    id: "platform-rules",
+    title: "Platform Rules",
+    body: "Follow Jimvio's Terms and Community Guidelines and the rules of TikTok, Instagram, YouTube or wherever you post. Keep the post live for the campaign period.",
+  },
+  {
+    id: "payment-policy",
+    title: "Payment Policy",
+    body: "You are paid only for approved work, from money the brand has already put in escrow. Per-view campaigns pay only real views gained after you submit. Approval is not payment: rewards are held 48 hours, then released.",
+  },
+  {
+    id: "real-views",
+    title: "Real Views & Fair Play",
+    body: "Jimvio reads views from the platform's official API on your own connected account. Bought views, bots, view-for-view groups, recycled videos and fake engagement are not paid and can close your account.",
+  },
+  {
+    id: "original-content",
+    title: "Original Content Policy",
+    body: "Post content you made for this campaign. Don't reupload other people's work or submit the same video to two campaigns.",
+  },
+  {
+    id: "copyright-policy",
+    title: "Copyright Policy",
+    body: "Use only music, footage, fonts and images you have the right to use. You keep ownership of your post; the brand may share and reference it as the brief describes.",
+  },
+  {
+    id: "privacy-policy",
+    title: "Privacy Policy",
+    body: "The brand sees your public creator profile, your submitted links and their verified results. Jimvio never shares your login, tokens or private messages.",
+  },
+  {
+    id: "ai-content-policy",
+    title: "AI Content Policy",
+    body: "Use AI-generated voices, faces or footage only if the brief allows it, and never to pretend to be a real person.",
+  },
+  {
+    id: "ftc-disclosure",
+    title: "Ad Disclosure (FTC)",
+    body: "Say clearly that the post is sponsored, using the platform's paid-partnership label or #ad, as required by advertising laws where you and your audience live.",
+  },
 ];
 
 export const UGC_JOIN_ACKNOWLEDGEMENTS = [

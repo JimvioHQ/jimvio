@@ -7,12 +7,20 @@
 
 export const CREATOR_PROFILE_REQUIRED_FIELDS = [
   { id: "fullName", label: "Full name" },
+  { id: "username", label: "Username" },
+  { id: "categories", label: "What you create" },
   { id: "headline", label: "Headline" },
   { id: "bio", label: "Bio" },
+  { id: "country", label: "Country" },
+  { id: "social", label: "A social media account" },
 ] as const;
 
 export type CreatorProfileFieldInput = {
   fullName?: string | null;
+  username?: string | null;
+  categories?: string[] | null;
+  /** Social accounts other than a plain website. */
+  socialCount?: number | null;
   headline?: string | null;
   bio?: string | null;
   avatarUrl?: string | null;
@@ -28,6 +36,8 @@ export type CreatorProfileFieldInput = {
 export type CreatorProfileMissingField = {
   id: string;
   label: string;
+  /** One line telling the person exactly what to add. */
+  hint?: string;
 };
 
 export type CreatorProfileCompletion = {
@@ -79,14 +89,52 @@ function filled(value: string | null | undefined): boolean {
   return Boolean(value?.trim());
 }
 
-/** Pure completion check — same rules on the edit form, save API, and UGC. */
+const HINTS: Record<string, string> = {
+  fullName: "Add the name brands will see.",
+  username: "Pick a username for your public link (jimvio.com/u/you).",
+  categories: "Choose what you create, like Music, Technology or Comedy.",
+  headline: "Write one line about what you do.",
+  bio: "Tell brands about you and your audience.",
+  country: "Add the country you live in.",
+  social: "Add at least one social account, like TikTok, Instagram or YouTube.",
+};
+
+function missingItem(id: (typeof CREATOR_PROFILE_REQUIRED_FIELDS)[number]["id"]): CreatorProfileMissingField {
+  const label = CREATOR_PROFILE_REQUIRED_FIELDS.find((f) => f.id === id)?.label ?? id;
+  return { id, label, hint: HINTS[id] };
+}
+
+/**
+ * Basic identity check (name, headline, bio). Used only to keep the legacy
+ * influencer join-key in sync; it does not make a creator profile complete.
+ */
+export function evaluateBasicIdentity(input: CreatorProfileFieldInput): CreatorProfileCompletion {
+  const missing: CreatorProfileMissingField[] = [];
+  if (!filled(input.fullName)) missing.push(missingItem("fullName"));
+  if (!filled(input.headline)) missing.push(missingItem("headline"));
+  if (!filled(input.bio)) missing.push(missingItem("bio"));
+  return { complete: missing.length === 0, missing };
+}
+
+/**
+ * One profile for everyone. It becomes a complete creator profile when the
+ * creator fields are filled: name, username, what you create, headline, bio,
+ * country and at least one social account. Same rules on the edit form, the
+ * save API and every UGC gate.
+ */
 export function evaluateCreatorProfileCompletion(
   input: CreatorProfileFieldInput,
 ): CreatorProfileCompletion {
   const missing: CreatorProfileMissingField[] = [];
-  if (!filled(input.fullName)) missing.push({ id: "fullName", label: "Full name" });
-  if (!filled(input.headline)) missing.push({ id: "headline", label: "Headline" });
-  if (!filled(input.bio)) missing.push({ id: "bio", label: "Bio" });
+  if (!filled(input.fullName)) missing.push(missingItem("fullName"));
+  if (!filled(input.username)) missing.push(missingItem("username"));
+  if (!(Array.isArray(input.categories) && input.categories.some((c) => filled(c)))) {
+    missing.push(missingItem("categories"));
+  }
+  if (!filled(input.headline)) missing.push(missingItem("headline"));
+  if (!filled(input.bio)) missing.push(missingItem("bio"));
+  if (!filled(input.country)) missing.push(missingItem("country"));
+  if (!(Number(input.socialCount ?? 0) > 0)) missing.push(missingItem("social"));
   return { complete: missing.length === 0, missing };
 }
 

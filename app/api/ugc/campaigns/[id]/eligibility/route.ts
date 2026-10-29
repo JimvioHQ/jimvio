@@ -5,6 +5,8 @@ import { evaluateJoinEligibility } from "@/lib/ugc/join-engine";
 import { resolveJoinConfig, resolveJoinMode } from "@/lib/ugc/join-engine";
 import { countAcceptedParticipants, loadCreatorProfile, type CampaignJoinRow } from "@/lib/ugc/join-service";
 import { canAccessCampaignJoinSurfaces } from "@/lib/ugc/enterprise/brand-access";
+import { loadCreatorProfileCompletion } from "@/lib/identity/sync";
+import { countryPolicyFromJoinConfig } from "@/lib/ugc/campaign-brief";
 
 export async function GET(
   _req: NextRequest,
@@ -30,9 +32,14 @@ export async function GET(
 
   const participantCount = await countAcceptedParticipants(db, id);
   let profile = null;
+  let profileCompletion = null;
   if (user) {
-    profile = await loadCreatorProfile(db, user.id);
+    [profile, profileCompletion] = await Promise.all([
+      loadCreatorProfile(db, user.id),
+      loadCreatorProfileCompletion(user.id),
+    ]);
   }
+  const countryPolicy = countryPolicyFromJoinConfig(campaign.join_config);
 
   const eligibility = evaluateJoinEligibility(
     campaign as CampaignJoinRow,
@@ -45,5 +52,15 @@ export async function GET(
     joinConfig: resolveJoinConfig(campaign as CampaignJoinRow),
     eligibility,
     participantCount,
+    profileCompletion,
+    country: profile
+      ? {
+          verified: profile.country ?? null,
+          declared: profile.declaredCountry ?? null,
+          confidence: profile.countryConfidence ?? "none",
+          vpnSuspected: Boolean(profile.vpnSuspected),
+        }
+      : null,
+    countryPolicy,
   });
 }

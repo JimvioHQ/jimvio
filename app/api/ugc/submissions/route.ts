@@ -156,7 +156,11 @@ export async function POST(req: NextRequest) {
     const country = creatorCountryDecision(countryPolicy, creator.country);
     if (country === "unknown") {
       return NextResponse.json(
-        { error: "Add a country to your profile before submitting to this campaign." },
+        {
+          error: creator.vpnSuspected
+            ? "Turn off VPN or proxy. Jimvio needs to confirm your real country before you submit to this campaign."
+            : "Jimvio has not confirmed your real country yet. Keep using Jimvio normally for a few days, then try again.",
+        },
         { status: 403 },
       );
     }
