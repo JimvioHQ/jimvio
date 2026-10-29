@@ -1,37 +1,49 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Check, Pencil, Search } from "lucide-react";
-import { CREATOR_CATEGORIES, CREATOR_CATEGORY_GROUPS, cleanCategories } from "@/lib/identity/creator-categories";
+import { CREATOR_CATEGORIES, cleanCategories } from "@/lib/identity/creator-categories";
+
+const MAX_SUGGESTIONS = 5;
+
+function rank(query: string): string[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const starts: string[] = [];
+  const words: string[] = [];
+  const contains: string[] = [];
+  for (const item of CREATOR_CATEGORIES) {
+    const l = item.toLowerCase();
+    if (l.startsWith(q)) starts.push(item);
+    else if (l.split(/[\s&/-]+/).some((w) => w.startsWith(q))) words.push(item);
+    else if (l.includes(q)) contains.push(item);
+  }
+  return [...starts, ...words, ...contains].slice(0, MAX_SUGGESTIONS);
+}
 
 /**
- * Pick the one thing you create. Searchable across 590+ categories, with
- * the option to type your own. Stored as a one-item list.
+ * Pick the one thing you create. Type and up to five close matches appear;
+ * nothing is listed until you type.
  */
 export function CategoryPicker({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
   const current = value[0] ?? "";
-  const [open, setOpen] = useState(!current);
+  const [editing, setEditing] = useState(!current);
   const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const groups = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return CREATOR_CATEGORY_GROUPS;
-    return CREATOR_CATEGORY_GROUPS.map((g) => ({
-      group: g.group,
-      items: g.items.filter((i) => i.toLowerCase().includes(q) || g.group.toLowerCase().includes(q)),
-    })).filter((g) => g.items.length > 0);
-  }, [query]);
-
+  const suggestions = useMemo(() => rank(query), [query]);
   const custom = query.trim();
-  const exact = CREATOR_CATEGORIES.some((i) => i.toLowerCase() === custom.toLowerCase());
+  const exact = suggestions.some((s) => s.toLowerCase() === custom.toLowerCase());
+  const options = custom.length >= 2 && !exact ? [...suggestions, custom] : suggestions;
 
   function pick(item: string) {
     onChange(cleanCategories([item]));
     setQuery("");
-    setOpen(false);
+    setEditing(false);
   }
 
-  if (!open && current) {
+  if (!editing && current) {
     return (
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[#161512] px-3 py-1.5 text-[13px] font-semibold text-white">
@@ -39,7 +51,10 @@ export function CategoryPicker({ value, onChange }: { value: string[]; onChange:
         </span>
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setEditing(true);
+            setTimeout(() => inputRef.current?.focus(), 0);
+          }}
           className="inline-flex items-center gap-1 rounded-full border border-black/10 px-3 py-1.5 text-[12px] font-semibold text-[#59544B] hover:border-black/20"
         >
           <Pencil className="h-3 w-3" aria-hidden="true" /> Change
@@ -49,61 +64,79 @@ export function CategoryPicker({ value, onChange }: { value: string[]; onChange:
   }
 
   return (
-    <div className="rounded-2xl border border-black/[0.08] bg-white p-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A9388]" aria-hidden="true" />
-        <input
-          className="h-11 w-full rounded-xl border border-black/10 bg-[#FAFAF9] pl-9 pr-3 text-[13.5px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
-          placeholder="Search 590+ categories: music, tech, comedy, football…"
-          value={query}
-          autoFocus={!current}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              const first = groups[0]?.items[0];
-              if (custom && exact) pick(CREATOR_CATEGORIES.find((i) => i.toLowerCase() === custom.toLowerCase())!);
-              else if (first && custom) pick(first);
-            }
-          }}
-          aria-label="Search categories"
-        />
-      </div>
-      {custom.length >= 2 && !exact ? (
-        <button type="button" onClick={() => pick(custom)} className="mt-2 text-[12.5px] font-semibold text-[#D6480F]">
-          + Use “{custom}”
-        </button>
+    <div className="relative">
+      <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" aria-hidden="true" />
+      <input
+        ref={inputRef}
+        role="combobox"
+        aria-expanded={options.length > 0}
+        aria-controls="category-options"
+        aria-autocomplete="list"
+        className="h-11 w-full rounded-xl border border-[#E5E7EB] bg-white pl-9 pr-3 text-[13.5px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
+        placeholder="Type what you create, e.g. music, tech, comedy"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setActive(0);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActive((a) => Math.min(a + 1, options.length - 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActive((a) => Math.max(a - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (options[active]) pick(options[active]);
+          } else if (e.key === "Escape" && current) {
+            setEditing(false);
+            setQuery("");
+          }
+        }}
+        aria-label="What you create"
+      />
+      {options.length > 0 ? (
+        <ul
+          id="category-options"
+          role="listbox"
+          className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-[#E5E7EB] bg-white py-1 shadow-lg"
+        >
+          {options.map((item, i) => {
+            const isCustom = i === suggestions.length;
+            return (
+              <li key={`${item}-${i}`} role="option" aria-selected={i === active}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setActive(i)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(item)}
+                  className={`flex w-full items-center px-3 py-2 text-left text-[13px] ${
+                    i === active ? "bg-[#FFF1EA] text-[#D6480F]" : "text-[#374151]"
+                  }`}
+                >
+                  {isCustom ? (
+                    <>
+                      Use “<span className="font-semibold">{item}</span>”
+                    </>
+                  ) : (
+                    item
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       ) : null}
-      <div className="mt-2 max-h-72 space-y-3 overflow-y-auto pr-1">
-        {groups.map((g) => (
-          <div key={g.group}>
-            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9388]">{g.group}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {g.items.map((item) => {
-                const on = item.toLowerCase() === current.toLowerCase();
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => pick(item)}
-                    className={
-                      on
-                        ? "rounded-full bg-[#FF5A1F] px-2.5 py-1 text-[12px] font-semibold text-white"
-                        : "rounded-full border border-black/10 px-2.5 py-1 text-[12px] text-[#3E3A34] hover:border-[#FF5A1F]/60 hover:text-[#D6480F]"
-                    }
-                  >
-                    {item}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-        {groups.length === 0 ? <p className="text-[12.5px] text-[#8B8579]">No match. Use your own words above.</p> : null}
-      </div>
       {current ? (
-        <button type="button" onClick={() => setOpen(false)} className="mt-2 text-[12px] font-medium text-[#8B8579] hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            setEditing(false);
+            setQuery("");
+          }}
+          className="mt-1.5 text-[12px] font-medium text-[#8B8579] hover:underline"
+        >
           Keep “{current}”
         </button>
       ) : null}

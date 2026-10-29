@@ -12,7 +12,6 @@ import {
   Link2,
   MapPin,
   Save,
-  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
@@ -474,11 +473,6 @@ export function SettingsProfileForm({
           >
             <SocialAccountsManager accounts={accounts} onChange={setAccounts} />
           </SettingsCard>
-          <div className="flex items-start gap-2 rounded-2xl border border-[#E8E8E8] bg-white p-4 text-[12.5px] leading-relaxed text-[#4B5563]">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5A1F]" aria-hidden="true" />
-            Your public page at <span className="font-semibold text-[#111827]">jimvio.com/u/{handle || "username"}</span> is
-            the same everywhere: people open it from your name in communities, UGC, the marketplace and messages.
-          </div>
         </div>
       </div>
     </form>
