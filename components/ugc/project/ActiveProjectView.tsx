@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
 import { useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import {
@@ -9,9 +8,8 @@ import {
   deriveProjectStats,
   getProjectMeta,
 } from "@/lib/ugc/active-project";
-import { getProjectFlags } from "@/lib/ugc/project-storage";
 import { ActiveProjectHero } from "./ActiveProjectHero";
-import { ActiveProjectSections } from "./ActiveProjectSections";
+import { CreatorCampaignResults } from "./CreatorCampaignResults";
 import { ActiveProjectRequirements } from "./ActiveProjectRequirements";
 import { ActiveProjectSkeleton } from "./ActiveProjectSkeleton";
 import { ActiveProjectError } from "./ActiveProjectError";
@@ -20,12 +18,6 @@ import { useActiveProject } from "./use-active-project";
 export function ActiveProjectView() {
   const { id } = useParams<{ id: string }>();
   const { state, retry, reload } = useActiveProject(id);
-  const [flags, setFlags] = useState({ briefRead: false, assetsDownloaded: false });
-
-  const refreshFlags = useCallback(() => {
-    setFlags(getProjectFlags(id));
-    reload();
-  }, [id, reload]);
 
   if (state.status === "loading") {
     return <ActiveProjectSkeleton />;
@@ -35,8 +27,7 @@ export function ActiveProjectView() {
     return <ActiveProjectError state={state} campaignId={id} onRetry={retry} />;
   }
 
-  const { campaign, submissions, participant, canAccessResources } = state;
-  const activeFlags = flags.briefRead || flags.assetsDownloaded ? flags : state.flags;
+  const { campaign, submissions, participant } = state;
   const stage = deriveProjectStage(campaign, submissions, participant);
   const stats = deriveProjectStats(campaign, submissions, stage);
   const meta = getProjectMeta(campaign);
@@ -60,25 +51,15 @@ export function ActiveProjectView() {
       />
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-start gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
-        <ActiveProjectSections
-          campaign={campaign}
-          campaignId={id}
-          submissions={submissions}
-          participant={participant}
-          canAccessResources={canAccessResources}
-          flags={activeFlags}
-          onFlagsChange={refreshFlags}
-        />
+        <CreatorCampaignResults campaign={campaign} campaignId={id} submissions={submissions} onReload={reload} />
         <aside className="space-y-4">
           <ActiveProjectRequirements campaign={campaign} />
-          <div className="hidden rounded-[16px] border border-[#EEF0F2] bg-white p-4 lg:block">
-            <p className="text-[12px] font-semibold text-[#111827]">Campaign details</p>
-            <Link
-              href={`/ugc/${id}`}
-              className="mt-2 inline-block text-[12px] font-semibold text-[#FF5A1F] hover:underline"
-            >
-              View full brief →
-            </Link>
+          <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4 text-[12.5px] leading-relaxed text-[#4B5563]">
+            <p className="mb-1.5 text-[13px] font-semibold text-[#111827]">How you get paid</p>
+            <p>1. Post, then submit the link here right away.</p>
+            <p>2. Jimvio checks your real views on the platform.</p>
+            <p>3. The brand approves — or tells you why not.</p>
+            <p>4. Your reward reaches your wallet 48 hours after approval.</p>
           </div>
         </aside>
       </div>
