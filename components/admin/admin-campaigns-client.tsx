@@ -34,6 +34,7 @@ import { relativeTime } from "@/lib/utils";
 import { canAdminActivateOverride } from "@/lib/ugc/admin-activate-override";
 import { ugcLifecycleDecision, type UgcLifecycleAction } from "@/lib/admin/control-policy";
 import { formatUgcFundingUsd, getClipRateBadge } from "@/components/ugc/workspace/ugc-campaign-utils";
+import { DeleteCampaignDialog, MarkFundedDialog } from "@/components/admin/admin-campaign-dialogs";
 
 type EscrowState = "unfunded" | "pending" | "held";
 
@@ -75,6 +76,8 @@ export function AdminCampaignsClient() {
   const [pendingAction, setPendingAction] = useState<PendingAction>("activate");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [funding, setFunding] = useState<AdminCampaign | null>(null);
+  const [deleting, setDeleting] = useState<AdminCampaign | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -368,7 +371,7 @@ export function AdminCampaignsClient() {
                       <td className="px-3 py-3">
                         <div className="flex max-w-[220px] flex-wrap gap-1">
                           {c.funding?.state !== "funded" && c.status !== "cancelled" && c.status !== "completed" ? (
-                            <button type="button" onClick={() => openAction(c, "fund")} className="inline-flex h-8 items-center rounded-md bg-emerald-600 px-2.5 text-[11px] font-semibold text-white hover:bg-emerald-700">
+                            <button type="button" onClick={() => setFunding(c)} className="inline-flex h-8 items-center rounded-md bg-emerald-600 px-2.5 text-[11px] font-semibold text-white hover:bg-emerald-700">
                               Mark as Funded
                             </button>
                           ) : null}
@@ -389,10 +392,13 @@ export function AdminCampaignsClient() {
                           {ugcLifecycleDecision({ action: "cancel", status: c.status, escrowHeld: c.escrow_state === "held", adminActivated: Boolean(c.activated_by_admin) }).ok && c.status !== "cancelled" ? (
                             <button type="button" onClick={() => openAction(c, "cancel")} className="inline-flex h-9 items-center rounded-md bg-rose-600 px-3 text-[12px] font-semibold text-white">Cancel</button>
                           ) : null}
+                          <button type="button" onClick={() => setDeleting(c)} className={adminBtnGhost} title="Delete permanently">
+                            Delete
+                          </button>
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <RowArrow href={`/ugc/campaign-center/campaigns/${c.id}`} />
+                        <RowArrow href={`/admin/ugc/campaigns/${c.id}`} />
                       </td>
                     </tr>
                   );
@@ -402,6 +408,41 @@ export function AdminCampaignsClient() {
           </div>
         )}
       </div>
+
+      {funding ? (
+        <MarkFundedDialog
+          campaign={{ id: funding.id, title: funding.title, total_budget: Number(funding.total_budget ?? 0), heldUsd: funding.funding?.heldUsd ?? 0 }}
+          onClose={() => setFunding(null)}
+          onDone={(json) => {
+            const fundedId = funding.id;
+            setCampaigns((prev) =>
+              prev.map((x) =>
+                x.id === fundedId
+                  ? {
+                      ...x,
+                      status: (json.status as UGCCampaignStatus | undefined) ?? x.status,
+                      escrow_state: "held",
+                      funding: json.funding as AdminCampaign["funding"],
+                    }
+                  : x,
+              ),
+            );
+            setFunding(null);
+          }}
+        />
+      ) : null}
+      {deleting ? (
+        <DeleteCampaignDialog
+          campaign={{ id: deleting.id, title: deleting.title }}
+          onClose={() => setDeleting(null)}
+          onDone={() => {
+            const goneId = deleting.id;
+            setCampaigns((prev) => prev.filter((x) => x.id !== goneId));
+            setDeleting(null);
+            toast.success("Campaign deleted.");
+          }}
+        />
+      ) : null}
 
       {pending ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-activate-title">

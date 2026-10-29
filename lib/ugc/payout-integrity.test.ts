@@ -87,7 +87,7 @@ describe("pending payout release", () => {
 describe("approval copy", () => {
   it("does not promise view-based earnings after approval", () => {
     const approve = readFileSync(
-      join(process.cwd(), "app/api/ugc/submissions/[id]/approve/route.ts"),
+      join(process.cwd(), "lib/ugc/approve-submission.ts"),
       "utf8",
     );
     assert.doesNotMatch(approve, /will start earning views-based payouts/);

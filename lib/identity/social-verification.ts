@@ -82,13 +82,12 @@ export async function checkCodeOnPage(pageUrl: string, code: string): Promise<Co
   try {
     const res = await fetch(pageUrl, {
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "User-Agent": "JimvioVerifier/1.0 (+https://www.jimvio.com/legal/ugc-clipping)",
         "Accept-Language": "en-US,en;q=0.9",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(8_000),
       cache: "no-store",
     });
     if (!res.ok) return "unreachable";
