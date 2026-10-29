@@ -95,7 +95,7 @@ const HINTS: Record<string, string> = {
   categories: "Choose what you create, like Music, Technology or Comedy.",
   headline: "Write one line about what you do.",
   bio: "Tell brands about you and your audience.",
-  country: "Add the country you live in.",
+  country: "Jimvio detects your country automatically. Turn off any VPN and reload the page.",
   social: "Add at least one social account, like TikTok, Instagram or YouTube.",
 };
 

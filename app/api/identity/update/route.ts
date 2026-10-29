@@ -6,7 +6,6 @@ import {
   isCreatorWorkspaceReady,
 } from "@/lib/identity/creator-profile-completion";
 import { cleanCategories } from "@/lib/identity/creator-categories";
-import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import {
   ensureInfluencerMirror,
   loadCreatorProfileCompletion,
@@ -44,10 +43,7 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.fullName === "string") profileUpdates.full_name = body.fullName.trim();
   if (typeof body.bio === "string") profileUpdates.bio = body.bio.trim();
   if (typeof body.website === "string") profileUpdates.website = body.website;
-  if (typeof body.country === "string") {
-    const trimmed = body.country.trim();
-    profileUpdates.country = trimmed ? normalizeCountryCode(trimmed) ?? trimmed.slice(0, 60) : null;
-  }
+  // Country is never taken from the form: Jimvio sets and locks it from the real location.
   if (typeof body.city === "string") profileUpdates.city = body.city;
   if (typeof body.language === "string") profileUpdates.language = body.language;
   if (typeof body.avatarUrl === "string") profileUpdates.avatar_url = body.avatarUrl;

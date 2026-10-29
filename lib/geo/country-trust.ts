@@ -138,3 +138,43 @@ export function trustedCountry(input: {
   if (level !== "medium" && level !== "high") return null;
   return validCountryCode(input.verified_country);
 }
+
+let nameIndex: Map<string, string> | null = null;
+
+/** "Rwanda", "rw", "RWA"-free names → ISO code, using the runtime's country names. */
+export function countryCodeFromName(raw: string | null | undefined, codes: string[]): string | null {
+  const direct = validCountryCode(raw);
+  if (direct) return direct;
+  const key = (raw ?? "").trim().toLowerCase();
+  if (!key) return null;
+  if (!nameIndex) {
+    nameIndex = new Map();
+    try {
+      const names = new Intl.DisplayNames(["en"], { type: "region" });
+      for (const code of codes) {
+        const name = names.of(code);
+        if (name) nameIndex.set(name.toLowerCase(), code);
+      }
+    } catch {
+      /* no Intl region names */
+    }
+  }
+  return nameIndex.get(key) ?? null;
+}
+
+/**
+ * The country Jimvio locks on the profile. Device location (address) wins;
+ * otherwise a clean network reading (no proxy, clock agrees).
+ */
+export function countryToLock(input: {
+  deviceCountry: string | null;
+  ipCountry: string | null;
+  anonymizer: boolean;
+  clockMatches: boolean | null;
+}): { country: string; source: "device_location" | "network" } | null {
+  const device = validCountryCode(input.deviceCountry);
+  if (device) return { country: device, source: "device_location" };
+  const ip = validCountryCode(input.ipCountry);
+  if (ip && !input.anonymizer && input.clockMatches !== false) return { country: ip, source: "network" };
+  return null;
+}

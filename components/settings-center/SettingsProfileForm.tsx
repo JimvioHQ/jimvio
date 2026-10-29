@@ -26,6 +26,7 @@ import {
   settingsInputClass,
   settingsTextareaClass,
 } from "./settings-ui";
+import { LockedCountryField } from "@/components/geo/LockedCountryField";
 
 type SocialDraft = {
   website: string;
@@ -69,7 +70,7 @@ export function SettingsProfileForm({
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
   const [headline, setHeadline] = useState(profile.headline ?? "");
   const [city, setCity] = useState(profile.city ?? "");
-  const [country, setCountry] = useState(profile.country ?? "");
+  const country = profile.country ?? "";
   const [social, setSocial] = useState<SocialDraft>({
     website: profile.website || socialUrl(initialPayload.social, "website"),
     instagram: socialUrl(initialPayload.social, "instagram"),
@@ -182,7 +183,6 @@ export function SettingsProfileForm({
         website: social.website.trim(),
         headline: headline.trim(),
         city: city.trim(),
-        country: country.trim(),
         avatarUrl,
       };
       const nextUsername = normalizeUsername(username);
@@ -377,12 +377,7 @@ export function SettingsProfileForm({
                 />
               </SettingsField>
               <SettingsField label="Country" htmlFor="settings-country">
-                <input
-                  id="settings-country"
-                  className={settingsInputClass}
-                  value={country}
-                  onChange={(event) => setCountry(event.target.value)}
-                />
+                <LockedCountryField fallback={country || null} />
               </SettingsField>
             </div>
 

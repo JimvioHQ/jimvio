@@ -42,21 +42,29 @@ export async function loadCreatorProfile(
     .maybeSingle();
 
   const [{ data: profileRow }, { data: identityRow }] = await Promise.all([
-    db.from("profiles").select("country").eq("id", userId).maybeSingle(),
+    (db as unknown as { from: (t: string) => ReturnType<SupabaseClient["from"]> })
+      .from("profiles")
+      .select("country, country_locked_at")
+      .eq("id", userId)
+      .maybeSingle(),
     (db as unknown as { from: (t: string) => ReturnType<SupabaseClient["from"]> })
       .from("jip_identity")
       .select("verified_country, country_confidence, country_vpn_suspected")
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
-  const declaredCountry = normalizeCountryCode(profileRow?.country) ?? profileRow?.country?.trim() ?? null;
+  const profileCountry = (profileRow ?? {}) as { country?: string | null; country_locked_at?: string | null };
+  const declaredCountry = normalizeCountryCode(profileCountry.country) ?? profileCountry.country?.trim() ?? null;
   const identityCountry = (identityRow ?? {}) as {
     verified_country?: string | null;
     country_confidence?: string | null;
     country_vpn_suspected?: boolean | null;
   };
   // Only a country Jimvio has confirmed counts for eligibility; typing one is not enough.
-  const country = trustedCountry(identityCountry);
+  // The locked profile country was read by Jimvio from the real location.
+  const country = profileCountry.country_locked_at
+    ? normalizeCountryCode(profileCountry.country)
+    : trustedCountry(identityCountry);
   const countryMeta = {
     declaredCountry,
     countryConfidence: (identityCountry.country_confidence ?? "none") as CreatorProfileSnapshot["countryConfidence"],

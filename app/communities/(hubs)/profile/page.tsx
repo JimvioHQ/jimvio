@@ -80,7 +80,8 @@ export default function MyProfilePage() {
     if (!currentUserId) return;
     setSaving(true);
     try {
-      const { city, country } = parseProfileLocationInput(formData.location);
+      // Country is set by Jimvio from the real location; only the city is editable here.
+      const { city } = parseProfileLocationInput(formData.location);
       const { error } = await createClient()
         .from("profiles")
         .update({
@@ -88,7 +89,6 @@ export default function MyProfilePage() {
           username: formData.username,
           bio: formData.bio,
           city,
-          country,
           website: formData.website,
           updated_at: new Date().toISOString(),
         })
@@ -106,7 +106,6 @@ export default function MyProfilePage() {
                 bio: formData.bio,
                 website: formData.website,
                 city,
-                country,
               }
             : null,
         );
