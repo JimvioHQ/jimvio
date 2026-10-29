@@ -12,12 +12,13 @@
  *     add constraint community_payments_payment_reference_key unique (payment_reference);
  */
 
+import { accessPlanExpiry, type AccessPlanKey } from "@/lib/community/access-pricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface CommunityPaymentContext {
   communityId: string;
   userId: string;
-  planType: "monthly" | "yearly" | "lifetime";
+  planType: AccessPlanKey;
   amount: number;
   currency: string;
   paymentProvider: string;
@@ -57,7 +58,7 @@ export async function finalizeCommunityPayment(
   // --- Load community ---
   const { data: community } = await db
     .from("communities")
-    .select("owner_id, platform_commission_rate, member_count, is_active")
+    .select("owner_id, platform_commission_rate, member_count, is_active, affiliate_commission_rate")
     .eq("id", ctx.communityId)
     .single();
 
@@ -69,16 +70,7 @@ export async function finalizeCommunityPayment(
   const creatorEarnings = ctx.amount - platformEarnings;
 
   // --- Compute membership expiry ---
-  let expiresAt: string | null = null;
-  if (ctx.planType === "monthly") {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    expiresAt = d.toISOString();
-  } else if (ctx.planType === "yearly") {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
-    expiresAt = d.toISOString();
-  }
+  const expiresAt: string | null = accessPlanExpiry(ctx.planType);
 
   // --- Upsert membership ---
   const { data: existingMembership } = await db
@@ -242,6 +234,8 @@ export async function finalizeCommunityPayment(
       subscriptionId: ctx.paymentReference,
       amount: ctx.amount,
       currency: ctx.currency,
+      commissionRate:
+        community.affiliate_commission_rate != null ? Number(community.affiliate_commission_rate) : undefined,
     });
   } catch (err) {
     console.warn("[finalizeCommunityPayment] affiliate attribution skipped:", err);

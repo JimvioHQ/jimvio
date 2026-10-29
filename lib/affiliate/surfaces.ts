@@ -113,10 +113,13 @@ export async function attributeSubscriptionSignup(input: {
   subscriptionId: string;
   amount: number;
   currency?: string;
+  /** Community's affiliate commission (%), when the owner set one. */
+  commissionRate?: number;
 }) {
   return attributeNonOrderConversion({
     buyerUserId: input.buyerUserId,
     surface: "subscription",
+    commissionRate: input.commissionRate ?? null,
     amount: input.amount,
     currency: input.currency,
     referenceId: input.subscriptionId,

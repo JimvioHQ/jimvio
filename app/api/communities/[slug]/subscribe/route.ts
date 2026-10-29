@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { accessPlans, isAccessPlanKey } from "@/lib/community/access-pricing";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
 
@@ -27,7 +28,7 @@ export async function POST(
     paymentProvider?: string;
   };
 
-  if (!planType || !["monthly", "yearly", "lifetime"].includes(planType)) {
+  if (!planType || !isAccessPlanKey(planType)) {
     return NextResponse.json({ error: "Invalid planType" }, { status: 400 });
   }
 
@@ -46,19 +47,18 @@ export async function POST(
 
   const { data: community } = await supabase
     .from("communities")
-    .select("id, name, monthly_price, yearly_price, lifetime_price, currency")
+    .select(
+      "id, name, is_free, weekly_price, monthly_price, quarterly_price, yearly_price, lifetime_price, currency",
+    )
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!community) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const priceMap: Record<string, number | null> = {
-    monthly: community.monthly_price != null ? Number(community.monthly_price) : null,
-    yearly: community.yearly_price != null ? Number(community.yearly_price) : null,
-    lifetime: community.lifetime_price != null ? Number(community.lifetime_price) : null,
-  };
-  const amount = priceMap[planType];
+  // Only plans the owner currently sells can be bought.
+  const amount =
+    community.is_free === true ? null : (accessPlans(community).find((p) => p.key === planType)?.price ?? null);
   if (amount == null || !Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json({ error: "Invalid plan or price" }, { status: 400 });
   }

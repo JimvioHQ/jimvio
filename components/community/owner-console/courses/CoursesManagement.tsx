@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { hasCapability } from "@/lib/community/workspace/permissions";
 import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
 
@@ -61,6 +62,12 @@ export function CoursesManagement() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newCover, setNewCover] = useState("");
+  const [newLevel, setNewLevel] = useState("beginner");
+  const [newPaid, setNewPaid] = useState(false);
+  const [newPrice, setNewPrice] = useState("");
+  const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -96,7 +103,7 @@ export function CoursesManagement() {
     return () => {
       cancelled = true;
     };
-  }, [community]);
+  }, [community?.id]);
 
   const loadCourse = useCallback(async (courseId: string) => {
     const res = await fetch(`/api/c/owner/courses/${courseId}`, { cache: "no-store" });
@@ -153,6 +160,10 @@ export function CoursesManagement() {
       toast.error("Title must be at least 3 characters");
       return;
     }
+    if (newPaid && !(Number(newPrice) > 0)) {
+      toast.error("Enter a price for a paid course");
+      return;
+    }
     setBusy("create");
     try {
       const res = await fetch("/api/c/owner/courses", {
@@ -162,8 +173,26 @@ export function CoursesManagement() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not create course");
+      const dollars = Number(newPrice);
+      const details: Record<string, unknown> = { difficulty: newLevel };
+      if (newDescription.trim()) details.description = newDescription.trim();
+      if (newCover.trim()) details.thumbnail_url = newCover.trim();
+      if (newPaid && Number.isFinite(dollars) && dollars > 0) {
+        details.price_cents = Math.round(dollars * 100);
+        details.currency = "USD";
+      }
+      await fetch(`/api/c/owner/courses/${json.course.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", ...details }),
+      }).catch(() => undefined);
       setTitle("");
-      toast.success("Draft created");
+      setNewDescription("");
+      setNewCover("");
+      setNewPaid(false);
+      setNewPrice("");
+      setCreating(false);
+      toast.success("Course draft created — add modules and lessons, then publish");
       setSelectedId(json.course.id);
       await refreshList();
       await loadCourse(json.course.id);
@@ -194,25 +223,114 @@ export function CoursesManagement() {
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="New course title"
-          aria-label="New course title"
-        />
-        <Button type="button" className="bg-[#FF5A1F] hover:bg-[#F04E14]" disabled={busy === "create"} onClick={() => void createCourse()}>
-          {busy === "create" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-          Create draft
-        </Button>
-      </div>
+      {creating ? (
+        <form
+          className="space-y-4 rounded-2xl border border-[#E5E7EB] bg-white p-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void createCourse();
+          }}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base font-bold text-[#111827]">Create a course</h2>
+            <button type="button" className="text-sm font-semibold text-[#6B7280]" onClick={() => setCreating(false)}>
+              Cancel
+            </button>
+          </div>
+          <label className="block text-sm font-medium text-[#111827]">
+            Course title
+            <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Forex basics in 7 days" required minLength={3} />
+          </label>
+          <label className="block text-sm font-medium text-[#111827]">
+            What will students learn?
+            <Textarea className="mt-1" rows={3} value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="A short description shown on the course page" />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="text-sm font-medium text-[#111827]">
+              Cover image
+              <div className="mt-1 flex items-center gap-3">
+                {newCover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={newCover} alt="" className="h-14 w-24 rounded-lg object-cover" />
+                ) : (
+                  <div className="flex h-14 w-24 items-center justify-center rounded-lg bg-[#F3F4F6] text-[11px] text-[#9CA3AF]">No cover</div>
+                )}
+                <CloudinaryUploadButton
+                  folder="jimvio/communities"
+                  buttonText={newCover ? "Change" : "Upload"}
+                  onUploadSuccess={(url: string) => setNewCover(url)}
+                />
+              </div>
+            </div>
+            <label className="text-sm font-medium text-[#111827]">
+              Level
+              <select className="mt-1 h-10 w-full rounded-md border border-[#E5E7EB] px-3 text-sm" value={newLevel} onChange={(e) => setNewLevel(e.target.value)}>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </label>
+          </div>
+          <div className="text-sm font-medium text-[#111827]">
+            Pricing
+            <div className="mt-1 inline-flex rounded-xl border border-[#E5E7EB] p-1">
+              {[
+                { paid: false, label: "Free" },
+                { paid: true, label: "Paid" },
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => setNewPaid(opt.paid)}
+                  className={`rounded-lg px-4 py-1.5 text-sm font-semibold ${newPaid === opt.paid ? "bg-[#FF5A1F] text-white" : "text-[#6B7280]"}`}
+                  aria-pressed={newPaid === opt.paid}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            {newPaid ? (
+              <div className="mt-2 flex max-w-[220px] items-center rounded-md border border-[#E5E7EB] px-3">
+                <span className="text-sm text-[#6B7280]">$</span>
+                <input
+                  type="number"
+                  min={0.5}
+                  step="0.01"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="h-10 w-full bg-transparent px-2 text-sm outline-none"
+                  aria-label="Course price in USD"
+                />
+                <span className="text-xs text-[#9CA3AF]">USD</span>
+              </div>
+            ) : null}
+          </div>
+          <Button type="submit" className="bg-[#FF5A1F] hover:bg-[#F04E14]" disabled={busy === "create"}>
+            {busy === "create" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Create course
+          </Button>
+          <p className="text-xs text-[#6B7280]">It starts as a draft. Add modules and lessons, then publish it to members.</p>
+        </form>
+      ) : (
+        <div className="flex justify-end">
+          <Button type="button" className="bg-[#FF5A1F] hover:bg-[#F04E14]" onClick={() => setCreating(true)}>
+            <Plus className="h-4 w-4" /> New course
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="h-28 animate-pulse rounded-2xl bg-[#F3F4F6]" />
       ) : courses.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-12 text-center">
           <p className="font-semibold text-[#111827]">No courses yet</p>
-          <p className="mt-1 text-sm text-[#6B7280]">Create a draft, add lessons, then publish it to members.</p>
+          <p className="mt-1 text-sm text-[#6B7280]">Create a course, add lessons, then publish it to members.</p>
+          {!creating ? (
+            <Button type="button" className="mt-4 bg-[#FF5A1F] hover:bg-[#F04E14]" onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" /> Create your first course
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
@@ -318,10 +436,20 @@ export function CoursesManagement() {
                     }}
                   />
                 </label>
-                <label className="text-sm font-medium">
-                  Thumbnail URL
-                  <Input className="mt-1" key={`${selected.id}-thumb`} defaultValue={selected.thumbnail_url ?? ""} onBlur={(event) => void run(selected.id, "update", { thumbnail_url: event.target.value })} />
-                </label>
+                <div className="text-sm font-medium">
+                  Cover image
+                  <div className="mt-1 flex items-center gap-3">
+                    {selected.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={selected.thumbnail_url} alt="" className="h-10 w-16 rounded-md object-cover" />
+                    ) : null}
+                    <CloudinaryUploadButton
+                      folder="jimvio/communities"
+                      buttonText={selected.thumbnail_url ? "Change cover" : "Upload cover"}
+                      onUploadSuccess={(url: string) => void run(selected.id, "update", { thumbnail_url: url })}
+                    />
+                  </div>
+                </div>
               </div>
               <label className="block text-sm font-medium">
                 Learning outcomes (one per line)

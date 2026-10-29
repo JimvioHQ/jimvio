@@ -1907,6 +1907,12 @@ export type Database = {
       }
       communities: {
         Row: {
+          affiliate_commission_rate: number | null
+          billing_interval: string | null
+          billing_type: string | null
+          compare_at_price: number | null
+          quarterly_price: number | null
+          weekly_price: number | null
           accent_color: string | null
           archived_at: string | null
           archived_by: string | null
@@ -1945,6 +1951,12 @@ export type Database = {
           yearly_price: number | null
         }
         Insert: {
+          affiliate_commission_rate?: number | null
+          billing_interval?: string | null
+          billing_type?: string | null
+          compare_at_price?: number | null
+          quarterly_price?: number | null
+          weekly_price?: number | null
           accent_color?: string | null
           archived_at?: string | null
           archived_by?: string | null
@@ -1983,6 +1995,12 @@ export type Database = {
           yearly_price?: number | null
         }
         Update: {
+          affiliate_commission_rate?: number | null
+          billing_interval?: string | null
+          billing_type?: string | null
+          compare_at_price?: number | null
+          quarterly_price?: number | null
+          weekly_price?: number | null
           accent_color?: string | null
           archived_at?: string | null
           archived_by?: string | null

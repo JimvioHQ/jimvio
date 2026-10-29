@@ -1,5 +1,6 @@
 "use client";
 
+import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
 import Link from "next/link";
 import {
   Archive,
@@ -14,7 +15,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sectionPath } from "@/lib/community/owner-console";
 import {
   GROUP_PRIVACY_LABELS,
   GROUP_STATUS_LABELS,
@@ -83,6 +83,7 @@ export function GroupsList({
   onAction: (id: string, action: OwnerGroupAction) => void;
   onDragReorder: (orderedIds: string[]) => void;
 }) {
+  const { hrefSection } = useOwnerConsole();
   function memberDisplay(g: OwnerGroupListItem) {
     if (typeof communityMemberCount === "number" && communityMemberCount > 0) {
       return communityMemberCount;
@@ -160,7 +161,7 @@ export function GroupsList({
                     <span className="text-lg">{g.icon ?? "💬"}</span>
                     <div>
                       <Link
-                        href={sectionPath(`groups/${g.id}`, communitySlug)}
+                        href={hrefSection(`groups/${g.id}`)}
                         className="font-semibold text-[var(--color-text-primary)] hover:underline"
                       >
                         {g.name}
@@ -230,7 +231,7 @@ export function GroupsList({
                   <div className="flex items-center gap-2">
                     <span className="text-xl leading-none">{g.icon ?? "💬"}</span>
                     <Link
-                      href={sectionPath(`groups/${g.id}`, communitySlug)}
+                      href={hrefSection(`groups/${g.id}`)}
                       className="truncate text-[15px] font-bold text-[var(--color-text-primary)] hover:underline"
                     >
                       {g.name}
@@ -292,7 +293,7 @@ export function GroupsList({
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="h-8 flex-1 text-xs">
-                <Link href={sectionPath(`spaces/${g.id}`, communitySlug)}>
+                <Link href={hrefSection(`spaces/${g.id}`)}>
                   <Settings2 className="mr-1 h-3.5 w-3.5" />
                   Manage
                 </Link>
@@ -314,6 +315,7 @@ function GroupActionsMenu({
   communitySlug: string;
   onAction: (id: string, action: OwnerGroupAction) => void;
 }) {
+  const { hrefSection } = useOwnerConsole();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -329,7 +331,7 @@ function GroupActionsMenu({
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
           <Link
-            href={sectionPath(`groups/${group.id}`, communitySlug)}
+            href={hrefSection(`groups/${group.id}`)}
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Edit / Settings

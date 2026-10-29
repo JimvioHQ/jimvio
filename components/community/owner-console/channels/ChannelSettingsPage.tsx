@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { sectionPath } from "@/lib/community/owner-console";
 import {
   CHANNEL_COLOR_PRESETS,
   CHANNEL_ICON_PRESETS,
@@ -39,7 +38,7 @@ import {
 import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
 
 export function ChannelSettingsPage({ channelId }: { channelId: string }) {
-  const { community } = useOwnerConsole();
+  const { hrefSection } = useOwnerConsole();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as ChannelSettingsTab | null;
@@ -98,10 +97,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
   }, [channel, tab, channelId, memberQuery]);
 
   function setTab(next: ChannelSettingsTab) {
-    const base = sectionPath(
-      `channels/${channelId}`,
-      community?.slug
-    );
+    const base = hrefSection(`channels/${channelId}`);
     const url = new URL(base, window.location.origin);
     url.searchParams.set("tab", next);
     router.replace(url.pathname + url.search);
@@ -141,7 +137,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
     }
     if (data.deleted) {
       toast.success("Channel deleted");
-      router.push(sectionPath("channels", community?.slug));
+      router.push(hrefSection("channels"));
       return;
     }
     if (data.channel) setChannel(data.channel);
@@ -162,7 +158,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
       <div className="py-16 text-center">
         <p className="text-sm font-semibold">Channel not found</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href={sectionPath("channels", community?.slug)}>
+          <Link href={hrefSection("channels")}>
             Back to channels
           </Link>
         </Button>
@@ -175,7 +171,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("spaces", community?.slug)}
+            href={hrefSection("spaces")}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
