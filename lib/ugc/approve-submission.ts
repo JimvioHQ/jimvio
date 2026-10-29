@@ -5,6 +5,7 @@ import { centsToUsd, parseAcceptedViews, quoteSubmissionReward } from "@/lib/ugc
 import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 import { acceptedViewsCap } from "@/lib/ugc/verification/signals";
 import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
+import { notifyPostApproved } from "@/lib/ugc/notify-ugc";
 
 export const REVIEWABLE = ["pending", "revision_requested"];
 
@@ -128,6 +129,19 @@ export async function approveSubmission(
       .eq('id', id)
       .eq('status', 'approved');
     return result(credit.status, { error: credit.error });
+  }
+
+  if (credit.credited) {
+    const c = credit as { amount: number; releasedNow?: boolean };
+    await notifyPostApproved(db, {
+      submissionId: id,
+      campaignId: submission.campaign_id,
+      influencerId: submission.influencer_id,
+      amount: c.amount,
+      // Fixed-rate pay goes straight to the wallet; per-view pay follows the hold rule.
+      releasedNow: campaign.payment_model === 'per_views' ? Boolean(c.releasedNow) : true,
+      reviewerId: opts.reviewerId,
+    });
   }
 
   if (!credit.credited) {

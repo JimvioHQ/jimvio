@@ -370,6 +370,16 @@ export function useLiveSession(initialSessionId?: string | null) {
     let chPart: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     const sid = session.id;
     const isCancelled = () => cancelledSub;
+    let partLive = false;
+    // Safety net: refresh participants every 4s while realtime isn't connected.
+    const fallback = window.setInterval(() => {
+      if (cancelledSub || partLive || document.hidden) return;
+      void refresh(sid).catch(() => undefined);
+    }, 4000);
+    const onPartStatus = (status: string) => {
+      partLive = status === "SUBSCRIBED";
+      onChannelReady(status);
+    };
     const onChannelReady = (status: string) => {
       if (status !== "SUBSCRIBED" || cancelledSub) return;
       // Catch events missed between initial fetch and channel ready.
@@ -453,12 +463,13 @@ export function useLiveSession(initialSessionId?: string | null) {
           }
         },
         isCancelled,
-        { onStatus: onChannelReady }
+        { onStatus: onPartStatus }
       );
     })();
 
     return () => {
       cancelledSub = true;
+      window.clearInterval(fallback);
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
       unsubscribeRealtime(supabase, chSession, `live_session:${sid}`);
       unsubscribeRealtime(supabase, chPart, `live_session_participants:${sid}`);

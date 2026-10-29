@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { notifyUser } from "@/lib/notifications/notify-user";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import type { Json } from "@/types/supabase";
 import {
@@ -794,6 +795,30 @@ export async function sendHubDirectMessage(
     .from("community_inbox_conversations")
     .update({ updated_at: new Date().toISOString() })
     .eq("id", conversationId);
+
+  // Tell the other person (only them) that they have a new message.
+  try {
+    const recipientId = conv.user_low === userId ? conv.user_high : conv.user_low;
+    if (recipientId && recipientId !== userId) {
+      const { data: me } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      const name = (me as { full_name?: string | null } | null)?.full_name || "Someone";
+      const preview =
+        resolvedType === "image" ? "Sent a photo" : resolvedType === "audio" ? "Sent a voice message" : resolvedType === "file" ? "Sent a file" : trimmed.slice(0, 120);
+      await notifyUser(supabase as never, {
+        userId: recipientId,
+        type: "message",
+        category: "new_message",
+        title: `New message from ${name}`,
+        message: preview || "Sent a message",
+        actionUrl: `/communities/messages?thread=${conversationId}`,
+        data: { event: "community_direct_message", conversation_id: conversationId, source: "community" },
+        groupKey: `dm:${conversationId}`,
+        actorId: userId,
+      });
+    }
+  } catch (e) {
+    console.warn("[hub-messages] notify failed", e);
+  }
 
   return { message: data };
 }

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import type { HubThread, MessagesTabId } from "./types";
 import { formatShortTime } from "./utils";
+import { OtherInboxes } from "./OtherInboxes";
 
 const TABS: Array<{ id: MessagesTabId; label: string }> = [
   { id: "all", label: "All" },
@@ -87,7 +88,7 @@ export function ThreadSidebar({
           href="/messages"
           className="mb-2.5 inline-block text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent,#fd5000)]"
         >
-          Marketplace buyer &amp; seller chats →
+          Open marketplace chats →
         </Link>
 
         <div className="relative mb-2.5">
@@ -136,11 +137,13 @@ export function ThreadSidebar({
             ))}
           </div>
         ) : threads.length === 0 ? (
-          <p className="px-6 py-12 text-center text-[12px] text-[var(--color-text-muted)]">
-            No conversations yet
-          </p>
+          <>
+            <p className="px-6 py-8 text-center text-[12px] text-[var(--color-text-muted)]">No community conversations yet</p>
+            <OtherInboxes search={search} />
+          </>
         ) : (
-          threads.map((thread) => {
+          <>
+          {threads.map((thread) => {
             const active = activeThreadId === thread.id;
             return (
               <button
@@ -215,7 +218,9 @@ export function ThreadSidebar({
                 </div>
               </button>
             );
-          })
+          })}
+          {activeTab === "all" ? <OtherInboxes search={search} /> : null}
+          </>
         )}
       </div>
     </aside>

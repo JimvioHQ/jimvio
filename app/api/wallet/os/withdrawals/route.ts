@@ -23,6 +23,7 @@ import {
 } from "@/lib/payments/withdrawal-fees";
 import { safeWithdrawalError } from "@/lib/payments/safe-payment-error";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { WITHDRAWALS_ONLY_FILTER } from "@/lib/wallet-os/payout-kinds";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
     .from("payouts")
     .select("*")
     .eq("user_id", user.id)
+    .or(WITHDRAWALS_ONLY_FILTER)
     .order("created_at", { ascending: false })
     .limit(100);
 

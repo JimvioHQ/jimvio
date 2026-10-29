@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownLeft,
@@ -10,6 +10,7 @@ import {
 import { formatMoneyAsUSD } from "@/lib/currency/platform";
 import type { LedgerEntry, WalletOsOverview } from "@/lib/wallet-os/types";
 import { surfaceLabel } from "@/lib/wallet-os/surfaces";
+import type { WalletSurface } from "@/lib/wallet-os/types";
 import {
   WalletErrorState,
   WalletLoading,
@@ -24,6 +25,47 @@ type OverviewApiResponse = {
 type LedgerApiResponse = {
   entries?: LedgerEntry[];
 };
+
+type HistoryResponse = {
+  days: number;
+  total: number;
+  points: { date: string; balance: number }[];
+  sources: { surface: string; amount: number }[];
+};
+
+/** Real balance line: flat when nothing happened, rising when money comes in. */
+function BalanceChart({ points }: { points: HistoryResponse["points"] }) {
+  const W = 320;
+  const H = 120;
+  const max = Math.max(1, ...points.map((p) => p.balance));
+  const step = points.length > 1 ? W / (points.length - 1) : W;
+  const y = (v: number) => H - 8 - (v / max) * (H - 24);
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${y(p.balance).toFixed(1)}`).join(" ");
+  const area = `${line} L${W},${H} L0,${H} Z`;
+  const last = points[points.length - 1];
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-[150px] w-full" preserveAspectRatio="none" role="img" aria-label="Balance over time">
+        <defs>
+          <linearGradient id="balfill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#FF5A1F" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#FF5A1F" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="#F1F5F9" strokeWidth="1" />
+        ))}
+        <path d={area} fill="url(#balfill)" />
+        <path d={line} fill="none" stroke="#FF5A1F" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        {last ? <circle cx={W} cy={y(last.balance)} r="4" fill="#FF5A1F" stroke="white" strokeWidth="2" vectorEffect="non-scaling-stroke" /> : null}
+      </svg>
+      <div className="mt-1 flex justify-between text-[10.5px] text-[#9CA3AF]">
+        <span>{points[0] ? new Date(`${points[0].date}T12:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""}</span>
+        <span>Today</span>
+      </div>
+    </div>
+  );
+}
 
 function activityTitle(entry: LedgerEntry): string {
   const title = entry.title?.trim();
@@ -57,8 +99,26 @@ export function WalletOverviewClient() {
 
   const overview = data?.overview;
   const currency = overview?.currency || "USD";
-  /** Authoritative spendable/withdrawable balance — wallets.available_balance */
-  const totalBalance = overview?.available ?? 0;
+  // One main balance for all of Jimvio (UGC, community, marketplace, affiliate…),
+  // the same number shown in the header. Only "available" can be withdrawn.
+  const totalBalance = overview?.netWorth ?? 0;
+  const available = overview?.available ?? 0;
+  const onTheWay = Math.round(((overview?.pending ?? 0) + (overview?.locked ?? 0)) * 100) / 100;
+  const [range, setRange] = useState<7 | 30>(7);
+  const [history, setHistory] = useState<HistoryResponse | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/wallet/os/history?days=${range}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (alive) setHistory(j as HistoryResponse | null);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [range]);
+  const growth = history?.points?.length ? history.points[history.points.length - 1].balance - history.points[0].balance : 0;
   const recent = ledgerData?.entries ?? [];
   const hasActivity = recent.length > 0;
 
@@ -100,10 +160,25 @@ export function WalletOverviewClient() {
 
             <div className="relative flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-[13px] font-medium text-white/80">Balance</p>
+                <p className="text-[13px] font-medium text-white/80">Total balance</p>
                 <p className="mt-1 text-[40px] font-bold tracking-tight tabular-nums sm:text-[48px]">
                   {formatMoneyAsUSD(totalBalance, currency)}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2 text-[12px]">
+                  <span className="rounded-full bg-white/15 px-3 py-1">
+                    Available to withdraw <b className="tabular-nums">{formatMoneyAsUSD(available, currency)}</b>
+                  </span>
+                  {onTheWay > 0 ? (
+                    <span className="rounded-full bg-white/15 px-3 py-1">
+                      On the way <b className="tabular-nums">{formatMoneyAsUSD(onTheWay, currency)}</b>
+                    </span>
+                  ) : null}
+                  {overview?.rewards ? (
+                    <span className="rounded-full bg-white/15 px-3 py-1">
+                      Rewards <b className="tabular-nums">{formatMoneyAsUSD(overview.rewards, currency)}</b>
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-[12px] font-semibold backdrop-blur-sm">
                 <span aria-hidden className="text-[14px]">
@@ -135,17 +210,53 @@ export function WalletOverviewClient() {
             {/* Balance Growth — real data only; no fake chart */}
             <section className="rounded-3xl border border-[#E5E7EB] bg-white p-5 shadow-[0_8px_30px_rgba(17,24,39,0.04)] sm:p-6">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[15px] font-bold text-[#111827]">Balance Growth</h2>
-                <span className="rounded-full bg-[#FFF1EA] px-2.5 py-1 text-[11px] font-semibold text-[#FF5A1F]">
-                  7D
-                </span>
+                <div>
+                  <h2 className="text-[15px] font-bold text-[#111827]">Balance Growth</h2>
+                  <p className={`text-[12px] font-semibold ${growth > 0 ? "text-[#059669]" : growth < 0 ? "text-[#DC2626]" : "text-[#9CA3AF]"}`}>
+                    {growth > 0 ? "+" : growth < 0 ? "−" : ""}
+                    {formatMoneyAsUSD(Math.abs(growth), currency)} in {range} days
+                  </p>
+                </div>
+                <div className="inline-flex rounded-full bg-[#F3F4F6] p-0.5" role="radiogroup" aria-label="Range">
+                  {([7, 30] as const).map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      role="radio"
+                      aria-checked={range === d}
+                      onClick={() => setRange(d)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${range === d ? "bg-white text-[#FF5A1F] shadow-sm" : "text-[#6B7280]"}`}
+                    >
+                      {d}D
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="mt-8 flex min-h-[160px] flex-col items-center justify-center rounded-2xl bg-[#F8FAFC] px-4 text-center">
-                <p className="text-[13px] font-medium text-[#6B7280]">
-                  Balance history will appear here as your wallet activity grows.
-                </p>
+              <div className="mt-4">
+                {history ? <BalanceChart points={history.points} /> : <div className="h-[150px] animate-pulse rounded-2xl bg-[#F8FAFC]" />}
                 {growthHint}
               </div>
+              {history?.sources?.length ? (
+                <div className="mt-4 border-t border-[#F3F4F6] pt-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Where your money came from</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {history.sources.slice(0, 5).map((src) => {
+                      const total = history.sources.reduce((a, b) => a + b.amount, 0) || 1;
+                      return (
+                        <li key={src.surface} className="text-[12.5px]">
+                          <div className="flex justify-between">
+                            <span className="font-medium text-[#374151]">{surfaceLabel(src.surface as WalletSurface)}</span>
+                            <span className="font-semibold tabular-nums text-[#111827]">{formatMoneyAsUSD(src.amount, currency)}</span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
+                            <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${Math.max(4, (src.amount / total) * 100)}%` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
             </section>
 
             {/* Recent Transactions */}
@@ -209,6 +320,11 @@ export function WalletOverviewClient() {
                             </p>
                             <p className="truncate text-[12px] text-[#6B7280]">
                               {activityTitle(entry)}
+                              {entry.status === "pending" || entry.status === "processing" ? (
+                                <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-px text-[10.5px] font-semibold text-amber-700">
+                                  {credit ? "On the way" : "Processing"}
+                                </span>
+                              ) : null}
                             </p>
                           </div>
                           <p className="shrink-0 text-[11px] text-[#9CA3AF]">

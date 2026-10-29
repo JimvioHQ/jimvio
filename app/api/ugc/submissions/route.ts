@@ -12,6 +12,7 @@ import { creatorProfileRequiredPayload, requireInfluencer } from '@/lib/ugc/plat
 import { parseClaimedViews } from '@/lib/ugc/submission-reward';
 import { countryPolicyFromJoinConfig, creatorCountryDecision } from '@/lib/ugc/campaign-brief';
 import { loadCreatorProfile } from '@/lib/ugc/join-service';
+import { notifyNewSubmission } from '@/lib/ugc/notify-ugc';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -243,6 +244,12 @@ export async function POST(req: NextRequest) {
 
   // Baseline read from the platform API; only views gained after this count.
   after(async () => {
+    await notifyNewSubmission(db, {
+      submissionId: submission.id,
+      campaignId: campaign_id,
+      creatorUserId: user.id,
+      creatorName: (influencer as { display_name?: string | null }).display_name ?? null,
+    });
     try {
       await verifySubmissionViews(submission.id);
     } catch (err) {

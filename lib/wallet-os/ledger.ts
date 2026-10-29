@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { surfaceForTransactionType } from "@/lib/wallet-os/surfaces";
 import type { LedgerEntry, LedgerPage, LedgerQuery } from "@/lib/wallet-os/types";
+import { WITHDRAWALS_ONLY_FILTER } from "@/lib/wallet-os/payout-kinds";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -77,6 +78,7 @@ async function fetchWithdrawalEntries(
     .from("payouts")
     .select("id, type, amount, currency, status, payout_method, provider_reference, created_at")
     .eq("user_id", userId)
+    .or(WITHDRAWALS_ONLY_FILTER)
     .order("created_at", { ascending: false })
     .limit(fetchLimit);
   if (cursor) query = query.lt("created_at", cursor);
