@@ -1,45 +1,48 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { BadgePercent, Crown, Megaphone, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { BadgePercent, ClipboardCheck, Crown, Megaphone, Send, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/db";
 import { constructMetadata } from "@/lib/seo";
-import { FOUNDING_FEE_MONTHS, FOUNDING_FEE_RATE, FOUNDING_SEATS, seatLabel, type FoundingSeat } from "@/lib/founding/program";
+import { CONTRIBUTIONS, FOUNDING_FEE_MONTHS, FOUNDING_FEE_RATE, FOUNDING_SEATS, seatLabel, type FoundingSeat } from "@/lib/founding/program";
 import { FoundingBadge } from "@/components/founding/FoundingBadge";
-import { ClaimSeatButton } from "./ClaimSeatButton";
+import { ApplyPanel, HeroAction, type ApplicationState } from "./ApplyPanel";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = constructMetadata({
   title: "Founding Creators",
-  description: `The first ${FOUNDING_SEATS} creators building on Jimvio. A permanent numbered badge, a ${FOUNDING_FEE_RATE}% community fee for ${FOUNDING_FEE_MONTHS} months, and a place on the founders wall.`,
+  description: `${FOUNDING_SEATS} founding seats for the people helping Jimvio grow. Apply, Jimvio reviews your activity, and approved founders get a numbered badge, a ${FOUNDING_FEE_RATE}% community fee for ${FOUNDING_FEE_MONTHS} months and a place on the founders wall.`,
   path: "/founding-creators",
 });
 
 type Member = FoundingSeat & { name: string; avatar: string | null; href: string | null };
 
-const QUALIFY = [
-  { label: "Run a community", detail: "You own an active community on Jimvio.", href: "/communities/create" },
-  { label: "Have a creator profile", detail: "Your creator profile is set up with your name.", href: "/activate/influencer" },
-  { label: "Sell in your store", detail: "At least one of your products is live.", href: "/seller/products" },
-];
 
 const FAQ = [
   {
     q: "Is it free?",
-    a: "Yes. There is no fee to join and no application to write. If you qualify, you claim a seat with one click.",
+    a: "Yes. There is no fee to apply and nothing to pay. Seats are earned, never sold.",
+  },
+  {
+    q: "Do I need a community to apply?",
+    a: "No. Running a community is one way to help Jimvio grow. Creating content, selling, UGC and clipping, promoting products, bringing people to Jimvio, teaching others how to use it, or testing and giving feedback all count.",
+  },
+  {
+    q: "How does Jimvio decide?",
+    a: "A Jimvio team member looks at what you have actually done on the platform — your communities, posts, products, campaign submissions, affiliate links and feedback — together with what you wrote and the links you shared.",
   },
   {
     q: "What does the lower fee cover?",
-    a: `Paid memberships of communities you own. Jimvio's fee on those payments is ${FOUNDING_FEE_RATE}% for ${FOUNDING_FEE_MONTHS} months from the day you claim your seat. If your community already has a lower fee, the lower one stays.`,
+    a: `Paid memberships of communities you own. Jimvio's fee on those payments is ${FOUNDING_FEE_RATE}% for ${FOUNDING_FEE_MONTHS} months from the day your seat is approved. If your community already has a lower fee, the lower one stays.`,
+  },
+  {
+    q: "What if I'm not approved?",
+    a: "You get a short reason, and you can apply again after 14 days.",
   },
   {
     q: "Do I keep the badge?",
-    a: "Yes. Your seat number never changes and is never reused.",
-  },
-  {
-    q: "Why only 100 seats?",
-    a: "Founding means early. When the 100 seats are gone, the program closes for good.",
+    a: "Yes. Your seat number never changes and is never given to anyone else. When the 100 seats are gone, the program closes for good.",
   },
 ];
 
@@ -73,21 +76,26 @@ async function loadMembers(): Promise<Member[]> {
   });
 }
 
-async function viewerState(): Promise<{ signedIn: boolean; seat: number | null; eligible: boolean }> {
+async function viewerState(): Promise<{ signedIn: boolean; seat: number | null; application: ApplicationState }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { signedIn: false, seat: null, eligible: false };
+  if (!user) return { signedIn: false, seat: null, application: null };
   const admin = getAdminDB() as unknown as {
-    from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: { seat_number: number } | null }> } } };
-    rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: string | null }>;
+    from: (t: string) => {
+      select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: unknown }> } };
+    };
   };
-  const [{ data: mine }, { data: reason }] = await Promise.all([
+  const [{ data: mine }, { data: app }] = await Promise.all([
     admin.from("founding_creators").select("seat_number").eq("user_id", user.id).maybeSingle(),
-    admin.rpc("founding_creator_qualification", { p_user: user.id }),
+    admin.from("founding_applications").select("status, decision_note, reviewed_at, contributions").eq("user_id", user.id).maybeSingle(),
   ]);
-  return { signedIn: true, seat: mine?.seat_number ?? null, eligible: Boolean(reason) };
+  return {
+    signedIn: true,
+    seat: (mine as { seat_number: number } | null)?.seat_number ?? null,
+    application: (app as ApplicationState) ?? null,
+  };
 }
 
 export default async function FoundingCreatorsPage() {
@@ -116,11 +124,12 @@ export default async function FoundingCreatorsPage() {
               <span className="bg-gradient-to-r from-[#fd5000] to-amber-300 bg-clip-text text-transparent">build Jimvio with us.</span>
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-white/70">
-              If you already run a community, a creator profile or a store on Jimvio, claim a numbered seat. It&apos;s free,
-              it&apos;s permanent, and when the {FOUNDING_SEATS} seats are gone the program closes.
+              Founding seats go to the people helping Jimvio grow — creators, sellers, clippers, affiliates and the
+              people who bring others in. Apply, Jimvio reviews what you&apos;ve done, and approved founders get a
+              numbered seat for good. When the {FOUNDING_SEATS} seats are gone, the program closes.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <ClaimSeatButton signedIn={viewer.signedIn} seat={viewer.seat} eligible={viewer.eligible} full={left === 0} />
+              <HeroAction signedIn={viewer.signedIn} seat={viewer.seat} application={viewer.application} full={left === 0} />
               <a href="#how" className="rounded-full px-4 py-2.5 text-[14px] font-semibold text-white/80 hover:text-white">
                 How it works →
               </a>
@@ -134,11 +143,11 @@ export default async function FoundingCreatorsPage() {
               {left}
               <span className="ml-2 text-lg font-semibold text-white/50">of {FOUNDING_SEATS} left</span>
             </p>
-            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={FOUNDING_SEATS} aria-valuenow={taken} aria-label="Seats claimed">
+            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuemin={0} aria-valuemax={FOUNDING_SEATS} aria-valuenow={taken} aria-label="Seats given">
               <div className="h-full rounded-full bg-gradient-to-r from-[#fd5000] to-amber-300" style={{ width: `${Math.max(pct, taken > 0 ? 2 : 0)}%` }} />
             </div>
             <p className="mt-3 text-[13px] text-white/60">
-              {taken === 0 ? "No seats claimed yet — seat #001 is open." : `${taken} ${taken === 1 ? "seat" : "seats"} claimed.`}
+              {taken === 0 ? "No seats given yet — seat #001 is open." : `${taken} ${taken === 1 ? "seat" : "seats"} given.`}
             </p>
             {viewer.seat ? (
               <div className="mt-5 rounded-2xl bg-amber-300/10 p-4 ring-1 ring-amber-300/30">
@@ -154,19 +163,19 @@ export default async function FoundingCreatorsPage() {
       <section className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6">
         <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-3xl">What founders get</h2>
         <p className="mt-2 max-w-2xl text-[14px] text-[var(--color-text-secondary)]">
-          Three things, each applied automatically by Jimvio — nothing you have to ask for.
+          Once your seat is approved, these apply automatically.
         </p>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {[
             {
               icon: Crown,
               title: "A permanent numbered badge",
-              body: "Your seat number appears next to your name across Jimvio. It never changes and is never given to anyone else.",
+              body: "Your seat number appears next to your name on Jimvio. It never changes and is never given to anyone else.",
             },
             {
               icon: BadgePercent,
               title: `${FOUNDING_FEE_RATE}% community fee for ${FOUNDING_FEE_MONTHS} months`,
-              body: `Jimvio takes ${FOUNDING_FEE_RATE}% instead of the standard rate on paid memberships of communities you own, for ${FOUNDING_FEE_MONTHS} months from the day you claim your seat.`,
+              body: `Jimvio takes ${FOUNDING_FEE_RATE}% instead of the standard rate on paid memberships of communities you own, for ${FOUNDING_FEE_MONTHS} months from the day your seat is approved.`,
             },
             {
               icon: Megaphone,
@@ -188,26 +197,52 @@ export default async function FoundingCreatorsPage() {
       {/* How it works */}
       <section id="how" className="border-y border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6">
-          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-3xl">How to get a seat</h2>
-          <p className="mt-2 max-w-2xl text-[14px] text-[var(--color-text-secondary)]">
-            Seats are for people already building on Jimvio. Do any one of these, then press &ldquo;Claim my seat&rdquo;.
-          </p>
+          <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-3xl">How it works</h2>
           <ol className="mt-8 grid gap-4 md:grid-cols-3">
-            {QUALIFY.map((q, i) => (
-              <li key={q.label} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg,#fff)] p-6">
-                <span className="text-[12px] font-black text-[#fd5000]">0{i + 1}</span>
-                <p className="mt-2 text-[15px] font-bold text-[var(--color-text-primary)]">{q.label}</p>
-                <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">{q.detail}</p>
-                <Link href={q.href} className="mt-4 inline-block text-[13px] font-semibold text-[#fd5000] hover:underline">
-                  Start →
-                </Link>
+            {[
+              { icon: Send, title: "1. Apply", body: "Tell us how you help Jimvio grow and share links to your work. It takes two minutes." },
+              {
+                icon: ClipboardCheck,
+                title: "2. Jimvio reviews your activity",
+                body: "A Jimvio team member looks at what you've actually done on the platform — not follower counts alone.",
+              },
+              { icon: Crown, title: "3. Get your seat", body: "If approved, you receive the next seat number and your benefits start the same day." },
+            ].map(({ icon: Icon, title, body }) => (
+              <li key={title} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg,#fff)] p-6">
+                <Icon className="h-5 w-5 text-[#fd5000]" aria-hidden />
+                <p className="mt-3 text-[15px] font-bold text-[var(--color-text-primary)]">{title}</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">{body}</p>
               </li>
             ))}
           </ol>
+
+          <h3 className="mt-14 text-xl font-black tracking-tight text-[var(--color-text-primary)]">Ways to qualify</h3>
+          <p className="mt-2 max-w-2xl text-[14px] text-[var(--color-text-secondary)]">
+            You don&apos;t need a community. Any real way of helping Jimvio grow counts — doing more than one makes your
+            application stronger.
+          </p>
+          <ul className="mt-6 grid list-none gap-3 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            {CONTRIBUTIONS.filter((c) => c.id !== "other").map((c) => (
+              <li key={c.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg,#fff)] p-5">
+                <p className="text-[15px] font-bold text-[var(--color-text-primary)]">{c.label}</p>
+                <p className="mt-1 text-[13px] text-[var(--color-text-secondary)]">{c.detail}</p>
+                {c.href ? (
+                  <Link href={c.href} className="mt-3 inline-block text-[13px] font-semibold text-[#fd5000] hover:underline">
+                    Start →
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
           <p className="mt-6 flex items-center gap-2 text-[12px] text-[var(--color-text-muted)]">
-            <ShieldCheck className="h-4 w-4" /> Jimvio checks this when you claim. Seats can&apos;t be bought or assigned by hand.
+            <ShieldCheck className="h-4 w-4" /> Jimvio reviews every application. Seats can&apos;t be bought.
           </p>
         </div>
+      </section>
+
+      {/* Apply */}
+      <section id="apply" className="mx-auto max-w-[900px] scroll-mt-24 px-4 py-16 sm:px-6">
+        <ApplyPanel signedIn={viewer.signedIn} seat={viewer.seat} application={viewer.application} full={left === 0} />
       </section>
 
       {/* Founders wall */}
@@ -215,7 +250,7 @@ export default async function FoundingCreatorsPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-3xl">Founders wall</h2>
-            <p className="mt-2 text-[14px] text-[var(--color-text-secondary)]">Everyone who has claimed a seat, in order.</p>
+            <p className="mt-2 text-[14px] text-[var(--color-text-secondary)]">Every approved founder, in order.</p>
           </div>
           <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-secondary)]">
             <Users className="h-4 w-4" /> {taken} / {FOUNDING_SEATS}
