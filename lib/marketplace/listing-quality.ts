@@ -18,6 +18,8 @@ export type ListingQualityInput = {
   product_type?: string | null;
   digital_verification_state?: string | null;
   product_shipping_options?: Array<{ is_active?: boolean | null }> | null;
+  /** Supplier listings (CJ) get shipping quoted live for the buyer's region. */
+  source?: string | null;
   vendors?: { verification_status?: string | null } | null;
 };
 
@@ -62,6 +64,7 @@ export function listingQuality(p: ListingQualityInput): ListingQuality {
   const price = Number(p.price ?? 0);
   const digital = p.is_digital === true || (p.product_type ?? "physical") !== "physical";
   const shipping = (p.product_shipping_options ?? []).filter((o) => o.is_active !== false).length;
+  const liveShipping = (p.source ?? "").toLowerCase() === "cj";
 
   const titleOk = name.length >= 10 && name.length <= 140 && cleanSupplierProductName(name) === name;
   const checks: ListingQualityCheck[] = [
@@ -116,8 +119,13 @@ export function listingQuality(p: ListingQualityInput): ListingQuality {
           id: "delivery",
           label: "Shipping info",
           points: 15,
-          earned: shipping > 0 ? 15 : 0,
-          detail: shipping > 0 ? "Shipping options listed" : "No shipping options listed",
+          earned: shipping > 0 || liveShipping ? 15 : 0,
+          detail:
+            shipping > 0
+              ? "Shipping options listed"
+              : liveShipping
+                ? "Shipping quoted live for your region"
+                : "No shipping options listed",
         },
     {
       id: "seller",

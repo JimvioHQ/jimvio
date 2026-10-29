@@ -12,6 +12,7 @@
  *     add constraint community_payments_payment_reference_key unique (payment_reference);
  */
 
+import { communityFeeRate, type FoundingSeat } from "@/lib/founding/program";
 import { accessPlanExpiry, type AccessPlanKey } from "@/lib/community/access-pricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -65,7 +66,19 @@ export async function finalizeCommunityPayment(
   if (!community) throw new Error(`Community not found: ${ctx.communityId}`);
 
   // --- Calculate split ---
-  const commissionRate = Number(community.platform_commission_rate ?? 15);
+  // N-7: Founding Creators pay the founding rate on memberships while it lasts.
+  const { data: foundingSeat } = await (db as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (k: string, v: string) => { maybeSingle: () => Promise<{ data: FoundingSeat | null }> };
+      };
+    };
+  })
+    .from("founding_creators")
+    .select("fee_rate, fee_until")
+    .eq("user_id", community.owner_id)
+    .maybeSingle();
+  const commissionRate = communityFeeRate(Number(community.platform_commission_rate ?? 15), foundingSeat);
   const platformEarnings = ctx.amount * (commissionRate / 100);
   const creatorEarnings = ctx.amount - platformEarnings;
 

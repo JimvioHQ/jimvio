@@ -23,6 +23,7 @@ const STATIC_ROUTES: Array<{
   { path: "/marketplace/flash-deals", priority: 0.8, changeFrequency: "daily" },
   { path: "/influencers", priority: 0.75, changeFrequency: "weekly" },
   { path: "/influencers/browse", priority: 0.7, changeFrequency: "weekly" },
+  { path: "/founding-creators", priority: 0.7, changeFrequency: "weekly" },
   { path: "/vendors", priority: 0.75, changeFrequency: "weekly" },
   { path: "/shorts", priority: 0.7, changeFrequency: "daily" },
   { path: "/about", priority: 0.6, changeFrequency: "monthly" },
