@@ -112,6 +112,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     idempotent: gap <= 0,
     status,
     recordedUsd: Math.max(0, gap),
-    funding: { state: "funded", heldUsd: before.budgetUsd, coveragePct: 100 },
+    funding: {
+      state: "funded",
+      heldUsd: before.budgetUsd,
+      coveragePct: 100,
+      remainingUsd: Math.max(0, before.budgetUsd - before.spentUsd),
+    },
   });
 }

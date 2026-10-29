@@ -49,6 +49,7 @@ export interface UGCCampaign {
     state: "funded" | "partly_funded" | "awaiting_funds";
     coveragePct: number;
     remainingUsd: number;
+    heldUsd?: number;
   } | null;
   /** Views confirmed through official platform APIs across this campaign. */
   verified_views_total?: number | null;

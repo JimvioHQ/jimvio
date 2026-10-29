@@ -37,9 +37,9 @@ import { formatUgcFundingUsd, getClipRateBadge } from "@/components/ugc/workspac
 
 type EscrowState = "unfunded" | "pending" | "held";
 
-type AdminCampaign = Omit<UGCCampaign, "funding"> & {
+type AdminCampaign = UGCCampaign & {
   escrow_state?: EscrowState;
-  funding?: { state: "funded" | "partly_funded" | "awaiting_funds"; heldUsd: number; coveragePct: number; remainingUsd?: number } | null;
+  funding?: { state: "funded" | "partly_funded" | "awaiting_funds"; heldUsd: number; coveragePct: number; remainingUsd: number } | null;
   admin_activator_name?: string | null;
 };
 
