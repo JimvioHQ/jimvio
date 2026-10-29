@@ -29,6 +29,9 @@ import {
   cn,
 } from "@/components/identity/identity-ui";
 import { evaluateCreatorProfileCompletion, evaluateProfileStrength } from "@/lib/identity/creator-profile-completion";
+import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
+import { CategoryPicker } from "@/components/identity/CategoryPicker";
+import { CountrySelect } from "@/components/identity/CountrySelect";
 import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 
 type Tab = "profile";
@@ -63,6 +66,8 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
 
   const [core, setCore] = useState({
     fullName: profile.fullName ?? "",
+    username: profile.username ?? "",
+    industries: profile.industries ?? [],
     headline: profile.headline ?? "",
     bio: profile.bio ?? "",
     website: profile.website ?? "",
@@ -92,7 +97,10 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
       const res = await fetch("/api/identity/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(core),
+        body: JSON.stringify({
+          ...core,
+          username: core.username.trim() && core.username.trim() !== (profile.username ?? "") ? core.username.trim() : undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to save");
@@ -193,6 +201,8 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
 
 type CoreState = {
   fullName: string;
+  username: string;
+  industries: string[];
   headline: string;
   bio: string;
   website: string;
@@ -368,37 +378,17 @@ function ProfileTab({
         {(() => {
           const live = evaluateCreatorProfileCompletion({
             fullName: core.fullName,
+            username: core.username,
+            categories: core.industries,
             headline: core.headline,
             bio: core.bio,
+            country: core.country,
+            socialCount: social.filter((a) => a.platform !== "website").length,
           });
-          if (saveNotice === "complete" && live.complete) {
-            return (
-              <div className="rounded-2xl border border-[#C8E6C9] bg-[#F3FBF3] px-4 py-3">
-                <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#1B7A3A]">
-                  <Check className="h-3.5 w-3.5" /> Creator Profile Saved
-                </p>
-                <p className="mt-1 text-[12px] text-[#3E3A34]">Your creator profile is ready.</p>
-                <Link
-                  href="/ugc/applications"
-                  className="mt-2 inline-flex text-[12.5px] font-semibold text-[#D6480F] hover:underline"
-                >
-                  Continue to My Applications
-                </Link>
-              </div>
-            );
-          }
-          if (live.complete) return null;
-          return (
-            <div className="rounded-2xl border border-[#FFDCC7] bg-[#FFF6F1] px-4 py-3">
-              <p className="text-[12.5px] font-semibold text-[#D6480F]">Required to apply to campaigns</p>
-              <p className="mt-1 text-[12px] text-[#8B8579]">
-                Complete: {live.missing.map((m) => m.label).join(", ")}.
-              </p>
-            </div>
-          );
+          return <CreatorProfileChecklist completion={live} saved={saveNotice === "complete"} />;
         })()}
         <div className="grid gap-4 sm:grid-cols-2">
-          <EditField label="Full name" required>
+          <EditField label="Full name" required id="field-fullName">
             <input
               className="identity-input"
               value={core.fullName}
@@ -406,7 +396,28 @@ function ProfileTab({
               maxLength={120}
             />
           </EditField>
-          <EditField label="Headline" required>
+          <EditField label="Username" required id="field-username">
+            <div className="flex items-center rounded-xl">
+              <span className="pr-1 text-[13px] text-[#9A9388]">@</span>
+              <input
+                className="identity-input"
+                placeholder="yourname"
+                value={core.username}
+                onChange={(e) =>
+                  setCore((c) => ({ ...c, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24) }))
+                }
+                maxLength={24}
+              />
+            </div>
+          </EditField>
+        </div>
+
+        <EditField label="What you create" required id="field-categories">
+          <CategoryPicker value={core.industries} onChange={(v) => setCore((c) => ({ ...c, industries: v }))} />
+        </EditField>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditField label="Headline" required id="field-headline">
             <input
               className="identity-input"
               placeholder="e.g. Beauty & lifestyle creator"
@@ -417,7 +428,7 @@ function ProfileTab({
           </EditField>
         </div>
 
-        <EditField label="Bio" required>
+        <EditField label="Bio" required id="field-bio">
           <textarea
             className="identity-input resize-none"
             rows={4}
@@ -428,12 +439,8 @@ function ProfileTab({
         </EditField>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <EditField label="Country">
-            <input
-              className="identity-input"
-              value={core.country}
-              onChange={(e) => setCore((c) => ({ ...c, country: e.target.value }))}
-            />
+          <EditField label="Country" required id="field-country">
+            <CountrySelect value={core.country} onChange={(v) => setCore((c) => ({ ...c, country: v }))} />
           </EditField>
           <EditField label="City">
             <input
@@ -524,7 +531,9 @@ function ProfileTab({
           </div>
         </div>
 
-        <ExternalLinksSection social={social} setSocial={setSocial} />
+        <div id="field-social" className="scroll-mt-24">
+          <ExternalLinksSection social={social} setSocial={setSocial} />
+        </div>
 
         <div className="flex justify-end">
           <IdentityButton onClick={onSave} loading={saving}>
@@ -548,6 +557,7 @@ function ExternalLinksSection({
     platform: "instagram" as IdentitySocialPlatform,
     handle: "",
     url: "",
+    followers: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -561,12 +571,17 @@ function ExternalLinksSection({
       const res = await fetch("/api/identity/social", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, followers: 0 }),
+        body: JSON.stringify({
+          platform: form.platform,
+          handle: form.handle,
+          url: form.url,
+          followers: Math.max(0, Math.floor(Number(form.followers) || 0)),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to add link");
       setSocial((prev) => [json.account, ...prev.filter((a) => a.platform !== form.platform)]);
-      setForm({ platform: "instagram", handle: "", url: "" });
+      setForm({ platform: "instagram", handle: "", url: "", followers: "" });
       toast.success("Link added");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add link");
@@ -583,12 +598,12 @@ function ExternalLinksSection({
   return (
     <div className="border-t border-black/[0.06] pt-4">
       <p className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9388]">
-        Social / external links
+        Social media accounts <span className="text-[#D6480F]">*</span>
       </p>
       <p className="mb-3 text-[12px] text-[#8B8579]">
-        Add public channels people can use to find your work.
+        Add at least one account where you post (TikTok, Instagram, YouTube…). Brands review these before accepting you.
       </p>
-      <div className="grid gap-2 sm:grid-cols-[140px_1fr_1fr_auto]">
+      <div className="grid gap-2 sm:grid-cols-[130px_1fr_1fr_110px_auto]">
         <select
           className="identity-input"
           value={form.platform}
@@ -611,6 +626,13 @@ function ExternalLinksSection({
           placeholder="Profile URL"
           value={form.url}
           onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+        />
+        <input
+          className="identity-input"
+          inputMode="numeric"
+          placeholder="Followers"
+          value={form.followers}
+          onChange={(e) => setForm((f) => ({ ...f, followers: e.target.value.replace(/[^0-9]/g, "").slice(0, 10) }))}
         />
         <IdentityButton size="sm" onClick={addAccount} loading={saving} className="sm:w-auto">
           <Plus className="h-3.5 w-3.5" /> Add
@@ -648,20 +670,22 @@ function ExternalLinksSection({
 function EditField({
   label,
   required,
+  id,
   children,
 }: {
   label: string;
   required?: boolean;
+  id?: string;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
+    <div className="block scroll-mt-24" id={id}>
       <span className="mb-1.5 block text-[12px] font-medium text-[#7C766B]">
         {label}
         {required ? <span className="ml-0.5 text-[#D6480F]">*</span> : null}
       </span>
       {children}
-    </label>
+    </div>
   );
 }
 

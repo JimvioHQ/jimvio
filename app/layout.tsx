@@ -22,6 +22,7 @@ import { CommandCenterLoader } from "@/components/command-center/CommandCenterLo
 import { UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
 import { normalizeSiteLocale } from "@/lib/i18n/site-locale";
 import { SiteLocaleProvider } from "@/components/providers/site-locale-provider";
+import { CountrySignalBeacon } from "@/components/geo/CountrySignalBeacon";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 
 export const metadata: Metadata = constructMetadata();
@@ -102,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </ThemeProvider>
         <ServiceWorkerRegister />
         <ChunkReloadGuard />
+        <CountrySignalBeacon />
         <Analytics />
         <SpeedInsights />
       </body>

@@ -18,7 +18,7 @@ import {
   REFUND_ROWS,
   SELLER_FEES_ROWS,
   SHOPIFY_COMMERCE_ITEMS,
-  UGC_JOIN_ACKNOWLEDGEMENTS,
+  UGC_TERM_SUMMARIES,
 } from "@/lib/legal/content-data";
 import { LEGAL_CONTACT } from "@/lib/legal/catalog";
 import {
@@ -298,12 +298,17 @@ export function UgcClippingDocument() {
         <LegalList items={CAMPAIGN_CREATOR_OBLIGATIONS} />
       </LegalSection>
 
-      <LegalSection id="join-acknowledgements" title="Join Acknowledgements">
+      <LegalSection id="join-acknowledgements" title="The terms you accept when you join">
         <LegalParagraph>
-          When joining a campaign, creators acknowledge the following policy areas used by Jimvio’s
-          campaign join flow:
+          Joining a campaign means you accept all of the following. Each one is short on purpose.
         </LegalParagraph>
-        <LegalList items={UGC_JOIN_ACKNOWLEDGEMENTS} />
+        {UGC_TERM_SUMMARIES.map((term) => (
+          <div key={term.id} id={`term-${term.id}`} className="scroll-mt-24">
+            <LegalParagraph>
+              <strong>{term.title}.</strong> {term.body}
+            </LegalParagraph>
+          </div>
+        ))}
       </LegalSection>
 
       <LegalSection id="related" title="Related Policies">

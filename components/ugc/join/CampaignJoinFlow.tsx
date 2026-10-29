@@ -28,6 +28,12 @@ import { useLocale } from "@/context/LocaleContext";
 import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
 import { campaignAgreementLines } from "@/lib/ugc/campaign-detail";
 import { createClient } from "@/lib/supabase/client";
+import type { CreatorProfileCompletion } from "@/lib/identity/creator-profile-completion";
+import {
+  EligibilityDetails,
+  type EligibilityCountry,
+  type EligibilityCountryPolicy,
+} from "@/components/ugc/join/EligibilityDetails";
 import {
   loginUrlForReturnPath,
   ugcCampaignJoinPath,
@@ -38,6 +44,9 @@ type JoinContext = {
   joinConfig: JoinConfig;
   eligibility: JoinEligibilityResult;
   participant: { status: string | null; applicationStatus?: string | null };
+  profileCompletion: CreatorProfileCompletion | null;
+  country: EligibilityCountry;
+  countryPolicy: EligibilityCountryPolicy;
 };
 
 export function CampaignJoinFlow() {
@@ -53,7 +62,9 @@ export function CampaignJoinFlow() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [understood, setUnderstood] = useState(false);
   const [success, setSuccess] = useState<null | { title: string; body: string; href: string }>(null);
-  const [termsAccepted, setTermsAccepted] = useState<Record<string, boolean>>({});
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [profileGate, setProfileGate] = useState<CreatorProfileCompletion["missing"] | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -94,6 +105,9 @@ export function CampaignJoinFlow() {
             status: pJson.status,
             applicationStatus: pJson.applicationStatus,
           },
+          profileCompletion: eJson.profileCompletion ?? null,
+          country: eJson.country ?? null,
+          countryPolicy: eJson.countryPolicy ?? null,
         });
         if (pJson.status === "accepted") {
           router.replace(`/ugc/${id}/`);
@@ -125,7 +139,8 @@ export function CampaignJoinFlow() {
   }, [confirmOpen, submitting]);
 
   const terms = ctx?.joinConfig?.terms ?? DEFAULT_TERMS;
-  const allTermsAccepted = terms.every((term) => termsAccepted[term]);
+  const allTermsAccepted = termsAccepted;
+  const profileIncomplete = ctx?.profileCompletion ? !ctx.profileCompletion.complete : false;
   const fields = ctx?.joinConfig?.applicationFields ?? [];
   const needsApplication =
     ctx?.joinMode === "application" || ctx?.joinMode === "hybrid";
@@ -138,6 +153,7 @@ export function CampaignJoinFlow() {
 
   const canOpenConfirm =
     allTermsAccepted &&
+    !profileIncomplete &&
     !ctx?.eligibility?.blocked &&
     (!needsApplication || requiredFieldsMet);
 
@@ -158,6 +174,11 @@ export function CampaignJoinFlow() {
       const json = await res.json().catch(() => ({}));
       if (res.status === 401) {
         router.replace(loginUrlForReturnPath(ugcCampaignJoinPath(id)));
+        return;
+      }
+      if (res.status === 403 && json.needsProfile) {
+        setConfirmOpen(false);
+        setProfileGate(Array.isArray(json.missing) ? json.missing : []);
         return;
       }
       if (!res.ok) {
@@ -315,7 +336,38 @@ export function CampaignJoinFlow() {
                     t("notEligible")}
                 </p>
               ) : null}
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowDetails((v) => !v)}
+                  aria-expanded={showDetails}
+                  className="text-[12.5px] font-semibold text-[#FF5A1F] hover:underline"
+                >
+                  {showDetails
+                    ? "Hide details"
+                    : ctx.eligibility.reasons.some((r) => !r.met)
+                      ? `See what's missing (${ctx.eligibility.reasons.filter((r) => !r.met).length})`
+                      : "See all requirements"}
+                </button>
+                <Link href={`/ugc/${id}/eligibility`} className="text-[12.5px] font-medium text-[#6B7280] hover:underline">
+                  Open full eligibility page
+                </Link>
+              </div>
+              {showDetails ? (
+                <div className="mt-4 border-t border-[#F3F4F6] pt-4">
+                  <EligibilityDetails
+                    eligibility={ctx.eligibility}
+                    profileCompletion={ctx.profileCompletion}
+                    country={ctx.country}
+                    countryPolicy={ctx.countryPolicy}
+                  />
+                </div>
+              ) : null}
             </div>
+
+            {profileIncomplete && ctx.profileCompletion ? (
+              <ProfileGateCard missing={ctx.profileCompletion.missing} />
+            ) : null}
 
             {needsApplication && fields.length > 0 ? (
               <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm space-y-3">
@@ -350,40 +402,29 @@ export function CampaignJoinFlow() {
             ) : null}
 
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[15px] font-bold text-[#111827]">{t("joinTerms")}</h2>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (allTermsAccepted) {
-                      setTermsAccepted({});
-                      return;
-                    }
-                    setTermsAccepted(Object.fromEntries(terms.map((term) => [term, true])));
-                  }}
-                  className="shrink-0 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
-                >
-                  {allTermsAccepted ? t("uncheckAllTerms") : t("acceptAllTerms")}
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {terms.map((term) => (
-                  <label
-                    key={term}
-                    className="flex cursor-pointer items-start gap-2 rounded-xl border border-[#EEF0F2] px-3 py-2.5"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={Boolean(termsAccepted[term])}
-                      onChange={(e) =>
-                        setTermsAccepted((p) => ({ ...p, [term]: e.target.checked }))
-                      }
-                      className="mt-0.5 rounded border-[#D1D5DB]"
-                    />
-                    <span className="text-[13px] text-[#374151]">{term}</span>
-                  </label>
-                ))}
-              </div>
+              <h2 className="text-[15px] font-bold text-[#111827]">{t("joinTerms")}</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-[#374151]">
+                By joining, you agree to follow this brief, post only original content you have the rights to, mark it as
+                an ad, and get paid only for approved work and real views.{" "}
+                <Link href="/legal/ugc-clipping#join-acknowledgements" target="_blank" className="font-semibold text-[#FF5A1F] hover:underline">
+                  Read the terms
+                </Link>
+              </p>
+              <p className="mt-1.5 text-[11.5px] text-[#9CA3AF]">Covers: {terms.join(" · ")}</p>
+              <button
+                type="button"
+                onClick={() => setTermsAccepted((v) => !v)}
+                aria-pressed={allTermsAccepted}
+                className={cn(
+                  "mt-3 inline-flex h-10 items-center gap-2 rounded-full px-5 text-[13px] font-bold transition-colors",
+                  allTermsAccepted
+                    ? "bg-emerald-600 text-white"
+                    : "border-2 border-[#FF5A1F] bg-white text-[#FF5A1F] hover:bg-[#FFF4EF]",
+                )}
+              >
+                <Check className="h-4 w-4" aria-hidden="true" />
+                {allTermsAccepted ? "Terms accepted" : t("acceptAllTerms")}
+              </button>
             </div>
 
             {reqLines.length > 0 ? (
@@ -541,6 +582,71 @@ export function CampaignJoinFlow() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {profileGate ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          role="presentation"
+          onClick={() => setProfileGate(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ugc-profile-gate-title"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl"
+          >
+            <ProfileGateCard missing={profileGate} titleId="ugc-profile-gate-title" />
+            <button
+              type="button"
+              onClick={() => setProfileGate(null)}
+              className="mt-3 h-10 w-full rounded-full border border-[#E5E7EB] text-[13px] font-semibold text-[#374151]"
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ProfileGateCard({
+  missing,
+  titleId,
+}: {
+  missing: CreatorProfileCompletion["missing"];
+  titleId?: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-[#FFD9C7] bg-[#FFF7F2] p-5">
+      <h2 id={titleId} className="text-[15px] font-bold text-[#7C2D12]">
+        Complete your creator profile to join
+      </h2>
+      <p className="mt-1 text-[12.5px] text-[#9A3412]">
+        Brands see this profile when you apply. {missing.length ? `${missing.length} thing${missing.length === 1 ? "" : "s"} left:` : ""}
+      </p>
+      {missing.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {missing.map((m) => (
+            <li key={m.id} className="flex items-start gap-2 text-[13px] text-[#111827]">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" aria-hidden="true" />
+              <span>
+                <Link href={`/identity/edit#field-${m.id}`} className="font-semibold hover:underline">
+                  {m.label}
+                </Link>
+                {m.hint ? <span className="block text-[12px] text-[#6B7280]">{m.hint}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <Link
+        href={`/identity/edit?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/ugc")}`}
+        className="mt-4 flex h-11 w-full items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white hover:opacity-90"
+      >
+        Complete my profile
+      </Link>
     </div>
   );
 }

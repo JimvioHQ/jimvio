@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Pill } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
 import { SubmissionReviewDrawer } from "@/components/ugc/workspace/SubmissionReviewDrawer";
+import { CampaignCheckerPanel } from "@/components/ugc/verification/CampaignCheckerPanel";
 import { useLocale } from "@/context/LocaleContext";
 
 type SubmissionRow = {
@@ -238,6 +239,7 @@ export default function CampaignSubmissionsPage() {
       }
     >
       <div className="space-y-4">
+        <CampaignCheckerPanel campaignId={campaignId} onOpen={(sid) => setReviewId(sid)} />
         <div className="grid gap-3 sm:grid-cols-[1fr_0.9fr]">
           <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
             <div>

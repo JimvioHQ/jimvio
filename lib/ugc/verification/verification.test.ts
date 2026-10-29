@@ -75,3 +75,39 @@ describe("payable views", () => {
     assert.equal(acceptedViewsCap({ verification_status: "unsupported", baseline_views: null, latest_views: null }), null);
   });
 });
+
+import { summarizeCampaignPerformance, verdictFor } from "./campaign-performance.ts";
+
+describe("campaign checker summary", () => {
+  it("separates real, held and unverified posts", () => {
+    const subs = [
+      { id: "a", status: "pending", platform: "youtube", verification_status: "verified", verification_flags: [], baseline_views: 100, latest_views: 5100 },
+      { id: "b", status: "pending", platform: "tiktok", verification_status: "verified", verification_flags: ["view_spike"], baseline_views: 0, latest_views: 90000 },
+      { id: "c", status: "pending", platform: "instagram", verification_status: "unsupported" },
+      { id: "d", status: "rejected", platform: "youtube", verification_status: "verified", verification_flags: [], baseline_views: 0, latest_views: 999999 },
+    ];
+    const r = summarizeCampaignPerformance(subs, { paymentModel: "per_views", ratePer1k: 2, heldUsd: 100 });
+    assert.equal(r.total, 3);
+    assert.equal(r.realViews, 5000);
+    assert.equal(r.heldViews, 90000);
+    assert.equal(r.estimatedCostUsd, 10);
+    assert.equal(r.counts.manual, 1);
+    assert.match(r.summary, /on hold/);
+    assert.equal(verdictFor({ id: "x", status: "pending", platform: "youtube" }), "checking");
+  });
+});
+
+import { evaluateCreatorProfileCompletion } from "../../identity/creator-profile-completion.ts";
+
+describe("creator profile completion", () => {
+  it("lists every missing creator field with a hint", () => {
+    const r = evaluateCreatorProfileCompletion({ fullName: "Ana", headline: "Music creator", bio: "Hi" });
+    assert.equal(r.complete, false);
+    assert.deepEqual(r.missing.map((m) => m.id), ["username", "categories", "country", "social"]);
+    assert.ok(r.missing.every((m) => m.hint));
+    const ok = evaluateCreatorProfileCompletion({
+      fullName: "Ana", username: "ana", categories: ["Music"], headline: "x", bio: "y", country: "RW", socialCount: 1,
+    });
+    assert.equal(ok.complete, true);
+  });
+});

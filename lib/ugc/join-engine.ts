@@ -183,8 +183,10 @@ export function evaluateJoinEligibility(
       met: false,
       detail:
         countryDecision === "unknown"
-          ? "Profile country is not verified"
-          : "Outside the campaign country list",
+          ? profile?.vpnSuspected
+            ? "Turn off VPN or proxy so Jimvio can confirm your real country"
+            : "Jimvio has not confirmed your real country yet"
+          : "Your confirmed country is not on this campaign's list",
     });
   }
 

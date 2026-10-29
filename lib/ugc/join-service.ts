@@ -16,6 +16,7 @@ import {
   notifyVendorNewApplication,
 } from "@/lib/ugc/join-notifications";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { trustedCountry } from "@/lib/geo/country-trust";
 import type { UGCCampaign } from "@/types/ugc";
 
 export type CampaignJoinRow = UGCCampaign & {
@@ -40,8 +41,27 @@ export async function loadCreatorProfile(
     .eq("user_id", userId)
     .maybeSingle();
 
-  const { data: profileRow } = await db.from("profiles").select("country").eq("id", userId).maybeSingle();
-  const country = normalizeCountryCode(profileRow?.country) ?? profileRow?.country?.trim() ?? null;
+  const [{ data: profileRow }, { data: identityRow }] = await Promise.all([
+    db.from("profiles").select("country").eq("id", userId).maybeSingle(),
+    (db as unknown as { from: (t: string) => ReturnType<SupabaseClient["from"]> })
+      .from("jip_identity")
+      .select("verified_country, country_confidence, country_vpn_suspected")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  const declaredCountry = normalizeCountryCode(profileRow?.country) ?? profileRow?.country?.trim() ?? null;
+  const identityCountry = (identityRow ?? {}) as {
+    verified_country?: string | null;
+    country_confidence?: string | null;
+    country_vpn_suspected?: boolean | null;
+  };
+  // Only a country Jimvio has confirmed counts for eligibility; typing one is not enough.
+  const country = trustedCountry(identityCountry);
+  const countryMeta = {
+    declaredCountry,
+    countryConfidence: (identityCountry.country_confidence ?? "none") as CreatorProfileSnapshot["countryConfidence"],
+    vpnSuspected: Boolean(identityCountry.country_vpn_suspected),
+  };
 
   if (!inf || !isCreatorWorkspaceReady(completion, inf)) {
     return {
@@ -52,6 +72,7 @@ export async function loadCreatorProfile(
       accountAgeDays: null,
       isVerified: false,
       country,
+      ...countryMeta,
     };
   }
 
@@ -72,6 +93,7 @@ export async function loadCreatorProfile(
       : null,
     isVerified: Boolean(inf.is_verified),
     country,
+    ...countryMeta,
   };
 }
 
