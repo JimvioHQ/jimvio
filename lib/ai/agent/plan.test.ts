@@ -14,16 +14,14 @@ import {
 const root = process.cwd();
 
 describe("jimvio ai planner", () => {
-  it("keeps assist mode behind confirmation and lets an allowed agent mode continue", () => {
+  it("runs an explicit community request right away, whatever the saved mode", () => {
     const message = "Create a community named Northstar, description: A place to learn";
-    const assist = planAgentTask(message, { mode: "assist" });
-    assert.equal(assist?.steps[0]?.tool, "community.create");
-    assert.equal(assist?.steps[0]?.needsConfirmation, true);
-    assert.equal(assist?.steps.some((step) => step.tool === "community.configure"), false);
-
-    const agent = planAgentTask(message, { mode: "agent", scopes: ["communities"] });
-    assert.equal(agent?.steps[0]?.needsConfirmation, false);
-    assert.match(agent?.summary ?? "", /allowed Jimvio AI to run/);
+    for (const mode of ["assist", "agent"] as const) {
+      const plan = planAgentTask(message, { mode });
+      assert.equal(plan?.steps[0]?.tool, "community.create");
+      assert.equal(plan?.steps[0]?.needsConfirmation, false);
+      assert.match(plan?.summary ?? "", /Done/);
+    }
   });
 
   it("plans channels, rules, and category without inventing extra tools", () => {
@@ -134,10 +132,10 @@ describe("jimvio ai action contract", () => {
     assert.match(hook, /loadCopilotSession/);
     assert.match(hook, /saveCopilotSession/);
     assert.equal(hook.includes("tools:"), false);
-    assert.match(experience, /aria-pressed=\{agentMode === "assist"\}/);
-    assert.match(experience, /aria-pressed=\{agentMode === "agent"\}/);
-    assert.match(experience, /Create communities without asking/);
-    assert.match(experience, /flex-wrap/);
+    // Jimvio AI is always ready: no mode switch and no action-history panel.
+    assert.equal(experience.includes("agentMode"), false);
+    assert.equal(experience.includes("No Jimvio AI actions are recorded yet"), false);
+    assert.equal(experience.includes("/api/ai/actions"), false);
     assert.match(experience, /focus-visible:ring-2/);
     assert.equal(server.includes("ensureWallet"), false);
     assert.match(server, /eq\("owner_id", userId\)/);

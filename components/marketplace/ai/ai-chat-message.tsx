@@ -9,7 +9,6 @@ import {
   RefreshCw,
   ThumbsUp,
   ThumbsDown,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
@@ -42,17 +41,21 @@ export interface AiChatMessageData {
 
 function ThinkingBubble() {
   return (
-    <div className="inline-flex items-center gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] px-4 py-3" role="status" aria-live="polite">
-      <div className="flex items-center gap-1" aria-hidden="true">
-        {[0, 120, 240].map((delay) => (
+    <div
+      className="inline-flex items-center gap-2.5 rounded-2xl rounded-tl-md border border-[#FFE0D1] bg-[#FFFDFB] px-4 py-3 jv-ai-rise"
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-end gap-1" aria-hidden="true">
+        {[0, 160, 320].map((delay) => (
           <span
             key={delay}
-            className="size-1.5 rounded-full animate-bounce motion-reduce:animate-none"
-            style={{ background: JIMVIO_ORANGE, animationDelay: `${delay}ms` }}
+            className="size-2 rounded-full animate-bounce motion-reduce:animate-none"
+            style={{ background: JIMVIO_ORANGE, animationDelay: `${delay}ms`, animationDuration: "900ms" }}
           />
         ))}
       </div>
-      <span className="text-[12px] font-medium text-[var(--color-text-muted)]">Jimvio AI is preparing an answer…</span>
+      <span className="text-[12px] font-medium text-[var(--color-text-muted)]">Jimvio AI is typing…</span>
     </div>
   );
 }
@@ -99,7 +102,18 @@ export function AiChatMessage({
           )}
           style={msg.role === "user" ? { background: JIMVIO_ORANGE } : undefined}
         >
-          {msg.role === "user" ? "You" : <Sparkles className="size-3.5" />}
+          {msg.role === "user" ? (
+            "You"
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src="/hero/jimvio-ai-mascot-cutout.png"
+              alt=""
+              width={32}
+              height={32}
+              className={cn("size-full object-contain p-0.5", msg.thinking && "animate-pulse motion-reduce:animate-none")}
+            />
+          )}
         </AvatarFallback>
       </Avatar>
 
@@ -114,7 +128,7 @@ export function AiChatMessage({
         {visibleContent.trim() && (
           <div
             className={cn(
-              "rounded-xl px-4 py-3",
+              "rounded-xl px-4 py-3 jv-ai-rise",
               msg.role === "user"
                 ? "text-white"
                 : "border border-[#FFE0D1] bg-[#FFFDFB] text-[var(--color-text-secondary)]"

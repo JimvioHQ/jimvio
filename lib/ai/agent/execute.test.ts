@@ -49,14 +49,12 @@ describe("jimvio ai execution", () => {
     assert.equal(signedOut.calls.create, 0);
 
     const { ports, calls } = harness();
-    const preview = await runAgentPlan({
+    const done = await runAgentPlan({
       message: "Create a community named North",
-      confirm: true,
       ports,
     });
-    assert.equal(preview.handled && preview.status, "awaiting_confirmation");
-    assert.match(preview.handled ? preview.content : "", /Nothing has been changed yet/);
-    assert.equal(calls.create, 0);
+    assert.equal(done.handled && done.status, "completed");
+    assert.equal(calls.create, 1);
   });
 
   it("creates once after confirmation and does not create again on replay", async () => {
@@ -112,10 +110,11 @@ describe("jimvio ai execution", () => {
     const stored = store.get(executionId);
     assert.ok(stored);
     stored.userId = "user-2";
+    const before = calls.create;
     const foreign = await runAgentPlan({ executionId, confirm: true, ports });
     assert.equal(foreign.handled && foreign.status, "refused");
     assert.match(foreign.handled ? foreign.content : "", /different account/);
-    assert.equal(calls.create, 0);
+    assert.equal(calls.create, before);
 
     const poisoned: StoredAgentExecution = {
       id: "ai:user-1:bad",
@@ -130,7 +129,7 @@ describe("jimvio ai execution", () => {
     await ports.saveExecution(poisoned);
     const refused = await runAgentPlan({ executionId: poisoned.id, confirm: true, ports });
     assert.equal(refused.handled && refused.status, "failed");
-    assert.equal(calls.create, 0);
+    assert.equal(calls.create, before);
   });
 
   it("does not move money, read another user, or echo a secret", async () => {

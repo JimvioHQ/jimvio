@@ -2,6 +2,8 @@
 
 import {
   BarChart3,
+  CreditCard,
+  Trash2,
   Calendar,
   FileText,
   Flag,
@@ -45,6 +47,8 @@ const ICONS: Record<string, LucideIcon> = {
   puzzle: Puzzle,
   scroll: ScrollText,
   settings: Settings,
+  card: CreditCard,
+  trash: Trash2,
 };
 
 export function ownerSectionIcon(id: OwnerConsoleSectionId): LucideIcon {

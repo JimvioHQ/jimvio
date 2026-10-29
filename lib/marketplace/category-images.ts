@@ -5,6 +5,8 @@ export const CATEGORY_IMAGE_BASE = "/images/categories/";
 const PHYSICAL_SLUG_TO_FILE: Record<string, string> = {
   electronics: "Consumer Electronics.png",
   fashion: "Women's Clothing.png",
+  "womens-clothing": "Women's Clothing.png",
+  "mens-clothing": "Men's Clothing.png",
   "home-living": "Home, Garden & Furniture.png",
   "health-beauty": "Health, Beauty & Hair.png",
   "sports-outdoors": "Sports & Outdoors.png",
@@ -26,12 +28,14 @@ const CATEGORY_IMAGE_MAP: { keywords: string[]; file: string }[] = [
   { keywords: ["home improvement", "tool", "hardware", "diy", "repair", "drill", "saw", "plumbing", "electrical"], file: "Home Improvement.png" },
   { keywords: ["home", "garden", "furniture", "kitchen", "living", "household", "plant", "sofa", "cookware", "bedding", "decor", "lamp", "curtain", "dining"], file: "Home, Garden & Furniture.png" },
   { keywords: ["jewel", "watch", "ring", "earring", "necklace", "bracelet", "accessory", "pendant", "gemstone"], file: "Jewelry & Watches.png" },
+  // "women" contains "men", so women's keywords are checked before men's.
+  { keywords: ["women", "dress", "blouse", "skirt", "leggings", "lingerie"], file: "Women's Clothing.png" },
   { keywords: ["men", "shirt", "jacket", "trouser", "pant", "coat", "outerwear", "suit", "hoodie", "sweatshirt"], file: "Men's Clothing.png" },
+  { keywords: ["tops", "cloth", "wear", "apparel"], file: "Women's Clothing.png" },
   { keywords: ["pet", "dog", "cat", "animal", "aquarium", "bird", "hamster"], file: "Pet Supplies.png" },
   { keywords: ["phone", "smartphone", "mobile", "tablet", "iphone", "android", "charger", "case", "screen protector"], file: "Phones & Accessories.png" },
   { keywords: ["sport", "fitness", "gym", "outdoor", "camping", "basketball", "soccer", "cycling", "running", "yoga", "hiking"], file: "Sports & Outdoors.png" },
   { keywords: ["toy", "kids", "children", "baby", "infant", "game", "puzzle", "doll", "lego"], file: "Toys, Kids & Babies.png" },
-  { keywords: ["women", "dress", "tops", "blouse", "skirt", "cloth", "wear", "leggings", "lingerie", "apparel"], file: "Women's Clothing.png" },
 ];
 
 const DEFAULT_CATEGORY_FILE = "Consumer Electronics.png";

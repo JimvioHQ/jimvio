@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createElement, useMemo } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   OWNER_CONSOLE_HUB,
@@ -53,6 +53,10 @@ export function OwnerConsoleSidebar({
   ) => string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const currentTab = searchParams.get("tab");
+  const communities = useOwnerConsoleCommunities();
   const mobileOpen = useOwnerConsoleUiStore((s) => s.sidebarMobileOpen);
   const expanded = useOwnerConsoleUiStore((s) => s.expandedSections);
   const toggleNavSection = useOwnerConsoleUiStore((s) => s.toggleNavSection);
@@ -86,8 +90,8 @@ export function OwnerConsoleSidebar({
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 border-b border-[#E5E7EB] px-4 py-3.5">
         {isManage && communitySlug ? (
-          <div className="flex items-center gap-3">
-            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-lg bg-[#F3F4F6] ring-1 ring-[#E5E7EB]">
+          <div className="relative flex items-center gap-3">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-white ring-1 ring-[#E5E7EB]">
               {communityAvatarUrl ? (
                 <Image
                   src={communityAvatarUrl}
@@ -103,20 +107,43 @@ export function OwnerConsoleSidebar({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-[#111827]">
+              <p className="truncate text-[14px] font-semibold text-[#111827]">
                 {communityName ?? "Community"}
               </p>
-              <p className="text-[11px] font-medium text-[#9CA3AF]">
+              <p className="text-[12px] font-medium text-[#6B7280]">
                 {ROLE_LABELS[role]}
               </p>
             </div>
+            {communities.length > 1 ? (
+              <>
+                <ChevronsUpDown className="h-4 w-4 shrink-0 text-[#9CA3AF]" aria-hidden />
+                <select
+                  value={communitySlug}
+                  onChange={(e) => {
+                    const slug = e.target.value;
+                    if (slug && slug !== communitySlug) {
+                      setMobileOpen(false);
+                      router.push(`/communities/${encodeURIComponent(slug)}/manage`);
+                    }
+                  }}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                  aria-label="Switch community"
+                >
+                  {communities.map((c) => (
+                    <option key={c.id} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
             <button
               type="button"
               aria-label="Close menu"
               onClick={() => setMobileOpen(false)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] lg:hidden"
+              className="relative z-10 inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6] lg:hidden"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         ) : (
@@ -156,14 +183,14 @@ export function OwnerConsoleSidebar({
             section.id === "overview";
           return (
             <div key={section.id}>
-              {section.label && section.id !== "overview" ? (
+              {section.label ? (
                 <button
                   type="button"
                   onClick={() =>
                     section.collapsible && toggleNavSection(section.id)
                   }
                   className={cn(
-                    "mb-1 flex w-full items-center justify-between px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[#9CA3AF]",
+                    "mb-1 mt-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wider text-[#9CA3AF]",
                     section.collapsible &&
                       "rounded-lg py-1 hover:bg-[#F3F4F6] hover:text-[#6B7280]"
                   )}
@@ -185,13 +212,19 @@ export function OwnerConsoleSidebar({
                   {items.map((id) => {
                     const item = OWNER_NAV_ITEMS[id];
                     const href = communitySlug
-                      ? hrefSection(item.section)
+                      ? hrefSection(item.section, item.query)
                       : OWNER_CONSOLE_HUB;
+                    const basePath = href.split("?")[0];
+                    const onPath =
+                      pathname === basePath || pathname.startsWith(`${basePath}/`);
                     const active =
                       id === "overview"
                         ? isOverviewActive(pathname, consoleBase, communitySlug)
-                        : pathname === href ||
-                          pathname.startsWith(`${href}/`);
+                        : item.query?.tab
+                          ? onPath && currentTab === item.query.tab
+                          : id === "settings"
+                            ? onPath && currentTab !== "danger"
+                            : onPath;
                     const count = badgeValue(item.badgeKey);
                     return (
                       <Link
@@ -201,22 +234,28 @@ export function OwnerConsoleSidebar({
                         title={item.label}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "group relative flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors",
+                          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-colors lg:py-2",
                           active
-                            ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
-                            : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]"
+                            ? "bg-[#FF5A1F]/10 font-semibold text-[#FF5A1F]"
+                            : id === "danger"
+                              ? "text-[#DC2626] hover:bg-red-50"
+                              : "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#111827]"
                         )}
                       >
                         {active ? (
                           <span
-                            className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[#FF5A1F]"
+                            className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-[#FF5A1F]"
                             aria-hidden
                           />
                         ) : null}
                         {createElement(ownerSectionIcon(id), {
                           className: cn(
-                            "h-4 w-4 shrink-0",
-                            active ? "text-[#FF5A1F]" : "text-[#9CA3AF]"
+                            "h-[18px] w-[18px] shrink-0",
+                            active
+                              ? "text-[#FF5A1F]"
+                              : id === "danger"
+                                ? "text-[#DC2626]"
+                                : "text-[#6B7280]"
                           ),
                           "aria-hidden": true,
                         })}
@@ -251,7 +290,7 @@ export function OwnerConsoleSidebar({
 
   return (
     <>
-      <aside className="sticky top-0 hidden h-full w-[220px] shrink-0 self-stretch overflow-hidden border-r border-[#E5E7EB] bg-white lg:block">
+      <aside className="sticky top-0 hidden h-full w-[248px] shrink-0 self-stretch overflow-hidden border-r border-[#E5E7EB] bg-white lg:block">
         {navBody}
       </aside>
 
@@ -274,7 +313,7 @@ export function OwnerConsoleSidebar({
         />
         <aside
           className={cn(
-            "relative flex h-full w-[min(280px,88vw)] flex-col border-r border-[#E5E7EB] bg-white shadow-xl transition-transform duration-150 ease-out",
+            "relative flex h-full w-[min(320px,88vw)] flex-col border-r border-[#E5E7EB] bg-white shadow-xl transition-transform duration-150 ease-out",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
           role="dialog"
@@ -310,6 +349,11 @@ function canSeeAnyStaff(role: WorkspaceRole) {
     hasCapability(role, "members.invite") ||
     hasCapability(role, "group.manage")
   );
+}
+
+function useOwnerConsoleCommunities() {
+  const { communities } = useOwnerConsole();
+  return communities ?? [];
 }
 
 /** Sidebar wired to OwnerConsoleContext */

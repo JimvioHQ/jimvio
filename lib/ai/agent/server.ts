@@ -336,6 +336,111 @@ function buildPorts(supabase: SupabaseClient, userId: string, preference: AgentP
         }),
       };
     },
+    searchCommunities: async (query) => {
+      const admin = await adminDb();
+      if (!admin) return { unavailable: "Community search is unavailable right now." };
+      const q = query.replace(/[%_,()]/g, " ").trim().slice(0, 60);
+      let req = admin
+        .from("communities")
+        .select("name, slug, tagline, member_count, is_private, visibility_mode")
+        .eq("is_active", true)
+        .is("archived_at", null)
+        .not("is_private", "is", true)
+        .order("member_count", { ascending: false })
+        .limit(6);
+      if (q) req = req.or(`name.ilike.%${q}%,tagline.ilike.%${q}%,category.ilike.%${q}%`);
+      const { data, error } = await req;
+      if (error) return { unavailable: "Community search is unavailable right now." };
+      return {
+        items: (data ?? [])
+          .filter((c: { visibility_mode?: string | null }) => c.visibility_mode !== "hidden")
+          .map((c: { name: string; slug: string; tagline: string | null; member_count: number | null }) => ({
+            name: redactAgentText(String(c.name)),
+            slug: String(c.slug),
+            members: Number(c.member_count ?? 0) || 0,
+            tagline: c.tagline ? redactAgentText(String(c.tagline)).slice(0, 80) : null,
+          })),
+      };
+    },
+    updateProfile: async (input) => {
+      const patch: Record<string, string> = {};
+      if (input.fullName) patch.full_name = input.fullName.slice(0, 80);
+      if (input.bio) patch.bio = input.bio.slice(0, 300);
+      if (!Object.keys(patch).length) return { ok: false, error: "Nothing to change.", status: 400 };
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", userId)
+        .select("username")
+        .maybeSingle();
+      if (error) return { ok: false, error: "Could not update your profile.", status: 500 };
+      return { ok: true, username: (data as { username?: string | null } | null)?.username ?? null };
+    },
+    createPost: async (input) => {
+      const body = input.body.trim();
+      if (!body) return { ok: false, error: "The post text is empty.", status: 400 };
+      // Communities the member owns or belongs to (active).
+      const [{ data: owned }, { data: memberships }] = await Promise.all([
+        supabase.from("communities").select("id, name, slug").eq("owner_id", userId).eq("is_active", true).is("archived_at", null).limit(50),
+        supabase
+          .from("community_memberships")
+          .select("community_id, communities!inner(id, name, slug, is_active, archived_at)")
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .limit(100),
+      ]);
+      const pool = new Map<string, { id: string; name: string; slug: string }>();
+      for (const c of (owned ?? []) as Array<{ id: string; name: string; slug: string }>) pool.set(c.id, c);
+      type JoinedCommunity = { id: string; name: string; slug: string; is_active: boolean | null; archived_at: string | null };
+      for (const m of (memberships ?? []) as unknown as Array<{ communities: JoinedCommunity | JoinedCommunity[] | null }>) {
+        const c = Array.isArray(m.communities) ? m.communities[0] : m.communities;
+        if (c && c.is_active !== false && !c.archived_at) pool.set(c.id, { id: c.id, name: c.name, slug: c.slug });
+      }
+      const all = [...pool.values()];
+      if (!all.length) {
+        return { ok: false, error: "Join or create a community first — posts are published inside a community.", status: 400 };
+      }
+      let target = all.length === 1 ? all[0] : undefined;
+      if (input.community) {
+        const want = input.community.toLowerCase();
+        target =
+          all.find((c) => c.name.toLowerCase() === want || c.slug.toLowerCase() === want) ??
+          all.find((c) => c.name.toLowerCase().includes(want));
+        if (!target) {
+          return {
+            ok: false,
+            error: `You are not a member of “${input.community}”. Your communities: ${all.map((c) => c.name).join(", ")}.`,
+            status: 404,
+          };
+        }
+      }
+      if (!target) {
+        return {
+          ok: false,
+          error: `Which community should I post in? Your communities: ${all.map((c) => c.name).join(", ")}.`,
+          status: 400,
+        };
+      }
+      // Reuse the regular post endpoint so membership, identity and room
+      // rules are exactly the same as posting by hand.
+      const { POST } = await import("@/app/api/posts/feed/route");
+      const { NextRequest } = await import("next/server");
+      const res = await POST(
+        new NextRequest("http://jimvio.internal/api/posts/feed", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ community_id: target.id, body, is_published: true, audience: "public" }),
+        }),
+      );
+      const data = (await res.json().catch(() => ({}))) as { error?: string; post?: { id?: string } };
+      if (!res.ok) return { ok: false, error: data.error || "Could not publish the post.", status: res.status };
+      const postId = data.post?.id;
+      return {
+        ok: true,
+        communityName: target.name,
+        href: `/communities/${target.slug}/feed${postId ? `?post=${encodeURIComponent(postId)}` : ""}`,
+      };
+    },
     readWallet: async () => {
       const { data, error } = await supabase
         .from("wallets")

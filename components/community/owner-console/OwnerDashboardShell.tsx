@@ -35,6 +35,7 @@ import { hasCapability } from "@/lib/community/workspace/permissions";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import type { OwnerGroupListItem } from "@/lib/community/owner-console/groups";
 import { useOwnerConsole } from "./OwnerConsoleContext";
+import { ManageOverview } from "./ManageOverview";
 
 const METRIC_ICONS: Record<string, LucideIcon> = {
   members: Users,
@@ -309,6 +310,10 @@ export function OwnerDashboardShell({
   }
 
   const isManage = consoleMode === "manage";
+
+  if (isManage) {
+    return <ManageOverview spaces={spaces} spacesLoading={spacesLoading} />;
+  }
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300">

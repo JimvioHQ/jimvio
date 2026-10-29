@@ -39,6 +39,7 @@ export type CommunitySettingsRow = {
   settings: unknown;
   archived_at: string | null;
   updated_at: string | null;
+  created_at?: string | null;
 };
 
 export const COMMUNITY_SETTINGS_SELECT = [
@@ -70,6 +71,7 @@ export const COMMUNITY_SETTINGS_SELECT = [
   "settings",
   "archived_at",
   "updated_at",
+  "created_at",
 ].join(", ");
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -172,6 +174,7 @@ export function mapCommunitySettings(
     archivedAt: row.archived_at,
     config,
     updatedAt: row.updated_at,
+    createdAt: row.created_at ?? null,
     editorialOrigin: readCommunityEditorialOrigin(row.settings),
   };
 }

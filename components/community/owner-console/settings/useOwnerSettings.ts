@@ -47,14 +47,17 @@ export function useOwnerSettings(communityId: string | null) {
   }, [load]);
 
   const save = useCallback(
-    async (patch: Omit<UpdateOwnerSettingsInput, "communityId">) => {
+    async (
+      patch: Omit<UpdateOwnerSettingsInput, "communityId">,
+      sectionOverride?: SettingsSectionId,
+    ) => {
       if (!communityId) return null;
       setSaving(true);
       try {
         const res = await fetch("/api/c/owner/settings", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...patch, communityId, section }),
+          body: JSON.stringify({ ...patch, communityId, section: sectionOverride ?? section }),
         });
         const data = await res.json();
         if (!res.ok) {
