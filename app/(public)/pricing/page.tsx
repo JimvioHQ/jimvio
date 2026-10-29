@@ -52,7 +52,7 @@ export default async function PricingPage() {
   const saleFees = [
     { label: "Products you sell from your own store", value: fees.vendor.platform_commission_percent },
     { label: "Products synced from a connected Shopify store", value: fees.shopify.platform_commission_percent },
-    { label: "Jimvio dropshipping catalog products", value: fees.cj.platform_commission_percent },
+    { label: "Products from the Jimvio catalog", value: fees.cj.platform_commission_percent },
   ];
 
   const withdrawals = Object.entries(WITHDRAWAL_FEE_RULES).map(([method, rule]) => ({

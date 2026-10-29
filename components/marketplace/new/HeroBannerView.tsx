@@ -3,7 +3,7 @@
 import { useState, useEffect, type KeyboardEvent, type MouseEvent } from "react";
 import {
   Flame, Zap, Star,
-  Crown, ShoppingCart, Eye, Award,
+  Crown, ShoppingCart, Eye,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -430,7 +430,6 @@ function getSecondaryHeroBadges(product: BannerHeroProduct): { label: string; ic
   const badges: { label: string; icon: LucideIcon }[] = [];
   if (product.is_featured) badges.push({ label: "Featured", icon: Crown });
   if (product.is_flash_deal) badges.push({ label: "Flash Deal", icon: Flame });
-  if ((product.sale_count ?? 0) >= 25) badges.push({ label: "Best Seller", icon: Award });
   return badges;
 }
 

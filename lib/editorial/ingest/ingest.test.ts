@@ -348,8 +348,8 @@ describe("external ingestion", () => {
       note: null,
       markSuccess: true,
     });
-    assert.equal(clampDailyPublishCap(50), 10);
-    assert.equal(clampDailyPublishCap("nope"), 10);
+    assert.equal(clampDailyPublishCap(50), 24);
+    assert.equal(clampDailyPublishCap("nope"), 24);
     const held = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
       source: source({ imageRights: "attributed" }),
@@ -511,7 +511,7 @@ describe("external ingestion", () => {
     assert.equal(allowlist.includes("20261027180000"), true);
     const vercel = read("vercel.json");
     assert.match(vercel, /\/api\/cron\/media-ingest/);
-    assert.match(vercel, /17 \*\/2 \* \* \*/);
+    assert.match(vercel, /17 \* \* \* \*/);
     const cron = read("app/api/cron/media-ingest/route.ts");
     assert.ok(cron.indexOf("assertCronAuthorized") < cron.indexOf("runIngestCycle"));
     assert.equal(cron.includes("CRON_SECRET"), false);

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getFeedClips, getTopVendors } from "@/services/db";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Video, Users, Store } from "lucide-react";
+import { ArrowRight, Video, Users } from "lucide-react";
 
 export default async function InfluencersPage() {
   const clips = await getFeedClips(30).catch(() => []);
@@ -28,12 +28,6 @@ export default async function InfluencersPage() {
             <Button variant="secondary" className="rounded-sm bg-white dark:bg-surface/15 border border-white/20 text-white hover:bg-white dark:bg-surface/25 font-bold gap-2">
               <Video className="h-4 w-4" />
               Explore Products
-            </Button>
-          </Link>
-          <Link href="/vendors">
-            <Button variant="secondary" className="rounded-sm bg-white dark:bg-surface/15 border border-white/20 text-white hover:bg-white dark:bg-surface/25 font-bold gap-2">
-              <Store className="h-4 w-4" />
-              Visit Stores
             </Button>
           </Link>
         </div>

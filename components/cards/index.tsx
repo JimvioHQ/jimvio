@@ -341,11 +341,6 @@ export function ProductCard({
                                 ({formatNumber(p.review_count)})
                             </span>
                         )}
-                        {p.sale_count != null && (
-                            <span className="text-[11px] text-stone-400 ml-auto">
-                                {formatNumber(p.sale_count)} sold
-                            </span>
-                        )}
                     </div>
                 )}
 

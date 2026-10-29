@@ -150,7 +150,6 @@ export function HeroFeaturedShowcase({
 
   const items = useMemo(() => {
     const productItems: ShowcaseItem[] = products.slice(0, 6).map((p) => {
-      const sold = p.sale_count ?? p.sold_count ?? 0;
       return {
         id: `product-${p.id}`,
         kind: "product" as const,
@@ -160,8 +159,8 @@ export function HeroFeaturedShowcase({
         badgeColor: ORANGE,
         image: getImage(p.images) || null,
         title: p.name,
-        meta: `${formatMoney(p.price ?? 0, p.currency)} · ${fmtCount(sold)} sold`,
-        description: sold > 0 ? `${fmtCount(sold)} sold so far.` : "Listed on the Jimvio marketplace.",
+        meta: formatMoney(p.price ?? 0, p.currency),
+        description: "Listed on the Jimvio marketplace.",
         actionLabel: "View product",
         exploreLabel: "All products",
       };

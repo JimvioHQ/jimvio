@@ -759,6 +759,7 @@
 
 "use client";
 
+import { publicSku } from "@/lib/marketplace/public-sku";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -1511,9 +1512,9 @@ export function VariantPickerDialog({
               })()}
               <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
                 {Object.values(selections).join(" · ")}
-                {resolvedVariant.sku && (
-                  <span className="ml-1.5 opacity-50">· SKU: {resolvedVariant.sku}</span>
-                )}
+                {publicSku(resolvedVariant.sku) ? (
+                  <span className="ml-1.5 opacity-50">· SKU: {publicSku(resolvedVariant.sku)}</span>
+                ) : null}
               </p>
             </div>
           )}

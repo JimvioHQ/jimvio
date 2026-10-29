@@ -59,7 +59,7 @@
     },
     {
       "path": "/api/cron/media-ingest",
-      "schedule": "17 */2 * * *"
+      "schedule": "17 * * * *"
     }
   ]
 }

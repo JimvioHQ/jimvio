@@ -661,7 +661,7 @@ function DigitalBadgePills({
     buyer_license_summary?: string | null;
   };
   const affiliate = row.fulfillment_mode === "affiliate_redirect" || row.acquisition_model === "affiliate_only_product";
-  const isBestseller = (product.sale_count ?? 0) >= 100;
+  const isBestseller = false; // public sales counts are hidden
   const hasAffiliate = product.affiliate_enabled;
   const updatePolicy = row.update_policy?.trim();
   const buyerTerms = row.buyer_license_summary?.trim();
@@ -716,7 +716,7 @@ function SocialProofActivityFeed({
   liveViewers,
   saleCount,
 }: { liveViewers: number; saleCount: number }) {
-  if (liveViewers <= 0 && saleCount <= 0) return null;
+  if (liveViewers <= 0) return null;
 
   return (
     <div className="space-y-3">
@@ -732,7 +732,7 @@ function SocialProofActivityFeed({
           </span>
         </div>
       ) : null}
-      {saleCount > 0 ? (
+      {false && saleCount > 0 ? (
         <div
           className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px]"
           style={{
@@ -761,16 +761,8 @@ function VendorSectionCard({
 }: { vendor: VendorPublic; followedVendorIds: string[] }) {
   const rating = Number(vendor.rating ?? 0);
   const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
-  const positiveRate = 99;
-  const responseTime = vendor.response_time ?? "5 min";
-  const fulfilledOrders = vendor.total_sales ?? 0;
-
-  const ordersLabel =
-    fulfilledOrders >= 1000
-      ? `${(fulfilledOrders / 1000).toFixed(fulfilledOrders >= 10000 ? 0 : 1)}k`
-      : fulfilledOrders > 0
-        ? fulfilledOrders.toLocaleString()
-        : "1,200";
+  // Only real store data: no invented rates, download counts or response times.
+  const verified = vendor.verification_status === "verified";
 
   return (
     <div
@@ -818,37 +810,28 @@ function VendorSectionCard({
                   Creator Rating
                 </span>
               )}
-              <span aria-hidden>|</span>
-              <span>{positiveRate}% Positive</span>
-              <span aria-hidden>|</span>
+              {rating > 0 ? <span aria-hidden>|</span> : null}
               <span>
                 {followersLabel}
               </span>
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 text-[11px]">
+        <div className="grid grid-cols-2 gap-2 border-t border-[var(--color-border)] pt-3 text-[11px]">
           <div className="flex items-center gap-1.5">
             <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-500/10 text-emerald-500">
               <CheckCircle2 className="h-3 w-3" />
             </span>
             <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{positiveRate}%</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">Positive Reviews</div>
+              <div className="font-bold text-[var(--color-text-primary)]">{verified ? "Verified" : "Not verified yet"}</div>
+              <div className="text-[var(--color-text-muted)] text-[10px]">Store status</div>
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <Download className="h-4 w-4 text-orange-500 shrink-0" />
+            <Star className="h-4 w-4 text-amber-400 shrink-0" />
             <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{ordersLabel}</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">Downloads</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="h-4 w-4 text-sky-500 shrink-0" />
-            <div>
-              <div className="font-bold text-[var(--color-text-primary)]">{responseTime}</div>
-              <div className="text-[var(--color-text-muted)] text-[10px]">Avg. Response</div>
+              <div className="font-bold text-[var(--color-text-primary)]">{rating > 0 ? rating.toFixed(1) : "New"}</div>
+              <div className="text-[var(--color-text-muted)] text-[10px]">Rating</div>
             </div>
           </div>
         </div>
@@ -1805,18 +1788,8 @@ export function DigitalProductDetail({
                           vendor={vendor}
                           followedVendorIds={followedVendorIds}
                         />
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           {[
-                            {
-                              icon: Download,
-                              value:
-                                (vendor.total_sales ?? 0) >= 1000
-                                  ? `${((vendor.total_sales ?? 0) / 1000).toFixed(1)}k`
-                                  : `${vendor.total_sales ?? 0}`,
-                              label: "Recorded sales",
-                              color: "text-orange-500",
-                              bg: "bg-orange-500/10",
-                            },
                             {
                               icon: Star,
                               value: `${rating.toFixed(1)}`,

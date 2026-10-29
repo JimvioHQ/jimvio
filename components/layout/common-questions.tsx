@@ -151,7 +151,7 @@ const FAQS: Record<FaqTopicId, { q: string; a: string }[]> = {
     },
     {
       q: "How does inventory synchronization work?",
-      a: "Connected supplier listings can sync stock through Jimvio’s supplier inventory sync, including CJ stock updates for linked variants. Older external sales-channel sync pages are no longer the active path.",
+      a: "Connected supplier listings can sync stock through Jimvio’s supplier inventory sync, including stock updates for linked variants. Older external sales-channel sync pages are no longer the active path.",
     },
     {
       q: "How are dropshipping orders fulfilled?",

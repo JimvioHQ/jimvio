@@ -112,11 +112,10 @@ export function CreatorProfileHeader({ identity, stats }: CreatorProfileHeaderPr
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
           {[
             { label: "Followers", value: formatCount(stats.followers) },
             { label: "Following", value: formatCount(stats.following) },
-            { label: "Total sales", value: formatCount(stats.totalSales) },
             { label: "Rating", value: stats.rating.toFixed(1) },
             { label: "Response", value: stats.responseTime },
             { label: "Products", value: formatCount(stats.productsCount) },

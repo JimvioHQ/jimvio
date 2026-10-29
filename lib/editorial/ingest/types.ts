@@ -36,7 +36,7 @@ export type IngestSettings = {
 
 /** Quality target. The desk publishes fewer when a cycle lacks credible stories. */
 export const DAILY_PUBLISH_MIN = 5;
-export const DAILY_PUBLISH_MAX = 10;
+export const DAILY_PUBLISH_MAX = 24;
 
 export function clampDailyPublishCap(value: unknown): number {
   const number = typeof value === "number" ? value : Number(value);

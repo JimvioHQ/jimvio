@@ -3,7 +3,7 @@ import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { runIngestCycle } from "@/lib/editorial/ingest/run";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 /**
  * Authorized ingestion cycle.

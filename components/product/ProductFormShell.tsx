@@ -1044,7 +1044,7 @@ function StepDetails({
                     <Input
                         value={imageUrlInput}
                         onChange={e => setImageUrlInput(e.target.value)}
-                        placeholder="Paste image URL (CJ, Shopify, etc.)"
+                        placeholder="Paste an image URL (https://…)"
                         onKeyDown={e => {
                             if (e.key === "Enter") {
                                 e.preventDefault();
