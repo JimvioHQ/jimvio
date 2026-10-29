@@ -9,6 +9,7 @@ import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { getImage } from "@/lib/utils";
+import { publicSku } from "@/lib/marketplace/public-sku";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -75,7 +76,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     }),
     currency: "USD",
     images: product.images,
-    sku: product.sku,
+    sku: publicSku(product.sku),
     brand: vendor?.business_name ?? null,
     average_rating: averageRating,
     review_count: reviewCount,

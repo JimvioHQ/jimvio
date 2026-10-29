@@ -359,7 +359,6 @@ export function CreatorProfileAboutTab({
         {[
           { label: "Country", value: identity.country },
           { label: "Languages", value: identity.languages.join(", ") },
-          { label: "Total sales", value: stats.totalSales.toLocaleString() },
           { label: "Seller reputation", value: `${stats.rating.toFixed(1)} / 5` },
           { label: "Response time", value: stats.responseTime },
           { label: "Member since", value: identity.joinedAt ? new Date(identity.joinedAt).getFullYear() : "—" },

@@ -28,6 +28,9 @@ import {
   type ShareProductTarget,
 } from "@/components/marketplace/product-share-dialog";
 
+/** Public sales counts stay hidden while Jimvio is young. */
+const SHOW_SALES = false;
+
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -74,12 +77,12 @@ export function ProductTitleBadges({
   showFastShippingBadge?: boolean;
   variant?: "physical" | "digital";
 }) {
-  const sales = product.sale_count ?? product.sold_count ?? 0;
   const isVerifiedSupplier = productHasVerifiedSupplier({
     vendors: vendor,
     source_metadata: product.source_metadata,
   });
-  const isBestseller = sales >= 100;
+  // Sales counts are not shown publicly while Jimvio is young.
+  const isBestseller = false;
   const isTrending = productHasTrendingSignal(product);
   const showFastShipping = variant === "physical" && (showFastShippingBadge || isFreeShipping);
 
@@ -263,7 +266,7 @@ export function SocialProofBar({
     reviewCount: number;
 }) {
     const items: Array<{ icon: React.ReactNode; text: string }> = [];
-    if (saleCount > 0) {
+    if (SHOW_SALES && saleCount > 0) {
         items.push({
             icon: <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />,
             text: `${saleCount.toLocaleString()}+ sold`,

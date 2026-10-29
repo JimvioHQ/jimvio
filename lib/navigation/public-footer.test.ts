@@ -20,7 +20,7 @@ describe("public footer links", () => {
       [
         ["Marketplace", [
           ["Browse Products", "/marketplace"],
-          ["Sellers", "/vendors"],
+          ["Collections", "/marketplace/collections"],
           ["New Arrivals", "/marketplace/collections/new-arrivals"],
           ["Digital Products", "/marketplace/digital"],
           ["Buyer Protection", "/protection"],
@@ -34,8 +34,8 @@ describe("public footer links", () => {
         ]],
         ["Resources", [
           ["Help Center", "/help"],
-          ["Guides", "/guides"],
-          ["Creator Guides", "/help/topics/creators"],
+          ["Getting Started", "/getting-started"],
+          ["Safety Center", "/safety"],
           ["API Docs", "/docs"],
           ["Pricing & Fees", "/pricing"],
         ]],

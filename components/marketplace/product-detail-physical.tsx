@@ -1,5 +1,6 @@
 "use client";
 
+import { publicSku } from "@/lib/marketplace/public-sku";
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -1023,7 +1024,7 @@ function VariantsTable({
           {variants.map((v, i) => {
             const words = (v.name ?? "").split(" ");
             const label = words.slice(prefixLen).join(" ").trim() || v.name;
-            const sku = v.sku?.trim() ? v.sku : "Not available";
+            const sku = publicSku(v.sku) ?? "Not available";
             const stock = resolveStockStatus({
               inventory_quantity: v.inventory_quantity,
               track_inventory: trackInventory,
@@ -1308,7 +1309,7 @@ export function PhysicalProductDetail({
     add("Ships from", shippingDisplay.shipsFrom);
     if (!isUnsourcedDeliveryEstimate(shippingDisplay)) add("Est. delivery", shippingDisplay.deliveryEstimate);
     add("Weight", weightDisplay);
-    add("SKU", product.sku);
+    add("SKU", publicSku(product.sku));
     add("Brand", product.brand ?? cjMeta.brand);
     add("Material", product.material ?? cjMeta.material);
     add("Packaging", cjMeta.package_size);

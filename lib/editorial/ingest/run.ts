@@ -3,6 +3,7 @@ import { externalKey } from "@/lib/editorial/ingest/feed";
 import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
 import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
+import { illustrativeImage } from "@/lib/editorial/ingest/illustrative";
 import { writeGroundedReport } from "@/lib/editorial/ingest/report";
 import { loadCycleContext, lookupProfileNames, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
 import type { CycleCounts, FeedItem, SourceRecord } from "@/lib/editorial/ingest/types";
@@ -213,7 +214,8 @@ async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typ
     lookup: lookupProfileNames,
   });
   const image = await imageTask;
-  const verified = image.status === "verified" ? image : null;
+  // No photo the source lets us use: a licensed, clearly-labelled illustration.
+  const verified = image.status === "verified" ? image : illustrativeImage(source.categories[0], item.title);
   if (!written.ok) return { brief: null, image: verified, reason: written.reason };
   return { brief: written.brief, image: verified, reason: null };
 }

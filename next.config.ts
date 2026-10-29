@@ -61,6 +61,9 @@ const nextConfig: NextConfig = {
         destination: "https://www.jimvio.com/:path*",
         permanent: true,
       },
+      // The public supplier directory was retired; stores stay at /vendors/<slug>.
+      { source: "/vendors", destination: "/marketplace", permanent: true },
+      { source: "/guides", destination: "/getting-started", permanent: true },
       // /deals was a duplicate page with randomised "HOT DEAL" badges and
       // invented B2B figures; the data-driven deals page is canonical.
       {

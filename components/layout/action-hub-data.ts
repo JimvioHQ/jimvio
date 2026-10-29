@@ -261,9 +261,9 @@ export const JOURNEY_PATHS: JourneyPathConfig[] = [
       },
       {
         id: "verified-suppliers",
-        title: "Verified Suppliers",
-        description: "Buy from trusted and verified suppliers.",
-        href: "/vendors",
+        title: "Verified Sellers",
+        description: "See what a verified seller badge means.",
+        href: "/verified",
         icon: "badgeCheck",
       },
       {

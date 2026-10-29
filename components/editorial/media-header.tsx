@@ -50,10 +50,18 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#eceff3] bg-white/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[72px] max-w-[1180px] items-center gap-3 px-4 sm:px-6">
+      <div className="relative isolate bg-[#0f1115]">
+        {/* Living Jimvio gradient: slow drifting light, still for reduced motion. */}
+        <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <span className="jv-media-orb jv-media-orb-a" />
+          <span className="jv-media-orb jv-media-orb-b" />
+          <span className="jv-media-orb jv-media-orb-c" />
+          <span className="jv-media-sheen" />
+        </span>
+      <div className="relative mx-auto flex h-[72px] max-w-[1180px] items-center gap-3 px-4 sm:px-6">
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#172033] lg:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white lg:hidden"
           aria-expanded={open}
           aria-controls="media-sections"
           onClick={() => setOpen((value) => !value)}
@@ -62,12 +70,12 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
           <span className="sr-only">Sections</span>
         </button>
         <Link href="/media" className="flex min-w-0 items-center gap-2.5">
-          <Image src="/jimvio-logo-mark.png" alt="" width={36} height={36} className="h-9 w-9 rounded-[10px]" priority />
+          <Image src="/jimvio-logo-mark.png" alt="" width={36} height={36} className="h-9 w-9 rounded-[10px] shadow-[0_0_24px_rgba(253,80,0,0.55)]" priority />
           <span className="min-w-0 leading-tight">
-            <span className="block text-[16px] font-extrabold tracking-[-0.03em] text-[#141820]">
-              Jimvio <span className="text-[#fd5000]">Media</span>
+            <span className="block text-[16px] font-extrabold tracking-[-0.03em] text-white">
+              Jimvio <span className="bg-gradient-to-r from-[#ff7a2f] to-[#ffc46b] bg-clip-text text-transparent">Media</span>
             </span>
-            <span className="hidden text-[11px] font-medium text-[#8b919c] sm:block">Real Stories. Deeper Insights.</span>
+            <span className="hidden text-[11px] font-medium text-white/60 sm:block">Real Stories. Deeper Insights.</span>
           </span>
         </Link>
         <form action="/media/search" className="mx-auto hidden w-full max-w-[520px] md:block">
@@ -76,9 +84,9 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
             <input
               name="q"
               placeholder="Search for news, articles, guides, reviews..."
-              className="h-10 w-full rounded-full border border-transparent bg-[#f4f5f7] pl-4 pr-11 text-sm text-[#172033] outline-none placeholder:text-[#98a2b3] focus:border-[#fd5000] focus:bg-white"
+              className="h-10 w-full rounded-full border border-white/15 bg-white/10 pl-4 pr-11 text-sm text-white outline-none backdrop-blur placeholder:text-white/55 focus:border-[#fd5000] focus:bg-white focus:text-[#172033] focus:placeholder:text-[#98a2b3]"
             />
-            <button type="submit" aria-label="Search" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#667085]">
+            <button type="submit" aria-label="Search" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-white/70">
               <Search className="h-4 w-4" />
             </button>
           </label>
@@ -86,7 +94,7 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
         <div className="ml-auto flex items-center gap-1 md:ml-0">
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-[#172033] md:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white md:hidden"
             aria-expanded={searchOpen}
             onClick={() => setSearchOpen((value) => !value)}
           >
@@ -96,7 +104,7 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
           <div className="relative">
             <button
               type="button"
-              className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-[#172033]"
+              className="inline-flex h-10 items-center gap-1 rounded-lg px-2 text-sm font-semibold text-white"
               aria-expanded={lang}
               aria-haspopup="listbox"
               onClick={() => {
@@ -106,7 +114,7 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
             >
               <Globe className="h-4 w-4" />
               {current.label}
-              <ChevronDown className="h-3.5 w-3.5 text-[#98a2b3]" />
+              <ChevronDown className="h-3.5 w-3.5 text-white/60" />
             </button>
             {lang ? (
               <ul role="listbox" className="absolute right-0 z-20 mt-1 w-28 overflow-hidden rounded-xl border border-[#eceff3] bg-white py-1 shadow-lg">
@@ -127,6 +135,7 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
             ) : null}
           </div>
         </div>
+      </div>
       </div>
       {searchOpen ? (
         <form action="/media/search" className="border-t border-[#f2f4f7] px-4 py-3 md:hidden">

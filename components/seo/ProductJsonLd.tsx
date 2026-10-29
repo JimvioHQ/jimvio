@@ -59,7 +59,7 @@ export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
     name: product.name,
     description,
     image: absoluteImage,
-    sku: product.sku ?? product.slug,
+    ...(product.sku ? { sku: product.sku } : {}),
     // No invented brand: only a real brand or seller name is emitted.
     ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
     url: `${SITE.url}/marketplace/${product.slug}`,

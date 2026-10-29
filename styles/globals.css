@@ -1691,3 +1691,40 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
 @media (prefers-reduced-motion: reduce) {
   .jv-ai-rise { animation: none; }
 }
+
+/* Jimvio Media header: slow drifting brand light over ink. */
+.jv-media-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(42px);
+  opacity: 0.85;
+  will-change: transform;
+}
+.jv-media-orb-a {
+  width: 46%; height: 260%; left: -8%; top: -80%;
+  background: radial-gradient(closest-side, rgba(253, 80, 0, 0.85), rgba(253, 80, 0, 0));
+  animation: jv-orb-a 18s ease-in-out infinite alternate;
+}
+.jv-media-orb-b {
+  width: 38%; height: 240%; right: -6%; top: -70%;
+  background: radial-gradient(closest-side, rgba(255, 176, 64, 0.6), rgba(255, 176, 64, 0));
+  animation: jv-orb-b 22s ease-in-out infinite alternate;
+}
+.jv-media-orb-c {
+  width: 30%; height: 220%; left: 38%; top: -60%;
+  background: radial-gradient(closest-side, rgba(255, 64, 96, 0.38), rgba(255, 64, 96, 0));
+  animation: jv-orb-c 26s ease-in-out infinite alternate;
+}
+.jv-media-sheen {
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.07) 45%, transparent 60%);
+  background-size: 250% 100%;
+  animation: jv-sheen 9s linear infinite;
+}
+@keyframes jv-orb-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(38%, 8%, 0) scale(1.15); } }
+@keyframes jv-orb-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-45%, -6%, 0) scale(0.9); } }
+@keyframes jv-orb-c { from { transform: translate3d(-30%, 0, 0); } to { transform: translate3d(40%, 10%, 0) scale(1.2); } }
+@keyframes jv-sheen { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .jv-media-orb, .jv-media-sheen { animation: none; }
+}

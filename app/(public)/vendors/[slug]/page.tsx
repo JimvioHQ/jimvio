@@ -24,7 +24,6 @@ import { notFound, redirect } from "next/navigation";
 import {
   formatFollowerCount,
   formatStoreRating,
-  formatStoreSales,
   storefrontFollowerCount,
   storefrontLogoSrc,
 } from "@/lib/marketplace/store-display";
@@ -120,7 +119,6 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
   const cartSet = new Set(cartProductIds);
   const isFollowing = followedVendorIds.includes(vendor.id);
   const storeRating = formatStoreRating(vendor);
-  const storeSales = formatStoreSales(vendor.total_sales);
   const followerCount = storefrontFollowerCount(vendor);
   const isVerified = vendor.verification_status === "verified";
 
@@ -129,7 +127,7 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
       <BreadcrumbJsonLd
         items={[
           { name: "Home", path: "/" },
-          { name: "Vendors", path: "/vendors" },
+          { name: "Marketplace", path: "/marketplace" },
           { name: vendor.business_name ?? "Store", path: `/vendors/${slug}` },
         ]}
       />
@@ -203,10 +201,6 @@ export default async function VendorStorePage({ params, searchParams }: PageProp
                           No ratings yet
                         </p>
                       )}
-                    </div>
-                    <div>
-                      <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Sales</p>
-                      <p className="font-black text-lg">{storeSales.label}</p>
                     </div>
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Followers</p>
