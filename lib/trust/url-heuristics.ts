@@ -6,8 +6,11 @@ import { getDomain, getSubdomain, getPublicSuffix } from "tldts";
 import type { Finding } from "./types";
 
 export const BRANDS: { name: string; domains: string[] }[] = [
+  { name: "youtube", domains: ["youtube.com", "youtu.be", "youtube-nocookie.com"] },
+  { name: "x", domains: ["x.com", "twitter.com", "t.co"] },
+  { name: "threads", domains: ["threads.net", "threads.com"] },
   { name: "paypal", domains: ["paypal.com", "paypal.me"] },
-  { name: "google", domains: ["google.com", "youtube.com", "youtu.be", "gmail.com", "goo.gl", "g.co", "googleusercontent.com", "googleapis.com", "gstatic.com", "googlevideo.com", "ytimg.com", "google.co.rw"] },
+  { name: "google", domains: ["google.com", "gmail.com", "goo.gl", "g.co", "googleusercontent.com", "googleapis.com", "gstatic.com", "googlevideo.com", "ytimg.com", "google.co.rw"] },
   { name: "facebook", domains: ["facebook.com", "fb.com", "fb.me", "meta.com", "fbcdn.net", "facebook.net"] },
   { name: "instagram", domains: ["instagram.com", "cdninstagram.com"] },
   { name: "whatsapp", domains: ["whatsapp.com", "wa.me"] },
@@ -49,7 +52,7 @@ export function levenshtein(a: string, b: string): number {
   return prev[n];
 }
 
-function officialFor(registrable: string): string | null {
+export function officialFor(registrable: string): string | null {
   for (const b of BRANDS) if (b.domains.includes(registrable)) return b.name;
   return null;
 }

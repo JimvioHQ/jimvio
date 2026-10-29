@@ -55,7 +55,18 @@ export async function GET(req: NextRequest) {
 
   let countScope: "all" | { influencerId?: string; campaignIds?: string[] } = {};
 
-  if (adminRole) {
+  // Creator pages ask for their own posts only, even when the person also
+  // owns a brand or is an admin.
+  const mineOnly = searchParams.get('scope') === 'mine';
+
+  if (mineOnly) {
+    if (!influencer) {
+      return NextResponse.json({ data: [], total: 0, page, limit, counts: { pending: 0, revision_requested: 0, approved: 0, rejected: 0, paid: 0 } });
+    }
+    query = query.eq('influencer_id', influencer.id);
+    if (campaignId) query = query.eq('campaign_id', campaignId);
+    countScope = { influencerId: influencer.id, ...(campaignId ? { campaignIds: [campaignId] } : {}) };
+  } else if (adminRole) {
     countScope = "all";
   } else if (campaignId) {
     const access = await requireCampaignPermission(user.id, campaignId, 'campaigns.review');
@@ -93,7 +104,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (status) query = query.eq('status', status);
-  if (campaignId && adminRole) query = query.eq('campaign_id', campaignId);
+  if (campaignId && adminRole && !mineOnly) query = query.eq('campaign_id', campaignId);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

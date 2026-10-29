@@ -29,7 +29,8 @@ export async function resolvePublic(host: string): Promise<string[]> {
   if (addrs.some((a) => !isPublicAddress(a))) {
     throw new BlockedUrlError("This domain points to a private or reserved address, so it was not opened.");
   }
-  return addrs;
+  // IPv4 first: serverless egress often has no IPv6 route.
+  return [...addrs].sort((a, b) => Number(a.includes(":")) - Number(b.includes(":")));
 }
 
 export type SafeResponse = {
@@ -53,7 +54,12 @@ function requestOnce(u: URL, ip: string, method: "GET" | "HEAD"): Promise<SafeRe
         path: `${u.pathname}${u.search}`,
         servername: ipaddr.isValid(u.hostname) ? undefined : u.hostname,
         // Pin the connection to the address we already checked.
-        lookup: (_h, _o, cb) => cb(null, ip, ipaddr.parse(ip).kind() === "ipv6" ? 6 : 4),
+        // Newer Node asks with { all: true } and expects a list back.
+        lookup: ((_h: string, o: { all?: boolean }, cb: (...args: unknown[]) => void) => {
+          const family = ipaddr.parse(ip).kind() === "ipv6" ? 6 : 4;
+          if (o?.all) cb(null, [{ address: ip, family }]);
+          else cb(null, ip, family);
+        }) as unknown as http.RequestOptions["lookup"],
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; JimvioTrustChecker/1.0; +https://www.jimvio.com/trust-checker)",
           Accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.5",
@@ -111,11 +117,19 @@ export async function safeFetch(start: URL, method: "GET" | "HEAD" = "GET"): Pro
     } catch (e) {
       return { hops, final: null, error: e instanceof Error ? e.message : "Could not resolve the domain." };
     }
-    let res: SafeResponse;
-    try {
-      res = await requestOnce(current, ips[0], method);
-    } catch (e) {
-      const msg = e instanceof Error && /timeout/i.test(e.message) ? "The site took too long to answer." : "The site could not be reached.";
+    let res: SafeResponse | null = null;
+    let lastError: unknown = null;
+    // Try up to two checked addresses (e.g. IPv4 then IPv6).
+    for (const ip of ips.slice(0, 2)) {
+      try {
+        res = await requestOnce(current, ip, method);
+        break;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    if (!res) {
+      const msg = lastError instanceof Error && /timeout/i.test(lastError.message) ? "The site took too long to answer." : "The site could not be reached.";
       return { hops, final: null, error: msg };
     }
     hops.push({ url: current.toString(), status: res.status, ip: res.ip });

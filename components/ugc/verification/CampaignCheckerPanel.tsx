@@ -148,7 +148,7 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
         <Stat icon={Eye} label="Posts checked" value={`${p.counts.real + p.counts.held}/${p.total}`} />
         <Stat
           icon={Wallet}
-          label="Cost of real views"
+          label={perViews ? "Cost to pay all real views" : "Cost if all approved"}
           value={usd(Math.round(payableNow * 100) / 100)}
         />
       </div>
@@ -169,7 +169,7 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
       {data.submissions.length ? (
         <ul className="grid gap-3">
           {data.submissions.map((r) => (
-            <SubmissionCard key={r.id} row={r} perViews={perViews} onOpen={onOpen} />
+            <SubmissionCard key={r.id} row={r} perViews={perViews} onOpen={onOpen} onDone={load} />
           ))}
         </ul>
       ) : (
@@ -220,7 +220,37 @@ function chip(tone: "good" | "warn" | "bad" | "neutral") {
 }
 
 /** One post: who, what it earned, whether the views are real, and the AI read. */
-function SubmissionCard({ row: r, perViews, onOpen }: { row: Row; perViews: boolean; onOpen?: (id: string) => void }) {
+function SubmissionCard({
+  row: r,
+  perViews,
+  onOpen,
+  onDone,
+}: {
+  row: Row;
+  perViews: boolean;
+  onOpen?: (id: string) => void;
+  onDone?: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const open = r.status === "pending" || r.status === "revision_requested";
+  // One click for clean posts: pay exactly the views Jimvio verified.
+  const quick = open && r.verdict === "real" && (!perViews || (r.gainedViews ?? 0) > 0);
+  async function quickApprove() {
+    const label = perViews ? `${fmt(r.gainedViews)} verified views` : "this post";
+    if (!window.confirm(`Approve ${label}${r.estimatedReward != null ? ` for ${usd(r.estimatedReward)}` : ""}? The creator is paid right away.`)) return;
+    setBusy(true);
+    setErr(null);
+    const res = await fetch(`/api/ugc/submissions/${r.id}/approve`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acceptedViews: perViews ? r.gainedViews : undefined }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) return setErr(json.error || "Approval failed.");
+    onDone?.();
+  }
   const verdictTone: "good" | "warn" | "bad" | "neutral" =
     r.verdict === "real" ? "good" : r.verdict === "held" ? "bad" : r.verdict === "manual" ? "neutral" : "warn";
   const ai = r.content?.aiGeneratedLikelihood;
@@ -257,9 +287,20 @@ function SubmissionCard({ row: r, perViews, onOpen }: { row: Row; perViews: bool
             <span>
               Now <b className="tabular-nums text-[#111827]">{fmt(r.latestViews ?? r.publicViews)}</b>
             </span>
-            <span>
-              Real views gained <b className="tabular-nums text-emerald-700">{fmt(views)}</b>
-            </span>
+            {r.verdict === "held" ? (
+              <span>
+                Suspected fake views <b className="tabular-nums text-rose-700">{fmt(views)}</b>
+              </span>
+            ) : (
+              <span>
+                Real views gained <b className="tabular-nums text-emerald-700">{r.verdict === "real" ? fmt(views) : "—"}</b>
+              </span>
+            )}
+            {perViews && r.acceptedViews != null ? (
+              <span>
+                Views paid <b className="tabular-nums text-[#111827]">{fmt(r.acceptedViews)}</b>
+              </span>
+            ) : null}
             {ai != null ? (
               <span className={cn("rounded-full px-1.5 font-semibold ring-1", chip(ai >= 70 ? "bad" : ai <= 30 ? "good" : "warn"))}>AI {ai}%</span>
             ) : null}
@@ -293,7 +334,25 @@ function SubmissionCard({ row: r, perViews, onOpen }: { row: Row; perViews: bool
               <p className="text-[10.5px] text-[#9CA3AF]">after views are verified</p>
             ) : null}
           </div>
-          {onOpen && (r.status === "pending" || r.status === "revision_requested") ? (
+          {quick ? (
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void quickApprove()}
+                className="inline-flex h-9 items-center gap-1 rounded-full bg-emerald-600 px-4 text-[12.5px] font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
+                {perViews ? `Approve ${fmt(r.gainedViews)} views` : "Approve"}
+              </button>
+              {onOpen ? (
+                <button type="button" onClick={() => onOpen(r.id)} className="text-[12px] font-semibold text-[#6B7280] hover:underline">
+                  Review details
+                </button>
+              ) : null}
+              {err ? <p className="max-w-[200px] text-right text-[11px] text-rose-700">{err}</p> : null}
+            </div>
+          ) : onOpen && open ? (
             <button
               type="button"
               onClick={() => onOpen(r.id)}

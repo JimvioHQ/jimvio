@@ -45,13 +45,13 @@ export const CAMPAIGN_PAYMENT_ROWS: TableRow4[] = [
   {
     col1: "Per 1,000 views (CPM)",
     col2: "Views gained after you submit, read from the platform's official API on your connected account and accepted by the brand",
-    col3: "Held 48 hours after approval, then released to your Jimvio wallet",
+    col3: "Paid to your Jimvio wallet right after approval when Jimvio verified the views; otherwise held 24 hours, then released",
     col4: "",
   },
   {
     col1: "Fixed per post",
     col2: "A set amount for each post the brand approves",
-    col3: "Held 48 hours after approval, then released to your Jimvio wallet",
+    col3: "Paid to your Jimvio wallet when the brand approves the post",
     col4: "",
   },
 ];
@@ -82,7 +82,7 @@ export const UGC_TERM_SUMMARIES: { id: string; title: string; body: string }[] =
   {
     id: "payment-policy",
     title: "Payment Policy",
-    body: "You are paid only for approved work, from money the brand has already put in escrow. Per-view campaigns pay only real views gained after you submit. Approval is not payment: rewards are held 48 hours, then released.",
+    body: "You are paid only for approved work, from money the brand has already put in escrow. Per-view campaigns pay only real views gained after you submit. Verified views are paid to your wallet right after approval; views Jimvio could not verify are held 24 hours first.",
   },
   {
     id: "funded-campaigns",

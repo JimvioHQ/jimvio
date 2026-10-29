@@ -7,6 +7,7 @@ import { ClipboardCheck, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CampaignCheckerPanel } from "@/components/ugc/verification/CampaignCheckerPanel";
 import { SubmissionReviewDrawer } from "@/components/ugc/workspace/SubmissionReviewDrawer";
+import { JoinRequestsPanel } from "./JoinRequestsPanel";
 
 type Campaign = { id: string; title: string; status: string; submission_count?: number | null };
 
@@ -46,7 +47,7 @@ export function SubmissionReviewPage() {
           </p>
           <h1 className="mt-1 text-[26px] font-bold tracking-tight text-[#111827]">Review what creators posted</h1>
           <p className="text-[13.5px] text-[#6B7280]">
-            Jimvio checks every post: real views, bots, AI and quality. You see what each post would cost, then approve or decline.
+            Jimvio checks every post: real views, bots, AI and quality. You see what each post would cost, approve or decline, and decide who can join.
           </p>
         </div>
       </header>
@@ -83,6 +84,7 @@ export function SubmissionReviewPage() {
             ))}
           </div>
           {active ? <CampaignCheckerPanel key={`${active}-${reloadKey}`} campaignId={active} onOpen={setReviewId} /> : null}
+          {active ? <JoinRequestsPanel key={`join-${active}`} campaignId={active} /> : null}
         </>
       )}
 

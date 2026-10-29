@@ -32,12 +32,12 @@ const TONE: Record<FindingTone, { cls: string; icon: React.ComponentType<{ class
   bad: { cls: "text-rose-700", icon: XCircle },
 };
 
-function CheckerCard({ c }: { c: CheckerResult }) {
+function CheckerCard({ c, wide = false }: { c: CheckerResult; wide?: boolean }) {
   const Icon = ICONS[c.id];
   const s = STATUS[c.status];
   const muted = c.status === "not_applicable";
   return (
-    <article className={cn("rounded-[20px] border bg-white p-5", muted ? "border-dashed border-[#E2E8F0]" : "border-[#F1E4DC] shadow-[0_4px_20px_rgba(15,23,42,0.04)]")}>
+    <article className={cn("rounded-[20px] border bg-white p-5", wide && "lg:col-span-2", muted ? "border-dashed border-[#E2E8F0]" : "border-[#F1E4DC] shadow-[0_4px_20px_rgba(15,23,42,0.04)]")}>
       <div className="flex items-start gap-3">
         <span className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-full", muted ? "bg-slate-100 text-slate-400" : "bg-[#FFF1EA] text-[#FF5A1F]")}>
           <Icon className="h-5 w-5" />
@@ -142,8 +142,8 @@ export function TrustReportView({ report }: { report: ScanReport }) {
         </p>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
-        {ran.map((c) => (
-          <CheckerCard key={c.id} c={c} />
+        {ran.map((c, i) => (
+          <CheckerCard key={c.id} c={c} wide={i === 0 && c.id === "engagement"} />
         ))}
       </div>
       {skipped.length ? (

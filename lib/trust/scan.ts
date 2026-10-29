@@ -50,7 +50,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   const finalUrl = ctx?.chain.final ? new URL(ctx.chain.final.url) : (ctx?.url ?? null);
 
   // 2. Engagement.
-  checkers.engagement = await checkEngagement(ctx?.url ?? null);
+  checkers.engagement = await checkEngagement(ctx?.url ?? null, req.userId);
 
   // 3. Digital product.
   const pageIsProduct = Boolean(ctx?.html && readProductPage(ctx.html).isProduct && !socialPlatform(ctx.url));
@@ -82,7 +82,10 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   const media = await checkMedia(mediaInput, mediaReason);
   checkers.media = media.result;
 
-  const ordered = (["links", "engagement", "product", "media"] as const).map((k) => checkers[k]!);
+  // A social post or channel is mainly an engagement question: show that first.
+  const isSocial = Boolean(ctx && socialPlatform(ctx.url));
+  const order = isSocial ? (["engagement", "links", "media", "product"] as const) : (["links", "engagement", "product", "media"] as const);
+  const ordered = order.map((k) => checkers[k]!);
   const report: ScanReport = {
     id,
     createdAt: new Date().toISOString(),

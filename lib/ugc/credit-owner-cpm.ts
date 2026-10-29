@@ -2,14 +2,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { centsToUsd, parseAcceptedViews, quoteSubmissionReward } from "@/lib/ugc/submission-reward";
 import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 import { acceptedViewsCap } from "@/lib/ugc/verification/signals";
+import { payoutHold } from "@/lib/ugc/payout-hold";
+import { releasePayoutNow } from "@/lib/ugc/clearPendingPayouts";
 
 type CreditResult =
-  | { ok: true; credited: boolean; amount: number; payableCents: number }
+  | { ok: true; credited: boolean; amount: number; payableCents: number; releasedNow?: boolean; releaseAt?: string }
   | { ok: false; error: string; status: number };
 
 /**
  * Settles one CPM submission from owner-accepted views.
- * Funds stay pending until the existing 48-hour release marks the payout paid.
+ * Clean, platform-verified views are released to the wallet at once; anything
+ * else waits 24 hours (see payout-hold.ts).
  * A later view sync must not pay the same submission again.
  */
 export async function creditOwnerReviewedCpm(
@@ -52,7 +55,7 @@ export async function creditOwnerReviewedCpm(
 
   const { data: verification } = await db
     .from("ugc_submissions")
-    .select("verification_status, baseline_views, latest_views")
+    .select("verification_status, baseline_views, latest_views, verified_views, is_suspicious")
     .eq("id", opts.submissionId)
     .maybeSingle();
   const cap = acceptedViewsCap((verification ?? {}) as Parameters<typeof acceptedViewsCap>[0]);
@@ -145,7 +148,13 @@ export async function creditOwnerReviewedCpm(
     return { ok: false, error: "Creator account not found", status: 404 };
   }
 
-  const releaseDate = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const hold = payoutHold({
+    verificationStatus: (verification as { verification_status?: string | null } | null)?.verification_status ?? null,
+    isSuspicious: (verification as { is_suspicious?: boolean | null } | null)?.is_suspicious ?? null,
+    acceptedViews: views.views,
+    verifiedViews: (verification as { verified_views?: number | null } | null)?.verified_views ?? null,
+  });
+  const releaseDate = new Date(Date.now() + hold.hours * 60 * 60 * 1000).toISOString();
   const { data: payoutRow, error: payoutErr } = await db
     .from("payouts")
     .insert({
@@ -155,7 +164,7 @@ export async function creditOwnerReviewedCpm(
       currency: "USD",
       status: "pending",
       release_date: releaseDate,
-      notes: `Owner-reviewed CPM — submission ${opts.submissionId} (Clears in 48h)`,
+      notes: `Owner-reviewed CPM — submission ${opts.submissionId} ${hold.hours ? "(Held 24h for review)" : "(Verified views)"}`,
     })
     .select("id")
     .maybeSingle();
@@ -244,5 +253,8 @@ export async function creditOwnerReviewedCpm(
     })
     .eq("id", opts.submissionId);
 
-  return { ok: true, credited: true, amount, payableCents: quote.payableCents };
+  // Verified and clean: move it from pending to the wallet now.
+  const releasedNow = hold.hours === 0 ? await releasePayoutNow(payoutRow.id).catch(() => false) : false;
+
+  return { ok: true, credited: true, amount, payableCents: quote.payableCents, releasedNow, releaseAt: releaseDate };
 }

@@ -59,7 +59,7 @@ export function ActiveProjectView() {
             <p>1. Post, then submit the link here right away.</p>
             <p>2. Jimvio checks your real views on the platform.</p>
             <p>3. The brand approves — or tells you why not.</p>
-            <p>4. Your reward reaches your wallet 48 hours after approval.</p>
+            <p>4. Verified views are paid to your wallet right after approval. If Jimvio could not verify them, the payment waits 24 hours.</p>
           </div>
         </aside>
       </div>

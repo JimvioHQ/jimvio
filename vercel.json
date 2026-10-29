@@ -42,6 +42,10 @@
       "schedule": "0 5 * * *"
     },
     {
+      "path": "/api/cron/ugc-release-payouts",
+      "schedule": "17 * * * *"
+    },
+    {
       "path": "/api/ugc/views/sync",
       "schedule": "41 */6 * * *"
     },

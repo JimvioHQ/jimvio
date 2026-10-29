@@ -91,6 +91,14 @@ export async function GET(req: NextRequest) {
   const { data, error: qErr } = await query;
   if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
 
+  // When each pending payout reaches the wallet.
+  const payoutIds = (data ?? []).filter((p) => p.status !== "paid" && p.payout_id).map((p) => p.payout_id as string);
+  const releaseById = new Map<string, string | null>();
+  if (payoutIds.length) {
+    const { data: rel } = await db.from("payouts").select("id, release_date").in("id", payoutIds);
+    for (const r of (rel ?? []) as { id: string; release_date: string | null }[]) releaseById.set(r.id, r.release_date);
+  }
+
   const rows = (data ?? []).map((p) => {
     const submission = p.submission as unknown as {
       id: string;
@@ -104,6 +112,7 @@ export async function GET(req: NextRequest) {
       created_at: p.created_at,
       paid_at: p.paid_at,
       payout_id: p.payout_id,
+      release_at: p.status === "paid" || !p.payout_id ? null : (releaseById.get(p.payout_id) ?? null),
       submission_id: p.submission_id,
       campaign_id: submission?.campaign_id ?? "",
       campaign_title: submission?.campaign?.title ?? "",

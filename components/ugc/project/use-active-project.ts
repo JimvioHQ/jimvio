@@ -26,7 +26,7 @@ export function useActiveProject(campaignId: string) {
   const refresh = useCallback(async () => {
     const [cRes, sRes, pRes] = await Promise.all([
       fetch(`/api/ugc/campaigns/${campaignId}`, { cache: "no-store" }),
-      fetch(`/api/ugc/submissions?campaignId=${campaignId}`, { cache: "no-store" }),
+      fetch(`/api/ugc/submissions?campaignId=${campaignId}&scope=mine`, { cache: "no-store" }),
       fetch(`/api/ugc/campaigns/${campaignId}/participant`, { cache: "no-store" }),
     ]);
 

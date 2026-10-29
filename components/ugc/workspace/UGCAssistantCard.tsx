@@ -1,0 +1,355 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChevronRight, Loader2, MessageCircle, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
+import { ASSISTANT_SUGGESTIONS, type AssistantCampaign, type CampaignDraft } from "@/lib/ugc/assistant";
+
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  campaigns?: AssistantCampaign[];
+  draft?: CampaignDraft | null;
+};
+
+const money = (n: number | null | undefined) => (n == null ? "—" : `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 })}`);
+
+function payLine(c: AssistantCampaign) {
+  return c.paymentModel === "fixed_per_content" ? `${money(c.fixedRate)}/post` : `${money(c.ratePer1k)}/1K`;
+}
+
+/** Shared state: the sidebar card and the full chat panel show one conversation. */
+function useAssistant() {
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [error, setError] = useState("");
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const last = useRef("");
+  const abort = useRef<AbortController | null>(null);
+
+  async function ask(raw: string) {
+    const text = raw.replace(/\s+/g, " ").trim();
+    if (!text || status === "loading") return;
+    last.current = text;
+    abort.current?.abort();
+    const ctrl = new AbortController();
+    abort.current = ctrl;
+    const history = messages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
+    setMessages((m) => [...m, { role: "user", content: text }]);
+    setStatus("loading");
+    setError("");
+    try {
+      const res = await fetch("/api/ugc/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, history }),
+        signal: ctrl.signal,
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        reply?: string;
+        campaigns?: AssistantCampaign[];
+        draft?: CampaignDraft | null;
+        error?: string;
+        signedIn?: boolean;
+      };
+      if (!res.ok || !json.ok || !json.reply) {
+        setStatus("error");
+        setError(json.error === "rate_limit" ? "Too many questions at once. Wait a moment, then retry." : "Jimvio AI couldn't answer. Try again.");
+        setMessages((m) => m.slice(0, -1));
+        return;
+      }
+      if (typeof json.signedIn === "boolean") setSignedIn(json.signedIn);
+      setMessages((m) => [...m, { role: "assistant", content: json.reply!, campaigns: json.campaigns ?? [], draft: json.draft ?? null }]);
+      setStatus("idle");
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") return;
+      setStatus("error");
+      setError("Jimvio AI couldn't be reached. Check your connection and retry.");
+      setMessages((m) => m.slice(0, -1));
+    }
+  }
+
+  return { messages, status, error, signedIn, ask, retry: () => void ask(last.current), reset: () => setMessages([]) };
+}
+
+type Assistant = ReturnType<typeof useAssistant>;
+
+function DraftCard({ draft, signedIn }: { draft: CampaignDraft; signedIn: boolean | null }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/ugc/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...draft, max_payout_per_sub: draft.max_payout_per_sub ?? undefined }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { data?: { id?: string }; campaign?: { id?: string }; id?: string; error?: string };
+      if (!res.ok) throw new Error(json.error || "Could not save the draft.");
+      const id = json.data?.id ?? json.campaign?.id ?? json.id;
+      router.push(id ? `/ugc/campaign-center/${id}/edit` : "/ugc/campaign-center/drafts");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not save the draft.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-xl bg-white p-3 text-[#111827] shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#FF5A1F]">Campaign draft</p>
+      <p className="mt-0.5 text-[13px] font-bold leading-snug">{draft.title}</p>
+      <dl className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+        <dt className="text-[#6B7280]">Pay</dt>
+        <dd className="font-semibold">{draft.payment_model === "per_views" ? `${money(draft.rate_per_1k_views)} / 1K views` : `${money(draft.fixed_rate)} / post`}</dd>
+        <dt className="text-[#6B7280]">Budget</dt>
+        <dd className="font-semibold">{money(draft.total_budget)}</dd>
+        <dt className="text-[#6B7280]">Platforms</dt>
+        <dd className="font-semibold capitalize">{draft.allowed_platforms.join(", ")}</dd>
+        <dt className="text-[#6B7280]">Join</dt>
+        <dd className="font-semibold">{draft.join_mode === "application" ? "By request" : "Open to all"}</dd>
+      </dl>
+      {signedIn === false ? (
+        <Link href="/login?next=/ugc" className="mt-2 inline-flex h-8 items-center rounded-full bg-[#FF5A1F] px-3 text-[11.5px] font-bold text-white">
+          Sign in to save this draft
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={busy}
+          className="mt-2 inline-flex h-8 items-center gap-1 rounded-full bg-[#FF5A1F] px-3 text-[11.5px] font-bold text-white hover:bg-[#E54E18] disabled:opacity-60"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Save draft & review
+        </button>
+      )}
+      <p className="mt-1.5 text-[10px] leading-snug text-[#6B7280]">You review and edit everything. Nothing goes live until you fund it.</p>
+      {err ? <p className="mt-1 text-[10.5px] text-rose-700">{err}</p> : null}
+    </div>
+  );
+}
+
+function CampaignChips({ list }: { list: AssistantCampaign[] }) {
+  if (!list.length) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {list.map((c) => (
+        <Link key={c.id} href={`/ugc/${c.id}`} className="flex items-center gap-2 rounded-lg bg-white/95 px-2 py-1.5 text-[#111827] hover:bg-white">
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[11.5px] font-bold">{c.title}</span>
+            <span className="block text-[10.5px] text-[#6B7280]">
+              {payLine(c)}
+              {c.remainingUsd != null ? ` · ${money(c.remainingUsd)} left` : ""}
+            </span>
+          </span>
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
+  const end = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "nearest" });
+  }, [a.messages.length, a.status]);
+  const shown = compact ? a.messages.slice(-2) : a.messages;
+  return (
+    <div className={cn("space-y-2 overflow-y-auto", compact ? "max-h-64" : "flex-1")} aria-live="polite">
+      {shown.map((m, i) =>
+        m.role === "user" ? (
+          <p key={i} className={cn("ml-6 rounded-xl rounded-br-sm px-2.5 py-1.5 text-[12px]", compact ? "bg-white/25 text-white" : "bg-[#FF5A1F] text-white")}>
+            {m.content}
+          </p>
+        ) : (
+          <div key={i} className={cn("rounded-xl rounded-bl-sm px-2.5 py-2 text-[12px] leading-relaxed", compact ? "bg-white/15 text-white" : "bg-[#F3F4F6] text-[#111827]")}>
+            <p className="whitespace-pre-wrap">{m.content}</p>
+            <CampaignChips list={m.campaigns ?? []} />
+            {m.draft ? <DraftCard draft={m.draft} signedIn={a.signedIn} /> : null}
+          </div>
+        ),
+      )}
+      {a.status === "loading" ? (
+        <p className={cn("flex items-center gap-1.5 text-[11.5px]", compact ? "text-white/85" : "text-[#6B7280]")}>
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Jimvio AI is thinking…
+        </p>
+      ) : null}
+      <div ref={end} />
+    </div>
+  );
+}
+
+function Composer({ a, light }: { a: Assistant; light: boolean }) {
+  const [text, setText] = useState("");
+  const send = () => {
+    if (!text.trim()) return;
+    void a.ask(text);
+    setText("");
+  };
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        send();
+      }}
+      className={cn("flex items-center gap-1.5 rounded-xl px-3 py-1.5", light ? "bg-white shadow-sm" : "border border-[#E5E7EB] bg-white")}
+    >
+      <input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        maxLength={800}
+        placeholder="Ask Jimvio AI…"
+        aria-label="Ask Jimvio AI"
+        className="min-w-0 flex-1 bg-transparent py-1 text-[12.5px] text-[#111827] outline-none placeholder:text-[#9CA3AF]"
+      />
+      <button
+        type="submit"
+        aria-label="Send"
+        disabled={!text.trim() || a.status === "loading"}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[#FF5A1F] hover:bg-[#FFF1EA] disabled:opacity-40"
+      >
+        <Send className="h-4 w-4" />
+      </button>
+    </form>
+  );
+}
+
+/**
+ * Jimvio AI for UGC & Clipping: finds real live campaigns, explains rules,
+ * writes hooks and ideas, and drafts campaigns for the owner to approve.
+ */
+export function UGCAssistantCard() {
+  const a = useAssistant();
+  const [open, setOpen] = useState(false);
+  const hasChat = a.messages.length > 0;
+
+  return (
+    <>
+      <section
+        aria-label="Jimvio AI"
+        className="mx-2 mb-3 rounded-2xl p-3 text-white"
+        style={{ background: JIMVIO_ORANGE.gradient135, boxShadow: "0 10px 28px rgba(255,90,31,0.28)" }}
+      >
+        <button type="button" onClick={() => setOpen(true)} className="flex w-full items-start gap-2 text-left" aria-label="Open Jimvio AI chat">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/20 ring-1 ring-white/30">
+            <Sparkles className="h-4.5 w-4.5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5">
+              <span className="text-[15px] font-extrabold">Jimvio AI</span>
+              <span className="rounded-full bg-white/25 px-1.5 py-px text-[9px] font-bold">Beta</span>
+            </span>
+            <span className="block text-[11px] leading-snug text-white/85">Your AI assistant for UGC & Clipping</span>
+          </span>
+          <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-white/80" />
+        </button>
+
+        <div className="mt-2.5 space-y-2 rounded-xl bg-white/12 p-2" style={{ background: "rgba(255,255,255,0.12)" }}>
+          {hasChat ? (
+            <>
+              <Conversation a={a} compact />
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-white hover:underline">
+                  <MessageCircle className="h-3.5 w-3.5" /> Open full chat
+                </button>
+                <button type="button" onClick={a.reset} className="text-[11px] text-white/75 hover:text-white">
+                  New chat
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="px-1 text-[11.5px] leading-snug text-white/90">Ask about campaigns, submission tips, or content ideas…</p>
+          )}
+          {a.status === "error" ? (
+            <p className="flex items-center gap-1.5 px-1 text-[11px] text-white">
+              {a.error}
+              <button type="button" onClick={a.retry} className="inline-flex items-center gap-0.5 rounded-full bg-white/20 px-2 py-0.5 font-semibold">
+                <RotateCcw className="h-3 w-3" /> Retry
+              </button>
+            </p>
+          ) : null}
+          <Composer a={a} light />
+        </div>
+
+        {!hasChat ? (
+          <>
+            <p className="mt-2.5 text-[11px] font-semibold text-white/90">Try these:</p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {ASSISTANT_SUGGESTIONS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  onClick={() => void a.ask(s.message)}
+                  disabled={a.status === "loading"}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/45 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15 disabled:opacity-60"
+                >
+                  <Sparkles className="h-3 w-3 opacity-80" /> {s.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </section>
+
+      {open ? (
+        <div className="fixed inset-0 z-[130] flex justify-end bg-black/30" onClick={() => setOpen(false)}>
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Jimvio AI chat"
+            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="flex items-center gap-2 px-4 py-3 text-white" style={{ background: JIMVIO_ORANGE.gradient135 }}>
+              <Sparkles className="h-5 w-5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-extrabold">Jimvio AI</p>
+                <p className="text-[11px] text-white/85">Campaigns, ideas, rules, and campaign drafts you approve</p>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+            <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+              {hasChat ? (
+                <Conversation a={a} compact={false} />
+              ) : (
+                <div className="flex-1 space-y-2">
+                  <p className="text-[13px] text-[#4B5563]">Ask anything about UGC & Clipping. Try:</p>
+                  {ASSISTANT_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.label}
+                      type="button"
+                      onClick={() => void a.ask(s.message)}
+                      className="block w-full rounded-xl border border-[#F1E4DC] bg-[#FFF8F4] px-3 py-2 text-left text-[13px] font-semibold text-[#111827] hover:border-[#FF5A1F]"
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {a.status === "error" ? (
+                <p className="flex items-center gap-2 text-[12px] text-rose-700">
+                  {a.error}
+                  <button type="button" onClick={a.retry} className="font-semibold underline">
+                    Retry
+                  </button>
+                </p>
+              ) : null}
+              <Composer a={a} light={false} />
+              <p className="text-[10.5px] text-[#9CA3AF]">Jimvio AI can make mistakes. It never pays, funds or publishes anything for you.</p>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+    </>
+  );
+}

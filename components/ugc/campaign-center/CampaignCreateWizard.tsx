@@ -82,6 +82,8 @@ type FormState = {
   promotion_target_url: string;
   media: MediaItem[];
   creator_limit: number;
+  /** Optional last day of the campaign (yyyy-mm-dd). */
+  ends_at: string;
   join_mode: "instant" | "application" | "invite_only" | "hybrid";
   content_format: ContentFormat;
   deliverable_count: number;
@@ -121,6 +123,7 @@ const DEFAULT_FORM: FormState = {
   promotion_target_url: "",
   media: [],
   creator_limit: 50,
+  ends_at: "",
   join_mode: "instant",
   content_format: "vertical_video",
   deliverable_count: 1,
@@ -222,6 +225,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         Number.isFinite(Number(c.max_participants)) && Number(c.max_participants) > 0
           ? Math.floor(Number(c.max_participants))
           : 0,
+      ends_at: typeof c.ends_at === "string" && c.ends_at ? c.ends_at.slice(0, 10) : "",
       content_format:
         brief.contentFormat ??
         (Number(c.min_duration) > 0 || Number(c.max_duration) > 0 ? "vertical_video" : "other"),
@@ -534,6 +538,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       join_config: mergeJoinConfigBrief({}, briefInput),
       join_mode: form.join_mode,
       max_participants: form.creator_limit > 0 ? Math.floor(form.creator_limit) : null,
+      ends_at: /^\d{4}-\d{2}-\d{2}$/.test(form.ends_at) ? new Date(`${form.ends_at}T23:59:59`).toISOString() : null,
       brand_id: brandId || undefined,
       content_format: form.content_format,
       all_countries: form.all_countries,
@@ -556,6 +561,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       join_config: payload.join_config,
       join_mode: payload.join_mode,
       max_participants: payload.max_participants,
+      ends_at: payload.ends_at,
       media: payload.media,
       ...extra,
     };
@@ -1022,6 +1028,15 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 className={inputCls}
               />
             </Field>
+            <Field label="Campaign ends (optional)">
+              <input
+                type="date"
+                min={new Date().toISOString().slice(0, 10)}
+                value={form.ends_at}
+                onChange={(e) => set("ends_at", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
           </div>
         )}
 
@@ -1344,6 +1359,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             />
             <ReviewRow label="Join mode" value={form.join_mode.replaceAll("_", " ")} />
             <ReviewRow label={t("wizardCreatorLimit")} value={form.creator_limit > 0 ? String(form.creator_limit) : "No limit"} />
+            <ReviewRow label="Ends" value={form.ends_at ? new Date(`${form.ends_at}T12:00:00`).toLocaleDateString() : "Until the budget runs out"} />
             <ReviewRow
               label={t("wizardHashtags")}
               value={form.required_hashtags.length ? form.required_hashtags.map((t) => `#${t}`).join(" ") : "None"}

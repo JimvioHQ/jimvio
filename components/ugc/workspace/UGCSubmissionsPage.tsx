@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, X } from "lucide-react";
+import { BadgeCheck, Clock, ExternalLink, Eye, Wallet, X } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import type { UGCSubmission } from "@/types/ugc";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
 import { ViewVerificationPanel, type VerificationFields } from "@/components/ugc/verification/ViewVerificationPanel";
@@ -17,7 +18,25 @@ import {
   UGCStatusPill,
 } from "./UGCPageShell";
 
-const STATUS_TABS = ["all", "pending", "revision_requested", "approved", "rejected"] as const;
+type PayoutInfo = { status: string; amount: number; release_at: string | null; paid_at: string | null };
+type Row = UGCSubmission & {
+  latest_views?: number | null;
+  baseline_views?: number | null;
+  verified_views?: number | null;
+  verification_status?: string | null;
+  verification_note?: string | null;
+  thumbnail_url?: string | null;
+};
+
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "pending", label: "Under review" },
+  { id: "revision_requested", label: "Revisions" },
+  { id: "approved", label: "Approved" },
+  { id: "rejected", label: "Rejected" },
+  { id: "paid", label: "Paid" },
+] as const;
+type FilterId = (typeof FILTERS)[number]["id"];
 
 function submissionLabel(status: string): string {
   switch (status) {
@@ -37,37 +56,46 @@ function submissionLabel(status: string): string {
   }
 }
 
+function timeLeft(at: string | null): string | null {
+  if (!at) return null;
+  const ms = Date.parse(at) - Date.now();
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return "any minute now";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.max(1, Math.round((ms % 3_600_000) / 60_000));
+  return h > 0 ? `in ${h}h ${m}m` : `in ${m} min`;
+}
+
+const fmt = (n: number | null | undefined) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
+
 export function UGCSubmissionsPage() {
   const { formatMoney } = useCurrency();
-  const [rows, setRows] = useState<UGCSubmission[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<string>("all");
+  const [filter, setFilter] = useState<FilterId>("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [counts, setCounts] = useState({ pending: 0, revision_requested: 0, approved: 0, rejected: 0 });
-  const [payoutBySubmission, setPayoutBySubmission] = useState<Record<string, { status: string; amount: number }>>({});
+  const [payoutBySubmission, setPayoutBySubmission] = useState<Record<string, PayoutInfo>>({});
   const [openId, setOpenId] = useState<string | null>(null);
+  const [, setTick] = useState(0);
   const limit = 20;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (status !== "all") params.set("status", status);
+      // Paid is a payout state, so it lists every post and filters below.
+      const params = new URLSearchParams({ page: String(page), limit: String(filter === "paid" ? 50 : limit), scope: "mine" });
+      if (filter !== "all" && filter !== "paid") params.set("status", filter);
       const [res, payRes] = await Promise.all([
         fetch(`/api/ugc/submissions?${params}`, { cache: "no-store" }),
         fetch("/api/ugc/payouts/history", { cache: "no-store" }),
       ]);
       if (res.status === 401) {
         setError("Sign in to view submissions.");
-        setRows([]);
-        return;
-      }
-      if (res.status === 403) {
-        setError("Creator profile required to view submissions.");
         setRows([]);
         return;
       }
@@ -78,10 +106,21 @@ export function UGCSubmissionsPage() {
       if (json.counts) setCounts(json.counts);
       if (payRes.ok) {
         const payJson = await payRes.json();
-        const map: Record<string, { status: string; amount: number }> = {};
-        for (const row of (payJson.data ?? []) as Array<{ submission_id?: string; status?: string; amount?: number }>) {
+        const map: Record<string, PayoutInfo> = {};
+        for (const row of (payJson.data ?? []) as Array<{
+          submission_id?: string;
+          status?: string;
+          amount?: number;
+          release_at?: string | null;
+          paid_at?: string | null;
+        }>) {
           if (!row.submission_id) continue;
-          map[row.submission_id] = { status: row.status ?? "", amount: Number(row.amount ?? 0) };
+          map[row.submission_id] = {
+            status: row.status ?? "",
+            amount: Number(row.amount ?? 0),
+            release_at: row.release_at ?? null,
+            paid_at: row.paid_at ?? null,
+          };
         }
         setPayoutBySubmission(map);
       }
@@ -90,59 +129,103 @@ export function UGCSubmissionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, status]);
+  }, [page, filter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load submissions when filters change
     void load();
   }, [load]);
 
+  // Keeps payout countdowns fresh.
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const payouts = Object.values(payoutBySubmission);
+  const paidCount = payouts.filter((p) => p.status === "paid").length;
+  const earned = payouts.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
+  const onTheWay = payouts.filter((p) => p.status !== "paid").reduce((s, p) => s + p.amount, 0);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return rows;
+    let list = rows;
+    if (filter === "paid") list = list.filter((r) => payoutBySubmission[r.id]?.status === "paid");
+    if (!search.trim()) return list;
     const q = search.toLowerCase();
-    return rows.filter(
+    return list.filter(
       (r) =>
         r.platform.toLowerCase().includes(q) ||
         r.post_url.toLowerCase().includes(q) ||
         (r.campaign as { title?: string } | undefined)?.title?.toLowerCase().includes(q),
     );
-  }, [rows, search]);
+  }, [rows, search, filter, payoutBySubmission]);
 
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const totalPages = filter === "paid" ? 1 : Math.max(1, Math.ceil(total / limit));
+  const countFor: Record<FilterId, number | null> = {
+    all: null,
+    pending: counts.pending,
+    revision_requested: counts.revision_requested,
+    approved: counts.approved,
+    rejected: counts.rejected,
+    paid: paidCount,
+  };
 
   return (
     <UGCPageShell
       title="Submissions"
-      subtitle="Track content you submitted, brand feedback, revisions, and payout status."
+      subtitle="Every post you submitted, what the brand decided, the views that counted and when you get paid."
     >
-      {!loading && !error ? (
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        {[
-          ["Under review", counts.pending],
-          ["Revisions", counts.revision_requested],
-          ["Approved", counts.approved],
-          ["Rejected", counts.rejected],
-          ["Paid", Object.values(payoutBySubmission).filter((p) => p.status === "paid").length],
-        ].map(([label, value]) => (
-          <div key={String(label)} className="rounded-2xl border border-[#E5E7EB] bg-white px-3 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{label}</p>
-            <p className="mt-1 text-[16px] font-bold text-[#111827]">{value}</p>
-          </div>
-        ))}
-      </div>
+      {!error ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {FILTERS.filter((f) => f.id !== "all").map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => {
+                setFilter(filter === f.id ? "all" : f.id);
+                setPage(1);
+              }}
+              aria-pressed={filter === f.id}
+              className={cn(
+                "rounded-2xl border bg-white px-3 py-3 text-left transition hover:border-[#FFB89A]",
+                filter === f.id ? "border-[#FF5A1F] ring-2 ring-[#FF5A1F]/15" : "border-[#E5E7EB]",
+              )}
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{f.label}</p>
+              <p className="mt-1 text-[20px] font-bold tabular-nums text-[#111827]">{loading ? "·" : countFor[f.id]}</p>
+            </button>
+          ))}
+        </div>
       ) : null}
+
+      {!error && (earned > 0 || onTheWay > 0) ? (
+        <div className="flex flex-wrap gap-x-6 gap-y-1 rounded-2xl bg-[#111827] px-4 py-3 text-[13px] text-white/80">
+          <span className="inline-flex items-center gap-1.5">
+            <Wallet className="h-4 w-4 text-white" /> Paid to wallet <b className="text-white">{formatMoney(earned, "USD")}</b>
+          </span>
+          {onTheWay > 0 ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-white" /> On the way <b className="text-white">{formatMoney(onTheWay, "USD")}</b>
+            </span>
+          ) : null}
+          <Link href="/ugc/earnings" className="ml-auto font-semibold text-white hover:underline">
+            Earnings →
+          </Link>
+        </div>
+      ) : null}
+
       <UGCFilterBar search={search} onSearchChange={setSearch}>
         <select
-          value={status}
+          value={filter}
           onChange={(e) => {
-            setStatus(e.target.value);
+            setFilter(e.target.value as FilterId);
             setPage(1);
           }}
           className="rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
         >
-          {STATUS_TABS.map((s) => (
-            <option key={s} value={s}>
-              {s === "all" ? "All status" : s.replace("_", " ")}
+          {FILTERS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.id === "all" ? "All status" : f.label}
             </option>
           ))}
         </select>
@@ -152,12 +235,12 @@ export function UGCSubmissionsPage() {
       {!loading && error ? <UGCPageError message={error} onRetry={load} /> : null}
       {!loading && !error && filtered.length === 0 ? (
         <UGCPageEmpty
-          title="No submissions yet"
-          description="Your submitted campaign content will appear here."
+          title={filter === "all" ? "No submissions yet" : "Nothing here"}
+          description={filter === "all" ? "Join a campaign, post your video, then submit the link." : "No submissions match this filter."}
           illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/ugc/campaigns">Go to My Campaigns</Link>
+              <Link href="/ugc">Discover campaigns</Link>
             </Button>
           }
         />
@@ -169,100 +252,119 @@ export function UGCSubmissionsPage() {
             const camp = sub.campaign as {
               id?: string;
               title?: string;
+              payment_model?: string;
               vendor?: { business_name?: string; verification_status?: string | null } | null;
             } | undefined;
             const payout = payoutBySubmission[sub.id];
             const paid = payout?.status === "paid";
+            const verified = sub.verification_status === "verified";
+            const gained =
+              verified && sub.latest_views != null && sub.baseline_views != null ? Math.max(0, sub.latest_views - sub.baseline_views) : null;
+            const perViews = camp?.payment_model === "per_views";
             return (
-              <div
-                key={sub.id}
-                className="rounded-[16px] border border-[#EEF0F2] bg-white p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase text-[#9CA3AF]">
-                      {camp?.title ?? "Campaign"}
-                    </p>
-                    <p className="text-[12px] text-[#6B7280]">
-                      {camp?.vendor?.business_name ?? "Brand"}
-                      {camp?.vendor?.verification_status === "verified" ? (
-                        <UGCVerifiedBadge className="ml-1 inline h-3.5 w-3.5" />
-                      ) : null}
-                    </p>
-                    <a
-                      href={sub.post_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 flex items-center gap-1 text-[14px] font-bold text-[#111827] hover:text-[#FF5A1F]"
-                    >
-                      {sub.platform.toUpperCase()} post
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                    <p className="mt-1 text-[12px] text-[#6B7280]">
-                      Submitted {new Date(sub.created_at).toLocaleDateString()} · {submissionLabel(sub.status)} ·{" "}
-                      {paid ? "Paid" : payout?.status === "approved" ? "Approved, not paid" : payout?.status === "pending" ? "Payout pending" : "No payout yet"}
-                      {paid && payout.amount > 0 ? ` · ${formatMoney(payout.amount, "USD")}` : ""}
-                    </p>
+              <article key={sub.id} className="rounded-[18px] border border-[#EEF0F2] bg-white p-4 shadow-sm">
+                <div className="flex gap-3">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6]">
+                    {sub.thumbnail_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={sub.thumbnail_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="grid h-full w-full place-items-center text-[10px] font-bold uppercase text-[#9CA3AF]">{sub.platform}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-bold text-[#111827]">{camp?.title ?? "Campaign"}</p>
+                        <p className="text-[12px] text-[#6B7280]">
+                          {camp?.vendor?.business_name ?? "Brand"}
+                          {camp?.vendor?.verification_status === "verified" ? <UGCVerifiedBadge className="ml-1 inline h-3.5 w-3.5" /> : null}
+                          {" · "}
+                          <a href={sub.post_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 font-medium capitalize hover:text-[#FF5A1F]">
+                            {sub.platform} post <ExternalLink className="h-3 w-3" />
+                          </a>
+                          {" · "}
+                          {new Date(sub.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <UGCStatusPill status={sub.status} />
+                    </div>
+
+                    <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="rounded-xl bg-[#F9FAFB] px-3 py-2">
+                        <dt className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+                          <Eye className="h-3 w-3" /> Views now
+                        </dt>
+                        <dd className="text-[14px] font-bold tabular-nums text-[#111827]">{fmt(sub.latest_views)}</dd>
+                      </div>
+                      <div className="rounded-xl bg-[#F9FAFB] px-3 py-2">
+                        <dt className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Real views</dt>
+                        <dd className="flex items-center gap-1 text-[14px] font-bold tabular-nums text-[#111827]">
+                          {gained != null ? fmt(gained) : "—"}
+                          {verified ? <BadgeCheck className="h-3.5 w-3.5 text-emerald-600" aria-label="Verified by Jimvio" /> : null}
+                        </dd>
+                      </div>
+                      <div className="rounded-xl bg-[#F9FAFB] px-3 py-2">
+                        <dt className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Views paid</dt>
+                        <dd className="text-[14px] font-bold tabular-nums text-[#111827]">{perViews ? fmt(sub.accepted_views) : "Fixed"}</dd>
+                      </div>
+                      <div className="rounded-xl bg-[#F9FAFB] px-3 py-2">
+                        <dt className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Earned</dt>
+                        <dd className="text-[14px] font-bold tabular-nums text-[#111827]">
+                          {payout ? formatMoney(payout.amount, "USD") : sub.status === "approved" ? formatMoney(Number(sub.total_earnings ?? 0), "USD") : "—"}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {payout ? (
+                      <p className={cn("mt-2 flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-medium", paid ? "bg-emerald-50 text-emerald-800" : "bg-[#FFF7F2] text-[#7C2D12]")}>
+                        <Wallet className="h-4 w-4 shrink-0" />
+                        {paid
+                          ? `${formatMoney(payout.amount, "USD")} added to your wallet${payout.paid_at ? ` on ${new Date(payout.paid_at).toLocaleDateString()}` : ""}.`
+                          : `${formatMoney(payout.amount, "USD")} reaches your wallet ${timeLeft(payout.release_at) ?? "soon"} (24h check for views Jimvio couldn't verify).`}
+                      </p>
+                    ) : null}
+                    {!verified && sub.verification_note ? (
+                      <p className="mt-2 text-[12px] text-amber-800">{sub.verification_note}</p>
+                    ) : null}
                     {sub.rejection_reason ? (
                       <p className="mt-2 rounded-lg bg-[#FFF8F5] px-3 py-2 text-[12px] text-[#9A3412]">
                         {sub.status === "revision_requested" ? "Feedback" : "Reason"}: {sub.rejection_reason}
                       </p>
                     ) : null}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setOpenId(sub.id)}>
+                        Details & feedback
+                      </Button>
+                      {camp?.id ? (
+                        <Button asChild size="sm" variant="outline" className="rounded-xl">
+                          <Link href={`/ugc/${camp.id}/dashboard`}>Campaign</Link>
+                        </Button>
+                      ) : null}
+                      {sub.status === "revision_requested" ? <RevisionAction submissionId={sub.id} onDone={load} /> : null}
+                    </div>
                   </div>
-                  <UGCStatusPill status={sub.status} />
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setOpenId(sub.id)}>
-                    View feedback
-                  </Button>
-                  <Button asChild size="sm" variant="outline" className="rounded-xl">
-                    <a href={sub.post_url} target="_blank" rel="noopener noreferrer">View content</a>
-                  </Button>
-                  {camp?.id ? (
-                    <Button asChild size="sm" variant="outline" className="rounded-xl">
-                      <Link href={`/ugc/${camp.id}`}>View campaign</Link>
-                    </Button>
-                  ) : null}
-                  {paid ? (
-                    <Button asChild size="sm" variant="outline" className="rounded-xl">
-                      <Link href="/ugc/earnings">View payout</Link>
-                    </Button>
-                  ) : null}
-                  {sub.status === "revision_requested" ? (
-                    <RevisionAction submissionId={sub.id} onDone={load} />
-                  ) : null}
-                </div>
-              </div>
+              </article>
             );
           })}
           {totalPages > 1 ? (
             <div className="flex items-center justify-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
                 Previous
               </Button>
               <span className="text-[12px] text-[#6B7280]">
                 Page {page} of {totalPages}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
                 Next
               </Button>
             </div>
           ) : null}
         </div>
       ) : null}
-      {openId ? (
-        <SubmissionDrawer id={openId} payout={payoutBySubmission[openId]} onClose={() => setOpenId(null)} />
-      ) : null}
+      {openId ? <SubmissionDrawer id={openId} payout={payoutBySubmission[openId]} onClose={() => setOpenId(null)} /> : null}
     </UGCPageShell>
   );
 }

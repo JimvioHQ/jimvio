@@ -15,8 +15,8 @@ import {
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
-import { UgcWorkspaceSwitcher } from "./UgcWorkspaceSwitcher";
 import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
+import { UGCAssistantCard } from "./UGCAssistantCard";
 
 type NavItem = {
   id: string;
@@ -40,6 +40,7 @@ const BRAND_WORK: NavItem[] = [
 ];
 
 const REVIEW_ITEM: NavItem = { id: "review", href: "/ugc/review", label: "Submission Review", icon: ClipboardCheck };
+const OWNER_ITEM: NavItem = { id: "overview", href: "/ugc/campaign-center", label: "Brand Workspace", icon: LayoutDashboard };
 
 const MANAGE: NavItem[] = [
   { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
@@ -106,10 +107,15 @@ function NavLink({
 
 export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { workspaces, brandId } = useUgcBrandWorkspace();
-  const brandMode = workspaces.length > 0;
-  const work = brandMode ? BRAND_WORK : CREATOR_WORK;
-  const hasLiveCampaign = useHasLiveCampaign(brandMode);
+  // The sidebar sits outside the brand provider, so it reads the owner state itself.
+  const { brandId } = useUgcBrandWorkspace();
+  const owner = useOwnerState();
+  const items = [
+    ...CREATOR_WORK,
+    ...(owner.hasCampaign ? [REVIEW_ITEM] : []),
+    ...(owner.hasBrand ? [OWNER_ITEM] : []),
+    ...MANAGE,
+  ];
 
   return (
     <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white">
@@ -119,37 +125,61 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
         </p>
       </div>
 
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4" aria-label="UGC and Clipping">
-        {[...work, ...(hasLiveCampaign ? [REVIEW_ITEM] : []), ...MANAGE].map((item) => (
-          <NavLink
-            key={item.id}
-            item={item}
-            active={isActive(pathname, item, brandMode)}
-            href={brandMode ? withBrandQuery(item.href, brandId) : item.href}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </nav>
-      {brandMode ? <UgcWorkspaceSwitcher /> : null}
+      <div className="flex-1 overflow-y-auto pb-4">
+        <nav className="space-y-0.5 px-2 pb-4" aria-label="UGC and Clipping">
+          {items.map((item) => (
+            <div key={item.id} className="relative">
+              <NavLink
+                item={item}
+                active={isActive(pathname, item, false)}
+                href={owner.hasBrand && item.id === "overview" ? withBrandQuery(item.href, brandId) : item.href}
+                onNavigate={onNavigate}
+              />
+              {item.id === "review" && owner.waiting > 0 ? (
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[#FF5A1F] px-1.5 text-[10.5px] font-bold text-white">
+                  {owner.waiting > 99 ? "99+" : owner.waiting}
+                </span>
+              ) : null}
+            </div>
+          ))}
+        </nav>
+        <UGCAssistantCard />
+      </div>
     </div>
   );
 }
 
-/** Shows Submission Review only to owners who have a live campaign. */
-function useHasLiveCampaign(brandMode: boolean): boolean {
-  const [has, setHas] = useState(false);
+/**
+ * Owner extras: Brand Workspace when the person has a brand, Submission
+ * Review once they have a campaign, with the number of posts waiting.
+ */
+function useOwnerState(): { hasBrand: boolean; hasCampaign: boolean; waiting: number } {
+  const [state, setState] = useState({ hasBrand: false, hasCampaign: false, waiting: 0 });
   useEffect(() => {
-    if (!brandMode) return;
     let cancelled = false;
-    fetch("/api/ugc/campaigns?mine=true&status=active&limit=1", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!cancelled) setHas(Number(j?.total ?? 0) > 0 || (Array.isArray(j?.data) && j.data.length > 0));
-      })
-      .catch(() => undefined);
+    (async () => {
+      const ws = await fetch("/api/ugc/workspaces", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      const hasBrand = Array.isArray(ws?.data) && ws.data.length > 0;
+      if (!hasBrand) return;
+      const camps = await fetch("/api/ugc/campaigns?mine=true&status=all&limit=50", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      const list = (Array.isArray(camps?.data) ? camps.data : []) as { status?: string }[];
+      const hasCampaign = list.some((c) => c.status && c.status !== "draft" && c.status !== "cancelled");
+      let waiting = 0;
+      if (hasCampaign) {
+        const subs = await fetch("/api/ugc/submissions?status=pending&limit=1", { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        waiting = Number(subs?.counts?.pending ?? 0);
+      }
+      if (!cancelled) setState({ hasBrand, hasCampaign, waiting });
+    })();
     return () => {
       cancelled = true;
     };
-  }, [brandMode]);
-  return has;
+  }, []);
+  return state;
 }
