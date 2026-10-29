@@ -104,7 +104,7 @@ export function SettingsProfileForm({
   const visibleName = displayName.trim() || composedName || "Your name";
   const handle = normalizeUsername(username) || profile.username || "";
   const previewUrl = publicProfileUrl(origin, handle);
-  const verifiedSocial = accounts.filter((a) => a.platform !== "website" && a.isVerified).length;
+  const socialCount = accounts.filter((a) => a.platform !== "website").length;
 
   const completion = evaluateCreatorProfileCompletion({
     fullName: displayName.trim() || composedName,
@@ -113,7 +113,7 @@ export function SettingsProfileForm({
     headline,
     bio,
     country,
-    socialCount: verifiedSocial,
+    socialCount,
   });
 
   async function persist(patch: Record<string, unknown>, success: string) {
@@ -202,7 +202,7 @@ export function SettingsProfileForm({
       />
 
       {/* Hero preview — matches the public profile */}
-      <section className="mb-5 overflow-hidden rounded-2xl border border-[#E8E8E8] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
+      <section className="mx-auto mb-5 max-w-3xl overflow-hidden rounded-2xl border border-[#E8E8E8] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
         <div className="relative h-32 bg-[linear-gradient(135deg,#FFEDE2,#FFF7F0_45%,#F3F1EC)] sm:h-40">
           {coverImage ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -270,11 +270,7 @@ export function SettingsProfileForm({
                     {categories[0]}
                   </span>
                 ) : null}
-                {verifiedSocial > 0 ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-emerald-700">
-                    <BadgeCheck className="h-3 w-3" /> {verifiedSocial} verified account{verifiedSocial === 1 ? "" : "s"}
-                  </span>
-                ) : null}
+
               </div>
             </div>
           </div>
@@ -287,12 +283,14 @@ export function SettingsProfileForm({
             </Link>
           ) : null}
         </div>
-        <div className="border-t border-[#F3F4F6] px-5 py-4 sm:px-6">
-          <CreatorProfileChecklist completion={completion} saved={saved} />
-        </div>
+        {completion.complete ? null : (
+          <div className="border-t border-[#F3F4F6] px-5 py-4 sm:px-6">
+            <CreatorProfileChecklist completion={completion} saved={saved} />
+          </div>
+        )}
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="mx-auto max-w-3xl">
         <div className="space-y-5">
           <SettingsCard title="About you" description="Who you are and what you make." icon={<UserRound className="h-4 w-4" />}>
             <div className="space-y-4">
@@ -400,6 +398,16 @@ export function SettingsProfileForm({
             </div>
           </SettingsCard>
 
+          <div id="field-social" className="scroll-mt-24">
+            <SettingsCard
+              title="Social accounts"
+              description="Verified accounts show on your profile with their real followers and count for campaigns."
+              icon={<Link2 className="h-4 w-4" />}
+            >
+              <SocialAccountsManager accounts={accounts} onChange={setAccounts} />
+            </SettingsCard>
+          </div>
+
           <SettingsCard title="Skills & work" description="Shown to brands looking for creators." icon={<Briefcase className="h-4 w-4" />}>
             <div className="space-y-4">
               <SettingsField label="Skills">
@@ -465,15 +473,6 @@ export function SettingsProfileForm({
           </div>
         </div>
 
-        <div id="field-social" className="scroll-mt-24 space-y-5">
-          <SettingsCard
-            title="Social accounts"
-            description="Verified accounts show on your profile and count for campaigns."
-            icon={<Link2 className="h-4 w-4" />}
-          >
-            <SocialAccountsManager accounts={accounts} onChange={setAccounts} />
-          </SettingsCard>
-        </div>
       </div>
     </form>
   );

@@ -72,7 +72,6 @@ export async function loadCreatorProfileCompletion(
       .from("jip_social_accounts")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("is_verified", true)
       .neq("platform", "website"),
   ]);
   return evaluateCreatorProfileCompletion({
