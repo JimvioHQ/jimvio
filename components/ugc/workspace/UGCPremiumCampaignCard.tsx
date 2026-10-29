@@ -13,7 +13,6 @@ import {
 } from "./ugc-campaign-utils";
 import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
-import { UGCFundingBadge } from "./UGCFundingBadge";
 import { UGCPlatformMarks, campaignFallbackStyle } from "./UGCPlatformMarks";
 import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
@@ -163,11 +162,10 @@ function UGCPremiumCampaignCardInner({
             )}
           </Link>
 
-          {c.funding ? (
-            <UGCFundingBadge
-              funding={c.funding}
-              className="pointer-events-none absolute left-1.5 top-1.5 z-[1] sm:left-2 sm:top-2"
-            />
+          {c.status === "paused" ? (
+            <span className="pointer-events-none absolute left-1.5 top-1.5 z-[1] inline-flex h-[20px] items-center rounded-full bg-[#111827]/80 px-2 text-[10px] font-semibold text-white backdrop-blur sm:left-2 sm:top-2 sm:h-[22px] sm:text-[11px]">
+              Paused · back soon
+            </span>
           ) : null}
 
           {canJoin ? (
@@ -298,23 +296,13 @@ function UGCPremiumCampaignCardInner({
                   compact ? "text-[10px] sm:text-[12px]" : "text-[12px]",
                 )}
               >
-                {c.funding ? (
-                  <>
-                    <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(c.funding.remainingUsd)}</span>
-                    <span className="font-medium text-[#9CA3AF]">
-                      {" left of "}
-                      {formatUgcFundingUsd(totalBudget)}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>
-                    <span className="font-medium text-[#9CA3AF]">
-                      {" / "}
-                      {formatUgcFundingUsd(totalBudget)}
-                    </span>
-                  </>
-                )}
+                <span className="font-semibold text-[#111827]">
+                  {formatUgcFundingUsd(Math.max(0, totalBudget - spentBudget))}
+                </span>
+                <span className="font-medium text-[#9CA3AF]">
+                  {" left of "}
+                  {formatUgcFundingUsd(totalBudget)}
+                </span>
               </p>
             ) : (
               <span className="min-w-0" />

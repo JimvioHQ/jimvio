@@ -154,7 +154,16 @@ export async function GET(req: NextRequest) {
     createServiceRoleClient(),
     mapped as Record<string, unknown>[],
   ).catch(() => mapped);
-  return NextResponse.json({ data: rows, total: count ?? 0, page, limit });
+  // Public board: only campaigns whose full budget Jimvio holds. Owners still see their own.
+  const visible = mine
+    ? rows
+    : rows.filter((r) => (r as { funding?: { state?: string } }).funding?.state === "funded");
+  return NextResponse.json({
+    data: visible,
+    total: Math.max(0, (count ?? 0) - (rows.length - visible.length)),
+    page,
+    limit,
+  });
 }
 
 // ─── POST /api/ugc/campaigns ────────────────────────────────────────────────

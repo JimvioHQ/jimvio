@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/auth/platform-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 
 export const dynamic = "force-dynamic";
 
@@ -44,12 +45,16 @@ export async function GET(req: NextRequest) {
 
   const ids = (data ?? []).map((row) => row.id as string);
   const escrowByCampaign = new Map<string, "held" | "pending" | "unfunded">();
+  const escrowRowsBy = new Map<string, EscrowRow[]>();
   if (ids.length) {
     const { data: escrowRows } = await db
       .from("ugc_campaign_escrow")
-      .select("campaign_id, status")
+      .select("campaign_id, status, amount, currency, refunded_amount")
       .in("campaign_id", ids);
     for (const row of escrowRows ?? []) {
+      const list = escrowRowsBy.get(String(row.campaign_id)) ?? [];
+      list.push(row as EscrowRow);
+      escrowRowsBy.set(String(row.campaign_id), list);
       const cid = String(row.campaign_id);
       if (row.status === "held") escrowByCampaign.set(cid, "held");
       else if (row.status === "pending" && escrowByCampaign.get(cid) !== "held") {
@@ -80,6 +85,14 @@ export async function GET(req: NextRequest) {
   const rows = (data ?? []).map((row) => ({
     ...row,
     escrow_state: escrowByCampaign.get(row.id as string) ?? "unfunded",
+    funding: (() => {
+      const f = campaignFunding({
+        escrow: escrowRowsBy.get(row.id as string) ?? [],
+        totalBudget: row.total_budget as number | null,
+        spentBudget: row.spent_budget as number | null,
+      });
+      return { state: f.state, heldUsd: f.heldUsd, coveragePct: f.coveragePct, remainingUsd: f.remainingUsd };
+    })(),
     admin_activator_name: row.admin_activated_by
       ? activatorName.get(row.admin_activated_by as string) ?? null
       : null,

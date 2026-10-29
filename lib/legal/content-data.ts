@@ -85,6 +85,11 @@ export const UGC_TERM_SUMMARIES: { id: string; title: string; body: string }[] =
     body: "You are paid only for approved work, from money the brand has already put in escrow. Per-view campaigns pay only real views gained after you submit. Approval is not payment: rewards are held 48 hours, then released.",
   },
   {
+    id: "funded-campaigns",
+    title: "Funded Campaigns",
+    body: "A campaign appears on the UGC page only after the brand has paid its full budget to Jimvio. Jimvio holds that money and pays creators from it for approved work, so a listed campaign is always a paid-for campaign.",
+  },
+  {
     id: "real-views",
     title: "Real Views & Fair Play",
     body: "Jimvio reads views from the platform's official API on your own connected account. Bought views, bots, view-for-view groups, recycled videos and fake engagement are not paid and can close your account.",
