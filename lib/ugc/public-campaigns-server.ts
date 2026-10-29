@@ -44,9 +44,11 @@ export async function loadPublicActiveCampaigns(
       db,
       data.map((row) => toPublicCampaignListItem(row as Record<string, unknown>)),
     );
+    // The public board lists only campaigns whose full budget Jimvio holds.
+    const funded = rows.filter((r) => (r as { funding?: { state?: string } }).funding?.state === "funded");
     return {
-      campaigns: rows as unknown as UGCCampaign[],
-      total: count ?? data.length,
+      campaigns: funded as unknown as UGCCampaign[],
+      total: Math.max(0, (count ?? data.length) - (rows.length - funded.length)),
     };
   } catch {
     return { campaigns: [], total: 0 };

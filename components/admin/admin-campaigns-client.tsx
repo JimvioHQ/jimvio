@@ -37,8 +37,9 @@ import { formatUgcFundingUsd, getClipRateBadge } from "@/components/ugc/workspac
 
 type EscrowState = "unfunded" | "pending" | "held";
 
-type AdminCampaign = UGCCampaign & {
+type AdminCampaign = Omit<UGCCampaign, "funding"> & {
   escrow_state?: EscrowState;
+  funding?: { state: "funded" | "partly_funded" | "awaiting_funds"; heldUsd: number; coveragePct: number; remainingUsd?: number } | null;
   admin_activator_name?: string | null;
 };
 
@@ -50,11 +51,18 @@ type AdminOverview = {
   suspiciousSubmissions?: unknown[] | number;
 };
 
-function fundingLabel(state: EscrowState | undefined) {
+function fundingLabel(state: EscrowState | undefined, funding?: AdminCampaign["funding"]) {
+  if (funding) {
+    if (funding.state === "funded") return "Funded";
+    if (funding.state === "partly_funded") return `${funding.coveragePct}% funded (${formatUgcFundingUsd(funding.heldUsd)} held)`;
+    return state === "pending" ? "Payment pending" : "Unfunded";
+  }
   if (state === "held") return "Funded";
   if (state === "pending") return "Pending funding";
   return "Unfunded";
 }
+
+type PendingAction = "activate" | "fund" | UgcLifecycleAction;
 
 export function AdminCampaignsClient() {
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
@@ -64,7 +72,7 @@ export function AdminCampaignsClient() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"recent" | "budget" | "views">("recent");
   const [pending, setPending] = useState<AdminCampaign | null>(null);
-  const [pendingAction, setPendingAction] = useState<"activate" | UgcLifecycleAction>("activate");
+  const [pendingAction, setPendingAction] = useState<PendingAction>("activate");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -115,7 +123,7 @@ export function AdminCampaignsClient() {
     return sortCampaigns(rows, sort);
   }, [campaigns, status, search, sort]);
 
-  function openAction(campaign: AdminCampaign, action: "activate" | UgcLifecycleAction) {
+  function openAction(campaign: AdminCampaign, action: PendingAction) {
     setPending(campaign);
     setPendingAction(action);
     setReason("");
@@ -128,18 +136,21 @@ export function AdminCampaignsClient() {
     }
     setSubmitting(true);
     try {
-      const path = pendingAction === "activate" ? "activate" : "lifecycle";
+      const path = pendingAction === "activate" ? "activate" : pendingAction === "fund" ? "mark-funded" : "lifecycle";
       const res = await fetch(`/api/admin/ugc/campaigns/${pending.id}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pendingAction === "activate" ? { reason } : { action: pendingAction, reason }),
+        body: JSON.stringify(
+          pendingAction === "activate" || pendingAction === "fund" ? { reason } : { action: pendingAction, reason },
+        ),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(typeof json.error === "string" ? json.error : "Could not update campaign.");
         return;
       }
-      const nextStatus = pendingAction === "activate" ? "active" : (json.status as UGCCampaignStatus | undefined);
+      const nextStatus =
+        pendingAction === "activate" ? "active" : (json.status as UGCCampaignStatus | undefined);
       setCampaigns((prev) =>
         prev.map((c) =>
           c.id === pending.id
@@ -148,11 +159,22 @@ export function AdminCampaignsClient() {
                 ...(pendingAction === "activate" ? ((json.campaign as AdminCampaign | undefined) ?? {}) : {}),
                 status: nextStatus ?? c.status,
                 activated_by_admin: pendingAction === "activate" ? true : c.activated_by_admin,
+                ...(pendingAction === "fund"
+                  ? { funding: json.funding as AdminCampaign["funding"], escrow_state: "held" as EscrowState }
+                  : {}),
               }
             : c,
         ),
       );
-      toast.success(json.idempotent ? "Campaign was already in that state." : "Campaign updated. Funding records were not changed.");
+      toast.success(
+        pendingAction === "fund"
+          ? json.idempotent
+            ? "Campaign was already fully funded."
+            : `Marked as funded: ${formatUgcFundingUsd(Number(json.recordedUsd ?? 0))} recorded in escrow.`
+          : json.idempotent
+            ? "Campaign was already in that state."
+            : "Campaign updated. Funding records were not changed.",
+      );
       setPending(null);
       setReason("");
     } catch {
@@ -330,7 +352,7 @@ export function AdminCampaignsClient() {
                           Spent {formatUgcFundingUsd(c.spent_budget ?? 0)} / budget{" "}
                           {formatUgcFundingUsd(c.total_budget ?? 0)}
                           {" · "}
-                          Escrow: {fundingLabel(c.escrow_state)}
+                          Escrow: {fundingLabel(c.escrow_state, c.funding)}
                         </p>
                       </td>
                       <td className="px-3 py-3">
@@ -345,6 +367,11 @@ export function AdminCampaignsClient() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex max-w-[220px] flex-wrap gap-1">
+                          {c.funding?.state !== "funded" && c.status !== "cancelled" && c.status !== "completed" ? (
+                            <button type="button" onClick={() => openAction(c, "fund")} className="inline-flex h-8 items-center rounded-md bg-emerald-600 px-2.5 text-[11px] font-semibold text-white hover:bg-emerald-700">
+                              Mark as Funded
+                            </button>
+                          ) : null}
                           {canAdminActivateOverride(c.status) ? (
                             <button type="button" onClick={() => openAction(c, "activate")} className="inline-flex h-8 items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18]">
                               Mark as Active
@@ -380,18 +407,26 @@ export function AdminCampaignsClient() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="admin-activate-title">
           <div className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-5 shadow-xl ring-1 ring-[var(--color-border)]">
             <h2 id="admin-activate-title" className="text-[16px] font-semibold text-[var(--color-text-primary)]">
-              {pendingAction === "activate" ? "Mark campaign as active?" : `${pendingAction[0].toUpperCase()}${pendingAction.slice(1)} “${pending.title}”?`}
+              {pendingAction === "activate"
+                ? "Mark campaign as active?"
+                : pendingAction === "fund"
+                  ? `Mark “${pending.title}” as funded?`
+                  : `${pendingAction[0].toUpperCase()}${pendingAction.slice(1)} “${pending.title}”?`}
             </h2>
             <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-              {pendingAction === "activate"
+              {pendingAction === "fund"
+                ? `Confirm that Jimvio has received the brand's money for this campaign. Jimvio records ${formatUgcFundingUsd(
+                    Math.max(0, Number(pending.total_budget ?? 0) - Number(pending.funding?.heldUsd ?? 0)),
+                  )} as held escrow so the full budget is covered, and the campaign becomes active. Creators are paid from this money, so only confirm money that really arrived.`
+                : pendingAction === "activate"
                 ? `This makes “${pending.title}” visible to eligible creators without recording funding. It does not add escrow or approve payouts.`
                 : `This changes “${pending.title}” to ${pendingAction === "pause" ? "paused" : pendingAction === "resume" ? "active" : pendingAction === "cancel" ? "cancelled" : "completed"}. Escrow, spent budget, and payouts stay as they are.`}
             </p>
             <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
-              Budget spent: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · Escrow: {fundingLabel(pending.escrow_state)}
+              Budget spent: {formatUgcFundingUsd(pending.spent_budget ?? 0)} / {formatUgcFundingUsd(pending.total_budget ?? 0)} · Escrow: {fundingLabel(pending.escrow_state, pending.funding)}
             </p>
             <label className="mt-4 block text-[12px] font-medium text-[var(--color-text-secondary)]">
-              Reason (required)
+              {pendingAction === "fund" ? "How was the money received? (required)" : "Reason (required)"}
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

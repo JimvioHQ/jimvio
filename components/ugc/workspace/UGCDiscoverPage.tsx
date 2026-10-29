@@ -270,8 +270,6 @@ export function UGCDiscoverPage({
       />
       </div>
 
-      <UGCTrustStrip />
-
       {loading && !campaigns.length ? (
         <>
           {showFeaturedSkeleton ? <FeaturedSkeleton /> : null}
@@ -344,6 +342,7 @@ export function UGCDiscoverPage({
                 </div>
               ) : null}
             </div>
+            <UGCTrustStrip />
           </section>
         </>
       )}

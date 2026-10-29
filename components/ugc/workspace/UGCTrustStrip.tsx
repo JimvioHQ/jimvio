@@ -3,26 +3,26 @@ import { BadgeCheck, LineChart, ShieldCheck } from "lucide-react";
 const ITEMS = [
   {
     icon: ShieldCheck,
-    title: "Money held first",
-    body: "“Funded” means the full budget is already held in escrow by Jimvio. Payouts never exceed the money held.",
+    title: "Every campaign here is paid for",
+    body: "A campaign only appears on this page once the brand has paid its full budget to Jimvio. The money waits safely with Jimvio and goes to creators for approved work.",
   },
   {
     icon: BadgeCheck,
     title: "Real views only",
-    body: "Views are read from YouTube and TikTok’s official APIs on the creator’s own connected account. Typed numbers and screenshots don’t count.",
+    body: "Jimvio reads your views straight from YouTube and TikTok on the account you connect. Numbers typed by hand and screenshots are not used.",
   },
   {
     icon: LineChart,
-    title: "Counted from submission",
-    body: "Only views gained after the post is submitted are paid. Sudden spikes, recycled videos and fake engagement are held for review.",
+    title: "Paid from the moment you submit",
+    body: "You earn on the views your post gets after you submit it here. Bought views, reused videos and fake likes are not paid.",
   },
 ] as const;
 
 export function UGCTrustStrip() {
   return (
     <section
-      aria-label="How Jimvio verifies campaigns"
-      className="mb-5 grid min-w-0 gap-2 rounded-[14px] border border-[#E8EAED] bg-white p-3 sm:grid-cols-3 sm:gap-3 sm:p-4"
+      aria-label="How Jimvio protects creators and brands"
+      className="mt-6 grid min-w-0 gap-2 rounded-[14px] border border-[#E8EAED] bg-white p-3 sm:grid-cols-3 sm:gap-3 sm:p-4"
     >
       {ITEMS.map(({ icon: Icon, title, body }) => (
         <div key={title} className="flex min-w-0 gap-2.5">
