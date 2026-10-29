@@ -15,6 +15,7 @@ import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
+import { SectionPrefetcher } from "@/components/layout/SectionPrefetcher";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
@@ -78,6 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <>
               <JimvioCopilotLoader />
               <CommandCenterLoader />
+              <SectionPrefetcher />
             </>
           ) : null}
           <SoftLaunchProviders />
