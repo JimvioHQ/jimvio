@@ -160,13 +160,17 @@ export function SocialAccountsManager({
     setBusy(id);
     try {
       const { res, json } = await call({ action: "check", id });
-      if (res.ok) {
+      if (res.ok && json.status === "verified") {
         onChange((prev) =>
           prev.map((a) => (a.id === id ? { ...a, isVerified: true, verifyStatus: "verified", verificationMethod: "bio_code" } : a)),
         );
         toast.success(json.message ?? "Verified");
+      } else if (res.ok && json.status === "pending_review") {
+        onChange((prev) => prev.map((a) => (a.id === id ? { ...a, verifyStatus: "pending_review" } : a)));
+        toast.message(json.message ?? "Sent to a reviewer");
       } else {
-        toast.error(json.error ?? "Not verified yet");
+        onChange((prev) => prev.map((a) => (a.id === id ? { ...a, verifyStatus: "failed" } : a)));
+        toast.error(json.error ?? "Verification failed");
       }
     } finally {
       setBusy(null);
@@ -229,6 +233,8 @@ export function SocialAccountsManager({
                     <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
                       <Clock className="h-3 w-3" /> In review
                     </span>
+                  ) : status === "failed" ? (
+                    <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700">Failed</span>
                   ) : (
                     <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Not verified</span>
                   )}
@@ -248,10 +254,11 @@ export function SocialAccountsManager({
                       {busy === a.platform ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
                       Verify with {SOCIAL_PLATFORM_LABEL[a.platform]} login
                     </button>
-                  ) : code || status === "code_issued" ? (
+                  ) : code || status === "code_issued" || status === "failed" ? (
                     <div className="mt-2.5 space-y-2 rounded-lg bg-[#FFF7F2] p-2.5">
                       <p className="text-[12px] text-[#7C2D12]">
-                        1. Copy this code. 2. Paste it anywhere in your {SOCIAL_PLATFORM_LABEL[a.platform]} bio and save. 3. Press Check.
+                        1. Copy this code. 2. Paste it anywhere in your {SOCIAL_PLATFORM_LABEL[a.platform]} bio and save. 3. Press
+                        Verify — Jimvio checks your bio automatically in about 10 seconds.
                       </p>
                       {code ? (
                         <div className="flex items-center gap-2">
@@ -279,7 +286,8 @@ export function SocialAccountsManager({
                           onClick={() => void check(a.id)}
                           className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-3 text-[12px] font-semibold text-white disabled:opacity-60"
                         >
-                          {busy === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Check
+                          {busy === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                          {busy === a.id ? "Verifying…" : "Verify"}
                         </button>
                         <button
                           type="button"
@@ -287,7 +295,7 @@ export function SocialAccountsManager({
                           onClick={() => void review(a.id)}
                           className="inline-flex h-8 items-center rounded-full border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#374151]"
                         >
-                          Send for review
+                          Ask a reviewer
                         </button>
                       </div>
                     </div>

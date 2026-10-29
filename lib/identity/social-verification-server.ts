@@ -161,41 +161,56 @@ export async function issueBioCode(userId: string, id: string): Promise<VerifyRe
   };
 }
 
-/** Reads the public profile page for the code. */
+/**
+ * Reads the account's public page for the code — a few quick tries over about
+ * ten seconds so a just-saved bio is picked up. Found → verified. Not found →
+ * failed. Page could not be read → sent to a reviewer automatically.
+ */
 export async function checkBioCode(userId: string, id: string): Promise<VerifyResult> {
   const acc = await ownAccount(userId, id);
   if (!acc) return { ok: false, status: 404, error: "Account not found." };
   if (!acc.verify_code) return { ok: false, status: 409, error: "Get a code first." };
   const page = publicProfileUrl(acc.platform, acc.handle, acc.url);
   if (!page) return { ok: false, status: 400, error: "Add your profile link or handle first." };
-  const result = await checkCodeOnPage(page, acc.verify_code);
+  let result: Awaited<ReturnType<typeof checkCodeOnPage>> = "unreachable";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    result = await checkCodeOnPage(page, acc.verify_code);
+    if (result === "found") break;
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
+  }
   if (result === "found") {
     const account = await saveVerified(
       userId,
       acc.platform,
       { handle: acc.handle, url: acc.url || page },
       "bio_code",
-      "Verified with a code in the bio.",
+      "Verified automatically with a code in the bio.",
     );
-    return { ok: true, status: "verified", message: "Verified. You can remove the code from your bio now.", account };
+    return { ok: true, status: "verified", message: "Verified! You can remove the code from your bio now.", account };
+  }
+  if (result === "unreachable") {
+    await db()
+      .from("jip_social_accounts")
+      .update({
+        verify_status: "pending_review",
+        verify_checked_at: now(),
+        verify_note: "The platform's page could not be read automatically. Sent to a reviewer.",
+      })
+      .eq("id", id);
+    return {
+      ok: true,
+      status: "pending_review",
+      message: "This platform doesn't let Jimvio read its pages automatically, so a Jimvio reviewer will confirm the code. Keep it in your bio.",
+    };
   }
   await db()
     .from("jip_social_accounts")
-    .update({
-      verify_checked_at: now(),
-      verify_note:
-        result === "unreachable"
-          ? "The platform did not let Jimvio read the page automatically."
-          : "The code was not found on the page yet.",
-    })
+    .update({ verify_status: "failed", verify_checked_at: now(), verify_note: "The code was not found on the page." })
     .eq("id", id);
   return {
     ok: false,
     status: 409,
-    error:
-      result === "unreachable"
-        ? "This platform blocked the automatic check. Keep the code in your bio and send it for review — a Jimvio reviewer will check it."
-        : "Code not found yet. Make sure it is saved in your bio exactly as shown, then try again, or send it for review.",
+    error: "Verification failed: the code isn't in your bio. Paste it exactly as shown, save your bio, then press Verify again.",
   };
 }
 

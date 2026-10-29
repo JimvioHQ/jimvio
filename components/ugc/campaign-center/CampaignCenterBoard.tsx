@@ -98,7 +98,7 @@ export function CampaignCenterBoard({
 
   const tabs: Array<{ id: FilterStatus; label: string; count: number }> = [
     { id: "all", label: "All", count: campaigns.length },
-    { id: "draft", label: "Draft / Pending funding", count: campaigns.filter((c) => c.status === "draft").length },
+    { id: "draft", label: "Not live · Needs funding", count: campaigns.filter((c) => c.status === "draft").length },
     { id: "active", label: "Active", count: campaigns.filter((c) => c.status === "active").length },
     {
       id: "upcoming",
@@ -237,6 +237,16 @@ export function CampaignCenterBoard({
                       <Eye className="h-3.5 w-3.5" />
                       Preview
                     </Link>
+                    {c.status === "draft" ? (
+                      <Link
+                        href={withBrandQuery(`/ugc/campaign-center/${c.id}/fund`, brandId)}
+                        title="Your campaign goes live as soon as the budget is funded."
+                        className="inline-flex h-9 items-center gap-1 rounded-full bg-[#FF5A1F] px-3 text-[12px] font-semibold text-white hover:bg-[#E54E18]"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Fund to go live
+                      </Link>
+                    ) : null}
                     <Link
                       href={`/ugc/campaign-center/${c.id}/edit`}
                       className="inline-flex h-9 items-center gap-1 rounded-full border border-[#E5E7EB] px-3 text-[12px] font-semibold text-[#374151] hover:bg-[#F9FAFB]"

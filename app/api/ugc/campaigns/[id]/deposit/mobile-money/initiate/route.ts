@@ -125,9 +125,11 @@ export async function POST(
   }
 
   const budget = Number(campaign.total_budget) || MIN_FUNDING_USD;
+  // The full budget is always collected: a campaign goes live only when it is fully funded.
   const amountUsd = Math.max(
     MIN_FUNDING_USD,
-    body.amount != null ? Math.round(body.amount * 100) / 100 : budget,
+    budget,
+    body.amount != null ? Math.round(body.amount * 100) / 100 : 0,
   );
 
   const { data: profile } = await db

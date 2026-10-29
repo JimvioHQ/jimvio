@@ -14,6 +14,7 @@ import {
   isAdminActivateIdempotent,
 } from "@/lib/ugc/admin-activate-override";
 import { requireAdminReason } from "@/lib/admin/portal-policy";
+import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,22 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   }
 
   const fundingBefore = await escrowState(db, id);
+  const { data: escrowRows } = await db
+    .from("ugc_campaign_escrow")
+    .select("status, amount, currency, refunded_amount")
+    .eq("campaign_id", id);
+  const fullyFunded =
+    campaignFunding({
+      escrow: (escrowRows ?? []) as EscrowRow[],
+      totalBudget: campaign.total_budget,
+      spentBudget: 0,
+    }).state === "funded";
+  if (!fullyFunded && campaign.status !== "active") {
+    return NextResponse.json(
+      { error: "A campaign goes live only when its full budget is held. Use Mark as Funded once the money has arrived." },
+      { status: 409 },
+    );
+  }
   const meta = await requestMeta();
   const previousStatus = String(campaign.status ?? "");
 
@@ -177,8 +194,8 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
   await recordUgcActivity(db, {
     campaignId: id,
     eventType: "campaign_activated",
-    title: "Campaign activated by admin",
-    description: reason ?? "Activated without recording funding.",
+    title: "Campaign activated",
+    description: "The campaign is live.",
     actorUserId: auth.user.id,
     metadata: {
       override: true,

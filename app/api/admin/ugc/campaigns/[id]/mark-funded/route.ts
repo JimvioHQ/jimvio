@@ -4,7 +4,6 @@ import { isUuid, requirePlatformAdmin } from "@/lib/auth/platform-admin";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { writeAuditEvent } from "@/services/ops/audit";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
-import { requireAdminReason } from "@/lib/admin/portal-policy";
 import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +20,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const { id } = await ctx.params;
   if (!isUuid(id)) return NextResponse.json({ error: "Invalid campaign." }, { status: 400 });
 
-  const body = (await req.json().catch(() => ({}))) as { reason?: unknown };
-  const reasonResult = requireAdminReason(typeof body.reason === "string" ? body.reason : "");
-  if (!reasonResult.ok) return NextResponse.json({ error: reasonResult.error }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as { method?: unknown; reference?: unknown; reason?: unknown };
+  const METHODS = new Set(["bank_transfer", "mobile_money", "cash", "card", "crypto", "other"]);
+  const method = typeof body.method === "string" && METHODS.has(body.method) ? body.method : "other";
+  const reference = typeof body.reference === "string" ? body.reference.trim().slice(0, 120) : "";
+  const note = typeof body.reason === "string" ? body.reason.trim().slice(0, 300) : "";
+  const reasonResult = { reason: [method.replace("_", " "), reference, note].filter(Boolean).join(" · ") };
 
   const db = createServiceRoleClient();
   const { data: campaign } = await db
@@ -57,17 +59,30 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   };
 
   if (gap > 0) {
-    const { error: insertError } = await db.from("ugc_campaign_escrow").insert({
-      campaign_id: id,
-      deposited_by: auth.user.id,
-      amount: gap,
+    // One escrow record per campaign: record the full budget as held.
+    const { data: existing } = await db
+      .from("ugc_campaign_escrow")
+      .select("id")
+      .eq("campaign_id", id)
+      .limit(1)
+      .maybeSingle();
+    const record = {
+      amount: before.budgetUsd,
       currency: "USD",
       status: "held",
-      payment_method: "admin_manual",
-      payment_ref: `ADMIN-${Date.now()}`,
+      locked_amount: before.budgetUsd,
+      payment_method: `admin_${method}`,
       deposited_at: now,
-    });
-    if (insertError) return NextResponse.json({ error: "Could not record the funding." }, { status: 500 });
+    };
+    const { error: writeError } = existing?.id
+      ? await db.from("ugc_campaign_escrow").update(record).eq("id", existing.id)
+      : await db.from("ugc_campaign_escrow").insert({
+          ...record,
+          campaign_id: id,
+          deposited_by: auth.user.id,
+          payment_ref: reference || `ADMIN-${Date.now()}`,
+        });
+    if (writeError) return NextResponse.json({ error: "Could not record the funding." }, { status: 500 });
   }
 
   let status = String(campaign.status);
@@ -101,10 +116,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   await recordUgcActivity(db, {
     campaignId: id,
     eventType: "campaign_funded",
-    title: "Campaign marked as funded by Jimvio",
-    description: reasonResult.reason,
+    title: "Campaign funded",
+    description: "The budget is held in escrow. The campaign is live.",
     actorUserId: auth.user.id,
-    metadata: { recorded_usd: Math.max(0, gap) },
+    metadata: {},
   });
 
   return NextResponse.json({

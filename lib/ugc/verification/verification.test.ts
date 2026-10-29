@@ -133,3 +133,32 @@ describe("social verification", () => {
     assert.deepEqual(cleanCategories(["Music", "Tech"]), ["Music"]);
   });
 });
+
+import { autoReviewDecision } from "../checker/auto-review-rule.ts";
+import { assessPost } from "../checker/post-signals.ts";
+
+describe("jimvio checker", () => {
+  it("calls healthy engagement real and bought views suspicious", () => {
+    assert.equal(assessPost({ views: 20000, likes: 1200, comments: 90 }).verdict, "real");
+    assert.equal(assessPost({ views: 200000, likes: 150, comments: 2 }).verdict, "suspicious");
+    assert.equal(assessPost({ views: 120, likes: 10, comments: 1 }).verdict, "too_early");
+  });
+  it("auto-approves only clean, settled, verified posts", () => {
+    const base = {
+      reviewMode: "auto",
+      submissionStatus: "pending",
+      paymentModel: "per_views",
+      verificationStatus: "verified",
+      flags: [],
+      baselineViews: 100,
+      latestViews: 5100,
+      submittedAt: "2026-10-20T00:00:00Z",
+      now: new Date("2026-10-29T00:00:00Z"),
+    };
+    assert.deepEqual(autoReviewDecision(base), { approve: true, acceptedViews: 5000 });
+    assert.equal(autoReviewDecision({ ...base, reviewMode: "manual" }).approve, false);
+    assert.equal(autoReviewDecision({ ...base, flags: ["view_spike"] }).approve, false);
+    assert.equal(autoReviewDecision({ ...base, submittedAt: "2026-10-28T12:00:00Z" }).approve, false);
+    assert.equal(autoReviewDecision({ ...base, aiGeneratedLikelihood: 85 }).approve, false);
+  });
+});
