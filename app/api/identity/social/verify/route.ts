@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
   if (!result.ok) {
-    return NextResponse.json({ error: result.error, needsConnect: result.needsConnect ?? null }, { status: result.status });
+    return NextResponse.json(
+      { error: result.error, needsConnect: result.needsConnect ?? null, unreachable: result.unreachable ?? false },
+      { status: result.status },
+    );
   }
   return NextResponse.json(result);
 }

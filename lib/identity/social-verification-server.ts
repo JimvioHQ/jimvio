@@ -4,7 +4,8 @@ import { freshCredentials, type CredentialDestination } from "@/lib/live/destina
 import { fetchTikTokUserInfo } from "@/lib/live/destinations/adapters/tiktok";
 import {
   CODE_TTL_MS,
-  checkCodeOnPage,
+  checkCodeForAccount,
+  type CodeCheck,
   newVerifyCode,
   publicProfileUrl,
 } from "@/lib/identity/social-verification";
@@ -15,7 +16,7 @@ const db = (): Db => createServiceRoleClient() as unknown as Db;
 
 export type VerifyResult =
   | { ok: true; status: "verified" | "code_issued" | "pending_review"; message: string; code?: string; account?: unknown }
-  | { ok: false; status: number; error: string; needsConnect?: "youtube" | "tiktok" };
+  | { ok: false; status: number; error: string; needsConnect?: "youtube" | "tiktok"; unreachable?: boolean };
 
 const now = () => new Date().toISOString();
 
@@ -162,56 +163,49 @@ export async function issueBioCode(userId: string, id: string): Promise<VerifyRe
 }
 
 /**
- * Reads the account's public page for the code — a few quick tries over about
- * ten seconds so a just-saved bio is picked up. Found → verified. Not found →
- * failed. Page could not be read → sent to a reviewer automatically.
+ * Fully automatic: reads the account's public bio a few times over about ten
+ * seconds (so a just-saved bio is picked up). Code there → verified.
+ * Code missing, or the profile can't be read → failed, with the reason.
  */
 export async function checkBioCode(userId: string, id: string): Promise<VerifyResult> {
   const acc = await ownAccount(userId, id);
   if (!acc) return { ok: false, status: 404, error: "Account not found." };
   if (!acc.verify_code) return { ok: false, status: 409, error: "Get a code first." };
-  const page = publicProfileUrl(acc.platform, acc.handle, acc.url);
-  if (!page) return { ok: false, status: 400, error: "Add your profile link or handle first." };
-  let result: Awaited<ReturnType<typeof checkCodeOnPage>> = "unreachable";
+  if (!publicProfileUrl(acc.platform, acc.handle, acc.url)) {
+    return { ok: false, status: 400, error: "Add your profile link or handle first." };
+  }
+  let result: CodeCheck = "unreachable";
   for (let attempt = 0; attempt < 3; attempt++) {
-    result = await checkCodeOnPage(page, acc.verify_code);
+    result = await checkCodeForAccount(acc.platform, acc.handle, acc.url, acc.verify_code);
     if (result === "found") break;
-    if (attempt < 2) await new Promise((r) => setTimeout(r, 1500));
+    if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
   }
   if (result === "found") {
     const account = await saveVerified(
       userId,
       acc.platform,
-      { handle: acc.handle, url: acc.url || page },
+      { handle: acc.handle, url: acc.url || publicProfileUrl(acc.platform, acc.handle, null) },
       "bio_code",
       "Verified automatically with a code in the bio.",
     );
     return { ok: true, status: "verified", message: "Verified! You can remove the code from your bio now.", account };
   }
-  if (result === "unreachable") {
-    await db()
-      .from("jip_social_accounts")
-      .update({
-        verify_status: "pending_review",
-        verify_checked_at: now(),
-        verify_note: "The platform's page could not be read automatically. Sent to a reviewer.",
-      })
-      .eq("id", id);
-    return {
-      ok: true,
-      status: "pending_review",
-      message: "This platform doesn't let Jimvio read its pages automatically, so a Jimvio reviewer will confirm the code. Keep it in your bio.",
-    };
-  }
+  const unreachable = result === "unreachable";
+  const note = unreachable
+    ? "Jimvio could not open this profile. It may be private, the handle may be wrong, or the platform blocked the check."
+    : "The code was not found in the bio.";
   await db()
     .from("jip_social_accounts")
-    .update({ verify_status: "failed", verify_checked_at: now(), verify_note: "The code was not found on the page." })
+    .update({ verify_status: "failed", verify_checked_at: now(), verify_note: note })
     .eq("id", id);
   return {
     ok: false,
     status: 409,
-    error: "Verification failed: the code isn't in your bio. Paste it exactly as shown, save your bio, then press Verify again.",
-  };
+    error: unreachable
+      ? "Verification failed: Jimvio couldn't open your profile. Make sure the account is public and the handle is right, then press Verify again."
+      : "Verification failed: the code isn't in your bio. Paste it exactly as shown, save your bio, then press Verify again.",
+    unreachable,
+  } as VerifyResult;
 }
 
 /** Hands the bio-code check to a Jimvio reviewer. */

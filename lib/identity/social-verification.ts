@@ -77,23 +77,110 @@ export function pageContainsCode(html: string, code: string): boolean {
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
 
-/** Server-side read of the public profile page. */
-export async function checkCodeOnPage(pageUrl: string, code: string): Promise<CodeCheck> {
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+
+/** Handle from a stored handle or from the path of a profile link. */
+export function handleFor(platform: string, handle: string | null, url: string | null): string | null {
+  const direct = cleanHandle(handle);
+  if (direct && !/^https?:/i.test(direct) && !direct.includes("/")) return direct;
+  const raw = (url ?? handle ?? "").trim();
+  if (!raw) return null;
   try {
-    const res = await fetch(pageUrl, {
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    const parts = u.pathname.split("/").filter(Boolean);
+    const first = (platform === "snapchat" && parts[0] === "add") || (platform === "linkedin" && parts[0] === "in") ? parts[1] : parts[0];
+    return first ? cleanHandle(decodeURIComponent(first)) : null;
+  } catch {
+    return null;
+  }
+}
+
+type Source = { url: string; headers?: Record<string, string> };
+
+/**
+ * Where each platform shows a person's bio publicly, most reliable first.
+ * Several sources are tried so one blocked page doesn't stop verification.
+ */
+export function bioSources(platform: string, handle: string | null, url: string | null): Source[] {
+  const h = handleFor(platform, handle, url);
+  const page = publicProfileUrl(platform, handle, url);
+  const html = (u: string): Source => ({ url: u });
+  const out: Source[] = [];
+  switch (platform) {
+    case "instagram":
+      if (h) {
+        out.push({
+          url: `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(h)}`,
+          headers: { "x-ig-app-id": "936619743392459", Accept: "application/json" },
+        });
+        out.push({
+          url: `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(h)}`,
+          headers: { "x-ig-app-id": "936619743392459", Accept: "application/json" },
+        });
+      }
+      break;
+    case "x":
+      if (h) {
+        out.push({ url: `https://api.fxtwitter.com/${encodeURIComponent(h)}`, headers: { Accept: "application/json" } });
+        out.push(html(`https://syndication.twitter.com/srv/timeline-profile/screen-name/${encodeURIComponent(h)}`));
+      }
+      break;
+    case "youtube":
+      if (h) out.push(html(`https://www.youtube.com/@${encodeURIComponent(h)}/about`));
+      break;
+    case "threads":
+      if (h) out.push(html(`https://www.threads.net/@${encodeURIComponent(h)}`));
+      break;
+    default:
+      break;
+  }
+  if (page && !out.some((s) => s.url === page)) out.push(html(page));
+  return out;
+}
+
+async function readSource(source: Source): Promise<string | null> {
+  try {
+    const res = await fetch(source.url, {
       headers: {
-        "User-Agent": "JimvioVerifier/1.0 (+https://www.jimvio.com/legal/ugc-clipping)",
+        "User-Agent": BROWSER_UA,
         "Accept-Language": "en-US,en;q=0.9",
-        Accept: "text/html,application/xhtml+xml",
+        Accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
+        ...(source.headers ?? {}),
       },
       redirect: "follow",
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(6_000),
       cache: "no-store",
     });
-    if (!res.ok) return "unreachable";
+    if (!res.ok) return null;
     const text = (await res.text()).slice(0, 3_000_000);
-    return pageContainsCode(text, code) ? "found" : "not_found";
+    return text.length > 0 ? text : null;
   } catch {
-    return "unreachable";
+    return null;
   }
+}
+
+/**
+ * Reads every public source for the account at once. "found" as soon as any
+ * source shows the code; "not_found" when pages were read but the code isn't
+ * there; "unreachable" only when no source could be read at all.
+ */
+export async function checkCodeForAccount(
+  platform: string,
+  handle: string | null,
+  url: string | null,
+  code: string,
+): Promise<CodeCheck> {
+  const sources = bioSources(platform, handle, url);
+  if (sources.length === 0) return "unreachable";
+  const pages = await Promise.all(sources.map(readSource));
+  if (pages.some((p) => p != null && pageContainsCode(p, code))) return "found";
+  return pages.some((p) => p != null) ? "not_found" : "unreachable";
+}
+
+/** Server-side read of one public page (kept for callers that have a URL only). */
+export async function checkCodeOnPage(pageUrl: string, code: string): Promise<CodeCheck> {
+  const page = await readSource({ url: pageUrl });
+  if (page == null) return "unreachable";
+  return pageContainsCode(page, code) ? "found" : "not_found";
 }
