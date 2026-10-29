@@ -6,11 +6,11 @@ import { verifySubmissionViews } from "@/lib/ugc/verification/verify-submission"
 
 export const dynamic = "force-dynamic";
 
-const MIN_GAP_MS = 10 * 60 * 1000;
+const MIN_GAP_MS = 60 * 1000;
 
 /**
  * Re-reads a submission's views from the platform API now.
- * Open to the creator, campaign reviewers and admins; at most once per 10 minutes.
+ * Open to the creator, campaign reviewers and admins; at most once a minute.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,10 +36,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const last = (data as { verification_checked_at?: string | null }).verification_checked_at;
   if (last && Date.now() - Date.parse(last) < MIN_GAP_MS) {
-    return NextResponse.json(
-      { error: "Views were checked a few minutes ago. Try again in 10 minutes." },
-      { status: 429 },
-    );
+    // Just checked: show the latest result instead of an error.
+    return NextResponse.json({ outcome: { submissionId: id, status: "recent", note: "Up to date — checked less than a minute ago." } });
   }
 
   const outcome = await verifySubmissionViews(id, db);

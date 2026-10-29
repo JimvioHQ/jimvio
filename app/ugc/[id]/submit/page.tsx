@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/context/LocaleContext';
 import { RealViewsConnectNotice } from '@/components/ugc/verification/RealViewsConnectNotice';
+import { PostOwnershipCheck } from '@/components/ugc/verification/PostOwnershipCheck';
 
 const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok', icon: Video, hostHint: 'tiktok.com' },
@@ -60,6 +61,7 @@ export default function PublicUGCSubmitPage() {
   const [postUrl, setPostUrl] = useState('');
   const [caption, setCaption] = useState('');
   const [claimedViews, setClaimedViews] = useState('');
+  const [ownershipBlocked, setOwnershipBlocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -151,6 +153,10 @@ export default function PublicUGCSubmitPage() {
     }
     if (!confirmed) {
       setError("Confirm that you reviewed the campaign requirements.");
+      return;
+    }
+    if (ownershipBlocked) {
+      setError("This video must be on your own connected account. Fix the link or connect the right account.");
       return;
     }
     const v = validateUrl(platform, postUrl);
@@ -321,6 +327,7 @@ export default function PublicUGCSubmitPage() {
               </p>
             )}
             <RealViewsConnectNotice platform={platform} />
+            <PostOwnershipCheck platform={platform} url={postUrl} onBlockedChange={setOwnershipBlocked} />
           </div>
 
           <div className="space-y-2">
@@ -458,7 +465,7 @@ export default function PublicUGCSubmitPage() {
           <div className="border-t border-[#F3F4F6] pt-4">
             <Button
               type="submit"
-              disabled={loading || !platform || !postUrl || Boolean(validationError) || !confirmed}
+              disabled={loading || !platform || !postUrl || Boolean(validationError) || !confirmed || ownershipBlocked}
               className="h-12 w-full rounded-full bg-[#FF5A1F] text-base font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.3)] hover:bg-[#E04E1A] disabled:opacity-50"
             >
               {loading ? (

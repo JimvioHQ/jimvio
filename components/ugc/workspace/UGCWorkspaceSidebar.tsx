@@ -7,10 +7,12 @@ import {
   FileCheck2,
   FolderKanban,
   LayoutDashboard,
+  ClipboardCheck,
   PlusCircle,
   ScanSearch,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
 import { UgcWorkspaceSwitcher } from "./UgcWorkspaceSwitcher";
@@ -36,6 +38,8 @@ const BRAND_WORK: NavItem[] = [
   { id: "campaigns", href: "/ugc/campaign-center/campaigns", label: "My Campaigns", icon: FolderKanban },
   { id: "submissions", href: "/ugc/submissions", label: "Submissions", icon: FileCheck2 },
 ];
+
+const REVIEW_ITEM: NavItem = { id: "review", href: "/ugc/review", label: "Submission Review", icon: ClipboardCheck };
 
 const MANAGE: NavItem[] = [
   { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
@@ -105,6 +109,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
   const { workspaces, brandId } = useUgcBrandWorkspace();
   const brandMode = workspaces.length > 0;
   const work = brandMode ? BRAND_WORK : CREATOR_WORK;
+  const hasLiveCampaign = useHasLiveCampaign(brandMode);
 
   return (
     <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white">
@@ -115,7 +120,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4" aria-label="UGC and Clipping">
-        {[...work, ...MANAGE].map((item) => (
+        {[...work, ...(hasLiveCampaign ? [REVIEW_ITEM] : []), ...MANAGE].map((item) => (
           <NavLink
             key={item.id}
             item={item}
@@ -128,4 +133,23 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
       {brandMode ? <UgcWorkspaceSwitcher /> : null}
     </div>
   );
+}
+
+/** Shows Submission Review only to owners who have a live campaign. */
+function useHasLiveCampaign(brandMode: boolean): boolean {
+  const [has, setHas] = useState(false);
+  useEffect(() => {
+    if (!brandMode) return;
+    let cancelled = false;
+    fetch("/api/ugc/campaigns?mine=true&status=active&limit=1", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled) setHas(Number(j?.total ?? 0) > 0 || (Array.isArray(j?.data) && j.data.length > 0));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [brandMode]);
+  return has;
 }

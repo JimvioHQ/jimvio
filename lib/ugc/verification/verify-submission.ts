@@ -153,10 +153,23 @@ export async function verifySubmissionViews(
 
   const stats = result.stats;
   if (platform === "youtube" && dest.provider_channel_id && stats.ownerId !== dest.provider_channel_id) {
-    return record(db, sub, "owner_mismatch", "This video is not on your connected YouTube channel.", {
+    const outcome = await record(db, sub, "owner_mismatch", "This video is not on the creator's connected YouTube channel.", {
       platform_video_id: ref.videoId,
       latest_views: stats.views,
     });
+    // Someone else's video is never paid: decline it while it is still under review.
+    if (sub.status === "pending" || sub.status === "revision_requested") {
+      await table(db, "ugc_submissions")
+        .update({
+          status: "rejected",
+          rejection_reason:
+            "This video is not on your connected YouTube channel. Connect the channel that posted it and submit again.",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", sub.id)
+        .in("status", ["pending", "revision_requested"]);
+    }
+    return outcome;
   }
 
   const now = new Date().toISOString();

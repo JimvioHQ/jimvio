@@ -1,5 +1,6 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { verifySubmissionViews } from '@/lib/ugc/verification/verify-submission';
+import { checkPostOwnership } from '@/lib/ugc/verification/ownership';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateSubmissionPayload } from '@/types/ugc';
@@ -183,6 +184,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "You must be an approved campaign participant before submitting content." },
       { status: 403 }
+    );
+  }
+
+  // The post must be on the creator's own connected account (YouTube, and TikTok when possible).
+  const ownership = await checkPostOwnership(user.id, platform, canonicalUrl);
+  if (!ownership.ok) {
+    return NextResponse.json(
+      { error: ownership.message, reason: ownership.reason, connect: ownership.connect ?? null },
+      { status: ownership.reason === 'needs_connection' || ownership.reason === 'not_yours' ? 403 : 400 },
     );
   }
 

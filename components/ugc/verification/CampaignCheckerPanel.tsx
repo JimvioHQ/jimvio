@@ -22,6 +22,13 @@ type Row = {
   flags: string[];
   note: string | null;
   content?: { aiGeneratedLikelihood?: number | null; qualityScore?: number | null; summary?: string | null } | null;
+  estimatedReward?: number | null;
+  publicViews?: number | null;
+  thumbnail?: string | null;
+  avatar?: string | null;
+  createdAt?: string | null;
+  earnings?: number | null;
+  rejectionReason?: string | null;
 };
 
 type Payload = {
@@ -31,13 +38,6 @@ type Payload = {
   submissions: Row[];
 };
 
-const VERDICT_TONE: Record<PerformanceVerdict, string> = {
-  real: "bg-emerald-50 text-emerald-700",
-  held: "bg-amber-50 text-amber-800",
-  not_verified: "bg-slate-100 text-slate-600",
-  manual: "bg-sky-50 text-sky-700",
-  checking: "bg-slate-100 text-slate-600",
-};
 
 function fmt(n: number | null | undefined) {
   return n == null ? "—" : Number(n).toLocaleString("en-US");
@@ -94,6 +94,10 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
   }
 
   const { performance: p, funding: f } = data;
+  // What approving every open, verified post would cost right now (caps included).
+  const payableNow = data.submissions
+    .filter((r) => r.status !== "rejected" && r.status !== "removed")
+    .reduce((sum, r) => sum + (r.status === "approved" ? Number(r.earnings ?? 0) : Number(r.estimatedReward ?? 0)), 0);
   const perViews = data.campaign.paymentModel === "per_views";
 
   return (
@@ -144,8 +148,8 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
         <Stat icon={Eye} label="Posts checked" value={`${p.counts.real + p.counts.held}/${p.total}`} />
         <Stat
           icon={Wallet}
-          label={perViews ? "Cost of real views" : "Payable from escrow"}
-          value={perViews ? usd(p.estimatedCostUsd) : usd(f.remainingUsd)}
+          label="Cost of real views"
+          value={usd(Math.round(payableNow * 100) / 100)}
         />
       </div>
 
@@ -163,91 +167,16 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
       </div>
 
       {data.submissions.length ? (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-[12.5px]">
-            <thead className="text-[11px] uppercase tracking-wide text-[#9CA3AF]">
-              <tr>
-                <th className="py-2 pr-3 font-semibold">Creator</th>
-                <th className="py-2 pr-3 font-semibold">Result</th>
-                <th className="py-2 pr-3 text-right font-semibold">At submit</th>
-                <th className="py-2 pr-3 text-right font-semibold">Now</th>
-                <th className="py-2 pr-3 text-right font-semibold">Real gained</th>
-                <th className="py-2 pr-3 font-semibold">AI / quality</th>
-                <th className="py-2 pr-3 font-semibold">Why</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#F3F4F6]">
-              {data.submissions.map((r) => (
-                <tr
-                  key={r.id}
-                  className={cn("align-top", onOpen && "cursor-pointer hover:bg-[#FAFAFA]")}
-                  onClick={() => onOpen?.(r.id)}
-                >
-                  <td className="py-2 pr-3">
-                    {r.username ? (
-                      <a
-                        href={`/u/${r.username}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-semibold text-[#111827] hover:text-[#FF5A1F] hover:underline"
-                      >
-                        {r.creator}
-                      </a>
-                    ) : (
-                      <p className="font-semibold text-[#111827]">{r.creator}</p>
-                    )}
-                    <p className="capitalize text-[11px] text-[#9CA3AF]">
-                      {r.platform} · {r.status.replace("_", " ")}
-                    </p>
-                  </td>
-                  <td className="py-2 pr-3">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", VERDICT_TONE[r.verdict])}>
-                      {VERDICT_LABELS[r.verdict]}
-                    </span>
-                  </td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{fmt(r.baselineViews)}</td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{fmt(r.latestViews)}</td>
-                  <td className="py-2 pr-3 text-right font-semibold tabular-nums text-[#111827]">{fmt(r.gainedViews)}</td>
-                  <td className="py-2 pr-3 text-[11.5px]">
-                    {r.content?.aiGeneratedLikelihood != null ? (
-                      <span
-                        className={cn(
-                          "mr-1 rounded-full px-1.5 py-0.5 font-semibold",
-                          r.content.aiGeneratedLikelihood >= 70
-                            ? "bg-rose-50 text-rose-700"
-                            : r.content.aiGeneratedLikelihood <= 30
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-800",
-                        )}
-                        title="How likely the video is AI-generated"
-                      >
-                        AI {r.content.aiGeneratedLikelihood}%
-                      </span>
-                    ) : null}
-                    {r.content?.qualityScore != null ? (
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 font-semibold",
-                          r.content.qualityScore >= 70 ? "bg-emerald-50 text-emerald-700" : r.content.qualityScore < 45 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-800",
-                        )}
-                        title="Production quality"
-                      >
-                        Q {r.content.qualityScore}
-                      </span>
-                    ) : r.content?.aiGeneratedLikelihood == null ? (
-                      <span className="text-[#9CA3AF]">—</span>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-3 text-[11.5px] text-[#6B7280]">
-                    {r.flags.length
-                      ? r.flags.map((fl) => FLAG_LABELS[fl as VerificationFlag] ?? fl).join(" ")
-                      : r.note ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+        <ul className="grid gap-3">
+          {data.submissions.map((r) => (
+            <SubmissionCard key={r.id} row={r} perViews={perViews} onOpen={onOpen} />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-xl border border-dashed border-[#E5E7EB] p-6 text-center text-[13px] text-[#6B7280]">
+          No posts submitted yet. They appear here as soon as creators submit.
+        </p>
+      )}
     </section>
   );
 }
@@ -270,5 +199,115 @@ function Stat({
       </p>
       <p className={cn("mt-1 text-[18px] font-bold tabular-nums text-[#111827]", tone)}>{value}</p>
     </div>
+  );
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: "Waiting for review",
+  approved: "Approved",
+  rejected: "Declined",
+  revision_requested: "Changes requested",
+  removed: "Removed",
+};
+
+function chip(tone: "good" | "warn" | "bad" | "neutral") {
+  return {
+    good: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    warn: "bg-amber-50 text-amber-800 ring-amber-200",
+    bad: "bg-rose-50 text-rose-700 ring-rose-200",
+    neutral: "bg-slate-50 text-slate-600 ring-slate-200",
+  }[tone];
+}
+
+/** One post: who, what it earned, whether the views are real, and the AI read. */
+function SubmissionCard({ row: r, perViews, onOpen }: { row: Row; perViews: boolean; onOpen?: (id: string) => void }) {
+  const verdictTone: "good" | "warn" | "bad" | "neutral" =
+    r.verdict === "real" ? "good" : r.verdict === "held" ? "bad" : r.verdict === "manual" ? "neutral" : "warn";
+  const ai = r.content?.aiGeneratedLikelihood;
+  const q = r.content?.qualityScore;
+  const views = r.gainedViews ?? null;
+  return (
+    <li className="overflow-hidden rounded-2xl border border-[#EEF0F2] bg-white">
+      <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
+        <a href={r.postUrl} target="_blank" rel="noopener noreferrer" className="relative block h-24 w-full shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6] sm:h-20 sm:w-36">
+          {r.thumbnail ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={r.thumbnail} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-[11px] font-semibold uppercase text-[#9CA3AF]">{r.platform}</span>
+          )}
+          <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-white">{r.platform}</span>
+        </a>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            {r.username ? (
+              <a href={`/u/${r.username}`} className="text-[14px] font-bold text-[#111827] hover:text-[#FF5A1F]">
+                {r.creator}
+              </a>
+            ) : (
+              <span className="text-[14px] font-bold text-[#111827]">{r.creator}</span>
+            )}
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1", chip(verdictTone))}>{VERDICT_LABELS[r.verdict]}</span>
+            <span className="rounded-full bg-[#F3F4F6] px-2 py-0.5 text-[11px] font-medium text-[#4B5563]">{STATUS_LABEL[r.status] ?? r.status}</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[#4B5563]">
+            <span>
+              At submit <b className="tabular-nums text-[#111827]">{fmt(r.baselineViews)}</b>
+            </span>
+            <span>
+              Now <b className="tabular-nums text-[#111827]">{fmt(r.latestViews ?? r.publicViews)}</b>
+            </span>
+            <span>
+              Real views gained <b className="tabular-nums text-emerald-700">{fmt(views)}</b>
+            </span>
+            {ai != null ? (
+              <span className={cn("rounded-full px-1.5 font-semibold ring-1", chip(ai >= 70 ? "bad" : ai <= 30 ? "good" : "warn"))}>AI {ai}%</span>
+            ) : null}
+            {q != null ? (
+              <span className={cn("rounded-full px-1.5 font-semibold ring-1", chip(q >= 70 ? "good" : q < 45 ? "bad" : "warn"))}>Quality {q}</span>
+            ) : null}
+          </div>
+          {r.flags.length || r.note || r.rejectionReason ? (
+            <p className={cn("mt-1 text-[11.5px]", r.flags.length ? "text-rose-700" : "text-[#6B7280]")}>
+              {r.flags.length
+                ? r.flags.map((fl) => FLAG_LABELS[fl as VerificationFlag] ?? fl).join(" ")
+                : r.rejectionReason ?? r.note}
+            </p>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 flex-row items-center justify-between gap-3 sm:flex-col sm:items-end">
+          <div className="text-right">
+            <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+              {r.status === "approved" ? "Earned" : "Pay if approved"}
+            </p>
+            <p className="text-[18px] font-bold tabular-nums text-[#111827]">
+              {r.status === "approved" && r.earnings != null
+                ? usd(Number(r.earnings))
+                : r.estimatedReward != null
+                  ? usd(r.estimatedReward)
+                  : perViews
+                    ? "—"
+                    : "—"}
+            </p>
+            {perViews && r.estimatedReward == null && r.status !== "approved" ? (
+              <p className="text-[10.5px] text-[#9CA3AF]">after views are verified</p>
+            ) : null}
+          </div>
+          {onOpen && (r.status === "pending" || r.status === "revision_requested") ? (
+            <button
+              type="button"
+              onClick={() => onOpen(r.id)}
+              className="inline-flex h-9 items-center rounded-full bg-[#FF5A1F] px-4 text-[12.5px] font-bold text-white hover:bg-[#E54E18]"
+            >
+              Review
+            </button>
+          ) : onOpen ? (
+            <button type="button" onClick={() => onOpen(r.id)} className="text-[12px] font-semibold text-[#6B7280] hover:underline">
+              Details
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </li>
   );
 }
