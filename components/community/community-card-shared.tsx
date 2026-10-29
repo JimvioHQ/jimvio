@@ -1,5 +1,8 @@
 "use client";
 
+import { accessPlans, type AccessPlanKey } from "@/lib/community/access-pricing";
+
+const PLAN_SUFFIX: Record<AccessPlanKey, string> = { weekly: "/wk", monthly: "/mo", quarterly: "/3 mo", yearly: "/yr", lifetime: "once" };
 import React, { useState } from "react";
 import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
@@ -25,6 +28,10 @@ export type CommunityRow = {
   is_free?: boolean | null;
   is_featured?: boolean | null;
   monthly_price?: number | null;
+  weekly_price?: number | null;
+  quarterly_price?: number | null;
+  yearly_price?: number | null;
+  lifetime_price?: number | null;
   currency?: string | null;
   cover_image?: string | null;
   image_url?: string | null;
@@ -63,6 +70,7 @@ export function SharedCommunityCard({
   showQuickActions = true,
 }: CommunityCardProps) {
   const { formatMoney } = useCurrency();
+  const cardPlan = accessPlans(c)[0] ?? null;
   const [copied, setCopied] = useState(false);
   const isNew = isNewCommunity(c.created_at);
   const initial = communityInitial(c.name);
@@ -218,15 +226,15 @@ export function SharedCommunityCard({
               <span className="text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
                 Free to join
               </span>
-            ) : c.monthly_price ? (
+            ) : cardPlan ? (
               <div className="flex items-baseline gap-1 tabular-nums">
                 <span className="rounded-md bg-[var(--color-accent-light)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
                   Paid
                 </span>
                 <span className="text-[15px] font-bold text-[var(--color-text-primary)]">
-                  {formatMoney(c.monthly_price, c.currency)}
+                  {formatMoney(cardPlan.price, c.currency)}
                 </span>
-                <span className="text-[11px] text-[var(--color-text-muted)]">/mo</span>
+                <span className="text-[11px] text-[var(--color-text-muted)]">{PLAN_SUFFIX[cardPlan.key]}</span>
               </div>
             ) : (
               <span className="text-[12px] text-[var(--color-text-muted)]">Paid access</span>

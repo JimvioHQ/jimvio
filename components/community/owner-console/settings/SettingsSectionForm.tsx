@@ -1,5 +1,6 @@
 "use client";
 
+import { AccessPricingCard } from "./AccessPricingCard";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -744,12 +745,18 @@ export function SettingsSectionForm({
 
   if (section === "commerce") {
     return (
+      <div className="space-y-5">
+      <AccessPricingCard
+        initial={settings.accessPricing}
+        readOnly={readOnly}
+        saving={saving}
+        onSave={(accessPricing) => onSave({ section: "commerce", accessPricing })}
+      />
       <SectionCard title="Commerce" description="Storefront, memberships, and monetization.">
         <Toggle label="Community store" checked={commerce.storeEnabled} onChange={(v) => setCommerce((c) => ({ ...c, storeEnabled: v }))} disabled={readOnly} />
         <Toggle label="Affiliate" checked={commerce.affiliateEnabled} onChange={(v) => setCommerce((c) => ({ ...c, affiliateEnabled: v }))} disabled={readOnly} />
         <Toggle label="Donations" checked={commerce.donationsEnabled} onChange={(v) => setCommerce((c) => ({ ...c, donationsEnabled: v }))} disabled={readOnly} />
         <Toggle label="Memberships" checked={commerce.membershipsEnabled} onChange={(v) => setCommerce((c) => ({ ...c, membershipsEnabled: v }))} disabled={readOnly} />
-        <Toggle label="Free community" checked={isFree} onChange={setIsFree} disabled={readOnly} />
         <Toggle label="Tax (future-ready)" checked={commerce.taxReady} onChange={(v) => setCommerce((c) => ({ ...c, taxReady: v }))} disabled={readOnly} />
         <Field label="Currency">
           <Input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())} disabled={readOnly} maxLength={3} />
@@ -761,7 +768,6 @@ export function SettingsSectionForm({
             onClick={() =>
               void onSave({
                 section: "commerce",
-                isFree,
                 currency,
                 config: {
                   commerce: { ...commerce, currency },
@@ -773,6 +779,7 @@ export function SettingsSectionForm({
           </Button>
         )}
       </SectionCard>
+      </div>
     );
   }
 

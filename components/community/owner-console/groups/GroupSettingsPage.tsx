@@ -16,7 +16,6 @@ import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { sectionPath } from "@/lib/community/owner-console";
 import {
   DEFAULT_GROUP_COLOR,
   DEFAULT_GROUP_ICON,
@@ -40,7 +39,7 @@ import {
 import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
 
 export function GroupSettingsPage({ groupId }: { groupId: string }) {
-  const { community } = useOwnerConsole();
+  const { hrefSection } = useOwnerConsole();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as GroupSettingsTab | null;
@@ -108,10 +107,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
   }, [group, tab, groupId, memberQuery]);
 
   function setTab(next: GroupSettingsTab) {
-    const base = sectionPath(
-      `groups/${groupId}`,
-      community?.slug
-    );
+    const base = hrefSection(`groups/${groupId}`);
     const url = new URL(base, window.location.origin);
     url.searchParams.set("tab", next);
     router.replace(url.pathname + url.search);
@@ -151,7 +147,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
     }
     if (data.deleted) {
       toast.success("Group deleted");
-      router.push(sectionPath("groups", community?.slug));
+      router.push(hrefSection("groups"));
       return;
     }
     if (data.group) setGroup(data.group);
@@ -172,7 +168,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       <div className="py-16 text-center">
         <p className="text-sm font-semibold">Space not found</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href={sectionPath("spaces", community?.slug)}>
+          <Link href={hrefSection("spaces")}>
             Back to spaces
           </Link>
         </Button>
@@ -185,7 +181,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("spaces", community?.slug)}
+            href={hrefSection("spaces")}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { accessPlanExpiry, type AccessPlanKey } from "@/lib/community/access-pricing";
 import { notifyCommunityOwnerOnJoin, notifyCommunityOwnerOnJoinRequest } from "@/lib/community/notify-community";
 import {
   communityAcceptsInstantJoin,
@@ -533,7 +534,7 @@ export async function leaveCommunity(userId: string, communityId: string) {
 export type CommunityPaymentParams = {
   userId: string;
   communityId: string;
-  planType: "monthly" | "yearly" | "lifetime";
+  planType: AccessPlanKey;
   amount: number;
   currency: string;
   paymentProvider: string;
@@ -549,23 +550,14 @@ export async function handleCommunityPayment(params: CommunityPaymentParams) {
   const { data: community } = await supabase
     .from("communities")
     .select(
-      "monthly_price, yearly_price, lifetime_price, platform_commission_rate, owner_id, member_count"
+      "weekly_price, monthly_price, quarterly_price, yearly_price, lifetime_price, platform_commission_rate, owner_id, member_count"
     )
     .eq("id", params.communityId)
     .single();
 
   if (!community) throw new Error("Community not found");
 
-  let expiresAt: string | null = null;
-  if (params.planType === "monthly") {
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    expiresAt = d.toISOString();
-  } else if (params.planType === "yearly") {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
-    expiresAt = d.toISOString();
-  }
+  const expiresAt: string | null = accessPlanExpiry(params.planType);
 
   const existing = await getUserMembership(params.userId, params.communityId);
   let membershipId: string;

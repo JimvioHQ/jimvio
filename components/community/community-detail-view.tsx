@@ -1,6 +1,7 @@
 
 "use client";
 
+import { accessPlans, type AccessPlanKey } from "@/lib/community/access-pricing";
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -79,7 +80,7 @@ type SpaceRow = {
   hasAccess?: boolean;
 };
 
-type PlanKey = "monthly" | "yearly" | "lifetime";
+type PlanKey = AccessPlanKey;
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
 
@@ -319,19 +320,16 @@ export function CommunityDetailView({
   const yearly = Number(community.yearly_price ?? 0);
   const lifetime = Number(community.lifetime_price ?? 0);
   const currency = (community.currency || "USD").toUpperCase();
-  const isFree = community.is_free || (monthly === 0 && yearly === 0 && lifetime === 0);
+  const accessPlanList = accessPlans(community as never);
+  const compareAt = Number((community as { compare_at_price?: number | string | null }).compare_at_price ?? 0);
+  const isFree = community.is_free || accessPlanList.length === 0;
   const joinVisibility = resolveCommunityJoinVisibility(community);
   const isPrivate = joinVisibility !== "public";
   const needsInvite = joinVisibility === "invite_only" || joinVisibility === "hidden";
   const trialDays = community.trial_days ?? 0;
 
-  const priceForPlan = (p: PlanKey) =>
-    p === "monthly" ? monthly : p === "yearly" ? yearly : lifetime;
-  const availablePlans: PlanKey[] = [
-    monthly > 0 && "monthly",
-    yearly > 0 && "yearly",
-    lifetime > 0 && "lifetime",
-  ].filter(Boolean) as PlanKey[];
+  const priceForPlan = (p: PlanKey) => accessPlanList.find((x) => x.key === p)?.price ?? 0;
+  const availablePlans: PlanKey[] = accessPlanList.map((x) => x.key);
 
   // Reset to first available plan if currently selected isn't offered
   useEffect(() => {
@@ -804,7 +802,7 @@ export function CommunityDetailView({
                               : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                           )}
                         >
-                          {p}
+                          {p === "lifetime" ? "one-time" : p}
                           {p === "yearly" && yearlySaving > 0 && (
                             <span className="absolute -right-1 -top-1.5 rounded-full bg-[var(--color-success)] px-1.5 py-px text-[9px] font-medium leading-none text-white">
                               −{yearlySaving}%
@@ -824,8 +822,21 @@ export function CommunityDetailView({
                       <span className="text-3xl font-semibold tracking-tight text-[var(--color-text-primary)] tabular-nums">
                         {formatMoney(priceForPlan(plan), currency)}
                       </span>
+                      {compareAt > priceForPlan(plan) ? (
+                        <span className="text-[13px] text-[var(--color-text-muted)] line-through tabular-nums">
+                          {formatMoney(compareAt, currency)}
+                        </span>
+                      ) : null}
                       <span className="text-[12px] text-[var(--color-text-muted)]">
-                        {plan === "monthly" ? "per month" : plan === "yearly" ? "per year" : "one-time"}
+                        {plan === "weekly"
+                          ? "per week"
+                          : plan === "monthly"
+                            ? "per month"
+                            : plan === "quarterly"
+                              ? "per 3 months"
+                              : plan === "yearly"
+                                ? "per year"
+                                : "one-time"}
                       </span>
                     </div>
                     {plan === "yearly" && yearlySaving > 0 && (

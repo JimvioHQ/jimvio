@@ -1,3 +1,4 @@
+import type { AccessPricingForm } from "@/lib/community/access-pricing";
 /**
  * Owner Console Community Settings — domain types.
  */
@@ -161,6 +162,8 @@ export type OwnerCommunitySettings = {
   monthlyPrice: number | null;
   yearlyPrice: number | null;
   lifetimePrice: number | null;
+  /** Community Access pricing as the owner edits it. */
+  accessPricing: AccessPricingForm;
   trialDays: number | null;
   tags: string[];
   archivedAt: string | null;
@@ -200,6 +203,8 @@ export type UpdateOwnerSettingsInput = {
   monthlyPrice?: number | null;
   yearlyPrice?: number | null;
   lifetimePrice?: number | null;
+  /** Community Access pricing: free/paid, billing, interval, compare-at, affiliate. */
+  accessPricing?: AccessPricingForm;
   trialDays?: number | null;
   // Nested config (partial deep merge)
   config?: Partial<{

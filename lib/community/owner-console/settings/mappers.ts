@@ -1,3 +1,4 @@
+import { accessPricingFromRow } from "@/lib/community/access-pricing";
 /**
  * Map communities row ↔ Owner Settings model.
  */
@@ -34,6 +35,12 @@ export type CommunitySettingsRow = {
   monthly_price: number | null;
   yearly_price: number | null;
   lifetime_price: number | null;
+  weekly_price?: number | null;
+  quarterly_price?: number | null;
+  compare_at_price?: number | null;
+  billing_type?: string | null;
+  billing_interval?: string | null;
+  affiliate_commission_rate?: number | null;
   trial_days: number | null;
   tags: string[] | null;
   settings: unknown;
@@ -66,6 +73,12 @@ export const COMMUNITY_SETTINGS_SELECT = [
   "monthly_price",
   "yearly_price",
   "lifetime_price",
+  "weekly_price",
+  "quarterly_price",
+  "compare_at_price",
+  "billing_type",
+  "billing_interval",
+  "affiliate_commission_rate",
   "trial_days",
   "tags",
   "settings",
@@ -169,6 +182,7 @@ export function mapCommunitySettings(
     monthlyPrice: row.monthly_price,
     yearlyPrice: row.yearly_price,
     lifetimePrice: row.lifetime_price,
+    accessPricing: accessPricingFromRow(row),
     trialDays: row.trial_days,
     tags: Array.isArray(row.tags) ? row.tags : [],
     archivedAt: row.archived_at,

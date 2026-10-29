@@ -1,3 +1,4 @@
+import { accessPricingToPatch, validateAccessPricing } from "@/lib/community/access-pricing";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -156,6 +157,11 @@ export async function PATCH(req: NextRequest) {
     patch.lifetime_price = body.lifetimePrice;
   }
   if (body.trialDays !== undefined) patch.trial_days = body.trialDays;
+  if (body.accessPricing !== undefined) {
+    const invalid = validateAccessPricing(body.accessPricing);
+    if (invalid) return NextResponse.json({ error: invalid.message, field: invalid.field }, { status: 400 });
+    Object.assign(patch, accessPricingToPatch(body.accessPricing));
+  }
 
   if (body.visibilityMode !== undefined) {
     if (!(VISIBILITY_MODES as readonly string[]).includes(body.visibilityMode)) {

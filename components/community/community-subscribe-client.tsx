@@ -1,5 +1,6 @@
 "use client";
 
+import { accessPlans, type AccessPlanKey } from "@/lib/community/access-pricing";
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 /* ─── Types ─── */
-type PlanKey = "monthly" | "yearly" | "lifetime";
+type PlanKey = AccessPlanKey;
 type CommunityPaymentMethod = Exclude<MethodId, "mobile_money">;
 
 type CommunitySub = {
@@ -27,9 +28,12 @@ type CommunitySub = {
   tagline: string | null;
   avatar_url: string | null;
   is_free: boolean | null;
+  weekly_price?: number | string | null;
   monthly_price: number | string | null;
+  quarterly_price?: number | string | null;
   yearly_price: number | string | null;
   lifetime_price: number | string | null;
+  compare_at_price?: number | string | null;
   currency: string | null;
 };
 
@@ -91,8 +95,9 @@ export function CommunitySubscribeClient({
   const router = useRouter();
   const { formatMoney, userCurrency: currentCurrency } = useCurrency();
 
+  const plans = useMemo(() => accessPlans(community), [community]);
   const [plan, setPlan] = useState<PlanKey>(
-    initialPlan === "yearly" || initialPlan === "lifetime" ? initialPlan : "monthly",
+    plans.find((p) => p.key === initialPlan)?.key ?? plans[0]?.key ?? "monthly",
   );
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [payment, setPayment] = useState<CommunityPaymentMethod | null>(
@@ -111,15 +116,16 @@ export function CommunitySubscribeClient({
   const currency = (community.currency || "USD").toUpperCase();
   const initial = community.name?.[0]?.toUpperCase() ?? "?";
 
-  const amount = useMemo(
-    () => (plan === "monthly" ? monthly : plan === "yearly" ? yearly : lifetime),
-    [plan, monthly, yearly, lifetime],
-  );
+  const amount = plans.find((p) => p.key === plan)?.price ?? 0;
+  const compareAt = Number(community.compare_at_price ?? 0);
+  void lifetime;
 
   const billingLabel =
-    plan === "monthly" ? "Billed every month"
-      : plan === "yearly" ? "Billed annually"
-        : "One-time payment";
+    plan === "weekly" ? "Billed every week"
+      : plan === "monthly" ? "Billed every month"
+        : plan === "quarterly" ? "Billed every 3 months"
+          : plan === "yearly" ? "Billed annually"
+            : "One-time payment";
 
   const yearlySaving =
     monthly > 0 && yearly > 0
@@ -222,6 +228,9 @@ export function CommunitySubscribeClient({
           "font-mono text-[20px] tracking-tight shrink-0",
           selected ? "text-[#fd5000]" : "text-stone-900 dark:text-white",
         )}>
+          {compareAt > price ? (
+            <span className="mr-2 align-middle text-[13px] text-stone-400 line-through">{formatMoney(compareAt, currency)}</span>
+          ) : null}
           {formatMoney(price, currency)}
         </div>
       </button>
@@ -340,9 +349,12 @@ export function CommunitySubscribeClient({
                 {/* ── Step 1: Plan ── */}
                 {currentStep === 1 && (
                   <div className="flex flex-col gap-3 pb-4">
-                    <PlanRow pKey="monthly" label="Monthly" price={monthly} desc="Billed every month — cancel anytime" />
-                    <PlanRow pKey="yearly" label="Yearly" price={yearly} desc="Billed once a year" />
-                    <PlanRow pKey="lifetime" label="Lifetime" price={lifetime} desc="Pay once, access forever" />
+                    {plans.map((p) => (
+                      <PlanRow key={p.key} pKey={p.key} label={p.label} price={p.price} desc={p.desc} />
+                    ))}
+                    {plans.length === 0 ? (
+                      <p className="text-sm text-stone-500">This community has no paid plan right now.</p>
+                    ) : null}
                   </div>
                 )}
 

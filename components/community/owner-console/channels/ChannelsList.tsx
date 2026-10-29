@@ -1,5 +1,6 @@
 "use client";
 
+import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
 import Link from "next/link";
 import {
   Archive,
@@ -15,7 +16,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sectionPath } from "@/lib/community/owner-console";
 import {
   CHANNEL_KIND_LABELS,
   CHANNEL_VISIBILITY_LABELS,
@@ -69,6 +69,7 @@ export function ChannelsList({
   ) => void;
   onDragReorder: (orderedIds: string[], groupId?: string) => void;
 }) {
+  const { hrefSection } = useOwnerConsole();
   function onDragStart(e: React.DragEvent, id: string) {
     e.dataTransfer.setData("text/channel-id", id);
     e.dataTransfer.effectAllowed = "move";
@@ -146,7 +147,7 @@ export function ChannelsList({
                     <span className="text-lg">{c.emoji ?? c.icon ?? "💬"}</span>
                     <div>
                       <Link
-                        href={sectionPath(`channels/${c.id}`, communitySlug)}
+                        href={hrefSection(`channels/${c.id}`)}
                         className="font-semibold hover:underline"
                       >
                         {c.name}
@@ -214,7 +215,7 @@ export function ChannelsList({
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{c.emoji ?? c.icon ?? "💬"}</span>
                     <Link
-                      href={sectionPath(`channels/${c.id}`, communitySlug)}
+                      href={hrefSection(`channels/${c.id}`)}
                       className="truncate text-[15px] font-bold hover:underline"
                     >
                       {c.name}
@@ -281,7 +282,7 @@ export function ChannelsList({
               </span>
               <Button asChild size="sm" variant="outline" className="h-8 text-xs">
                 <Link
-                  href={sectionPath(`channels/${c.id}`, communitySlug)}
+                  href={hrefSection(`channels/${c.id}`)}
                 >
                   <Settings2 className="mr-1 h-3.5 w-3.5" />
                   Settings
@@ -310,6 +311,7 @@ function ChannelActionsMenu({
     extra?: { targetGroupId?: string }
   ) => void;
 }) {
+  const { hrefSection } = useOwnerConsole();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -320,7 +322,7 @@ function ChannelActionsMenu({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem asChild>
           <Link
-            href={sectionPath(`channels/${channel.id}`, communitySlug)}
+            href={hrefSection(`channels/${channel.id}`)}
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Edit / Settings
