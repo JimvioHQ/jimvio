@@ -1,12 +1,6 @@
-import { Suspense } from "react";
-import { ViewCheckerPage } from "@/components/ugc/checker/ViewCheckerPage";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = { title: "View Checker · Jimvio" };
-
+// View Checker became the Jimvio Trust Checker, open to everyone.
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <ViewCheckerPage />
-    </Suspense>
-  );
+  permanentRedirect("/trust-checker");
 }
