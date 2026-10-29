@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { communityFeeRate, seatLabel } from "./program.ts";
+import { cleanApplication, communityFeeRate, seatLabel } from "./program.ts";
 
 describe("founding creators", () => {
   const now = new Date("2026-11-01T00:00:00Z");
@@ -14,5 +14,13 @@ describe("founding creators", () => {
   });
   it("formats the seat", () => {
     assert.equal(seatLabel(7), "Founding Creator #007");
+  });
+
+  it("cleans applications", () => {
+    assert.equal(cleanApplication({ contributions: [], note: "x".repeat(30) }).ok, false);
+    assert.equal(cleanApplication({ contributions: ["ugc"], note: "too short" }).ok, false);
+    assert.equal(cleanApplication({ contributions: ["ugc"], note: "x".repeat(30), links: ["javascript:alert(1)"] }).ok, false);
+    const ok = cleanApplication({ contributions: ["ugc", "ugc", "nope", "referrals"], note: `  ${"y".repeat(25)}  `, links: ["https://tiktok.com/@me", ""] });
+    assert.deepEqual(ok, { ok: true, contributions: ["ugc", "referrals"], note: "y".repeat(25), links: ["https://tiktok.com/@me"] });
   });
 });
