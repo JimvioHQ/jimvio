@@ -43,7 +43,7 @@ const REVIEW_ITEM: NavItem = { id: "review", href: "/ugc/review", label: "Submis
 
 const MANAGE: NavItem[] = [
   { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
-  { id: "checker", href: "/ugc/checker", label: "View Checker", icon: ScanSearch },
+  { id: "checker", href: "/trust-checker", label: "Trust Checker", icon: ScanSearch },
 ];
 
 export const UGC_MOBILE_TABS: NavItem[] = CREATOR_WORK.filter((item) =>
