@@ -44,11 +44,6 @@ export function LockedCountryField({ fallback, className }: { fallback?: string 
         <span className="min-w-0 flex-1 truncate">{code ? name(code) : "Detecting your country…"}</span>
         <Lock className="h-3.5 w-3.5 shrink-0 text-[#9A9388]" aria-label="Locked" />
       </div>
-      <p className="mt-1 text-[11px] text-[#8B8579]">
-        {state?.vpnSuspected
-          ? "A VPN or proxy was detected. Jimvio keeps your real country."
-          : "Set automatically from your real location. It can't be changed. Contact support if it's wrong."}
-      </p>
     </div>
   );
 }
