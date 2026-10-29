@@ -135,6 +135,28 @@ export function SubmissionReviewDrawer({
     }
   }
 
+  async function decline() {
+    const reason = window.prompt("Why are you declining this post? The creator sees this.", "Does not meet the campaign brief");
+    if (reason == null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/ugc/submissions/${id}/reject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || "Does not meet the campaign brief" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Could not decline");
+      onDone();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not decline");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const media = detail?.media?.[0];
 
   return (
@@ -236,6 +258,9 @@ export function SubmissionReviewDrawer({
                 </Button>
                 <Button type="button" size="sm" className="rounded-xl bg-[#FF5A1F]" disabled={busy} onClick={() => void approve()}>
                   Approve
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="rounded-xl border-rose-200 text-rose-700" disabled={busy} onClick={() => void decline()}>
+                  Decline
                 </Button>
               </div>
             ) : (

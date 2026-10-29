@@ -149,6 +149,8 @@ export function SocialConnectFlow({
     }
   }
 
+  const [unreachable, setUnreachable] = useState(false);
+
   async function verifyCode() {
     if (!account) return;
     setBusy(true);
@@ -165,7 +167,22 @@ export function SocialConnectFlow({
       } else {
         setPhase("failed");
         setMessage(json.error ?? "Verification failed.");
+        setUnreachable(Boolean(json.unreachable));
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function askReviewer() {
+    if (!account) return;
+    setBusy(true);
+    try {
+      const { res, json } = await call({ action: "review", id: account.id });
+      if (res.ok) {
+        setPhase("review");
+        setMessage(json.message);
+      } else toast.error(json.error ?? "Could not send for review.");
     } finally {
       setBusy(false);
     }
@@ -332,6 +349,16 @@ export function SocialConnectFlow({
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                   {busy ? "Checking your bio… (about 10 seconds)" : phase === "failed" ? "Verify again" : "Verify"}
                 </button>
+                {phase === "failed" && unreachable ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void askReviewer()}
+                    className="w-full text-[12.5px] font-semibold text-[#D6480F] hover:underline"
+                  >
+                    Still not working? Ask Jimvio to check by hand
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => {

@@ -162,3 +162,15 @@ describe("jimvio checker", () => {
     assert.equal(autoReviewDecision({ ...base, aiGeneratedLikelihood: 85 }).approve, false);
   });
 });
+
+import { bioSources, handleFor } from "../../identity/social-verification.ts";
+
+describe("bio sources", () => {
+  it("reads handles from links and lists several sources", () => {
+    assert.equal(handleFor("instagram", null, "https://www.instagram.com/ana.k/"), "ana.k");
+    assert.equal(handleFor("x", "@ana", null), "ana");
+    assert.ok(bioSources("instagram", "ana", null).some((s) => s.url.includes("web_profile_info")));
+    assert.ok(bioSources("x", "ana", null).some((s) => s.url.includes("fxtwitter")));
+    assert.ok(bioSources("tiktok", "ana", null).some((s) => s.url === "https://www.tiktok.com/@ana"));
+  });
+});
