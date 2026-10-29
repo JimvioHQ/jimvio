@@ -28,5 +28,5 @@ export default async function IdentityRootPage() {
     redirect(`/u/${profile.username}`);
   }
 
-  redirect("/identity/edit");
+  redirect("/settings/profile");
 }

@@ -111,3 +111,25 @@ describe("creator profile completion", () => {
     assert.equal(ok.complete, true);
   });
 });
+
+import { newVerifyCode, pageContainsCode, publicProfileUrl } from "../../identity/social-verification.ts";
+import { CREATOR_CATEGORIES, cleanCategories } from "../../identity/creator-categories.ts";
+
+describe("social verification", () => {
+  it("makes readable one-time codes", () => {
+    assert.match(newVerifyCode(), /^JIMVIO-[A-HJ-NP-Z2-9]{6}$/);
+  });
+  it("finds the code in escaped or spaced bios", () => {
+    assert.equal(pageContainsCode('"biography":"Dancer JIMVIO\\u002DAB12CD"', "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("bio: jimvio ab12cd", "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("bio: hello", "JIMVIO-AB12CD"), false);
+  });
+  it("builds the public page from a handle", () => {
+    assert.equal(publicProfileUrl("instagram", "@ana.k", null), "https://www.instagram.com/ana.k/");
+    assert.equal(publicProfileUrl("tiktok", "ana", null), "https://www.tiktok.com/@ana");
+  });
+  it("has 500+ categories and keeps one", () => {
+    assert.ok(CREATOR_CATEGORIES.length >= 500);
+    assert.deepEqual(cleanCategories(["Music", "Tech"]), ["Music"]);
+  });
+});

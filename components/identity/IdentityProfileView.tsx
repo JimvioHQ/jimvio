@@ -10,6 +10,7 @@ import {
   Globe,
   Languages,
   Lock,
+  MapPin,
   Pencil,
   Star,
   Trophy,
@@ -54,7 +55,24 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
   const displayName = profile.fullName || profile.username || "Jimvio member";
   const availability = AVAILABILITY_META[profile.availability] ?? AVAILABILITY_META.open;
 
-  const socialFollowers = useMemo(() => payload.social.reduce((sum, s) => sum + s.followers, 0), [payload.social]);
+  // Only accounts the person proved are theirs are shown and counted.
+  const verifiedSocial = useMemo(
+    () => payload.social.filter((s) => s.isVerified || s.platform === "website"),
+    [payload.social],
+  );
+  const socialFollowers = useMemo(
+    () => verifiedSocial.filter((s) => s.isVerified).reduce((sum, s) => sum + s.followers, 0),
+    [verifiedSocial],
+  );
+  const category = profile.industries?.[0] ?? null;
+  const countryName = useMemo(() => {
+    if (!profile.country) return null;
+    try {
+      return new Intl.DisplayNames(["en"], { type: "region" }).of(profile.country.toUpperCase()) ?? profile.country;
+    } catch {
+      return profile.country;
+    }
+  }, [profile.country]);
   /** Jimvio user→user followers (includes showcase display floor). Not community members. */
   const jimvioFollowers = payload.jimvioFollowers ?? 0;
   const jimvioFollowing = payload.jimvioFollowing ?? 0;
@@ -108,7 +126,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
 
           {isOwner && (
             <Link
-              href="/identity/edit"
+              href="/settings/profile"
               className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3.5 py-1.5 text-[12px] font-semibold text-[#1C1B19] backdrop-blur-sm transition-colors hover:bg-white"
             >
               <Pencil className="h-3 w-3" /> Edit profile
@@ -145,7 +163,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
             )}
             {isOwner && (
               <div className="flex items-center gap-2 pb-1">
-                <IdentitySocialLinks accounts={payload.social} compact />
+                <IdentitySocialLinks accounts={verifiedSocial} compact />
               </div>
             )}
           </div>
@@ -157,6 +175,18 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
+            {category ? (
+              <Link href={`/influencers/browse?niche=${encodeURIComponent(category)}`}>
+                <IdentityPill tone="accent" icon={<Briefcase className="h-3 w-3" />}>
+                  {category}
+                </IdentityPill>
+              </Link>
+            ) : null}
+            {countryName ? (
+              <IdentityPill tone="neutral" icon={<MapPin className="h-3 w-3" />}>
+                {[profile.city, countryName].filter(Boolean).join(", ")}
+              </IdentityPill>
+            ) : null}
             <IdentityPill tone="accent">{levelProgress.levelLabel} Creator</IdentityPill>
             <IdentityPill tone={availability.tone}>{availability.label}</IdentityPill>
             {profile.languages.length > 0 && (
@@ -237,7 +267,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
               emptyAction={
                 isOwner ? (
                   <Link
-                    href="/identity/edit"
+                    href="/settings/profile"
                     className="inline-flex h-8 items-center justify-center rounded-full border border-black/10 bg-white px-3.5 text-[12.5px] font-semibold text-[#1C1B19] transition-colors hover:border-black/20 hover:bg-black/[0.02]"
                   >
                     Add your first piece

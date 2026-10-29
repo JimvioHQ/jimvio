@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getDB } from "@/services/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { mapInfluencerUserToCreatorProfile } from "@/lib/creator-profile";
 import { CreatorProfilePage } from "@/components/creator-profile/CreatorProfilePage";
 
@@ -13,6 +13,10 @@ interface PageProps {
 export default async function InfluencerByUserPage({ params }: PageProps) {
   const { userId } = await params;
   const db = (await getDB()) as any;
+
+  // One public profile everywhere: send people to /u/username when it exists.
+  const { data: person } = await db.from("profiles").select("username").eq("id", userId).maybeSingle();
+  if (person?.username) redirect(`/u/${encodeURIComponent(person.username)}`);
 
   const { data: influencer } = await db
     .from("influencers")

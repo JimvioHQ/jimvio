@@ -471,7 +471,7 @@ export function UGCMyCampaignsPage() {
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/identity/edit">Create creator profile</Link>
+              <Link href="/settings/profile">Create creator profile</Link>
             </Button>
           }
         />

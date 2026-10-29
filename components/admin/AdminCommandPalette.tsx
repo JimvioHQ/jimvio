@@ -8,7 +8,7 @@ const commands = [
   ["Operations", "/admin/operations"], ["Command Center", "/admin/command-center"],
   ["Trust & Safety", "/admin/trust-safety"], ["Growth", "/admin/growth"],
   ["Growth engine", "/admin/growth/engine"],
-  ["Feedback", "/admin/feedback"], ["Founding Creators", "/admin/founding-creators"], ["Growth KPIs", "/admin/growth-kpis"],
+  ["Feedback", "/admin/feedback"], ["Founding Creators", "/admin/founding-creators"], ["Social Verification", "/admin/social-verifications"], ["Growth KPIs", "/admin/growth-kpis"],
   ["System analysis", "/admin/system-analysis"], ["Users", "/admin/users"], ["Orders", "/admin/orders"],
 ] as const;
 

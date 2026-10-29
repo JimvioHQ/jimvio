@@ -1,15 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { decryptCredentials } from "@/lib/live/destinations/encryption";
-import { updateStoredCredentials } from "@/lib/live/destinations/repository";
-import { YouTubeDestinationAdapter } from "@/lib/live/destinations/adapters/youtube";
-import {
-  refreshTikTokCredentials,
-  TIKTOK_VIDEO_LIST_SCOPE,
-} from "@/lib/live/destinations/adapters/tiktok";
-import type { AdapterContext } from "@/lib/live/destinations/adapters/base";
-import type { EncryptedCredentialPayload } from "@/lib/live/destinations/types";
+import { TIKTOK_VIDEO_LIST_SCOPE } from "@/lib/live/destinations/adapters/tiktok";
+import { freshCredentials, type CredentialDestination as DestinationRow } from "@/lib/live/destinations/fresh-credentials";
 import { videoRefFromUrl } from "./video-ref";
 import { fetchTikTokStats, fetchYouTubeStats, type StatsResult } from "./platform-stats";
 import { assessViews, type PlatformSnapshot } from "./signals";
@@ -43,49 +36,10 @@ type SubmissionRow = {
   verification_status: string | null;
 };
 
-type DestinationRow = {
-  id: string;
-  user_id: string;
-  provider_channel_id: string | null;
-  provider_account_id: string | null;
-  encrypted_credentials: string | null;
-};
 
 // Tables added after the generated types; keep the cast in one place.
 function table(db: SupabaseClient, name: string) {
   return (db as unknown as { from: (t: string) => ReturnType<SupabaseClient["from"]> }).from(name);
-}
-
-function expiringSoon(creds: EncryptedCredentialPayload): boolean {
-  const at = creds.expiresAt ? Date.parse(creds.expiresAt) : 0;
-  return !creds.accessToken || !Number.isFinite(at) || at < Date.now() + 60_000;
-}
-
-async function freshCredentials(
-  platform: "youtube" | "tiktok",
-  dest: DestinationRow,
-): Promise<{ ok: true; creds: EncryptedCredentialPayload } | { ok: false }> {
-  if (!dest.encrypted_credentials) return { ok: false };
-  let creds: EncryptedCredentialPayload;
-  try {
-    creds = decryptCredentials(dest.encrypted_credentials);
-  } catch {
-    return { ok: false };
-  }
-  if (!expiringSoon(creds)) return { ok: true, creds };
-  const refreshed =
-    platform === "youtube"
-      ? await new YouTubeDestinationAdapter().refreshCredentials({
-          userId: dest.user_id,
-          destinationId: dest.id,
-          credentials: creds,
-          metadata: {} as AdapterContext["metadata"],
-          displayName: "YouTube",
-        })
-      : await refreshTikTokCredentials(creds);
-  if (!refreshed.ok) return { ok: false };
-  await updateStoredCredentials(dest.id, dest.user_id, refreshed.value).catch(() => undefined);
-  return { ok: true, creds: refreshed.value };
 }
 
 async function record(

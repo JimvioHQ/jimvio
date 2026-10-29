@@ -160,7 +160,7 @@ export function UGCDashboardPage() {
                 <Link href="/ugc">Discover campaigns</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-xl">
-                <Link href="/identity/edit">Set up profile</Link>
+                <Link href="/settings/profile">Set up profile</Link>
               </Button>
             </div>
           }

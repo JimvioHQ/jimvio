@@ -72,6 +72,7 @@ export async function loadCreatorProfileCompletion(
       .from("jip_social_accounts")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
+      .eq("is_verified", true)
       .neq("platform", "website"),
   ]);
   return evaluateCreatorProfileCompletion({
@@ -138,6 +139,7 @@ export async function ensureInfluencerMirror(
     .from("jip_social_accounts")
     .select("platform, followers")
     .eq("user_id", userId)
+    .eq("is_verified", true)
     .neq("platform", "website");
   const socialRows = (socials ?? []) as { platform: string; followers: number | null }[];
   const categories = ((identity as { industries?: string[] | null } | null)?.industries ?? []).filter(Boolean);
