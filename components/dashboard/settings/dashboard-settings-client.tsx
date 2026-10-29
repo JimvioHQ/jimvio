@@ -57,6 +57,7 @@ import {
 import { getAuthMethods, linkGoogleIdentity, type AuthMethods } from "@/lib/auth/actions";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency/config";
+import { LockedCountryField } from "@/components/geo/LockedCountryField";
 
 export const dynamic = "force-dynamic";
 
@@ -406,7 +407,6 @@ export default function DashboardSettingsClient() {
             website: profile.website || null,
             phone: profile.phone || null,
             city: profile.city || null,
-            country: profile.country,
             language: profile.language || "en",
             timezone: profile.timezone || "Africa/Kigali",
           })
@@ -791,11 +791,7 @@ export default function DashboardSettingsClient() {
                 />
               </Field>
               <Field label="Country">
-                <FieldInput
-                  value={profile.country}
-                  onChange={(e) => updateProfile("country", e.target.value.toUpperCase())}
-                  placeholder="RW"
-                />
+                <LockedCountryField fallback={profile.country || null} />
               </Field>
             </Grid>
 

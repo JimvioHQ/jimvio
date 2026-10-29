@@ -31,3 +31,24 @@ describe("real country", () => {
     assert.equal(r.confidence, "low");
   });
 });
+
+import { countryCodeFromName, countryToLock } from "./country-trust.ts";
+
+describe("country lock", () => {
+  it("prefers device location, then a clean network reading", () => {
+    assert.deepEqual(countryToLock({ deviceCountry: "RW", ipCountry: "US", anonymizer: false, clockMatches: false }), {
+      country: "RW",
+      source: "device_location",
+    });
+    assert.deepEqual(countryToLock({ deviceCountry: null, ipCountry: "RW", anonymizer: false, clockMatches: true }), {
+      country: "RW",
+      source: "network",
+    });
+    assert.equal(countryToLock({ deviceCountry: null, ipCountry: "US", anonymizer: false, clockMatches: false }), null);
+    assert.equal(countryToLock({ deviceCountry: null, ipCountry: "US", anonymizer: true, clockMatches: true }), null);
+  });
+  it("reads country names from addresses", () => {
+    assert.equal(countryCodeFromName("Rwanda", ["RW", "KE"]), "RW");
+    assert.equal(countryCodeFromName("ke", ["RW", "KE"]), "KE");
+  });
+});

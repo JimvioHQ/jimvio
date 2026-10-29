@@ -7,6 +7,7 @@ import {
 } from "@/lib/geo/precise-location-store";
 import { rateLimit } from "@/lib/ops/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { syncCountryFromDevice } from "@/lib/geo/country-trust-server";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
       });
     }
     const saved = await saveSharedLocation(command);
+    await syncCountryFromDevice(command.userId).catch(() => undefined);
     return NextResponse.json(summarizePreciseLocation(saved));
   } catch {
     return NextResponse.json({ error: "Could not save location" }, { status: 500 });

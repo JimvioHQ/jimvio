@@ -31,7 +31,7 @@ import {
 import { evaluateCreatorProfileCompletion, evaluateProfileStrength } from "@/lib/identity/creator-profile-completion";
 import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
 import { CategoryPicker } from "@/components/identity/CategoryPicker";
-import { CountrySelect } from "@/components/identity/CountrySelect";
+import { LockedCountryField } from "@/components/geo/LockedCountryField";
 import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 
 type Tab = "profile";
@@ -440,7 +440,7 @@ function ProfileTab({
 
         <div className="grid gap-4 sm:grid-cols-3">
           <EditField label="Country" required id="field-country">
-            <CountrySelect value={core.country} onChange={(v) => setCore((c) => ({ ...c, country: v }))} />
+            <LockedCountryField fallback={core.country || null} />
           </EditField>
           <EditField label="City">
             <input

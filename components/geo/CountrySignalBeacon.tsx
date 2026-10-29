@@ -27,8 +27,8 @@ export function CountrySignalBeacon() {
         keepalive: true,
       })
         .then((res) => {
-          // Signed out (204): look again in 30 minutes instead of 6 hours.
-          const at = res.status === 200 ? Date.now() : Date.now() - EVERY_MS + 30 * 60 * 1000;
+          // Signed out (204): look again in 5 minutes so a new account gets its country fast.
+          const at = res.status === 200 ? Date.now() : Date.now() - EVERY_MS + 5 * 60 * 1000;
           try {
             window.localStorage.setItem(KEY, String(at));
           } catch {

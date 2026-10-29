@@ -2,8 +2,12 @@ import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ipFactFromHeaders } from "@/lib/geo/location-resolution";
 import { ensureJipIdentity } from "@/lib/identity/resolve";
+import { readPreciseLocation } from "@/lib/geo/precise-location-store";
+import { ALL_COUNTRY_CODES } from "@/lib/geo/timezone-country";
 import {
   clockMatchesCountry,
+  countryCodeFromName,
+  countryToLock,
   decideCountry,
   validCountryCode,
   type CountryDecision,
@@ -61,10 +65,53 @@ export async function recordCountrySignal(
     await store.from("user_country_signals").insert({ ...row, user_id: userId, day, ip_country: ipCountry });
   }
   await ensureJipIdentity(userId).catch(() => undefined);
-  return refreshVerifiedCountry(userId);
+  const deviceCountry = await deviceLocationCountry(userId);
+  await lockCountryIfNeeded(userId, countryToLock({ deviceCountry, ipCountry, anonymizer, clockMatches: matches }));
+  return refreshVerifiedCountry(userId, deviceCountry);
 }
 
-export async function refreshVerifiedCountry(userId: string): Promise<CountryDecision> {
+/** Country from the person's shared device location (address), if any. */
+async function deviceLocationCountry(userId: string): Promise<string | null> {
+  try {
+    const precise = await readPreciseLocation(userId);
+    const part = precise?.components?.find((c) => /^country$/i.test(c.label));
+    return countryCodeFromName(part?.value ?? null, ALL_COUNTRY_CODES);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Writes the real country on the profile once and locks it. A device
+ * location reading may correct an earlier network-only lock.
+ */
+async function lockCountryIfNeeded(
+  userId: string,
+  pick: { country: string; source: "device_location" | "network" } | null,
+): Promise<void> {
+  if (!pick) return;
+  const store = db();
+  const { data: profile } = await store
+    .from("profiles")
+    .select("country, country_locked_at, country_source")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!profile) return;
+  const locked = Boolean(profile.country_locked_at);
+  const upgrade = locked && profile.country_source === "network" && pick.source === "device_location" && profile.country !== pick.country;
+  if (locked && !upgrade) return;
+  await store
+    .from("profiles")
+    .update({
+      country: pick.country,
+      country_locked_at: new Date().toISOString(),
+      country_source: pick.source,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", userId);
+}
+
+export async function refreshVerifiedCountry(userId: string, deviceCountry: string | null = null): Promise<CountryDecision> {
   const store = db();
   const since = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
   const [{ data: rows }, { data: identity }] = await Promise.all([
@@ -76,9 +123,19 @@ export async function refreshVerifiedCountry(userId: string): Promise<CountryDec
       .limit(200),
     store.from("jip_identity").select("user_id, identity_verified").eq("user_id", userId).maybeSingle(),
   ]);
-  const decision = decideCountry((rows ?? []) as CountrySignal[], {
+  const network = decideCountry((rows ?? []) as CountrySignal[], {
     identityVerified: Boolean(identity?.identity_verified),
   });
+  // Device location (address) is the strongest signal. A network country
+  // that disagrees with it is treated as a VPN or proxy.
+  const decision: CountryDecision = deviceCountry
+    ? {
+        ...network,
+        country: deviceCountry,
+        confidence: network.country === deviceCountry ? "high" : "medium",
+        vpnSuspected: network.vpnSuspected || (network.country != null && network.country !== deviceCountry),
+      }
+    : network;
   if (identity?.user_id) {
     await store
       .from("jip_identity")
@@ -95,6 +152,8 @@ export async function refreshVerifiedCountry(userId: string): Promise<CountryDec
 
 export type AccountCountry = {
   declared: string | null;
+  locked: boolean;
+  source: string | null;
   verified: string | null;
   confidence: "none" | "low" | "medium" | "high";
   vpnSuspected: boolean;
@@ -103,7 +162,7 @@ export type AccountCountry = {
 export async function loadAccountCountry(userId: string): Promise<AccountCountry> {
   const store = db();
   const [{ data: profile }, { data: identity }] = await Promise.all([
-    store.from("profiles").select("country").eq("id", userId).maybeSingle(),
+    store.from("profiles").select("country, country_locked_at, country_source").eq("id", userId).maybeSingle(),
     store
       .from("jip_identity")
       .select("verified_country, country_confidence, country_vpn_suspected")
@@ -112,8 +171,18 @@ export async function loadAccountCountry(userId: string): Promise<AccountCountry
   ]);
   return {
     declared: profile?.country ?? null,
+    locked: Boolean(profile?.country_locked_at),
+    source: profile?.country_source ?? null,
     verified: identity?.verified_country ?? null,
     confidence: (identity?.country_confidence as AccountCountry["confidence"]) ?? "none",
     vpnSuspected: Boolean(identity?.country_vpn_suspected),
   };
+}
+
+/** Called after the person shares device location: lock / correct the real country. */
+export async function syncCountryFromDevice(userId: string): Promise<void> {
+  const deviceCountry = await deviceLocationCountry(userId);
+  if (!deviceCountry) return;
+  await lockCountryIfNeeded(userId, { country: deviceCountry, source: "device_location" });
+  await refreshVerifiedCountry(userId, deviceCountry);
 }
