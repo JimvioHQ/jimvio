@@ -6,6 +6,8 @@ import { freshCredentials, type CredentialDestination as DestinationRow } from "
 import { videoRefFromUrl } from "./video-ref";
 import { fetchTikTokStats, fetchYouTubeStats, type StatsResult } from "./platform-stats";
 import { assessViews, type PlatformSnapshot } from "./signals";
+import { analyzeYouTubeVideo } from "@/lib/ugc/checker/check-link";
+import { autoReviewSubmission } from "@/lib/ugc/checker/auto-review";
 
 export type VerificationStatus =
   | "unverified"
@@ -34,6 +36,7 @@ type SubmissionRow = {
   baseline_views: number | null;
   latest_views: number | null;
   verification_status: string | null;
+  content_check: Record<string, unknown> | null;
 };
 
 
@@ -71,7 +74,7 @@ export async function verifySubmissionViews(
 ): Promise<VerifyOutcome> {
   const db = client ?? createServiceRoleClient();
   const { data } = await table(db, "ugc_submissions")
-    .select("id, campaign_id, influencer_id, post_url, platform, status, baseline_views, latest_views, verification_status")
+    .select("id, campaign_id, influencer_id, post_url, platform, status, baseline_views, latest_views, verification_status, content_check")
     .eq("id", submissionId)
     .maybeSingle();
   const sub = data as SubmissionRow | null;
@@ -209,6 +212,16 @@ export async function verifySubmissionViews(
     last_synced_at: now,
   });
 
+  // Jimvio checker watches the video once: AI-generated likelihood and quality.
+  if (platform === "youtube" && !sub.content_check) {
+    const analysis = await analyzeYouTubeVideo(`https://www.youtube.com/watch?v=${ref.videoId}`).catch(() => null);
+    if (analysis) {
+      await table(db, "ugc_submissions")
+        .update({ content_check: { ...analysis, source: "gemini_video", checkedAt: now } })
+        .eq("id", sub.id);
+    }
+  }
+
   return {
     submissionId: sub.id,
     status: "verified",
@@ -236,7 +249,6 @@ export async function verifyDueSubmissions(limit = 60): Promise<{
     .in("status", ["pending", "approved"])
     .is("accepted_views", null)
     .in("platform", ["youtube", "tiktok", "instagram"])
-    .eq("ugc_campaigns.payment_model", "per_views")
     .in("ugc_campaigns.status", ["active", "paused"])
     .or(`verification_checked_at.is.null,verification_checked_at.lt.${cutoff}`)
     .order("verification_checked_at", { ascending: true, nullsFirst: true })
@@ -246,11 +258,19 @@ export async function verifyDueSubmissions(limit = 60): Promise<{
   let checked = 0;
   let verified = 0;
   const errors: string[] = [];
+  const started = Date.now();
   for (const row of (data ?? []) as { id: string }[]) {
+    // Leave room before the function time limit; the rest waits for the next run.
+    if (Date.now() - started > 220_000) break;
     try {
       const outcome = await verifySubmissionViews(row.id, db);
       checked++;
-      if (outcome.status === "verified") verified++;
+      if (outcome.status === "verified") {
+        verified++;
+        await autoReviewSubmission(db, row.id).catch((err) =>
+          errors.push(`auto-review ${row.id}: ${err instanceof Error ? err.message : String(err)}`),
+        );
+      }
     } catch (err) {
       errors.push(`${row.id}: ${err instanceof Error ? err.message : String(err)}`);
     }

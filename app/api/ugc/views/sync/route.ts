@@ -4,7 +4,7 @@ import { releasePendingPayouts } from '@/lib/ugc/clearPendingPayouts';
 import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { verifyDueSubmissions } from "@/lib/ugc/verification/verify-submission";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 // POST /api/ugc/views/sync
 // Called by Vercel Cron every 6 hours: real view checks, then payout release.

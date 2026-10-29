@@ -57,17 +57,30 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   };
 
   if (gap > 0) {
-    const { error: insertError } = await db.from("ugc_campaign_escrow").insert({
-      campaign_id: id,
-      deposited_by: auth.user.id,
-      amount: gap,
+    // One escrow record per campaign: record the full budget as held.
+    const { data: existing } = await db
+      .from("ugc_campaign_escrow")
+      .select("id")
+      .eq("campaign_id", id)
+      .limit(1)
+      .maybeSingle();
+    const record = {
+      amount: before.budgetUsd,
       currency: "USD",
       status: "held",
+      locked_amount: before.budgetUsd,
       payment_method: "admin_manual",
-      payment_ref: `ADMIN-${Date.now()}`,
       deposited_at: now,
-    });
-    if (insertError) return NextResponse.json({ error: "Could not record the funding." }, { status: 500 });
+    };
+    const { error: writeError } = existing?.id
+      ? await db.from("ugc_campaign_escrow").update(record).eq("id", existing.id)
+      : await db.from("ugc_campaign_escrow").insert({
+          ...record,
+          campaign_id: id,
+          deposited_by: auth.user.id,
+          payment_ref: `ADMIN-${Date.now()}`,
+        });
+    if (writeError) return NextResponse.json({ error: "Could not record the funding." }, { status: 500 });
   }
 
   let status = String(campaign.status);
@@ -101,10 +114,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   await recordUgcActivity(db, {
     campaignId: id,
     eventType: "campaign_funded",
-    title: "Campaign marked as funded by Jimvio",
-    description: reasonResult.reason,
+    title: "Campaign funded",
+    description: "The budget is held in escrow. The campaign is live.",
     actorUserId: auth.user.id,
-    metadata: { recorded_usd: Math.max(0, gap) },
+    metadata: {},
   });
 
   return NextResponse.json({

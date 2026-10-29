@@ -26,13 +26,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const [{ data: campaign }, { data: subs }, { data: escrow }] = await Promise.all([
     db
       .from("ugc_campaigns")
-      .select("id, title, payment_model, rate_per_1k_views, fixed_rate, total_budget, spent_budget, approved_count")
+      .select("id, title, payment_model, rate_per_1k_views, fixed_rate, total_budget, spent_budget, approved_count, review_mode")
       .eq("id", id)
       .maybeSingle(),
     db
       .from("ugc_submissions")
       .select(
-        "id, status, platform, post_url, created_at, accepted_views, total_earnings, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, influencer:influencers!influencer_id (display_name, profile_image, user_id)",
+        "id, status, platform, post_url, created_at, accepted_views, total_earnings, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, content_check, influencer:influencers!influencer_id (display_name, profile_image, user_id)",
       )
       .eq("campaign_id", id)
       .order("created_at", { ascending: false })
@@ -75,6 +75,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       paymentModel: campaign.payment_model,
       ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
       fixedRate: Number(campaign.fixed_rate ?? 0),
+      reviewMode: (campaign as { review_mode?: string }).review_mode ?? "manual",
     },
     funding,
     performance,
@@ -99,6 +100,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         note: r.verification_note ?? null,
         checkedAt: r.verification_checked_at ?? null,
         earnings: r.total_earnings ?? null,
+        content: (r.content_check as Record<string, unknown> | null) ?? null,
       };
     }),
   });

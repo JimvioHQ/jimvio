@@ -3,6 +3,7 @@ import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 import { assertCampaignReadyForFunding } from "@/lib/ugc/campaign-wizard-validation";
 import { paidAmountCoversEscrow } from "@/lib/ugc/escrow-amount";
 import { escrowMayActivateCampaign } from "@/lib/ugc/campaign-edit-guard";
+import { campaignFunding } from "@/lib/ugc/escrow-funding";
 
 const MIN_FUNDING_USD = 1;
 
@@ -82,8 +83,16 @@ export async function confirmUgcEscrowPayment(
   if (!escrow) return { handled: false };
 
   const ready = assertCampaignReadyForFunding(campaign);
+  // A campaign goes live only when the money held covers its whole budget.
+  const covers = (amount: number, currency: string | null | undefined) =>
+    campaignFunding({
+      escrow: [{ status: "held", amount, currency: currency ?? "USD" }],
+      totalBudget: campaign.total_budget,
+      spentBudget: 0,
+    }).state === "funded";
   const canActivate =
     ready.success &&
+    covers(Number(escrow.amount ?? 0), escrow.currency) &&
     (campaign.status === "active" || escrowMayActivateCampaign(campaign.status));
 
   const expected = Number(escrow.amount ?? 0);

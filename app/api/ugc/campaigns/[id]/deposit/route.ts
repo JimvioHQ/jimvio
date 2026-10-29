@@ -16,6 +16,7 @@ import { createBinancePayOrder } from "@/lib/binance-pay";
 import { orderTotalsForUsdGateway } from "@/lib/money";
 import { normalizeWalletDepositMethod } from "@/lib/payments/wallet-deposit-method";
 import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
+import { campaignFunding } from "@/lib/ugc/escrow-funding";
 
 const MIN_FUNDING_USD = 1;
 
@@ -333,6 +334,21 @@ async function recordEscrowTransaction(
  * Wallet method: debit available balance, lock escrow as held, activate.
  * Flutterwave / crypto: record a pending escrow intent until payment confirms.
  */
+/** Held escrow must cover the whole budget before a campaign goes live. */
+function heldCovers(
+  campaign: { total_budget?: number | string | null },
+  row: { amount?: number | string | null; currency?: string | null } | null | undefined,
+): boolean {
+  if (!row) return false;
+  return (
+    campaignFunding({
+      escrow: [{ status: "held", amount: row.amount ?? 0, currency: row.currency ?? "USD" }],
+      totalBudget: campaign.total_budget,
+      spentBudget: 0,
+    }).state === "funded"
+  );
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -386,13 +402,13 @@ export async function POST(
 
   const { data: heldEscrowRow } = await db
     .from("ugc_campaign_escrow")
-    .select("id, amount, status")
+    .select("id, amount, currency, status")
     .eq("campaign_id", id)
     .eq("status", "held")
     .maybeSingle();
 
   if (heldEscrowRow) {
-    if (ready.success && campaign.status !== "active") {
+    if (ready.success && heldCovers(campaign, heldEscrowRow) && campaign.status !== "active") {
       await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
     }
     return NextResponse.json({
@@ -439,12 +455,12 @@ export async function POST(
       if (held.error.code === "23505") {
         const { data: existing } = await db
           .from("ugc_campaign_escrow")
-          .select("id, status")
+          .select("id, amount, currency, status")
           .eq("campaign_id", id)
           .maybeSingle();
         const refunded = await refundWalletDebit(db, user.id, amount, debit.availableAfter);
         if (existing?.status === "held") {
-          if (ready.success && campaign.status !== "active") {
+          if (ready.success && heldCovers(campaign, existing) && campaign.status !== "active") {
             await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
           }
           return NextResponse.json({
@@ -561,11 +577,11 @@ export async function POST(
     if (escrowInsert.error.code === "23505") {
       const { data: existing } = await db
         .from("ugc_campaign_escrow")
-        .select("id, amount, status")
+        .select("id, amount, currency, status")
         .eq("campaign_id", id)
         .maybeSingle();
       if (existing?.status === "held") {
-        if (ready.success && campaign.status !== "active") {
+        if (ready.success && heldCovers(campaign, existing) && campaign.status !== "active") {
           await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
         }
         return NextResponse.json({

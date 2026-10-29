@@ -8,6 +8,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   PlusCircle,
+  ScanSearch,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const BRAND_WORK: NavItem[] = [
 
 const MANAGE: NavItem[] = [
   { id: "create", href: "/ugc/campaign-center/create", label: "Create Campaign", icon: PlusCircle },
+  { id: "checker", href: "/ugc/checker", label: "View Checker", icon: ScanSearch },
 ];
 
 export const UGC_MOBILE_TABS: NavItem[] = CREATOR_WORK.filter((item) =>

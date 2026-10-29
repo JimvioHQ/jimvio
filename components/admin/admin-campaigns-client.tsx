@@ -189,7 +189,7 @@ export function AdminCampaignsClient() {
       <PageHeader
         eyebrow="UGC & Clipping"
         title="Campaign Management"
-        subtitle="Pause, resume, cancel, and complete never move escrow or payouts. Mark as Active is a separate override and does not record funding."
+        subtitle="A campaign goes live only when its full budget is held. Mark as Funded records money received outside checkout and makes the campaign live. Pause, resume, cancel and complete never move escrow or payouts."
         actions={
           <Link href="/admin/ugc/submissions?status=pending" className={adminBtnPrimary}>
             Submission queue
@@ -372,7 +372,7 @@ export function AdminCampaignsClient() {
                               Mark as Funded
                             </button>
                           ) : null}
-                          {canAdminActivateOverride(c.status) ? (
+                          {canAdminActivateOverride(c.status) && c.funding?.state === "funded" ? (
                             <button type="button" onClick={() => openAction(c, "activate")} className="inline-flex h-8 items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white hover:bg-[#E54E18]">
                               Mark as Active
                             </button>

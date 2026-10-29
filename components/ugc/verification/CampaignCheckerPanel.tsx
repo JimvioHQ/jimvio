@@ -21,10 +21,11 @@ type Row = {
   acceptedViews: number | null;
   flags: string[];
   note: string | null;
+  content?: { aiGeneratedLikelihood?: number | null; qualityScore?: number | null; summary?: string | null } | null;
 };
 
 type Payload = {
-  campaign: { paymentModel: string; ratePer1k: number };
+  campaign: { paymentModel: string; ratePer1k: number; reviewMode?: "manual" | "auto" };
   funding: CampaignFunding;
   performance: CampaignPerformance;
   submissions: Row[];
@@ -53,6 +54,19 @@ function usd(n: number) {
 export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: string; onOpen?: (submissionId: string) => void }) {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savingMode, setSavingMode] = useState(false);
+
+  async function setMode(mode: "manual" | "auto") {
+    if (!data || data.campaign.reviewMode === mode) return;
+    setSavingMode(true);
+    const res = await fetch(`/api/ugc/brand/campaigns/${campaignId}/review-mode`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode }),
+    });
+    setSavingMode(false);
+    if (res.ok) setData({ ...data, campaign: { ...data.campaign, reviewMode: mode } });
+  }
 
   const load = useCallback(async () => {
     try {
@@ -92,6 +106,38 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
 
       <p className="rounded-xl bg-[#F9FAFB] px-3 py-2.5 text-[13px] leading-relaxed text-[#374151]">{p.summary}</p>
 
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#F3F4F6] p-2.5">
+        <span className="text-[12px] font-semibold text-[#374151]">Who reviews posts?</span>
+        <div className="inline-flex rounded-full bg-[#F3F4F6] p-0.5" role="radiogroup" aria-label="Review mode">
+          {(
+            [
+              ["manual", "I review myself"],
+              ["auto", "Jimvio reviews for me"],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={(data.campaign.reviewMode ?? "manual") === mode}
+              disabled={savingMode}
+              onClick={() => void setMode(mode)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[12px] font-semibold transition",
+                (data.campaign.reviewMode ?? "manual") === mode ? "bg-white text-[#111827] shadow-sm" : "text-[#6B7280]",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[11.5px] text-[#6B7280]">
+          {(data.campaign.reviewMode ?? "manual") === "auto"
+            ? "Clean posts with verified real views are approved automatically after views settle (3 days; 1 day for fixed pay). Anything flagged waits for you."
+            : "You approve or reject every post. The checker's results help you decide."}
+        </span>
+      </div>
+
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat icon={BadgeCheck} label="Real views" value={fmt(p.realViews)} tone="text-emerald-700" />
         <Stat icon={AlertTriangle} label="Views on hold" value={fmt(p.heldViews)} tone="text-amber-700" />
@@ -118,7 +164,7 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
 
       {data.submissions.length ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-[12.5px]">
+          <table className="w-full min-w-[760px] text-left text-[12.5px]">
             <thead className="text-[11px] uppercase tracking-wide text-[#9CA3AF]">
               <tr>
                 <th className="py-2 pr-3 font-semibold">Creator</th>
@@ -126,6 +172,7 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
                 <th className="py-2 pr-3 text-right font-semibold">At submit</th>
                 <th className="py-2 pr-3 text-right font-semibold">Now</th>
                 <th className="py-2 pr-3 text-right font-semibold">Real gained</th>
+                <th className="py-2 pr-3 font-semibold">AI / quality</th>
                 <th className="py-2 pr-3 font-semibold">Why</th>
               </tr>
             </thead>
@@ -160,6 +207,36 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
                   <td className="py-2 pr-3 text-right tabular-nums">{fmt(r.baselineViews)}</td>
                   <td className="py-2 pr-3 text-right tabular-nums">{fmt(r.latestViews)}</td>
                   <td className="py-2 pr-3 text-right font-semibold tabular-nums text-[#111827]">{fmt(r.gainedViews)}</td>
+                  <td className="py-2 pr-3 text-[11.5px]">
+                    {r.content?.aiGeneratedLikelihood != null ? (
+                      <span
+                        className={cn(
+                          "mr-1 rounded-full px-1.5 py-0.5 font-semibold",
+                          r.content.aiGeneratedLikelihood >= 70
+                            ? "bg-rose-50 text-rose-700"
+                            : r.content.aiGeneratedLikelihood <= 30
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-amber-50 text-amber-800",
+                        )}
+                        title="How likely the video is AI-generated"
+                      >
+                        AI {r.content.aiGeneratedLikelihood}%
+                      </span>
+                    ) : null}
+                    {r.content?.qualityScore != null ? (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 font-semibold",
+                          r.content.qualityScore >= 70 ? "bg-emerald-50 text-emerald-700" : r.content.qualityScore < 45 ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-800",
+                        )}
+                        title="Production quality"
+                      >
+                        Q {r.content.qualityScore}
+                      </span>
+                    ) : r.content?.aiGeneratedLikelihood == null ? (
+                      <span className="text-[#9CA3AF]">—</span>
+                    ) : null}
+                  </td>
                   <td className="py-2 pr-3 text-[11.5px] text-[#6B7280]">
                     {r.flags.length
                       ? r.flags.map((fl) => FLAG_LABELS[fl as VerificationFlag] ?? fl).join(" ")
