@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { headers } from "next/headers";
 import { getDB, getAdminDB } from "./base";
 import { countryFromRequestHeaders } from "@/lib/geo/buyer-country";
@@ -542,25 +543,47 @@ async function attachStorefrontRelations(
   return product;
 }
 
+class ProductNotFoundForCache extends Error {}
+
+/**
+ * Public product data is the same for every visitor, so it is cached for
+ * 5 minutes (per slug). Crawlers opening thousands of product URLs no longer
+ * send each request to the database. "Not found" and lookup failures are
+ * never cached, so a product that goes live is visible at once.
+ */
+const loadPublicProduct = (slug: string) =>
+  unstable_cache(
+    async (): Promise<ProductWithRelations> => {
+      const lookups = productRouteLookups(slug);
+      const db = getAdminDB() as unknown as Awaited<ReturnType<typeof getDB>>;
+      let primaryFailed = false;
+      for (const lookup of lookups) {
+        const { row, failed } = await queryVisibleProduct(db, lookup);
+        if (failed) {
+          if (lookup.kind === "slug") primaryFailed = true;
+          continue;
+        }
+        if (!row) continue;
+        return attachStorefrontRelations(db, row);
+      }
+      if (primaryFailed) throw new ProductLookupUnavailable();
+      throw new ProductNotFoundForCache();
+    },
+    ["public-product-v1", slug],
+    { revalidate: 300, tags: ["products", `product:${slug}`] },
+  )();
+
 export const getProductBySlug = cache(async function getProductBySlug(
   slug: string,
 ): Promise<ProductWithRelations | null> {
-  const lookups = productRouteLookups(slug);
-  if (lookups.length === 0) return null;
-
-  const db = await getDB();
-  let primaryFailed = false;
-  for (const lookup of lookups) {
-    const { row, failed } = await queryVisibleProduct(db, lookup);
-    if (failed) {
-      if (lookup.kind === "slug") primaryFailed = true;
-      continue;
-    }
-    if (!row) continue;
-    return attachStorefrontRelations(db, row);
+  if (productRouteLookups(slug).length === 0) return null;
+  try {
+    // Callers mutate the result (reviews sort), so hand out a copy.
+    return structuredClone(await loadPublicProduct(slug));
+  } catch (error) {
+    if (error instanceof ProductNotFoundForCache) return null;
+    throw error;
   }
-  if (primaryFailed) throw new ProductLookupUnavailable();
-  return null;
 });
 
 /**
@@ -601,24 +624,30 @@ export async function getProductPageData(
 
   // Related products: same category, fallback to trending.
   let relatedProducts: any[] = [];
-  if ((product as any).category_id) {
-    const db = await getDB();
-    const { data } = await db
-      .from("products")
-      .select(`
-        id, name, slug, price, compare_at_price, currency, images,
-        rating, review_count, sale_count, source, product_type,
-        inventory_quantity, track_inventory, low_stock_threshold,
-        affiliate_enabled, affiliate_commission_rate
-      `)
-      .eq("category_id", (product as any).category_id)
-      .eq("status", "active")
-      .eq("is_active", true)
-      .is("deleted_at", null)
-      .neq("id", product.id)
-      .order("sale_count", { ascending: false })
-      .limit(relatedLimit);
-    relatedProducts = data ?? [];
+  const categoryId = (product as any).category_id as string | null;
+  if (categoryId) {
+    const pool = await unstable_cache(
+      async () => {
+        const { data } = await getAdminDB()
+          .from("products")
+          .select(`
+            id, name, slug, price, compare_at_price, currency, images,
+            rating, review_count, sale_count, source, product_type,
+            inventory_quantity, track_inventory, low_stock_threshold,
+            affiliate_enabled, affiliate_commission_rate
+          `)
+          .eq("category_id", categoryId)
+          .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
+          .order("sale_count", { ascending: false })
+          .limit(relatedLimit + 1);
+        return data ?? [];
+      },
+      ["related-by-category-v1", categoryId, String(relatedLimit)],
+      { revalidate: 600, tags: ["products"] },
+    )();
+    relatedProducts = pool.filter((p: any) => p.id !== product.id).slice(0, relatedLimit);
   }
 
   if (relatedProducts.length === 0) {
