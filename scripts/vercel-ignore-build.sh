@@ -7,7 +7,8 @@
 #     "[skip ci]" / "[skip deploy]" commits (e.g. release bumps) and commits
 #     that only touch docs, migrations, tests or CI config
 set -u
-MSG="${VERCEL_GIT_COMMIT_MESSAGE:-}"
+# Only the subject line counts: a squash-merge body can quote these markers.
+MSG="$(printf '%s\n' "${VERCEL_GIT_COMMIT_MESSAGE:-}" | head -n 1)"
 
 if [ "${VERCEL_ENV:-}" != "production" ]; then
   case "$MSG" in *"[preview]"*) echo "Preview requested"; exit 1;; esac
