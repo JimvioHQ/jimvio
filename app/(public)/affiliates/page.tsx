@@ -8,6 +8,8 @@ import {
 import { getResolvedPlatformSettings } from "@/lib/platform-settings";
 import { createClient } from "@/lib/supabase/server";
 import { pageMetadata } from "@/lib/seo";
+import { AffiliateTerms } from "@/components/affiliate/AffiliateTerms";
+import { DEFAULT_ATTRIBUTION_WINDOW_DAYS } from "@/lib/affiliate/attribution-window";
 import { mapAffiliateSpotlightProduct } from "@/lib/affiliate/spotlight-product";
 import { listPickedAffiliateProductIds } from "@/lib/affiliate/picked-products";
 import {
@@ -121,6 +123,7 @@ export default async function AffiliatesPage({
   const { products, total, pickedProductIds, loadError } = discovery;
 
   return (
+    <>
     <AffiliatesMarketingPage
       category={category}
       search={search}
@@ -133,5 +136,10 @@ export default async function AffiliatesPage({
       primaryCtaHref={primaryCtaHref}
       categoryChosen={Boolean(requested)}
     />
+    <AffiliateTerms
+      windowDays={DEFAULT_ATTRIBUTION_WINDOW_DAYS}
+      minPayoutRwf={Number(settings.fees.min_payout_rwf ?? 0)}
+    />
+    </>
   );
 }
