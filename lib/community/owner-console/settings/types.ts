@@ -166,6 +166,7 @@ export type OwnerCommunitySettings = {
   archivedAt: string | null;
   config: CommunitySettingsConfig;
   updatedAt: string | null;
+  createdAt?: string | null;
   /** Owner/worker-only. Never render as seed/demo/bot to members. */
   editorialOrigin: "editorial" | null;
 };

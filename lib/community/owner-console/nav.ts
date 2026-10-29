@@ -41,7 +41,10 @@ export type OwnerConsoleSectionId =
   | "security"
   | "integrations"
   | "audit"
-  | "settings";
+  | "settings"
+  /** Manage-mode aliases with their own labels */
+  | "billing"
+  | "danger";
 
 export type OwnerNavItem = {
   id: OwnerConsoleSectionId;
@@ -54,6 +57,8 @@ export type OwnerNavItem = {
   capability: PermissionCapability;
   badgeKey?: "reports" | "joins" | "live";
   description: string;
+  /** Optional query (e.g. settings tab) appended to the section URL. */
+  query?: Record<string, string>;
 };
 
 export type OwnerNavSection = {
@@ -228,6 +233,23 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "settings.view",
     "Name, description, and branding"
   ),
+  billing: navItem(
+    "billing",
+    "Billing",
+    "automations",
+    "settings.manage",
+    "Plans, pricing and monetization"
+  ),
+  danger: {
+    ...navItem(
+      "danger",
+      "Danger Zone",
+      "settings",
+      "settings.manage",
+      "Archive or delete this community"
+    ),
+    query: { tab: "danger" },
+  },
 };
 
 /** Grouped management navigation — collapsible sections. */
@@ -268,15 +290,9 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
 export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
   {
     id: "overview",
-    label: "Overview",
+    label: "",
     collapsible: false,
-    items: ["overview"],
-  },
-  {
-    id: "community",
-    label: "Community",
-    collapsible: true,
-    items: ["spaces", "members", "roles"],
+    items: ["overview", "spaces", "members", "roles"],
   },
   {
     id: "content",
@@ -294,7 +310,7 @@ export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
     id: "settings",
     label: "Settings",
     collapsible: true,
-    items: ["settings", "integrations"],
+    items: ["settings", "billing", "integrations", "danger"],
   },
 ];
 
@@ -531,6 +547,8 @@ export const OWNER_SECTION_ICON_KEYS: Record<OwnerConsoleSectionId, string> = {
   integrations: "puzzle",
   audit: "scroll",
   settings: "settings",
+  billing: "card",
+  danger: "trash",
 };
 
 export type { LucideIcon };

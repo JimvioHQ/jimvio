@@ -17,7 +17,10 @@ export type AgentToolName =
   | "orders.summary"
   | "wallet.summary"
   | "product.draft"
-  | "finance.refuse";
+  | "finance.refuse"
+  | "community.search"
+  | "profile.update"
+  | "post.create";
 
 export const AGENT_TOOL_NAMES = [
   "account.summary",
@@ -30,6 +33,9 @@ export const AGENT_TOOL_NAMES = [
   "wallet.summary",
   "product.draft",
   "finance.refuse",
+  "community.search",
+  "profile.update",
+  "post.create",
 ] as const satisfies readonly AgentToolName[];
 
 export function isAgentToolName(value: string): value is AgentToolName {
@@ -60,6 +66,18 @@ const COMMUNITY_INTENT =
 
 const STORE_INTENT = /\b(create|start|set up|setup|open)\b[\s\S]{0,40}\bstore\b/i;
 
+const SEARCH_INTENT =
+  /\b(find|search|look for|show me|discover|recommend|suggest)\b[\s\S]{0,60}\bcommunit(?:y|ies)\b/i;
+
+const PROFILE_INTENT =
+  /\b(change|update|set|edit|rename)\b[\s\S]{0,30}\b(?:my\s+)?(?:profile|display name|full name|name|bio|about)\b/i;
+
+const POST_INTENT =
+  /\b(?:create|write|publish|make|share)\s+(?:a\s+|an\s+|this\s+)?post\b|\bpost\s+(?:this|that|["“'])/i;
+
+/** "How do I …" questions are answered in chat, never executed. */
+const HOW_TO = /^\s*(how (?:do|can|would|should) (?:i|we|you)|how to|can i|could i|what(?:'s| is) the way to)\b/i;
+
 const ACCOUNT_READ =
   /\b(my orders|order status|my balance|wallet balance|my wallet|wallet|my communities|my stores|setup step|incomplete|action history|recent changes|did the community|what did we finish)\b/i;
 
@@ -68,7 +86,11 @@ export function looksLikeAgentTask(message: string): boolean {
   if (!text) return false;
   const injected = INJECTION.test(text) && !COMMUNITY_INTENT.test(text) && !STORE_INTENT.test(text);
   if (injected) return FINANCE_MUTATION.test(text) || ACCOUNT_READ.test(text);
+  if (HOW_TO.test(text) && !SEARCH_INTENT.test(text)) return FINANCE_MUTATION.test(text);
   return (
+    SEARCH_INTENT.test(text) ||
+    PROFILE_INTENT.test(text) ||
+    POST_INTENT.test(text) ||
     COMMUNITY_INTENT.test(text) ||
     STORE_INTENT.test(text) ||
     FINANCE_MUTATION.test(text) ||
@@ -148,12 +170,49 @@ function channelNames(message: string): string[] {
   return [];
 }
 
-function confirmation(tool: AgentToolName, mode: AgentMode, scopes: AgentScope[]) {
-  if (tool === "community.create" || tool === "community.configure" || tool === "community.channels") {
-    return !(mode === "agent" && scopes.includes("communities"));
-  }
-  if (tool === "store.create") return true;
+/**
+ * Jimvio AI acts on explicit, complete requests right away (no mode switch).
+ * Money never moves (finance requests are refused above); everything it can
+ * change is the member's own and can be edited or archived afterwards.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function confirmation(_tool: AgentToolName, _mode: AgentMode, _scopes: AgentScope[]) {
   return false;
+}
+
+function profileFields(text: string): { fullName?: string; bio?: string } {
+  const name =
+    quotedName(text, /\b(?:display name|full name|my name|name)\s+(?:to|as|:|=|is)\s+["“']?([^"“”'\n]{2,60})/i) ||
+    quotedName(text, /\brename\s+(?:me|my profile|myself)\s+(?:to\s+)?["“']?([^"“”'\n]{2,60})/i);
+  const bioMatch = text.match(/\b(?:bio|about|description)\s+(?:to|as|:|=|is)\s+["“']?([^"“”\n]{2,300})/i);
+  const bio = bioMatch?.[1] ? clean(bioMatch[1].replace(/["”']+$/, ""), 300) : "";
+  return {
+    ...(name ? { fullName: name } : {}),
+    ...(bio && !INJECTION.test(bio) ? { bio } : {}),
+  };
+}
+
+function postBody(text: string): string {
+  const quoted = text.match(/["“]([^"”]{2,2000})["”]/);
+  if (quoted?.[1]) return clean(quoted[1], 2000);
+  const after = text.match(/\b(?:saying|that says|with the text|text|content|post)\s*[:\-]\s*([\s\S]{2,2000})$/i);
+  if (after?.[1]) return clean(after[1], 2000);
+  return "";
+}
+
+function postCommunity(text: string): string {
+  // Look only outside the quoted post text.
+  const outside = text.replace(/["“][^"”]*["”]/g, " ").replace(/\s+/g, " ").trim();
+  const m = outside.match(/\b(?:in|to|on|into)\s+(?:the\s+)?(?:community\s+)?([A-Za-z0-9][^:,.\n]{0,60}?)(?:\s+community)?\s*(?:[:,.]|\bsaying\b|\bthat\b|\bwith\b|$)/i);
+  const name = m?.[1] ? clean(m[1], 60) : "";
+  return name && !/^(my|the)?\s*(feed|profile|wall)$/i.test(name) && !INJECTION.test(name) ? name : "";
+}
+
+function searchQuery(text: string): string {
+  const m = text.match(/\bcommunit(?:y|ies)\s+(?:about|for|on|in|related to|around)\s+([^\n?.]{2,60})/i)
+    || text.match(/\b(?:find|search|look for|show me|discover|recommend|suggest)\s+(?:me\s+)?(?:some\s+|a\s+)?([^\n?.]{2,40}?)\s+communit/i);
+  const q = m?.[1] ? clean(m[1], 60) : "";
+  return /^(the|a|some|good|best|top|new)$/i.test(q) ? "" : q;
 }
 
 export function planAgentTask(
@@ -206,6 +265,56 @@ export function planAgentTask(
     };
   }
 
+  if (SEARCH_INTENT.test(text) && !COMMUNITY_INTENT.test(text)) {
+    return {
+      classification: "inspect",
+      steps: [{ tool: "community.search", input: { query: searchQuery(text) }, needsConfirmation: false }],
+      summary: "Public communities on Jimvio that match.",
+    };
+  }
+
+  if (PROFILE_INTENT.test(text) && !COMMUNITY_INTENT.test(text) && !STORE_INTENT.test(text)) {
+    const fields = profileFields(text);
+    if (!fields.fullName && !fields.bio) {
+      return {
+        classification: "execute",
+        steps: [],
+        missing: "new profile name or bio",
+        summary:
+          'Tell me the new value, e.g. "change my name to Aline M." or "set my bio to Fashion creator in Kigali". Photos are changed on your profile page.',
+      };
+    }
+    return {
+      classification: "execute",
+      steps: [{ tool: "profile.update", input: fields, needsConfirmation: false }],
+      summary: "Updating your profile.",
+    };
+  }
+
+  if (POST_INTENT.test(text) && !COMMUNITY_INTENT.test(text)) {
+    const body = postBody(text);
+    if (!body) {
+      return {
+        classification: "execute",
+        steps: [],
+        missing: "post text",
+        summary: 'Put the post text in quotes, e.g. create a post in P7 PROVIDER "Live session tonight at 8pm".',
+      };
+    }
+    const community = postCommunity(text);
+    return {
+      classification: "execute",
+      steps: [
+        {
+          tool: "post.create",
+          input: { body, ...(community ? { community } : {}) },
+          needsConfirmation: false,
+        },
+      ],
+      summary: "Publishing your post.",
+    };
+  }
+
   if (ACCOUNT_READ.test(text)) {
     const steps: AgentStep[] = [];
     if (/\b(my communities|my stores|setup step|incomplete|account)\b/i.test(text)) {
@@ -235,7 +344,7 @@ export function planAgentTask(
       classification: "refuse",
       steps: [],
       summary:
-        "Paid and private communities use the full create form so price and access stay under your control. Nothing was created.",
+        "Paid and private communities are set up in the create form (/communities/create) so you choose the price and access. Nothing was created yet.",
     };
   }
 
@@ -305,7 +414,7 @@ export function planAgentTask(
   const needsConfirmation = steps.some((step) => step.needsConfirmation);
   let summary = needsConfirmation
     ? "Review this plan. Nothing is saved until you confirm."
-    : "This plan is inside the community actions you allowed Jimvio AI to run.";
+    : "Done — here is what Jimvio AI did.";
   if (/\brules\b/i.test(text) && !steps.some((step) => step.tool === "community.configure" && step.input.rules)) {
     summary += " Rules were not included, so none were saved.";
   }

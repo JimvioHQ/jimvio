@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { marketplaceCustomerUsd } from "@/lib/marketplace/display-price";
 import { notFound } from "next/navigation";
 import { getProductPageData, getUserCountry, getProductBySlug } from "@/services/db";
+import { deriveIsDigital } from "@/services/products";
 import { loadPublicTrust } from "@/lib/digital-products/trust/service";
 import { getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
@@ -37,17 +38,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const userCountry = await getUserCountry();
-
-  const [pageData, followedVendorIds] = await Promise.all([
-    getProductPageData(slug, { userCountry }),
+  // Country, product data and follows load together instead of one after another.
+  const [userCountry, product0, followedVendorIds] = await Promise.all([
+    getUserCountry(),
+    getProductBySlug(slug),
     getFollowedVendorIds().catch(() => [] as string[]),
+  ]);
+  if (!product0) notFound();
+
+  const [pageData, trust] = await Promise.all([
+    getProductPageData(slug, { userCountry }),
+    deriveIsDigital(product0) ? loadPublicTrust(product0.id).catch(() => null) : Promise.resolve(null),
   ]);
 
   if (!pageData) notFound();
 
   const { product, vendor, relatedProducts, allShippingOptions, isDigital } = pageData;
-  const trust = isDigital ? await loadPublicTrust(product.id).catch(() => null) : null;
 
   const reviews = product.reviews ?? [];
   const reviewCount = reviews.length;

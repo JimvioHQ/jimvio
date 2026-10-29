@@ -18,8 +18,6 @@ const SLUG_TO_PHOTO_ID: Record<string, string> = {
   "digital-finance-investing": "photo-1554224155-6726b3ff858f",
   "digital-health-fitness": "photo-1505576399279-565b52d4ac71",
   "digital-creator-influencer": "photo-1492691527719-9d1e07e534b4",
-  "digital-ebooks-publications": "photo-1434030216411-0b793f4b4173",
-  "digital-documents-templates": "photo-1561070791-2526d30994b5",
   "digital-memberships-access": "photo-1454165804606-c3d57bc86b40",
   "digital-events-experiences": "photo-1478720568477-152d9b164e26",
   "digital-games-entertainment": "photo-1511512578047-dfb367046420",
@@ -27,11 +25,25 @@ const SLUG_TO_PHOTO_ID: Record<string, string> = {
   "digital-other": "photo-1522202176988-66273c2fd55f",
 };
 
+/**
+ * Shop cards that would otherwise repeat a neighbour's photo.
+ * Each is a licensed Unsplash photo from the same catalog, hosted on Jimvio's Cloudinary.
+ * Ebooks: Education #2 (books). Templates: Design #7.
+ */
+const SLUG_TO_HOSTED: Record<string, string> = {
+  "digital-ebooks-publications":
+    "https://res.cloudinary.com/jimvio/image/upload/f_auto,q_auto,w_960/v1793233737/jimvio/categories/digital-ebooks.jpg",
+  "digital-documents-templates":
+    "https://res.cloudinary.com/jimvio/image/upload/f_auto,q_auto,w_960/v1793233743/jimvio/categories/digital-templates.jpg",
+};
+
 function licensedCrop(photoId: string): string {
   return `https://images.unsplash.com/${photoId}?auto=format&fit=crop&w=960&q=85&fm=jpg`;
 }
 
 export function digitalCategoryPhotoUrl(slug: string | null | undefined): string | null {
-  const photoId = SLUG_TO_PHOTO_ID[(slug ?? "").trim()];
+  const key = (slug ?? "").trim();
+  if (SLUG_TO_HOSTED[key]) return SLUG_TO_HOSTED[key];
+  const photoId = SLUG_TO_PHOTO_ID[key];
   return photoId ? licensedCrop(photoId) : null;
 }

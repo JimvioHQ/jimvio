@@ -63,6 +63,15 @@ export type AgentPorts = {
   readActivity: () => Promise<{ items: string[] } | { unavailable: string }>;
   readOrders: () => Promise<{ items: string[] } | { unavailable: string }>;
   readWallet: () => Promise<{ summary: string } | { unavailable: string }>;
+  searchCommunities: (query: string) => Promise<
+    { items: Array<{ name: string; slug: string; members: number; tagline: string | null }> } | { unavailable: string }
+  >;
+  updateProfile: (input: { fullName?: string; bio?: string }) => Promise<
+    { ok: true; username: string | null } | { ok: false; error: string; status: number }
+  >;
+  createPost: (input: { body: string; community?: string }) => Promise<
+    { ok: true; communityName: string; href: string } | { ok: false; error: string; status: number }
+  >;
 };
 
 export type AgentRunResult = {
@@ -416,6 +425,76 @@ async function runStep(
       return { result: { tool: step.tool, status: "failed", summary: wallet.unavailable } };
     }
     return { result: { tool: step.tool, status: "completed", summary: wallet.summary } };
+  }
+  if (step.tool === "community.search") {
+    const query = String(step.input.query || "");
+    const found = await ports.searchCommunities(query);
+    if ("unavailable" in found) {
+      return { result: { tool: step.tool, status: "failed", summary: found.unavailable } };
+    }
+    if (!found.items.length) {
+      return {
+        result: {
+          tool: step.tool,
+          status: "completed",
+          href: "/communities/explore",
+          summary: query
+            ? `No public community matches “${query}” yet. You could create one.`
+            : "No public communities are listed yet.",
+        },
+      };
+    }
+    const lines = found.items.map(
+      (c) => `${c.name} (${c.members} ${c.members === 1 ? "member" : "members"})${c.tagline ? ` — ${c.tagline}` : ""}`,
+    );
+    return {
+      result: {
+        tool: step.tool,
+        status: "completed",
+        href: `/communities/${found.items[0]!.slug}`,
+        summary: `${query ? `Communities for “${query}”` : "Communities on Jimvio"}: ${lines.join("; ")}.`,
+      },
+    };
+  }
+  if (step.tool === "profile.update") {
+    const updated = await ports.updateProfile({
+      fullName: typeof step.input.fullName === "string" ? step.input.fullName : undefined,
+      bio: typeof step.input.bio === "string" ? step.input.bio : undefined,
+    });
+    if (!updated.ok) {
+      return { result: { tool: step.tool, status: "failed", summary: redactAgentText(updated.error) } };
+    }
+    const changed = [
+      typeof step.input.fullName === "string" ? `name to “${step.input.fullName}”` : "",
+      typeof step.input.bio === "string" ? "bio" : "",
+    ]
+      .filter(Boolean)
+      .join(" and ");
+    return {
+      result: {
+        tool: step.tool,
+        status: "completed",
+        href: updated.username ? `/u/${updated.username}` : "/settings/profile",
+        summary: `Updated your ${changed}.`,
+      },
+    };
+  }
+  if (step.tool === "post.create") {
+    const posted = await ports.createPost({
+      body: String(step.input.body || ""),
+      community: typeof step.input.community === "string" ? step.input.community : undefined,
+    });
+    if (!posted.ok) {
+      return { result: { tool: step.tool, status: "failed", summary: redactAgentText(posted.error) } };
+    }
+    return {
+      result: {
+        tool: step.tool,
+        status: "completed",
+        href: posted.href,
+        summary: `Posted in ${posted.communityName}.`,
+      },
+    };
   }
   if (step.tool === "community.create") {
     const created = await ports.createCommunity({

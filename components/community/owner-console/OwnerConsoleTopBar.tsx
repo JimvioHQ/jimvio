@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronsUpDown, ExternalLink, Menu, Plus, Search, Share2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bell, ChevronRight, ChevronsUpDown, ExternalLink, Menu, MoreHorizontal, Plus, Search, Share2 } from "lucide-react";
 import {
   OWNER_CONSOLE_HUB,
   ownerConsoleHref,
@@ -71,6 +72,18 @@ export function OwnerConsoleTopBar({
       /* ignore */
     }
   };
+
+  if (isManage && community) {
+    return (
+      <ManageTopBar
+        community={community}
+        workspaceHref={workspaceHref}
+        hrefSection={hrefSection}
+        onShare={() => void shareCommunity()}
+        onOpenMenu={() => setMobileOpen(true)}
+      />
+    );
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-2 border-b border-[#E5E7EB] bg-white/95 px-3 backdrop-blur sm:h-14 sm:gap-3 sm:px-5">
@@ -196,6 +209,133 @@ export function OwnerConsoleTopBar({
             </span>
           ) : null}
         </button>
+      </div>
+    </header>
+  );
+}
+
+/** Manage Community top bar — breadcrumb + View / Share / More (design spec). */
+function ManageTopBar({
+  community,
+  workspaceHref,
+  hrefSection,
+  onShare,
+  onOpenMenu,
+}: {
+  community: OwnerCommunitySummary;
+  workspaceHref: string | null;
+  hrefSection?: (section?: string, query?: Record<string, string | undefined | null>) => string;
+  onShare: () => void;
+  onOpenMenu: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [menuOpen]);
+  const link = (section: string, query?: Record<string, string>) =>
+    hrefSection ? hrefSection(section, query) : ownerConsoleHref(community.slug, section, query);
+  const menuItems = [
+    { label: "Create post", href: link("content", { action: "create" }) },
+    { label: "Go live", href: link("live") },
+    { label: "Invite members", href: link("members") },
+    { label: "Community settings", href: link("settings") },
+  ];
+  const btn =
+    "inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[13px] font-semibold text-[#111827] shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition hover:bg-[#F8FAFC]";
+
+  return (
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-[#E5E7EB] bg-white/95 px-3 backdrop-blur sm:px-6 lg:h-16 lg:border-b-0 lg:bg-[#F8FAFC]/95">
+      <button
+        type="button"
+        aria-label="Open menu"
+        onClick={onOpenMenu}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#374151] hover:bg-[#F3F4F6] lg:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[14px]">
+        <Link href="/communities" className="hidden shrink-0 text-[#6B7280] hover:text-[#111827] sm:inline">
+          Communities
+        </Link>
+        <ChevronRight className="hidden h-4 w-4 shrink-0 text-[#9CA3AF] sm:block" aria-hidden />
+        <span className="flex min-w-0 items-center gap-2 font-semibold text-[#111827]">
+          <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg bg-[#F3F4F6] ring-1 ring-[#E5E7EB] sm:hidden">
+            {community.avatarUrl ? (
+              <Image src={community.avatarUrl} alt="" fill className="object-cover" unoptimized />
+            ) : (
+              <span className="flex h-full w-full items-center justify-center text-[11px] font-bold text-[#FF5A1F]">
+                {community.name[0]}
+              </span>
+            )}
+          </span>
+          <span className="truncate">{community.name}</span>
+        </span>
+      </nav>
+      <div className="ml-auto flex items-center gap-2">
+        {workspaceHref ? (
+          <Link href={workspaceHref} className={`${btn} hidden sm:inline-flex`}>
+            <ExternalLink className="h-4 w-4" aria-hidden />
+            View Community
+          </Link>
+        ) : null}
+        <button type="button" onClick={onShare} className={`${btn} hidden sm:inline-flex`}>
+          <Share2 className="h-4 w-4" aria-hidden />
+          Share
+        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#E5E7EB] bg-white text-[#374151] shadow-[0_1px_2px_rgba(16,24,40,0.04)] hover:bg-[#F8FAFC]"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+          {menuOpen ? (
+            <div role="menu" className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white py-1 shadow-lg">
+              {menuItems.map((m) => (
+                <Link
+                  key={m.label}
+                  href={m.href}
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-2.5 text-[13px] font-medium text-[#374151] hover:bg-[#F8FAFC]"
+                >
+                  {m.label}
+                </Link>
+              ))}
+              {workspaceHref ? (
+                <Link
+                  href={workspaceHref}
+                  role="menuitem"
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-4 py-2.5 text-[13px] font-medium text-[#374151] hover:bg-[#F8FAFC] sm:hidden"
+                >
+                  View community
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onShare();
+                }}
+                className="block w-full px-4 py-2.5 text-left text-[13px] font-medium text-[#374151] hover:bg-[#F8FAFC] sm:hidden"
+              >
+                Share
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

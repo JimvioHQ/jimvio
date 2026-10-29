@@ -63,8 +63,10 @@ describe("marketplace catalog filters", () => {
     for (const category of DIGITAL_SHOP_CATEGORIES) {
       const photo = digitalCategoryPhotoUrl(category.slug);
       assert.equal(typeof photo, "string");
-      assert.match(photo ?? "", /^https:\/\/images\.unsplash\.com\/photo-/);
+      assert.match(photo ?? "", /^https:\/\/(images\.unsplash\.com\/photo-|res\.cloudinary\.com\/jimvio\/)/);
     }
+    const photos = DIGITAL_SHOP_CATEGORIES.map((category) => digitalCategoryPhotoUrl(category.slug));
+    assert.equal(new Set(photos).size, photos.length);
   });
 
   it("applies verification, sales, and fast shipping on the query", () => {

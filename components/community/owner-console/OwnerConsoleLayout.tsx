@@ -3,6 +3,7 @@
 import { ownerInter } from "@/app/self-hosted-fonts";
 import { OwnerConsoleSidebarConnected } from "./OwnerConsoleSidebar";
 import { OwnerConsoleTopBar } from "./OwnerConsoleTopBar";
+import { ManageBottomNav } from "./ManageBottomNav";
 import {
   OwnerConsoleProvider,
   type OwnerConsoleContextValue,
@@ -49,10 +50,15 @@ export function OwnerConsoleLayout({
               hrefSection={value.hrefSection}
             />
             <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-              <div className="mx-auto max-w-[1200px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+              <div
+                className={`mx-auto max-w-[1280px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6 ${
+                  isManage ? "pb-28 lg:pb-6" : ""
+                }`}
+              >
                 {children}
               </div>
             </main>
+            {isManage ? <ManageBottomNav /> : null}
           </div>
         </div>
       </div>

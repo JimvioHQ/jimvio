@@ -8,7 +8,6 @@ import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
 import { CopilotQuickActions } from "@/components/copilot/CopilotQuickActions";
 import { useCopilotChat } from "@/components/copilot/use-copilot-chat";
 import { AiComposer } from "@/components/ai/AiComposer";
-import { normalizeAgentPreference, type AgentMode, type AgentScope } from "@/lib/ai/agent/plan";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 import { getCopilotContextMeta } from "@/lib/ai/copilot/context";
 import { getQuickActionsForContext } from "@/lib/ai/copilot/quick-actions";
@@ -44,11 +43,6 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
   const affiliateBootRef = useRef<string | null>(null);
   const affiliateTaskRef = useRef<string | null>(null);
   const [query, setQuery] = useState(() => loadCopilotDraft());
-  const [agentMode, setAgentMode] = useState<AgentMode>("assist");
-  const [agentScopes, setAgentScopes] = useState<AgentScope[]>([]);
-  const [agentHistory, setAgentHistory] = useState<Array<{ title: string; href: string | null }>>([]);
-  const [agentHistoryState, setAgentHistoryState] = useState<"unknown" | "empty" | "unavailable" | "list">("unknown");
-  const [savingAgentMode, setSavingAgentMode] = useState(false);
   const [affiliateNotice, setAffiliateNotice] = useState<{
     name: string | null;
     manual: boolean;
@@ -65,65 +59,6 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
     if (!clearToken) return;
     clearHistory();
   }, [clearHistory, clearToken]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const response = await fetch("/api/ai/actions");
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          preference?: unknown;
-          history?: Array<{ title?: string; href?: string | null }>;
-          historyAvailable?: boolean;
-        };
-        if (cancelled) return;
-        const preference = normalizeAgentPreference(data.preference);
-        setAgentMode(preference.mode);
-        setAgentScopes(preference.scopes);
-        const history = Array.isArray(data.history)
-          ? data.history
-              .map((item) => ({ title: String(item.title || "Jimvio AI action"), href: item.href ?? null }))
-              .slice(0, 3)
-          : [];
-        setAgentHistory(history);
-        setAgentHistoryState(data.historyAvailable === false ? "unavailable" : history.length ? "list" : "empty");
-      } catch {
-        // Signed-out visitors keep Assist mode.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const saveAgentMode = async (mode: AgentMode, scopes: AgentScope[]) => {
-    const previous = { mode: agentMode, scopes: agentScopes };
-    setAgentMode(mode);
-    setAgentScopes(scopes);
-    setSavingAgentMode(true);
-    try {
-      const response = await fetch("/api/ai/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ preference: { mode, scopes } }),
-      });
-      if (!response.ok) {
-        setAgentMode(previous.mode);
-        setAgentScopes(previous.scopes);
-        return;
-      }
-      const data = (await response.json()) as { preference?: unknown };
-      const saved = normalizeAgentPreference(data.preference);
-      setAgentMode(saved.mode);
-      setAgentScopes(saved.scopes);
-    } catch {
-      setAgentMode(previous.mode);
-      setAgentScopes(previous.scopes);
-    } finally {
-      setSavingAgentMode(false);
-    }
-  };
 
   useEffect(() => {
     if (!earnGuideToken || processedEarn.current === earnGuideToken) return;
@@ -326,7 +261,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
                   variant === "dock" ? "mt-1.5 text-[12px] leading-5" : "mt-3 text-sm leading-6 sm:text-[15px]",
                 )}
               >
-                Ask about selling, affiliates, UGC, dropshipping, communities, or live sessions. Earnings are not guaranteed.
+                Ask me anything about Jimvio — or tell me what to do: create or find a community, update your profile name or bio, or write a post.
               </p>
               <div className={cn("text-left", variant === "dock" ? "mt-3" : "mt-6")}>
                 <CopilotQuickActions
@@ -390,82 +325,6 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
             </div>
           </div>
         ) : null}
-        <div className="mx-auto mb-2 w-full max-w-3xl px-3 sm:px-4">
-          <div
-            role="group"
-            aria-label="Jimvio AI action mode"
-            className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#F3D2C4] bg-white/80 px-2.5 py-2"
-          >
-            <span className="text-[11px] font-bold uppercase tracking-wide text-[#6B7280]">Mode</span>
-            <button
-              type="button"
-              aria-pressed={agentMode === "assist"}
-              disabled={savingAgentMode}
-              onClick={() => void saveAgentMode("assist", agentScopes)}
-              className={cn(
-                "inline-flex h-8 items-center rounded-full px-3 text-[12px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-                agentMode === "assist" ? "bg-[#FF5A1F] text-white" : "bg-[#FFF1EA] text-[#9A3412]",
-              )}
-            >
-              Assist
-            </button>
-            <button
-              type="button"
-              aria-pressed={agentMode === "agent"}
-              disabled={savingAgentMode}
-              onClick={() => void saveAgentMode("agent", agentScopes)}
-              className={cn(
-                "inline-flex h-8 items-center rounded-full px-3 text-[12px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-                agentMode === "agent" ? "bg-[#FF5A1F] text-white" : "bg-[#FFF1EA] text-[#9A3412]",
-              )}
-            >
-              Agent
-            </button>
-            <p className="min-w-[12rem] flex-1 text-[12px] leading-5 text-[#6B7280]" role="status">
-              {agentMode === "agent"
-                ? "Agent runs only the community actions you turn on. Stores and payments still wait for confirmation."
-                : "Assist explains a plan and waits before it changes your account."}
-            </p>
-            {agentMode === "agent" ? (
-              <label className="inline-flex items-center gap-2 text-[12px] font-semibold text-[#111827]">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
-                  checked={agentScopes.includes("communities")}
-                  disabled={savingAgentMode}
-                  onChange={(event) => {
-                    const scopes = event.target.checked
-                      ? [...new Set<AgentScope>([...agentScopes, "communities"])]
-                      : agentScopes.filter((scope) => scope !== "communities");
-                    void saveAgentMode("agent", scopes);
-                  }}
-                />
-                Create communities without asking
-              </label>
-            ) : null}
-          </div>
-          {agentHistoryState === "unavailable" ? (
-            <p className="mt-1.5 text-[12px] text-[#6B7280]">Action history is unavailable right now.</p>
-          ) : null}
-          {agentHistoryState === "empty" ? (
-            <p className="mt-1.5 text-[12px] text-[#6B7280]">No Jimvio AI actions are recorded yet.</p>
-          ) : null}
-          {agentHistoryState === "list" ? (
-            <ul className="mt-1.5 flex flex-col gap-1" aria-label="Recent Jimvio AI actions">
-              {agentHistory.map((item) => (
-                <li key={`${item.title}-${item.href ?? "none"}`} className="text-[12px] text-[#374151]">
-                  {item.href ? (
-                    <a href={item.href} className="font-semibold text-[#9A3412] underline-offset-2 hover:underline">
-                      {item.title}
-                    </a>
-                  ) : (
-                    item.title
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
         <AiComposer
           value={query}
           onChange={(next) => {
@@ -476,7 +335,7 @@ export function JimvioAiExperience({ variant = "page", clearToken = 0 }: JimvioA
           sending={isSending}
           placeholder={
             messages.length === 0
-              ? "Ask about products, campaigns, or communities..."
+              ? "Ask anything, or tell Jimvio AI what to do…"
               : contextMeta.placeholder
           }
           autoFocus={variant === "dock"}

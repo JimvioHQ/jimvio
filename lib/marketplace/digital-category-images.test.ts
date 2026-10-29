@@ -16,8 +16,6 @@ const EXPECTED_KEYS = {
   "digital-finance-investing": ["Finance", 0],
   "digital-health-fitness": ["Health", 0],
   "digital-creator-influencer": ["Creator", 0],
-  "digital-ebooks-publications": ["Education", 0],
-  "digital-documents-templates": ["Design", 0],
   "digital-memberships-access": ["Business", 0],
   "digital-events-experiences": ["Entertainment", 0],
   "digital-games-entertainment": ["Gaming", 0],
@@ -32,8 +30,16 @@ describe("digital category images", () => {
       assert.ok(photo);
       assert.equal(digitalCategoryPhotoUrl(slug), unsplashDownloadUrl(photo.sourceId, 960));
     }
+    assert.match(digitalCategoryPhotoUrl("digital-ebooks-publications") ?? "", /res\.cloudinary\.com\/jimvio\//);
+    assert.match(digitalCategoryPhotoUrl("digital-documents-templates") ?? "", /res\.cloudinary\.com\/jimvio\//);
     assert.equal(digitalCategoryPhotoUrl("digital-lifestyle"), null);
     assert.equal(digitalCategoryPhotoUrl("digital-culture-language"), null);
     assert.equal(digitalCategoryPhotoUrl("consumer-electronics"), null);
+  });
+
+  it("never shows the same photo on two shop cards", async () => {
+    const { DIGITAL_SHOP_CATEGORIES } = await import("./digital-shop-categories.ts");
+    const urls = DIGITAL_SHOP_CATEGORIES.map((c) => digitalCategoryPhotoUrl(c.slug));
+    assert.equal(new Set(urls).size, urls.length);
   });
 });

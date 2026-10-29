@@ -49,3 +49,11 @@ export {
   mergeSettingsConfig,
   type CommunitySettingsRow,
 } from "./mappers";
+
+export {
+  SETTINGS_GROUPS,
+  settingsGroup,
+  settingsGroupForTab,
+  type SettingsGroup,
+  type SettingsGroupId,
+} from "./groups";

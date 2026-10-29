@@ -1679,3 +1679,15 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
 .dark .ugc-discover-heading {
   background: none;
 }
+
+/* Jimvio AI: replies and the typing bubble rise in gently. */
+@keyframes jv-ai-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@layer utilities {
+  .jv-ai-rise { animation: jv-ai-rise 200ms ease-out both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jv-ai-rise { animation: none; }
+}
