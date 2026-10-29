@@ -96,3 +96,18 @@ describe("campaign checker summary", () => {
     assert.equal(verdictFor({ id: "x", status: "pending", platform: "youtube" }), "checking");
   });
 });
+
+import { evaluateCreatorProfileCompletion } from "../../identity/creator-profile-completion.ts";
+
+describe("creator profile completion", () => {
+  it("lists every missing creator field with a hint", () => {
+    const r = evaluateCreatorProfileCompletion({ fullName: "Ana", headline: "Music creator", bio: "Hi" });
+    assert.equal(r.complete, false);
+    assert.deepEqual(r.missing.map((m) => m.id), ["username", "categories", "country", "social"]);
+    assert.ok(r.missing.every((m) => m.hint));
+    const ok = evaluateCreatorProfileCompletion({
+      fullName: "Ana", username: "ana", categories: ["Music"], headline: "x", bio: "y", country: "RW", socialCount: 1,
+    });
+    assert.equal(ok.complete, true);
+  });
+});
