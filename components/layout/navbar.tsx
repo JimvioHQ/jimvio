@@ -1,5 +1,6 @@
 "use client";
 
+import { useSiteT } from "@/components/providers/site-locale-provider";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -254,13 +255,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
   // Counts / wallet / notifications are non-blocking — never gate menu/nav chrome.
   useEffect(() => { if (user) refreshCounts(); }, [user, refreshCounts]);
 
-  const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
+  const t = useSiteT();
+  const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []).map((l) => ({
+    ...l,
+    label: t(l.label),
+    mobileLabel: l.mobileLabel ? t(l.mobileLabel) : l.mobileLabel,
+  }));
   const createContext: CreateMenuContext =
     pathname.startsWith("/marketplace") ? "marketplace" : "home";
 
   const marketplaceVariants = [
-    { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace/digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
-    { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace/physical", icon: Package, color: "#f59e0b" },
+    { title: t("Digital Market"), desc: t("Software, courses & assets"), href: "/marketplace/digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
+    { title: t("Physical Market"), desc: t("Real-world goods & equipment"), href: "/marketplace/physical", icon: Package, color: "#f59e0b" },
   ];
 
   const onMarketplaceEnter = () => {
@@ -568,17 +574,18 @@ function MobileDrawer({
   const { chatCount, cartCount } = useCartStore();
   const { walletBalance, currency: walletCurrency, hydrated } = useHeaderAccountStore();
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
+  const t = useSiteT();
 
   const accountLinks = [
     ...PROFILE_TOOL_ITEMS.map((item) => ({
       href: item.href,
       icon: item.icon,
-      label: item.label,
+      label: t(item.label),
     })),
     ...PROFILE_SUPPORT_ITEMS.map((item) => ({
       href: item.href,
       icon: item.icon,
-      label: item.label,
+      label: t(item.label),
     })),
   ];
 

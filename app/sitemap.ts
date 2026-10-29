@@ -83,6 +83,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .from("products")
         .select("slug, updated_at")
         .eq("status", "active")
+        // M-10: same visibility rule as the product page, so no sitemap URL 404s.
+        .eq("is_active", true)
         .is("deleted_at", null)
         .order("updated_at", { ascending: false })
         // Single sitemap remains under the protocol's 50k URL limit; shard when
