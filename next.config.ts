@@ -37,6 +37,12 @@ const nextConfig: NextConfig = {
 
   experimental: {
     webpackMemoryOptimizations: true,
+    // Keep visited/prefetched pages in the browser so moving between
+    // Marketplace, Communities, Commerce, Affiliates and UGC is instant.
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
     serverActions: {
       allowedOrigins: [
         "www.jimvio.com",
