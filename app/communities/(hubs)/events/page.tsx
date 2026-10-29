@@ -149,6 +149,10 @@ function EventsPage() {
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
               {filter === "organized" ? "Events you organize appear here after you publish them from a community you manage." : "Published public events will show up here. Private events are available only with an invitation."}
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <HubLinkButton href="/communities">Explore communities</HubLinkButton>
+              <HubLinkButton href="/communities/create" variant="secondary">Start a community</HubLinkButton>
+            </div>
           </HubCard>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

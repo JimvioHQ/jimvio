@@ -162,7 +162,7 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     ],
     trust_bar: [
       { title: "Buyer Protection", desc: "Eligible orders reviewed by support" },
-      { title: "Verified Partners", desc: "Audited manufacturer profiles" },
+      { title: "Verified Sellers", desc: "Identity and business checks" },
       { title: "Global Logistics", desc: "Freight & fulfillment partners" },
       { title: "Secure Payouts", desc: "Multi-currency payout options" },
       { title: "Creator Network", desc: "Affiliates & influencers worldwide" },

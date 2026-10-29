@@ -57,6 +57,7 @@ import {
   resolveStockStatus,
 } from "@/lib/marketplace/stock-status";
 import { PdpTrustStrip } from "@/components/marketplace/pdp-trust-strip";
+import { ListingQualityCard } from "@/components/marketplace/listing-quality-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1490,6 +1491,7 @@ export function PhysicalProductDetail({
             <section className="order-5 min-w-0 space-y-3 lg:order-none">
               {shippingCards}
               <PdpTrustStrip />
+              <ListingQualityCard product={product as never} />
             </section>
           </div>
         </div>

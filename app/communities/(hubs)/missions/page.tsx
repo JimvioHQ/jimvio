@@ -95,6 +95,9 @@ export default function HubMissionsPage() {
             <Target className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
             <p className="text-[14px] font-bold">No missions found</p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">Published missions from your communities, and public missions, appear here.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <HubLinkButton href="/communities">Explore communities</HubLinkButton>
+            </div>
           </HubCard>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
