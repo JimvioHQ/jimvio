@@ -148,7 +148,9 @@ function FeaturedCopy({
         ) : null}
         {totalBudget > 0 ? (
           <span className="text-[11px] font-medium tabular-nums text-[#6B7280] sm:text-[13px]">
-            {formatUgcFundingUsd(spentBudget)} / {formatUgcFundingUsd(totalBudget)}
+            <span className="font-bold text-[#111827]">{formatUgcFundingUsd(Math.max(0, totalBudget - spentBudget))}</span>
+            {" left of "}
+            {formatUgcFundingUsd(totalBudget)}
           </span>
         ) : null}
       </div>

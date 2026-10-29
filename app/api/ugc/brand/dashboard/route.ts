@@ -33,6 +33,10 @@ type ActiveCampaignCard = {
   submissions: number;
   approvals: number;
   views: number;
+  paidViews?: number;
+  pendingReview?: number;
+  budget?: number | null;
+  remaining?: number | null;
   nextDateLabel: string | null;
   nextDate: string | null;
   href: string;
@@ -53,6 +57,10 @@ type PerformanceRow = {
   title: string;
   status: string;
   views: number;
+  paidViews?: number;
+  pendingReview?: number;
+  budget?: number | null;
+  remaining?: number | null;
   creators: number;
   submissions: number;
   approvals: number;
@@ -78,6 +86,8 @@ type DashboardStats = {
     pendingFunding: number;
     totalSpend: number | null;
     totalViews: number;
+    paidViews?: number;
+    remainingBudget?: number | null;
     totalCreators: number;
   };
   attention?: AttentionItem[];
@@ -190,6 +200,7 @@ export async function GET(req: NextRequest) {
   const creatorsByCampaign = new Map<string, Set<string>>();
   const pendingAppsByCampaign = new Map<string, number>();
   const pendingSubsByCampaign = new Map<string, number>();
+  const subStats = new Map<string, { total: number; approved: number; realViews: number; paidViews: number }>();
   const creatorSet = new Set<string>();
 
   if (campaignIds.length > 0) {
@@ -201,9 +212,9 @@ export async function GET(req: NextRequest) {
           .in("campaign_id", campaignIds),
         db
           .from("ugc_submissions")
-          .select("id, campaign_id, status")
+          .select("id, campaign_id, status, accepted_views, latest_views, baseline_views, verification_status")
           .in("campaign_id", campaignIds)
-          .in("status", ["pending", "revision_requested"]),
+          .limit(5000),
         db
           .from("ugc_campaign_events")
           .select("id, campaign_id, event_type, title, description, starts_at, ends_at, metadata")
@@ -230,9 +241,29 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    for (const s of pendingSubs ?? []) {
+    // Live counts from the submissions themselves (the stored counters can lag).
+    for (const s of (pendingSubs ?? []) as {
+      campaign_id: string;
+      status: string;
+      accepted_views: number | null;
+      latest_views: number | null;
+      baseline_views: number | null;
+      verification_status: string | null;
+    }[]) {
       const cid = String(s.campaign_id);
-      pendingSubsByCampaign.set(cid, (pendingSubsByCampaign.get(cid) ?? 0) + 1);
+      const st = subStats.get(cid) ?? { total: 0, approved: 0, realViews: 0, paidViews: 0 };
+      if (s.status !== "removed") st.total++;
+      if (s.status === "approved") {
+        st.approved++;
+        st.paidViews += Number(s.accepted_views ?? 0);
+      }
+      if (s.verification_status === "verified" && s.latest_views != null && s.baseline_views != null) {
+        st.realViews += Math.max(0, Number(s.latest_views) - Number(s.baseline_views));
+      }
+      subStats.set(cid, st);
+      if (s.status === "pending" || s.status === "revision_requested") {
+        pendingSubsByCampaign.set(cid, (pendingSubsByCampaign.get(cid) ?? 0) + 1);
+      }
     }
 
     const eventsByCampaign = new Map<string, CampaignScheduleEvent[]>();
@@ -262,7 +293,7 @@ export async function GET(req: NextRequest) {
         reason: `Review creator content for ${title}.`,
         campaignId: cid,
         campaignTitle: title,
-        href: `/ugc/campaign-center/${cid}/submissions`,
+        href: `/ugc/review?campaign=${cid}`,
         actionLabel: "Review submissions",
       });
     }
@@ -363,9 +394,13 @@ export async function GET(req: NextRequest) {
         bannerUrl: banner,
         rewardLabel: rewardLabel(c),
         creators: creatorsByCampaign.get(c.id)?.size ?? 0,
-        submissions: Number(c.submission_count ?? 0),
-        approvals: Number(c.approved_count ?? 0),
-        views: Number(c.total_views_tracked ?? 0),
+        submissions: subStats.get(c.id)?.total ?? 0,
+        approvals: subStats.get(c.id)?.approved ?? 0,
+        views: subStats.get(c.id)?.realViews ?? 0,
+        paidViews: subStats.get(c.id)?.paidViews ?? 0,
+        pendingReview: pendingSubsByCampaign.get(c.id) ?? 0,
+        budget: showFinance ? Number(c.total_budget ?? 0) : null,
+        remaining: showFinance ? Math.max(0, Number(c.total_budget ?? 0) - Number(c.spent_budget ?? 0)) : null,
         nextDateLabel: next ? next.title || scheduleKindLabel(next.kind) : null,
         nextDate: next?.date ?? null,
         href: `/ugc/campaign-center/${c.id}/edit`,
@@ -376,10 +411,11 @@ export async function GET(req: NextRequest) {
       id: c.id,
       title: c.title,
       status: c.status,
-      views: Number(c.total_views_tracked ?? 0),
+      views: subStats.get(c.id)?.realViews ?? 0,
+      paidViews: subStats.get(c.id)?.paidViews ?? 0,
       creators: creatorsByCampaign.get(c.id)?.size ?? 0,
-      submissions: Number(c.submission_count ?? 0),
-      approvals: Number(c.approved_count ?? 0),
+      submissions: subStats.get(c.id)?.total ?? 0,
+      approvals: subStats.get(c.id)?.approved ?? 0,
       spend: showFinance ? Number(c.spent_budget ?? 0) : null,
     }));
 
@@ -409,7 +445,11 @@ export async function GET(req: NextRequest) {
         pendingSubmissions,
         pendingFunding: byStatus.draft.length,
         totalSpend: showFinance ? totalSpend : null,
-        totalViews,
+        totalViews: [...subStats.values()].reduce((a, b) => a + b.realViews, 0) || totalViews,
+        paidViews: [...subStats.values()].reduce((a, b) => a + b.paidViews, 0),
+        remainingBudget: showFinance
+          ? byStatus.active.reduce((a, c) => a + Math.max(0, Number(c.total_budget ?? 0) - Number(c.spent_budget ?? 0)), 0)
+          : null,
         totalCreators: creatorSet.size,
       },
       attention: attention.slice(0, 8),

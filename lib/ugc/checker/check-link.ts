@@ -1,8 +1,7 @@
 import "server-only";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { readGeminiKey } from "@/lib/ai/gemini-fallback";
-import { freshCredentials, type CredentialDestination } from "@/lib/live/destinations/fresh-credentials";
+import { youtubePublic } from "@/lib/youtube/public-data";
 import { videoRefFromUrl, type VerifiablePlatform } from "@/lib/ugc/verification/video-ref";
 import { assessPost, type ContentAnalysis, type PostAssessment, type PostNumbers } from "./post-signals";
 
@@ -35,38 +34,10 @@ function platformOf(url: string): VerifiablePlatform | null {
   return null;
 }
 
-/** A token that may read public YouTube data: an API key, or the checker's own connection. */
-async function youtubeAuth(userId: string | null): Promise<{ key?: string; token?: string } | null> {
-  const key = process.env.YOUTUBE_API_KEY?.trim();
-  if (key) return { key };
-  if (!userId) return null;
-  const db = createServiceRoleClient() as unknown as { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const { data } = await db
-    .from("live_destinations")
-    .select("id, user_id, provider_channel_id, provider_account_id, encrypted_credentials")
-    .eq("user_id", userId)
-    .eq("platform", "youtube")
-    .is("revoked_at", null)
-    .limit(1);
-  const dest = ((data ?? []) as CredentialDestination[])[0];
-  if (!dest) return null;
-  const fresh = await freshCredentials("youtube", dest);
-  return fresh.ok && fresh.creds.accessToken ? { token: fresh.creds.accessToken } : null;
-}
-
 export async function youtubeNumbers(videoId: string, userId: string | null) {
-  const auth = await youtubeAuth(userId);
-  if (!auth) return null;
-  const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${encodeURIComponent(videoId)}${
-    auth.key ? `&key=${encodeURIComponent(auth.key)}` : ""
-  }`;
-  const res = await fetch(url, {
-    headers: auth.token ? { Authorization: `Bearer ${auth.token}` } : {},
-    signal: AbortSignal.timeout(12_000),
-    cache: "no-store",
-  }).catch(() => null);
-  if (!res?.ok) return null;
-  const json = (await res.json().catch(() => null)) as {
+  const r = await youtubePublic(`videos?part=statistics,snippet&id=${encodeURIComponent(videoId)}`, userId);
+  if (!r.ok) return null;
+  const json = r.json as {
     items?: {
       snippet?: { title?: string; channelTitle?: string; publishedAt?: string; thumbnails?: { high?: { url?: string } } };
       statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };

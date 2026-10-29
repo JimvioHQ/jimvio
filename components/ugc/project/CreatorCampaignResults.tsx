@@ -21,7 +21,60 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
 import { ViewVerificationPanel, type VerificationFields } from "@/components/ugc/verification/ViewVerificationPanel";
 
-type Payout = { id: string; amount: number; status: string; created_at: string; paid_at: string | null; submission_id: string };
+type Payout = {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  paid_at: string | null;
+  submission_id: string;
+  release_at?: string | null;
+};
+
+/** "13h 20m" until a time, refreshed every minute. */
+function useCountdown(at: string | null | undefined): string | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!at) return;
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, [at]);
+  if (!at) return null;
+  const ms = Date.parse(at) - now;
+  if (!Number.isFinite(ms)) return null;
+  if (ms <= 0) return "any minute now";
+  const h = Math.floor(ms / 3_600_000);
+  const m = Math.max(1, Math.round((ms % 3_600_000) / 60_000));
+  return h > 0 ? `in ${h}h ${m}m` : `in ${m} min`;
+}
+
+function PayoutLine({ payout, formatMoney }: { payout: Payout; formatMoney: (n: number, c: string) => string }) {
+  const left = useCountdown(payout.status === "paid" ? null : payout.release_at);
+  const paid = payout.status === "paid";
+  return (
+    <p
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-medium",
+        paid ? "bg-emerald-50 text-emerald-800" : "bg-[#FFF7F2] text-[#7C2D12]",
+      )}
+    >
+      <Wallet className="h-4 w-4" />
+      {paid
+        ? `${formatMoney(payout.amount, "USD")} added to your wallet${payout.paid_at ? ` on ${formatDate(payout.paid_at)}` : ""}.`
+        : `${formatMoney(payout.amount, "USD")} reaches your wallet ${left ?? "soon"}.`}
+      {!paid ? <span className="text-[11.5px] font-normal text-[#9A3412]">Held 24h because Jimvio couldn't verify every view automatically.</span> : null}
+    </p>
+  );
+}
+
+function OnTheWayNote({ payouts }: { payouts: Payout[] }) {
+  const next = payouts
+    .filter((p) => p.status !== "paid" && p.release_at)
+    .map((p) => p.release_at as string)
+    .sort()[0];
+  const left = useCountdown(next ?? null);
+  return <p className="text-[11px] text-[#9CA3AF]">{left ? `Next payment ${left}` : "Verified views are paid at once"}</p>;
+}
 
 type Sub = UGCSubmission &
   VerificationFields & {
@@ -130,6 +183,8 @@ export function CreatorCampaignResults({
         : 0),
     0,
   );
+  const paidViews = subs.reduce((s, x) => s + (x.status === "approved" ? Number(x.accepted_views ?? 0) : 0), 0);
+  const verifiedPosts = subs.filter((x) => x.verification_status === "verified").length;
   const counts = {
     approved: subs.filter((s) => s.status === "approved").length,
     review: subs.filter((s) => s.status === "pending").length,
@@ -153,14 +208,20 @@ export function CreatorCampaignResults({
             <Clock className="h-3.5 w-3.5" /> On the way
           </p>
           <p className="mt-1 text-[24px] font-bold tabular-nums text-[#111827]">{formatMoney(onTheWay, "USD")}</p>
-          <p className="text-[11px] text-[#9CA3AF]">Released 48h after approval</p>
+          <OnTheWayNote payouts={payouts} />
         </div>
         <div className="rounded-2xl border border-[#EEF0F2] bg-white p-4">
           <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-[#6B7280]">
             <Eye className="h-3.5 w-3.5" /> Real views
           </p>
           <p className="mt-1 text-[24px] font-bold tabular-nums text-[#111827]">{realViews.toLocaleString("en-US")}</p>
-          <p className="text-[11px] text-[#9CA3AF]">Verified, since you submitted</p>
+          <p className="text-[11px] text-[#9CA3AF]">
+            {verifiedPosts
+              ? `Verified by Jimvio since you submitted${perViews && paidViews ? ` · ${paidViews.toLocaleString("en-US")} paid` : ""}`
+              : perViews && paidViews
+                ? `Not verified by Jimvio · ${paidViews.toLocaleString("en-US")} paid by the brand`
+                : "Connect your account so Jimvio can verify views"}
+          </p>
         </div>
         <div className="rounded-2xl border border-[#EEF0F2] bg-white p-4">
           <p className="flex items-center gap-1.5 text-[11.5px] font-semibold text-[#6B7280]">
@@ -214,7 +275,6 @@ export function CreatorCampaignResults({
             const revision = sub.status === "revision_requested";
             const approved = sub.status === "approved";
             const expanded = open === sub.id;
-            const releaseOn = payout && payout.status !== "paid" ? new Date(Date.parse(payout.created_at) + 48 * 3_600_000) : null;
             return (
               <article key={sub.id} className="overflow-hidden rounded-2xl border border-[#EEF0F2] bg-white shadow-sm">
                 <div className="space-y-3 p-4">
@@ -262,17 +322,28 @@ export function CreatorCampaignResults({
                     </div>
                   ) : null}
 
-                  <div className="grid grid-cols-3 gap-2 rounded-xl bg-[#F9FAFB] p-2.5 text-center">
+                  <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#F9FAFB] p-2.5 text-center sm:grid-cols-4">
+                    <div>
+                      <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Views now</p>
+                      <p className="text-[15px] font-bold tabular-nums text-[#111827]">
+                        {sub.latest_views != null ? Number(sub.latest_views).toLocaleString("en-US") : "—"}
+                      </p>
+                      <p className="text-[10.5px] text-[#9CA3AF]">{sub.latest_views != null ? `from ${sub.platform}` : "not read yet"}</p>
+                    </div>
                     <div>
                       <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Real views</p>
                       <p className="text-[15px] font-bold tabular-nums text-[#111827]">
-                        {gained != null ? gained.toLocaleString("en-US") : "—"}
+                        {sub.verification_status === "verified" && gained != null ? gained.toLocaleString("en-US") : "—"}
                       </p>
                       {sub.verification_status === "verified" ? (
                         <p className="inline-flex items-center gap-0.5 text-[10.5px] font-semibold text-emerald-700">
-                          <BadgeCheck className="h-3 w-3" /> verified
+                          <BadgeCheck className="h-3 w-3" /> verified since submit
                         </p>
-                      ) : null}
+                      ) : (
+                        <p className="text-[10.5px] text-amber-700">
+                          {sub.verification_status === "owner_mismatch" ? "not your connected channel" : "not verified"}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <p className="text-[10.5px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Views paid</p>
@@ -289,17 +360,7 @@ export function CreatorCampaignResults({
                   </div>
 
                   {payout ? (
-                    <p
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12.5px] font-medium",
-                        payout.status === "paid" ? "bg-emerald-50 text-emerald-800" : "bg-[#FFF7F2] text-[#7C2D12]",
-                      )}
-                    >
-                      <Wallet className="h-4 w-4" />
-                      {payout.status === "paid"
-                        ? `${formatMoney(payout.amount, "USD")} added to your wallet${payout.paid_at ? ` on ${formatDate(payout.paid_at)}` : ""}.`
-                        : `${formatMoney(payout.amount, "USD")} will be added to your wallet${releaseOn ? ` around ${formatDate(releaseOn.toISOString())}` : ""}.`}
-                    </p>
+                    <PayoutLine payout={payout} formatMoney={formatMoney} />
                   ) : approved ? (
                     <p className="rounded-xl bg-[#F9FAFB] px-3 py-2 text-[12.5px] text-[#6B7280]">Approved. No payment was due for this post.</p>
                   ) : null}

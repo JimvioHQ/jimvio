@@ -123,7 +123,7 @@ export function UGCMyCampaignsPage() {
     try {
       const [pRes, sRes, payRes] = await Promise.all([
         fetch("/api/ugc/participants?limit=50", { cache: "no-store" }),
-        fetch("/api/ugc/submissions?limit=50", { cache: "no-store" }),
+        fetch("/api/ugc/submissions?limit=50&scope=mine", { cache: "no-store" }),
         fetch("/api/ugc/payouts/history", { cache: "no-store" }),
       ]);
       if (pRes.status === 401) {

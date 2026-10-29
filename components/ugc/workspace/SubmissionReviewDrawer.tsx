@@ -105,7 +105,7 @@ export function SubmissionReviewDrawer({
       setQuote(
         `Eligible reward ${formatMoney(Number(json.payable ?? 0), "USD")}${
           json.cappedBy ? ` (limited by ${json.cappedBy === "budget" ? "remaining budget" : "max payout"})` : ""
-        }. Approval is not payment.`,
+        }. ${json.viewsSource === "platform_verified" ? "Views are verified, so the creator is paid right after you approve." : "Views aren't verified by Jimvio, so the payment waits 24 hours after approval."}`,
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not calculate the reward.");

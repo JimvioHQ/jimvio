@@ -54,120 +54,9 @@ export async function releasePendingPayouts(): Promise<{
 
   for (const payout of payouts) {
     try {
-      const notes = typeof payout.notes === "string" ? payout.notes : null;
-      const { data: claimed, error: claimErr } = await db
-        .from("payouts")
-        .update({
-          status: "paid",
-          notes: notes?.replace("(Clears in 48h)", "(Cleared)") ?? notes,
-        })
-        .eq("id", payout.id)
-        .eq("status", "pending")
-        .select("id")
-        .maybeSingle();
-      if (claimErr) throw new Error(`Payout ${payout.id} update err: ${claimErr.message}`);
-      if (!claimed) continue;
-
-      const revertClaim = async () => {
-        await db
-          .from("payouts")
-          .update({ status: "pending", notes })
-          .eq("id", payout.id)
-          .eq("status", "paid");
-      };
-
-      const { data: wallet } = await db
-        .from("wallets")
-        .select("pending_balance, available_balance")
-        .eq("user_id", payout.user_id)
-        .maybeSingle();
-      const { data: influencer } = await db
-        .from("influencers")
-        .select("id, pending_balance, available_balance")
-        .eq("user_id", payout.user_id)
-        .maybeSingle();
-
-      if (!wallet && !influencer) {
-        await revertClaim();
-        errors.push(`Payout ${payout.id} has no wallet or creator balance to release`);
-        continue;
-      }
-
-      const amount = Number(payout.amount);
-      const walletNext = wallet
-        ? balancesAfterPendingRelease(
-            Number(wallet.pending_balance ?? 0),
-            Number(wallet.available_balance ?? 0),
-            amount,
-          )
-        : null;
-      const influencerNext = influencer
-        ? balancesAfterPendingRelease(
-            Number(influencer.pending_balance ?? 0),
-            Number(influencer.available_balance ?? 0),
-            amount,
-          )
-        : null;
-
-      if ((wallet && !walletNext?.ok) || (influencer && !influencerNext?.ok)) {
-        await revertClaim();
-        errors.push(`Payout ${payout.id} was not released because the pending balance is short`);
-        continue;
-      }
-
-      if (wallet && walletNext?.ok) {
-        const { data: walletRow } = await db
-          .from("wallets")
-          .update({
-            pending_balance: walletNext.pending,
-            available_balance: walletNext.available,
-          })
-          .eq("user_id", payout.user_id)
-          .eq("pending_balance", wallet.pending_balance)
-          .select("user_id")
-          .maybeSingle();
-        if (!walletRow) {
-          await revertClaim();
-          errors.push(`Payout ${payout.id} wallet update raced and was left pending`);
-          continue;
-        }
-      }
-
-      if (influencer && influencerNext?.ok) {
-        const { data: influencerRow } = await db
-          .from("influencers")
-          .update({
-            pending_balance: influencerNext.pending,
-            available_balance: influencerNext.available,
-          })
-          .eq("id", influencer.id)
-          .eq("pending_balance", influencer.pending_balance)
-          .select("id")
-          .maybeSingle();
-        if (!influencerRow) {
-          if (wallet && walletNext?.ok) {
-            await db
-              .from("wallets")
-              .update({
-                pending_balance: wallet.pending_balance,
-                available_balance: wallet.available_balance,
-              })
-              .eq("user_id", payout.user_id)
-              .eq("pending_balance", walletNext.pending);
-          }
-          await revertClaim();
-          errors.push(`Payout ${payout.id} creator balance update raced and was left pending`);
-          continue;
-        }
-      }
-
-      await db
-        .from("ugc_payouts")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("payout_id", payout.id)
-        .eq("status", "pending");
-
-      released++;
+      const r = await releaseOne(db, payout);
+      if (r === "released") released++;
+      else if (r !== "skipped") errors.push(r);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(msg);
@@ -176,4 +65,142 @@ export async function releasePendingPayouts(): Promise<{
   }
 
   return { released, errors };
+}
+
+type Db = ReturnType<typeof createServiceRoleClient>;
+type PayoutRow = { id: string; user_id: string; amount: number | string; notes?: string | null };
+
+/** Releases one ripe payout. Returns "released", "skipped" or an error message. */
+async function releaseOne(db: Db, payout: PayoutRow): Promise<string> {
+  const fail = (msg: string) => msg;
+  const notes = typeof payout.notes === "string" ? payout.notes : null;
+  const { data: claimed, error: claimErr } = await db
+    .from("payouts")
+    .update({
+      status: "paid",
+      notes: notes?.replace(/\(Clears in \d+h\)|\(Held 24h for review\)/, "(Cleared)") ?? notes,
+    })
+    .eq("id", payout.id)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+  if (claimErr) throw new Error(`Payout ${payout.id} update err: ${claimErr.message}`);
+  if (!claimed) return "skipped";
+
+  const revertClaim = async () => {
+    await db
+      .from("payouts")
+      .update({ status: "pending", notes })
+      .eq("id", payout.id)
+      .eq("status", "paid");
+  };
+
+  const { data: wallet } = await db
+    .from("wallets")
+    .select("pending_balance, available_balance")
+    .eq("user_id", payout.user_id)
+    .maybeSingle();
+  const { data: influencer } = await db
+    .from("influencers")
+    .select("id, pending_balance, available_balance")
+    .eq("user_id", payout.user_id)
+    .maybeSingle();
+
+  if (!wallet && !influencer) {
+    await revertClaim();
+    return fail(`Payout ${payout.id} has no wallet or creator balance to release`);
+  }
+
+  const amount = Number(payout.amount);
+  const walletNext = wallet
+    ? balancesAfterPendingRelease(
+        Number(wallet.pending_balance ?? 0),
+        Number(wallet.available_balance ?? 0),
+        amount,
+      )
+    : null;
+  const influencerNext = influencer
+    ? balancesAfterPendingRelease(
+        Number(influencer.pending_balance ?? 0),
+        Number(influencer.available_balance ?? 0),
+        amount,
+      )
+    : null;
+
+  if ((wallet && !walletNext?.ok) || (influencer && !influencerNext?.ok)) {
+    await revertClaim();
+    return fail(`Payout ${payout.id} was not released because the pending balance is short`);
+  }
+
+  if (wallet && walletNext?.ok) {
+    const { data: walletRow } = await db
+      .from("wallets")
+      .update({
+        pending_balance: walletNext.pending,
+        available_balance: walletNext.available,
+      })
+      .eq("user_id", payout.user_id)
+      .eq("pending_balance", wallet.pending_balance)
+      .select("user_id")
+      .maybeSingle();
+    if (!walletRow) {
+      await revertClaim();
+      return fail(`Payout ${payout.id} wallet update raced and was left pending`);
+    }
+  }
+
+  if (influencer && influencerNext?.ok) {
+    const { data: influencerRow } = await db
+      .from("influencers")
+      .update({
+        pending_balance: influencerNext.pending,
+        available_balance: influencerNext.available,
+      })
+      .eq("id", influencer.id)
+      .eq("pending_balance", influencer.pending_balance)
+      .select("id")
+      .maybeSingle();
+    if (!influencerRow) {
+      if (wallet && walletNext?.ok) {
+        await db
+          .from("wallets")
+          .update({
+            pending_balance: wallet.pending_balance,
+            available_balance: wallet.available_balance,
+          })
+          .eq("user_id", payout.user_id)
+          .eq("pending_balance", walletNext.pending);
+      }
+      await revertClaim();
+      return fail(`Payout ${payout.id} creator balance update raced and was left pending`);
+    }
+  }
+
+  await db
+    .from("ugc_payouts")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("payout_id", payout.id)
+    .eq("status", "pending");
+
+  return "released";
+}
+
+/**
+ * Releases a single payout right away (used when the views were verified
+ * from the platform and nothing looked wrong). Same safety checks as the job.
+ */
+export async function releasePayoutNow(payoutId: string): Promise<boolean> {
+  const db = createServiceRoleClient();
+  const { data: payout } = await db
+    .from("payouts")
+    .select("*")
+    .eq("id", payoutId)
+    .eq("status", "pending")
+    .eq("type", "ugc_earnings")
+    .lte("release_date", new Date().toISOString())
+    .maybeSingle();
+  if (!payout) return false;
+  const r = await releaseOne(db, payout as PayoutRow);
+  if (r !== "released" && r !== "skipped") console.error(`[Release payout] ${r}`);
+  return r === "released";
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { getDomain } from "tldts";
 import type { CheckerResult, Finding } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
-import { pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
+import { officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
 import { domainAge, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
 
 export type LinkContext = { url: URL; chain: FetchChain; html: string | null; contentType: string; domainAgeDays: number | null };
@@ -108,9 +108,23 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
   if (chain.hops.length > 1) metrics.push({ label: "Redirects", value: String(chain.hops.length - 1) });
   if (final) metrics.push({ label: "Server IP", value: final.ip });
 
-  const status = decideLinkStatus(findings, knownThreat, Boolean(final), reputationChecked);
+  // The address itself belongs to a major platform (YouTube, TikTok…): the
+  // domain is genuine even when the platform blocks automated page loads.
+  const startReg = getDomain(url.hostname) ?? url.hostname;
+  const platform = officialFor(startReg);
+  const PLATFORM_NAMES: Record<string, string> = { youtube: "YouTube", tiktok: "TikTok", instagram: "Instagram", facebook: "Facebook", x: "X", threads: "Threads", whatsapp: "WhatsApp", telegram: "Telegram" };
+  const platformName = platform ? (PLATFORM_NAMES[platform] ?? platform[0].toUpperCase() + platform.slice(1)) : null;
+  if (platformName) {
+    const i = findings.findIndex((f) => f.title === "Could not open the page");
+    if (i >= 0) findings.splice(i, 1, { tone: "info", title: `${platformName} didn't let Jimvio load the page`, detail: "Big platforms often block automated visits. The address itself was checked.", source: "Safe page fetch" });
+    findings.unshift({ tone: "good", title: `Official ${platformName} address`, detail: `${startReg} belongs to ${platformName}.`, source: "URL analysis" });
+  }
+
+  const status = decideLinkStatus(findings, knownThreat, Boolean(final) || Boolean(platformName), reputationChecked || Boolean(platformName));
   const summary =
-    status === "known_threat"
+    platformName && status === "low_risk"
+      ? `Genuine ${platformName} link. No known threat found.`
+      : status === "known_threat"
       ? "Known threat: this link is on a list of active phishing or malware sites."
       : status === "high_risk"
         ? "Several strong scam or phishing signs."

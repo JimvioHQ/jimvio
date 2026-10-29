@@ -4,6 +4,7 @@ import type { CheckerResult, Finding } from "./types";
 import { takeQuota } from "./threat-intel";
 import { assessPost } from "@/lib/ugc/checker/post-signals";
 import { youtubeVideoId } from "@/lib/ugc/verification/video-ref";
+import { youtubeKeyEnvs, youtubeOembed, youtubePublic } from "@/lib/youtube/public-data";
 
 /**
  * Checker 2: engagement on public posts and channels.
@@ -28,19 +29,10 @@ export function socialPlatform(u: URL): Platform {
   return null;
 }
 
-async function yt(path: string): Promise<Record<string, unknown> | null> {
-  const key = process.env.YOUTUBE_API_KEY?.trim();
-  if (!key) return null;
+async function yt(userId: string | null, path: string): Promise<Record<string, unknown> | null> {
   if (!(await takeQuota("youtube_data_api", YOUTUBE_DAILY_UNITS))) return null;
-  try {
-    const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${encodeURIComponent(key)}`, {
-      signal: AbortSignal.timeout(8_000),
-      cache: "no-store",
-    });
-    return res.ok ? ((await res.json()) as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
+  const r = await youtubePublic(path, userId);
+  return r.ok ? r.json : null;
 }
 
 const n = (v: unknown) => (v == null || v === "" ? null : Number(v));
@@ -66,7 +58,7 @@ export function commentSignals(comments: string[]): Finding[] {
   return f;
 }
 
-export async function checkEngagement(url: URL | null): Promise<CheckerResult> {
+export async function checkEngagement(url: URL | null, userId: string | null = null): Promise<CheckerResult> {
   const base: CheckerResult = { id: "engagement", status: "not_applicable", summary: "", findings: [], metrics: [], sources: [], limits: [], nextSteps: [] };
   if (!url) return { ...base, summary: "Paste a post, channel or website link to check engagement." };
   const platform = socialPlatform(url);
@@ -83,21 +75,35 @@ export async function checkEngagement(url: URL | null): Promise<CheckerResult> {
 
   if (platform === "youtube") {
     const videoId = youtubeVideoId(url.toString());
-    if (!process.env.YOUTUBE_API_KEY) {
-      return { ...base, status: "unavailable", summary: "YouTube numbers are not connected yet.", limits: ["Jimvio needs a free YouTube Data API key to read public views and likes."] };
-    }
+    const noAccess = (): CheckerResult => ({
+      ...base,
+      status: "unavailable",
+      summary: "Jimvio couldn't read YouTube's numbers for this link right now.",
+      limits: [
+        youtubeKeyEnvs().length === 0 && !userId
+          ? "YouTube numbers need a free YouTube Data API key on Jimvio, or sign in with your YouTube connected."
+          : "YouTube refused the request. The API key may not have YouTube Data API v3 enabled.",
+      ],
+    });
     if (videoId) {
-      const data = await yt(`videos?part=statistics,snippet&id=${encodeURIComponent(videoId)}`);
+      const data = await yt(userId, `videos?part=statistics,snippet,contentDetails,status&id=${encodeURIComponent(videoId)}`);
       const item = (data?.items as Record<string, any>[] | undefined)?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
       if (!item) {
-        return { ...base, status: "inconclusive", summary: "This video is private, removed, or YouTube didn't answer.", sources: ["YouTube Data API"] };
+        const oe = await youtubeOembed(`https://www.youtube.com/watch?v=${videoId}`);
+        if (!data) {
+          const r = noAccess();
+          return oe
+            ? { ...r, findings: [{ tone: "info", title: `Public video by ${oe.author ?? "a YouTube channel"}`, detail: oe.title ?? undefined, source: "YouTube oEmbed" }], metrics: [{ label: "Video", value: (oe.title ?? "").slice(0, 80) }, { label: "Channel", value: oe.author ?? "—" }], sources: ["YouTube oEmbed (official)"] }
+            : r;
+        }
+        return { ...base, status: "inconclusive", summary: "This video is private or was removed.", sources: ["YouTube Data API"] };
       }
       const st = item.statistics ?? {};
       const post = { views: n(st.viewCount), likes: n(st.likeCount), comments: n(st.commentCount), publishedAt: item.snippet?.publishedAt ?? null };
       const a = assessPost(post);
       const findings: Finding[] = a.signals.map((s) => ({ tone: s.tone, title: s.text, source: "YouTube Data API" }));
       const commentsJson = post.comments && post.comments > 0
-        ? await yt(`commentThreads?part=snippet&maxResults=50&order=time&videoId=${encodeURIComponent(videoId)}`)
+        ? await yt(userId, `commentThreads?part=snippet&maxResults=50&order=time&videoId=${encodeURIComponent(videoId)}`)
         : null;
       const texts = ((commentsJson?.items as Record<string, any>[] | undefined) ?? []) // eslint-disable-line @typescript-eslint/no-explicit-any
         .map((c) => String(c.snippet?.topLevelComment?.snippet?.textOriginal ?? ""))
@@ -134,7 +140,8 @@ export async function checkEngagement(url: URL | null): Promise<CheckerResult> {
     const channelId = /\/channel\/([A-Za-z0-9_-]+)/.exec(url.pathname)?.[1];
     const q = handle ? `forHandle=${encodeURIComponent("@" + handle)}` : channelId ? `id=${encodeURIComponent(channelId)}` : null;
     if (!q) return { ...base, status: "inconclusive", summary: "Paste a video link or a channel link (youtube.com/@name)." };
-    const data = await yt(`channels?part=statistics,snippet&${q}`);
+    const data = await yt(userId, `channels?part=statistics,snippet&${q}`);
+    if (!data) return noAccess();
     const ch = (data?.items as Record<string, any>[] | undefined)?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
     if (!ch) return { ...base, status: "inconclusive", summary: "YouTube didn't return this channel.", sources: ["YouTube Data API"] };
     const subs = ch.statistics?.hiddenSubscriberCount ? null : n(ch.statistics?.subscriberCount);
