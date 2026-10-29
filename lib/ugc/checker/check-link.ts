@@ -54,7 +54,7 @@ async function youtubeAuth(userId: string | null): Promise<{ key?: string; token
   return fresh.ok && fresh.creds.accessToken ? { token: fresh.creds.accessToken } : null;
 }
 
-async function youtubeNumbers(videoId: string, userId: string | null) {
+export async function youtubeNumbers(videoId: string, userId: string | null) {
   const auth = await youtubeAuth(userId);
   if (!auth) return null;
   const url = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${encodeURIComponent(videoId)}${

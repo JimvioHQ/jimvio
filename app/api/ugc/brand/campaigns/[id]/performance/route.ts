@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
+import { youtubeNumbers } from "@/lib/ugc/checker/check-link";
+import { videoRefFromUrl } from "@/lib/ugc/verification/video-ref";
 import {
   summarizeCampaignPerformance,
   verdictFor,
@@ -9,6 +11,7 @@ import {
 } from "@/lib/ugc/verification/campaign-performance";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 /** Campaign owner's checker: real vs held views, per post and in total, plus escrow. */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,13 +29,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const [{ data: campaign }, { data: subs }, { data: escrow }] = await Promise.all([
     db
       .from("ugc_campaigns")
-      .select("id, title, payment_model, rate_per_1k_views, fixed_rate, total_budget, spent_budget, approved_count, review_mode")
+      .select("id, title, payment_model, rate_per_1k_views, fixed_rate, max_payout_per_sub, total_budget, spent_budget, approved_count, review_mode")
       .eq("id", id)
       .maybeSingle(),
     db
       .from("ugc_submissions")
       .select(
-        "id, status, platform, post_url, created_at, accepted_views, total_earnings, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, content_check, influencer:influencers!influencer_id (display_name, profile_image, user_id)",
+        "id, status, platform, post_url, created_at, accepted_views, total_earnings, rejection_reason, platform_video_id, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, content_check, influencer:influencers!influencer_id (display_name, profile_image, user_id)",
       )
       .eq("campaign_id", id)
       .order("created_at", { ascending: false })
@@ -47,6 +50,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     spentBudget: campaign.spent_budget,
   });
   const rows = (subs ?? []) as unknown as (PerformanceSubmission & Record<string, unknown>)[];
+  // Public YouTube numbers for posts Jimvio could not verify yet (shown, never paid).
+  const unread = rows
+    .filter((r) => r.platform === "youtube" && r.verification_status !== "verified" && r.latest_views == null)
+    .slice(0, 10);
+  await Promise.all(
+    unread.map(async (r) => {
+      const ref = videoRefFromUrl("youtube", String(r.post_url ?? ""));
+      if (!ref) return;
+      const yt = await youtubeNumbers(ref.videoId, user.id).catch(() => null);
+      if (yt?.numbers.views != null) {
+        r.latest_views = yt.numbers.views;
+        r.platform_video_id = ref.videoId;
+      }
+    }),
+  );
   const userIds = [
     ...new Set(
       rows
@@ -68,6 +86,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     heldUsd: funding.heldUsd,
   });
 
+  const rate = Number(campaign.rate_per_1k_views ?? 0);
+  const fixed = Number(campaign.fixed_rate ?? 0);
+  const cap = campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub);
+  const capped = (usd: number) => Math.round((cap != null && cap > 0 ? Math.min(usd, cap) : usd) * 100) / 100;
+  const rewardFor = (views: number | null) =>
+    campaign.payment_model === "per_views" ? (views == null ? null : capped((views / 1000) * rate)) : capped(fixed);
+
   return NextResponse.json({
     campaign: {
       id: campaign.id,
@@ -76,6 +101,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
       fixedRate: Number(campaign.fixed_rate ?? 0),
       reviewMode: (campaign as { review_mode?: string }).review_mode ?? "manual",
+      maxPayoutPerSub: cap,
     },
     funding,
     performance,
@@ -100,6 +126,19 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         note: r.verification_note ?? null,
         checkedAt: r.verification_checked_at ?? null,
         earnings: r.total_earnings ?? null,
+        rejectionReason: (r.rejection_reason as string | null) ?? null,
+        avatar: (inf as { profile_image?: string | null } | null)?.profile_image ?? null,
+        thumbnail:
+          r.platform === "youtube" && r.platform_video_id ? `https://i.ytimg.com/vi/${r.platform_video_id}/mqdefault.jpg` : null,
+        // Reward if approved now: verified growth for per-view campaigns, the fixed rate otherwise.
+        estimatedReward:
+          r.verification_status === "verified"
+            ? rewardFor(r.latest_views != null && r.baseline_views != null ? Math.max(0, Number(r.latest_views) - Number(r.baseline_views)) : 0)
+            : campaign.payment_model === "per_views"
+              ? null
+              : rewardFor(null),
+        // Public views read even when ownership could not be proven (not payable).
+        publicViews: r.verification_status !== "verified" ? (r.latest_views ?? null) : null,
         content: (r.content_check as Record<string, unknown> | null) ?? null,
       };
     }),
