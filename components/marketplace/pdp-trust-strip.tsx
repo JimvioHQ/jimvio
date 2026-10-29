@@ -24,11 +24,6 @@ const ITEMS = [
     title: "SSL Encrypted",
     href: null as string | null,
   },
-  {
-    icon: ShieldCheck,
-    title: "Buyer Protection",
-    href: "/protection",
-  },
 ] as const;
 
 export function PdpTrustStrip({ className }: { className?: string }) {
@@ -41,7 +36,7 @@ export function PdpTrustStrip({ className }: { className?: string }) {
       role="list"
       aria-label="Jimvio trust protections"
     >
-      <div className="flex snap-x snap-mandatory gap-0 overflow-x-auto lg:grid lg:grid-cols-4 lg:overflow-visible">
+      <div className="flex snap-x snap-mandatory gap-0 overflow-x-auto lg:grid lg:grid-cols-3 lg:overflow-visible">
         {ITEMS.map((item, i) => {
           const Icon = item.icon;
           const content = (

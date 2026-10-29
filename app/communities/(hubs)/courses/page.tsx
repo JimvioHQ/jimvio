@@ -171,6 +171,10 @@ export default function HubCoursesPage() {
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
               Published courses from your communities will appear here.
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <HubLinkButton href="/communities">Explore communities</HubLinkButton>
+              <HubLinkButton href="/creator/courses" variant="secondary">Create a course</HubLinkButton>
+            </div>
           </HubCard>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

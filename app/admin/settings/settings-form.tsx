@@ -155,16 +155,17 @@ const DEMO_INITIAL: ResolvedPlatformSettings = {
     cart_max_quantity: 99,
   },
   social_proof: {
-    success_rate_display: "98%",
-    countries_display: "54+",
-    fallback_verified_vendors: "1,200+",
-    fallback_total_products: "50,000+",
+    // No invented figures: public numbers come from the database or are not shown.
+    success_rate_display: "",
+    countries_display: "",
+    fallback_verified_vendors: "",
+    fallback_total_products: "",
   },
   marketing: {
-    affiliate_value_props: ["Earn up to 20% commission", "Real-time tracking dashboard", "Monthly payouts guaranteed"],
+    affiliate_value_props: ["Commission set by each seller", "Click and sale tracking", "Payouts to supported methods"],
     trust_bar: [
-      { title: "Secure payments", desc: "256-bit SSL encryption on every transaction" },
-      { title: "Fast delivery", desc: "3–7 day delivery across Rwanda and East Africa" },
+      { title: "Secure payments", desc: "Encrypted checkout" },
+      { title: "Buyer Protection", desc: "Eligible orders reviewed by support" },
     ],
     trending_search_keywords: ["electronics", "fashion", "phones"],
   },

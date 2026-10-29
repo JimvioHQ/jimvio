@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Crown, Loader2, Trophy } from "lucide-react";
-import { HubCard } from "@/components/community/hub/hub-ui";
+import { HubCard, HubLinkButton } from "@/components/community/hub/hub-ui";
 import { cn } from "@/lib/utils";
 
 type BoardTab = "creators" | "affiliates" | "ugc" | "communities" | "brands";
@@ -125,6 +125,10 @@ export default function CommunityLeaderboardPage() {
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
               Keep creating — monthly scores appear as activity grows.
             </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <HubLinkButton href="/create/post">Create a post</HubLinkButton>
+              <HubLinkButton href="/communities" variant="secondary">Explore communities</HubLinkButton>
+            </div>
           </HubCard>
         ) : (
           <div className="space-y-2">
