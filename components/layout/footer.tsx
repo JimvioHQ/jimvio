@@ -15,6 +15,8 @@ import { JIMVIO_INSTAGRAM_URL, JIMVIO_LINKEDIN_URL, JIMVIO_TIKTOK_URL } from "@/
 import { FOOTER_COLUMNS, getFooterUtilityLinks } from "@/lib/navigation/public-footer";
 import { FieldInput } from "../ui/field-input";
 import JimvioLogo from "../ui/logo";
+import { useSiteT } from "@/components/providers/site-locale-provider";
+import { LanguageSwitcher } from "./language-switcher";
 
 const trustBadges = [
   { icon: ShieldCheck, label: "Buyer Protection" },
@@ -45,6 +47,7 @@ type NewsletterState =
 function NewsletterStrip() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<NewsletterState>("idle");
+  const t = useSiteT();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -81,12 +84,12 @@ function NewsletterStrip() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-[-0.02em] text-text-primary sm:text-lg">
-              Product updates from Jimvio
+              {t("Product updates from Jimvio")}
             </h2>
             <p className="mt-1 text-[13px] leading-5 text-text-muted">
               Send me Jimvio product updates by email. I can unsubscribe at any time.
               You are subscribed only after you confirm the message.{" "}
-              <Link href="/privacy" className="underline hover:text-text-primary">Privacy</Link>
+              <Link href="/privacy" className="underline hover:text-text-primary">{t("Privacy")}</Link>
             </p>
           </div>
 
@@ -119,7 +122,7 @@ function NewsletterStrip() {
                     "disabled:opacity-60",
                   )}
                 >
-                  {state === "submitting" ? "Subscribing…" : "Subscribe"} <ArrowRight size={14} />
+                  {state === "submitting" ? "Subscribing…" : t("Subscribe")} <ArrowRight size={14} />
                 </button>
               </form>
             )}
@@ -178,10 +181,11 @@ function LinkColumn({
   title: string;
   links: readonly { label: string; href: string }[];
 }) {
+  const t = useSiteT();
   return (
-    <nav aria-label={title} className="min-w-0">
+    <nav aria-label={t(title)} className="min-w-0">
       <h3 className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-text-primary">
-        {title}
+        {t(title)}
       </h3>
       <ul className="flex flex-col">
         {links.map((link) => (
@@ -195,7 +199,7 @@ function LinkColumn({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
               )}
             >
-              {link.label}
+              {t(link.label)}
             </Link>
           </li>
         ))}
@@ -207,6 +211,7 @@ function LinkColumn({
 export function Footer({ contact: contactProp }: { contact?: ContactSettings }) {
   const contact = contactProp ?? PLATFORM_SETTINGS_DEFAULTS.contact;
   const utilityLinks = getFooterUtilityLinks();
+  const t = useSiteT();
 
   const socials = [
     {
@@ -273,7 +278,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
             </div>
 
             <p className="mb-5 max-w-[280px] text-[13px] font-normal leading-relaxed text-text-muted">
-              Marketplace, affiliate links, brand briefs, and communities — without juggling five apps.
+              {t("Marketplace, affiliate links, brand briefs, and communities — without juggling five apps.")}
             </p>
 
             <div className="mb-5 flex flex-wrap gap-2">
@@ -291,7 +296,7 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
                   className="inline-flex items-center gap-1.5 text-[11px] font-medium leading-4 text-text-muted"
                 >
                   <Icon size={13} strokeWidth={1.75} className="shrink-0" aria-hidden />
-                  {label}
+                  {t(label)}
                 </li>
               ))}
             </ul>
@@ -320,9 +325,10 @@ export function Footer({ contact: contactProp }: { contact?: ContactSettings }) 
                   |
                 </span>
               ) : null}
-              <LegalLinkItem label={item.label} href={item.href} external={item.external} />
+              <LegalLinkItem label={t(item.label)} href={item.href} external={item.external} />
             </span>
           ))}
+          <LanguageSwitcher className="ml-2" />
         </nav>
       </div>
     </footer>

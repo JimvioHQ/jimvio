@@ -7,6 +7,7 @@ import {
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { cn } from "@/lib/utils";
+import { useSiteT } from "@/components/providers/site-locale-provider";
 
 function isActive(pathname: string, href: string) {
   const h = href.replace(/\/$/, "") || "/";
@@ -32,6 +33,7 @@ export function MobilePrimaryBottomNav({
   className,
 }: MobilePrimaryBottomNavProps) {
   const pathname = usePathname() ?? "/";
+  const t = useSiteT();
 
   return (
     <div
@@ -52,7 +54,7 @@ export function MobilePrimaryBottomNav({
               key={`${link.label}-${href}`}
               href={href}
               prefetch
-              aria-label={link.label}
+              aria-label={t(link.label)}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 transition-colors duration-150",
@@ -84,7 +86,7 @@ export function MobilePrimaryBottomNav({
                     : "opacity-70",
                 )}
               >
-                {link.label}
+                {t(link.label)}
               </span>
               {active ? (
                 <span

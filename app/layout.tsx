@@ -18,7 +18,9 @@ import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
-import { normalizeUgcLocale, UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
+import { UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
+import { normalizeSiteLocale } from "@/lib/i18n/site-locale";
+import { SiteLocaleProvider } from "@/components/providers/site-locale-provider";
 import { handleFromJimvioSubdomain } from "@/lib/commerce-os/domains/host";
 
 export const metadata: Metadata = constructMetadata();
@@ -37,7 +39,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const lang = normalizeUgcLocale(cookieStore.get(UGC_LOCALE_COOKIE)?.value);
+  const lang = normalizeSiteLocale(cookieStore.get(UGC_LOCALE_COOKIE)?.value);
   const headerStore = await headers();
   const hostname =
     headerStore.get("x-forwarded-host") || headerStore.get("host") || "";
@@ -60,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       >
         {!onMerchantStoreHost ? <JimvioJsonLd /> : null}
         <ThemeProvider>
+        <SiteLocaleProvider locale={lang}>
           <DialogProvider>
           <NextTopLoader
             color="#fd5000"
@@ -93,6 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }}
           />
           </DialogProvider>
+        </SiteLocaleProvider>
         </ThemeProvider>
         <ServiceWorkerRegister />
         <ChunkReloadGuard />
