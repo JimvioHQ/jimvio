@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/CurrencyContext";
+import { ViewVerificationPanel, type VerificationFields } from "@/components/ugc/verification/ViewVerificationPanel";
 
-type Detail = {
+type Detail = VerificationFields & {
   id: string;
+  funding?: { state?: string; remainingUsd?: number } | null;
   post_url: string;
   platform: string;
   status: string;
@@ -52,6 +54,8 @@ export function SubmissionReviewDrawer({
   const [quote, setQuote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -65,18 +69,22 @@ export function SubmissionReviewDrawer({
       const row = (json.submission ?? null) as Detail | null;
       setDetail(row);
       if (row?.accepted_views != null) setViews(String(row.accepted_views));
+      else if (row?.verification_status === "verified" && row.verified_views != null) {
+        setViews((current) => current || String(row.verified_views));
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   const model = detail?.campaign?.payment_model;
   const perViews = model === "per_views";
   const reviewable = detail?.status === "pending" || detail?.status === "revision_requested";
-  const verified = detail?.last_synced_at ? detail.total_views_earned ?? 0 : null;
   const remaining =
-    detail?.campaign?.total_budget != null
+    detail?.funding?.remainingUsd != null
+      ? detail.funding.remainingUsd
+      : detail?.campaign?.total_budget != null
       ? Math.max(0, Number(detail.campaign.total_budget) - Number(detail.campaign.spent_budget ?? 0))
       : null;
 
@@ -175,13 +183,14 @@ export function SubmissionReviewDrawer({
             <section>
               <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Performance</p>
               <p className="mt-1">Claimed views: {countLabel(detail.claimed_views, "Not available")}</p>
-              <p>Platform views: {countLabel(verified, "Not verified")}</p>
               <p>Owner-accepted views: {countLabel(detail.accepted_views, "Not reviewed")}</p>
-              {perViews ? (
-                <p className="mt-1 text-[12px] text-[#6B7280]">
-                  Accepted views are owner-reviewed. They are not automatic TikTok, Instagram, or YouTube verification.
-                </p>
-              ) : null}
+              <div className="mt-2">
+                <ViewVerificationPanel
+                  submission={detail}
+                  viewer="brand"
+                  onChecked={() => setReloadKey((k) => k + 1)}
+                />
+              </div>
             </section>
 
             <section>
@@ -193,7 +202,14 @@ export function SubmissionReviewDrawer({
                 <p>Rate: {formatMoney(Number(detail.campaign?.fixed_rate ?? 0), "USD")} per approved clip</p>
               )}
               <p>Recorded eligible reward: {detail.total_earnings == null ? "Not available" : formatMoney(Number(detail.total_earnings), "USD")}</p>
-              {remaining != null ? <p>Budget remaining: {formatMoney(remaining, "USD")}</p> : null}
+              {remaining != null ? <p>Payable from escrow: {formatMoney(remaining, "USD")}</p> : null}
+              {detail.funding && detail.funding.state !== "funded" ? (
+                <p className="text-[12px] text-amber-700">
+                  {detail.funding.state === "awaiting_funds"
+                    ? "No money is held in escrow for this campaign yet. Fund it before approving paid views."
+                    : "Only part of the budget is held in escrow. Rewards are limited to the money held."}
+                </p>
+              ) : null}
               {quote ? <p className="mt-1 text-[#9A3412]">{quote}</p> : null}
             </section>
 

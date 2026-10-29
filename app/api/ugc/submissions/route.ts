@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { verifySubmissionViews } from '@/lib/ugc/verification/verify-submission';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateSubmissionPayload } from '@/types/ugc';
@@ -214,6 +215,15 @@ export async function POST(req: NextRequest) {
   } catch {
     /* additive */
   }
+
+  // Baseline read from the platform API; only views gained after this count.
+  after(async () => {
+    try {
+      await verifySubmissionViews(submission.id);
+    } catch (err) {
+      console.error("[ugc] baseline view check failed", err instanceof Error ? err.message : err);
+    }
+  });
 
   return NextResponse.json({ submission }, { status: 201 });
 }

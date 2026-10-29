@@ -7,6 +7,7 @@ import type { UGCCampaign } from "@/types/ugc";
 import { UGCHeroHeader } from "./UGCHeroHeader";
 import { UGCFeaturedHeader, UGCFeaturedHeaderSkeleton } from "./UGCFeaturedHeader";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
+import { UGCTrustStrip } from "./UGCTrustStrip";
 import type {
   CompensationFilter,
   ContentTypeFilter,
@@ -268,6 +269,8 @@ export function UGCDiscoverPage({
         hasFilters={hasFilters}
       />
       </div>
+
+      <UGCTrustStrip />
 
       {loading && !campaigns.length ? (
         <>

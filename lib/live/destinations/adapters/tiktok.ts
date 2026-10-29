@@ -30,6 +30,20 @@ const USER_INFO_URL = "https://open.tiktokapis.com/v2/user/info/";
 /** Baseline Login Kit scope only — never request publish/upload/LIVE scopes here. */
 export const TIKTOK_LOGIN_KIT_SCOPE = "user.info.basic";
 
+/** Read-only video stats scope for UGC view verification. */
+export const TIKTOK_VIDEO_LIST_SCOPE = "video.list";
+
+/**
+ * Requested only after TikTok approves video.list for the Jimvio app
+ * (TIKTOK_VIDEO_LIST_APPROVED=true). Asking for an unapproved scope makes
+ * TikTok reject the whole login.
+ */
+export function tiktokRequestedScope(): string {
+  return process.env.TIKTOK_VIDEO_LIST_APPROVED === "true"
+    ? `${TIKTOK_LOGIN_KIT_SCOPE},${TIKTOK_VIDEO_LIST_SCOPE}`
+    : TIKTOK_LOGIN_KIT_SCOPE;
+}
+
 export {
   isTikTokOfficialLivePublishingAvailable,
   TIKTOK_LIVE_BLOCKED_MESSAGE,
@@ -101,7 +115,7 @@ export function tiktokAuthUrl(input: {
 
   const params = new URLSearchParams({
     client_key: creds.key,
-    scope: TIKTOK_LOGIN_KIT_SCOPE,
+    scope: tiktokRequestedScope(),
     response_type: "code",
     redirect_uri: redirectUri,
     state: input.state,

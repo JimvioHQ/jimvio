@@ -7,6 +7,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import type { UGCSubmission } from "@/types/ugc";
 import { Button } from "@/components/ui/button";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
+import { ViewVerificationPanel, type VerificationFields } from "@/components/ugc/verification/ViewVerificationPanel";
 import {
   UGCFilterBar,
   UGCPageEmpty,
@@ -278,6 +279,7 @@ function SubmissionDrawer({
   const { formatMoney } = useCurrency();
   const [detail, setDetail] = useState<UGCSubmission | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -294,7 +296,7 @@ function SubmissionDrawer({
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, reloadKey]);
 
   const camp = detail?.campaign as { title?: string; description?: string } | undefined;
   return (
@@ -328,9 +330,11 @@ function SubmissionDrawer({
                     : "No payout yet"}
             </p>
             <p>Claimed views: {detail.claimed_views == null ? "Not available" : detail.claimed_views.toLocaleString()}</p>
-            <p>
-              Platform views: {detail.last_synced_at ? (detail.total_views_earned ?? 0).toLocaleString() : "Not verified"}
-            </p>
+            <ViewVerificationPanel
+              submission={detail as unknown as VerificationFields}
+              viewer="creator"
+              onChecked={() => setReloadKey((k) => k + 1)}
+            />
             <p>
               Accepted views: {detail.accepted_views == null ? "Not reviewed" : detail.accepted_views.toLocaleString()}
             </p>

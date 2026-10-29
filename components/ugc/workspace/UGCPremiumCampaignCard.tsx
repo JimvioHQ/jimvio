@@ -13,6 +13,7 @@ import {
 } from "./ugc-campaign-utils";
 import { getCampaignLifecycleStatus } from "@/lib/ugc/campaign-schedule";
 import { UGCVerifiedBadge } from "./UGCVerifiedBadge";
+import { UGCFundingBadge } from "./UGCFundingBadge";
 import { UGCPlatformMarks, campaignFallbackStyle } from "./UGCPlatformMarks";
 import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
 
@@ -162,6 +163,13 @@ function UGCPremiumCampaignCardInner({
             )}
           </Link>
 
+          {c.funding ? (
+            <UGCFundingBadge
+              funding={c.funding}
+              className="pointer-events-none absolute left-1.5 top-1.5 z-[1] sm:left-2 sm:top-2"
+            />
+          ) : null}
+
           {canJoin ? (
             <div
               className={cn(
@@ -290,11 +298,23 @@ function UGCPremiumCampaignCardInner({
                   compact ? "text-[10px] sm:text-[12px]" : "text-[12px]",
                 )}
               >
-                <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>
-                <span className="font-medium text-[#9CA3AF]">
-                  {" / "}
-                  {formatUgcFundingUsd(totalBudget)}
-                </span>
+                {c.funding ? (
+                  <>
+                    <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(c.funding.remainingUsd)}</span>
+                    <span className="font-medium text-[#9CA3AF]">
+                      {" left of "}
+                      {formatUgcFundingUsd(totalBudget)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold text-[#111827]">{formatUgcFundingUsd(spentBudget)}</span>
+                    <span className="font-medium text-[#9CA3AF]">
+                      {" / "}
+                      {formatUgcFundingUsd(totalBudget)}
+                    </span>
+                  </>
+                )}
               </p>
             ) : (
               <span className="min-w-0" />

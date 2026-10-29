@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { centsToUsd, quoteSubmissionReward } from "@/lib/ugc/submission-reward";
+import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
 
 type CreditResult =
   | { ok: true; credited: boolean; amount: number }
@@ -101,18 +102,30 @@ export async function creditFixedPayoutIfNeeded(
     return { ok: false, error: "This campaign is not open for review payouts.", status: 409 };
   }
 
+  const { data: escrowRows } = await db
+    .from("ugc_campaign_escrow")
+    .select("status, amount, currency, refunded_amount")
+    .eq("campaign_id", opts.campaignId);
+  const funding = campaignFunding({
+    escrow: (escrowRows ?? []) as EscrowRow[],
+    totalBudget: campaign.total_budget,
+    spentBudget: campaign.spent_budget,
+  });
+
   const quote = quoteSubmissionReward({
     paymentModel: campaign.payment_model,
     ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
     fixedRate: Number(campaign.fixed_rate ?? 0),
     maxPayoutPerSub: campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub),
     acceptedViews: null,
-    remainingBudget: Math.max(0, Number(campaign.total_budget ?? 0) - Number(campaign.spent_budget ?? 0)),
+    remainingBudget: funding.remainingUsd,
   });
   if (!quote.ok || quote.paymentModel !== "fixed_per_content") {
     const error = !quote.ok
       ? quote.error === "Campaign budget is exhausted."
-        ? "Campaign budget is exhausted."
+        ? funding.state === "funded"
+          ? "Campaign budget is exhausted."
+          : "The funds held in escrow do not cover this payout. The brand needs to fund the campaign first."
         : quote.error
       : "This payment model is not supported for automatic rewards. Review it manually.";
     return { ok: false, error, status: 409 };

@@ -17,6 +17,7 @@ import {
   requireCampaignPermission,
 } from '@/lib/ugc/enterprise/brand-access';
 import { sanitizeCampaignMedia, sanitizeStoredJoinConfig } from '@/lib/ugc/campaign-brief';
+import { attachPublicFunding } from '@/lib/ugc/public-campaign-funding';
 import { toPublicCampaignListItem } from '@/lib/ugc/public-campaign-list';
 
 // ─── GET /api/ugc/campaigns/[id] ────────────────────────────────────────────
@@ -66,9 +67,9 @@ export async function GET(
   });
   if (!readable) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  return NextResponse.json({
-    campaign: toPublicCampaignListItem(data as Record<string, unknown>),
-  });
+  const publicRow = toPublicCampaignListItem(data as Record<string, unknown>);
+  const [campaign] = await attachPublicFunding(db, [publicRow]).catch(() => [publicRow]);
+  return NextResponse.json({ campaign });
 }
 
 // ─── PATCH /api/ugc/campaigns/[id] ──────────────────────────────────────────

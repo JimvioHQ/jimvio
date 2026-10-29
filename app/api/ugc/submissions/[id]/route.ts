@@ -3,37 +3,9 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { createClient } from '@/lib/supabase/server';
 import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
 import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
-import { memberCan, resolveBrandRole } from '@/lib/ugc/enterprise/permissions';
+import { assertCanReadSubmission } from '@/lib/ugc/submission-access';
+import { campaignFunding, type EscrowRow } from '@/lib/ugc/escrow-funding';
 
-async function assertCanReadSubmission(
-  db: ReturnType<typeof createServiceRoleClient>,
-  userId: string,
-  submission: {
-    influencer?: { user_id?: string | null } | { user_id?: string | null }[] | null;
-    campaign?: { brand_id?: string | null } | { brand_id?: string | null }[] | null;
-  },
-) {
-  const influencer = Array.isArray(submission.influencer)
-    ? submission.influencer[0]
-    : submission.influencer;
-  const campaign = Array.isArray(submission.campaign)
-    ? submission.campaign[0]
-    : submission.campaign;
-  const { data: adminRole } = await db
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('role', 'admin')
-    .eq('is_active', true)
-    .maybeSingle();
-  if (adminRole) return true;
-  if (influencer?.user_id === userId) return true;
-  if (campaign?.brand_id) {
-    const role = await resolveBrandRole(db, campaign.brand_id, userId);
-    if (memberCan(role, 'campaigns.review')) return true;
-  }
-  return false;
-}
 
 export async function GET(
   _req: NextRequest,
@@ -68,8 +40,20 @@ export async function GET(
         Object.entries(rawInf as Record<string, unknown>).filter(([key]) => key !== "user_id"),
       )
     : data.influencer;
+  const campaignRow = (Array.isArray(data.campaign) ? data.campaign[0] : data.campaign) as
+    | { total_budget?: number | null; spent_budget?: number | null }
+    | null;
+  const { data: escrowRows } = await db
+    .from('ugc_campaign_escrow')
+    .select('status, amount, currency, refunded_amount')
+    .eq('campaign_id', data.campaign_id);
+  const funding = campaignFunding({
+    escrow: (escrowRows ?? []) as EscrowRow[],
+    totalBudget: campaignRow?.total_budget,
+    spentBudget: campaignRow?.spent_budget,
+  });
   return NextResponse.json({
-    submission: { ...data, influencer: publicInfluencer },
+    submission: { ...data, influencer: publicInfluencer, funding },
   });
 }
 

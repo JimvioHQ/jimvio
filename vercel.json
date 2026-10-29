@@ -43,7 +43,7 @@
     },
     {
       "path": "/api/ugc/views/sync",
-      "schedule": "0 3 * * *"
+      "schedule": "41 */6 * * *"
     },
     {
       "path": "/api/cron/retry-failed-webhooks",
