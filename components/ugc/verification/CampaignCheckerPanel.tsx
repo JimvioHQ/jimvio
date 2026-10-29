@@ -13,6 +13,7 @@ type Row = {
   platform: string;
   postUrl: string;
   creator: string;
+  username?: string | null;
   verdict: PerformanceVerdict;
   baselineViews: number | null;
   latestViews: number | null;
@@ -136,7 +137,17 @@ export function CampaignCheckerPanel({ campaignId, onOpen }: { campaignId: strin
                   onClick={() => onOpen?.(r.id)}
                 >
                   <td className="py-2 pr-3">
-                    <p className="font-semibold text-[#111827]">{r.creator}</p>
+                    {r.username ? (
+                      <a
+                        href={`/u/${r.username}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-semibold text-[#111827] hover:text-[#FF5A1F] hover:underline"
+                      >
+                        {r.creator}
+                      </a>
+                    ) : (
+                      <p className="font-semibold text-[#111827]">{r.creator}</p>
+                    )}
                     <p className="capitalize text-[11px] text-[#9CA3AF]">
                       {r.platform} · {r.status.replace("_", " ")}
                     </p>

@@ -1,15 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
-import { CREATOR_CATEGORY_GROUPS, MAX_CATEGORIES, cleanCategories } from "@/lib/identity/creator-categories";
+import { Check, Pencil, Search } from "lucide-react";
+import { CREATOR_CATEGORIES, CREATOR_CATEGORY_GROUPS, cleanCategories } from "@/lib/identity/creator-categories";
 
-/** Pick up to three things you create, from the list or your own words. */
+/**
+ * Pick the one thing you create. Searchable across 590+ categories, with
+ * the option to type your own. Stored as a one-item list.
+ */
 export function CategoryPicker({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
+  const current = value[0] ?? "";
+  const [open, setOpen] = useState(!current);
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(value.length === 0);
-  const selected = new Set(value.map((v) => v.toLowerCase()));
-  const full = value.length >= MAX_CATEGORIES;
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -20,95 +22,90 @@ export function CategoryPicker({ value, onChange }: { value: string[]; onChange:
     })).filter((g) => g.items.length > 0);
   }, [query]);
 
-  function toggle(item: string) {
-    if (selected.has(item.toLowerCase())) onChange(value.filter((v) => v.toLowerCase() !== item.toLowerCase()));
-    else if (!full) onChange(cleanCategories([...value, item]));
+  const custom = query.trim();
+  const exact = CREATOR_CATEGORIES.some((i) => i.toLowerCase() === custom.toLowerCase());
+
+  function pick(item: string) {
+    onChange(cleanCategories([item]));
+    setQuery("");
+    setOpen(false);
   }
 
-  const custom = query.trim();
-  const canAddCustom =
-    custom.length >= 2 && !full && !CREATOR_CATEGORY_GROUPS.some((g) => g.items.some((i) => i.toLowerCase() === custom.toLowerCase()));
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {value.map((v) => (
-          <span key={v} className="inline-flex items-center gap-1 rounded-full bg-[#161512] px-2.5 py-1 text-[12px] font-semibold text-white">
-            {v}
-            <button type="button" aria-label={`Remove ${v}`} onClick={() => toggle(v)} className="opacity-70 hover:opacity-100">
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
+  if (!open && current) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#161512] px-3 py-1.5 text-[13px] font-semibold text-white">
+          <Check className="h-3.5 w-3.5" aria-hidden="true" /> {current}
+        </span>
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="inline-flex items-center gap-1 rounded-full border border-black/10 px-2.5 py-1 text-[12px] font-semibold text-[#59544B] hover:border-black/20"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 rounded-full border border-black/10 px-3 py-1.5 text-[12px] font-semibold text-[#59544B] hover:border-black/20"
         >
-          <Plus className="h-3 w-3" /> {value.length ? "Change" : "Choose"}
+          <Pencil className="h-3 w-3" aria-hidden="true" /> Change
         </button>
-        <span className="text-[11px] text-[#9A9388]">
-          {value.length}/{MAX_CATEGORIES}
-        </span>
       </div>
-      {open ? (
-        <div className="rounded-xl border border-black/[0.08] bg-white p-3">
-          <input
-            className="identity-input"
-            placeholder="Search: music, tech, comedy, football…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                if (canAddCustom) {
-                  toggle(custom);
-                  setQuery("");
-                }
-              }
-            }}
-          />
-          {canAddCustom ? (
-            <button
-              type="button"
-              onClick={() => {
-                toggle(custom);
-                setQuery("");
-              }}
-              className="mt-2 text-[12px] font-semibold text-[#D6480F]"
-            >
-              + Add “{custom}”
-            </button>
-          ) : null}
-          <div className="mt-2 max-h-64 space-y-2.5 overflow-y-auto pr-1">
-            {groups.map((g) => (
-              <div key={g.group}>
-                <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9388]">{g.group}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.items.map((item) => {
-                    const on = selected.has(item.toLowerCase());
-                    return (
-                      <button
-                        key={item}
-                        type="button"
-                        aria-pressed={on}
-                        disabled={!on && full}
-                        onClick={() => toggle(item)}
-                        className={
-                          on
-                            ? "rounded-full bg-[#FF5A1F] px-2.5 py-1 text-[12px] font-semibold text-white"
-                            : "rounded-full border border-black/10 px-2.5 py-1 text-[12px] text-[#3E3A34] hover:border-[#FF5A1F]/50 disabled:opacity-40"
-                        }
-                      >
-                        {item}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-black/[0.08] bg-white p-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A9388]" aria-hidden="true" />
+        <input
+          className="h-11 w-full rounded-xl border border-black/10 bg-[#FAFAF9] pl-9 pr-3 text-[13.5px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
+          placeholder="Search 590+ categories: music, tech, comedy, football…"
+          value={query}
+          autoFocus={!current}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const first = groups[0]?.items[0];
+              if (custom && exact) pick(CREATOR_CATEGORIES.find((i) => i.toLowerCase() === custom.toLowerCase())!);
+              else if (first && custom) pick(first);
+            }
+          }}
+          aria-label="Search categories"
+        />
+      </div>
+      {custom.length >= 2 && !exact ? (
+        <button type="button" onClick={() => pick(custom)} className="mt-2 text-[12.5px] font-semibold text-[#D6480F]">
+          + Use “{custom}”
+        </button>
+      ) : null}
+      <div className="mt-2 max-h-72 space-y-3 overflow-y-auto pr-1">
+        {groups.map((g) => (
+          <div key={g.group}>
+            <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#9A9388]">{g.group}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {g.items.map((item) => {
+                const on = item.toLowerCase() === current.toLowerCase();
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => pick(item)}
+                    className={
+                      on
+                        ? "rounded-full bg-[#FF5A1F] px-2.5 py-1 text-[12px] font-semibold text-white"
+                        : "rounded-full border border-black/10 px-2.5 py-1 text-[12px] text-[#3E3A34] hover:border-[#FF5A1F]/60 hover:text-[#D6480F]"
+                    }
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ))}
+        {groups.length === 0 ? <p className="text-[12.5px] text-[#8B8579]">No match. Use your own words above.</p> : null}
+      </div>
+      {current ? (
+        <button type="button" onClick={() => setOpen(false)} className="mt-2 text-[12px] font-medium text-[#8B8579] hover:underline">
+          Keep “{current}”
+        </button>
       ) : null}
     </div>
   );

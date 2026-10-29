@@ -12,14 +12,14 @@ export const CREATOR_PROFILE_REQUIRED_FIELDS = [
   { id: "headline", label: "Headline" },
   { id: "bio", label: "Bio" },
   { id: "country", label: "Country" },
-  { id: "social", label: "A social media account" },
+  { id: "social", label: "A verified social account" },
 ] as const;
 
 export type CreatorProfileFieldInput = {
   fullName?: string | null;
   username?: string | null;
   categories?: string[] | null;
-  /** Social accounts other than a plain website. */
+  /** Verified social accounts (not counting a plain website). */
   socialCount?: number | null;
   headline?: string | null;
   bio?: string | null;
@@ -96,7 +96,7 @@ const HINTS: Record<string, string> = {
   headline: "Write one line about what you do.",
   bio: "Tell brands about you and your audience.",
   country: "Jimvio detects your country automatically. Turn off any VPN and reload the page.",
-  social: "Add at least one social account, like TikTok, Instagram or YouTube.",
+  social: "Add and verify one account you post on, like TikTok, Instagram or YouTube.",
 };
 
 function missingItem(id: (typeof CREATOR_PROFILE_REQUIRED_FIELDS)[number]["id"]): CreatorProfileMissingField {

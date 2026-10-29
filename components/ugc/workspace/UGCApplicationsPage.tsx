@@ -308,7 +308,7 @@ export function UGCApplicationsPage() {
       actions={
         loading || error === "sign_in" ? undefined : needsProfile ? (
           <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
-            <Link href="/identity/edit" aria-label={t("createCreatorProfile")}>
+            <Link href="/settings/profile" aria-label={t("createCreatorProfile")}>
               {t("createCreatorProfile")}
             </Link>
           </Button>
@@ -348,7 +348,7 @@ export function UGCApplicationsPage() {
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/identity/edit" aria-label={t("createCreatorProfile")}>
+              <Link href="/settings/profile" aria-label={t("createCreatorProfile")}>
                 {t("createCreatorProfile")}
               </Link>
             </Button>

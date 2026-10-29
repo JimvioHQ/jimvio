@@ -174,6 +174,8 @@ export function toSocialAccount(row: SocialAccount): IdentitySocialAccount {
     avgViews: Number(row.avg_views ?? 0),
     engagementRate: Number(row.engagement_rate ?? 0),
     isVerified: Boolean(row.is_verified),
+    verificationMethod: row.verification_method ?? null,
+    verifyStatus: (row.verify_status as IdentitySocialAccount["verifyStatus"]) ?? (row.is_verified ? "verified" : "unverified"),
   };
 }
 
@@ -515,6 +517,9 @@ async function buildProfilePayload(
     };
     if (!privacyFieldVisible(custom, "showSocial")) {
       publicSocial = [];
+    } else {
+      // Visitors only see accounts the person proved are theirs.
+      publicSocial = publicSocial.filter((a) => a.isVerified || a.platform === "website");
     }
   }
 

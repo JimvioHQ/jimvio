@@ -150,6 +150,9 @@ export interface SocialAccount {
   is_verified: boolean;
   verification_method: string | null;
   verified_at: string | null;
+  verify_status?: string | null;
+  verify_code?: string | null;
+  verify_note?: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -399,6 +402,9 @@ export interface IdentitySocialAccount {
   avgViews: number;
   engagementRate: number;
   isVerified: boolean;
+  /** How it was proven: "oauth" (official login) or "bio_code". */
+  verificationMethod?: string | null;
+  verifyStatus?: "unverified" | "code_issued" | "pending_review" | "verified" | "failed";
 }
 
 export interface IdentityPortfolioItem {

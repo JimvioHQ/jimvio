@@ -24,9 +24,9 @@ function countryName(code: string | null | undefined): string {
 }
 
 const FIX: Record<string, { href: string; label: string } | undefined> = {
-  profile: { href: "/identity/edit", label: "Complete profile" },
-  platform: { href: "/identity/edit#field-social", label: "Add account" },
-  min_followers: { href: "/identity/edit#field-social", label: "Update followers" },
+  profile: { href: "/settings/profile", label: "Complete profile" },
+  platform: { href: "/settings/profile#field-social", label: "Add account" },
+  min_followers: { href: "/settings/profile#field-social", label: "Update followers" },
   verified: { href: "/identity/verification", label: "Verify identity" },
 };
 
@@ -72,7 +72,7 @@ export function EligibilityDetails({
                         <ul className="mt-1.5 space-y-1">
                           {profileCompletion.missing.map((m) => (
                             <li key={m.id} className="text-[12px] text-[#374151]">
-                              <Link href={`/identity/edit#field-${m.id}`} className="font-semibold text-[#FF5A1F] hover:underline">
+                              <Link href={`/settings/profile#field-${m.id}`} className="font-semibold text-[#FF5A1F] hover:underline">
                                 {m.label}
                               </Link>
                               {m.hint ? <span className="text-[#6B7280]"> — {m.hint}</span> : null}

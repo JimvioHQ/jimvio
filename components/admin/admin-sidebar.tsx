@@ -80,6 +80,7 @@ const navSections = [
       { label: "Growth KPIs", href: "/admin/growth-kpis", icon: TrendingUp },
       { label: "Feedback", href: "/admin/feedback", icon: Inbox },
       { label: "Founding Creators", href: "/admin/founding-creators", icon: Inbox },
+      { label: "Social Verification", href: "/admin/social-verifications", icon: Inbox },
       { label: "Support", href: "/admin/support", icon: Inbox },
       { label: "Audit log", href: "/admin/audit", icon: ClipboardList },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },

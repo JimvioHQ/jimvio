@@ -632,7 +632,7 @@ function ProfileGateCard({
             <li key={m.id} className="flex items-start gap-2 text-[13px] text-[#111827]">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" aria-hidden="true" />
               <span>
-                <Link href={`/identity/edit#field-${m.id}`} className="font-semibold hover:underline">
+                <Link href={`/settings/profile#field-${m.id}`} className="font-semibold hover:underline">
                   {m.label}
                 </Link>
                 {m.hint ? <span className="block text-[12px] text-[#6B7280]">{m.hint}</span> : null}
@@ -642,7 +642,7 @@ function ProfileGateCard({
         </ul>
       ) : null}
       <Link
-        href={`/identity/edit?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/ugc")}`}
+        href={`/settings/profile?next=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "/ugc")}`}
         className="mt-4 flex h-11 w-full items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white hover:opacity-90"
       >
         Complete my profile

@@ -32,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     db
       .from("ugc_submissions")
       .select(
-        "id, status, platform, post_url, created_at, accepted_views, total_earnings, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, influencer:influencers!influencer_id (display_name, profile_image)",
+        "id, status, platform, post_url, created_at, accepted_views, total_earnings, verification_status, verification_flags, verification_note, verification_checked_at, baseline_views, latest_views, verified_views, fraud_score, influencer:influencers!influencer_id (display_name, profile_image, user_id)",
       )
       .eq("campaign_id", id)
       .order("created_at", { ascending: false })
@@ -47,6 +47,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     spentBudget: campaign.spent_budget,
   });
   const rows = (subs ?? []) as unknown as (PerformanceSubmission & Record<string, unknown>)[];
+  const userIds = [
+    ...new Set(
+      rows
+        .map((r) => {
+          const inf = Array.isArray(r.influencer) ? r.influencer[0] : r.influencer;
+          return (inf as { user_id?: string } | null)?.user_id ?? null;
+        })
+        .filter((v): v is string => Boolean(v)),
+    ),
+  ];
+  const usernames = new Map<string, string>();
+  if (userIds.length) {
+    const { data: people } = await db.from("profiles").select("id, username").in("id", userIds);
+    for (const p of people ?? []) if (p.username) usernames.set(p.id, p.username);
+  }
   const performance = summarizeCampaignPerformance(rows, {
     paymentModel: campaign.payment_model,
     ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
@@ -72,6 +87,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         postUrl: r.post_url,
         createdAt: r.created_at,
         creator: (inf as { display_name?: string } | null)?.display_name ?? "Creator",
+        username: usernames.get((inf as { user_id?: string } | null)?.user_id ?? "") ?? null,
         verdict: verdictFor(r),
         baselineViews: r.baseline_views ?? null,
         latestViews: r.latest_views ?? null,
