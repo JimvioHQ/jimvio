@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/context/LocaleContext';
+import { RealViewsConnectNotice } from '@/components/ugc/verification/RealViewsConnectNotice';
 
 const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok', icon: Video, hostHint: 'tiktok.com' },
@@ -319,6 +320,7 @@ export default function PublicUGCSubmitPage() {
                 Must be a publicly accessible live link.
               </p>
             )}
+            <RealViewsConnectNotice platform={platform} />
           </div>
 
           <div className="space-y-2">

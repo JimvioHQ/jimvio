@@ -6,6 +6,7 @@ import { budgetRemaining } from "@/lib/ugc/campaign-brief";
 import { getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
 import type { CampaignAction } from "@/lib/ugc/campaign-action";
 import { JoinCampaignGateLink } from "@/components/ugc/join/JoinCampaignGateLink";
+import { UGCFundingBadge } from "@/components/ugc/workspace/UGCFundingBadge";
 
 export function CampaignDetailSummary({
   campaign,
@@ -29,11 +30,17 @@ export function CampaignDetailSummary({
   return (
     <div className="grid gap-3 rounded-2xl border border-[#E7E9EE] bg-white p-3 sm:p-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_auto] lg:items-center">
       <div className="min-w-0 border-[#EEF0F2] lg:border-r lg:pr-4">
-        <p className="text-[12px] font-semibold text-[#6B7280]">Campaign budget</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[12px] font-semibold text-[#6B7280]">Campaign budget</p>
+          <UGCFundingBadge funding={campaign.funding} />
+        </div>
         {budget.known && budget.remaining != null ? (
           <>
             <p className="mt-1 text-[22px] font-bold tabular-nums tracking-tight text-[#111827]">
-              {formatMoney(budget.remaining, "USD")}{" "}
+              {formatMoney(
+                campaign.funding ? Math.min(budget.remaining, campaign.funding.remainingUsd) : budget.remaining,
+                "USD",
+              )}{" "}
               <span className="text-[13px] font-semibold text-[#6B7280]">remaining</span>
             </p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
@@ -50,6 +57,13 @@ export function CampaignDetailSummary({
         <p className="mt-1 text-[11px] leading-relaxed text-[#9CA3AF]">
           This is the campaign budget, not your wallet. This is not your current earnings.
         </p>
+        {campaign.funding && campaign.funding.state !== "funded" ? (
+          <p className="mt-1 text-[11px] font-medium leading-relaxed text-amber-700">
+            {campaign.funding.state === "awaiting_funds"
+              ? "The brand has not funded this campaign yet. Payouts start once money is held in escrow."
+              : "Only part of the budget is held in escrow. Payouts never exceed the money held."}
+          </p>
+        ) : null}
       </div>
 
       <div className="min-w-0 lg:px-2">

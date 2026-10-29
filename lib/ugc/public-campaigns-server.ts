@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { toPublicCampaignListItem } from "@/lib/ugc/public-campaign-list";
+import { attachPublicFunding } from "@/lib/ugc/public-campaign-funding";
 import type { UGCCampaign } from "@/types/ugc";
 
 /**
@@ -39,10 +40,12 @@ export async function loadPublicActiveCampaigns(
       .order("created_at", { ascending: false, nullsFirst: false })
       .range(0, limit - 1);
     if (error || !data) return { campaigns: [], total: 0 };
+    const rows = await attachPublicFunding(
+      db,
+      data.map((row) => toPublicCampaignListItem(row as Record<string, unknown>)),
+    );
     return {
-      campaigns: data.map((row) =>
-        toPublicCampaignListItem(row as Record<string, unknown>),
-      ) as unknown as UGCCampaign[],
+      campaigns: rows as unknown as UGCCampaign[],
       total: count ?? data.length,
     };
   } catch {

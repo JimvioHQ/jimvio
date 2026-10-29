@@ -19,6 +19,7 @@ import {
 import { countryDisplayName, normalizeCountryCode } from '@/lib/geo/buyer-country';
 import { sanitizeCampaignMedia, sanitizeStoredJoinConfig } from '@/lib/ugc/campaign-brief';
 import { toPublicCampaignListItem } from '@/lib/ugc/public-campaign-list';
+import { attachPublicFunding } from '@/lib/ugc/public-campaign-funding';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -146,9 +147,13 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: "Could not load campaigns." }, { status: 500 });
 
-  const rows = (data ?? []).map((row) =>
+  const mapped = (data ?? []).map((row) =>
     mine ? row : toPublicCampaignListItem(row as Record<string, unknown>),
   );
+  const rows = await attachPublicFunding(
+    createServiceRoleClient(),
+    mapped as Record<string, unknown>[],
+  ).catch(() => mapped);
   return NextResponse.json({ data: rows, total: count ?? 0, page, limit });
 }
 

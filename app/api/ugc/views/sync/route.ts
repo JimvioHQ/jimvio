@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { syncAllApprovedSubmissions } from '@/lib/ugc/syncViews';
 import { releasePendingPayouts } from '@/lib/ugc/clearPendingPayouts';
 import { assertCronAuthorized } from "@/lib/ops/cron-auth";
+import { verifyDueSubmissions } from "@/lib/ugc/verification/verify-submission";
+
+export const maxDuration = 120;
 
 // POST /api/ugc/views/sync
-// Called by Vercel Cron every 24 hours
+// Called by Vercel Cron every 6 hours: real view checks, then payout release.
 export async function GET(req: NextRequest) {
   return POST(req);
 }
@@ -15,6 +18,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await syncAllApprovedSubmissions();
+    let verification: { checked: number; verified: number; errors: string[] } | null = null;
+    try {
+      verification = await verifyDueSubmissions();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[Cron] UGC real view checks failed:", message);
+      verification = { checked: 0, verified: 0, errors: [message] };
+    }
     let payoutRelease: { released: number; errors: string[] } | null = null;
     try {
       payoutRelease = await releasePendingPayouts();
@@ -26,6 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       ...result,
+      verification,
       payoutRelease,
       message: `Sync complete: ${result.processed} processed, ${result.skipped} skipped, ${result.errors.length} errors`,
     });

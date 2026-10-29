@@ -44,6 +44,14 @@ export interface UGCCampaign {
   fixed_rate: number;
   total_budget: number;
   spent_budget: number;
+  /** Public escrow summary attached by the campaign board (never raw escrow rows). */
+  funding?: {
+    state: "funded" | "partly_funded" | "awaiting_funds";
+    coveragePct: number;
+    remainingUsd: number;
+  } | null;
+  /** Views confirmed through official platform APIs across this campaign. */
+  verified_views_total?: number | null;
   max_payout_per_sub: number | null;
   allowed_platforms: string[];
   

@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { centsToUsd, parseAcceptedViews, quoteSubmissionReward } from "@/lib/ugc/submission-reward";
+import { campaignFunding, type EscrowRow } from "@/lib/ugc/escrow-funding";
+import { acceptedViewsCap } from "@/lib/ugc/verification/signals";
 
 type CreditResult =
   | { ok: true; credited: boolean; amount: number; payableCents: number }
@@ -48,15 +50,45 @@ export async function creditOwnerReviewedCpm(
     return { ok: false, error: "A payout is already pending for this submission.", status: 409 };
   }
 
+  const { data: verification } = await db
+    .from("ugc_submissions")
+    .select("verification_status, baseline_views, latest_views")
+    .eq("id", opts.submissionId)
+    .maybeSingle();
+  const cap = acceptedViewsCap((verification ?? {}) as Parameters<typeof acceptedViewsCap>[0]);
+  if (cap != null && views.views > cap) {
+    return {
+      ok: false,
+      error: `The platform shows ${cap.toLocaleString("en-US")} views gained since submission. Accept that many or fewer.`,
+      status: 400,
+    };
+  }
+
   const spent = Number(campaign.spent_budget ?? 0);
   const budget = Number(campaign.total_budget ?? 0);
+  const { data: escrowRows } = await db
+    .from("ugc_campaign_escrow")
+    .select("status, amount, currency, refunded_amount")
+    .eq("campaign_id", opts.campaignId);
+  const funding = campaignFunding({
+    escrow: (escrowRows ?? []) as EscrowRow[],
+    totalBudget: budget,
+    spentBudget: spent,
+  });
+  if (funding.remainingUsd <= 0 && views.views > 0) {
+    return {
+      ok: false,
+      error: "This campaign has no funds held in escrow to pay these views. The brand needs to fund it first.",
+      status: 409,
+    };
+  }
   const quote = quoteSubmissionReward({
     paymentModel: "per_views",
     ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
     fixedRate: Number(campaign.fixed_rate ?? 0),
     maxPayoutPerSub: campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub),
     acceptedViews: views.views,
-    remainingBudget: Math.max(0, budget - spent),
+    remainingBudget: funding.remainingUsd,
   });
   if (!quote.ok) return { ok: false, error: quote.error, status: 409 };
 

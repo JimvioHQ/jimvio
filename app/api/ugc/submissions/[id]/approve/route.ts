@@ -4,6 +4,8 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
 import { creditOwnerReviewedCpm } from '@/lib/ugc/credit-owner-cpm';
 import { centsToUsd, parseAcceptedViews, quoteSubmissionReward } from '@/lib/ugc/submission-reward';
+import { campaignFunding, type EscrowRow } from '@/lib/ugc/escrow-funding';
+import { acceptedViewsCap } from '@/lib/ugc/verification/signals';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
 
@@ -59,13 +61,36 @@ export async function PATCH(
   if (campaign.payment_model === 'per_views' && accepted && !accepted.ok) {
     return NextResponse.json({ error: accepted.error }, { status: 400 });
   }
+  const [{ data: escrowRows }, { data: verification }] = await Promise.all([
+    db
+      .from('ugc_campaign_escrow')
+      .select('status, amount, currency, refunded_amount')
+      .eq('campaign_id', submission.campaign_id),
+    db
+      .from('ugc_submissions')
+      .select('verification_status, baseline_views, latest_views')
+      .eq('id', id)
+      .maybeSingle(),
+  ]);
+  const funding = campaignFunding({
+    escrow: (escrowRows ?? []) as EscrowRow[],
+    totalBudget: campaign.total_budget,
+    spentBudget: campaign.spent_budget,
+  });
+  const viewsCap = acceptedViewsCap((verification ?? {}) as Parameters<typeof acceptedViewsCap>[0]);
+  if (campaign.payment_model === 'per_views' && accepted && accepted.ok && viewsCap != null && accepted.views > viewsCap) {
+    return NextResponse.json(
+      { error: `The platform shows ${viewsCap.toLocaleString('en-US')} views gained since submission. Accept that many or fewer.` },
+      { status: 400 },
+    );
+  }
   const quote = quoteSubmissionReward({
     paymentModel: campaign.payment_model,
     ratePer1k: Number(campaign.rate_per_1k_views ?? 0),
     fixedRate: Number(campaign.fixed_rate ?? 0),
     maxPayoutPerSub: campaign.max_payout_per_sub == null ? null : Number(campaign.max_payout_per_sub),
     acceptedViews: accepted && accepted.ok ? accepted.views : null,
-    remainingBudget: Math.max(0, Number(campaign.total_budget ?? 0) - Number(campaign.spent_budget ?? 0)),
+    remainingBudget: funding.remainingUsd,
   });
   if (!quote.ok) return NextResponse.json({ error: quote.error }, { status: 400 });
   if (preview) {
@@ -75,7 +100,9 @@ export async function PATCH(
       gross: centsToUsd(quote.grossCents),
       payable: centsToUsd(quote.payableCents),
       cappedBy: quote.cappedBy,
-      viewsSource: quote.paymentModel === 'per_views' ? 'owner_reviewed' : null,
+      funding: funding.state,
+      viewsSource:
+        quote.paymentModel === 'per_views' ? (viewsCap != null ? 'platform_verified' : 'owner_reviewed') : null,
     });
   }
 
