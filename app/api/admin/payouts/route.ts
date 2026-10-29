@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/api-helpers";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { WITHDRAWALS_ONLY_FILTER, isEarningHold } from "@/lib/wallet-os/payout-kinds";
 const service = () =>
   createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
     .from("payouts")
     .select("*")
     .eq("status", status)
+    .or(WITHDRAWALS_ONLY_FILTER)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -68,6 +70,12 @@ export async function PATCH(req: NextRequest) {
 
   if (payout.status !== "pending") {
     return NextResponse.json({ error: "Only pending payouts can be updated" }, { status: 400 });
+  }
+  if (isEarningHold(payout.type)) {
+    return NextResponse.json(
+      { error: "This is a creator's earnings on hold, not a withdrawal. It is released to their wallet automatically." },
+      { status: 400 },
+    );
   }
 
   const newStatus = action === "approve" ? "paid" : "failed";

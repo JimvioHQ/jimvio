@@ -3,6 +3,7 @@ import { getWalletOsOverview } from "@/lib/wallet-os/overview";
 import { getWalletOsAnalytics } from "@/lib/wallet-os/analytics";
 import { surfaceLabel } from "@/lib/wallet-os/surfaces";
 import type { WalletAiInsights, WalletSurface } from "@/lib/wallet-os/types";
+import { WITHDRAWALS_ONLY_FILTER } from "@/lib/wallet-os/payout-kinds";
 
 const CORE_SURFACES: WalletSurface[] = ["marketplace", "affiliate", "ugc", "community"];
 
@@ -21,6 +22,7 @@ export async function computeWalletAiInsights(userId: string): Promise<WalletAiI
     .from("payouts")
     .select("amount, currency, status, created_at, release_date")
     .eq("user_id", userId)
+    .or(WITHDRAWALS_ONLY_FILTER)
     .in("status", ["pending", "processing"])
     .order("created_at", { ascending: false })
     .limit(5);

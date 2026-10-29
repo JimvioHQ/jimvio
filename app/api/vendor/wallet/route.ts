@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { WITHDRAWALS_ONLY_FILTER } from "@/lib/wallet-os/payout-kinds";
 
 export async function GET() {
   const supabase = await createClient();
@@ -47,6 +48,7 @@ export async function GET() {
     .from("payouts")
     .select("*")
     .eq("user_id", user.id)
+    .or(WITHDRAWALS_ONLY_FILTER)
     .order("created_at", { ascending: false })
     .limit(20);
 

@@ -8,6 +8,7 @@ import { fetchTikTokStats, fetchYouTubeStats, type StatsResult } from "./platfor
 import { assessViews, type PlatformSnapshot } from "./signals";
 import { analyzeYouTubeVideo } from "@/lib/ugc/checker/check-link";
 import { autoReviewSubmission } from "@/lib/ugc/checker/auto-review";
+import { notifyPostDeclined } from "@/lib/ugc/notify-ugc";
 
 export type VerificationStatus =
   | "unverified"
@@ -168,6 +169,12 @@ export async function verifySubmissionViews(
         })
         .eq("id", sub.id)
         .in("status", ["pending", "revision_requested"]);
+      await notifyPostDeclined(db, {
+        submissionId: sub.id,
+        campaignId: sub.campaign_id,
+        influencerId: sub.influencer_id,
+        reason: "This video is not on your connected YouTube channel. Connect the channel that posted it and submit again.",
+      });
     }
     return outcome;
   }

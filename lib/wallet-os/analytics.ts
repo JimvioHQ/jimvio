@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { surfaceForTransactionType, WALLET_SURFACES } from "@/lib/wallet-os/surfaces";
 import type { WalletAnalytics, WalletSurface } from "@/lib/wallet-os/types";
+import { WITHDRAWALS_ONLY_FILTER } from "@/lib/wallet-os/payout-kinds";
 
 type ServiceClient = ReturnType<typeof createServiceRoleClient>;
 
@@ -72,6 +73,7 @@ export async function getWalletOsAnalytics(userId: string): Promise<WalletAnalyt
       .from("payouts")
       .select("amount, net_amount, status, created_at")
       .eq("user_id", userId)
+      .or(WITHDRAWALS_ONLY_FILTER)
       .gte("created_at", sinceIso)
       .limit(2000),
   ]);

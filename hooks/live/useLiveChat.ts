@@ -383,6 +383,16 @@ export function useLiveChat(
     };
   }, [mode, chatKey, supabase, scheduleReload, applyRealtimeStatus, enrichFromLocalCache]);
 
+  /* Safety net: if realtime is down, keep the chat fresh every 3 seconds. */
+  useEffect(() => {
+    if (mode === "none" || !chatKey || connectionStatus === "connected") return;
+    const t = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void load().catch(() => undefined);
+    }, 3000);
+    return () => clearInterval(t);
+  }, [mode, chatKey, connectionStatus, load]);
+
   /* Typing broadcast (room or session topic) */
   useEffect(() => {
     if (mode === "none" || !chatKey || !userId) {

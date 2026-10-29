@@ -218,6 +218,14 @@ export function HubMessagesPage() {
       };
       setThreads(data.threads ?? []);
       setTabCounts(data.tabCounts ?? { all: 0, unread: 0, groups: 0, spaces: 0 });
+      // Opened from a notification: jump to that conversation once.
+      if (!opts?.silent && typeof window !== "undefined") {
+        const wanted = new URLSearchParams(window.location.search).get("thread");
+        if (wanted && (data.threads ?? []).some((t) => t.id === wanted)) {
+          setActiveThreadId(wanted);
+          setMobileShowChat(true);
+        }
+      }
     } finally {
       if (!opts?.silent) setLoading(false);
     }

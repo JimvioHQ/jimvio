@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { notifyPayoutReleased } from "@/lib/ugc/notify-ugc";
 
 export type PendingReleaseBalance =
   | { ok: true; pending: number; available: number }
@@ -71,7 +72,7 @@ type Db = ReturnType<typeof createServiceRoleClient>;
 type PayoutRow = { id: string; user_id: string; amount: number | string; notes?: string | null };
 
 /** Releases one ripe payout. Returns "released", "skipped" or an error message. */
-async function releaseOne(db: Db, payout: PayoutRow): Promise<string> {
+async function releaseOne(db: Db, payout: PayoutRow, notify = true): Promise<string> {
   const fail = (msg: string) => msg;
   const notes = typeof payout.notes === "string" ? payout.notes : null;
   const { data: claimed, error: claimErr } = await db
@@ -182,6 +183,7 @@ async function releaseOne(db: Db, payout: PayoutRow): Promise<string> {
     .eq("payout_id", payout.id)
     .eq("status", "pending");
 
+  if (notify) await notifyPayoutReleased(db as never, { userId: payout.user_id, payoutId: payout.id, amount: Number(payout.amount) });
   return "released";
 }
 
@@ -200,7 +202,8 @@ export async function releasePayoutNow(payoutId: string): Promise<boolean> {
     .lte("release_date", new Date().toISOString())
     .maybeSingle();
   if (!payout) return false;
-  const r = await releaseOne(db, payout as PayoutRow);
+  // The approval notice already says the money was added.
+  const r = await releaseOne(db, payout as PayoutRow, false);
   if (r !== "released" && r !== "skipped") console.error(`[Release payout] ${r}`);
   return r === "released";
 }
