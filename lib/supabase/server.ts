@@ -2,6 +2,7 @@ import type { Database } from "@/types/supabase";
 import { createServerClient, type CookieMethodsServer } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { timedFetch } from "@/lib/supabase/timed-fetch";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
@@ -16,6 +17,7 @@ export async function createClient() {
     getSupabaseUrl(),
     getSupabasePublishableKey(),
     {
+      global: { fetch: timedFetch() },
       cookies: {
         getAll() {
           return cookieStore.getAll();
