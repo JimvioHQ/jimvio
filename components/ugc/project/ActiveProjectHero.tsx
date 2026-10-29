@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import type { ProjectStage } from "@/lib/ugc/active-project";
-import { STAGE_LABELS } from "@/lib/ugc/active-project";
 import { getCampaignBanner, getDaysRemaining, formatCountdown } from "@/lib/ugc/campaign-detail";
 import { Pill } from "@/components/ugc/campaign-detail/campaign-detail-ui";
-import { ProjectProgressBar } from "./active-project-ui";
 
 type ActiveProjectHeroProps = {
   campaign: UGCCampaign;
@@ -54,13 +52,9 @@ export function ActiveProjectHero({
               className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white/80 hover:text-white"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Active projects
+              My campaigns
             </Link>
             <div className="flex flex-wrap items-center gap-1.5">
-              <Pill tone="brand">
-                <Sparkles className="mr-0.5 h-3 w-3" />
-                Workspace
-              </Pill>
               {isArchived ? <Pill tone="neutral">Archived</Pill> : null}
               {isExpired && !isArchived ? <Pill tone="warning">Expired</Pill> : null}
             </div>
@@ -87,7 +81,6 @@ export function ActiveProjectHero({
                 <Pill tone={campaign.status === "active" ? "success" : "neutral"}>
                   Campaign: {campaign.status}
                 </Pill>
-                <Pill tone="info">Project: {STAGE_LABELS[stage]}</Pill>
                 {joinedAt ? (
                   <span className="text-[11px] text-white/70">
                     Joined {new Date(joinedAt).toLocaleDateString()}
@@ -111,13 +104,7 @@ export function ActiveProjectHero({
               <span className="font-mono text-[#FF5A1F]">{countdown}</span>
             ) : null}
           </div>
-          <div className="w-full sm:max-w-xs">
-            <div className="mb-1 flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-[#6B7280]">Progress</span>
-              <span className="font-bold text-[#111827]">{progressPercent}%</span>
-            </div>
-            <ProjectProgressBar value={progressPercent} />
-          </div>
+
         </div>
       </div>
     </div>
