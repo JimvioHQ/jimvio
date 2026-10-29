@@ -44,6 +44,7 @@ export const SITE_MESSAGES: Record<string, Row> = {
   "Buyer Protection": { rw: "Kurinda umuguzi", fr: "Protection acheteur", sw: "Ulinzi wa mnunuzi" },
   "Affiliate Program": { rw: "Gahunda y'abamamaza", fr: "Programme d'affiliation", sw: "Mpango wa washirika" },
   "Creator Monetization": { rw: "Inyungu z'abahanzi", fr: "Monétisation créateurs", sw: "Mapato ya watayarishi" },
+  "Founding Creators": { rw: "Abahanzi b'ibanze", fr: "Créateurs fondateurs", sw: "Watayarishi waanzilishi" },
   "Brand Campaigns": { rw: "Campaigns z'ibigo", fr: "Campagnes de marques", sw: "Kampeni za chapa" },
   "Earnings & Payouts": { rw: "Inyungu n'ubwishyu", fr: "Gains et paiements", sw: "Mapato na malipo" },
   Guides: { rw: "Amabwiriza", fr: "Guides", sw: "Miongozo" },

@@ -28,7 +28,7 @@ describe("public footer links", () => {
         ["Earn & Grow", [
           ["Affiliate Program", "/affiliates"],
           ["Creator Monetization", "/monetization"],
-          ["Brand Campaigns", "/ugc/brand-deals"],
+          ["Founding Creators", "/founding-creators"],
           ["UGC & Clipping", "/ugc"],
           ["Earnings & Payouts", "/wallet"],
         ]],

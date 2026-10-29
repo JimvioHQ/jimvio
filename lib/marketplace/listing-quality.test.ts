@@ -42,4 +42,9 @@ describe("listing quality score", () => {
     assert.equal(pending.checks.find((c) => c.id === "delivery")?.earned, 0);
     assert.equal(approved.checks.find((c) => c.id === "delivery")?.earned, 15);
   });
+
+  it("counts live supplier shipping quotes", () => {
+    const q = listingQuality({ ...full, product_shipping_options: [], source: "cj" });
+    assert.equal(q.checks.find((c) => c.id === "delivery")?.earned, 15);
+  });
 });

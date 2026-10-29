@@ -29,7 +29,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: "Affiliate Program", href: "/affiliates" },
       { label: "Creator Monetization", href: "/monetization" },
-      { label: "Brand Campaigns", href: "/ugc/brand-deals" },
+      { label: "Founding Creators", href: "/founding-creators" },
       { label: "UGC & Clipping", href: "/ugc" },
       { label: "Earnings & Payouts", href: "/wallet" },
     ],

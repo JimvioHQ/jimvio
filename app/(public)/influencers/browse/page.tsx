@@ -4,6 +4,7 @@ import { BadgeCheck, Sparkles, UserPlus, Users } from "lucide-react";
 import { getAdminDB } from "@/services/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { constructMetadata } from "@/lib/seo";
+import { FoundingBadge } from "@/components/founding/FoundingBadge";
 
 export const revalidate = 300;
 
@@ -46,6 +47,12 @@ export default async function InfluencersBrowsePage({
     .limit(120);
 
   const all = ((data ?? []) as CreatorRow[]).filter((c) => c.display_name?.trim());
+  const { data: seats } = await (admin as unknown as {
+    from: (t: string) => { select: (c: string) => Promise<{ data: { user_id: string; seat_number: number }[] | null }> };
+  })
+    .from("founding_creators")
+    .select("user_id, seat_number");
+  const seatByUser = new Map((seats ?? []).map((r) => [r.user_id, r.seat_number]));
   // Niche chips come from real profiles only.
   const niches = [...new Set(all.map((c) => c.niche?.trim()).filter(Boolean) as string[])].sort();
   const activeNiche = nicheParam && niches.includes(nicheParam) ? nicheParam : null;
@@ -75,6 +82,12 @@ export default async function InfluencersBrowsePage({
               className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#e04800]"
             >
               <UserPlus className="h-4 w-4" /> Join as a creator
+            </Link>
+            <Link
+              href="/founding-creators"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-[13px] font-semibold text-amber-800 hover:bg-amber-100"
+            >
+              Founding Creators
             </Link>
           </div>
         </div>
@@ -148,6 +161,9 @@ export default async function InfluencersBrowsePage({
                         </p>
                         {c.niche ? (
                           <p className="truncate text-[12px] text-[var(--color-text-muted)]">{c.niche}</p>
+                        ) : null}
+                        {seatByUser.get(c.user_id) ? (
+                          <FoundingBadge seat={seatByUser.get(c.user_id)!} compact className="mt-1" />
                         ) : null}
                       </div>
                     </div>
