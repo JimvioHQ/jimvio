@@ -50,18 +50,42 @@ export function loadAllowlist(root) {
 }
 
 export async function fetchRemoteMigrations({ token, ref }) {
-  const response = await fetch(
-    `https://api.supabase.com/v1/projects/${ref}/database/migrations`,
-    { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
-  );
-  if (!response.ok) {
-    throw new Error(`Management API migrations failed: HTTP ${response.status}`);
+  const url = `https://api.supabase.com/v1/projects/${ref}/database/migrations`;
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  const maxAttempts = 4;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { headers });
+      if (response.ok) {
+        const remote = await response.json();
+        return (Array.isArray(remote) ? remote : remote.migrations || [])
+          .map((row) => ({
+            version: String(row.version || ""),
+            name: String(row.name || ""),
+          }))
+          .filter((row) => row.version);
+      }
+
+      const retryable = response.status === 429 || response.status >= 500;
+      if (!retryable || attempt === maxAttempts) {
+        throw new Error(`Management API migrations failed: HTTP ${response.status}`);
+      }
+      console.warn(`Supabase Management API returned HTTP ${response.status}; retrying (${attempt}/${maxAttempts - 1}).`);
+    } catch (error) {
+      if (attempt === maxAttempts) {
+        throw error instanceof Error
+          ? error
+          : new Error("Supabase Management API migration request failed");
+      }
+      if (error instanceof Error && /^Management API migrations failed: HTTP 4\d\d$/.test(error.message)) {
+        throw error;
+      }
+      console.warn(`Supabase Management API request failed; retrying (${attempt}/${maxAttempts - 1}).`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** (attempt - 1)));
   }
-  const remote = await response.json();
-  return (Array.isArray(remote) ? remote : remote.migrations || [])
-    .map((row) => ({
-      version: String(row.version || ""),
-      name: String(row.name || ""),
-    }))
-    .filter((row) => row.version);
+
+  throw new Error("Supabase Management API migration request exhausted retries");
 }
