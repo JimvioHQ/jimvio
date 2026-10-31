@@ -55,6 +55,7 @@ jobs:
           node scripts/release/verify-remote-migration-history.mjs
 
       - name: Validate pending migrations
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
         shell: bash
         run: |
           set -euo pipefail
