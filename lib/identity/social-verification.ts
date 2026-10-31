@@ -141,7 +141,7 @@ export function bioSources(platform: string, handle: string | null, url: string 
 async function readSource(source: Source): Promise<string | null> {
   try {
     // Resolve and validate every hop, pin checked public IPs, and cap bytes.
-    const chain = await safeFetch(normalizeUrl(source.url), "GET");
+    const chain = await safeFetch(normalizeUrl(source.url), "GET", source.headers);
     const response = chain.final;
     if (!response || chain.error || response.status < 200 || response.status >= 300) return null;
     const text = response.body.toString("utf8").slice(0, 1_500_000);
