@@ -89,8 +89,8 @@ export async function POST(request: Request) {
     return jsonResponse({ error: auth.reason }, auth.status, headers);
   }
 
-  const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 1024 * 1024) return jsonResponse({ error: "MCP request is too large." }, 413);
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (declaredLength > 1024 * 1024) return jsonResponse({ error: "MCP request is too large." }, 413);
   const accept = request.headers.get("accept") ?? "*/*";
   if (!accept.includes("*/*") && !accept.includes("application/json") && !accept.includes("text/event-stream")) {
     return jsonResponse({ error: "Accept must include application/json or text/event-stream." }, 406);
@@ -98,7 +98,9 @@ export async function POST(request: Request) {
 
   let message: Record<string, unknown>;
   try {
-    const parsed = await request.json();
+    const body = await request.arrayBuffer();
+    if (body.byteLength > 1024 * 1024) return jsonResponse({ error: "MCP request is too large." }, 413);
+    const parsed = JSON.parse(new TextDecoder().decode(body));
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid JSON-RPC message.");
     message = parsed as Record<string, unknown>;
   } catch {
