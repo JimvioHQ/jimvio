@@ -1,5 +1,4 @@
-# Required checks run on GitHub-hosted ubuntu-latest. The previous
-# self-hosted Jimvio runner is offline and is not referenced here.
+# Required checks run on the repository's online Jimvio self-hosted runner.
 
 name: CI
 
@@ -21,7 +20,7 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -120,7 +119,7 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- runner: ubuntu-latest"
+            echo "- runner: Jimvio self-hosted (linux/x64)"
             echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"
