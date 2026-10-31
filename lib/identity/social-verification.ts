@@ -79,7 +79,6 @@ export function pageContainsCode(html: string, code: string): boolean {
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
 
-
 /** Handle from a stored handle or from the path of a profile link. */
 export function handleFor(platform: string, handle: string | null, url: string | null): string | null {
   const direct = cleanHandle(handle);
@@ -135,21 +134,18 @@ export function bioSources(platform: string, handle: string | null, url: string 
     default:
       break;
   }
-  if (page && !out.sasync function readSource(source: Source): Promise<string | null> {
+  if (page && !out.some((s) => s.url === page)) out.push(html(page));
+  return out;
+}
+
+async function readSource(source: Source): Promise<string | null> {
   try {
-    // Validate DNS/IPs, pin the resolved address, validate every redirect,
-    // restrict ports, and cap response bytes using Jimvio's shared safe fetcher.
+    // Resolve and validate every hop, pin checked public IPs, and cap bytes.
     const chain = await safeFetch(normalizeUrl(source.url), "GET");
     const response = chain.final;
     if (!response || chain.error || response.status < 200 || response.status >= 300) return null;
     const text = response.body.toString("utf8").slice(0, 1_500_000);
     return text.length > 0 ? text : null;
-  } catch {
-    return null;
-  }
-}
-
-text.length > 0 ? text : null;
   } catch {
     return null;
   }
