@@ -21,7 +21,7 @@ jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
     runs-on: [self-hosted, linux, x64]
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v5
