@@ -13,7 +13,7 @@ permissions:
 jobs:
   migrations:
     name: Verify migration history
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     timeout-minutes: 15
     env:
       # Canonical project secret: SUPABASE_PROJECT_REF.
