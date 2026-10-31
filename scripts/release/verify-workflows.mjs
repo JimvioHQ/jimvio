@@ -28,8 +28,16 @@ for (const name of required) {
   if (!/^name:\s+/m.test(body)) fail(`${name}: missing top-level name`);
   if (!/^on:/m.test(body)) fail(`${name}: missing on:`);
   if (!/^jobs:/m.test(body)) fail(`${name}: missing jobs:`);
-  if (!/ubuntu-latest/.test(body)) {
-    fail(`${name}: required checks must run on ubuntu-latest`);
+  // CI and read-only Supabase migration verification use the dedicated
+  // Jimvio self-hosted Linux x64 runner. Other workflows may use ubuntu-latest.
+  const usesJimvioRunner = /runs-on:\s*\[\s*self-hosted\s*,\s*linux\s*,\s*x64\s*\]/.test(body);
+  const usesHostedRunner = /runs-on:\s*ubuntu-latest/.test(body);
+  if (name === "ci.yml" && !usesJimvioRunner) {
+    fail(`${name}: required CI must use [self-hosted, linux, x64]`);
+  } else if (name === "supabase.yml" && (!usesJimvioRunner || !/apply:\s*[\s\S]*?runs-on:\s*ubuntu-latest/.test(body))) {
+    fail(`${name}: migration verification must use Jimvio runner and production apply must remain ubuntu-latest`);
+  } else if (name !== "ci.yml" && name !== "supabase.yml" && !usesHostedRunner) {
+    fail(`${name}: workflow must declare an approved ubuntu-latest runner`);
   }
   // Unbalanced quotes heuristic
   const doubles = (body.match(/"/g) || []).length;
