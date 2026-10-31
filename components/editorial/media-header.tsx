@@ -75,7 +75,7 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
             <span className="block text-[16px] font-extrabold tracking-[-0.03em] text-white">
               Jimvio <span className="bg-gradient-to-r from-[#ff7a2f] to-[#ffc46b] bg-clip-text text-transparent">Media</span>
             </span>
-            <span className="hidden text-[11px] font-medium text-white/60 sm:block">Real Stories. Deeper Insights.</span>
+            <span className="hidden text-[11px] font-medium text-white/60 sm:block">INSIGHTS · AI · DISCOVERY</span>
           </span>
         </Link>
         <form action="/media/search" className="mx-auto hidden w-full max-w-[520px] md:block">
