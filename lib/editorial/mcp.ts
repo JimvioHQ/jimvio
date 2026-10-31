@@ -1,4 +1,4 @@
-import { updateTag, revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   adminArticleAudit,
   adminGetArticle,
@@ -73,8 +73,8 @@ function toWrite(plan: NonNullable<Extract<ReturnType<typeof planArticleWrite>, 
 }
 
 function invalidate(slug?: string) {
-  updateTag("editorial");
-  if (slug) updateTag(`editorial:${slug}`);
+  revalidateTag("editorial", "max");
+  if (slug) revalidateTag(`editorial:${slug}`, "max");
   for (const path of [
     "/media",
     "/media/search",
