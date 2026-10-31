@@ -79,8 +79,6 @@ export function pageContainsCode(html: string, code: string): boolean {
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
 
-const BROWSER_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
 /** Handle from a stored handle or from the path of a profile link. */
 export function handleFor(platform: string, handle: string | null, url: string | null): string | null {
