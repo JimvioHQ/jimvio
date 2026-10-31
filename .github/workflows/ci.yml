@@ -43,7 +43,7 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: npm ci --fetch-retries=5 --fetch-timeout=300000 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
       - name: Workflow / Dependabot structure
         run: node scripts/release/verify-workflows.mjs
