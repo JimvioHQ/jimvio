@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { updateTag, revalidatePath } from "next/cache";
 import {
   adminArticleAudit,
@@ -274,7 +273,7 @@ export async function verifyPublishedArticle(input: Input) {
     return { published: true, reachable: false, statusCode: response?.status ?? null, publicUrl, message: "The database marks this article as published, but the public page could not be verified." };
   }
   const html = await response.text();
-  const reachable = html.includes(article.slug) && html.includes("media");
+  const reachable = html.includes(article.slug);
   return {
     published: true,
     reachable,
