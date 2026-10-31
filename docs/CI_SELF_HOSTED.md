@@ -1,7 +1,7 @@
 # Jimvio CI — Production Self-Hosted Runner Infrastructure
 
 JimvioHQ Free-plan **GitHub-hosted Actions minutes are exhausted / billing-blocked**.
-All workflows default to a **self-hosted** runner (`self-hosted`, `linux`, `x64`) so quality gates do **not** consume hosted minutes.
+The repository-scoped **Jimvio-CI-Runner** is online/idle on Ubuntu Linux. CI and Supabase jobs default to its `self-hosted`, `linux`, `x64` labels. Set repository variable `USE_GITHUB_HOSTED_RUNNERS=true` only when hosted minutes are available.
 
 Vercel, Supabase, LiveKit, Resend, Cloudinary, Stripe, and Flutterwave deployments are **unchanged**.
 
@@ -32,7 +32,7 @@ Vercel, Supabase, LiveKit, Resend, Cloudinary, Stripe, and Flutterwave deploymen
 2. **Create a GitHub Runner Registration Token**:  
    **Repository → Settings → Actions → Runners → New self-hosted runner**
 
-Until both exist, deployment is **blocked**. Jobs queue on self-hosted labels and do **not** use hosted minutes.
+The runner is now registered and online. Keep its Ubuntu VM running while checks execute. If it is offline, jobs queue until it reconnects; they do not fall back to hosted minutes unless the repository variable is explicitly set.
 
 ---
 
@@ -94,7 +94,7 @@ npm run ci:secrets:guide
 npm run ci:verify   # full quality gate when you need it
 ```
 
-On macOS, `ci:deploy` exits with status **2** and writes a **blocked** health report — expected.
+On macOS, `ci:deploy` exits with status **2** and writes a **blocked** health report — expected. The active runner is the Ubuntu VM `Jimvio-CI-Runner`.
 
 ---
 
@@ -188,15 +188,15 @@ Default = self-hosted. Hosted minutes only if `USE_GITHUB_HOSTED_RUNNERS=true`.
 - Never commit tokens, `.credentials*`, or `.runner`  
 - Prefer GitHub/Vercel secrets over shell profiles  
 - Keep OS/Node patched via periodic bootstrap  
-- Leave hosted-runner variable unset unless billing allows it  
+- Leave `USE_GITHUB_HOSTED_RUNNERS` unset unless billing allows hosted runners  
 - Restrict SSH to the runner host; least-privilege firewall  
 
 ---
 
 ## FAQ
 
-**Q: Is the runner online after pushing these scripts?**  
-A: **No.** You still need a Linux host and a GitHub registration token.
+**Q: Is the runner online?**  
+A: Yes. The repository currently shows `Jimvio-CI-Runner` as Online/Idle. Keep the UTM VM running during CI.
 
 **Q: When is deployment “complete”?**  
 A: Only when GitHub shows the runner **Online/Idle** (or `ci-deploy-health-report.json` has `status: "online_idle"`).
