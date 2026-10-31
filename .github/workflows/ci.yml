@@ -1,5 +1,4 @@
-# Required checks run on GitHub-hosted ubuntu-latest. The previous
-# self-hosted Jimvio runner is offline and is not referenced here.
+# Use the online Jimvio Linux runner by default; opt into hosted minutes only via repository variable.
 
 name: CI
 
@@ -21,7 +20,7 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -72,7 +71,7 @@ jobs:
         id: prepush
         run: npm run ci:prepush
         env:
-          NODE_OPTIONS: --max-old-space-size=8192
+          NODE_OPTIONS: --max-old-space-size=5120
           # Build-time placeholders so Next.js can collect page data without secrets.
           # Production runtime uses Vercel/project env — these must not be real credentials.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
@@ -120,7 +119,7 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- runner: ubuntu-latest"
+            echo "- runner: self-hosted Linux x64 (or GitHub-hosted when opted in)"
             echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"
