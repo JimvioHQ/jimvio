@@ -1,3 +1,5 @@
+import { safeFetch, normalizeUrl } from "@/lib/trust/safe-fetch";
+
 /**
  * Proving a social account belongs to the person who added it.
  *
@@ -135,26 +137,21 @@ export function bioSources(platform: string, handle: string | null, url: string 
     default:
       break;
   }
-  if (page && !out.some((s) => s.url === page)) out.push(html(page));
-  return out;
+  if (page && !out.sasync function readSource(source: Source): Promise<string | null> {
+  try {
+    // Validate DNS/IPs, pin the resolved address, validate every redirect,
+    // restrict ports, and cap response bytes using Jimvio's shared safe fetcher.
+    const chain = await safeFetch(normalizeUrl(source.url), "GET");
+    const response = chain.final;
+    if (!response || chain.error || response.status < 200 || response.status >= 300) return null;
+    const text = response.body.toString("utf8").slice(0, 1_500_000);
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
 }
 
-async function readSource(source: Source): Promise<string | null> {
-  try {
-    const res = await fetch(source.url, {
-      headers: {
-        "User-Agent": BROWSER_UA,
-        "Accept-Language": "en-US,en;q=0.9",
-        Accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
-        ...(source.headers ?? {}),
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(6_000),
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const text = (await res.text()).slice(0, 3_000_000);
-    return text.length > 0 ? text : null;
+text.length > 0 ? text : null;
   } catch {
     return null;
   }
