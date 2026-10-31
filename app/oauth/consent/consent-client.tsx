@@ -49,6 +49,12 @@ export function OAuthConsentClient({ authorizationId }: { authorizationId: strin
     setError(null);
     try {
       const supabase = createClient();
+      if (decision === "approve") {
+        const binding = await (supabase as unknown as {
+          rpc: (name: string, args: Record<string, string>) => Promise<{ error: { message: string } | null }>;
+        }).rpc("register_mcp_oauth_resource_binding", { p_authorization_id: authorizationId });
+        if (binding.error) throw new Error(binding.error.message || "The MCP resource could not be bound to this authorization.");
+      }
       const result = decision === "approve"
         ? await supabase.auth.oauth.approveAuthorization(authorizationId)
         : await supabase.auth.oauth.denyAuthorization(authorizationId);
