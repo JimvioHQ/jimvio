@@ -29,7 +29,7 @@ Draft creation and editing never publish. Only `publish_media_article` can publi
 
 1. In Supabase Dashboard, open Authentication > OAuth Server and set Authorization Path to `/oauth/consent`.
 2. Keep user approval enabled. Dynamic Client Registration should only be enabled if Jimvio intends to allow arbitrary MCP clients to register; otherwise pre-register the approved ChatGPT client.
-3. Apply migrations `20261031170000_jimvio_mcp_oauth_resource_hook.sql` and `20261031170001_jimvio_mcp_oauth_resource_bindings.sql`.
+3. Apply migrations `20261031160339_jimvio_mcp_oauth_resource_hook.sql` and `20261031160918_jimvio_mcp_oauth_resource_bindings.sql`.
 4. In Authentication > Hooks, enable the Custom Access Token Hook and select `public.jimvio_mcp_custom_access_token_hook`.
 5. OAuth consent records the requested resource against the authenticated user and OAuth client before approval. The token hook reads only active, non-revoked consent bindings and sets `aud=https://www.jimvio.com/api/mcp`, including on refresh.
 6. Verify that newly issued OAuth access tokens have the exact MCP resource audience. Tokens with only `aud=authenticated` are intentionally rejected.
