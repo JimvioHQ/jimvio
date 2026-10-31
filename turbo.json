@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "stream",
+  "tasks": {
+    "lint": {
+      "outputs": [
+        ".eslintcache"
+      ]
+    },
+    "type-check": {
+      "outputs": []
+    },
+    "test:unit": {
+      "outputs": []
+    },
+    "release:verify-env": {
+      "outputs": []
+    },
+    "release:verify-migrations": {
+      "outputs": []
+    }
+  }
+}
