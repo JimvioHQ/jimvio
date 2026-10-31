@@ -20,18 +20,6 @@
       "tags": [
         "ci"
       ]
-    },
-    "release:verify-env": {
-      "outputs": [],
-      "tags": [
-        "ci"
-      ]
-    },
-    "release:verify-migrations": {
-      "outputs": [],
-      "tags": [
-        "ci"
-      ]
     }
   }
 }
