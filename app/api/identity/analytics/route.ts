@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/ugc/platform/auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { computeCreatorStats } from "@/lib/identity/stats";
 import { toLevelProgress, toStatsSnapshot } from "@/lib/identity/resolve";
-import { canViewIdentity } from "@/lib/identity/privacy";
+import { canViewIdentity, privacyFieldVisible } from "@/lib/identity/privacy";
 import type { PrivacyVisibility } from "@/lib/identity/types";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +66,9 @@ export async function GET(req: NextRequest) {
     privacy_visibility: (identity.privacy_visibility ?? "public") as PrivacyVisibility,
     privacy_custom: identity.privacy_custom ?? {},
   };
+  if (!isSelf && !isAdmin && !privacyFieldVisible(identity.privacy_custom ?? {}, "showAnalytics")) {
+    return NextResponse.json({ error: "Analytics are private on this profile." }, { status: 403 });
+  }
   const canView = isSelf || isAdmin || canViewIdentity(viewer?.id ?? null, viewable);
   if (!canView) return NextResponse.json({ error: "Analytics are private" }, { status: 403 });
 
