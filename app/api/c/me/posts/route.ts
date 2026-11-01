@@ -22,12 +22,10 @@ export async function GET(req: NextRequest) {
   const { data, error, count } = await supabase
     .from("community_posts")
     .select(
-      "id, title, body, post_type, images, attachments, video_url, like_count, comment_count, view_count, is_published, published_at, scheduled_at, created_at, community_id, communities(name, slug)",
+      "id, title, body, post_type, images, attachments, video_url, like_count, comment_count, view_count, is_published, published_at, scheduled_at, created_at, archived_at, hidden_at, community_id, communities(name, slug)",
       { count: "exact" },
     )
     .eq("author_id", user.id)
-    .is("archived_at", null)
-    .is("hidden_at", null)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
