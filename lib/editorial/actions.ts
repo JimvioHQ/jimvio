@@ -6,6 +6,7 @@ import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 import { writeAuditEvent } from "@/services/ops/audit";
 import {
   adminFindByIdempotency,
+  adminDeleteArticle,
   adminGetArticle,
   adminInsertArticle,
   adminListArticles,
@@ -207,4 +208,35 @@ export async function removeMediaTag(
   await audit(auth.user.id, "media_tag_removed", clean, { tag: clean, articles: removed });
   invalidate();
   return { ok: true, removed };
+}
+
+
+export async function permanentlyDeleteMediaArticle(
+  id: string,
+  confirmationTitle: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const auth = await requirePublisher();
+  const denied = publisherDenial(auth.ok ? { ok: true } : { ok: false, status: auth.status });
+  if (denied || !auth.ok) return { ok: false, error: denied ?? "You do not have permission to delete articles." };
+  if (!isArticleId(id)) return { ok: false, error: "Article not found." };
+  const existing = await adminGetArticle(id);
+  if (existing.unavailable) return { ok: false, error: STORAGE_ERROR };
+  if (!existing.article) return { ok: false, error: "Article not found." };
+  if (confirmationTitle.trim() !== existing.article.title) {
+    return { ok: false, error: "The confirmation title does not match. Nothing was deleted." };
+  }
+  const deleted = await adminDeleteArticle(id);
+  if (deleted.error) return { ok: false, error: "The article could not be permanently deleted." };
+  if (!deleted.data) return { ok: false, error: "Article not found. Nothing was deleted." };
+  const row = deleted.data as { id?: string; slug?: string; title?: string; status?: string; image_url?: string | null };
+  await audit(auth.user.id, "media_article_permanently_deleted", id, {
+    articleId: id,
+    slug: row.slug ?? existing.article.slug,
+    title: row.title ?? existing.article.title,
+    previousStatus: row.status ?? existing.article.status,
+    imageUrlRetained: row.image_url ?? existing.article.imageUrl,
+    note: "Article row permanently deleted; linked image asset was not deleted automatically.",
+  });
+  invalidate(row.slug ?? existing.article.slug);
+  return { ok: true };
 }
