@@ -109,7 +109,10 @@ export async function checkProduct(input: ProductInput, applicableReason: string
 
   const bad = findings.filter((x) => x.tone === "bad").length;
   const warn = findings.filter((x) => x.tone === "warn").length;
-  const status: CheckerResult["status"] = bad >= 2 || (bad && warn >= 2) ? "high_risk" : bad || warn >= 2 ? "suspicious" : warn === 1 ? "evidence_found" : "low_risk";
+  // An unrecognized binary with no readable evidence must never receive a low-risk verdict.
+  const unsupportedFile = Boolean(file && file.type.kind === "unknown" && !page);
+  if (unsupportedFile) limits.push("This file format is not recognized. Jimvio could not inspect its internal structure or confirm whether it is safe.");
+  const status: CheckerResult["status"] = bad >= 2 || (bad && warn >= 2) ? "high_risk" : bad || warn >= 2 ? "suspicious" : warn === 1 ? "evidence_found" : unsupportedFile ? "inconclusive" : "low_risk";
   return {
     ...base,
     status,
@@ -120,7 +123,9 @@ export async function checkProduct(input: ProductInput, applicableReason: string
           ? "Some warning signs about safety, originality or the seller."
           : status === "evidence_found"
             ? "Mostly fine, with one thing worth checking."
-            : "No safety problems or suspicious claims found.",
+            : status === "inconclusive"
+              ? "The file type could not be recognized, so safety could not be assessed."
+              : "No safety problems or suspicious claims found.",
     findings,
     metrics,
     sources: [...sources],
