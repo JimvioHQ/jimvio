@@ -1,5 +1,3 @@
-"use client";
-
 import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/editorial/hero-carousel";
