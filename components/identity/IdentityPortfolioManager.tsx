@@ -146,12 +146,20 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   }
 
   async function toggle(item: IdentityPortfolioItem, field: "isPublic" | "isFeatured") {
+    const nextValue = !item[field];
+    const hasPrivateMedia = [item.mediaUrl, item.thumbnailUrl].some((value) =>
+      Boolean(value && /\\/(private|authenticated)\\//i.test(value)),
+    );
+    if (field === "isPublic" && nextValue && hasPrivateMedia) {
+      toast.error("This item contains private media. Edit it, enable public visibility, and re-upload the media before publishing.");
+      return;
+    }
     setBusy(true);
     try {
       const response = await fetch("/api/identity/portfolio", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, [field]: !item[field] }),
+        body: JSON.stringify({ id: item.id, [field]: nextValue }),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.error || "Could not update portfolio item");
