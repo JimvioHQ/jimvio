@@ -119,14 +119,24 @@ describe("social verification", () => {
   it("makes readable one-time codes", () => {
     assert.match(newVerifyCode(), /^JIMVIO-[A-HJ-NP-Z2-9]{6}$/);
   });
-  it("finds the code in escaped or spaced bios", () => {
+  it("finds a complete code embedded in normal bio text", () => {
     assert.equal(pageContainsCode('"biography":"Dancer JIMVIO\\u002DAB12CD"', "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("Creator | JIMVIO-AB12CD | Content marketing", "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("Welcome! jimvio — ab12cd.", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: jimvio ab12cd", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: hello", "JIMVIO-AB12CD"), false);
   });
-  it("builds the public page from a handle", () => {
+  it("rejects partial tokens and codes embedded in longer identifiers", () => {
+    assert.equal(pageContainsCode("JIMVIO-AB12CDA", "JIMVIO-AB12CD"), false);
+    assert.equal(pageContainsCode("XJIMVIO-AB12CD", "JIMVIO-AB12CD"), false);
+    assert.equal(pageContainsCode("JIMVIO-AB12CD-EXTRA", "JIMVIO-AB12CD"), false);
+  });
+  it("builds platform-owned public pages and rejects unrelated hosts", () => {
     assert.equal(publicProfileUrl("instagram", "@ana.k", null), "https://www.instagram.com/ana.k/");
     assert.equal(publicProfileUrl("tiktok", "ana", null), "https://www.tiktok.com/@ana");
+    assert.equal(publicProfileUrl("instagram", null, "https://evil.example/ana"), null);
+    assert.equal(publicProfileUrl("instagram", "ana", "https://evil.example/ana"), "https://www.instagram.com/ana/");
+    assert.equal(handleFor("instagram", null, "https://evil.example/ana"), null);
   });
   it("has 500+ categories and keeps one", () => {
     assert.ok(CREATOR_CATEGORIES.length >= 500);
