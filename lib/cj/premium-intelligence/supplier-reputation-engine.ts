@@ -164,7 +164,7 @@ export async function recalculateSupplierHealth(limit = 500): Promise<number> {
   const supplierMap = new Map<string, { reps: SupplierReputation[]; name: string }>();
 
   for (const row of rows ?? []) {
-    const supplierId = String(row.supplier_id ?? row.supplier ?? row.pid);
+    const supplierId = String(row.supplier_id || row.supplier || row.pid);
     const supplierName = String(row.supplier ?? row.supplier_name ?? "Unknown");
     const verifiedWarehouse = Number(row.verified_warehouse ?? 0);
     const supplierVerified =
