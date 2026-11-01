@@ -2,6 +2,10 @@ import type { CatalogSource } from "@/lib/editorial/ingest/types";
 
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
+type CatalogCandidate = Pick<CatalogSource, "name" | "locator" | "categories" | "region"> & {
+  language?: string;
+};
+
 export const VERIFIED_FEEDS: CatalogSource[] = [
   // Global editorial discovery pool. These are intentionally not auto-enabled:
   // admins must verify live feed health and publisher terms before activation.
@@ -28,10 +32,10 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global" },
     { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global" },
     { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["technology"], region: "global" },
-  ] satisfies CatalogSource[]).map((source) => ({
+  ] satisfies CatalogCandidate[]).map((source) => ({
     ...source,
     kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
-    language: "language" in source ? source.language : "en",
+    language: source.language ?? "en",
     permittedUsage: "facts" as const,
     imageRights: "none" as const,
     pollMinutes: 360,
