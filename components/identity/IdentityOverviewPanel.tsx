@@ -1,10 +1,9 @@
-import { Briefcase, Building2, ShoppingBag, Star } from "lucide-react";
+import { Briefcase, Building2 } from "lucide-react";
 import type { IdentityProfilePayload } from "@/lib/identity/types";
-import { formatNumber } from "@/lib/utils";
 import { IdentityCard, IdentityEmptyState, IdentitySectionHeading } from "@/components/identity/identity-ui";
 
 export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePayload }) {
-  const { profile, stats } = payload;
+  const { profile } = payload;
   const brands = payload.resume.filter((r) => r.entryType === "brand");
   const categories = Array.from(new Set([...profile.specialties, ...profile.industries]));
 
@@ -66,20 +65,6 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
         </IdentityCard>
       )}
 
-      <div className="grid gap-2.5 sm:grid-cols-2">
-        <StatPill
-          icon={Star}
-          label="Avg. rating"
-          value={profile.reviewCount > 0 ? `${profile.avgRating.toFixed(1)} / 5` : "New"}
-          sub={profile.reviewCount > 0 ? `${profile.reviewCount} review${profile.reviewCount === 1 ? "" : "s"}` : "No reviews yet"}
-        />
-        <StatPill
-          icon={ShoppingBag}
-          label="Products sold"
-          value={stats ? formatNumber(stats.marketplace.totalSales) : "0"}
-          sub={stats?.marketplace.isVendor ? `${stats.marketplace.productsCount} listed` : "Not a vendor"}
-        />
-      </div>
 
       {payload.portfolio.length === 0 && brands.length === 0 && !profile.bio && (
         <IdentityEmptyState
@@ -92,29 +77,3 @@ export function IdentityOverviewPanel({ payload }: { payload: IdentityProfilePay
   );
 }
 
-function StatPill({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-white p-4">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FFF1EA] text-[#D6480F]">
-        <Icon className="h-4 w-4" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-[#1C1B19]">{value}</p>
-        <p className="truncate text-[11px] text-[#9A9388]">
-          {label}
-          {sub ? ` · ${sub}` : ""}
-        </p>
-      </div>
-    </div>
-  );
-}
