@@ -40,7 +40,7 @@ export function composeHome(articles: PublicArticle[]): HomeComposition {
     label: category.label,
     articles: articles.filter((article) => article.category === category.slug).slice(0, 3),
   })).filter((section) => section.articles.length > 0);
-  return { heroes, featured, latest, magazine, guides, sections };
+  return { heroes, featured, latest, magazine, guides, allStories: articles.slice(0, 12), sections };
 }
 
 export function searchArticles(articles: PublicArticle[], query: string): PublicArticle[] {
