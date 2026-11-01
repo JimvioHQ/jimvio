@@ -42,6 +42,17 @@ jobs:
           node-version: "22"
           cache: npm
 
+      # Preserve Next.js compiler / Turbopack cache across clean checkouts.
+      # The self-hosted runner workspace is cleaned before each job, so without
+      # this explicit cache every CI run performs a cold production build.
+      - name: Restore Next.js build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('next.config.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+
       - name: Install
         run: npm ci
 
