@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
     Menu,
-    Users,
+    FileText,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -81,10 +81,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     const { user: feedUser, isAuthenticated, isLoading: authLoading } = useFeedUser();
-    const [myCommunityHome, setMyCommunityHome] = useState<{
-      href: string;
-      label: string;
-    } | null>(null);
     const [collapsed, setCollapsed] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -135,29 +131,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         if (!isAuthenticated) setProfile(null);
     }, [feedUser, isAuthenticated]);
 
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setMyCommunityHome(null);
-            return;
-        }
-        let cancelled = false;
-        void fetch("/api/c/me/community-home")
-            .then(async (res) => {
-                if (!res.ok) return null;
-                return (await res.json()) as { href?: string; label?: string };
-            })
-            .then((data) => {
-                if (cancelled || !data?.href) return;
-                setMyCommunityHome({
-                    href: data.href,
-                    label: data.label || "My Community",
-                });
-            })
-            .catch(() => undefined);
-        return () => {
-            cancelled = true;
-        };
-    }, [isAuthenticated, feedUser?.id]);
+
 
     useEffect(() => {
         let cancelled = false;
@@ -258,9 +232,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         isAuthenticated
                             ? [
                                   {
-                                      label: myCommunityHome?.label ?? "My Community",
-                                      href: myCommunityHome?.href ?? profileHref,
-                                      icon: Users,
+                                      label: "My Posts",
+                                      href: "/communities/my-posts",
+                                      icon: FileText,
                                   },
                               ]
                             : undefined
@@ -286,9 +260,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     isAuthenticated
                         ? [
                               {
-                                  label: myCommunityHome?.label ?? "My Community",
-                                  href: myCommunityHome?.href ?? profileHref,
-                                  icon: Users,
+                                  label: "My Posts",
+                                  href: "/communities/my-posts",
+                                  icon: FileText,
                               },
                           ]
                         : undefined
