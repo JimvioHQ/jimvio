@@ -426,7 +426,7 @@ async function insertIngestArticle(item: PlannedItem, now: Date, actorId: string
       tags: article.tags,
       seoTitle: article.seoTitle,
       seoDescription: article.seoDescription,
-      authorName: "",
+      authorName: "Jimvio Editorial Team",
       scheduledAt: "",
       idempotencyKey: article.idempotencyKey,
       sourceName: article.sourceName,
