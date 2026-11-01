@@ -102,7 +102,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   };
 
   const db = createServiceRoleClient() as unknown as { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  await db.from("trust_scans").insert({
+  const { error: saveError } = await db.from("trust_scans").insert({
     id,
     user_id: req.userId,
     requester_hash: req.requesterHash,
@@ -116,6 +116,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
     report,
     duration_ms: report.durationMs,
   });
+  if (saveError) throw new Error("The scan completed but its report could not be saved. Please try again.");
   const prints: { kind: "sha256" | "dhash"; value: string }[] = [];
   if (fileInfo) prints.push({ kind: "sha256", value: fileInfo.sha });
   if (media.dhash) prints.push({ kind: "dhash", value: media.dhash });

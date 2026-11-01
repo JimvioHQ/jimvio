@@ -13,7 +13,13 @@ export const maxDuration = 60;
  */
 export async function POST(req: NextRequest) {
   const requester = await currentRequester(req.headers);
-  if (!(await withinHourlyLimit(requester))) {
+  let allowed: boolean;
+  try {
+    allowed = await withinHourlyLimit(requester);
+  } catch {
+    return NextResponse.json({ error: "Trust Checker is temporarily unavailable. Please try again shortly." }, { status: 503 });
+  }
+  if (!allowed) {
     return NextResponse.json(
       { error: requester.userId ? "You've run many checks this hour. Try again later." : "Free checks are limited per hour. Sign in to Jimvio for more." },
       { status: 429 },

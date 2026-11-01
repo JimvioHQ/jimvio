@@ -31,6 +31,7 @@ import { FaTiktok, FaXTwitter } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { TrustCheckerArt } from "./TrustCheckerArt";
 import { TrustReportView } from "./TrustReportView";
+import { TrustScanHistory } from "./TrustScanHistory";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
@@ -91,6 +92,7 @@ export function TrustCheckerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +107,7 @@ export function TrustCheckerPage() {
       return;
     }
     if (next.size > MAX_BYTES) {
-      setError("Files can be up to 4 MB. Choose a smaller file to continue.");
+      setError("Files can be up to 4.2 MiB. Choose a smaller file to continue.");
       return;
     }
     if (next.size === 0) {
@@ -153,6 +155,7 @@ export function TrustCheckerPage() {
         throw new Error("The scan returned an incomplete report. No safety verdict was assumed.");
       }
       setReport(payload.report as ScanReport);
+      setHistoryRefresh((value) => value + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The check could not finish. Try again.");
     } finally {
@@ -337,9 +340,11 @@ export function TrustCheckerPage() {
           </div>
         </section>
 
-        <div ref={resultRef} className="scroll-mt-24" aria-live="polite">
+        <div id="trust-checker-results" ref={resultRef} className="scroll-mt-24" aria-live="polite">
           {report ? <TrustReportView report={report} onRunAnother={resetScan} /> : null}
         </div>
+
+        <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
 
         <section className="mt-10" aria-labelledby="trust-capabilities-heading">
           <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

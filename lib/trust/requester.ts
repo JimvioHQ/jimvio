@@ -25,6 +25,7 @@ export async function currentRequester(headers: Headers): Promise<{ userId: stri
 export async function withinHourlyLimit(r: { userId: string | null; hash: string }): Promise<boolean> {
   const db = createServiceRoleClient() as unknown as { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
   const since = new Date(Date.now() - 3600_000).toISOString();
-  const { count } = await db.from("trust_scans").select("id", { count: "exact", head: true }).eq("requester_hash", r.hash).gte("created_at", since);
-  return (count ?? 0) < (r.userId ? HOURLY_LIMIT_USER : HOURLY_LIMIT_ANON);
+  const { count, error } = await db.from("trust_scans").select("id", { count: "exact", head: true }).eq("requester_hash", r.hash).gte("created_at", since);
+  if (error || count == null) throw new Error("Trust Checker rate-limit storage is unavailable.");
+  return count < (r.userId ? HOURLY_LIMIT_USER : HOURLY_LIMIT_ANON);
 }

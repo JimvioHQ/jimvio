@@ -197,7 +197,12 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
       status: "unavailable",
       summary: author ? `Post by ${author}. ${label} doesn't share view or like counts publicly.` : `${label} didn't confirm this post.`,
       findings: author ? [{ tone: "info", title: `Confirmed public post by ${author}`, detail: title ?? undefined, source: `${label} oEmbed` }] : [],
-      metrics: author ? [{ label: "Author", value: author }] : [],
+      metrics: [
+        ...(author ? [{ label: "Author", value: author }] : []),
+        { label: "Public views", value: "Not available from public oEmbed" },
+        { label: "Verified real views", value: "Not available" },
+        { label: "Detected fake / bot views", value: "Not available" },
+      ],
       sources: author ? [`${label} oEmbed (official)`] : [],
       limits: [`${label} only shares views and likes with the account owner (connected login).`],
       nextSteps: ["On Jimvio campaigns, creators connect their account so real views are read directly."],
@@ -208,6 +213,11 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
     ...base,
     status: "unavailable",
     summary: `${platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : "Threads"} doesn't share engagement numbers publicly.`,
+    metrics: [
+      { label: "Public views", value: "Not available from public access" },
+      { label: "Verified real views", value: "Not available" },
+      { label: "Detected fake / bot views", value: "Not available" },
+    ],
     limits: ["Meta only shares these numbers with approved apps and the account owner."],
   };
 }
