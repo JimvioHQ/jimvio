@@ -27,7 +27,7 @@ export type ReportResult =
   | { ok: false; reason: "thin_source" | "writer_unavailable" | "quality_gate"; issues: string[] };
 
 const MIN_PAGE_WORDS = 80;
-const RICH_PAGE_WORDS = 220;
+const RICH_PAGE_WORDS = 600;
 
 function digitsOutside(generated: string, corpus: string): boolean {
   const text = generated.replace(/<[^>]+>/g, " ");
@@ -240,7 +240,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   const outputWords = wordCount(generated.replace(/<[^>]+>/g, " "));
   const headed = draft.sections.filter((section) => section.heading).length;
   if (sourceWords >= RICH_PAGE_WORDS) {
-    if (outputWords < 110 || headed < 2) issues.push("structure");
+    if (outputWords < 350 || headed < 3) issues.push("structure");
   } else if (outputWords < 40) {
     issues.push("structure");
   }
@@ -287,12 +287,15 @@ const INSTRUCTIONS = [
   "Do not describe feeds, metadata, extraction, confidence, or how the story was assembled.",
   "Do not start the headline with the feed name and do not write the words public notice.",
   "Do not repeat the source headline.",
-  "If the dossier is long, write a developed article with at least two sections and at least 120 words.",
-  "If the dossier is short, write a short notice and stop. Do not pad.",
+  "If the dossier contains at least 600 source words, write a substantial, well-researched article targeting 450–750 words with at least three informative sections. Each section must add distinct, source-supported information.",
+  "If the dossier contains fewer than 600 source words, write only what the evidence supports and do not pad. Such short-source stories must not be presented as deeply researched features.",
   "Use the specific people, dates, places, numbers, and program names from the dossier. Do not replace them with general claims about importance, innovation, or the future.",
   "When people lists two or more names, the body must include at least two of those exact full names.",
   "links may only use an href copied from allowedUrls. The phrase must appear exactly in the article.",
   "Add a link when an organization, program, or announcement in the article has an allowed URL.",
+  "Write a compelling, specific excerpt of 180–320 characters that explains what happened, why it matters, and the key verified context. Do not use generic promotional language.",
+  "Avoid repeating the same fact, conclusion, or sentence across the headline, excerpt, section headings, and body. Every paragraph must contribute new information.",
+  "Use descriptive contextual links for named people, organizations, places, technologies, and research only when an exact relevant URL exists in allowedUrls. Never invent a URL or link a name to an unrelated page.",
   "Return one JSON object with keys headline, excerpt, sections, and links.",
   "sections is an array of objects with heading and paragraphs. paragraphs are plain text, not HTML.",
 ].join(" ");
@@ -305,7 +308,7 @@ async function defaultComplete(request: { instructions: string; input: string })
     instructions: request.instructions,
     input: request.input,
     temperature: 0.2,
-    maxOutputTokens: 1800,
+    maxOutputTokens: 3200,
     timeoutMs: 20_000,
     format: "json_object",
   });
