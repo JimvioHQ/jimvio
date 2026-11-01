@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { StorageNotice } from "@/components/editorial/admin/notice";
-import { LICENSED_PROVIDERS, REJECTED_CANDIDATES, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catalog";
+import { LICENSED_PROVIDERS, REJECTED_CANDIDATES, UNVERIFIED_CANDIDATES, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catalog";
 import { addIngestSource, enableVerifiedSource, saveIngestControls, setIngestSourceEnabled } from "@/lib/editorial/ingest/actions";
 import { loadIngestDesk } from "@/lib/editorial/ingest/store";
 import { MEDIA_CATEGORIES } from "@/lib/editorial/types";
@@ -109,6 +109,23 @@ export default async function MediaSourcesPage({
                   <button type="submit" className="inline-flex h-11 items-center rounded-lg border border-[#fd5000] px-4 text-sm font-semibold text-[#fd5000]">Enable after a live check</button>
                 </form>
               )}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <h2 className="text-lg font-bold">Candidates · not yet verified</h2>
+        <p className="mt-1 text-sm text-[#667085]">
+          These feeds are discovery candidates only. Jimvio has not confirmed their live feed health, publisher terms, or access policies. They cannot be enabled from this list.
+        </p>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          {UNVERIFIED_CANDIDATES.map((source) => (
+            <article key={source.locator} className="rounded-2xl border border-dashed border-[#d0d5dd] bg-[#fcfcfd] p-4">
+              <h3 className="font-bold">{source.name}</h3>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[#8a5a12]">{source.region} · {source.language} · Not verified</p>
+              <p className="mt-2 break-all text-sm text-[#344054]">{source.locator}</p>
+              <p className="mt-2 text-sm text-[#667085]">{source.termsNote}</p>
             </article>
           ))}
         </div>
