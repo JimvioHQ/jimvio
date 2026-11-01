@@ -1,7 +1,7 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/editorial/hero-carousel";
-import { OverlayCard, SectionHeading, StoryCard, toCard } from "@/components/editorial/presentation";
+import { OverlayCard, StoryCard, toCard } from "@/components/editorial/presentation";
 import type { HomeComposition } from "@/lib/editorial/types";
 
 export function HomeView({ composition }: { composition: HomeComposition }) {
