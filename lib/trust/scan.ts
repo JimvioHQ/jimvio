@@ -10,7 +10,9 @@ import { sha256, sniffType, type FileType } from "./file-inspect";
 import { rememberFingerprints } from "./fingerprints";
 import { readProductPage } from "./product-signals";
 
-export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Keep multipart requests below Vercel Functions' hard 4.5 MB body ceiling.
+// The 90 KB envelope leaves room for multipart boundaries and headers.
+export const MAX_UPLOAD_BYTES = Math.floor(4.2 * 1024 * 1024);
 
 export type ScanRequest = {
   url: string | null;
