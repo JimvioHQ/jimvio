@@ -25,54 +25,79 @@ function cleanHandle(handle: string | null | undefined): string {
   return (handle ?? "").trim().replace(/^@+/, "").replace(/\s+/g, "");
 }
 
+const PROFILE_HOSTS: Record<string, string[]> = {
+  instagram: ["instagram.com"],
+  tiktok: ["tiktok.com"],
+  youtube: ["youtube.com", "youtu.be"],
+  x: ["x.com", "twitter.com"],
+  threads: ["threads.net"],
+  facebook: ["facebook.com", "fb.com"],
+  pinterest: ["pinterest.com"],
+  snapchat: ["snapchat.com"],
+  linkedin: ["linkedin.com"],
+};
+
+/** A submitted profile URL must belong to the platform being verified. */
+function isPlatformHost(platform: string, hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/\\.$/, "");
+  return (PROFILE_HOSTS[platform] ?? []).some((domain) => host === domain || host.endsWith(`.\u0024{domain}`));
+}
+
 /** The public page Jimvio reads for a bio code. */
 export function publicProfileUrl(platform: string, handle: string | null, url: string | null): string | null {
   const raw = (url ?? "").trim();
   if (raw) {
     try {
-      const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
-      if (u.protocol === "https:" || u.protocol === "http:") return u.toString();
+      const u = new URL(/^https?:\\/\\//i.test(raw) ? raw : `https://\u0024{raw}`);
+      if ((u.protocol === "https:" || u.protocol === "http:") && isPlatformHost(platform, u.hostname)) {
+        return u.toString();
+      }
     } catch {
-      /* fall through to handle */
+      /* fall through to the validated handle */
     }
   }
   const h = cleanHandle(handle);
   if (!h) return null;
   switch (platform) {
     case "instagram":
-      return `https://www.instagram.com/${h}/`;
+      return `https://www.instagram.com/\u0024{h}/`;
     case "tiktok":
-      return `https://www.tiktok.com/@${h}`;
+      return `https://www.tiktok.com/@\u0024{h}`;
     case "youtube":
-      return `https://www.youtube.com/@${h}`;
+      return `https://www.youtube.com/@\u0024{h}`;
     case "x":
-      return `https://x.com/${h}`;
+      return `https://x.com/\u0024{h}`;
     case "threads":
-      return `https://www.threads.net/@${h}`;
+      return `https://www.threads.net/@\u0024{h}`;
     case "facebook":
-      return `https://www.facebook.com/${h}`;
+      return `https://www.facebook.com/\u0024{h}`;
     case "pinterest":
-      return `https://www.pinterest.com/${h}/`;
+      return `https://www.pinterest.com/\u0024{h}/`;
     case "snapchat":
-      return `https://www.snapchat.com/add/${h}`;
+      return `https://www.snapchat.com/add/\u0024{h}`;
     case "linkedin":
-      return `https://www.linkedin.com/in/${h}/`;
+      return `https://www.linkedin.com/in/\u0024{h}/`;
     default:
       return null;
   }
 }
 
-/** Finds the code in page HTML, including JSON-escaped and spaced variants. */
+/** Finds a complete code in bio text, including JSON-escaped and spaced variants. */
 export function pageContainsCode(html: string, code: string): boolean {
   if (!html || !code) return false;
+  const parts = code.toUpperCase().split("-").filter(Boolean);
+  if (parts.length !== 2) return false;
   const normalized = html
-    .replace(/\\u002[dD]/g, "-")
-    .replace(/&#45;|&#x2d;|&ndash;/gi, "-")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/\\\\u002[dD]/g, "-")
+    .replace(/&#(?:45|x2d);|&ndash;|&mdash;/gi, "-")
+    .replace(/[\\u2010-\\u2015\\u2212]/g, "-")
+    .replace(/[\\u200B-\\u200D\\uFEFF]/g, "")
     .toUpperCase();
-  const target = code.toUpperCase();
-  if (normalized.includes(target)) return true;
-  const compact = normalized.replace(/[\s_.-]/g, "");
-  return compact.includes(target.replace(/[\s_.-]/g, ""));
+  const escape = (value: string) => value.replace(/[.*+?^${ }()|[\\]\\\\]/g, "\\$&");
+  const pattern = parts.map(escape).join("[\\s\\p{P}]*");
+  return new RegExp(`(^|[^\\p{L}\\p{N}])\u0024{pattern}(?![\\p{L}\\p{N}])`, "u").test(normalized);
 }
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
@@ -87,7 +112,8 @@ export function handleFor(platform: string, handle: string | null, url: string |
   const raw = (url ?? handle ?? "").trim();
   if (!raw) return null;
   try {
-    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    const u = new URL(/^https?:\\/\\//i.test(raw) ? raw : `https://\u0024{raw}`);
+    if (!isPlatformHost(platform, u.hostname)) return null;
     const parts = u.pathname.split("/").filter(Boolean);
     const first = (platform === "snapchat" && parts[0] === "add") || (platform === "linkedin" && parts[0] === "in") ? parts[1] : parts[0];
     return first ? cleanHandle(decodeURIComponent(first)) : null;
@@ -139,6 +165,44 @@ export function bioSources(platform: string, handle: string | null, url: string 
   return out;
 }
 
+function readProfileBio(platform: string, body: string): string | null {
+  const readPath = (value: unknown, path: string[]): unknown => {
+    let current: unknown = value;
+    for (const key of path) {
+      if (!current || typeof current !== "object") return null;
+      current = (current as Record<string, unknown>)[key];
+    }
+    return current;
+  };
+  const paths: Record<string, string[][]> = {
+    instagram: [["data", "user", "biography"], ["graphql", "user", "biography"], ["user", "biography"]],
+    threads: [["data", "user", "biography"], ["graphql", "user", "biography"], ["user", "biography"]],
+    x: [["user", "description"], ["user", "bio"], ["description"], ["bio"]],
+  };
+  const fields = platform === "x" ? ["description", "bio"] : ["biography"];
+  try {
+    const parsed: unknown = JSON.parse(body);
+    for (const path of paths[platform] ?? []) {
+      const value = readPath(parsed, path);
+      if (typeof value === "string") return value;
+    }
+  } catch {
+    /* Public profile HTML often embeds the profile object as JSON. */
+  }
+  for (const field of fields) {
+    const expression = new RegExp(`"${field}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "i");
+    const match = body.match(expression);
+    if (match?.[1] !== undefined) {
+      try {
+        return JSON.parse(`"${match[1]}"`) as string;
+      } catch {
+        return match[1].replace(/\\\\n/g, "\\n").replace(/\\\\"/g, '"');
+      }
+    }
+  }
+  return null;
+}
+
 async function readSource(source: Source): Promise<string | null> {
   try {
     const res = await fetch(source.url, {
@@ -161,9 +225,8 @@ async function readSource(source: Source): Promise<string | null> {
 }
 
 /**
- * Reads every public source for the account at once. "found" as soon as any
- * source shows the code; "not_found" when pages were read but the code isn't
- * there; "unreachable" only when no source could be read at all.
+ * Verify only structured profile-bio fields. Searching an entire page could
+ * incorrectly accept a code from a post caption, comment, or unrelated page text.
  */
 export async function checkCodeForAccount(
   platform: string,
@@ -174,11 +237,18 @@ export async function checkCodeForAccount(
   const sources = bioSources(platform, handle, url);
   if (sources.length === 0) return "unreachable";
   const pages = await Promise.all(sources.map(readSource));
-  if (pages.some((p) => p != null && pageContainsCode(p, code))) return "found";
-  return pages.some((p) => p != null) ? "not_found" : "unreachable";
+  let readableBio = false;
+  for (const page of pages) {
+    if (page == null) continue;
+    const bio = readProfileBio(platform, page);
+    if (bio == null) continue;
+    readableBio = true;
+    if (pageContainsCode(bio, code)) return "found";
+  }
+  return readableBio ? "not_found" : "unreachable";
 }
 
-/** Server-side read of one public page (kept for callers that have a URL only). */
+/** Server-side read of one public page (kept for callers that have a URL only)./** Server-side read of one public page (kept for callers that have a URL only). */
 export async function checkCodeOnPage(pageUrl: string, code: string): Promise<CodeCheck> {
   const page = await readSource({ url: pageUrl });
   if (page == null) return "unreachable";
