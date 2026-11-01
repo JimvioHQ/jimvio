@@ -1889,3 +1889,79 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
  .media-home .media-top-story-card > div:last-child h3 { font-size:15px; }
  .media-home .media-top-story-card > div:last-child p { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; margin-top:6px; }
 }
+
+
+/* Media homepage: data-aware layout so missing story groups never reserve empty space. */
+@media (min-width: 1024px) {
+  .media-home .media-lead-grid.has-hero.has-featured {
+    grid-template-columns: minmax(0, 1.9fr) minmax(360px, 1fr);
+    align-items: stretch;
+    gap: 22px;
+  }
+  .media-home .media-lead-grid.has-hero:not(.has-featured),
+  .media-home .media-lead-grid.has-featured:not(.has-hero) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .media-home .media-lead-grid.has-hero:not(.has-featured) > [aria-label="Featured stories"] {
+    max-width: none;
+  }
+  .media-home .media-top-stories-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .media-home .media-latest-layout:not(.has-most-read) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .media-home .media-lead-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .media-home .media-top-stories-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+.media-home .media-latest-grid {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+.media-home .media-latest-grid > a {
+  min-width: 0;
+  height: 100%;
+}
+.media-home .media-topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 285px), 1fr));
+  align-items: start;
+  gap: 22px;
+}
+.media-home .media-topic-section {
+  min-width: 0;
+  align-self: start;
+}
+.media-home .media-topic-section > div:last-child > a {
+  min-width: 0;
+}
+@media (max-width: 1023px) {
+  .media-home .media-latest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  .media-home .media-top-stories-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .media-home .media-latest-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .media-home .media-topic-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
