@@ -28,8 +28,6 @@ type Row = {
   seo_title?: string | null;
   seo_description?: string | null;
   author_name?: string | null;
-  source_name?: string | null;
-  source_url?: string | null;
   correction_note?: string | null;
   status?: string;
   published_at?: string | null;
@@ -38,7 +36,7 @@ type Row = {
 };
 
 const LIST_COLUMNS =
-  "id, slug, title, excerpt, category, kicker, image_url, image_alt, section, tags, seo_title, seo_description, author_name, source_name, source_url, correction_note, status, published_at, scheduled_at, updated_at";
+  "id, slug, title, excerpt, category, kicker, image_url, image_alt, section, tags, seo_title, seo_description, author_name, correction_note, status, published_at, scheduled_at, updated_at";
 
 function missingRelation(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -80,8 +78,6 @@ function mapRow(row: Row, bodyHtml = ""): PublicArticle | null {
     authorName: publicAuthorName(row.author_name),
     publishedAt: row.published_at ?? row.scheduled_at ?? null,
     updatedAt: row.updated_at ? String(row.updated_at) : null,
-    sourceName: row.source_name ? String(row.source_name) : null,
-    sourceUrl: row.source_url ? String(row.source_url) : null,
     correctionNote: row.correction_note ? String(row.correction_note) : null,
     fixture: false,
   };
