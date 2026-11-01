@@ -182,25 +182,25 @@ export function TrustCheckerPage() {
   }
 
   return (
-    <div className="bg-[#FFFAF7] pb-20">
-      <div className="mx-auto max-w-[1240px] px-4 pt-6 sm:px-6">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#FFF8F3_0%,#FFFFFF_52%,#FFF9F5_100%)] pb-20">
+      <div className="mx-auto max-w-[1488px] px-4 pt-4 sm:px-6 lg:px-6">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(110deg,#FFFFFF_0%,#FFF6F0_45%,#FFE2D0_75%,#FFC9A8_100%)] px-5 pb-8 pt-6 sm:px-10 sm:pt-8">
-          <div className="grid items-center gap-6 lg:grid-cols-[1.35fr_1fr]">
+        <section className="relative isolate overflow-hidden rounded-[30px] border border-[#FFE4D6] bg-[radial-gradient(ellipse_at_88%_18%,rgba(255,116,53,0.28),transparent_34%),linear-gradient(112deg,#FFFFFF_0%,#FFF8F4_40%,#FFE9DD_72%,#FFD0B7_100%)] px-5 pb-6 pt-6 shadow-[0_18px_60px_rgba(186,79,34,0.08)] sm:px-8 sm:pb-8 sm:pt-8 lg:px-10">
+          <div className="grid items-center gap-5 lg:grid-cols-[1.45fr_0.9fr] xl:gap-8">
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#FFD9C4] bg-white px-3 py-1.5 text-[13px] font-semibold text-[#E8430F] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[#FFD8C4] bg-white/90 px-4 py-2 text-[13px] font-bold text-[#E8430F] shadow-[0_5px_18px_rgba(255,90,31,0.08)]">
                 <ShieldCheck className="h-4 w-4" /> All-in-One Verification Tool
               </span>
-              <h1 className="mt-4 text-[40px] font-extrabold leading-[1.02] tracking-[-0.03em] text-[#0F172A] sm:text-[64px]">
+              <h1 className="mt-4 text-[43px] font-black leading-[0.98] tracking-[-0.055em] text-[#0B1738] sm:text-[68px] xl:text-[76px]">
                 Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
               </h1>
-              <p className="mt-4 max-w-[760px] text-[16px] font-medium leading-snug text-[#0F172A] sm:text-[19px]">
+              <p className="mt-4 max-w-[850px] text-[16px] font-semibold leading-[1.38] text-[#101B38] sm:text-[19px] xl:text-[20px]">
                 Check links, public engagement signals, digital product files, and media metadata — with clear evidence, limits, and next steps in one place.
               </p>
-              <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-4">
+              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4">
                 {FEATURES.map((f, i) => (
-                  <div key={f.title} className={cn("flex items-center gap-2.5", i > 0 && "lg:border-l lg:border-[#FFD9C4] lg:pl-4")}>
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FFF1EA] text-[#FF5A1F]">
+                  <div key={f.title} className={cn("flex min-w-0 items-center gap-2.5", i > 0 && "lg:border-l lg:border-[#FFCDB5] lg:pl-4")}>
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#FFE9DE] text-[#F0440C] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.05)]">
                       <f.icon className="h-5 w-5" />
                     </span>
                     <span className="min-w-0">
@@ -210,18 +210,18 @@ export function TrustCheckerPage() {
                   </div>
                 ))}
               </div>
-              <p className="mt-5 max-w-[760px] text-[15px] leading-relaxed text-[#475569] sm:text-[16px]">
+              <p className="mt-5 max-w-[850px] text-[15px] leading-[1.5] text-[#52627F] sm:text-[16px]">
                 Paste a URL, upload a file, or both, and get a complete trust analysis across websites, social media, digital
                 products, and media content with evidence-based results that clearly explain what Jimvio can and cannot verify.
               </p>
             </div>
-            <div className="hidden justify-center lg:flex">
+            <div className="hidden min-h-[300px] items-center justify-center lg:flex xl:min-h-[330px]">
               <TrustCheckerArt />
             </div>
           </div>
 
           {/* Unified input */}
-          <div className="relative mt-6 rounded-[22px] border border-[#F1E4DC] bg-white p-4 shadow-[0_10px_40px_rgba(15,23,42,0.06)] sm:p-5">
+          <div className="relative mt-6 rounded-[24px] border border-[#FFE0D0] bg-white/95 p-4 shadow-[0_16px_44px_rgba(32,45,75,0.07)] backdrop-blur-sm sm:p-5 lg:p-6">
             <div className="flex flex-wrap gap-2" role="tablist" aria-label="What to check">
               {(
                 [
@@ -237,8 +237,8 @@ export function TrustCheckerPage() {
                   type="button"
                   onClick={() => setMode(m)}
                   className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-xl px-5 text-[14px] font-semibold transition",
-                    mode === m ? "bg-[#FF5A1F] text-white shadow-[0_6px_16px_rgba(255,90,31,0.35)]" : "bg-[#F4F5F7] text-[#0F172A] hover:bg-[#ECEEF1]",
+                    "inline-flex h-11 items-center gap-2 rounded-xl px-5 text-[14px] font-bold transition sm:min-w-[176px] sm:justify-center",
+                    mode === m ? "bg-gradient-to-r from-[#FF5A1F] to-[#F0440C] text-white shadow-[0_7px_18px_rgba(255,90,31,0.28)]" : "bg-[#F4F5F7] text-[#0F172A] hover:bg-[#ECEEF1]",
                   )}
                 >
                   <Icon className="h-4 w-4" /> {label}
@@ -249,7 +249,7 @@ export function TrustCheckerPage() {
             <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_300px]">
               <div className="space-y-3">
                 {showUrl ? (
-                  <label className="flex h-14 items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white px-4 focus-within:border-[#FF5A1F] focus-within:ring-2 focus-within:ring-[#FF5A1F]/15">
+                  <label className="flex h-14 items-center gap-3 rounded-xl border border-[#D7DFEC] bg-white px-4 shadow-[inset_0_1px_2px_rgba(15,23,42,0.025)] transition focus-within:border-[#FF5A1F] focus-within:ring-4 focus-within:ring-[#FF5A1F]/10">
                     <Link2 className="h-5 w-5 shrink-0 text-[#334155]" aria-hidden="true" />
                     <input
                       value={url}
@@ -280,7 +280,7 @@ export function TrustCheckerPage() {
                       pickFile(e.dataTransfer.files?.[0] ?? null);
                     }}
                     className={cn(
-                      "flex flex-col gap-3 rounded-xl border border-dashed px-4 py-4 sm:flex-row sm:items-center",
+                      "flex flex-col gap-3 rounded-xl border border-dashed px-4 py-4 transition sm:flex-row sm:items-center sm:px-5",
                       drag ? "border-[#FF5A1F] bg-[#FFF6F1]" : "border-[#CBD5E1] bg-[#F8FAFC]",
                     )}
                   >
@@ -334,7 +334,7 @@ export function TrustCheckerPage() {
                   type="button"
                   disabled={!canRun || busy}
                   onClick={() => void run()}
-                  className="inline-flex h-14 items-center justify-center gap-3 rounded-xl bg-[#FF5A1F] px-5 text-[18px] font-bold text-white shadow-[0_10px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#F04E14] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-14 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#F0440C] px-5 text-[18px] font-extrabold text-white shadow-[0_12px_26px_rgba(255,90,31,0.30)] transition hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(255,90,31,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                   {busy ? "Checking…" : "Run Full Check"}
@@ -360,17 +360,17 @@ export function TrustCheckerPage() {
         <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
 
         {/* Four checkers */}
-        <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="What Jimvio checks">
+        <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="What Jimvio checks">
           {CARDS.map((c) => (
-            <article key={c.title} className="flex flex-col rounded-[20px] border border-[#F1E4DC] bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.04)]">
+            <article key={c.title} className="group flex flex-col rounded-[22px] border border-[#F3E5DE] bg-white p-5 shadow-[0_8px_28px_rgba(24,39,75,0.045)] transition duration-200 hover:-translate-y-1 hover:border-[#FFD0B8] hover:shadow-[0_16px_34px_rgba(24,39,75,0.08)] xl:p-6">
               <div className="flex items-center gap-3">
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[#FFF1EA] text-[#FF5A1F]">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#FFF0E7] to-[#FFE1D2] text-[#F0440C] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.05)]">
                   <c.icon className="h-7 w-7" />
                 </span>
                 <h2 className="text-[18px] font-bold leading-tight text-[#0F172A]">{c.title}</h2>
               </div>
-              <p className="mt-3 text-[14px] leading-relaxed text-[#64748B]">{c.body}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2.5 border-b border-[#F1F5F9] pb-4">
+              <p className="mt-3 text-[14px] leading-[1.55] text-[#5B6982]">{c.body}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-2.5 border-b border-[#FCE4D8] pb-4">
                 {c.logos.map((l, i) => (
                   <l.icon key={i} className="h-6 w-6" style={{ color: l.color }} aria-hidden="true" />
                 ))}
