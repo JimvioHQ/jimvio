@@ -2,46 +2,52 @@ import type { CatalogSource } from "@/lib/editorial/ingest/types";
 
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
-export const UNVERIFIED_CANDIDATES: CatalogSource[] = [
-  // Global editorial discovery pool. These are intentionally not auto-enabled:
-  // admins must verify live feed health and publisher terms before activation.
-  ...([
-    { name: "Africanews English", locator: "https://www.africanews.com/feed/rss?themes=news", categories: ["news"], region: "Africa" },
-    { name: "Africanews Business", locator: "https://www.africanews.com/feed/rss?themes=business", categories: ["business"], region: "Africa" },
-    { name: "AllAfrica Headlines", locator: "https://allafrica.com/tools/headlines/rdf/latest/headlines.rdf", categories: ["news"], region: "Africa" },
-    { name: "The Africa Report", locator: "https://www.theafricareport.com/feed", categories: ["news", "business"], region: "Africa" },
-    { name: "RealRwanda Latest News", locator: "https://realrwanda.rw/rss/latest-posts", categories: ["news"], region: "Rwanda", language: "rw" },
-    { name: "RealRwanda Rwanda", locator: "https://realrwanda.rw/rss/category/rwanda", categories: ["news"], region: "Rwanda", language: "rw" },
-    { name: "RealRwanda Business", locator: "https://realrwanda.rw/rss/category/ubukungu-44", categories: ["business"], region: "Rwanda", language: "rw" },
-    { name: "BBC World News", locator: "https://feeds.bbci.co.uk/news/world/rss.xml", categories: ["news"], region: "global" },
-    { name: "The Guardian World", locator: "https://www.theguardian.com/world/rss", categories: ["news"], region: "global" },
-    { name: "Al Jazeera English", locator: "https://www.aljazeera.com/xml/rss/all.xml", categories: ["news"], region: "global" },
-    { name: "Deutsche Welle English", locator: "https://rss.dw.com/xml/rss-en-all", categories: ["news"], region: "global" },
-    { name: "France 24 English", locator: "https://www.france24.com/en/rss", categories: ["news"], region: "global" },
-    { name: "Euronews", locator: "https://www.euronews.com/rss", categories: ["news"], region: "global" },
-    { name: "NPR News", locator: "https://feeds.npr.org/1001/rss.xml", categories: ["news"], region: "North America" },
-    { name: "CBC News", locator: "https://www.cbc.ca/webfeed/rss/rss-topstories", categories: ["news"], region: "North America" },
-    { name: "ABC News Australia", locator: "https://www.abc.net.au/news/feed/45910/rss.xml", categories: ["news"], region: "Asia-Pacific" },
-    { name: "The Conversation", locator: "https://theconversation.com/global/articles.atom", categories: ["analysis"], region: "global" },
-    { name: "ProPublica Investigations", locator: "https://www.propublica.org/feeds/propublica/main", categories: ["news"], region: "North America" },
-    { name: "Ars Technica", locator: "https://feeds.arstechnica.com/arstechnica/index", categories: ["technology"], region: "global" },
-    { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global" },
-    { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global" },
-    { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["technology"], region: "global" },
-  ] as Array<Pick<CatalogSource, "name" | "locator" | "categories" | "region"> & Partial<Pick<CatalogSource, "language">>>).map((source) => ({
-    ...source,
-    kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
-    language: source.language ?? "en",
-    permittedUsage: "facts" as const,
-    imageRights: "none" as const,
-    pollMinutes: 360,
-    enabled: false,
-    alwaysReview: false,
-    termsNote: "Discovery candidate added 2026-11-01. Not yet live-verified by Jimvio. Use only short factual summaries with original reporting; do not republish source text or images. Verify publisher terms, feed health, and article access before enabling.",
-    rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
-    accessMethod: "rss",
-    verifiedAt: null,
-  }));
+type CandidateSeed = {
+  name: string;
+  locator: string;
+  categories: string[];
+  region: string;
+  language: string;
+};
+
+const candidateSeeds: CandidateSeed[] = [
+  { name: "Africanews English", locator: "https://www.africanews.com/feed/rss?themes=news", categories: ["news"], region: "Africa", language: "en" },
+  { name: "Africanews Business", locator: "https://www.africanews.com/feed/rss?themes=business", categories: ["business"], region: "Africa", language: "en" },
+  { name: "AllAfrica Headlines", locator: "https://allafrica.com/tools/headlines/rdf/latest/headlines.rdf", categories: ["news"], region: "Africa", language: "en" },
+  { name: "The Africa Report", locator: "https://www.theafricareport.com/feed", categories: ["news", "business"], region: "Africa", language: "en" },
+  { name: "RealRwanda Latest News", locator: "https://realrwanda.rw/rss/latest-posts", categories: ["news"], region: "Rwanda", language: "rw" },
+  { name: "RealRwanda Rwanda", locator: "https://realrwanda.rw/rss/category/rwanda", categories: ["news"], region: "Rwanda", language: "rw" },
+  { name: "RealRwanda Business", locator: "https://realrwanda.rw/rss/category/ubukungu-44", categories: ["business"], region: "Rwanda", language: "rw" },
+  { name: "BBC World News", locator: "https://feeds.bbci.co.uk/news/world/rss.xml", categories: ["news"], region: "global", language: "en" },
+  { name: "The Guardian World", locator: "https://www.theguardian.com/world/rss", categories: ["news"], region: "global", language: "en" },
+  { name: "Al Jazeera English", locator: "https://www.aljazeera.com/xml/rss/all.xml", categories: ["news"], region: "global", language: "en" },
+  { name: "Deutsche Welle English", locator: "https://rss.dw.com/xml/rss-en-all", categories: ["news"], region: "global", language: "en" },
+  { name: "France 24 English", locator: "https://www.france24.com/en/rss", categories: ["news"], region: "global", language: "en" },
+  { name: "Euronews", locator: "https://www.euronews.com/rss", categories: ["news"], region: "global", language: "en" },
+  { name: "NPR News", locator: "https://feeds.npr.org/1001/rss.xml", categories: ["news"], region: "North America", language: "en" },
+  { name: "CBC News", locator: "https://www.cbc.ca/webfeed/rss/rss-topstories", categories: ["news"], region: "North America", language: "en" },
+  { name: "ABC News Australia", locator: "https://www.abc.net.au/news/feed/45910/rss.xml", categories: ["news"], region: "Asia-Pacific", language: "en" },
+  { name: "The Conversation", locator: "https://theconversation.com/global/articles.atom", categories: ["analysis"], region: "global", language: "en" },
+  { name: "ProPublica Investigations", locator: "https://www.propublica.org/feeds/propublica/main", categories: ["news"], region: "North America", language: "en" },
+  { name: "Ars Technica", locator: "https://feeds.arstechnica.com/arstechnica/index", categories: ["technology"], region: "global", language: "en" },
+  { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global", language: "en" },
+  { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global", language: "en" },
+  { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["technology"], region: "global", language: "en" },
+];
+
+export const UNVERIFIED_CANDIDATES: CatalogSource[] = candidateSeeds.map((source) => ({
+  ...source,
+  kind: source.locator.endsWith(".atom") ? "atom" : "rss",
+  permittedUsage: "facts",
+  imageRights: "none",
+  pollMinutes: 360,
+  enabled: false,
+  alwaysReview: false,
+  termsNote: "Discovery candidate added 2026-11-01. Not yet live-verified by Jimvio. Use only short factual summaries with original reporting; do not republish source text or images. Verify publisher terms, feed health, and article access before enabling.",
+  rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
+  accessMethod: "rss",
+  verifiedAt: null,
+}));
 
 export const VERIFIED_FEEDS: CatalogSource[] = [
   {
