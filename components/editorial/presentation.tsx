@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { editorialPhotoSrc } from "@/lib/editorial/image-display";
+import { StoryImageAsset } from "@/components/editorial/story-image-asset";
 import type { StoryCardModel } from "@/lib/editorial/types";
 import { displayKicker, kickerColor } from "@/lib/editorial/validate";
 import { cn } from "@/lib/utils";
@@ -49,16 +49,7 @@ export function StoryImage({
       </div>
     );
   }
-  return (
-    <Image
-      src={photo}
-      alt={alt}
-      fill
-      priority={priority}
-      sizes={sizes}
-      className="object-cover"
-    />
-  );
+  return <StoryImageAsset src={photo} alt={alt} priority={priority} sizes={sizes} />;
 }
 
 export function SectionHeading({
@@ -160,7 +151,7 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
     <Link
       href={card.href}
       className={cn(
-        "group flex overflow-hidden rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.035)] transition duration-200 hover:-translate-y-0.5 hover:border-[#d8dde6] hover:shadow-[0_12px_28px_rgba(16,24,40,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]",
+        "group flex overflow-hidden rounded-xl border border-[#e8ebf0] bg-white transition duration-200 hover:-translate-y-0.5 hover:border-[#d8dde6] hover:shadow-[0_8px_22px_rgba(16,24,40,0.07)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]",
         stacked ? "flex-col" : "gap-3 md:flex-col md:gap-0",
       )}
     >
@@ -168,14 +159,14 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
         <div
           className={cn(
             "relative shrink-0",
-            stacked ? "aspect-[16/10] w-full" : "h-[76px] w-[112px] md:aspect-[16/10] md:h-auto md:w-full",
+            stacked ? "aspect-[16/9] w-full" : "h-[76px] w-[112px] md:aspect-[16/9] md:h-auto md:w-full",
           )}
         >
           <StoryImage src={card.imageUrl} alt={card.imageAlt} sizes="(min-width: 768px) 25vw, 112px" />
           <Kicker label={card.kicker} className={cn("absolute left-2.5 top-2.5", stacked ? "inline-flex" : "hidden md:inline-flex")} />
         </div>
       ) : null}
-      <div className={cn("min-w-0 flex-1", stacked ? "px-3 py-3" : "py-1 pr-2 md:px-3 md:py-3")}>
+      <div className={cn("min-w-0 flex-1", stacked ? "px-3.5 py-3" : "py-1 pr-2 md:px-3 md:py-3")}>
         {!editorialPhotoSrc(card.imageUrl) || !stacked ? (
           <Kicker label={card.kicker} className={editorialPhotoSrc(card.imageUrl) ? "md:hidden" : undefined} />
         ) : null}
