@@ -28,7 +28,7 @@ export const UNVERIFIED_CANDIDATES: CatalogSource[] = [
     { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global" },
     { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global" },
     { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["technology"], region: "global" },
-  ] satisfies Array<Pick<CatalogSource, "name" | "locator" | "categories" | "region"> & Partial<Pick<CatalogSource, "language">>>).map((source) => ({
+  ] as Array<Pick<CatalogSource, "name" | "locator" | "categories" | "region"> & Partial<Pick<CatalogSource, "language">>>).map((source) => ({
     ...source,
     kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
     language: source.language ?? "en",
