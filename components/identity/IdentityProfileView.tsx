@@ -176,7 +176,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {category ? (
-              <Link href={`/influencers/browse?niche=${encodeURIComponent(category)}`}>
+              <Link href={`/users/browse?niche=${encodeURIComponent(category)}`}>
                 <IdentityPill tone="accent" icon={<Briefcase className="h-3 w-3" />}>
                   {category}
                 </IdentityPill>
