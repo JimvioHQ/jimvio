@@ -222,6 +222,9 @@ export async function permanentlyDeleteMediaArticle(
   const existing = await adminGetArticle(id);
   if (existing.unavailable) return { ok: false, error: STORAGE_ERROR };
   if (!existing.article) return { ok: false, error: "Article not found." };
+  if (existing.article.status === "published" || existing.article.status === "scheduled") {
+    return { ok: false, error: "Unpublish or archive the article before permanently deleting it." };
+  }
   if (confirmationTitle.trim() !== existing.article.title) {
     return { ok: false, error: "The confirmation title does not match. Nothing was deleted." };
   }
