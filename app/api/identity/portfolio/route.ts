@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     campaign_id: typeof body.campaignId === "string" ? body.campaignId : null,
     sort_order: Number.isFinite(Number(body.sortOrder)) ? Number(body.sortOrder) : 0,
     is_featured: Boolean(body.isFeatured),
-    is_public: body.isPublic === undefined ? true : Boolean(body.isPublic),
+    is_public: body.isPublic === undefined ? false : Boolean(body.isPublic),
   };
 
   const { data, error: insertErr } = await db
