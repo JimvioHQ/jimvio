@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Clock3, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock3 } from "lucide-react";
 import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
@@ -61,7 +61,7 @@ export function ArticleView({
           {article.excerpt ? <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.7] text-[#475467] sm:text-[19px]">{article.excerpt}</p> : null}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-[#e9edf2] py-4">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[#667085]">
-              {article.publishedAt ? <time dateTime={article.publishedAt} className="font-medium text-[#344054]">{formatDate(article.publishedAt)}</time> : article.fixture ? <span>Design preview</span> : null}
+              {article.publishedAt ? <time dateTime={article.publishedAt} className="font-medium text-[#344054]">Published {formatDate(article.publishedAt)}</time> : article.fixture ? <span>Design preview</span> : null}
               {minutes > 0 ? <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" /> {minutes} min read</span> : null}
               <span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 font-semibold text-[#475467]">{label}</span>
             </div>
@@ -87,15 +87,6 @@ export function ArticleView({
         <div className="mx-auto mt-10 grid max-w-[1120px] items-start gap-10 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
           <div>
             <div id="story-content" className={`${styles.body} max-w-[72ch] text-[1.125rem] sm:text-[1.2rem]`} dangerouslySetInnerHTML={{ __html: html }} />
-            {(article.sourceName || article.sourceUrl) ? (
-              <p className="mt-9 border-t border-[#e9edf2] pt-4 text-[13px] leading-relaxed text-[#667085]">
-                Source: {article.sourceUrl ? (
-                  <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#475467] underline decoration-[#cbd5e1] underline-offset-4 hover:text-[#c94308]">
-                    {article.sourceName || "Original reporting"} <ExternalLink className="inline h-3 w-3" />
-                  </a>
-                ) : <span className="font-semibold text-[#475467]">{article.sourceName}</span>}
-              </p>
-            ) : null}
             <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9edf2] pt-5">
               <Link href={`/media/category/${article.category}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#c94308] hover:underline">
                 More in {label} <ArrowRight className="h-4 w-4" />
