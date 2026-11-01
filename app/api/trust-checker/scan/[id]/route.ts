@@ -10,7 +10,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const requester = await currentRequester(req.headers);
   const db = createServiceRoleClient() as unknown as { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const { data } = await db.from("trust_scans").select("user_id, requester_hash, report").eq("id", id).maybeSingle();
+  const { data, error } = await db.from("trust_scans").select("user_id, requester_hash, report").eq("id", id).maybeSingle();
+  if (error) return NextResponse.json({ error: "Scan report is temporarily unavailable." }, { status: 503 });
   const mine = data && (data.user_id ? data.user_id === requester.userId : data.requester_hash === requester.hash);
   if (!mine) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ report: data.report });
