@@ -14,8 +14,8 @@ export type ProductInput = {
 };
 
 async function jimvioListing(url: URL): Promise<Finding[]> {
-  if (!/(^|\\.)jimvio\\.com$/.test(url.hostname)) return [];
-  const slug = /\\/(?:marketplace|products?|digital)\\/([^/?#]+)/.exec(url.pathname)?.[1];
+  if (!/(^|\.)jimvio\.com$/.test(url.hostname)) return [];
+  const slug = /\/(?:marketplace|products?|digital)\/([^/?#]+)/.exec(url.pathname)?.[1];
   if (!slug) return [];
   const { data: p } = await db()
     .from("products")
@@ -67,7 +67,7 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     }
     text = extractText(file.buf, file.type) ?? "";
     if (!text && ["pdf", "office", "ebook"].includes(file.type.kind)) limits.push("Text inside this file couldn't be read, so originality and claims were checked from the name only.");
-    nameForMatch = file.name.replace(/\\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ");
+    nameForMatch = file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ");
   }
 
   if (page) {
