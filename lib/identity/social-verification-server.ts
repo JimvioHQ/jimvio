@@ -60,9 +60,19 @@ async function saveVerified(
   method: "oauth" | "bio_code" | "admin_review",
   note: string,
 ) {
+  const client = db();
+  const { data: existing } = await client
+    .from("jip_social_accounts")
+    .select("is_public")
+    .eq("user_id", userId)
+    .eq("platform", platform)
+    .maybeSingle();
   const payload: Record<string, unknown> = {
     user_id: userId,
     platform,
+    // New connections stay private until the owner opts in. Preserve an
+    // existing public/private choice when the account is re-verified.
+    is_public: existing?.is_public === true,
     handle: fields.handle,
     url: fields.url,
     is_verified: true,
@@ -77,7 +87,7 @@ async function saveVerified(
   };
   if (fields.followers != null && fields.followers >= 0) payload.followers = fields.followers;
   if (fields.metadata) payload.metadata = fields.metadata;
-  const { data } = await db()
+  const { data } = await client
     .from("jip_social_accounts")
     .upsert(payload, { onConflict: "user_id,platform" })
     .select("*")
