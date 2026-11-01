@@ -245,9 +245,18 @@ export function TrustReportView({
             {report.input.url ? (
               <p className="flex min-w-0 items-start gap-2">
                 <Link2 className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5A1F]" />
-                <a href={report.input.url} target="_blank" rel="noreferrer" className="min-w-0 break-all font-semibold underline decoration-[#F8B99C] underline-offset-2 hover:text-[#E84B16]">
-                  {report.input.url} <ExternalLink className="inline h-3 w-3" />
-                </a>
+                {(() => {
+                  let safeHref: string | null = null;
+                  try {
+                    const parsed = new URL(report.input.url!);
+                    if (parsed.protocol === "http:" || parsed.protocol === "https:") safeHref = parsed.toString();
+                  } catch { /* Keep malformed input as plain text; never make it clickable. */ }
+                  return safeHref ? (
+                    <a href={safeHref} target="_blank" rel="noreferrer" className="min-w-0 break-all font-semibold underline decoration-[#F8B99C] underline-offset-2 hover:text-[#E84B16]">
+                      {report.input.url} <ExternalLink className="inline h-3 w-3" />
+                    </a>
+                  ) : <span className="min-w-0 break-all font-semibold text-[#53627E]">{report.input.url}</span>;
+                })()}
               </p>
             ) : null}
             {report.input.file ? (
