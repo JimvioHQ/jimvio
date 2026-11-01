@@ -264,10 +264,3 @@ export async function checkCodeForAccount(
   }
   return readableBio ? "not_found" : "unreachable";
 }
-
-/** Server-side read of one public page (kept for callers that have a URL only). */
-export async function checkCodeOnPage(pageUrl: string, code: string): Promise<CodeCheck> {
-  const page = await readSource({ url: pageUrl });
-  if (page == null) return "unreachable";
-  return pageContainsCode(page, code) ? "found" : "not_found";
-}
