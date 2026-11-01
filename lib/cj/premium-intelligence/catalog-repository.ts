@@ -662,10 +662,18 @@ export async function startSyncRun(jobType: string): Promise<string | null> {
     .single();
 
   if (error) {
-    if (error.message.includes("schema cache") || error.message.includes("does not exist")) {
+    // Supabase/PostgREST normally supplies a string message, but upstream
+    // transport/proxy failures can return an incomplete error shape.
+    // Normalize defensively so an absent message never masks the real failure.
+    const errorMessage =
+      typeof error.message === "string"
+        ? error.message
+        : String(error.message ?? error);
+
+    if (errorMessage.includes("schema cache") || errorMessage.includes("does not exist")) {
       return null;
     }
-    throw new Error(error.message);
+    throw new Error(errorMessage);
   }
   return data.id as string;
 }
