@@ -87,7 +87,7 @@ export function IdentitySocialLinks({
         return (
           <a
             key={account.id}
-            href={account.url ?? "#"}
+            href={href}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={"Open " + meta.label + (account.handle ? " account @" + account.handle : "")}
