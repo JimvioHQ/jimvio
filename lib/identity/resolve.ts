@@ -434,6 +434,15 @@ async function buildProfilePayload(
     countJimvioFollowing(db, profile.id),
   ]);
 
+  let socialsQuery = db
+    .from("jip_social_accounts")
+    .select("*")
+    .eq("user_id", profile.id)
+    .order("followers", { ascending: false });
+  // Owners and admins can manage/review all accounts. Everyone else receives
+  // only accounts the owner explicitly marked public.
+  if (!isSelf && !flags.isAdmin) socialsQuery = socialsQuery.eq("is_public", true);
+
   const canBook =
     !isSelf && Boolean(viewerId) && identity.availability !== "unavailable" && contactPreferences.booking;
   const restricted = !canView;
@@ -484,7 +493,7 @@ async function buildProfilePayload(
     creatorStats,
     reviews,
   ] = await Promise.all([
-    db.from("jip_social_accounts").select("*").eq("user_id", profile.id).order("followers", { ascending: false }),
+    socialsQuery,
     portfolioQuery,
     testimonialsQuery,
     db.from("jip_resume_entries").select("*").eq("user_id", profile.id).order("sort_order", { ascending: true }),
