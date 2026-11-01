@@ -1,7 +1,7 @@
 import { BadgeCheck } from "lucide-react";
 import type { IdentitySocialAccount, IdentitySocialPlatform } from "@/lib/identity/types";
 import { IdentityCard, cn } from "@/components/identity/identity-ui";
-import { SocialPlatformIcon, SOCIAL_PLATFORM_LABEL } from "@/components/identity/SocialPlatformIcon";
+import { SocialPlatformIcon } from "@/components/identity/SocialPlatformIcon";
 import { formatNumber } from "@/lib/utils";
 
 const PLATFORM_META: Record<IdentitySocialPlatform, { label: string; color: string }> = {
