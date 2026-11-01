@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { zipSync, strToU8 } from "fflate";
 import { BlockedUrlError, isPublicAddress, normalizeUrl } from "./url-guard.ts";
-import { pageSignals, redirectSignals, urlSignals } from "./url-heuristics.ts";
+import { decideLinkStatus, pageSignals, redirectSignals, urlSignals } from "./url-heuristics.ts";
 import { extractText, fileSafety, sniffType } from "./file-inspect.ts";
 import { dHashFromPixels, findMarkers, hamming, markerFindings, pngTextChunks } from "./media-inspect.ts";
 import { claimFindings, readProductPage } from "./product-signals.ts";
@@ -164,5 +164,21 @@ describe("overall verdict", () => {
     assert.equal(overallFrom([c("low_risk"), c("unavailable")]).level, "inconclusive");
     assert.equal(overallFrom([c("low_risk"), c("low_risk")]).level, "low_risk");
     assert.equal(overallFrom([c("not_applicable")]).level, "inconclusive");
+  });
+});
+
+
+describe("link verdict requires enough evidence", () => {
+  it("never calls an unreachable page low risk from a clean reputation list alone", () => {
+    assert.equal(decideLinkStatus([], false, false, true), "inconclusive");
+  });
+  it("does not call a fetched page low risk when reputation checks were unavailable", () => {
+    assert.equal(decideLinkStatus([], false, true, false), "inconclusive");
+  });
+  it("allows low risk only when the page and reputation source were both checked", () => {
+    assert.equal(decideLinkStatus([], false, true, true), "low_risk");
+  });
+  it("keeps threat findings higher priority than unavailable evidence", () => {
+    assert.equal(decideLinkStatus([{ tone: "bad", title: "Threat", source: "test" }], true, false, false), "known_threat");
   });
 });

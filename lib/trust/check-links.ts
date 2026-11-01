@@ -2,20 +2,11 @@ import "server-only";
 import { getDomain } from "tldts";
 import type { CheckerResult, Finding } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
-import { officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
+import { decideLinkStatus, officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
 import { domainAge, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
 
 export type LinkContext = { url: URL; chain: FetchChain; html: string | null; contentType: string; domainAgeDays: number | null };
 
-export function decideLinkStatus(findings: Finding[], knownThreat: boolean, fetched: boolean, reputationChecked: boolean): CheckerResult["status"] {
-  if (knownThreat) return "known_threat";
-  const bad = findings.filter((f) => f.tone === "bad").length;
-  const warn = findings.filter((f) => f.tone === "warn").length;
-  if (bad >= 2 || (bad >= 1 && warn >= 2)) return "high_risk";
-  if (bad >= 1 || warn >= 2) return "suspicious";
-  if (!fetched && !reputationChecked) return "inconclusive";
-  return "low_risk";
-}
 
 /** Checker 1: is this link a scam, phishing page or malware download? */
 export async function checkLink(raw: string): Promise<{ result: CheckerResult; context: LinkContext | null }> {
@@ -120,7 +111,7 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     findings.unshift({ tone: "good", title: `Official ${platformName} address`, detail: `${startReg} belongs to ${platformName}.`, source: "URL analysis" });
   }
 
-  const status = decideLinkStatus(findings, knownThreat, Boolean(final) || Boolean(platformName), reputationChecked || Boolean(platformName));
+  const status = decideLinkStatus(findings, knownThreat, Boolean(final), reputationChecked);
   const summary =
     platformName && status === "low_risk"
       ? `Genuine ${platformName} link. No known threat found.`

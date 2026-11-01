@@ -124,7 +124,9 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         metrics: [
           { label: "Video", value: String(item.snippet?.title ?? "").slice(0, 80) },
           { label: "Channel", value: String(item.snippet?.channelTitle ?? "") },
-          { label: "Views", value: fmt(post.views) },
+          { label: "Public views (YouTube)", value: fmt(post.views) },
+          { label: "Verified real views", value: "Not available" },
+          { label: "Detected fake / bot views", value: "Not available" },
           { label: "Likes", value: fmt(post.likes) },
           { label: "Comments", value: fmt(post.comments) },
           { label: "Engagement", value: a.engagementRate == null ? "—" : `${(a.engagementRate * 100).toFixed(2)}%` },
