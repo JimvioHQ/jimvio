@@ -53,70 +53,26 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#e7eaf0] bg-white/95 shadow-[0_2px_12px_rgba(16,24,40,0.035)] backdrop-blur-xl">
-      <div className="relative isolate overflow-hidden bg-[#111318]">
-        <span aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <span className="jv-media-orb jv-media-orb-a" />
-          <span className="jv-media-orb jv-media-orb-b" />
-          <span className="jv-media-orb jv-media-orb-c" />
-          <span className="jv-media-sheen" />
-        </span>
-        <div className="mx-auto flex h-[70px] max-w-[1280px] items-center gap-4 px-4 sm:px-6 lg:px-8">
-          <Link href="/media" aria-label="Jimvio Media home" className="flex shrink-0 items-center gap-2.5">
-            <Image src="/jimvio-logo-mark.png" alt="" width={38} height={38} className="h-[38px] w-[38px] rounded-[11px] shadow-[0_0_22px_rgba(253,80,0,0.35)]" priority />
-            <span className="leading-tight">
-              <span className="block text-[17px] font-extrabold tracking-[-0.035em] text-white">
-                Jimvio <span className="bg-gradient-to-r from-[#ff7a2f] to-[#ffc46b] bg-clip-text text-transparent">Media</span>
-              </span>
-              <span className="hidden text-[10px] font-semibold tracking-[0.14em] text-white/55 sm:block">GLOBAL STORIES · CLEAR PERSPECTIVE</span>
-            </span>
-          </Link>
-
-          <form action="/media/search" className="mx-auto hidden w-full max-w-[540px] md:block">
-            <label className="relative block">
-              <span className="sr-only">Search Jimvio Media</span>
-              <input
-                name="q"
-                placeholder="Search stories, topics and insights"
-                className="h-10 w-full rounded-full border border-white/15 bg-white/[0.08] pl-4 pr-11 text-sm text-white outline-none transition placeholder:text-white/50 focus:border-[#ff7a2f] focus:bg-white focus:text-[#172033] focus:placeholder:text-[#98a2b3]"
-              />
-              <button type="submit" aria-label="Search" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-white/70 transition hover:text-white">
-                <Search className="h-4 w-4" />
-              </button>
-            </label>
-          </form>
-
-          <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0">
-            <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/85 transition hover:bg-white/10 md:hidden" aria-expanded={searchOpen} onClick={() => setSearchOpen((value) => !value)}>
-              <Search className="h-[18px] w-[18px]" />
-              <span className="sr-only">Search</span>
-            </button>
-            <div className="relative">
-              <button type="button" className="inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-white/90 transition hover:bg-white/10" aria-expanded={lang} aria-haspopup="listbox" onClick={() => { setLang((value) => !value); setMore(false); }}>
-                <Globe className="h-4 w-4" /> {current.label} <ChevronDown className="h-3.5 w-3.5 text-white/55" />
-              </button>
-              {lang ? (
-                <ul role="listbox" aria-label="Language" className="absolute right-0 z-30 mt-2 w-28 overflow-hidden rounded-xl border border-[#e9edf2] bg-white py-1 shadow-xl">
-                  {LOCALES.map((item) => (
-                    <li key={item.code}>
-                      <button type="button" role="option" aria-selected={item.code === locale} className="block w-full px-3 py-2.5 text-left text-sm font-semibold text-[#344054] transition hover:bg-[#f7f8fa]" onClick={() => chooseLocale(item.code)}>{item.label}</button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {searchOpen ? (
-        <form action="/media/search" className="border-b border-[#e9edf2] bg-white px-4 py-3 md:hidden">
-          <label className="relative block">
-            <span className="sr-only">Search Jimvio Media</span>
-            <input name="q" autoFocus placeholder="Search stories, topics and insights" className="h-11 w-full rounded-xl border border-[#e4e7ec] bg-[#f8f9fb] pl-4 pr-11 text-sm text-[#172033] outline-none focus:border-[#fd5000] focus:bg-white" />
-            <button type="submit" aria-label="Search" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#667085]"><Search className="h-4 w-4" /></button>
-          </label>
+      <div className="mx-auto flex h-[58px] max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:h-[56px] lg:px-10">
+        <Link href="/media" aria-label="Jimvio Media home" className="flex shrink-0 items-center gap-2.5">
+          <Image src="/jimvio-logo-mark.png" alt="" width={38} height={38} className="h-[34px] w-[34px] rounded-full" priority />
+          <span className="text-[19px] font-extrabold tracking-[-0.045em] text-[#101828]">Jimvio <span className="text-[#fd5000]">Media</span></span>
+        </Link>
+        <div className="mx-2 hidden h-6 w-px bg-[#e7eaf0] lg:block" />
+        <form action="/media/search" className="mx-auto hidden w-full max-w-[400px] md:block lg:hidden">
+          <label className="relative block"><span className="sr-only">Search Jimvio Media</span><input name="q" placeholder="Search stories, topics or countries..." className="h-10 w-full rounded-full border-0 bg-[#f0f3fb] pl-4 pr-11 text-sm text-[#172033] outline-none placeholder:text-[#667085] focus:ring-2 focus:ring-[#fd5000]/30"/><button type="submit" aria-label="Search" className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#172033]"><Search className="h-4 w-4"/></button></label>
         </form>
-      ) : null}
+        <div className="ml-auto flex shrink-0 items-center gap-1 lg:ml-0">
+          <button type="button" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#172033] hover:bg-[#f5f6f8] md:hidden" aria-expanded={searchOpen} onClick={() => setSearchOpen((value) => !value)}><Search className="h-[19px] w-[19px]"/><span className="sr-only">Search</span></button>
+          <div className="relative">
+            <button type="button" className="inline-flex h-10 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-bold text-[#172033] hover:bg-[#f5f6f8]" aria-expanded={lang} aria-haspopup="listbox" onClick={() => {setLang((value)=>!value);setMore(false);}}><Globe className="h-4 w-4"/>{current.label}<ChevronDown className="h-3.5 w-3.5"/></button>
+            {lang ? <ul role="listbox" aria-label="Language" className="absolute right-0 z-30 mt-2 w-28 overflow-hidden rounded-xl border border-[#e9edf2] bg-white py-1 shadow-xl">{LOCALES.map((item)=><li key={item.code}><button type="button" role="option" aria-selected={item.code===locale} className="block w-full px-3 py-2.5 text-left text-sm font-semibold text-[#344054] hover:bg-[#f7f8fa]" onClick={()=>chooseLocale(item.code)}>{item.label}</button></li>)}</ul>:null}
+          </div>
+          <button type="button" aria-label="Open sections menu" aria-expanded={more} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#172033] hover:bg-[#f5f6f8] lg:hidden" onClick={()=>setMore((value)=>!value)}><span className="flex flex-col gap-[4px]"><span className="h-[2px] w-5 rounded bg-current"/><span className="h-[2px] w-5 rounded bg-current"/><span className="h-[2px] w-5 rounded bg-current"/></span></button>
+        </div>
+        <form action="/media/search" className="ml-auto hidden w-full max-w-[310px] lg:block"><label className="relative block"><span className="sr-only">Search Jimvio Media</span><input name="q" placeholder="Search stories, topics, or countries..." className="h-9 w-full rounded-full border-0 bg-[#f0f3fb] pl-10 pr-3 text-[12px] text-[#172033] outline-none placeholder:text-[#667085] focus:ring-2 focus:ring-[#fd5000]/30"/><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#172033]"/></label></form>
+      </div>
+      {searchOpen ? <form action="/media/search" className="border-t border-[#e9edf2] bg-white px-4 py-3 md:hidden"><label className="relative block"><span className="sr-only">Search Jimvio Media</span><input name="q" autoFocus placeholder="Search stories, topics or countries..." className="h-11 w-full rounded-xl border border-[#e4e7ec] bg-[#f8f9fb] pl-4 pr-11 text-sm text-[#172033] outline-none focus:border-[#fd5000] focus:bg-white"/><button type="submit" aria-label="Search" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center text-[#667085]"><Search className="h-4 w-4"/></button></label></form>:null}
 
       <nav aria-label="Media sections" className="mx-auto hidden h-[48px] max-w-[1280px] items-center gap-x-7 px-6 lg:flex lg:px-8">
         {primaryLinks.map((link) => (
