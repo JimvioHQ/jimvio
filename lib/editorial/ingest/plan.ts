@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { getDomain } from "tldts";
 import { containsDiagnosticProse, withHeroCaption } from "@/lib/editorial/caption";
 import { isEditorialMarkUrl } from "@/lib/editorial/image-display";
 import type { MediaCategory, MediaStatus } from "@/lib/editorial/types";
@@ -162,7 +163,8 @@ export function planSourceItems(input: {
 }): PlannedItem[] & { heldForPace: number } {
   const ids = input.ids ?? stableItemId;
   const now = input.now;
-  const staleBefore = now.getTime() - input.settings.staleDays * 24 * 60 * 60 * 1000;
+  const staleWindowDays = Math.min(Math.max(input.settings.staleDays, 1), 2);
+  const staleBefore = now.getTime() - staleWindowDays * 24 * 60 * 60 * 1000;
   const sourceLanguage = primaryLanguage(input.source.language);
   const knownKeys = new Map(input.existingItems.map((item) => [item.externalKey, item]));
   const knownPrints = new Map(input.existingItems.map((item) => [item.fingerprint, item]));
