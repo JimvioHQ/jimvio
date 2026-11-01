@@ -104,7 +104,7 @@ export function SocialAccountsManager({
                 <label className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-[#6B7280]">
                   <input
                     type="checkbox"
-                    checked={a.isPublic !== false}
+                    checked={a.isPublic === true}
                     disabled={updatingId === a.id}
                     onChange={(event) => void togglePublic(a, event.target.checked)}
                     aria-label={"Show " + SOCIAL_PLATFORM_LABEL[a.platform] + " on public profile"}
