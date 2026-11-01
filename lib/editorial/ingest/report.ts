@@ -237,7 +237,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   if (sharesLongPhrase(generated, input.corpusParts)) issues.push("originality");
   if (digitsOutside(generated, corpus)) issues.push("unsupported_number");
   if (unsupportedQuote(generated, corpus)) issues.push("unsupported_quote");
-  const outputWords = wordCount(generated.replace(/<[^>]+>/g, " "));
+  const outputWords = wordCount(bodyHtml.replace(/<[^>]+>/g, " "));
   const headed = draft.sections.filter((section) => section.heading).length;
   if (outputWords < 900 || headed < 3) issues.push("insufficient_depth");
   if (outputWords > 1500) issues.push("overlong");
