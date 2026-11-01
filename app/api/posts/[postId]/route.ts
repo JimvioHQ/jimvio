@@ -159,10 +159,9 @@ export async function DELETE(
 
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const hasAccess = await canAccessRoom(user.id, post.room_id);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
-
   const isAuthor = post.author_id === user.id;
+  const hasAccess = isAuthor || await canAccessRoom(user.id, post.room_id);
+  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
   const { data: staff } = await supabase
     .from("community_memberships")
     .select("role")
@@ -178,11 +177,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await supabase
+  const deleteQuery = supabase
     .from("community_posts")
     .delete()
-    .eq("id", postId)
-    .eq("author_id", user.id);
+    .eq("id", postId);
+  const { error } = isAuthor
+    ? await deleteQuery.eq("author_id", user.id)
+    : await deleteQuery;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true });
