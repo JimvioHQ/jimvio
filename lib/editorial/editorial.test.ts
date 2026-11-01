@@ -605,7 +605,7 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(articleView.includes("Updated {"), false);
     assert.match(articleView, /article\.authorName/);
     assert.match(articleView, /publicSource\(article\)/);
-    assert.match(articleView, /Source:/);
+    assert.doesNotMatch(articleView, /Source:/);
     assert.match(articleView, /Published /);
     const storyImage = read("components/editorial/story-image-asset.tsx");
     assert.match(storyImage, /onError=\{\(\) => setFailed\(true\)\}/);
