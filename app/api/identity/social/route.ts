@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     engagement_rate: Number.isFinite(Number(body.engagementRate))
       ? Math.max(0, Number(body.engagementRate))
       : 0,
-    is_public: body.isPublic === false ? false : true,
+    is_public: body.isPublic === true,
     metadata: typeof body.metadata === "object" && body.metadata !== null ? body.metadata : {},
   };
 
