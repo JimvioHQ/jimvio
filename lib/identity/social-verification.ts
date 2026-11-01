@@ -50,7 +50,21 @@ export function publicProfileUrl(platform: string, handle: string | null, url: s
     try {
       const u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
       if ((u.protocol === "https:" || u.protocol === "http:") && isPlatformHost(platform, u.hostname)) {
-        return u.toString();
+        const storedHandle = cleanHandle(handle);
+        const parts = u.pathname.split("/").filter(Boolean);
+        let pathHandle = parts[0] ?? null;
+        if (platform === "snapchat" && parts[0] === "add") pathHandle = parts[1] ?? null;
+        if (platform === "linkedin" && parts[0] === "in") pathHandle = parts[1] ?? null;
+        if (platform === "tiktok" || platform === "threads" || platform === "youtube") {
+          pathHandle = pathHandle?.replace(/^@/, "") ?? null;
+        }
+        if (platform === "facebook" && pathHandle === "profile.php") pathHandle = null;
+        const comparableHandle = storedHandle && !/^https?:/i.test(storedHandle) && !storedHandle.includes("/");
+        if (!comparableHandle || !pathHandle || storedHandle.toLowerCase() === decodeURIComponent(pathHandle).toLowerCase()) {
+          return u.toString();
+        }
+        // A URL for a different account must not be used as verification evidence.
+        // Fall through and build the profile URL from the account's stored handle.
       }
     } catch {
       /* fall through to the validated handle */
