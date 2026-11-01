@@ -15,7 +15,11 @@ export async function GET(req: NextRequest) {
   const requestedLimit = Number.parseInt(req.nextUrl.searchParams.get("limit") ?? String(DEFAULT_PAGE_SIZE), 10);
   const page = Number.isFinite(requestedPage) ? Math.max(1, requestedPage) : 1;
   const limit = Number.isFinite(requestedLimit) ? Math.min(MAX_PAGE_SIZE, Math.max(1, requestedLimit)) : DEFAULT_PAGE_SIZE;
-  const offset = (page - 1) * limit;
+  const requestedOffset = req.nextUrl.searchParams.get("offset");
+  const parsedOffset = requestedOffset == null ? Number.NaN : Number.parseInt(requestedOffset, 10);
+  const offset = Number.isFinite(parsedOffset)
+    ? Math.min(1_000_000, Math.max(0, parsedOffset))
+    : (page - 1) * limit;
 
   // Author ID is the ownership source of truth. No community-owner shortcut is used.
   // Do not filter by community_id: this includes every post authored by the user.
