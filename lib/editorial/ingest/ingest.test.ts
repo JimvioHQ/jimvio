@@ -402,6 +402,13 @@ describe("external ingestion", () => {
       now,
       serverAutopublish: true,
       publishedToday: 0,
+      otherReports: [{
+        sourceName: "NIST News",
+        title: "NIST confirms mars crew simulation communication checks",
+        url: "https://www.nist.gov/news-events/news/official",
+        summary: SUMMARY,
+        publishedAt: "2026-10-27T18:00:00.000Z",
+      }],
       researchFor: (entry) => researched(entry.url),
     });
     assert.equal(official[0]?.status, "review");
