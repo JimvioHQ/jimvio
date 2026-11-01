@@ -91,6 +91,7 @@ function skipElement(source: string, index: number, name: string): number {
   return index;
 }
 
+// Public article rendering can restrict links to first-party paths only.
 function anchorTag(attrs: Attr[], internalLinksOnly: boolean): string {
   const href = attrs.find((attr) => attr.name === "href")?.value.trim() ?? "";
   if (/[\u0000-\u001f\u007f]/.test(href) || !isSafeHref(href) || (internalLinksOnly && (!href.startsWith("/") || href.startsWith("//")))) return "<a>";
