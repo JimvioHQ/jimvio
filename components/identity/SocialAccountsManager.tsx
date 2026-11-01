@@ -74,7 +74,7 @@ export function SocialAccountsManager({
           {social.map((a) => {
             const status = a.isVerified ? "verified" : a.verifyStatus ?? "unverified";
             return (
-              <li key={a.id} className="flex items-center gap-3 px-4 py-3">
+              <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
                 <SocialPlatformIcon platform={a.platform} className="h-10 w-10" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-semibold text-[#111827]">
