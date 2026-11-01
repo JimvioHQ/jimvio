@@ -102,20 +102,22 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
       toast.error("This media was uploaded privately. Re-upload it after enabling public visibility before publishing.");
       return;
     }
-    const { mediaAccess: _mediaAccess, ...draftPayload } = draft;
     setBusy(true);
     try {
       const response = await fetch("/api/identity/portfolio", {
         method: draft.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...draftPayload,
+          id: draft.id,
+          kind: draft.kind,
           title: draft.title.trim(),
           description: draft.description.trim(),
           mediaUrl: draft.mediaUrl.trim(),
           thumbnailUrl: draft.thumbnailUrl.trim(),
           externalUrl: draft.externalUrl.trim(),
           brandName: draft.brandName.trim(),
+          isFeatured: draft.isFeatured,
+          isPublic: draft.isPublic,
         }),
       });
       const json = await response.json().catch(() => ({}));
