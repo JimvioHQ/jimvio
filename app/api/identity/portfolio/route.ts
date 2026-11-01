@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   if (!KINDS.has(kind)) return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   if (!title) return NextResponse.json({ error: "title is required" }, { status: 400 });
+  if (title.length > 160) return NextResponse.json({ error: "Title must be 160 characters or fewer." }, { status: 400 });
 
   let mediaUrl: string | null;
   let thumbnailUrl: string | null;
