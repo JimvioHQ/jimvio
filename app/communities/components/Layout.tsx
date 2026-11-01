@@ -288,7 +288,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     isAuthenticated
                         ? [
                               {
-                                  label: myCommunityHome?.label ?? "My Community",
+                                  label: "My Posts", href: "/communities/my-posts", icon: FileText }, { label: myCommunityHome?.label ?? "My Community",
                                   href: myCommunityHome?.href ?? profileHref,
                                   icon: Users,
                               },
