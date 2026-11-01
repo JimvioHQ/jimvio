@@ -69,8 +69,8 @@ export async function runIngestCycle(options?: {
   });
   // Rotate fairly: sources that have waited longest are polled first.
   const due = [...selected].sort((left, right) => {
-    const leftAt = Date.parse(left.lastSuccessAt ?? left.lastAttemptAt ?? "1970-01-01T00:00:00.000Z");
-    const rightAt = Date.parse(right.lastSuccessAt ?? right.lastAttemptAt ?? "1970-01-01T00:00:00.000Z");
+    const leftAt = Date.parse(left.lastAttemptAt ?? left.lastSuccessAt ?? "1970-01-01T00:00:00.000Z");
+    const rightAt = Date.parse(right.lastAttemptAt ?? right.lastSuccessAt ?? "1970-01-01T00:00:00.000Z");
     return (Number.isFinite(leftAt) ? leftAt : 0) - (Number.isFinite(rightAt) ? rightAt : 0);
   }).slice(0, MAX_SOURCES_PER_CYCLE);
   counts.sources = due.length;
