@@ -99,7 +99,7 @@ function anchorTag(attrs: Attr[]): string {
   return `<a href="${safe}" rel="noopener noreferrer"${target}>`;
 }
 
-export function sanitizeArticleHtml(input: string): SafeHtml {
+export function sanitizeArticleHtml(input: string, options: { internalLinksOnly?: boolean } = {}): SafeHtml {
   const source = String(input ?? "").replace(/\0/g, "").slice(0, 100_000);
   let index = 0;
   let html = "";
@@ -155,7 +155,7 @@ export function sanitizeArticleHtml(input: string): SafeHtml {
     } else if (name.name === "br") {
       html += "<br>";
     } else if (name.name === "a") {
-      html += anchorTag(tag.attrs);
+      html += anchorTag(tag.attrs, options.internalLinksOnly === true);
     } else {
       html += `<${name.name}>`;
     }
