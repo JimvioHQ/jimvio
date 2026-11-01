@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     );
   }
   const len = Number(req.headers.get("content-length") ?? 0);
-  if (len > MAX_UPLOAD_BYTES + 200_000) return NextResponse.json({ error: "Files can be up to 4 MB." }, { status: 413 });
+  if (len > MAX_UPLOAD_BYTES + 90_000) return NextResponse.json({ error: "Files can be up to 4.2 MiB." }, { status: 413 });
 
   let form: FormData;
   try {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   let file: { buf: Buffer; name: string } | null = null;
   if (fileEntry && typeof fileEntry === "object" && "arrayBuffer" in fileEntry) {
     const blob = fileEntry as File;
-    if (blob.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "Files can be up to 4 MB." }, { status: 413 });
+    if (blob.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: "Files can be up to 4.2 MiB." }, { status: 413 });
     if (blob.size > 0) file = { buf: Buffer.from(await blob.arrayBuffer()), name: blob.name || "file" };
   }
   if (!url && !file) return NextResponse.json({ error: "Paste a link or choose a file." }, { status: 400 });
