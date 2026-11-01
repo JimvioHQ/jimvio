@@ -16,8 +16,8 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
           </p>
           <p className="mt-1 text-sm text-[#667085]">Stories, ideas and insights shaping what comes next.</p>
         </div>
-        <Link href="/media/search" className="inline-flex items-center gap-2 text-sm font-semibold text-[#344054] transition hover:text-[#c94308]">
-          Explore the newsroom <ArrowRight className="h-4 w-4" />
+        <Link href="/media/latest" className="inline-flex items-center gap-2 text-sm font-semibold text-[#344054] transition hover:text-[#c94308]">
+          Browse all stories <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
