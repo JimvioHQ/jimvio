@@ -168,7 +168,7 @@ export async function recalculateSupplierHealth(limit = 500): Promise<number> {
     const supplierName = String(row.supplier ?? row.supplier_name ?? "Unknown");
     const verifiedWarehouse = Number(row.verified_warehouse ?? 0);
     const supplierVerified =
-      row.supplier_verified === true || row.supplier_verified === "true";
+      row.supplier_verified === "true";
 
     const stub: EnrichedProduct = {
       pid: row.pid as string,
