@@ -112,7 +112,7 @@ describe("creator profile completion", () => {
   });
 });
 
-import { newVerifyCode, pageContainsCode, publicProfileUrl } from "../../identity/social-verification.ts";
+import { newVerifyCode, pageContainsCode, publicProfileUrl, readProfileBio } from "../../identity/social-verification.ts";
 import { CREATOR_CATEGORIES, cleanCategories } from "../../identity/creator-categories.ts";
 
 describe("social verification", () => {
@@ -125,6 +125,21 @@ describe("social verification", () => {
     assert.equal(pageContainsCode("Welcome! jimvio — ab12cd.", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: jimvio ab12cd", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: hello", "JIMVIO-AB12CD"), false);
+  });
+  it("extracts only the structured profile bio, never post captions", () => {
+    const profile = JSON.stringify({
+      data: {
+        user: {
+          biography: "Creator profile: JIMVIO-AB12CD",
+          edge_owner_to_timeline_media: {
+            edges: [{ node: { caption: "JIMVIO-OTHER1" } }],
+          },
+        },
+      },
+    });
+    assert.equal(readProfileBio("instagram", profile), "Creator profile: JIMVIO-AB12CD");
+    assert.equal(readProfileBio("instagram", JSON.stringify({ edge_media_to_caption: "JIMVIO-AB12CD" })), null);
+    assert.equal(readProfileBio("x", JSON.stringify({ user: { description: "JIMVIO-AB12CD" } })), "JIMVIO-AB12CD");
   });
   it("rejects partial tokens and codes embedded in longer identifiers", () => {
     assert.equal(pageContainsCode("JIMVIO-AB12CDA", "JIMVIO-AB12CD"), false);
