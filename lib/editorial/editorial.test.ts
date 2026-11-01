@@ -267,8 +267,14 @@ describe("editorial publishing guards", () => {
     assert.match(actions, /permanentlyDeleteMediaArticle/);
     assert.match(read("components/editorial/admin/article-table.tsx"), /DeleteArticleButton/);
     assert.match(read("components/editorial/admin/delete-article-button.tsx"), /Type the full article title to confirm/);
+    const deletionStart = actions.indexOf("export async function permanentlyDeleteMediaArticle");
+    const deletionBody = actions.slice(deletionStart);
+    assert.ok(deletionBody.indexOf("publisherDenial") < deletionBody.indexOf("adminDeleteArticle"));
+    assert.ok(deletionBody.indexOf("confirmationTitle.trim() !== existing.article.title") < deletionBody.indexOf("adminDeleteArticle"));
+    assert.ok(deletionBody.indexOf("adminDeleteArticle") < deletionBody.indexOf("media_article_permanently_deleted"));
+    assert.match(read("lib/editorial/admin-store.ts"), /\.delete\(\)/);
     const names = [...actions.matchAll(/export async function (\w+)/g)].map((match) => match[1]);
-    assert.deepEqual(names, ["saveMediaArticle", "removeMediaTag"]);
+    assert.deepEqual(names, ["saveMediaArticle", "removeMediaTag", "permanentlyDeleteMediaArticle"]);
     for (const name of names) {
       const start = actions.indexOf(`export async function ${name}`);
       const body = actions.slice(start, start + 700);
