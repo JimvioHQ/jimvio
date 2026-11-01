@@ -125,6 +125,9 @@ function decideIntent(input: {
     return { intent: "review", reasons: ["autopublish_not_authorized"] };
   }
   if (needsReview) reasons.push("review_required");
+  // Auto-publishing requires corroboration from at least two distinct publishers.
+  // Related feed entries are only candidate corroboration; they must be from another source.
+  if (input.independent < 2) reasons.push("insufficient_independent_sources");
   if (!input.imageOk) reasons.push("image_unavailable");
   if (input.publishedToday >= input.settings.dailyPublishCap) reasons.push("publish_cap");
   if (input.source.permittedUsage !== "facts" && input.source.permittedUsage !== "full") reasons.push("usage");
