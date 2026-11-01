@@ -156,7 +156,7 @@ export function planArticleWrite(
   const slug = resolveSlug(input, existing?.slug ?? null);
   if (slug.error) errors.slug = slug.error;
   const bodyHtml = sanitizeArticleHtml(input.bodyHtml);
-  if ((intent === "published" || intent === "scheduled") && plainText(bodyHtml).split(/\\s+/).filter(Boolean).length < 300) {
+  if ((intent === "published" || intent === "scheduled") && plainText(bodyHtml).split(/\s+/).filter(Boolean).length < 300) {
     errors.bodyHtml = "Write a substantive article of at least 300 words before publication.";
   }
   if (Object.keys(errors).length > 0) {
