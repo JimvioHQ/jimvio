@@ -105,9 +105,6 @@ export function pageContainsCode(html: string, code: string): boolean {
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
 
-const BROWSER_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-
 /** Handle from a stored handle or from the path of a profile link. */
 export function handleFor(platform: string, handle: string | null, url: string | null): string | null {
   const direct = cleanHandle(handle);
@@ -131,9 +128,16 @@ type Source = { url: string; headers?: Record<string, string> };
  * Only official, authenticated APIs are used for automatic bio verification.
  * Unsupported platforms stay pending and can be sent for manual review.
  */
+function isValidApiHandle(platform: string, handle: string): boolean {
+  if (platform === "instagram") return /^[A-Za-z0-9._]{1,30}$/.test(handle);
+  if (platform === "x") return /^[A-Za-z0-9_]{1,15}$/.test(handle);
+  if (platform === "youtube") return /^[A-Za-z0-9._-]{3,30}$/.test(handle);
+  return false;
+}
+
 export function bioSources(platform: string, handle: string | null, url: string | null): Source[] {
   const h = handleFor(platform, handle, url);
-  if (!h) return [];
+  if (!h || !isValidApiHandle(platform, h)) return [];
   switch (platform) {
     case "instagram": {
       const token = process.env.INSTAGRAM_ACCESS_TOKEN;
