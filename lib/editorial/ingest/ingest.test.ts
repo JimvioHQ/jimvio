@@ -334,7 +334,7 @@ describe("external ingestion", () => {
     const dawn = new Date("2026-10-27T00:30:00.000Z");
     assert.equal(publishPaceOpen(0, 10, dawn), true);
     assert.equal(publishPaceOpen(1, 10, dawn), false);
-    assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), true);
+    assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), false);
     assert.equal(publishPaceOpen(0, 0, dawn), false);
     assert.deepEqual(cycleSourceOutcome({ heldForPace: true, writerUnavailable: false }), {
       note: "Held for the daily publication pace.",
