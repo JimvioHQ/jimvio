@@ -528,7 +528,7 @@ describe("editorial lifecycle decisions", () => {
     );
     assert.equal(corrected?.datePublished, "2026-10-01T08:00:00.000Z");
     assert.equal(corrected?.dateModified, "2026-10-02T08:00:00.000Z");
-    assert.deepEqual(corrected?.author, { "@type": "Person", name: "Aline Uwase" });
+    assert.deepEqual(corrected?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
     const recent = articleJsonLd(
       {
         fixture: false,
