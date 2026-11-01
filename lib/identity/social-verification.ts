@@ -58,7 +58,7 @@ export function publicProfileUrl(platform: string, handle: string | null, url: s
         if (platform === "tiktok" || platform === "threads" || platform === "youtube") {
           pathHandle = pathHandle?.replace(/^@/, "") ?? null;
         }
-        if (platform === "facebook" && pathHandle === "profile.php") pathHandle = null;
+        if (platform === "facebook" && pathHandle === "profile.php") pathHandle = "";
         const comparableHandle = storedHandle && !/^https?:/i.test(storedHandle) && !storedHandle.includes("/");
         if (!comparableHandle || !pathHandle || storedHandle.toLowerCase() === decodeURIComponent(pathHandle).toLowerCase()) {
           return u.toString();
