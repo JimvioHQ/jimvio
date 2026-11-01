@@ -128,6 +128,131 @@ export function handleFor(platform: string, handle: string | null, url: string |
 type Source = { url: string; headers?: Record<string, string> };
 
 /**
+ * Only official, authenticated APIs are used for automatic bio verification.
+ * Unsupported platforms stay pending and can be sent for manual review.
+ */
+export function bioSources(platform: string, handle: string | null, url: string | null): Source[] {
+  const h = handleFor(platform, handle, url);
+  if (!h) return [];
+  switch (platform) {
+    case "instagram": {
+      const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+      const businessAccountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+      if (!token || !businessAccountId) return [];
+      const fields = "business_discovery.username(" + h + "){username,biography}";
+      return [{
+        url: "https://graph.facebook.com/v26.0/" + encodeURIComponent(businessAccountId) + "?fields=" + encodeURIComponent(fields),
+        headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+      }];
+    }
+    case "x": {
+      const token = process.env.X_BEARER_TOKEN;
+      if (!token) return [];
+      return [{
+        url: "https://api.x.com/2/users/by/username/" + encodeURIComponent(h) + "?user.fields=username,description",
+        headers: { Authorization: "Bearer " + token, Accept: "application/json" },
+      }];
+    }
+    case "youtube": {
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      if (!apiKey) return [];
+      return [{
+        url: "https://www.googleapis.com/youtube/v3/channels?part=snippet&forHandle=" + encodeURIComponent(h),
+        headers: { "X-Goog-Api-Key": apiKey, Accept: "application/json" },
+      }];
+    }
+    default:
+      return [];
+  }
+}
+
+/** Extract a bio only from the official API response for the requested account. */
+export function readProfileBio(platform: string, body: string, expectedHandle?: string | null): string | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return null;
+  }
+
+  const readPath = (value: unknown, path: string[]): unknown => {
+    let current: unknown = value;
+    for (const key of path) {
+      if (!current || typeof current !== "object") return null;
+      current = (current as Record<string, unknown>)[key];
+    }
+    return current;
+  };
+
+  const identityPath: Record<string, string[]> = {
+    instagram: ["business_discovery", "username"],
+    x: ["data", "username"],
+    youtube: ["items", "0", "snippet", "customUrl"],
+  };
+  const bioPath: Record<string, string[]> = {
+    instagram: ["business_discovery", "biography"],
+    x: ["data", "description"],
+    youtube: ["items", "0", "snippet", "description"],
+  };
+  const identity = readPath(parsed, identityPath[platform] ?? []);
+  const biography = readPath(parsed, bioPath[platform] ?? []);
+  if (typeof identity !== "string" || typeof biography !== "string") return null;
+
+  if (expectedHandle) {
+    const expected = expectedHandle.trim().replace(/^@/, "").toLowerCase();
+    const actual = identity.trim().replace(/^@/, "").toLowerCase();
+    if (!expected || actual !== expected) return null;
+  }
+  return biography;
+}
+
+async function readSource(source: Source): Promise<string | null> {
+  try {
+    const res = await fetch(source.url, {
+      headers: {
+        Accept: "application/json",
+        ...(source.headers ?? {}),
+      },
+      redirect: "error",
+      signal: AbortSignal.timeout(6_000),
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const text = (await res.text()).slice(0, 500_000);
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verify only a structured bio returned by an official platform API. Searching
+ * arbitrary profile HTML could match a post caption, comment, or unrelated text.
+ */
+export async function checkCodeForAccount(
+  platform: string,
+  handle: string | null,
+  url: string | null,
+  code: string,
+): Promise<CodeCheck> {
+  const expectedHandle = handleFor(platform, handle, url);
+  const sources = bioSources(platform, expectedHandle, url);
+  if (sources.length === 0) return "unreachable";
+  const pages = await Promise.all(sources.map(readSource));
+  let readableBio = false;
+  for (const page of pages) {
+    if (page == null) continue;
+    const bio = readProfileBio(platform, page, expectedHandle);
+    if (bio == null) continue;
+    readableBio = true;
+    if (pageContainsCode(bio, code)) return "found";
+  }
+  return readableBio ? "not_found" : "unreachable";
+}
+
+type Source = { url: string; headers?: Record<string, string> };
+
+/**
  * Where each platform shows a person's bio publicly, most reliable first.
  * Several sources are tried so one blocked page doesn't stop verification.
  */
