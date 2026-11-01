@@ -11,7 +11,6 @@ import {
   Compass,
   Facebook,
   FileArchive,
-  FileAudio,
   FileCode,
   FileImage,
   FilePdf,
