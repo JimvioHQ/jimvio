@@ -207,7 +207,11 @@ export function kickerFor(category: MediaCategory, kicker: string): string {
   return (custom || categoryLabel(category)).slice(0, 32);
 }
 
-const MIN_PUBLISH_BODY = 20;
+const MIN_PUBLISH_WORDS = 300;
+
+function countWords(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
 
 export function validateArticle(
   input: ArticleInput,
@@ -226,6 +230,9 @@ export function validateArticle(
   const author = input.authorName.trim();
   if (author && (author.length > 80 || isBannedByline(author))) {
     errors.authorName = "Use the writer's name. Do not use an editorial-team byline.";
+  }
+  if ((intent === "published" || intent === "scheduled") && !author) {
+    errors.authorName = "Add the real, accountable writer's full name before publication.";
   }
 
   const image = input.imageUrl.trim();
@@ -247,6 +254,10 @@ export function validateArticle(
   const correction = input.correctionNote?.trim() ?? "";
   if (sourceName.length > 120) errors.sourceName = "Source name must be 120 characters or fewer.";
   if (correction.length > 500) errors.correctionNote = "The update note must be 500 characters or fewer.";
+  if (intent === "published" || intent === "scheduled") {
+    if (!sourceName) errors.sourceName = "Add the primary source or reporting reference before publication.";
+    if (!sourceUrl) errors.sourceUrl = "Add a verified source link before publication.";
+  }
   if (sourceUrl && (!sourceUrl.startsWith("https://") || !isSafeHref(sourceUrl) || sourceUrl.length > 500)) {
     errors.sourceUrl = "Use an https source link, or leave it blank.";
   }
@@ -269,8 +280,8 @@ export function validateArticle(
     if (excerpt.length < 12 || excerpt.length > 500) {
       errors.excerpt = "Add an excerpt between 12 and 500 characters before publishing.";
     }
-    if (plainText(input.bodyHtml).length < MIN_PUBLISH_BODY) {
-      errors.bodyHtml = "Write the article before publishing.";
+    if (countWords(plainText(input.bodyHtml)) < MIN_PUBLISH_WORDS) {
+      errors.bodyHtml = "Write a substantive article of at least 300 words before publication.";
     }
     if (!image) errors.imageUrl = "Add a featured image before publishing.";
   } else if (excerpt.length > 500) {
