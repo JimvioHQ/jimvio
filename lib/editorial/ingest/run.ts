@@ -236,6 +236,6 @@ async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typ
 
 
 function publisherKey(value: string): string {
-  try { return new URL(value).hostname.toLowerCase().replace(/^www\\./, ""); }
+  try { return new URL(value).hostname.toLowerCase().replace(/^www\./, ""); }
   catch { return ""; }
 }
