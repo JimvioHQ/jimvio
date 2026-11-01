@@ -25,7 +25,7 @@ import {
 } from "@/lib/editorial/ingest/types";
 
 export const STUCK_JOB_MS = 15 * 60 * 1000;
-export const MAX_SOURCES_PER_CYCLE = 3;
+export const MAX_SOURCES_PER_CYCLE = 2;
 
 /** How many stories may publish by this UTC hour so a daily cap is spread across the day. */
 export function publishSlotsRemaining(publishedToday: number, cap: number, now: Date): number {
