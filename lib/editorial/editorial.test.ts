@@ -472,7 +472,7 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(data?.inLanguage, "en");
     assert.deepEqual(data?.publisher, { "@id": "https://www.jimvio.com/#organization" });
     assert.equal("datePublished" in (data ?? {}), false);
-    assert.equal("author" in (data ?? {}), false);
+    assert.deepEqual(data?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
     assert.equal(data?.headline, "A local report");
     assert.equal(
       articleJsonLd(
@@ -509,8 +509,8 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(news?.datePublished, "2026-10-01T08:00:00.000Z");
     assert.equal("dateModified" in (news ?? {}), false);
     assert.deepEqual(news?.image, ["https://www.jimvio.com/editorial/skyline.jpg"]);
-    assert.equal("author" in (news ?? {}), false);
-    assert.deepEqual(news?.citation, { "@type": "CreativeWork", name: "NASA", url: "https://www.nasa.gov/news-release/" });
+    assert.deepEqual(news?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
+    assert.equal("citation" in (news ?? {}), false);
     const corrected = articleJsonLd(
       {
         fixture: false,
@@ -610,7 +610,7 @@ describe("editorial lifecycle decisions", () => {
     const articleView = read("components/editorial/article-view.tsx");
     assert.equal(articleView.includes("Updated {"), false);
     assert.match(articleView, /article\.authorName/);
-    assert.match(articleView, /publicSource\(article\)/);
+    assert.doesNotMatch(articleView, /publicSource\(article\)/);
     assert.doesNotMatch(articleView, /Source:/);
     assert.match(articleView, /Published /);
     const storyImage = read("components/editorial/story-image-asset.tsx");
