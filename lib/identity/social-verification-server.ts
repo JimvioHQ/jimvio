@@ -61,12 +61,13 @@ async function saveVerified(
   note: string,
 ) {
   const client = db();
-  const { data: existing } = await client
+  const { data: existing, error: existingError } = await client
     .from("jip_social_accounts")
     .select("is_public")
     .eq("user_id", userId)
     .eq("platform", platform)
     .maybeSingle();
+  if (existingError) throw new Error("Could not preserve social account visibility.");
   const payload: Record<string, unknown> = {
     user_id: userId,
     platform,
