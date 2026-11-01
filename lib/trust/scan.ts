@@ -79,7 +79,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   const mediaReason = ctx && socialPlatform(ctx.url)
     ? "Upload the image, video or audio file itself: platforms don't let anyone download the original from a post link."
     : ctx?.chain.final?.truncated && /^(image|video|audio)\//i.test(ctx.contentType)
-      ? "The media at this link is too large to fetch. Upload the file instead (up to 4 MB)."
+      ? "The media at this link is too large to fetch. Upload the file instead (up to 4.2 MiB)."
       : "Upload an image, video or audio file to check for AI generation, edits, provenance and reuse.";
   const media = await checkMedia(mediaInput, mediaReason);
   checkers.media = media.result;
