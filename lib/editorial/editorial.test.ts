@@ -588,6 +588,15 @@ describe("editorial lifecycle decisions", () => {
     assert.match(articleView, /publicSource\(article\)/);
     assert.match(articleView, /Source:/);
     assert.match(articleView, /Published /);
+    const storyImage = read("components/editorial/story-image-asset.tsx");
+    assert.match(storyImage, /onError=\{\(\) => setFailed\(true\)\}/);
+    assert.match(storyImage, /Jimvio Media/);
+    assert.match(storyImage, /role="img"/);
+    const homeView = read("components/editorial/home-view.tsx");
+    assert.match(homeView, /allStories\.slice\(0, 8\)/);
+    assert.match(homeView, /section\.articles\.slice\(0, 2\)/);
+    const presentation = read("components/editorial/presentation.tsx");
+    assert.match(presentation, /aspect-\[16\/9\]/);
     const categoryPage = read("app/media/(site)/category/[slug]/page.tsx");
     const searchPage = read("app/media/(site)/search/page.tsx");
     assert.equal(categoryPage.includes("Showing "), false);
