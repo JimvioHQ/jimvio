@@ -6,6 +6,15 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
   // Global editorial discovery pool. These are intentionally not auto-enabled:
   // admins must verify live feed health and publisher terms before activation.
   ...([
+    { name: "Africanews English", locator: "https://www.africanews.com/feed/rss?themes=news", categories: ["news"], region: "Africa" },
+    { name: "Africanews Business", locator: "https://www.africanews.com/feed/rss?themes=business", categories: ["business"], region: "Africa" },
+    { name: "AllAfrica Headlines", locator: "https://allafrica.com/tools/headlines/rdf/latest/headlines.rdf", categories: ["news"], region: "Africa" },
+    { name: "The Africa Report", locator: "https://www.theafricareport.com/feed", categories: ["news", "business"], region: "Africa" },
+    { name: "African Development Bank News", locator: "https://www.afdb.org/en/rss-feeds", categories: ["business", "development"], region: "Africa" },
+    { name: "RealRwanda Latest News", locator: "https://realrwanda.rw/rss/latest-posts", categories: ["news"], region: "Rwanda", language: "rw" },
+    { name: "RealRwanda Rwanda", locator: "https://realrwanda.rw/rss/category/rwanda", categories: ["news"], region: "Rwanda", language: "rw" },
+    { name: "RealRwanda Business", locator: "https://realrwanda.rw/rss/category/ubukungu-44", categories: ["business"], region: "Rwanda", language: "rw" },
+    { name: "FEWS NET Rwanda", locator: "https://fews.net/feeds/rwanda", categories: ["news", "development"], region: "Rwanda" },
     { name: "BBC World News", locator: "https://feeds.bbci.co.uk/news/world/rss.xml", categories: ["news"], region: "global" },
     { name: "The Guardian World", locator: "https://www.theguardian.com/world/rss", categories: ["news"], region: "global" },
     { name: "Al Jazeera English", locator: "https://www.aljazeera.com/xml/rss/all.xml", categories: ["news"], region: "global" },
@@ -24,7 +33,7 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
   ] satisfies CatalogSource[]).map((source) => ({
     ...source,
     kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
-    language: "en",
+    language: "language" in source ? source.language : "en",
     permittedUsage: "facts" as const,
     imageRights: "none" as const,
     pollMinutes: 360,
