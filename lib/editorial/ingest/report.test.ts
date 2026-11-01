@@ -47,6 +47,7 @@ function pageHtml() {
     </article></body></html>`;
 }
 
+// Synthetic supporting text is confined to tests; production dossiers use fetched evidence only.
 function withResearchContext(page: NonNullable<ReturnType<typeof extractArticlePage>>) {
   const additionalEvidence = Array.from(
     { length: 320 },
