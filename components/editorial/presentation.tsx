@@ -136,6 +136,9 @@ export function OverlayCard({
         <h3 className={cn("mt-2 font-bold leading-[1.2] tracking-[-0.02em] text-white", titleClassName)}>
           {card.title}
         </h3>
+        <span className="mt-3 inline-flex w-fit items-center gap-1 text-[12px] font-bold text-white/90 transition-transform group-hover:translate-x-1">
+          Read story <span aria-hidden="true">→</span>
+        </span>
         {card.excerpt ? (
           <p
             className={cn(
@@ -156,7 +159,7 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
     <Link
       href={card.href}
       className={cn(
-        "flex overflow-hidden rounded-2xl border border-[#eceff3] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]",
+        "group flex overflow-hidden rounded-2xl border border-[#e8ebf0] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.035)] transition duration-200 hover:-translate-y-0.5 hover:border-[#d8dde6] hover:shadow-[0_12px_28px_rgba(16,24,40,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]",
         stacked ? "flex-col" : "gap-3 md:flex-col md:gap-0",
       )}
     >
@@ -175,9 +178,13 @@ export function StoryCard({ card, stacked = false }: { card: StoryCardModel; sta
         {!editorialPhotoSrc(card.imageUrl) || !stacked ? (
           <Kicker label={card.kicker} className={editorialPhotoSrc(card.imageUrl) ? "md:hidden" : undefined} />
         ) : null}
-        <h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-[1.35] text-[#172033] md:mt-0 md:line-clamp-2">
+        <h3 className="mt-1 line-clamp-3 text-[15px] font-semibold leading-[1.35] tracking-[-0.01em] text-[#172033] transition-colors group-hover:text-[#c94308] md:mt-0 md:line-clamp-2">
           {card.title}
         </h3>
+        {card.excerpt ? <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-[#667085]">{card.excerpt}</p> : null}
+        <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[#c94308]">
+          Read story <span aria-hidden="true">→</span>
+        </span>
       </div>
     </Link>
   );
@@ -257,7 +264,7 @@ export function toCard(article: {
   category: string;
   imageUrl: string | null;
   imageAlt: string;
-}, withExcerpt = false): StoryCardModel {
+}, withExcerpt = true): StoryCardModel {
   const kicker = displayKicker(article);
   return {
     href: `/media/article/${article.slug}`,
