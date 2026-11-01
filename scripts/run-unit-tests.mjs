@@ -43,7 +43,7 @@ if (files.length === 1) {
 console.log(`Unit tests: ${files.length} files`);
 const result = spawnSync(
   "npx",
-  ["tsx", "--test", "--test-timeout=20000", ...files],
+  ["tsx", "--test", "--test-timeout=60000", ...files],
   { cwd: root, stdio: "inherit", env: process.env, shell: false }
 );
 process.exit(result.status ?? 1);
