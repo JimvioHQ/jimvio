@@ -1,11 +1,12 @@
 import type { CatalogSource } from "@/lib/editorial/ingest/types";
+import type { MediaCategory } from "@/lib/editorial/types";
 
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
 type CandidateSeed = {
   name: string;
   locator: string;
-  categories: string[];
+  categories: MediaCategory[];
   region: string;
   language: string;
 };
