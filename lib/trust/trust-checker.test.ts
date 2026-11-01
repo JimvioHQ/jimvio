@@ -138,24 +138,30 @@ describe("media markers", () => {
 });
 
 describe("product signals", () => {
-  it("catches income and scarcity claims", () => {
-    const f = claimFindings("Guaranteed income! Earn $500 per day with my secret method. Only 3 spots left. PLR included.");
+  it("catches income, scarcity, wallet credential theft and risky payment claims", () => {
+    const f = claimFindings("Guaranteed income! Earn $500 per day with my secret method. Only 3 spots left. PLR included. Send your 12-word recovery phrase to unlock the bonus. Pay with gift cards.");
     assert.ok(has(f, /guaranteed income/i));
     assert.ok(has(f, /per day/));
     assert.ok(has(f, /Secret method/i));
     assert.ok(has(f, /scarcity/));
     assert.ok(has(f, /resell rights/));
+    assert.ok(has(f, /recovery phrase or private key/i));
+    assert.ok(has(f, /hard-to-reverse payment method/i));
     assert.equal(claimFindings("A practical guide to baking bread at home.").length, 0);
   });
-  it("reads product structured data", () => {
-    const html = `<script type="application/ld+json">{"@type":"Product","name":"Course","offers":{"price":"19","priceCurrency":"USD"}}</script><a href="/refund-policy">Refunds</a> contact us`;
+  it("does not mistake neutral security education for a request to disclose credentials", () => {
+    assert.equal(claimFindings("Never share your seed phrase or private key with anyone.").length, 0);
+  });
+  it("reads product structured data and privacy transparency", () => {
+    const html = `<script type="application/ld+json">{"@type":"Product","name":"Course","offers":{"price":"19","priceCurrency":"USD"}}</script><a href="/refund-policy">Refunds</a> contact us <a href="/privacy">Privacy Policy</a>`;
     const p = readProductPage(html);
     assert.equal(p.isProduct, true);
     assert.equal(p.name, "Course");
     assert.equal(p.price, "USD 19");
+    assert.equal(p.hasPrivacy, true);
+    assert.equal(readProductPage(html.replace('<a href="/privacy">Privacy Policy</a>', "")).hasPrivacy, false);
   });
 });
-
 describe("overall verdict", () => {
   const c = (status: CheckerResult["status"]): CheckerResult => ({ ...emptyChecker("links", ""), status });
   it("lets the worst result decide and never turns missing data into safe", () => {
