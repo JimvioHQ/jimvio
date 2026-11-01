@@ -1,4 +1,5 @@
 import { completePrimaryText } from "@/lib/ai/text-generation";
+import { getDomain } from "tldts";
 import { readOpenAIKey } from "@/lib/ai/openai-runtime";
 import { containsDiagnosticProse, meaningfulCaption } from "@/lib/editorial/caption";
 import type { OriginalBrief } from "@/lib/editorial/ingest/compose";
@@ -332,7 +333,7 @@ export async function writeGroundedReport(input: {
     ...(input.corroboratingPages ?? []).slice(0, 3),
   ];
   const independentHosts = new Set(documents.map((document) => {
-    try { return new URL(document.sourceUrl).hostname.toLowerCase().replace(/^www\\./, ""); } catch { return ""; }
+    try { return getDomain(new URL(document.sourceUrl).hostname) ?? ""; } catch { return ""; }
   }).filter(Boolean));
   if (independentHosts.size < 2) return { ok: false, reason: "quality_gate", issues: ["insufficient_independent_sources"] };
   for (const document of documents) {
