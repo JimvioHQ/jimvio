@@ -34,7 +34,7 @@ export function IdentityPortfolio({
 }
 
 function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
-  const isVideo = item.kind === "video" || Boolean(item.mediaUrl && (/\\/video\\/upload\\//i.test(item.mediaUrl) || /\\.(mp4|m4v|mov|webm)(?:[?#]|$)/i.test(item.mediaUrl)));
+  const isVideo = item.kind === "video" || Boolean(item.mediaUrl && (/\/video\/upload\//i.test(item.mediaUrl) || /\.(mp4|m4v|mov|webm)(?:[?#]|$)/i.test(item.mediaUrl)));
   const image = item.thumbnailUrl?.trim() || (!isVideo && item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
   const content = (
     <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-black/[0.06] bg-[#F1EFEA]">
