@@ -91,9 +91,9 @@ function skipElement(source: string, index: number, name: string): number {
   return index;
 }
 
-function anchorTag(attrs: Attr[]): string {
+function anchorTag(attrs: Attr[], internalLinksOnly: boolean): string {
   const href = attrs.find((attr) => attr.name === "href")?.value.trim() ?? "";
-  if (/[\u0000-\u001f\u007f]/.test(href) || !isSafeHref(href)) return "<a>";
+  if (/[\\u0000-\\u001f\\u007f]/.test(href) || !isSafeHref(href) || (internalLinksOnly && (!href.startsWith("/") || href.startsWith("//")))) return "<a>";
   const safe = escapeAttr(href);
   const target = href.startsWith("https:") ? ' target="_blank"' : "";
   return `<a href="${safe}" rel="noopener noreferrer"${target}>`;
