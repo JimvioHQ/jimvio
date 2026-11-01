@@ -42,7 +42,7 @@ export type SafeResponse = {
   ip: string;
 };
 
-function requestOnce(u: URL, ip: string, method: "GET" | "HEAD"): Promise<SafeResponse> {
+function requestOnce(u: URL, ip: string, method: "GET" | "HEAD", extraHeaders: Record<string, string> = {}): Promise<SafeResponse> {
   const lib = u.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
     const req = lib.request(
@@ -64,6 +64,7 @@ function requestOnce(u: URL, ip: string, method: "GET" | "HEAD"): Promise<SafeRe
           "User-Agent": "Mozilla/5.0 (compatible; JimvioTrustChecker/1.0; +https://www.jimvio.com/trust-checker)",
           Accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.5",
           "Accept-Language": "en-US,en;q=0.8",
+          ...extraHeaders,
         },
         timeout: TIMEOUT_MS,
       },
@@ -107,7 +108,7 @@ function requestOnce(u: URL, ip: string, method: "GET" | "HEAD"): Promise<SafeRe
 export type FetchChain = { hops: { url: string; status: number; ip: string }[]; final: SafeResponse | null; error: string | null };
 
 /** GET with manual, validated redirects. Never throws for network errors. */
-export async function safeFetch(start: URL, method: "GET" | "HEAD" = "GET"): Promise<FetchChain> {
+export async function safeFetch(start: URL, method: "GET" | "HEAD" = "GET", extraHeaders: Record<string, string> = {}): Promise<FetchChain> {
   const hops: FetchChain["hops"] = [];
   let current = start;
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
@@ -122,7 +123,7 @@ export async function safeFetch(start: URL, method: "GET" | "HEAD" = "GET"): Pro
     // Try up to two checked addresses (e.g. IPv4 then IPv6).
     for (const ip of ips.slice(0, 2)) {
       try {
-        res = await requestOnce(current, ip, method);
+        res = await requestOnce(current, ip, method, extraHeaders);
         break;
       } catch (e) {
         lastError = e;

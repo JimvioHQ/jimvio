@@ -1,11 +1,15 @@
 import "server-only";
+import { normalizeUrl } from "@/lib/trust/url-guard";
+import { safeFetch } from "@/lib/trust/safe-fetch";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { freshCredentials, type CredentialDestination } from "@/lib/live/destinations/fresh-credentials";
 import { fetchTikTokUserInfo } from "@/lib/live/destinations/adapters/tiktok";
 import {
   CODE_TTL_MS,
   bioSources,
-  checkCodeForAccount,
+  handleFor,
+  pageContainsCode,
+  readProfileBio,
   type CodeCheck,
   newVerifyCode,
   publicProfileUrl,
@@ -40,6 +44,36 @@ export type VerifyResult =
   | { ok: false; status: number; error: string; needsConnect?: "youtube" | "tiktok"; unreachable?: boolean };
 
 const now = () => new Date().toISOString();
+async function readBioSource(source: { url: string; headers?: Record<string, string> }, platform: string, expectedHandle: string): Promise<string | null> {
+  try {
+    const chain = await safeFetch(normalizeUrl(source.url), "GET", {
+      Accept: "application/json",
+      ...(source.headers ?? {}),
+    });
+    const response = chain.final;
+    if (!response || chain.error || response.status < 200 || response.status >= 300) return null;
+    const body = response.body.toString("utf8").slice(0, 500_000);
+    const bio = readProfileBio(platform, body, expectedHandle);
+    return bio;
+  } catch {
+    return null;
+  }
+}
+
+async function checkCodeForAccount(
+  platform: string,
+  handle: string | null,
+  url: string | null,
+  code: string,
+): Promise<CodeCheck> {
+  const expectedHandle = handleFor(platform, handle, url);
+  const sources = bioSources(platform, handle, url);
+  if (!sources.length) return "unreachable";
+  const bios = await Promise.all(sources.map((source) => readBioSource(source, platform, expectedHandle ?? "")));
+  if (bios.some((bio) => bio != null && pageContainsCode(bio, code))) return "found";
+  return bios.some((bio) => bio != null) ? "not_found" : "unreachable";
+}
+
 
 async function connection(userId: string, platform: "youtube" | "tiktok"): Promise<CredentialDestination | null> {
   const { data } = await db()
