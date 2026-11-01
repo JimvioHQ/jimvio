@@ -100,7 +100,7 @@ export function pageContainsCode(html: string, code: string): boolean {
     .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .toUpperCase();
   const pattern = parts.join("[\\s\\p{P}]*");
-  return new RegExp("(^|[^\\p{L}\\p{N}])" + pattern + "(?![\\p{L}\\p{N}])", "u").test(normalized);
+  return new RegExp("(^|[^\\p{L}\\p{N}])" + pattern + "(?![-_.‐‑‒–—―][A-Z0-9])(?![\\p{L}\\p{N}])", "u").test(normalized);
 }
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
