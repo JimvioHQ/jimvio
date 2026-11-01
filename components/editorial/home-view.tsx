@@ -1,6 +1,7 @@
 import { ArrowRight, Flame } from "lucide-react";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/editorial/hero-carousel";
+import { TopicExplore } from "@/components/editorial/topic-explore";
 import { OverlayCard, SectionHeading, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import type { HomeComposition } from "@/lib/editorial/types";
 
@@ -131,21 +132,8 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
         <MostRead articles={mostRead} />
       </div>
 
-      {sections.length > 0 ? (
-        <section className="media-topic-explore" aria-label="Explore all topics">
-          <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[#e9edf2] pb-4">
-            <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#c94308]">Explore by topic</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.035em] text-[#172033] sm:text-[28px]">More from the newsroom</h2></div>
-          </div>
-          <div className="media-topic-grid">
-            {sections.map((section) => (
-              <section key={section.slug} className="media-topic-section" aria-labelledby={`topic-${section.slug}`}>
-                <div className="mb-3 flex items-center justify-between gap-3"><h3 id={`topic-${section.slug}`} className="text-lg font-bold text-[#172033]">{section.label}</h3><Link href={`/media/category/${section.slug}`} className="text-[12px] font-bold text-[#fd5000] hover:underline">View all <ArrowRight className="inline h-3.5 w-3.5" /></Link></div>
-                <div className="grid gap-3">{uniqueArticles(section.articles, 2).map((article) => <StoryCard key={article.id} card={toCard(article)} />)}</div>
-              </section>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <TopicExplore sections={sections} />
+
     </div>
   );
 }
