@@ -94,7 +94,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
       { id: "bookings", label: "Bookings", href: isOwner ? "/identity/bookings" : undefined },
     ];
     if (!isOwner) {
-      if (!profile.privacyCustom?.showAnalytics) {
+      if (profile.privacyCustom?.showAnalytics !== true) {
         const index = list.findIndex((tab) => tab.id === "analytics");
         if (index >= 0) list.splice(index, 1);
       }
