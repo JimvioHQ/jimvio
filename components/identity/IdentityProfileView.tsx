@@ -161,7 +161,7 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                 username={profile.username}
               />
             )}
-            {isOwner && (
+            {verifiedSocial.length > 0 && (
               <div className="flex items-center gap-2 pb-1">
                 <IdentitySocialLinks accounts={verifiedSocial} compact />
               </div>
@@ -225,11 +225,6 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
             {profile.overallRank && (
               <MetaChip icon={Trophy}>
                 Rank <span className="font-semibold text-[#1C1B19]">#{profile.overallRank}</span>
-              </MetaChip>
-            )}
-            {profile.reviewCount > 0 && (
-              <MetaChip icon={Star}>
-                <span className="font-semibold text-[#1C1B19]">{profile.avgRating.toFixed(1)}</span> ({profile.reviewCount})
               </MetaChip>
             )}
             <MetaChip icon={Users}>
