@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Eye, FileText, Heart, Loader2, MessageCircle, RefreshCw, Trash2, Video } from "lucide-react";
+import { Eye, FileText, Heart, Loader2, MessageCircle, RefreshCw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
