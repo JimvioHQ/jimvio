@@ -39,8 +39,8 @@ const PROFILE_HOSTS: Record<string, string[]> = {
 
 /** A submitted profile URL must belong to the platform being verified. */
 function isPlatformHost(platform: string, hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\\.$/, "");
-  return (PROFILE_HOSTS[platform] ?? []).some((domain) => host === domain || host.endsWith(`.\u0024{domain}`));
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  return (PROFILE_HOSTS[platform] ?? []).some((domain) => host === domain || host.endsWith("." + domain));
 }
 
 /** The public page Jimvio reads for a bio code. */
@@ -48,7 +48,7 @@ export function publicProfileUrl(platform: string, handle: string | null, url: s
   const raw = (url ?? "").trim();
   if (raw) {
     try {
-      const u = new URL(/^https?:\\/\\//i.test(raw) ? raw : `https://\u0024{raw}`);
+      const u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
       if ((u.protocol === "https:" || u.protocol === "http:") && isPlatformHost(platform, u.hostname)) {
         return u.toString();
       }
@@ -59,26 +59,16 @@ export function publicProfileUrl(platform: string, handle: string | null, url: s
   const h = cleanHandle(handle);
   if (!h) return null;
   switch (platform) {
-    case "instagram":
-      return `https://www.instagram.com/\u0024{h}/`;
-    case "tiktok":
-      return `https://www.tiktok.com/@\u0024{h}`;
-    case "youtube":
-      return `https://www.youtube.com/@\u0024{h}`;
-    case "x":
-      return `https://x.com/\u0024{h}`;
-    case "threads":
-      return `https://www.threads.net/@\u0024{h}`;
-    case "facebook":
-      return `https://www.facebook.com/\u0024{h}`;
-    case "pinterest":
-      return `https://www.pinterest.com/\u0024{h}/`;
-    case "snapchat":
-      return `https://www.snapchat.com/add/\u0024{h}`;
-    case "linkedin":
-      return `https://www.linkedin.com/in/\u0024{h}/`;
-    default:
-      return null;
+    case "instagram": return "https://www.instagram.com/" + h + "/";
+    case "tiktok": return "https://www.tiktok.com/@" + h;
+    case "youtube": return "https://www.youtube.com/@" + h;
+    case "x": return "https://x.com/" + h;
+    case "threads": return "https://www.threads.net/@" + h;
+    case "facebook": return "https://www.facebook.com/" + h;
+    case "pinterest": return "https://www.pinterest.com/" + h + "/";
+    case "snapchat": return "https://www.snapchat.com/add/" + h;
+    case "linkedin": return "https://www.linkedin.com/in/" + h + "/";
+    default: return null;
   }
 }
 
@@ -86,18 +76,17 @@ export function publicProfileUrl(platform: string, handle: string | null, url: s
 export function pageContainsCode(html: string, code: string): boolean {
   if (!html || !code) return false;
   const parts = code.toUpperCase().split("-").filter(Boolean);
-  if (parts.length !== 2) return false;
+  if (parts.length !== 2 || !parts.every((part) => /^[A-Z0-9]+$/.test(part))) return false;
   const normalized = html
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;|&#160;/gi, " ")
-    .replace(/\\\\u002[dD]/g, "-")
+    .replace(/\\u002[dD]/g, "-")
     .replace(/&#(?:45|x2d);|&ndash;|&mdash;/gi, "-")
-    .replace(/[\\u2010-\\u2015\\u2212]/g, "-")
-    .replace(/[\\u200B-\\u200D\\uFEFF]/g, "")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
     .toUpperCase();
-  const escape = (value: string) => value.replace(/[.*+?^${ }()|[\\]\\\\]/g, "\\$&");
-  const pattern = parts.map(escape).join("[\\s\\p{P}]*");
-  return new RegExp(`(^|[^\\p{L}\\p{N}])\u0024{pattern}(?![\\p{L}\\p{N}])`, "u").test(normalized);
+  const pattern = parts.join("[\\s\\p{P}]*");
+  return new RegExp("(^|[^\\p{L}\\p{N}])" + pattern + "(?![\\p{L}\\p{N}])", "u").test(normalized);
 }
 
 export type CodeCheck = "found" | "not_found" | "unreachable";
@@ -112,7 +101,7 @@ export function handleFor(platform: string, handle: string | null, url: string |
   const raw = (url ?? handle ?? "").trim();
   if (!raw) return null;
   try {
-    const u = new URL(/^https?:\\/\\//i.test(raw) ? raw : `https://\u0024{raw}`);
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw);
     if (!isPlatformHost(platform, u.hostname)) return null;
     const parts = u.pathname.split("/").filter(Boolean);
     const first = (platform === "snapchat" && parts[0] === "add") || (platform === "linkedin" && parts[0] === "in") ? parts[1] : parts[0];
@@ -178,8 +167,22 @@ function readProfileBio(platform: string, body: string): string | null {
     instagram: [["data", "user", "biography"], ["graphql", "user", "biography"], ["user", "biography"]],
     threads: [["data", "user", "biography"], ["graphql", "user", "biography"], ["user", "biography"]],
     x: [["user", "description"], ["user", "bio"], ["description"], ["bio"]],
+    facebook: [["user", "bio"], ["user", "about"], ["bio"]],
+    linkedin: [["profile", "headline"], ["profile", "summary"], ["headline"], ["summary"]],
+    pinterest: [["user", "about"], ["about"]],
+    snapchat: [["user", "bio"], ["bio"]],
+    youtube: [["channel", "description"], ["description"]],
   };
-  const fields = platform === "x" ? ["description", "bio"] : ["biography"];
+  const fields: Record<string, string[]> = {
+    instagram: ["biography"],
+    threads: ["biography"],
+    x: ["description", "bio"],
+    facebook: ["bio", "about"],
+    linkedin: ["headline", "summary"],
+    pinterest: ["about"],
+    snapchat: ["bio"],
+    youtube: ["description"],
+  };
   try {
     const parsed: unknown = JSON.parse(body);
     for (const path of paths[platform] ?? []) {
@@ -189,14 +192,14 @@ function readProfileBio(platform: string, body: string): string | null {
   } catch {
     /* Public profile HTML often embeds the profile object as JSON. */
   }
-  for (const field of fields) {
-    const expression = new RegExp(`"${field}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "i");
+  for (const field of fields[platform] ?? []) {
+    const expression = new RegExp('"' + field + '"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"', "i");
     const match = body.match(expression);
     if (match?.[1] !== undefined) {
       try {
-        return JSON.parse(`"${match[1]}"`) as string;
+        return JSON.parse('"' + match[1] + '"') as string;
       } catch {
-        return match[1].replace(/\\\\n/g, "\\n").replace(/\\\\"/g, '"');
+        return match[1].replace(/\\n/g, "\n").replace(/\\"/g, '"');
       }
     }
   }
