@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { permanentlyDeleteMediaArticle } from "@/lib/editorial/actions";
 
-export function DeleteArticleButton({ articleId, title }: { articleId: string; title: string }) {
+export function DeleteArticleButton({ articleId, title, canDelete }: { articleId: string; title: string; canDelete: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
@@ -28,7 +28,7 @@ export function DeleteArticleButton({ articleId, title }: { articleId: string; t
 
   return (
     <>
-      <button type="button" onClick={() => { setConfirmation(""); setOpen(true); }} className="font-semibold text-[#b42318] hover:underline">
+      <button type="button" disabled={!canDelete} title={canDelete ? "Permanently delete this unpublished article" : "Unpublish or archive this article before deleting"} onClick={() => { setConfirmation(""); setOpen(true); }} className="font-semibold text-[#b42318] hover:underline disabled:cursor-not-allowed disabled:opacity-40">
         Delete
       </button>
       {open ? (
