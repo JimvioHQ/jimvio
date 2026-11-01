@@ -348,8 +348,8 @@ describe("external ingestion", () => {
       note: null,
       markSuccess: true,
     });
-    assert.equal(clampDailyPublishCap(50), 24);
-    assert.equal(clampDailyPublishCap("nope"), 24);
+    assert.equal(clampDailyPublishCap(50), 5);
+    assert.equal(clampDailyPublishCap("nope"), 5);
     const held = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
       source: source({ imageRights: "attributed" }),
