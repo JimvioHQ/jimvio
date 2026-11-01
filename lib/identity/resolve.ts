@@ -464,14 +464,14 @@ async function buildProfilePayload(
     .select("*")
     .eq("user_id", profile.id)
     .order("sort_order", { ascending: true });
-  if (!canFull) portfolioQuery = portfolioQuery.eq("is_public", true);
+  if (!isSelf && !flags.isAdmin) portfolioQuery = portfolioQuery.eq("is_public", true);
 
   let testimonialsQuery = db
     .from("jip_testimonials")
     .select("*")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
-  if (!canFull) testimonialsQuery = testimonialsQuery.eq("is_public", true);
+  if (!isSelf && !flags.isAdmin) testimonialsQuery = testimonialsQuery.eq("is_public", true);
 
   const [
     { data: socials },

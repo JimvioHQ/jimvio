@@ -175,7 +175,7 @@ export function buildCreatorBusinessGraph(payload: CreatorProfilePayload): Busin
     ],
     discoveryBuilders: [
       () => businessSection("suggested-creators", BUSINESS_DISCOVERY_META["suggested-creators"].title, [
-        businessNode({ id: "sc-1", kind: "creator", title: "Creator in your niche", href: "/influencers/browse", badge: "Suggested" }, title),
+        businessNode({ id: "sc-1", kind: "creator", title: "Creator in your niche", href: "/users/browse", badge: "Suggested" }, title),
       ], BUSINESS_DISCOVERY_META["suggested-creators"].description),
       () => scaffoldDiscovery("suggested-partners", "brand", "Brand partners"),
       () => scaffoldDiscovery("suggested-affiliates", "affiliate-program", "Affiliate programs"),

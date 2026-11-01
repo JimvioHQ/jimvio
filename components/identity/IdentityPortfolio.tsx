@@ -34,7 +34,7 @@ export function IdentityPortfolio({
 }
 
 function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
-  const image = item.thumbnailUrl ?? item.mediaUrl;
+  const image = item.thumbnailUrl?.trim() || (item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
   const isVideo = item.kind === "video";
   const content = (
     <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-black/[0.06] bg-[#F1EFEA]">

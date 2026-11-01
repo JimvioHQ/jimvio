@@ -23,6 +23,7 @@ export const HUB_RESERVED_SEGMENTS = new Set([
   "courses",
   "events",
   "my-communities",
+  "my-posts",
   "community",
   "u",
   "settings",
@@ -47,6 +48,7 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
   "/communities/missions",
   "/communities/courses",
   "/communities/events",
+  "/communities/my-posts",
   "/communities/community/creator",
   "/communities/create",
 ] as const;
