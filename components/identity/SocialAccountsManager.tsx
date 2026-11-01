@@ -39,7 +39,7 @@ export function SocialAccountsManager({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   async function togglePublic(account: IdentitySocialAccount, isPublic: boolean) {
-    const previous = account.isPublic !== false;
+    const previous = account.isPublic === true;
     onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic } : item));
     setUpdatingId(account.id);
     try {
