@@ -38,9 +38,9 @@ const ACCEPT = "image/*,video/*,audio/*,.pdf,.zip,.epub,.docx,.xlsx,.pptx,.doc,.
 
 const FEATURES = [
   { icon: Link2, title: "Links & Websites", sub: "Scam & Malware" },
-  { icon: BarChart3, title: "Social Media", sub: "Engagement & Traffic" },
+  { icon: BarChart3, title: "Social Media", sub: "Public Engagement Signals" },
   { icon: Box, title: "Digital Products", sub: "Originality & Safety" },
-  { icon: ImageIcon, title: "Images, Videos & Audio", sub: "AI, Deepfake & Copyright" },
+  { icon: ImageIcon, title: "Images, Videos & Audio", sub: "Metadata & Provenance Signals" },
 ];
 
 const CARDS = [
@@ -60,7 +60,7 @@ const CARDS = [
   {
     icon: BarChart3,
     title: "Engagement & Traffic Detection",
-    body: "Analyze views, followers, subscribers, likes, comments, shares, engagement rates, and website traffic.",
+    body: "Read available public engagement signals. YouTube statistics are checked when API access is available; TikTok and X provide limited post metadata. Private reach and website traffic are not publicly verifiable.",
     logos: [
       { icon: Youtube, color: "#FF0000" },
       { icon: Music2, color: "#111111" },
@@ -69,12 +69,12 @@ const CARDS = [
       { icon: Twitter, color: "#111111" },
     ],
     tag: "Websites",
-    items: ["Views & Reach Analysis", "Followers & Subscribers", "Likes, Comments & Shares", "Engagement Rate & Growth", "Website Traffic & Referrals"],
+    items: ["YouTube public views, likes & comments", "YouTube public channel statistics", "TikTok & X public post metadata", "Signals of repetitive comments", "Private reach and website traffic unavailable"],
   },
   {
     icon: Box,
     title: "Digital Product Verification",
-    body: "Check digital products for originality, duplicate content, file safety, suspicious claims, and seller credibility.",
+    body: "Inspect file structure, repeat fingerprints seen on Jimvio, product-page claims and visible seller details. This is not a full antivirus, legal copyright or ownership verification.",
     logos: [
       { icon: FileText, color: "#DC2626" },
       { icon: FileText, color: "#2563EB" },
@@ -83,12 +83,12 @@ const CARDS = [
       { icon: FileArchive, color: "#7C3AED" },
     ],
     tag: "Digital Products",
-    items: ["Originality & Duplicate Content", "File Safety & Malware Scan", "Product Claims Verification", "Seller Trust & Credibility", "Copyright & Licensing Checks"],
+    items: ["Duplicate fingerprints within Jimvio", "Basic file-structure risk indicators", "Product-page claims and visible details", "Seller contact and refund-policy signals", "Ownership and licensing require documents"],
   },
   {
     icon: ImageIcon,
-    title: "AI Media, Deepfake & Copyright",
-    body: "Analyze images, videos, and audio for AI-generation indicators, manipulation, provenance, duplicates, and copyright.",
+    title: "Media Metadata & Provenance Signals",
+    body: "Inspect image metadata and available AI/provenance markers, plus duplicate fingerprints previously seen on Jimvio. Video and audio deepfake detection and global copyright matching are not currently available.",
     logos: [
       { icon: Images, color: "#2563EB" },
       { icon: Youtube, color: "#FF0000" },
@@ -96,7 +96,7 @@ const CARDS = [
       { icon: FileText, color: "#9333EA" },
     ],
     tag: "Images, Videos & Audio",
-    items: ["AI Generation Detection", "Deepfake & Manipulation Analysis", "Image/Video/Audio Authenticity", "Provenance & Metadata", "Duplicate Content & Copyright"],
+    items: ["AI/provenance metadata markers", "Image metadata and dimensions", "Duplicate image fingerprints on Jimvio", "Video/audio metadata only", "No deepfake or global copyright verdict"],
   },
 ];
 
@@ -169,8 +169,7 @@ export function TrustCheckerPage() {
                 Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
               </h1>
               <p className="mt-4 max-w-[760px] text-[16px] font-medium leading-snug text-[#0F172A] sm:text-[19px]">
-                Check links, social media, digital products, images, videos and audio — detect scams, fake engagement, malware,
-                duplicates, AI content, and copyright issues, all in one place.
+                Check links, public engagement signals, digital product files, and media metadata — with clear evidence, limits, and next steps in one place.
               </p>
               <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-4">
                 {FEATURES.map((f, i) => (
@@ -187,7 +186,7 @@ export function TrustCheckerPage() {
               </div>
               <p className="mt-5 max-w-[760px] text-[15px] leading-relaxed text-[#475569] sm:text-[16px]">
                 Paste a URL, upload a file, or both, and get a complete trust analysis across websites, social media, digital
-                products, and media content with accurate and easy-to-understand results.
+                products, and media content with evidence-based results that clearly explain what Jimvio can and cannot verify.
               </p>
             </div>
             <div className="hidden justify-center lg:flex">
