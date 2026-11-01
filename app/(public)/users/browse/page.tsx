@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { constructMetadata } from "@/lib/seo";
 import { FoundingBadge } from "@/components/founding/FoundingBadge";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = constructMetadata({
   title: "Popular Users on Jimvio",
