@@ -143,18 +143,32 @@ export async function isSupplierBlacklisted(
 
 export async function recalculateSupplierHealth(limit = 500): Promise<number> {
   const db = getCatalogDB();
-  const { data: rows } = await db
+  // Read only the scalar fields needed for scoring. Fetching raw_payload (JSONB)
+  // for every row made this recurring job transfer hundreds of MB unnecessarily.
+  // pid is indexed, so a deterministic keyset-friendly order avoids an unordered
+  // heap scan while keeping the existing sample-size semantics.
+  const batchLimit = Math.max(1, Math.min(Math.floor(limit) || 500, 1000));
+  const { data: rows, error } = await db
     .from("cj_raw_products")
-    .select("pid, supplier, raw_payload")
-    .limit(limit);
+    .select(
+      "pid, supplier, stock, orders, supplier_id:raw_payload->>supplierId, supplier_name:raw_payload->>supplierName, delivery_cycle:raw_payload->>deliveryCycle, verified_warehouse:raw_payload->>verifiedWarehouse, supplier_verified:raw_payload->>supplierVerified, listed_num:raw_payload->>listedNum, warehouse_inventory_num:raw_payload->>warehouseInventoryNum"
+    )
+    .order("pid", { ascending: true })
+    .limit(batchLimit);
+
+  if (error) {
+    throw new Error(`[supplier-reputation] raw product batch read failed: ${error.message}`);
+  }
 
   let updated = 0;
   const supplierMap = new Map<string, { reps: SupplierReputation[]; name: string }>();
 
   for (const row of rows ?? []) {
-    const payload = (row.raw_payload ?? {}) as Record<string, unknown>;
-    const supplierId = String(payload.supplierId ?? row.supplier ?? row.pid);
-    const supplierName = String(row.supplier ?? payload.supplierName ?? "Unknown");
+    const supplierId = String(row.supplier_id ?? row.supplier ?? row.pid);
+    const supplierName = String(row.supplier ?? row.supplier_name ?? "Unknown");
+    const verifiedWarehouse = Number(row.verified_warehouse ?? 0);
+    const supplierVerified =
+      row.supplier_verified === true || row.supplier_verified === "true";
 
     const stub: EnrichedProduct = {
       pid: row.pid as string,
@@ -165,13 +179,13 @@ export async function recalculateSupplierHealth(limit = 500): Promise<number> {
       nowPrice: "0",
       discountPrice: "0",
       addMarkStatus: 0,
-      listedNum: Number(payload.listedNum ?? 0),
-      warehouseInventoryNum: Number(payload.warehouseInventoryNum ?? 0),
-      verifiedWarehouse: Number(payload.verifiedWarehouse ?? 0),
-      deliveryCycle: payload.deliveryCycle as string | undefined,
+      listedNum: Number(row.listed_num ?? row.orders ?? 0),
+      warehouseInventoryNum: Number(row.warehouse_inventory_num ?? row.stock ?? 0),
+      verifiedWarehouse,
+      deliveryCycle: (row.delivery_cycle ?? undefined) as string | undefined,
       supplierName,
       supplierId,
-      supplierVerified: payload.supplierVerified === true,
+      supplierVerified,
       intelligence: {
         healthScore: 0,
         healthLabel: "poor",
