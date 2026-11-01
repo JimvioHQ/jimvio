@@ -110,7 +110,7 @@ export function IdentityPrivacyClient({
         <IdentityCard className="p-5 sm:p-6">
           <p className="mb-1 text-[13px] font-semibold text-[#1C1B19]">Public profile</p>
           <p className="mb-4 text-[12.5px] text-[#8B8579]">
-            Choose who can view your professional identity.
+            Choose who can view your professional identity. Resume, media kit and analytics remain private until you enable them below.
           </p>
           <div className="space-y-2">
             {VISIBILITY_OPTIONS.map((opt) => {
