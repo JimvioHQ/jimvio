@@ -1864,33 +1864,27 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
  .media-mobile-dock a span { font-size:25px; line-height:1.05; font-weight:500; }
 }
 
-/* Final layout alignment against existing hero and card markup */
-.media-home .media-lead-grid { grid-template-columns:minmax(0,1.9fr) minmax(300px,1fr); align-items:stretch; }
-.media-home .media-lead-grid > [aria-label="Featured stories"] { height:310px; min-height:310px; }
-.media-home .media-lead-grid > [aria-label="Featured stories"] > a { height:100%; min-height:310px; }
-.media-home .media-lead-grid > [aria-label="Featured stories"] > a > img,
-.media-home .media-lead-grid > [aria-label="Featured stories"] > a > div:first-child,
-.media-home .media-lead-grid > [aria-label="Featured stories"] > a > span:first-child { width:100%; height:100%; object-fit:cover; }
+/* Final layout alignment against the existing HeroCarousel and OverlayCard DOM */
+.media-home .media-lead-grid > [aria-label="Featured stories"] { height:310px !important; min-height:310px !important; }
+.media-home .media-lead-grid > [aria-label="Featured stories"] > a { height:100% !important; min-height:310px !important; }
+.media-home .media-lead-grid > [aria-label="Featured stories"] > a > img { height:100% !important; object-fit:cover; }
 .media-home .media-top-story-card { position:relative; display:block !important; height:120px; min-height:120px; background:#fff; }
-.media-home .media-top-story-card > img,
-.media-home .media-top-story-card > span:first-of-type { position:absolute; inset:0 auto 0 0; width:52%; height:100%; object-fit:cover; }
-.media-home .media-top-story-card > div:nth-of-type(1) { position:absolute; inset:0; width:52%; background:linear-gradient(to top,rgba(0,0,0,.8),transparent 80%); }
+.media-home .media-top-story-card > img { position:absolute; inset:0 auto 0 0; width:52%; height:100%; object-fit:cover; }
+.media-home .media-top-story-card > div:nth-of-type(1) { position:absolute; inset:0 auto 0 0; width:52%; background:linear-gradient(to top,rgba(0,0,0,.78),transparent 80%); }
 .media-home .media-top-story-card > div:last-child { position:absolute; inset:0 0 0 52%; display:flex; flex-direction:column; justify-content:center; padding:12px 14px !important; background:#fff; }
 .media-home .media-top-story-card > div:last-child h3 { color:#101828; font-size:16px; }
 .media-home .media-top-story-card > div:last-child p { color:#344054; font-size:12px; }
 .media-home .media-top-story-card > div:last-child > span:last-child { display:none; }
-.media-home .media-most-read-image { display:block; height:68px; overflow:hidden; border-radius:9px; background:#f1f3f6; }
+.media-home .media-most-read-image { position:relative; display:block; height:68px; overflow:hidden; border-radius:9px; background:#f1f3f6; }
 .media-home .media-most-read-image img { display:block; width:100%; height:100%; object-fit:cover; }
-.media-home .media-most-read-image > div { width:100%; height:100%; }
 @media(max-width:1023px) {
- .media-home .media-lead-grid { grid-template-columns:minmax(0,1fr); }
- .media-home .media-lead-grid > [aria-label="Featured stories"] { height:auto; min-height:280px; }
- .media-home .media-lead-grid > [aria-label="Featured stories"] > a { min-height:280px; }
+ .media-home .media-lead-grid > [aria-label="Featured stories"] { height:auto !important; min-height:280px !important; }
+ .media-home .media-lead-grid > [aria-label="Featured stories"] > a { min-height:280px !important; }
 }
 @media(max-width:767px) {
- .media-home .media-lead-grid > [aria-label="Featured stories"] { height:auto; min-height:300px; }
- .media-home .media-lead-grid > [aria-label="Featured stories"] > a { min-height:300px; border-radius:16px; }
- .media-home .media-top-story-card { grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); height:150px; min-height:150px; border-radius:16px; }
+ .media-home .media-lead-grid > [aria-label="Featured stories"] { height:auto !important; min-height:300px !important; }
+ .media-home .media-lead-grid > [aria-label="Featured stories"] > a { min-height:300px !important; border-radius:16px; }
+ .media-home .media-top-story-card { height:150px; min-height:150px; border-radius:16px; }
  .media-home .media-top-story-card > div:last-child { padding:10px 12px !important; }
  .media-home .media-top-story-card > div:last-child h3 { font-size:15px; }
  .media-home .media-top-story-card > div:last-child p { display:-webkit-box; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; margin-top:6px; }
