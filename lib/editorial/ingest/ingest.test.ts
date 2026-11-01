@@ -334,7 +334,7 @@ describe("external ingestion", () => {
     const dawn = new Date("2026-10-27T00:30:00.000Z");
     assert.equal(publishPaceOpen(0, 10, dawn), true);
     assert.equal(publishPaceOpen(1, 10, dawn), false);
-    assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), true);
+    assert.equal(publishPaceOpen(9, 10, new Date("2026-10-27T23:10:00.000Z")), false);
     assert.equal(publishPaceOpen(0, 0, dawn), false);
     assert.deepEqual(cycleSourceOutcome({ heldForPace: true, writerUnavailable: false }), {
       note: "Held for the daily publication pace.",
@@ -348,8 +348,8 @@ describe("external ingestion", () => {
       note: null,
       markSuccess: true,
     });
-    assert.equal(clampDailyPublishCap(50), 24);
-    assert.equal(clampDailyPublishCap("nope"), 24);
+    assert.equal(clampDailyPublishCap(50), 5);
+    assert.equal(clampDailyPublishCap("nope"), 5);
     const held = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 10 },
       source: source({ imageRights: "attributed" }),

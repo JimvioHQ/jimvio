@@ -1,5 +1,5 @@
 import { revalidatePath, revalidateTag } from "next/cache";
-import { externalKey } from "@/lib/editorial/ingest/feed";
+import { externalKey, jaccard, titleTokens } from "@/lib/editorial/ingest/feed";
 import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
 import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
@@ -7,6 +7,7 @@ import { illustrativeImage } from "@/lib/editorial/ingest/illustrative";
 import { writeGroundedReport } from "@/lib/editorial/ingest/report";
 import { loadCycleContext, lookupProfileNames, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
 import type { CycleCounts, FeedItem, SourceRecord } from "@/lib/editorial/ingest/types";
+import type { ExtractedPage } from "@/lib/editorial/ingest/page";
 
 export type CycleResult = {
   ok: boolean;
@@ -66,7 +67,12 @@ export async function runIngestCycle(options?: {
     const forced = options?.force === true && (!options.sourceId || source.id === options.sourceId);
     return sourceDue(source, now, forced);
   });
-  const due = selected.slice(0, MAX_SOURCES_PER_CYCLE);
+  // Rotate fairly: sources that have waited longest are polled first.
+  const due = [...selected].sort((left, right) => {
+    const leftAt = Date.parse(left.lastAttemptAt ?? left.lastSuccessAt ?? "1970-01-01T00:00:00.000Z");
+    const rightAt = Date.parse(right.lastAttemptAt ?? right.lastSuccessAt ?? "1970-01-01T00:00:00.000Z");
+    return (Number.isFinite(leftAt) ? leftAt : 0) - (Number.isFinite(rightAt) ? rightAt : 0);
+  }).slice(0, MAX_SOURCES_PER_CYCLE);
   counts.sources = due.length;
 
   for (const source of due) {
@@ -138,7 +144,7 @@ async function syncSource(
   let writerUnavailable = false;
   for (const item of budget) {
     if (Date.now() > deadline) break;
-    const result = await researchItem(source, item, fetchImpl);
+    const result = await researchItem(source, item, fetchImpl, context.otherReports);
     if (result.reason === "writer_unavailable") writerUnavailable = true;
     research.set(item.url, result);
   }
@@ -191,7 +197,7 @@ async function syncSource(
   return { counts, fetched: 1, wrote: planned.length > 0, publishedSlug };
 }
 
-async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch): Promise<ItemResearch> {
+async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch, otherReports: { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[]): Promise<ItemResearch> {
   const loaded = await fetchArticlePage(item.url, fetchImpl);
   if (!loaded.ok) return { brief: null, image: null, reason: "thin_source" };
   const imageTask = selectOfficialImage(loaded.page, fetchImpl).then(async (official) => {
@@ -206,16 +212,30 @@ async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typ
       license: source.imageRights,
     });
   });
-  const written = await writeGroundedReport({
-    sourceName: source.name,
-    sourceTitle: item.title,
-    sourceUrl: item.url,
-    page: loaded.page,
-    lookup: lookupProfileNames,
-  });
+  const primaryPublisher = publisherKey(item.url);
+  const related = otherReports.filter((report) => {
+    if (!report.url || !report.title || report.sourceName === source.name) return false;
+    if (publisherKey(report.url) === primaryPublisher) return false;
+    const left = report.publishedAt ? Date.parse(report.publishedAt) : NaN;
+    const right = item.publishedAt ? Date.parse(item.publishedAt) : NaN;
+    if (Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) > 72 * 60 * 60 * 1000) return false;
+    return jaccard(titleTokens(report.title), titleTokens(item.title)) >= 0.6;
+  }).filter((report, index, all) => all.findIndex((candidate) => publisherKey(candidate.url) === publisherKey(report.url)) === index).slice(0, 3);
+  const corroboratingPages: { sourceName: string; sourceTitle: string; sourceUrl: string; page: ExtractedPage }[] = [];
+  for (const report of related) {
+    const secondary = await fetchArticlePage(report.url, fetchImpl);
+    if (secondary.ok && secondary.page.wordCount >= 80) corroboratingPages.push({ sourceName: report.sourceName, sourceTitle: report.title, sourceUrl: report.url, page: secondary.page });
+  }
+  const written = await writeGroundedReport({ sourceName: source.name, sourceTitle: item.title, sourceUrl: item.url, page: loaded.page, corroboratingPages, lookup: lookupProfileNames });
   const image = await imageTask;
   // No photo the source lets us use: a licensed, clearly-labelled illustration.
   const verified = image.status === "verified" ? image : illustrativeImage(source.categories[0], item.title);
   if (!written.ok) return { brief: null, image: verified, reason: written.reason };
   return { brief: written.brief, image: verified, reason: null };
+}
+
+
+function publisherKey(value: string): string {
+  try { return new URL(value).hostname.toLowerCase().replace(/^www\./, ""); }
+  catch { return ""; }
 }

@@ -98,6 +98,14 @@ function withinWindow(left: string | null, right: string | null): boolean {
 
 type Working = FeedItem & { externalKey: string; fingerprint: string; tokens: string[] };
 
+function publisherKey(url: string, fallback: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return fallback.trim().toLowerCase();
+  }
+}
+
 function decideIntent(input: {
   settings: IngestSettings;
   source: SourceRecord;
@@ -125,6 +133,9 @@ function decideIntent(input: {
     return { intent: "review", reasons: ["autopublish_not_authorized"] };
   }
   if (needsReview) reasons.push("review_required");
+  // Auto-publishing requires corroboration from at least two distinct publishers.
+  // Related feed entries are only candidate corroboration; they must be from another source.
+  if (input.independent < 2) reasons.push("insufficient_independent_sources");
   if (!input.imageOk) reasons.push("image_unavailable");
   if (input.publishedToday >= input.settings.dailyPublishCap) reasons.push("publish_cap");
   if (input.source.permittedUsage !== "facts" && input.source.permittedUsage !== "full") reasons.push("usage");
@@ -225,10 +236,14 @@ export function planSourceItems(input: {
         .map((value) => resolveMediaCategory(value))
         .find((value): value is NonNullable<typeof value> => value !== null) ?? "news";
     const blocked = input.settings.blockedCategories.includes(category);
+    const primaryPublisher = publisherKey(primary.url, input.source.name);
     const related = (input.otherReports ?? []).filter((report) => {
       if (report.sourceName === input.source.name) return false;
+      if (publisherKey(report.url, report.sourceName) === primaryPublisher) return false;
       return withinWindow(report.publishedAt, primary.publishedAt) && jaccard(titleTokens(report.title), primary.tokens) >= 0.6;
-    }).slice(0, 2);
+    }).filter((report, index, all) =>
+      all.findIndex((candidate) => publisherKey(candidate.url, candidate.sourceName) === publisherKey(report.url, report.sourceName)) === index,
+    ).slice(0, 3);
     const ordered = [primary, ...group.filter((item) => item !== primary)];
     const sourceUrls = [primary.url, ...related.map((report) => report.url)].join(" ");
     if (input.settings.mode === "discovery") {

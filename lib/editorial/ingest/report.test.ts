@@ -208,6 +208,35 @@ describe("editorial research", () => {
     if (!possessive.ok) assert.equal(possessive.issues.includes("unsupported_name"), false);
   });
 
+  it("includes corroborating publisher pages in the research dossier and provenance", async () => {
+    const page = extractArticlePage(pageHtml(), PAGE);
+    assert.ok(page);
+    const secondUrl = "https://www.theguardian.com/world/2026/nov/01/example-report";
+    let requestInput = "";
+    const written = await writeGroundedReport({
+      sourceName: "NASA News Releases",
+      sourceTitle: page?.title ?? "",
+      sourceUrl: PAGE,
+      page: page!,
+      corroboratingPages: [{
+        sourceName: "The Guardian World",
+        sourceTitle: page?.title ?? "",
+        sourceUrl: secondUrl,
+        page: { ...page!, url: secondUrl },
+      }],
+      complete: async (request) => {
+        requestInput = request.input;
+        return JSON.stringify(draft());
+      },
+    });
+    const dossier = JSON.parse(requestInput.slice(requestInput.indexOf("{"))) as { sources?: { publisher: string; sourceUrl: string }[] };
+    assert.equal(dossier.sources?.length, 2);
+    assert.equal(dossier.sources?.[1]?.publisher, "The Guardian World");
+    assert.equal(dossier.sources?.[1]?.sourceUrl, secondUrl);
+    assert.equal(written.ok, true);
+    if (written.ok) assert.match(written.brief.evidence, /theguardian\.com/);
+  });
+
   it("links a real profile only when the name is unique", () => {
     assert.equal(uniqueProfileHref("Ross Elder", [
       { name: "Ross Elder", username: "ross_elder" },
