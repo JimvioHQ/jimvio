@@ -4,7 +4,7 @@ import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/component
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
 import { splitHeroCaption } from "@/lib/editorial/caption";
-import { publicCorrection, readingMinutes } from "@/lib/editorial/discover";
+import { publicCorrection, publicSource, readingMinutes } from "@/lib/editorial/discover";
 import { editorialPhotoSrc } from "@/lib/editorial/image-display";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import type { PublicArticle } from "@/lib/editorial/types";
@@ -37,6 +37,7 @@ export function ArticleView({
   const minutes = readingMinutes(html);
   const photo = editorialPhotoSrc(article.imageUrl);
   const correction = publicCorrection(article.correctionNote);
+  const source = publicSource(article);
   const neighbors = previous || next;
 
   return (
@@ -67,6 +68,28 @@ export function ArticleView({
             </div>
             {shareUrl ? <ShareStory title={article.title} url={shareUrl} /> : null}
           </div>
+          {article.authorName || source ? (
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#667085]">
+              {article.authorName ? (
+                <p>
+                  <span className="font-medium text-[#667085]">By </span>
+                  <span className="font-semibold text-[#344054]">{article.authorName}</span>
+                </p>
+              ) : null}
+              {source ? (
+                <p>
+                  <span className="font-medium text-[#667085]">Source: </span>
+                  {source.url ? (
+                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#344054] underline decoration-[#d0d5dd] underline-offset-4 hover:text-[#c94308]">
+                      {source.name}
+                    </a>
+                  ) : (
+                    <span className="font-semibold text-[#344054]">{source.name}</span>
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </header>
 
         {photo ? (
