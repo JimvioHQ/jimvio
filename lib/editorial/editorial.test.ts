@@ -295,7 +295,7 @@ describe("editorial publishing guards", () => {
     assert.match(reader, /internalLinksOnly: true/);
     assert.equal(reader.includes("getAdminDB"), false);
     assert.match(reader, /getSupabasePublishableKey/);
-    assert.match(reader, /source_name/);
+    assert.doesNotMatch(reader, /source_name|source_url/);
     assert.match(reader, /updated_at/);
     assert.match(reader, /\.in\("status", \["published", "scheduled"\]\)/);
     const analytics = read("app/media/admin/analytics/page.tsx");
@@ -500,8 +500,6 @@ describe("editorial lifecycle decisions", () => {
         imageUrl: "/editorial/skyline.jpg",
         slug: "a-local-report",
         authorName: "Jimvio Editorial Team",
-        sourceName: "NASA",
-        sourceUrl: "https://www.nasa.gov/news-release/",
       },
       "https://www.jimvio.com",
     );
