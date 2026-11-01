@@ -1,4 +1,8 @@
-import { Facebook, Globe, Instagram, Linkedin, Link as LinkIcon, MessageCircle, Music2, Twitter, Youtube } from "lucide-react";
+import { Globe } from "lucide-react";
+import {
+  SiFacebook, SiInstagram, SiLinkedin, SiPinterest, SiSnapchat,
+  SiThreads, SiTiktok, SiX, SiYoutube,
+} from "react-icons/si";
 import type { IdentitySocialPlatform } from "@/lib/identity/types";
 import { cn } from "@/lib/utils";
 
@@ -16,19 +20,18 @@ export const SOCIAL_PLATFORM_LABEL: Record<IdentitySocialPlatform, string> = {
 };
 
 const META: Record<IdentitySocialPlatform, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  tiktok: { icon: Music2, color: "#111111" },
-  instagram: { icon: Instagram, color: "#D6295C" },
-  youtube: { icon: Youtube, color: "#E1352B" },
-  facebook: { icon: Facebook, color: "#1866D6" },
-  x: { icon: Twitter, color: "#111111" },
-  threads: { icon: MessageCircle, color: "#111111" },
-  linkedin: { icon: Linkedin, color: "#0A66C2" },
-  pinterest: { icon: LinkIcon, color: "#C8232C" },
-  snapchat: { icon: LinkIcon, color: "#B89400" },
+  tiktok: { icon: SiTiktok, color: "#111111" },
+  instagram: { icon: SiInstagram, color: "#D6295C" },
+  youtube: { icon: SiYoutube, color: "#E1352B" },
+  facebook: { icon: SiFacebook, color: "#1866D6" },
+  x: { icon: SiX, color: "#111111" },
+  threads: { icon: SiThreads, color: "#111111" },
+  linkedin: { icon: SiLinkedin, color: "#0A66C2" },
+  pinterest: { icon: SiPinterest, color: "#C8232C" },
+  snapchat: { icon: SiSnapchat, color: "#B89400" },
   website: { icon: Globe, color: "#59544B" },
 };
 
-/** Platform mark in the platform's color. `bare` drops the tinted circle. */
 export function SocialPlatformIcon({
   platform,
   className,
@@ -41,17 +44,10 @@ export function SocialPlatformIcon({
   const meta = META[platform] ?? META.website;
   const Icon = meta.icon;
   if (bare) {
-    return (
-      <span style={{ color: meta.color }} className="inline-flex">
-        <Icon className={cn("h-4 w-4", className)} />
-      </span>
-    );
+    return <span style={{ color: meta.color }} className="inline-flex"><Icon className={cn("h-4 w-4", className)} /></span>;
   }
   return (
-    <span
-      className={cn("grid shrink-0 place-items-center rounded-full", className)}
-      style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
-    >
+    <span className={cn("grid shrink-0 place-items-center rounded-full", className)} style={{ backgroundColor: `${meta.color}14`, color: meta.color }}>
       <Icon className="h-[55%] w-[55%]" />
     </span>
   );
