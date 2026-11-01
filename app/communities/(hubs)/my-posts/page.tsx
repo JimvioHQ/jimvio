@@ -50,8 +50,8 @@ function safeMediaUrl(value: unknown): string | null {
 
 function mediaKind(url: string, mime: string, fallback: PostMedia["kind"] = "file"): PostMedia["kind"] {
   const type = mime.toLowerCase();
-  if (type.startsWith("image/") || /\.(avif|gif|jpe?g|png|webp)(?:[?#]|$)/i.test(url)) return "image";
-  if (type.startsWith("video/") || /\.(m4v|mov|mp4|webm|m3u8)(?:[?#]|$)/i.test(url)) return "video";
+  if (type === "image" || type.startsWith("image/") || /\.(avif|gif|jpe?g|png|webp)(?:[?#]|$)/i.test(url)) return "image";
+  if (type === "video" || type.startsWith("video/") || /\.(m4v|mov|mp4|webm|m3u8)(?:[?#]|$)/i.test(url)) return "video";
   return fallback;
 }
 
