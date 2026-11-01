@@ -4,6 +4,32 @@ import { IdentityCard, cn } from "@/components/identity/identity-ui";
 import { SocialPlatformIcon } from "@/components/identity/SocialPlatformIcon";
 import { formatNumber } from "@/lib/utils";
 
+const SOCIAL_HOSTS: Partial<Record<IdentitySocialPlatform, string[]>> = {
+  tiktok: ["tiktok.com"],
+  instagram: ["instagram.com"],
+  youtube: ["youtube.com", "youtu.be"],
+  facebook: ["facebook.com", "fb.com"],
+  x: ["x.com", "twitter.com"],
+  threads: ["threads.net"],
+  linkedin: ["linkedin.com"],
+  pinterest: ["pinterest.com"],
+  snapchat: ["snapchat.com"],
+};
+
+function publicSocialHref(account: IdentitySocialAccount): string | null {
+  if (!account.url?.trim()) return null;
+  try {
+    const url = new URL(account.url.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (account.platform === "website") return url.toString();
+    const hosts = SOCIAL_HOSTS[account.platform] ?? [];
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return hosts.some((domain) => host === domain || host.endsWith("." + domain)) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 const PLATFORM_META: Record<IdentitySocialPlatform, { label: string; color: string }> = {
   tiktok: { label: "TikTok", color: "#161512" },
   instagram: { label: "Instagram", color: "#D6295C" },
@@ -26,17 +52,20 @@ export function IdentitySocialLinks({
   className?: string;
   compact?: boolean;
 }) {
-  if (accounts.length === 0) return null;
+  const visibleAccounts = accounts
+    .map((account) => ({ account, href: publicSocialHref(account) }))
+    .filter((entry): entry is { account: IdentitySocialAccount; href: string } => Boolean(entry.href));
+  if (visibleAccounts.length === 0) return null;
 
   if (compact) {
     return (
       <div className={cn("flex flex-wrap items-center gap-2", className)}>
-        {accounts.map((account) => {
+        {visibleAccounts.map(({ account, href }) => {
           const meta = PLATFORM_META[account.platform];
           return (
             <a
               key={account.id}
-              href={account.url ?? "#"}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.06] bg-white transition-colors hover:border-black/15"
@@ -53,7 +82,7 @@ export function IdentitySocialLinks({
 
   return (
     <div className={cn("grid grid-cols-1 gap-2.5 sm:grid-cols-2", className)}>
-      {accounts.map((account) => {
+      {visibleAccounts.map(({ account, href }) => {
         const meta = PLATFORM_META[account.platform];
         return (
           <a
