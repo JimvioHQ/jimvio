@@ -84,6 +84,7 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     findings.push(
       p.hasContact ? { tone: "good", title: "Seller contact details on the page", source: "Product page" } : { tone: "warn", title: "No way to contact the seller", source: "Product page" },
       p.hasRefund ? { tone: "good", title: "Mentions a refund policy", source: "Product page" } : { tone: "info", title: "No refund policy found", source: "Product page" },
+      p.hasPrivacy ? { tone: "good", title: "Privacy policy is linked", source: "Product page" } : { tone: "info", title: "No privacy policy found", detail: "The page did not expose a privacy policy link or mention. This is a transparency gap, not proof of fraud.", source: "Product page" },
     );
     if (page.domainAgeDays != null && page.domainAgeDays < 60) {
       findings.push({ tone: "warn", title: `Shop domain is only ${page.domainAgeDays} days old`, source: "RDAP" });
