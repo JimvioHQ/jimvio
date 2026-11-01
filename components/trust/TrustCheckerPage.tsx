@@ -13,7 +13,7 @@ import {
   FileArchive,
   FileCode,
   FileImage,
-  FilePdf,
+  FileText,
   FileSpreadsheet,
   FileVideo,
   FileUp,
@@ -79,7 +79,7 @@ const CARDS = [
     title: "Digital Product Verification",
     body: "Inspect file structure, repeat fingerprints seen on Jimvio, product-page claims and visible seller details. This is not a full antivirus, legal copyright or ownership verification.",
     logos: [
-      { icon: FilePdf, color: "#DC2626" },
+      { icon: FileText, color: "#DC2626" },
       { icon: FileSpreadsheet, color: "#2563EB" },
       { icon: FileCode, color: "#16A34A" },
       { icon: FileImage, color: "#EA580C" },
