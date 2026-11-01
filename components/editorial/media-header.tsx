@@ -18,10 +18,13 @@ const LOCALES: { code: UgcLocale; label: string }[] = [
 const PRIMARY_CATEGORIES: MediaCategory[] = ["news", "business", "technology", "magazine", "guides"];
 const primaryLinks = [
   { href: "/media", label: "Home" },
-  ...MEDIA_CATEGORIES.filter((category) => PRIMARY_CATEGORIES.includes(category.slug)).map((category) => ({
-    href: `/media/category/${category.slug}`,
-    label: category.label,
-  })),
+  { href: "/media/category/news", label: "News" },
+  { href: "/media/search?q=Africa", label: "Africa" },
+  { href: "/media/search?q=World", label: "World" },
+  { href: "/media/category/business", label: "Business" },
+  { href: "/media/category/technology", label: "Technology" },
+  { href: "/media/search?q=Science", label: "Science" },
+  { href: "/media/search?q=Culture", label: "Culture" },
 ];
 const exploreLinks = MEDIA_CATEGORIES.filter((category) => !PRIMARY_CATEGORIES.includes(category.slug)).map((category) => ({
   href: `/media/category/${category.slug}`,
@@ -95,25 +98,14 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
         </div>
       </nav>
 
-      <nav aria-label="Media sections" className="flex items-center gap-5 overflow-x-auto px-4 py-3 lg:hidden">
-        {primaryLinks.map((link) => (
-          <Link key={link.href} href={link.href} aria-current={isActive(pathname, link.href) ? "page" : undefined} className={cn(
-            "shrink-0 whitespace-nowrap text-[13px] font-semibold text-[#667085] transition-colors",
-            isActive(pathname, link.href) && "text-[#c94308]",
-          )}>{link.label}</Link>
-        ))}
-        <button type="button" aria-expanded={more} className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-[13px] font-semibold text-[#475467]" onClick={() => setMore((value) => !value)}>
-          Explore <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", more && "rotate-180")} />
-        </button>
-      </nav>
       {more ? (
-        <div className="border-t border-[#edf0f4] bg-[#fafbfc] px-4 py-3 lg:hidden">
+        <nav aria-label="Media sections" className="border-t border-[#edf0f4] bg-white px-4 py-3 lg:hidden">
           <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-            {exploreLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#344054] transition hover:bg-white hover:text-[#c94308]" onClick={() => setMore(false)}>{link.label}</Link>
+            {[...primaryLinks.slice(1), ...exploreLinks].map((link) => (
+              <Link key={link.href} href={link.href} aria-current={isActive(pathname, link.href) ? "page" : undefined} className={cn("rounded-lg px-3 py-2.5 text-sm font-semibold transition hover:bg-[#fff4ef] hover:text-[#c94308]", isActive(pathname, link.href) && "bg-[#fff4ef] text-[#fd5000]")} onClick={() => setMore(false)}>{link.label}</Link>
             ))}
           </div>
-        </div>
+        </nav>
       ) : null}
     </header>
   );
