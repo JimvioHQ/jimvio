@@ -2,7 +2,7 @@ import type { CatalogSource } from "@/lib/editorial/ingest/types";
 
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
-export const VERIFIED_FEEDS: CatalogSource[] = [
+export const UNVERIFIED_CANDIDATES: CatalogSource[] = [
   // Global editorial discovery pool. These are intentionally not auto-enabled:
   // admins must verify live feed health and publisher terms before activation.
   ...([
@@ -41,7 +41,9 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
     accessMethod: "rss",
     verifiedAt: null,
-  })),
+  }));
+
+export const VERIFIED_FEEDS: CatalogSource[] = [
   {
     name: "NASA News Releases",
     kind: "rss",
