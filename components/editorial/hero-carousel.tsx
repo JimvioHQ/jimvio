@@ -20,7 +20,7 @@ export function HeroCarousel({ slides }: { slides: StoryCardModel[] }) {
 
   return (
     <div
-      className={`relative rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000] ${photo ? "min-h-[420px] lg:min-h-[468px]" : ""}`}
+      className={`relative rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000] ${photo ? "min-h-[360px] lg:min-h-[420px]" : ""}`}
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured stories"
@@ -34,10 +34,10 @@ export function HeroCarousel({ slides }: { slides: StoryCardModel[] }) {
         card={slide}
         priority={safeIndex === 0}
         sizes="(min-width: 1024px) 62vw, 100vw"
-        className={photo ? "h-full min-h-[420px] lg:min-h-[468px]" : ""}
-        contentClassName="px-5 pb-16 pt-5"
+        className={photo ? "h-full min-h-[360px] lg:min-h-[420px]" : ""}
+        contentClassName="px-6 pb-14 pt-6 sm:px-8 sm:pb-16"
         scrim="hero"
-        titleClassName="max-w-xl text-[28px] sm:text-[34px]"
+        titleClassName="max-w-[18ch] text-[26px] leading-[1.12] sm:text-[32px] lg:text-[36px]"
       />
       {count > 1 ? (
         <>
