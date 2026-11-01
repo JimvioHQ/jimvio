@@ -48,6 +48,7 @@ import { LockedCountryField } from "@/components/geo/LockedCountryField";
 import { CategoryPicker } from "@/components/identity/CategoryPicker";
 import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChecklist";
 import { SocialAccountsManager } from "@/components/identity/SocialAccountsManager";
+import { PortfolioManager } from "@/components/identity/PortfolioManager";
 
 const AVAILABILITY: { value: IdentityAvailability; label: string }[] = [
   { value: "open", label: "Open to work" },
@@ -407,6 +408,10 @@ export function SettingsProfileForm({
               <SocialAccountsManager accounts={accounts} onChange={setAccounts} />
             </SettingsCard>
           </div>
+
+          <SettingsCard title="Portfolio" description="Manage the campaigns, content and work featured on your public profile." icon={<Briefcase className="h-4 w-4" />}>
+            <PortfolioManager />
+          </SettingsCard>
 
           <SettingsCard title="Skills & work" description="Shown to brands looking for creators." icon={<Briefcase className="h-4 w-4" />}>
             <div className="space-y-4">
