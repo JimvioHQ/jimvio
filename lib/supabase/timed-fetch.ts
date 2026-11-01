@@ -16,12 +16,14 @@ export function timedFetch(timeoutMs = SUPABASE_REQUEST_TIMEOUT_MS): typeof fetc
 
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     const canRetry = method === "GET" || method === "HEAD";
-    const maxAttempts = canRetry ? 3 : 1;
+    const maxAttempts = canRetry ? 2 : 1;
     let lastError: unknown;
+
+    const callerSignal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const timeout = AbortSignal.timeout(timeoutMs);
-      const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+      const signal = callerSignal ? AbortSignal.any([callerSignal, timeout]) : timeout;
 
       try {
         const response = await fetch(input, { ...init, signal });
@@ -39,7 +41,7 @@ export function timedFetch(timeoutMs = SUPABASE_REQUEST_TIMEOUT_MS): typeof fetc
       } catch (error) {
         lastError = error;
         // Respect caller cancellation; only retry transport/timeout failures.
-        if (!canRetry || init?.signal?.aborted || attempt === maxAttempts - 1) throw error;
+        if (!canRetry || callerSignal?.aborted || attempt === maxAttempts - 1) throw error;
       }
 
       await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
