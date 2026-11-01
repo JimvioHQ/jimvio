@@ -311,7 +311,11 @@ export function JimvioAIPanel({
   };
 
   return (
-    <div className={cn("relative w-full min-w-0", className)}>
+    <div className={cn(
+      "relative w-full min-w-0",
+      compact ? "" : "overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-white via-[#FFF9F5] to-[#FFF0E6] p-4 shadow-[0_12px_32px_rgba(249,115,22,0.08)] sm:p-5",
+      className
+    )}>
       <div
         className={cn(
           "relative z-10 flex w-full items-center gap-2 sm:gap-3",
@@ -357,7 +361,7 @@ export function JimvioAIPanel({
             type="button"
             onClick={() => ask()}
             className={cn(
-              "absolute mt-4 right-1.5 top-1/2 z-20 inline-flex h-8 -translate-y-1/2 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 sm:h-9 sm:px-3.5 sm:text-[12px]",
+              "absolute right-1.5 top-1/2 z-20 inline-flex h-8 -translate-y-1/2 cursor-pointer touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 sm:h-9 sm:px-3.5 sm:text-[12px]",
               compact ? "hidden" : "hidden sm:inline-flex"
             )}
             style={{ background: ORANGE }}
