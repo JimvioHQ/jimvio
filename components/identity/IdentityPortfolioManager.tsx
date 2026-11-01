@@ -82,6 +82,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
     }
     setDraft((current) => current ? {
       ...current,
+      kind: current.kind === "image" || current.kind === "video" ? (isVideo ? "video" : "image") : current.kind,
       mediaUrl: result.url,
       thumbnailUrl: isImage ? result.url : current.thumbnailUrl,
     } : current);
