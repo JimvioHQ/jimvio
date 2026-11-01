@@ -19,7 +19,11 @@ export function claimFindings(text: string): Finding[] {
   const sample = text.slice(0, 400_000);
   for (const [re, label] of CLAIMS) {
     const m = re.exec(sample);
-    if (m) f.push({ tone: label.includes("recovery phrase") ? "bad" : label.includes("payment method") ? "warn" : "warn", title: label, detail: `“…${sample.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40).replace(/\s+/g, " ").trim()}…”`, source: "Claim check" });
+    if (!m) continue;
+    const prefix = sample.slice(Math.max(0, m.index - 24), m.index);
+    // Do not flag protective advice such as "never share your seed phrase".
+    if (/(?:never|don't|do not|dont|can't|cannot)\\s+(?:ever\\s+)?$/i.test(prefix)) continue;
+    f.push({ tone: label.includes("recovery phrase") ? "bad" : "warn", title: label, detail: `“…${sample.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40).replace(/\s+/g, " ").trim()}…”`, source: "Claim check" });
   }
   if (/\b(plr|private label rights|master resell rights|mrr)\b/i.test(sample)) {
     f.push({ tone: "info", title: "Sold with resell rights (PLR/MRR)", detail: "The same content is often sold by many sellers; it isn't unique.", source: "Licensing text" });
