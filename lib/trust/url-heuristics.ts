@@ -3,7 +3,7 @@
  * Each signal says exactly what was seen so people can judge it themselves.
  */
 import { getDomain, getSubdomain, getPublicSuffix } from "tldts";
-import type { Finding } from "./types";
+import type { CheckerResult, Finding } from "./types";
 
 export const BRANDS: { name: string; domains: string[] }[] = [
   { name: "youtube", domains: ["youtube.com", "youtu.be", "youtube-nocookie.com"] },
@@ -182,4 +182,16 @@ export function redirectSignals(hops: { url: string; status: number }[]): Findin
     f.push({ tone: "info", title: "Redirects to another domain", detail: domains.join(" → "), source: "Redirect chain" });
   }
   return f;
+}
+
+
+/** A clean verdict needs both a successful page fetch and a reputation-source response. */
+export function decideLinkStatus(findings: Finding[], knownThreat: boolean, fetched: boolean, reputationChecked: boolean): CheckerResult["status"] {
+  if (knownThreat) return "known_threat";
+  const bad = findings.filter((finding) => finding.tone === "bad").length;
+  const warn = findings.filter((finding) => finding.tone === "warn").length;
+  if (bad >= 2 || (bad >= 1 && warn >= 2)) return "high_risk";
+  if (bad >= 1 || warn >= 2) return "suspicious";
+  if (!fetched || !reputationChecked) return "inconclusive";
+  return "low_risk";
 }
