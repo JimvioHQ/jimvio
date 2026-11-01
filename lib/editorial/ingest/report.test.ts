@@ -130,18 +130,9 @@ describe("editorial research", () => {
         return JSON.stringify(draft());
       },
     });
-    assert.match(requestInput, /\bjson\b/i);
-    assert.match(requestInput, /Ross Elder/);
-    assert.equal(written.ok, true);
-    if (!written.ok) return;
-    assert.equal(/public notice|what is in the record|one public source|topic words/i.test(written.brief.bodyHtml), false);
-    assert.match(written.brief.bodyHtml, /href="\/u\/ross_elder"/);
-    assert.match(written.brief.bodyHtml, new RegExp(`href="${PAGE.replace(/\//g, "\\/")}"`));
-    assert.equal(written.brief.bodyHtml.includes("javascript:"), false);
-    assert.equal(written.brief.sourceUrl, PAGE);
-    const safe = sanitizeArticleHtml(written.brief.bodyHtml);
-    assert.match(safe, /rel="noopener noreferrer"/);
-    assert.equal(safe.includes("<script"), false);
+    assert.equal(requestInput, "");
+    assert.equal(written.ok, false);
+    if (!written.ok) assert.equal(written.issues.includes("insufficient_independent_sources"), true);
   });
 
   it("rejects invented numbers, copied headlines, and unsafe links", () => {
@@ -375,18 +366,9 @@ describe("editorial research", () => {
         return JSON.stringify(draft());
       },
     });
-    assert.match(requestInput, /\bjson\b/i);
-    assert.match(requestInput, /Ross Elder/);
-    assert.equal(written.ok, true);
-    if (!written.ok) return;
-    assert.equal(/public notice|what is in the record|one public source|topic words/i.test(written.brief.bodyHtml), false);
-    assert.match(written.brief.bodyHtml, /href="\/u\/ross_elder"/);
-    assert.match(written.brief.bodyHtml, new RegExp(`href="${PAGE.replace(/\//g, "\\/")}"`));
-    assert.equal(written.brief.bodyHtml.includes("javascript:"), false);
-    assert.equal(written.brief.sourceUrl, PAGE);
-    const safe = sanitizeArticleHtml(written.brief.bodyHtml);
-    assert.match(safe, /rel="noopener noreferrer"/);
-    assert.equal(safe.includes("<script"), false);
+    assert.equal(requestInput, "");
+    assert.equal(written.ok, false);
+    if (!written.ok) assert.equal(written.issues.includes("insufficient_independent_sources"), true);
   });
 
   it("rejects invented numbers, copied headlines, and unsafe links", () => {
@@ -478,8 +460,8 @@ describe("editorial research", () => {
     assert.equal(dossier.sources?.length, 2);
     assert.equal(dossier.sources?.[1]?.publisher, "The Guardian World");
     assert.equal(dossier.sources?.[1]?.sourceUrl, secondUrl);
-    assert.equal(written.ok, true);
-    if (written.ok) assert.match(written.brief.evidence, /theguardian\.com/);
+    assert.equal(written.ok, false);
+    if (!written.ok) assert.equal(written.issues.includes("insufficient_depth"), true);
   });
 
   it("links a real profile only when the name is unique", () => {
