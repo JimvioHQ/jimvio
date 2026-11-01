@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, Clock3, ExternalLink } from "lucide-react";
 import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
@@ -41,119 +42,107 @@ export function ArticleView({
   return (
     <>
       {article.fixture ? <SampleBanner /> : null}
-      <article lang="en" className="mx-auto max-w-[760px] px-4 py-8 sm:px-6 sm:py-10">
-        <nav aria-label="Breadcrumb" className="text-sm text-[#667085]">
+      <article lang="en" className="mx-auto max-w-[1180px] px-4 pb-16 pt-7 sm:px-6 lg:px-8">
+        <nav aria-label="Breadcrumb" className="mb-7 text-[13px] text-[#667085]">
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <li>
-              <Link
-                href="/media"
-                className="font-semibold text-[#3b5ccc] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-              >
-                Media
-              </Link>
-            </li>
+            <li><Link href="/media" className="font-semibold text-[#475467] hover:text-[#c94308] hover:underline">Media</Link></li>
             <li aria-hidden="true">/</li>
-            <li>
-              <Link
-                href={`/media/category/${article.category}`}
-                className="font-semibold text-[#3b5ccc] hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-              >
-                {label}
-              </Link>
-            </li>
+            <li><Link href={`/media/category/${article.category}`} className="font-semibold text-[#475467] hover:text-[#c94308] hover:underline">{label}</Link></li>
             <li aria-hidden="true">/</li>
-            <li aria-current="page" className="text-[#172033]">
-              {article.title}
-            </li>
+            <li aria-current="page" className="max-w-[min(52vw,520px)] truncate text-[#667085]">{article.title}</li>
           </ol>
         </nav>
-        <Kicker label={displayKicker(article)} className="mt-4" />
-        <h1 className={`${styles.display} mt-3 text-[1.75rem] text-[#141820] sm:text-[2.15rem]`}>
-          {article.title}
-        </h1>
-        {article.excerpt ? <p className="mt-4 max-w-[65ch] text-lg leading-relaxed text-[#4b5568]">{article.excerpt}</p> : null}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-[#667085]">
-            {article.publishedAt ? (
-              <time dateTime={article.publishedAt}>Published {formatDate(article.publishedAt)}</time>
-            ) : article.fixture ? (
-              <span>Design fixture</span>
-            ) : null}
-            {minutes > 0 ? (
-              <>
-                {article.publishedAt || article.fixture ? <span aria-hidden="true"> · </span> : null}
-                <span>{minutes} min read</span>
-              </>
-            ) : null}
-          </p>
-          {shareUrl ? <ShareStory title={article.title} url={shareUrl} /> : null}
-        </div>
-        {correction ? (
-          <p className="mt-4 rounded-xl border border-[#eceff3] bg-[#fafbfc] px-4 py-3 text-sm leading-relaxed text-[#475467]">
-            <span className="font-semibold text-[#172033]">Update. </span>
-            {correction}
-          </p>
-        ) : null}
-        {photo ? (
-          <figure className="mt-6">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-[#f4f5f7]">
-              <StoryImage
-                src={photo}
-                alt={article.imageAlt || article.title}
-                priority
-                sizes="(min-width: 760px) 760px, 100vw"
-              />
+
+        <header className="mx-auto max-w-[980px]">
+          <Kicker label={displayKicker(article)} />
+          <h1 className={`${styles.display} mt-4 max-w-[20ch] text-[2.25rem] leading-[1.08] tracking-[-0.045em] text-[#111827] sm:text-[3rem] lg:text-[3.75rem]`}>
+            {article.title}
+          </h1>
+          {article.excerpt ? <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.7] text-[#475467] sm:text-[19px]">{article.excerpt}</p> : null}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-[#e9edf2] py-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-[#667085]">
+              {article.publishedAt ? <time dateTime={article.publishedAt} className="font-medium text-[#344054]">{formatDate(article.publishedAt)}</time> : article.fixture ? <span>Design preview</span> : null}
+              {minutes > 0 ? <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" /> {minutes} min read</span> : null}
+              <span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 font-semibold text-[#475467]">{label}</span>
             </div>
-            {story.caption ? (
-              <figcaption className="mt-2 max-w-[65ch] text-sm leading-relaxed text-[#667085]">{story.caption}</figcaption>
-            ) : null}
+            {shareUrl ? <ShareStory title={article.title} url={shareUrl} /> : null}
+          </div>
+        </header>
+
+        {photo ? (
+          <figure className="mx-auto mt-8 max-w-[1080px]">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-[18px] bg-[#f2f4f7] shadow-[0_12px_36px_rgba(16,24,40,0.08)] sm:rounded-[24px]">
+              <StoryImage src={photo} alt={article.imageAlt || article.title} priority sizes="(min-width: 1200px) 1080px, 100vw" />
+            </div>
+            {story.caption ? <figcaption className="mx-auto mt-3 max-w-[80ch] text-center text-[12px] leading-relaxed text-[#667085]">{story.caption}</figcaption> : null}
           </figure>
         ) : null}
-        <div className={`${styles.body} mt-8 text-[1.125rem]`} dangerouslySetInnerHTML={{ __html: html }} />
-        <p className="mt-10 text-sm text-[#667085]">
-          Filed in{" "}
-          <Link
-            href={`/media/category/${article.category}`}
-            className="font-semibold text-[#fd5000] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-          >
-            {label}
-          </Link>
-        </p>
-        {neighbors ? (
-          <nav aria-label={`More in ${label}`} className="mt-8 grid gap-3 border-t border-[#eceff3] pt-6 sm:grid-cols-2">
-            {previous ? (
-              <Link
-                href={`/media/article/${previous.slug}`}
-                className="rounded-xl border border-[#eceff3] px-4 py-3 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-              >
-                <span className="block text-xs font-semibold uppercase tracking-wide text-[#667085]">Previous story</span>
-                <span className="mt-1 block font-semibold text-[#172033]">{previous.title}</span>
-              </Link>
-            ) : (
-              <span />
-            )}
-            {next ? (
-              <Link
-                href={`/media/article/${next.slug}`}
-                className="rounded-xl border border-[#eceff3] px-4 py-3 text-sm sm:text-right focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
-              >
-                <span className="block text-xs font-semibold uppercase tracking-wide text-[#667085]">Next story</span>
-                <span className="mt-1 block font-semibold text-[#172033]">{next.title}</span>
-              </Link>
-            ) : null}
-          </nav>
+
+        {correction ? (
+          <p className="mx-auto mt-7 max-w-[820px] rounded-xl border border-[#f4d7b5] bg-[#fffaf5] px-4 py-3 text-sm leading-relaxed text-[#7a3d13]">
+            <span className="font-bold">Correction / update. </span>{correction}
+          </p>
         ) : null}
-      </article>
-      {related.length > 0 ? (
-        <section className="mx-auto max-w-[1180px] px-4 pb-12 sm:px-6">
-          <h2 className="mb-4 text-lg font-bold text-[#172033]">Related stories</h2>
-          <div className="grid gap-3 md:grid-cols-3">
-            {related.map((item) => (
-              <StoryCard key={item.id} card={toCard(item)} stacked />
-            ))}
+
+        <div className="mx-auto mt-10 grid max-w-[1120px] items-start gap-10 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
+          <div>
+            <div id="story-content" className={`${styles.body} max-w-[72ch] text-[1.125rem] sm:text-[1.2rem]`} dangerouslySetInnerHTML={{ __html: html }} />
+            {(article.sourceName || article.sourceUrl) ? (
+              <p className="mt-9 border-t border-[#e9edf2] pt-4 text-[13px] leading-relaxed text-[#667085]">
+                Source: {article.sourceUrl ? (
+                  <a href={article.sourceUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#475467] underline decoration-[#cbd5e1] underline-offset-4 hover:text-[#c94308]">
+                    {article.sourceName || "Original reporting"} <ExternalLink className="inline h-3 w-3" />
+                  </a>
+                ) : <span className="font-semibold text-[#475467]">{article.sourceName}</span>}
+              </p>
+            ) : null}
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9edf2] pt-5">
+              <Link href={`/media/category/${article.category}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#c94308] hover:underline">
+                More in {label} <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/media" className="inline-flex items-center gap-2 text-sm font-semibold text-[#475467] hover:text-[#c94308]">
+                <ArrowLeft className="h-4 w-4" /> Back to Media
+              </Link>
+            </div>
+            {neighbors ? (
+              <nav aria-label={`More in ${label}`} className="mt-8 grid gap-3 border-t border-[#e9edf2] pt-6 sm:grid-cols-2">
+                {previous ? (
+                  <Link href={`/media/article/${previous.slug}`} className="rounded-xl border border-[#e9edf2] p-4 transition hover:border-[#d0d5dd] hover:bg-[#fafbfc]">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#667085]">Previous story</span>
+                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{previous.title}</span>
+                  </Link>
+                ) : <span />}
+                {next ? (
+                  <Link href={`/media/article/${next.slug}`} className="rounded-xl border border-[#e9edf2] p-4 text-left transition hover:border-[#d0d5dd] hover:bg-[#fafbfc] sm:text-right">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#667085]">Next story</span>
+                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{next.title}</span>
+                  </Link>
+                ) : null}
+              </nav>
+            ) : null}
           </div>
-        </section>
-      ) : null}
+
+          <aside className="lg:sticky lg:top-28">
+            {related.length > 0 ? (
+              <section aria-labelledby="related-stories">
+                <div className="mb-4 border-b border-[#e9edf2] pb-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c94308]">Keep exploring</p>
+                  <h2 id="related-stories" className="mt-1 text-lg font-bold tracking-[-0.025em] text-[#172033]">More to read</h2>
+                </div>
+                <div className="grid gap-3">
+                  {related.map((item) => <StoryCard key={item.id} card={toCard(item)} stacked />)}
+                </div>
+              </section>
+            ) : (
+              <div className="rounded-2xl border border-[#e9edf2] bg-[#fafbfc] p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#c94308]">Jimvio Media</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#667085]">Explore more reporting and ideas across our newsroom.</p>
+                <Link href="/media" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#c94308]">Browse stories <ArrowRight className="h-4 w-4" /></Link>
+              </div>
+            )}
+          </aside>
+        </div>
+      </article>
     </>
   );
 }
