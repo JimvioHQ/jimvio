@@ -110,7 +110,7 @@ export async function checkProduct(input: ProductInput, applicableReason: string
   const bad = findings.filter((x) => x.tone === "bad").length;
   const warn = findings.filter((x) => x.tone === "warn").length;
   // An unrecognized binary with no readable evidence must never receive a low-risk verdict.
-  const unsupportedFile = Boolean(file && file.type.kind === "unknown" && !page);
+  const unsupportedFile = Boolean(file && file.type.kind === "unknown");
   if (unsupportedFile) limits.push("This file format is not recognized. Jimvio could not inspect its internal structure or confirm whether it is safe.");
   const status: CheckerResult["status"] = bad >= 2 || (bad && warn >= 2) ? "high_risk" : bad || warn >= 2 ? "suspicious" : warn === 1 ? "evidence_found" : unsupportedFile ? "inconclusive" : "low_risk";
   return {
