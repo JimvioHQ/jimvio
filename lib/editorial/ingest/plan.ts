@@ -100,7 +100,7 @@ type Working = FeedItem & { externalKey: string; fingerprint: string; tokens: st
 
 function publisherKey(url: string, fallback: string): string {
   try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\\./, "");
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
   } catch {
     return fallback.trim().toLowerCase();
   }
