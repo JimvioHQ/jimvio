@@ -68,6 +68,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or missing platform" }, { status: 400 });
   }
 
+  const { data: existing } = await db
+    .from("jip_social_accounts")
+    .select("is_public")
+    .eq("user_id", user.id)
+    .eq("platform", platform)
+    .maybeSingle();
+  const isPublic = typeof body.isPublic === "boolean" ? body.isPublic : existing?.is_public === true;
+
   const payload = {
     user_id: user.id,
     platform,
@@ -78,7 +86,7 @@ export async function POST(req: NextRequest) {
     engagement_rate: Number.isFinite(Number(body.engagementRate))
       ? Math.max(0, Number(body.engagementRate))
       : 0,
-    is_public: body.isPublic === true,
+    is_public: isPublic,
     metadata: typeof body.metadata === "object" && body.metadata !== null ? body.metadata : {},
   };
 
