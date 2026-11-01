@@ -180,6 +180,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   allowedHrefs: string[];
   profiles?: readonly ProfileMatch[];
   pageLinks?: readonly { text: string; href: string }[];
+  sourceEvidence?: readonly string[];
 }): ReportResult {
   const issues: string[] = [];
   const corpus = input.corpusParts.join(" ");
@@ -268,7 +269,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
       seoDescription: seoDescription.slice(0, 160),
       sourceName: input.sourceName.slice(0, 120),
       sourceUrl: input.sourceUrl,
-      evidence: `Independently researched report. Sources: ${documents.map((document) => `${document.sourceName}: ${canonicalUrl(document.sourceUrl) ?? document.sourceUrl}`).join(" | ")}`.slice(0, 2000),
+      evidence: `Independently researched report. Sources: ${(input.sourceEvidence?.length ? input.sourceEvidence : [`${input.sourceName}: ${canonicalUrl(input.sourceUrl) ?? input.sourceUrl}`]).join(" | ")}`.slice(0, 2000),
       sensitive: false,
       originalityOk: true,
       sufficient: true,
@@ -396,6 +397,7 @@ export async function writeGroundedReport(input: {
     allowedHrefs: [...allowed],
     profiles,
     pageLinks: documents.flatMap((document) => document.page.links),
+    sourceEvidence: documents.map((document) => `${document.sourceName}: ${canonicalUrl(document.sourceUrl) ?? document.sourceUrl}`),
   });
   if (result.ok && meaningfulCaption(documents[0]?.page.captions[0] ?? "") && containsDiagnosticProse(result.brief.bodyHtml)) {
     return { ok: false, reason: "quality_gate", issues: ["diagnostic"] };
