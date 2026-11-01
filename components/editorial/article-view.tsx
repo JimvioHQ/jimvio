@@ -107,7 +107,7 @@ export function ArticleView({
           </p>
         ) : null}
 
-        <div className="mx-auto mt-8 grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0, min(100%, 740px))_minmax(240px, 280px)] lg:gap-10">
+        <div className="mx-auto mt-8 grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,740px)_minmax(240px,280px)] lg:gap-10">
           <div>
             <div id="story-content" className={`${styles.body} max-w-[72ch] text-[1.125rem] sm:text-[1.2rem]`} dangerouslySetInnerHTML={{ __html: html }} />
             <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9edf2] pt-5">
