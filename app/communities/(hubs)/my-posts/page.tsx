@@ -239,7 +239,7 @@ export default function MyPostsPage() {
           </div>
           {hasMore ? (
             <div className="flex justify-center pt-6">
-              <button type="button" disabled={loadingMore} onClick={() => void loadPosts(page + 1, true, posts.length) className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-50">
+              <button type="button" disabled={loadingMore} onClick={() => void loadPosts(page + 1, true, posts.length)} className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-50">
                 {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
                 {loadingMore ? "Loading…" : "Load more posts"}
               </button>
