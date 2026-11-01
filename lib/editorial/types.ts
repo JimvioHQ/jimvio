@@ -43,8 +43,8 @@ export type PublicArticle = {
 };
 
 export type AdminArticle = PublicArticle & {
-  sourceName: string | null;
-  sourceUrl: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
   status: MediaStatus;
   scheduledAt: string | null;
   createdAt: string;
