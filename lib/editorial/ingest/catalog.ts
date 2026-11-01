@@ -29,7 +29,7 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     imageRights: "none" as const,
     pollMinutes: 360,
     enabled: false,
-    alwaysReview: true,
+    alwaysReview: false,
     termsNote: "Discovery candidate added 2026-11-01. Not yet live-verified by Jimvio. Use only short factual summaries with original reporting; do not republish source text or images. Verify publisher terms, feed health, and article access before enabling.",
     rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
     accessMethod: "rss",
