@@ -106,7 +106,7 @@ export function SettingsPrivacyForm({
       />
 
       <div className="space-y-5">
-        <SettingsCard title="Public profile" description="This controls the /u profile people can open.">
+        <SettingsCard title="Public profile" description="This controls the /u profile people can open. Resume, media kit and analytics remain private until you enable them below.">
           <div className="space-y-2">
             {VISIBILITY_OPTIONS.map((option) => {
               const active = privacyVisibility === option.value;
