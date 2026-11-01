@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, ArrowRight, Clock3 } from "lucide-react";
 import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import { ShareStory } from "@/components/editorial/share-story";
@@ -71,10 +72,13 @@ export function ArticleView({
           {article.authorName ? (
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#667085]">
               {article.authorName ? (
-                <p>
-                  <span className="font-medium text-[#667085]">By </span>
-                  <span className="font-semibold text-[#344054]">{article.authorName}</span>
-                </p>
+                <div className="flex items-center gap-2.5">
+                  <Image src="/jimvio-logo-mark.png" alt="Jimvio" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
+                  <p>
+                    <span className="font-medium text-[#667085]">By </span>
+                    <span className="font-semibold text-[#344054]">{article.authorName}</span>
+                  </p>
+                </div>
               ) : null}
              </div>
           ) : null}
