@@ -3,6 +3,38 @@ import type { CatalogSource } from "@/lib/editorial/ingest/types";
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
 export const VERIFIED_FEEDS: CatalogSource[] = [
+  // Global editorial discovery pool. These are intentionally not auto-enabled:
+  // admins must verify live feed health and publisher terms before activation.
+  ...([
+    { name: "BBC World News", locator: "https://feeds.bbci.co.uk/news/world/rss.xml", categories: ["news"], region: "global" },
+    { name: "The Guardian World", locator: "https://www.theguardian.com/world/rss", categories: ["news"], region: "global" },
+    { name: "Al Jazeera English", locator: "https://www.aljazeera.com/xml/rss/all.xml", categories: ["news"], region: "global" },
+    { name: "Deutsche Welle English", locator: "https://rss.dw.com/xml/rss-en-all", categories: ["news"], region: "global" },
+    { name: "France 24 English", locator: "https://www.france24.com/en/rss", categories: ["news"], region: "global" },
+    { name: "Euronews", locator: "https://www.euronews.com/rss", categories: ["news"], region: "global" },
+    { name: "NPR News", locator: "https://feeds.npr.org/1001/rss.xml", categories: ["news"], region: "North America" },
+    { name: "CBC News", locator: "https://www.cbc.ca/webfeed/rss/rss-topstories", categories: ["news"], region: "North America" },
+    { name: "ABC News Australia", locator: "https://www.abc.net.au/news/feed/45910/rss.xml", categories: ["news"], region: "Asia-Pacific" },
+    { name: "The Conversation", locator: "https://theconversation.com/global/articles.atom", categories: ["news", "education"], region: "global" },
+    { name: "ProPublica Investigations", locator: "https://www.propublica.org/feeds/propublica/main", categories: ["news"], region: "North America" },
+    { name: "Ars Technica", locator: "https://feeds.arstechnica.com/arstechnica/index", categories: ["technology"], region: "global" },
+    { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global" },
+    { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global" },
+    { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["science"], region: "global" },
+  ] satisfies CatalogSource[]).map((source) => ({
+    ...source,
+    kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
+    language: "en",
+    permittedUsage: "facts" as const,
+    imageRights: "none" as const,
+    pollMinutes: 360,
+    enabled: false,
+    alwaysReview: true,
+    termsNote: "Discovery candidate added 2026-11-01. Not yet live-verified by Jimvio. Use only short factual summaries with original reporting; do not republish source text or images. Verify publisher terms, feed health, and article access before enabling.",
+    rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
+    accessMethod: "rss",
+    verifiedAt: null,
+  })),
   {
     name: "NASA News Releases",
     kind: "rss",
