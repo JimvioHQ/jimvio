@@ -74,8 +74,14 @@ function collectMedia(post: MyPost): PostMedia[] {
 
   if (Array.isArray(post.images)) post.images.forEach((item) => add(item, "image"));
   else if (post.images) add(post.images, "image");
-  if (Array.isArray(post.attachments)) post.attachments.forEach((item) => add(item));
-  else if (post.attachments) add(post.attachments);
+  if (Array.isArray(post.attachments)) {
+    post.attachments.forEach((item) => add(item));
+  } else if (post.attachments && typeof post.attachments === "object") {
+    const attachments = post.attachments as Record<string, unknown>;
+    if (Array.isArray(attachments.videos)) attachments.videos.forEach((item) => add(item, "video"));
+    if (Array.isArray(attachments.media)) attachments.media.forEach((item) => add(item));
+    if (Array.isArray(attachments.files)) attachments.files.forEach((item) => add(item));
+  }
   if (post.video_url) add(post.video_url, "video");
   return media;
 }
@@ -101,7 +107,7 @@ export default function MyPostsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPosts = useCallback(async (requestedPage = 1, append = false) => {
+  const loadPosts = useCallback(async (requestedPage = 1, append = false, requestedOffset?: number) => {
     if (authLoading) return;
     if (!isAuthenticated || !user?.id) {
       setPosts([]);
@@ -113,7 +119,8 @@ export default function MyPostsPage() {
     else setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/c/me/posts?page=" + requestedPage + "&limit=" + PAGE_SIZE, { cache: "no-store" });
+      const offset = append ? Math.max(0, requestedOffset ?? (requestedPage - 1) * PAGE_SIZE) : 0;
+      const response = await fetch("/api/c/me/posts?page=" + requestedPage + "&limit=" + PAGE_SIZE + "&offset=" + offset, { cache: "no-store" });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.error || "Could not load your posts.");
       const incoming = Array.isArray(json.posts) ? json.posts as MyPost[] : [];
@@ -232,7 +239,7 @@ export default function MyPostsPage() {
           </div>
           {hasMore ? (
             <div className="flex justify-center pt-6">
-              <button type="button" disabled={loadingMore} onClick={() => void loadPosts(page + 1, true)} className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-50">
+              <button type="button" disabled={loadingMore} onClick={() => void loadPosts(page + 1, true, posts.length) className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-sm font-semibold text-[var(--color-text-primary)] disabled:opacity-50">
                 {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
                 {loadingMore ? "Loading…" : "Load more posts"}
               </button>
