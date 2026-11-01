@@ -37,15 +37,15 @@ const candidateSeeds: CandidateSeed[] = [
 
 export const UNVERIFIED_CANDIDATES: CatalogSource[] = candidateSeeds.map((source) => ({
   ...source,
-  kind: source.locator.endsWith(".atom") ? "atom" : "rss",
-  permittedUsage: "facts",
-  imageRights: "none",
+  kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
+  permittedUsage: "facts" as const,
+  imageRights: "none" as const,
   pollMinutes: 360,
   enabled: false,
   alwaysReview: false,
   termsNote: "Discovery candidate added 2026-11-01. Not yet live-verified by Jimvio. Use only short factual summaries with original reporting; do not republish source text or images. Verify publisher terms, feed health, and article access before enabling.",
   rateNote: "Candidate feed. Verify rate limits and polling policy before activation.",
-  accessMethod: "rss",
+  accessMethod: "rss" as const,
   verifiedAt: null,
 }));
 
