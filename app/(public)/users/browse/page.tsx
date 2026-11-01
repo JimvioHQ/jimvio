@@ -25,18 +25,20 @@ type PublicUser = {
 
 export default async function PopularUsersPage() {
   const admin = getAdminDB();
-  const { data: authResult, error: authError } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-
-  if (authError) {
-    console.error("[users/browse] Could not load verified accounts:", authError.message);
+  const verifiedIds: string[] = [];
+  for (let page = 1; page <= 100; page += 1) {
+    const { data: authResult, error: authError } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+    if (authError) {
+      console.error("[users/browse] Could not load verified accounts:", authError.message);
+      break;
+    }
+    const batch = authResult?.users ?? [];
+    verifiedIds.push(...batch.filter((user) => Boolean(user.email_confirmed_at)).map((user) => user.id));
+    if (batch.length < 1000) break;
   }
-
-  const verifiedIds = (authResult?.users ?? [])
-    .filter((user) => Boolean(user.email_confirmed_at))
-    .map((user) => user.id);
 
   let users: PublicUser[] = [];
   if (verifiedIds.length) {
@@ -57,8 +59,8 @@ export default async function PopularUsersPage() {
         .filter((profile) => typeof profile.full_name === "string" && profile.full_name.trim().length > 1)
         .map((profile) => ({
           id: profile.id,
-          username: profile.username,
-          full_name: profile.full_name.trim(),
+          username: String(profile.username ?? ""),
+          full_name: String(profile.full_name ?? "").trim(),
           avatar_url: profile.avatar_url,
           bio: profile.bio,
           is_verified: Boolean(profile.is_verified),
