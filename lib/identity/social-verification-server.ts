@@ -7,6 +7,7 @@ import { fetchTikTokUserInfo } from "@/lib/live/destinations/adapters/tiktok";
 import {
   CODE_TTL_MS,
   bioSources,
+  handleFor,
   pageContainsCode,
   readProfileBio,
   type CodeCheck,
@@ -65,7 +66,7 @@ async function checkCodeForAccount(
   url: string | null,
   code: string,
 ): Promise<CodeCheck> {
-  const expectedHandle = handle?.trim().replace(/^@/, "") || null;
+  const expectedHandle = handleFor(platform, handle, url);
   const sources = bioSources(platform, handle, url);
   if (!sources.length) return "unreachable";
   const bios = await Promise.all(sources.map((source) => readBioSource(source, platform, expectedHandle ?? "")));
