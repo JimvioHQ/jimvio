@@ -171,6 +171,22 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
   const acc = await ownAccount(userId, id);
   if (!acc) return { ok: false, status: 404, error: "Account not found." };
   if (!acc.verify_code) return { ok: false, status: 409, error: "Get a code first." };
+  const issuedAt = acc.verify_code_created_at ? Date.parse(acc.verify_code_created_at) : NaN;
+  if (!Number.isFinite(issuedAt) || Date.now() > issuedAt + CODE_TTL_MS) {
+    await db()
+      .from("jip_social_accounts")
+      .update({
+        verify_status: "failed",
+        verify_checked_at: now(),
+        verify_note: "Verification code expired. Request a new code.",
+      })
+      .eq("id", id);
+    return {
+      ok: false,
+      status: 410,
+      error: "Your verification code has expired. Generate a new code, add it to your bio, then check again.",
+    };
+  }
   if (!publicProfileUrl(acc.platform, acc.handle, acc.url)) {
     return { ok: false, status: 400, error: "Add your profile link or handle first." };
   }
