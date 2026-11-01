@@ -5,7 +5,7 @@ import { OverlayCard, SectionHeading, StoryCard, toCard } from "@/components/edi
 import type { HomeComposition } from "@/lib/editorial/types";
 
 export function HomeView({ composition }: { composition: HomeComposition }) {
-  const heroes = composition.heroes.map((article) => toCard(article, true));
+  const heroes = composition.heroes.slice(0, 3).map((article) => toCard(article, true));
   const featured = composition.featured.slice(0, 2);
   return (
     <div className="mx-auto max-w-[1280px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
@@ -23,7 +23,7 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
 
       <h1 className="sr-only">Jimvio Media — stories, ideas and insights</h1>
       {heroes.length > 0 || featured.length > 0 ? (
-        <section aria-label="Top stories" className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(300px,0.85fr)]">
+        <section aria-label="Top stories" className="grid items-stretch gap-3 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
           {heroes.length > 0 ? <HeroCarousel slides={heroes} /> : null}
           {featured.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -42,10 +42,10 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
       ) : null}
 
       {composition.allStories.length > 0 ? (
-        <section className="mt-12">
+        <section className="mt-10">
           <SectionHeading title="Latest stories" href="/media/latest" />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {composition.allStories.map((article) => (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {composition.allStories.slice(0, 8).map((article) => (
               <StoryCard key={article.id} card={toCard(article)} stacked />
             ))}
           </div>
@@ -53,7 +53,7 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
       ) : null}
 
       {composition.sections.length > 0 ? (
-        <section className="mt-14" aria-label="Explore all topics">
+        <section className="mt-12" aria-label="Explore all topics">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-[#e9edf2] pb-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#c94308]">Explore by topic</p>
@@ -61,7 +61,7 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-[#667085]">A clear view of the latest reporting, ideas and practical guides across Jimvio Media.</p>
             </div>
           </div>
-          <div className="space-y-11">
+          <div className="space-y-9">
             {composition.sections.map((section) => (
               <section key={section.slug} aria-labelledby={`topic-${section.slug}`}>
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -70,8 +70,8 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
                     View all {section.label} <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {section.articles.map((article) => (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {section.articles.slice(0, 2).map((article) => (
                     <StoryCard key={article.id} card={toCard(article)} stacked />
                   ))}
                 </div>

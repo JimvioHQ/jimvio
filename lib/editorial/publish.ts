@@ -1,4 +1,4 @@
-import { absoluteImageUrl, articleLastModified, metaDescription, publicCorrection } from "@/lib/editorial/discover";
+import { absoluteImageUrl, articleLastModified, metaDescription, publicCorrection, publicSource } from "@/lib/editorial/discover";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import {
   MEDIA_CATEGORIES,
@@ -210,6 +210,8 @@ export function articleJsonLd(
     category?: string;
     seoDescription?: string | null;
     correctionNote?: string | null;
+    sourceName?: string | null;
+    sourceUrl?: string | null;
   },
   site: string,
 ): Record<string, unknown> | null {
@@ -225,6 +227,16 @@ export function articleJsonLd(
     publisher: { "@id": `${origin}/#organization` },
   };
   if (description) data.description = description;
+  const author = publicAuthorName(article.authorName ?? null);
+  if (author) data.author = { "@type": "Person", name: author };
+  const source = publicSource(article);
+  if (source) {
+    data.citation = {
+      "@type": "CreativeWork",
+      name: source.name,
+      ...(source.url ? { url: source.url } : {}),
+    };
+  }
   if (article.publishedAt) data.datePublished = article.publishedAt;
   if (publicCorrection(article.correctionNote) && article.updatedAt) {
     data.dateModified = article.updatedAt;

@@ -4,7 +4,7 @@ import { Kicker, SampleBanner, StoryCard, StoryImage, toCard } from "@/component
 import { ShareStory } from "@/components/editorial/share-story";
 import styles from "@/components/editorial/editorial.module.css";
 import { splitHeroCaption } from "@/lib/editorial/caption";
-import { publicCorrection, readingMinutes } from "@/lib/editorial/discover";
+import { publicCorrection, publicSource, readingMinutes } from "@/lib/editorial/discover";
 import { editorialPhotoSrc } from "@/lib/editorial/image-display";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import type { PublicArticle } from "@/lib/editorial/types";
@@ -37,13 +37,14 @@ export function ArticleView({
   const minutes = readingMinutes(html);
   const photo = editorialPhotoSrc(article.imageUrl);
   const correction = publicCorrection(article.correctionNote);
+  const source = publicSource(article);
   const neighbors = previous || next;
 
   return (
     <>
       {article.fixture ? <SampleBanner /> : null}
-      <article lang="en" className="mx-auto max-w-[1180px] px-4 pb-16 pt-7 sm:px-6 lg:px-8">
-        <nav aria-label="Breadcrumb" className="mb-7 text-[13px] text-[#667085]">
+      <article lang="en" className="mx-auto max-w-[1240px] px-4 pb-14 pt-6 sm:px-6 lg:px-8">
+        <nav aria-label="Breadcrumb" className="mb-6 text-[13px] text-[#667085]">
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <li><Link href="/media" className="font-semibold text-[#475467] hover:text-[#c94308] hover:underline">Media</Link></li>
             <li aria-hidden="true">/</li>
@@ -53,7 +54,7 @@ export function ArticleView({
           </ol>
         </nav>
 
-        <header className="mx-auto max-w-[980px]">
+        <header className="mx-auto max-w-[940px]">
           <Kicker label={displayKicker(article)} />
           <h1 className={`${styles.display} mt-4 max-w-[20ch] text-[2.25rem] leading-[1.08] tracking-[-0.045em] text-[#111827] sm:text-[3rem] lg:text-[3.75rem]`}>
             {article.title}
@@ -67,10 +68,32 @@ export function ArticleView({
             </div>
             {shareUrl ? <ShareStory title={article.title} url={shareUrl} /> : null}
           </div>
+          {article.authorName || source ? (
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-[#667085]">
+              {article.authorName ? (
+                <p>
+                  <span className="font-medium text-[#667085]">By </span>
+                  <span className="font-semibold text-[#344054]">{article.authorName}</span>
+                </p>
+              ) : null}
+              {source ? (
+                <p>
+                  <span className="font-medium text-[#667085]">Source: </span>
+                  {source.url ? (
+                    <a href={source.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-[#344054] underline decoration-[#d0d5dd] underline-offset-4 hover:text-[#c94308]">
+                      {source.name}
+                    </a>
+                  ) : (
+                    <span className="font-semibold text-[#344054]">{source.name}</span>
+                  )}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </header>
 
         {photo ? (
-          <figure className="mx-auto mt-8 max-w-[1080px]">
+          <figure className="mx-auto mt-7 max-w-[1040px]">
             <div className="relative aspect-[16/9] overflow-hidden rounded-[18px] bg-[#f2f4f7] shadow-[0_12px_36px_rgba(16,24,40,0.08)] sm:rounded-[24px]">
               <StoryImage src={photo} alt={article.imageAlt || article.title} priority sizes="(min-width: 1200px) 1080px, 100vw" />
             </div>
@@ -84,7 +107,7 @@ export function ArticleView({
           </p>
         ) : null}
 
-        <div className="mx-auto mt-10 grid max-w-[1120px] items-start gap-10 lg:grid-cols-[minmax(0,760px)_280px] lg:gap-14">
+        <div className="mx-auto mt-8 grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,740px)_minmax(240px,280px)] lg:gap-10">
           <div>
             <div id="story-content" className={`${styles.body} max-w-[72ch] text-[1.125rem] sm:text-[1.2rem]`} dangerouslySetInnerHTML={{ __html: html }} />
             <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#e9edf2] pt-5">
@@ -113,7 +136,7 @@ export function ArticleView({
             ) : null}
           </div>
 
-          <aside className="lg:sticky lg:top-28">
+          <aside className="min-w-0 lg:sticky lg:top-24">
             {related.length > 0 ? (
               <section aria-labelledby="related-stories">
                 <div className="mb-4 border-b border-[#e9edf2] pb-3">

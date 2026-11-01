@@ -475,6 +475,8 @@ describe("editorial lifecycle decisions", () => {
         imageUrl: "/editorial/skyline.jpg",
         slug: "a-local-report",
         authorName: "Jimvio Editorial Team",
+        sourceName: "NASA",
+        sourceUrl: "https://www.nasa.gov/news-release/",
       },
       "https://www.jimvio.com",
     );
@@ -483,6 +485,7 @@ describe("editorial lifecycle decisions", () => {
     assert.equal("dateModified" in (news ?? {}), false);
     assert.deepEqual(news?.image, ["https://www.jimvio.com/editorial/skyline.jpg"]);
     assert.equal("author" in (news ?? {}), false);
+    assert.deepEqual(news?.citation, { "@type": "CreativeWork", name: "NASA", url: "https://www.nasa.gov/news-release/" });
     const corrected = articleJsonLd(
       {
         fixture: false,
@@ -500,7 +503,7 @@ describe("editorial lifecycle decisions", () => {
     );
     assert.equal(corrected?.datePublished, "2026-10-01T08:00:00.000Z");
     assert.equal(corrected?.dateModified, "2026-10-02T08:00:00.000Z");
-    assert.equal("author" in (corrected ?? {}), false);
+    assert.deepEqual(corrected?.author, { "@type": "Person", name: "Aline Uwase" });
     const recent = articleJsonLd(
       {
         fixture: false,
@@ -581,8 +584,19 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(articleEntry?.lastModified?.toISOString(), "2026-10-02T00:00:00.000Z");
     const articleView = read("components/editorial/article-view.tsx");
     assert.equal(articleView.includes("Updated {"), false);
-    assert.equal(articleView.includes("publicAuthorName"), false);
+    assert.match(articleView, /article\.authorName/);
+    assert.match(articleView, /publicSource\(article\)/);
+    assert.match(articleView, /Source:/);
     assert.match(articleView, /Published /);
+    const storyImage = read("components/editorial/story-image-asset.tsx");
+    assert.match(storyImage, /onError=\{\(\) => setFailed\(true\)\}/);
+    assert.match(storyImage, /Jimvio Media/);
+    assert.match(storyImage, /role="img"/);
+    const homeView = read("components/editorial/home-view.tsx");
+    assert.match(homeView, /allStories\.slice\(0, 8\)/);
+    assert.match(homeView, /section\.articles\.slice\(0, 2\)/);
+    const presentation = read("components/editorial/presentation.tsx");
+    assert.match(presentation, /aspect-\[16\/9\]/);
     const categoryPage = read("app/media/(site)/category/[slug]/page.tsx");
     const searchPage = read("app/media/(site)/search/page.tsx");
     assert.equal(categoryPage.includes("Showing "), false);

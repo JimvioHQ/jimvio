@@ -317,11 +317,11 @@ describe("editorial research", () => {
     assert.equal(splitHeroCaption("<p>Source: NASA News Releases</p>").caption, null);
   });
 
-  it("keeps the public template free of the source block and the navy placeholder", () => {
+  it("keeps the public template polished with safe source attribution", () => {
     const view = readFileSync(join(root, "components/editorial/article-view.tsx"), "utf8");
     const css = readFileSync(join(root, "components/editorial/editorial.module.css"), "utf8");
     const cards = readFileSync(join(root, "components/editorial/presentation.tsx"), "utf8");
-    assert.equal(view.includes("Source:"), false);
+    assert.match(view, /Source:/);
     assert.match(view, /splitHeroCaption/);
     assert.match(view, /sm:text-\[3rem\]/);
     assert.match(view, /max-w-\[72ch\]/);
