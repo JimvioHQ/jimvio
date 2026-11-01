@@ -1,7 +1,7 @@
 import { ArrowRight, Flame } from "lucide-react";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/editorial/hero-carousel";
-import { OverlayCard, SectionHeading, StoryCard, toCard } from "@/components/editorial/presentation";
+import { OverlayCard, SectionHeading, StoryCard, StoryImage, toCard } from "@/components/editorial/presentation";
 import type { HomeComposition } from "@/lib/editorial/types";
 
 const TRENDING_TOPICS = [
@@ -21,7 +21,7 @@ function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
       <div className="media-most-read-list">
         {articles.slice(0, 5).map((article) => (
           <Link key={article.id} href={`/media/article/${article.slug}`} className="media-most-read-item">
-            <span className="media-most-read-image">{article.imageUrl ? <img src={article.imageUrl} alt={article.imageAlt || ""} loading="lazy" /> : <span className="media-thumb-fallback">JM</span>}</span>
+            <span className="media-most-read-image"><StoryImage src={article.imageUrl} alt={article.imageAlt || article.title} sizes="(min-width: 1024px) 116px, 88px" /></span>
             <span className="min-w-0">
               <span className="media-most-read-heading">{article.title}</span>
               <span className="media-most-read-kicker">{article.kicker}</span>
@@ -36,8 +36,8 @@ function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
 export function HomeView({ composition }: { composition: HomeComposition }) {
   const heroes = composition.heroes.slice(0, 3).map((article) => toCard(article, true));
   const featured = composition.featured.slice(0, 2);
-  const latest = (composition.latest.length >= 6 ? composition.latest : composition.allStories).slice(0, 6);
-  const mostRead = (composition.featured.length >= 5 ? composition.featured : composition.allStories).slice(0, 5);
+  const latest = (composition.latest.length > 0 ? composition.latest : composition.allStories).slice(0, 6);
+  const mostRead = [...composition.featured, ...composition.heroes, ...composition.latest, ...composition.magazine, ...composition.guides].filter((article, index, articles) => articles.findIndex((candidate) => candidate.id === article.id) === index).slice(0, 5);
   return (
     <div className="media-home mx-auto max-w-[1440px] px-4 pb-8 pt-3 sm:px-6 lg:px-10 lg:pt-1">
       <h1 className="sr-only">Jimvio Media — stories, ideas and insights</h1>
