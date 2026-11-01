@@ -28,10 +28,10 @@ export const VERIFIED_FEEDS: CatalogSource[] = [
     { name: "Wired", locator: "https://www.wired.com/feed/rss", categories: ["technology"], region: "global" },
     { name: "IEEE Spectrum", locator: "https://spectrum.ieee.org/feed", categories: ["technology"], region: "global" },
     { name: "ScienceDaily", locator: "https://www.sciencedaily.com/rss/all.xml", categories: ["technology"], region: "global" },
-  ] satisfies CatalogSource[]).map((source) => ({
+  ] satisfies Array<Pick<CatalogSource, "name" | "locator" | "categories" | "region"> & Partial<Pick<CatalogSource, "language">>>).map((source) => ({
     ...source,
     kind: source.locator.endsWith(".atom") ? "atom" as const : "rss" as const,
-    language: "language" in source ? source.language : "en",
+    language: source.language ?? "en",
     permittedUsage: "facts" as const,
     imageRights: "none" as const,
     pollMinutes: 360,
