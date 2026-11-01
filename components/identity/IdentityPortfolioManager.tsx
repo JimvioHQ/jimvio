@@ -148,7 +148,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   async function toggle(item: IdentityPortfolioItem, field: "isPublic" | "isFeatured") {
     const nextValue = !item[field];
     const hasPrivateMedia = [item.mediaUrl, item.thumbnailUrl].some((value) =>
-      Boolean(value && /\\/(private|authenticated)\\//i.test(value)),
+      Boolean(value && /\/(private|authenticated)\//i.test(value)),
     );
     if (field === "isPublic" && nextValue && hasPrivateMedia) {
       toast.error("This item contains private media. Edit it, enable public visibility, and re-upload the media before publishing.");
