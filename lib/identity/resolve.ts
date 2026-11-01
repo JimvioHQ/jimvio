@@ -416,7 +416,7 @@ async function buildProfilePayload(
       identity.privacy_custom && typeof identity.privacy_custom === "object"
         ? (identity.privacy_custom as Record<string, unknown>)
         : {},
-    mediaKitUrl: identity.media_kit_url,
+    mediaKitUrl: isSelf || flags.isAdmin || privacyFieldVisible(identity.privacy_custom as Record<string, unknown> | null, "showMediaKit") ? identity.media_kit_url : null,
     creatorLevel: identity.creator_level,
     trustScore: Number(identity.trust_score ?? 50),
     aiScore: Number(identity.ai_score ?? 50),
@@ -538,12 +538,12 @@ async function buildProfilePayload(
     social: publicSocial,
     portfolio: ((portfolio ?? []) as PortfolioItem[]).map(toPortfolioItem),
     testimonials: ((testimonials ?? []) as Testimonial[]).map(toTestimonial),
-    resume: ((resume ?? []) as ResumeEntry[]).map(toResumeEntry),
+    resume: isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showResume") ? ((resume ?? []) as ResumeEntry[]).map(toResumeEntry) : [],
     badges: badges.map(toBadge),
     milestones: ((milestones ?? []) as Milestone[]).map(toMilestone),
     aiInsights: toAiInsights((aiInsightsRow ?? null) as AIInsights | null),
     levelProgress: toLevelProgress(Number(identity.xp ?? 0)),
-    stats: toStatsSnapshot(creatorStats),
+    stats: isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showAnalytics") ? toStatsSnapshot(creatorStats) : null,
     reviews,
     jimvioFollowers,
     jimvioFollowing,
