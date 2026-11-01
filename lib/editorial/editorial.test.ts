@@ -147,6 +147,10 @@ describe("editorial publishing guards", () => {
     assert.equal(home.latest.length, 4);
     assert.equal(home.magazine.length, 3);
     assert.equal(home.guides.length, 3);
+    assert.ok(home.sections.length > 0);
+    assert.ok(home.sections.every((section) => section.articles.length > 0 && section.articles.length <= 3));
+    assert.ok(home.sections.some((section) => section.slug === "technology"));
+    assert.ok(home.sections.some((section) => section.slug === "business"));
     const ids = [...home.heroes, ...home.featured, ...home.latest, ...home.magazine, ...home.guides].map(
       (story) => story.id,
     );
