@@ -83,6 +83,9 @@ describe("editorial publishing guards", () => {
     assert.match(html, /href="\/media"/);
     assert.equal(html.includes('href="/media" target='), false);
     assert.equal(html.includes("alert(1)"), false);
+    const publicOnly = sanitizeArticleHtml('<p><a href="https://news.example/story">External outlet</a> <a href="/media">Jimvio</a></p>', { internalLinksOnly: true });
+    assert.equal(publicOnly.includes("https://news.example"), false);
+    assert.match(publicOnly, /href="\\/media"/);
     const hidden = sanitizeArticleHtml(`<p>Visible</p><!--<script>alert(1)</script>--><SCRIPT>alert(2)</SCRIPT><svg><img src=x onerror=alert(3)></svg>`);
     assert.equal(hidden.includes("alert"), false);
     assert.equal(hidden.includes("<svg"), false);
@@ -97,7 +100,7 @@ describe("editorial publishing guards", () => {
     assert.equal(isBannedByline("Jimvio"), true);
     assert.equal(publicAuthorName("Jimvio Editorial Team"), "Jimvio Editorial Team");
     assert.equal(publicAuthorName(""), "Jimvio Editorial Team");
-    assert.equal(publicAuthorName("Aline Uwase"), "Aline Uwase");
+    assert.equal(publicAuthorName("Aline Uwase"), "Jimvio Editorial Team");
     assert.equal(isSafeImageUrl("/editorial/skyline.jpg"), true);
     assert.equal(isSafeImageUrl("/editorial/../secret.jpg"), false);
     assert.equal(isSafeImageUrl("https://user:pass@cdn.example/a.jpg"), false);
@@ -261,6 +264,9 @@ describe("editorial publishing guards", () => {
 
   it("authorizes every editorial write on the server", () => {
     const actions = read("lib/editorial/actions.ts");
+    assert.match(actions, /permanentlyDeleteMediaArticle/);
+    assert.match(read("components/editorial/admin/article-table.tsx"), /DeleteArticleButton/);
+    assert.match(read("components/editorial/admin/delete-article-button.tsx"), /Type the full article title to confirm/);
     const names = [...actions.matchAll(/export async function (\w+)/g)].map((match) => match[1]);
     assert.deepEqual(names, ["saveMediaArticle", "removeMediaTag"]);
     for (const name of names) {
@@ -280,6 +286,7 @@ describe("editorial publishing guards", () => {
     assert.equal(read("app/media/sitemap.ts").includes("EDITORIAL_FIXTURES"), false);
     assert.match(read("app/media/sitemap.ts"), /export const revalidate = 60/);
     const reader = read("lib/editorial/public-store.ts");
+    assert.match(reader, /internalLinksOnly: true/);
     assert.equal(reader.includes("getAdminDB"), false);
     assert.match(reader, /getSupabasePublishableKey/);
     assert.match(reader, /source_name/);
