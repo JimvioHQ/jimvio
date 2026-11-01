@@ -136,9 +136,6 @@ export function OverlayCard({
         <h3 className={cn("mt-2 font-bold leading-[1.2] tracking-[-0.02em] text-white", titleClassName)}>
           {card.title}
         </h3>
-        <span className="mt-3 inline-flex w-fit items-center gap-1 text-[12px] font-bold text-white/90 transition-transform group-hover:translate-x-1">
-          Read story <span aria-hidden="true">→</span>
-        </span>
         {card.excerpt ? (
           <p
             className={cn(
@@ -149,6 +146,9 @@ export function OverlayCard({
             {card.excerpt}
           </p>
         ) : null}
+        <span className="mt-3 inline-flex w-fit items-center gap-1 text-[12px] font-bold text-white/90 transition-transform group-hover:translate-x-1">
+          Read story <span aria-hidden="true">→</span>
+        </span>
       </div>
     </Link>
   );
