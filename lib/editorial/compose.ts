@@ -1,4 +1,4 @@
-import type { HomeComposition, PublicArticle } from "@/lib/editorial/types";
+import { MEDIA_CATEGORIES, type HomeComposition, type PublicArticle } from "@/lib/editorial/types";
 import { resolveMediaCategory } from "@/lib/editorial/validate";
 
 function take(articles: PublicArticle[], used: Set<string>, predicate: (article: PublicArticle) => boolean, limit: number) {
@@ -35,7 +35,12 @@ export function composeHome(articles: PublicArticle[]): HomeComposition {
     (article) => article.section === "guide" || article.category === "guides",
     3,
   );
-  return { heroes, featured, latest, magazine, guides };
+  const sections = MEDIA_CATEGORIES.map((category) => ({
+    slug: category.slug,
+    label: category.label,
+    articles: articles.filter((article) => article.category === category.slug).slice(0, 3),
+  })).filter((section) => section.articles.length > 0);
+  return { heroes, featured, latest, magazine, guides, allStories: articles.slice(0, 12), sections };
 }
 
 export function searchArticles(articles: PublicArticle[], query: string): PublicArticle[] {

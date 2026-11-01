@@ -323,8 +323,8 @@ describe("editorial research", () => {
     const cards = readFileSync(join(root, "components/editorial/presentation.tsx"), "utf8");
     assert.equal(view.includes("Source:"), false);
     assert.match(view, /splitHeroCaption/);
-    assert.match(view, /sm:text-\[2\.15rem\]/);
-    assert.match(view, /max-w-\[65ch\]/);
+    assert.match(view, /sm:text-\[3rem\]/);
+    assert.match(view, /max-w-\[72ch\]/);
     assert.match(css, /\.body a[\s\S]*#fd5000/);
     assert.match(css, /\.body a:focus-visible/);
     assert.match(css, /line-height: 1\.75/);

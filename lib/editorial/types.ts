@@ -61,12 +61,16 @@ export type StoryCardModel = {
   imageAlt: string;
 };
 
+export type HomeSection = { slug: MediaCategory; label: string; articles: PublicArticle[] };
+
 export type HomeComposition = {
   heroes: PublicArticle[];
   featured: PublicArticle[];
   latest: PublicArticle[];
   magazine: PublicArticle[];
   guides: PublicArticle[];
+  allStories: PublicArticle[];
+  sections: HomeSection[];
 };
 
 export type ArticleInput = {
