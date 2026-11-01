@@ -55,7 +55,7 @@ function withResearchContext(page: NonNullable<ReturnType<typeof extractArticleP
   return {
     ...page,
     paragraphs: [...page.paragraphs, additionalEvidence],
-    wordCount: page.wordCount + additionalEvidence.split(/\\s+/).length,
+    wordCount: page.wordCount + additionalEvidence.split(" ").length,
   };
 }
 
