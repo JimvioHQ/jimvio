@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TrustCheckerArt } from "./TrustCheckerArt";
 import { TrustReportView } from "./TrustReportView";
+import { TrustScanHistory } from "./TrustScanHistory";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
@@ -113,6 +114,7 @@ export function TrustCheckerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
+  const [historyRefresh, setHistoryRefresh] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -148,6 +150,7 @@ export function TrustCheckerPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "The check could not finish. Try again.");
       setReport(json.report as ScanReport);
+      setHistoryRefresh((value) => value + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The check could not finish. Try again.");
     } finally {
@@ -330,6 +333,8 @@ export function TrustCheckerPage() {
         <div ref={resultRef} className="scroll-mt-24">
           {report ? <TrustReportView report={report} /> : null}
         </div>
+
+        <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
 
         {/* Four checkers */}
         <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="What Jimvio checks">
