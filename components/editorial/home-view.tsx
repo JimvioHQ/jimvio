@@ -5,7 +5,7 @@ import { OverlayCard, SectionHeading, StoryCard, toCard } from "@/components/edi
 import type { HomeComposition } from "@/lib/editorial/types";
 
 const TRENDING_TOPICS = [
-  { label: "Africa Growth", href: "/media/category/africa" },
+  { label: "Africa Growth", href: "/media/search?q=Africa" },
   { label: "Clean Energy", href: "/media/search?q=clean%20energy" },
   { label: "AI & Innovation", href: "/media/category/technology" },
   { label: "Global Economy", href: "/media/search?q=global%20economy" },
@@ -21,7 +21,7 @@ function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
       <div className="media-most-read-list">
         {articles.slice(0, 5).map((article) => (
           <Link key={article.id} href={`/media/article/${article.slug}`} className="media-most-read-item">
-            <span className="media-most-read-image"><span className="media-thumb" style={{ backgroundImage: article.imageUrl ? `url("${article.imageUrl.replace(/"/g, "%22")}")` : undefined }} /></span>
+            <span className="media-most-read-image">{article.imageUrl ? <img src={article.imageUrl} alt={article.imageAlt || ""} loading="lazy" /> : <span className="media-thumb-fallback">JM</span>}</span>
             <span className="min-w-0">
               <span className="media-most-read-heading">{article.title}</span>
               <span className="media-most-read-kicker">{article.kicker}</span>
