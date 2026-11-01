@@ -34,7 +34,7 @@ import { TrustReportView } from "./TrustReportView";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
-const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_BYTES = Math.floor(4.2 * 1024 * 1024);
 const ACCEPT = "image/*,video/*,audio/*,.pdf,.zip,.epub,.docx,.xlsx,.pptx,.doc,.xls,.ppt,.txt,.md,.csv,.json,.html,.exe,.apk,.dmg";
 
 const FEATURES = [
@@ -285,7 +285,7 @@ export function TrustCheckerPage() {
                       ) : (
                         <>
                           <p className="text-sm font-bold text-[#101B38]">Drag and drop a file here, or browse</p>
-                          <p className="mt-1 text-xs leading-relaxed text-[#64748B]">Images, video, audio, PDF, Office, ZIP and supported documents · Maximum 4 MB</p>
+                          <p className="mt-1 text-xs leading-relaxed text-[#64748B]">Images, video, audio, PDF, Office, ZIP and supported documents · Maximum 4.2 MiB</p>
                         </>
                       )}
                     </div>
