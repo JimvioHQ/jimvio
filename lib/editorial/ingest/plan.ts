@@ -101,7 +101,8 @@ type Working = FeedItem & { externalKey: string; fingerprint: string; tokens: st
 
 function publisherKey(url: string, fallback: string): string {
   try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    const hostname = new URL(url).hostname.toLowerCase();
+    return getDomain(hostname) ?? hostname;
   } catch {
     return fallback.trim().toLowerCase();
   }
@@ -285,7 +286,7 @@ export function planSourceItems(input: {
         row.clusterKey = clusterKey;
         row.sensitive = sensitive;
         row.evidence = `Held: ${reason}. ${sourceUrls}`.slice(0, 2000);
-        row.imageStatus = "rejected";
+        row.imageStatus = supplied?.status ?? "rejected";
         row.imageNote = supplied?.note ?? "No verified official image.";
         planned.push(row);
       });
@@ -300,7 +301,7 @@ export function planSourceItems(input: {
       source: input.source,
       sensitive,
       undated: !primary.publishedAt,
-      independent: new Set([input.source.name, ...related.map((report) => report.sourceName)]).size,
+      independent: new Set([primary.url, ...related.map((report) => report.url)].map((url) => publisherKey(url, ""))).size,
       imageOk: Boolean(verified),
       category,
       publishedToday: publishedSlots,

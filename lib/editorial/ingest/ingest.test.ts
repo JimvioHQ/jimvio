@@ -431,6 +431,42 @@ describe("external ingestion", () => {
     assert.notEqual(risky[0]?.article?.intent, "published");
   });
 
+  it("counts independent publishers by registrable domain and preserves licensed illustration status on quality holds", () => {
+    const held = planSourceItems({
+      settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true, dailyPublishCap: 5 },
+      source: source({ imageRights: "none" }),
+      items: [item("NASA confirms mars crew simulation communication checks", "https://www.nasa.gov/news-release/domain-check/")],
+      existingItems: [],
+      existingArticles: [],
+      now,
+      serverAutopublish: true,
+      publishedToday: 0,
+      otherReports: [{
+        sourceName: "NASA Science",
+        title: "NASA confirms mars crew simulation communication checks",
+        url: "https://science.nasa.gov/news/domain-check/",
+        summary: SUMMARY,
+        publishedAt: "2026-10-27T19:00:00.000Z",
+      }],
+      imageFor: () => ({
+        status: "verified",
+        url: "https://images.unsplash.com/photo-example",
+        alt: "Illustrative technology image",
+        caption: "Illustrative photo (Unsplash). It is not a picture of the people or events in this story.",
+        license: "Unsplash License",
+        mime: "image/jpeg",
+        width: 1600,
+        height: 900,
+        note: "Licensed Unsplash illustration; the source did not grant its photograph.",
+      }),
+      researchFor: (entry) => researched(entry.url),
+    });
+    assert.equal(held[0]?.status, "review");
+    assert.equal(held[0]?.filterReason, "insufficient_independent_sources");
+    assert.equal(held[0]?.imageStatus, "verified");
+    assert.match(held[0]?.imageNote ?? "", /Licensed Unsplash illustration/);
+  });
+
   it("does not publish a feed item that was never retrieved", () => {
     const missing = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true },

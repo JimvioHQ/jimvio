@@ -1,4 +1,5 @@
 import { revalidatePath, revalidateTag } from "next/cache";
+import { getDomain } from "tldts";
 import { externalKey, jaccard, titleTokens } from "@/lib/editorial/ingest/feed";
 import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
@@ -236,6 +237,10 @@ async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typ
 
 
 function publisherKey(value: string): string {
-  try { return new URL(value).hostname.toLowerCase().replace(/^www\./, ""); }
-  catch { return ""; }
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return getDomain(hostname) ?? hostname;
+  } catch {
+    return "";
+  }
 }
