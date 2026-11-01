@@ -69,6 +69,7 @@ export type HomeComposition = {
   latest: PublicArticle[];
   magazine: PublicArticle[];
   guides: PublicArticle[];
+  allStories: PublicArticle[];
   sections: HomeSection[];
 };
 
