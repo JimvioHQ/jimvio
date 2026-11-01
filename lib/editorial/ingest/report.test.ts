@@ -263,8 +263,11 @@ describe("editorial research", () => {
       allowedHrefs: [PAGE],
       profiles: [],
     });
-    assert.equal(invented.ok, true);
-    if (invented.ok) assert.equal(invented.brief.bodyHtml.includes("/u/made-up"), false);
+    assert.equal(invented.ok, false);
+    if (!invented.ok) {
+      assert.equal(invented.issues.includes("unsafe_link"), false);
+      assert.equal(invented.issues.includes("insufficient_depth"), true);
+    }
   });
 
   it("checks official image bytes, captions, and fallbacks", async () => {
