@@ -33,6 +33,7 @@ export function TrustScanHistory({
   const [loading, setLoading] = useState(true);
   const [opening, setOpening] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -56,7 +57,7 @@ export function TrustScanHistory({
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [refreshKey]);
+  }, [refreshKey, reload]);
 
   async function openReport(id: string) {
     if (opening) return;
@@ -83,7 +84,7 @@ export function TrustScanHistory({
           <h2 id="trust-history-heading" className="mt-1 text-xl font-black tracking-tight text-[#101B38]">Recent checks</h2>
           <p className="mt-1 text-xs text-[#64748B]">Open a previous report from your signed-in account.</p>
         </div>
-        <button type="button" onClick={() => window.dispatchEvent(new Event("trust-history-refresh"))} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#46536C] hover:bg-[#F8FAFC]" aria-label="Refresh recent checks">
+        <button type="button" onClick={() => setReload((value) => value + 1)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#46536C] hover:bg-[#F8FAFC]" aria-label="Refresh recent checks">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
       </div>
