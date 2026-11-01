@@ -82,6 +82,7 @@ export async function searchUnsplashPhotos(opts: {
       Authorization: `Client-ID ${key}`,
       "Accept-Version": "v1",
     },
+    signal: AbortSignal.timeout(7_000),
   });
   if (!res.ok) {
     throw new Error(`Unsplash search failed: HTTP ${res.status}`);
