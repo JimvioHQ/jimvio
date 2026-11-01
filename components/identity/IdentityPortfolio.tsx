@@ -46,7 +46,15 @@ function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
       ) : isVideo && item.mediaUrl ? (
-        <video src={item.mediaUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+        <video
+          src={item.mediaUrl}
+          poster={item.thumbnailUrl ?? undefined}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={"Play " + item.title}
+          className="h-full w-full object-cover"
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[#C7C1B4]">
           <Briefcase className="h-6 w-6" />
