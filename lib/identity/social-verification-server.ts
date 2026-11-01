@@ -4,6 +4,7 @@ import { freshCredentials, type CredentialDestination } from "@/lib/live/destina
 import { fetchTikTokUserInfo } from "@/lib/live/destinations/adapters/tiktok";
 import {
   CODE_TTL_MS,
+  bioSources,
   checkCodeForAccount,
   type CodeCheck,
   newVerifyCode,
@@ -13,6 +14,26 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = { from: (t: string) => any };
 const db = (): Db => createServiceRoleClient() as unknown as Db;
+
+function bioLookupUnavailableMessage(platform: string): string {
+  if (platform === "instagram") {
+    if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID) {
+      return "Automatic Instagram bio verification requires an approved Meta Graph API connection for a professional account. Your account remains pending; configure the required Meta credentials or request manual review.";
+    }
+    return "Meta's official Business Discovery API could not confirm this profile. It supports eligible public Business and Creator accounts with approved permissions. Your account remains pending; request manual review if needed.";
+  }
+  if (platform === "x") {
+    return process.env.X_BEARER_TOKEN
+      ? "X's official API could not confirm this profile right now. Your account remains pending; retry or request manual review."
+      : "Automatic X bio verification requires an approved X API bearer token. Your account remains pending; request manual review.";
+  }
+  if (platform === "youtube") {
+    return process.env.YOUTUBE_API_KEY
+      ? "YouTube Data API could not confirm this channel right now. Your account remains pending; retry or request manual review."
+      : "Automatic YouTube bio verification requires a configured YouTube Data API key. Your account remains pending; request manual review.";
+  }
+  return "Jimvio cannot currently read this platform's public bio through a supported authorized API. Your account remains pending; request manual review.";
+}
 
 export type VerifyResult =
   | { ok: true; status: "verified" | "code_issued" | "pending_review"; message: string; code?: string; account?: unknown }
@@ -190,8 +211,9 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
   if (!publicProfileUrl(acc.platform, acc.handle, acc.url)) {
     return { ok: false, status: 400, error: "Add your profile link or handle first." };
   }
+  const hasOfficialSource = bioSources(acc.platform, acc.handle, acc.url).length > 0;
   let result: CodeCheck = "unreachable";
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; hasOfficialSource && attempt < 3; attempt++) {
     result = await checkCodeForAccount(acc.platform, acc.handle, acc.url, acc.verify_code);
     if (result === "found") break;
     if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
@@ -208,8 +230,8 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
   }
   const unreachable = result === "unreachable";
   const note = unreachable
-    ? "Jimvio could not open this profile. It may be private, the handle may be wrong, or the platform blocked the check."
-    : "The code was not found in the bio.";
+    ? bioLookupUnavailableMessage(acc.platform)
+    : "The code was not found in the profile bio returned by the official platform API.";
   await db()
     .from("jip_social_accounts")
     // A temporarily unreadable profile remains pending; only a readable bio
@@ -220,8 +242,8 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
     ok: false,
     status: 409,
     error: unreachable
-      ? "Jimvio couldn't confirm your public profile right now. Make sure the account is public and the handle is correct, then retry. Your account remains unverified."
-      : "Verification failed: the code isn't in your bio. Paste it exactly as shown, save your bio, then press Verify again.",
+      ? note
+      : "Verification failed: the complete code was not found in the profile bio returned by the official platform API. Check the bio, save it, then retry.",
     unreachable,
   } as VerifyResult;
 }
