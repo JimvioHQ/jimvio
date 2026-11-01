@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Briefcase, ExternalLink, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { Briefcase, ExternalLink, Loader2, Plus, Save, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import type { IdentityPortfolioItem, IdentityPortfolioKind } from "@/lib/identity/types";
+import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload";
 import { SettingsButton, SettingsCard, SettingsField, settingsInputClass, settingsTextareaClass } from "@/components/settings-center/settings-ui";
 
 type Draft = {
@@ -47,6 +48,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { upload, uploading, progress } = useCloudinaryUpload("jimvio/identity");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -61,6 +63,30 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   }, []);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  async function uploadMedia(file: File) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      toast.error("Choose an image or video file.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Portfolio media must be 50 MB or smaller.");
+      return;
+    }
+    const result = await upload(file, isVideo ? "video" : "image", "public");
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    setDraft((current) => current ? {
+      ...current,
+      mediaUrl: result.url,
+      thumbnailUrl: isImage ? result.url : current.thumbnailUrl,
+    } : current);
+    toast.success("Portfolio media uploaded.");
+  }
 
   async function save() {
     if (!draft?.title.trim()) {
@@ -183,6 +209,36 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
               <SettingsField label="Media URL"><input className={settingsInputClass} value={draft.mediaUrl} placeholder="https://" inputMode="url" onChange={(e) => setDraft({ ...draft, mediaUrl: e.target.value })} /></SettingsField>
               <SettingsField label="Thumbnail URL"><input className={settingsInputClass} value={draft.thumbnailUrl} placeholder="https://" inputMode="url" onChange={(e) => setDraft({ ...draft, thumbnailUrl: e.target.value })} /></SettingsField>
               <div className="sm:col-span-2">
+                <SettingsField label="Upload image or video">
+                  <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-white p-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151] hover:bg-[#F9FAFB]">
+                      <UploadCloud className="h-4 w-4" />
+                      {uploading ? "Uploading…" : "Choose media"}
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        className="sr-only"
+                        disabled={uploading || busy}
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          event.currentTarget.value = "";
+                          if (file) void uploadMedia(file);
+                        }}
+                      />
+                    </label>
+                    <p className="mt-2 text-[11px] text-[#6B7280]">Images and videos up to 50 MB. Uploads use Jimvio's existing secure media pipeline.</p>
+                    {uploading ? (
+                      <div className="mt-3">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
+                          <div className="h-full rounded-full bg-[#FF5A1F] transition-all" style={{ width: progress + "%" }} />
+                        </div>
+                        <p className="mt-1 text-[11px] text-[#6B7280]">{progress}% uploaded</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </SettingsField>
+              </div>
+              <div className="sm:col-span-2">
                 <SettingsField label="Description"><textarea className={settingsTextareaClass} rows={3} value={draft.description} maxLength={1200} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></SettingsField>
               </div>
             </div>
@@ -192,7 +248,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-[#E5E7EB] px-4 py-2 text-xs font-semibold text-[#374151]">Cancel</button>
-              <SettingsButton type="button" loading={busy} onClick={() => void save()}><Save className="h-4 w-4" /> Save item</SettingsButton>
+              <SettingsButton type="button" loading={busy || uploading} onClick={() => void save()}><Save className="h-4 w-4" /> Save item</SettingsButton>
             </div>
           </div>
         )}
