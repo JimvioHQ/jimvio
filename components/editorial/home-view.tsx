@@ -13,6 +13,18 @@ const TRENDING_TOPICS = [
   { label: "Climate Action", href: "/media/search?q=climate" },
 ];
 
+function uniqueArticles<T extends { id: string }>(articles: T[], limit: number, excluded: Set<string> = new Set()) {
+  const seen = new Set(excluded);
+  const result: T[] = [];
+  for (const article of articles) {
+    if (seen.has(article.id)) continue;
+    seen.add(article.id);
+    result.push(article);
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
 function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
   if (articles.length === 0) return null;
   return (
@@ -34,29 +46,70 @@ function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
 }
 
 export function HomeView({ composition }: { composition: HomeComposition }) {
-  const heroes = composition.heroes.slice(0, 3).map((article) => toCard(article, true));
-  const featured = composition.featured.slice(0, 2);
-  const latest = (composition.latest.length > 0 ? composition.latest : composition.allStories).slice(0, 6);
-  const mostRead = [...composition.featured, ...composition.heroes, ...composition.latest, ...composition.magazine, ...composition.guides].filter((article, index, articles) => articles.findIndex((candidate) => candidate.id === article.id) === index).slice(0, 5);
+  // Always build a complete lead area from real published stories. Empty hero or
+  // featured collections must never leave an unused grid column on desktop.
+  const storyPool = uniqueArticles([
+    ...composition.heroes,
+    ...composition.featured,
+    ...composition.latest,
+    ...composition.allStories,
+    ...composition.magazine,
+    ...composition.guides,
+    ...composition.sections.flatMap((section) => section.articles),
+  ], 100);
+  const heroArticles = composition.heroes.length > 0
+    ? composition.heroes.slice(0, 3)
+    : storyPool.slice(0, 1);
+  const heroIds = new Set(heroArticles.map((article) => article.id));
+  const featured = uniqueArticles([
+    ...composition.featured,
+    ...composition.latest,
+    ...composition.allStories,
+    ...composition.magazine,
+    ...composition.guides,
+  ], 2, heroIds);
+  const heroes = heroArticles.map((article) => toCard(article, true));
+  const usedLeadIds = new Set([...heroIds, ...featured.map((article) => article.id)]);
+  const latest = uniqueArticles([
+    ...composition.latest,
+    ...composition.allStories,
+    ...composition.featured,
+    ...composition.magazine,
+    ...composition.guides,
+    ...composition.sections.flatMap((section) => section.articles),
+  ], 6, usedLeadIds);
+  const mostRead = uniqueArticles([
+    ...composition.featured,
+    ...composition.heroes,
+    ...composition.latest,
+    ...composition.allStories,
+    ...composition.magazine,
+    ...composition.guides,
+  ], 5);
+  const sections = composition.sections.filter((section) => section.articles.length > 0);
+
   return (
     <div className="media-home mx-auto max-w-[1440px] px-4 pb-8 pt-3 sm:px-6 lg:px-10 lg:pt-1">
       <h1 className="sr-only">Jimvio Media — stories, ideas and insights</h1>
-      <section aria-label="Top stories" className="media-lead-grid">
-        {heroes.length > 0 ? <HeroCarousel slides={heroes} /> : null}
-        {featured.length > 0 ? (
-          <div className="media-top-stories">
-            <div className="media-section-head">
-              <h2 className="media-side-title"><Flame className="h-6 w-6" /> Top Stories</h2>
-              <Link href="/media/latest" className="media-orange-link">View all stories <ArrowRight className="h-4 w-4" /></Link>
+
+      {heroes.length > 0 || featured.length > 0 ? (
+        <section aria-label="Top stories" className={`media-lead-grid ${heroes.length > 0 ? "has-hero" : ""} ${featured.length > 0 ? "has-featured" : ""}`}>
+          {heroes.length > 0 ? <HeroCarousel slides={heroes} /> : null}
+          {featured.length > 0 ? (
+            <div className="media-top-stories">
+              <div className="media-section-head">
+                <h2 className="media-side-title"><Flame className="h-6 w-6" /> Top Stories</h2>
+                <Link href="/media/latest" className="media-orange-link">View all stories <ArrowRight className="h-4 w-4" /></Link>
+              </div>
+              <div className="media-top-stories-grid">
+                {featured.map((article) => (
+                  <OverlayCard key={article.id} card={toCard(article, true)} sizes="(min-width: 1024px) 34vw, 100vw" className="media-top-story-card" titleClassName="line-clamp-2 text-[16px] leading-tight sm:text-[17px]" contentClassName="p-3 sm:p-4" />
+                ))}
+              </div>
             </div>
-            <div className="grid gap-3">
-              {featured.map((article) => (
-                <OverlayCard key={article.id} card={toCard(article, true)} sizes="(min-width: 1024px) 34vw, 100vw" className="media-top-story-card" titleClassName="line-clamp-2 text-[16px] leading-tight sm:text-[17px]" contentClassName="p-3 sm:p-4" />
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
+          ) : null}
+        </section>
+      ) : null}
 
       <nav className="media-trending" aria-label="Trending topics">
         <span className="media-trending-label"><Flame className="h-5 w-5" /> Trending:</span>
@@ -66,28 +119,28 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
         <Link href="/media/latest" className="media-trending-all">View all trends <ArrowRight className="h-4 w-4" /></Link>
       </nav>
 
-      <div className="media-latest-layout">
+      <div className={`media-latest-layout ${mostRead.length > 0 ? "has-most-read" : ""}`}>
         <section className="min-w-0" aria-label="Latest stories">
           <SectionHeading title="Latest Stories" href="/media/latest" />
           {latest.length > 0 ? (
             <div className="media-latest-grid">
               {latest.map((article) => <StoryCard key={article.id} card={toCard(article)} stacked />)}
             </div>
-          ) : <p className="text-sm text-[#667085]">No latest stories are available yet.</p>}
+          ) : <p className="text-sm text-[#667085]">New stories will appear here as they are published.</p>}
         </section>
         <MostRead articles={mostRead} />
       </div>
 
-      {composition.sections.length > 0 ? (
-        <section className="mt-10" aria-label="Explore all topics">
+      {sections.length > 0 ? (
+        <section className="media-topic-explore" aria-label="Explore all topics">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[#e9edf2] pb-4">
             <div><p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#c94308]">Explore by topic</p><h2 className="mt-1 text-2xl font-bold tracking-[-0.035em] text-[#172033] sm:text-[28px]">More from the newsroom</h2></div>
           </div>
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {composition.sections.map((section) => (
-              <section key={section.slug} aria-labelledby={`topic-${section.slug}`}>
+          <div className="media-topic-grid">
+            {sections.map((section) => (
+              <section key={section.slug} className="media-topic-section" aria-labelledby={`topic-${section.slug}`}>
                 <div className="mb-3 flex items-center justify-between gap-3"><h3 id={`topic-${section.slug}`} className="text-lg font-bold text-[#172033]">{section.label}</h3><Link href={`/media/category/${section.slug}`} className="text-[12px] font-bold text-[#fd5000] hover:underline">View all <ArrowRight className="inline h-3.5 w-3.5" /></Link></div>
-                <div className="grid gap-3">{section.articles.slice(0, 2).map((article) => <StoryCard key={article.id} card={toCard(article)} stacked />)}</div>
+                <div className="grid gap-3">{uniqueArticles(section.articles, 2).map((article) => <StoryCard key={article.id} card={toCard(article)} />)}</div>
               </section>
             ))}
           </div>
