@@ -136,6 +136,7 @@ describe("social verification", () => {
     assert.equal(publicProfileUrl("tiktok", "ana", null), "https://www.tiktok.com/@ana");
     assert.equal(publicProfileUrl("instagram", null, "https://evil.example/ana"), null);
     assert.equal(publicProfileUrl("instagram", "ana", "https://evil.example/ana"), "https://www.instagram.com/ana/");
+    assert.equal(publicProfileUrl("instagram", "ana", "https://www.instagram.com/someone-else/"), "https://www.instagram.com/ana/");
     assert.equal(handleFor("instagram", null, "https://evil.example/ana"), null);
   });
   it("has 500+ categories and keeps one", () => {
