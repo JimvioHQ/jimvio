@@ -98,7 +98,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
       toast.error("Add a title for this portfolio item.");
       return;
     }
-    if (draft.isPublic && draft.mediaAccess === "private" && draft.mediaUrl) {
+    if (draft.isPublic && draft.mediaAccess === "private" && (draft.mediaUrl || draft.thumbnailUrl)) {
       toast.error("This media was uploaded privately. Re-upload it after enabling public visibility before publishing.");
       return;
     }
@@ -265,13 +265,13 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
             <div className="flex flex-wrap gap-4 text-xs text-[#374151]">
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isPublic} onChange={(e) => setDraft({ ...draft, isPublic: e.target.checked })} /> Show on public profile</label>
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isFeatured} onChange={(e) => setDraft({ ...draft, isFeatured: e.target.checked })} /> Feature this item</label>
-              {draft.mediaUrl && draft.mediaAccess === "private" && draft.isPublic ? (
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "private" && draft.isPublic ? (
                 <p className="w-full text-[11px] text-[#B45309]">This media is private. Re-upload it after enabling public visibility before publishing.</p>
               ) : null}
-              {draft.mediaUrl && draft.mediaAccess === "private" && !draft.isPublic ? (
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "private" && !draft.isPublic ? (
                 <p className="w-full text-[11px] text-[#6B7280]">This upload is stored privately. If you later publish this item, enable public visibility and upload the media again.</p>
               ) : null}
-              {draft.mediaUrl && draft.mediaAccess === "public" && !draft.isPublic ? (
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "public" && !draft.isPublic ? (
                 <p className="w-full text-[11px] text-[#6B7280]">The item is hidden from your profile, but this previously public media URL may still be accessible directly. Re-upload while hidden to store it privately.</p>
               ) : null}
             </div>
