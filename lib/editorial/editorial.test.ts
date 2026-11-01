@@ -85,7 +85,7 @@ describe("editorial publishing guards", () => {
     assert.equal(html.includes("alert(1)"), false);
     const publicOnly = sanitizeArticleHtml('<p><a href="https://news.example/story">External outlet</a> <a href="/media">Jimvio</a></p>', { internalLinksOnly: true });
     assert.equal(publicOnly.includes("https://news.example"), false);
-    assert.match(publicOnly, /href="\\/media"/);
+    assert.match(publicOnly, /href="\/media"/);
     const hidden = sanitizeArticleHtml(`<p>Visible</p><!--<script>alert(1)</script>--><SCRIPT>alert(2)</SCRIPT><svg><img src=x onerror=alert(3)></svg>`);
     assert.equal(hidden.includes("alert"), false);
     assert.equal(hidden.includes("<svg"), false);
