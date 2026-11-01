@@ -1,4 +1,15 @@
-import { Facebook, Globe, Instagram, Linkedin, Link as LinkIcon, MessageCircle, Music2, Twitter, Youtube } from "lucide-react";
+import { Globe } from "lucide-react";
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaPinterest,
+  FaSnapchat,
+  FaThreads,
+  FaTiktok,
+  FaXTwitter,
+  FaYoutube,
+} from "react-icons/fa6";
 import type { IdentitySocialPlatform } from "@/lib/identity/types";
 import { cn } from "@/lib/utils";
 
@@ -16,19 +27,19 @@ export const SOCIAL_PLATFORM_LABEL: Record<IdentitySocialPlatform, string> = {
 };
 
 const META: Record<IdentitySocialPlatform, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  tiktok: { icon: Music2, color: "#111111" },
-  instagram: { icon: Instagram, color: "#D6295C" },
-  youtube: { icon: Youtube, color: "#E1352B" },
-  facebook: { icon: Facebook, color: "#1866D6" },
-  x: { icon: Twitter, color: "#111111" },
-  threads: { icon: MessageCircle, color: "#111111" },
-  linkedin: { icon: Linkedin, color: "#0A66C2" },
-  pinterest: { icon: LinkIcon, color: "#C8232C" },
-  snapchat: { icon: LinkIcon, color: "#B89400" },
+  tiktok: { icon: FaTiktok, color: "#111111" },
+  instagram: { icon: FaInstagram, color: "#D6295C" },
+  youtube: { icon: FaYoutube, color: "#E1352B" },
+  facebook: { icon: FaFacebook, color: "#1866D6" },
+  x: { icon: FaXTwitter, color: "#111111" },
+  threads: { icon: FaThreads, color: "#111111" },
+  linkedin: { icon: FaLinkedin, color: "#0A66C2" },
+  pinterest: { icon: FaPinterest, color: "#C8232C" },
+  snapchat: { icon: FaSnapchat, color: "#B89400" },
   website: { icon: Globe, color: "#59544B" },
 };
 
-/** Platform mark in the platform's color. `bare` drops the tinted circle. */
+/** Recognizable platform brand mark in its platform color. */
 export function SocialPlatformIcon({
   platform,
   className,
@@ -50,7 +61,7 @@ export function SocialPlatformIcon({
   return (
     <span
       className={cn("grid shrink-0 place-items-center rounded-full", className)}
-      style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
+      style={{ backgroundColor: meta.color + "14", color: meta.color }}
     >
       <Icon className="h-[55%] w-[55%]" />
     </span>

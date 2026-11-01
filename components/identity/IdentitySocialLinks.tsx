@@ -1,33 +1,46 @@
-import {
-  BadgeCheck,
-  Facebook,
-  Globe,
-  Instagram,
-  Linkedin,
-  Music2,
-  Twitter,
-  Youtube,
-  MessageCircle,
-  Link as LinkIcon,
-} from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import type { IdentitySocialAccount, IdentitySocialPlatform } from "@/lib/identity/types";
 import { IdentityCard, cn } from "@/components/identity/identity-ui";
+import { SocialPlatformIcon } from "@/components/identity/SocialPlatformIcon";
 import { formatNumber } from "@/lib/utils";
 
-const PLATFORM_META: Record<
-  IdentitySocialPlatform,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string }
-> = {
-  tiktok: { label: "TikTok", icon: Music2, color: "#161512" },
-  instagram: { label: "Instagram", icon: Instagram, color: "#D6295C" },
-  youtube: { label: "YouTube", icon: Youtube, color: "#E1352B" },
-  facebook: { label: "Facebook", icon: Facebook, color: "#1866D6" },
-  x: { label: "X", icon: Twitter, color: "#161512" },
-  threads: { label: "Threads", icon: MessageCircle, color: "#161512" },
-  linkedin: { label: "LinkedIn", icon: Linkedin, color: "#0A66C2" },
-  pinterest: { label: "Pinterest", icon: LinkIcon, color: "#C8232C" },
-  snapchat: { label: "Snapchat", icon: LinkIcon, color: "#C7A200" },
-  website: { label: "Website", icon: Globe, color: "#59544B" },
+const SOCIAL_HOSTS: Partial<Record<IdentitySocialPlatform, string[]>> = {
+  tiktok: ["tiktok.com"],
+  instagram: ["instagram.com"],
+  youtube: ["youtube.com", "youtu.be"],
+  facebook: ["facebook.com", "fb.com"],
+  x: ["x.com", "twitter.com"],
+  threads: ["threads.net"],
+  linkedin: ["linkedin.com"],
+  pinterest: ["pinterest.com"],
+  snapchat: ["snapchat.com"],
+};
+
+function publicSocialHref(account: IdentitySocialAccount): string | null {
+  if (!account.url?.trim()) return null;
+  try {
+    const url = new URL(account.url.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (account.platform === "website") return url.toString();
+    const hosts = SOCIAL_HOSTS[account.platform] ?? [];
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return hosts.some((domain) => host === domain || host.endsWith("." + domain)) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+const PLATFORM_META: Record<IdentitySocialPlatform, { label: string; color: string }> = {
+  tiktok: { label: "TikTok", color: "#161512" },
+  instagram: { label: "Instagram", color: "#D6295C" },
+  youtube: { label: "YouTube", color: "#E1352B" },
+  facebook: { label: "Facebook", color: "#1866D6" },
+  x: { label: "X", color: "#161512" },
+  threads: { label: "Threads", color: "#161512" },
+  linkedin: { label: "LinkedIn", color: "#0A66C2" },
+  pinterest: { label: "Pinterest", color: "#C8232C" },
+  snapchat: { label: "Snapchat", color: "#C7A200" },
+  website: { label: "Website", color: "#59544B" },
 };
 
 export function IdentitySocialLinks({
@@ -39,24 +52,27 @@ export function IdentitySocialLinks({
   className?: string;
   compact?: boolean;
 }) {
-  if (accounts.length === 0) return null;
+  const visibleAccounts = accounts
+    .map((account) => ({ account, href: publicSocialHref(account) }))
+    .filter((entry): entry is { account: IdentitySocialAccount; href: string } => Boolean(entry.href));
+  if (visibleAccounts.length === 0) return null;
 
   if (compact) {
     return (
       <div className={cn("flex flex-wrap items-center gap-2", className)}>
-        {accounts.map((a) => {
-          const meta = PLATFORM_META[a.platform];
-          const Icon = meta.icon;
+        {visibleAccounts.map(({ account, href }) => {
+          const meta = PLATFORM_META[account.platform];
           return (
             <a
-              key={a.id}
-              href={a.url ?? "#"}
+              key={account.id}
+              href={href}
               target="_blank"
-              rel="noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.06] bg-white text-[#59544B] transition-colors hover:border-black/15 hover:text-[#1C1B19]"
-              title={`${meta.label}${a.handle ? ` · @${a.handle}` : ""}`}
+              rel="noopener noreferrer"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.06] bg-white transition-colors hover:border-black/15"
+              title={meta.label + (account.handle ? " · @" + account.handle : "")}
+              aria-label={"Open " + meta.label + (account.handle ? " account @" + account.handle : "")}
             >
-              <Icon className="h-4 w-4" />
+              <SocialPlatformIcon platform={account.platform} bare className="h-4 w-4" />
             </a>
           );
         })}
@@ -66,33 +82,33 @@ export function IdentitySocialLinks({
 
   return (
     <div className={cn("grid grid-cols-1 gap-2.5 sm:grid-cols-2", className)}>
-      {accounts.map((a) => {
-        const meta = PLATFORM_META[a.platform];
-        const Icon = meta.icon;
+      {visibleAccounts.map(({ account, href }) => {
+        const meta = PLATFORM_META[account.platform];
         return (
           <a
-            key={a.id}
-            href={a.url ?? "#"}
+            key={account.id}
+            href={href}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
+            aria-label={"Open " + meta.label + (account.handle ? " account @" + account.handle : "")}
             className="group flex items-center gap-3 rounded-2xl border border-black/[0.06] bg-white px-3.5 py-3 transition-colors hover:border-black/15"
           >
             <div
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-              style={{ backgroundColor: `${meta.color}14`, color: meta.color }}
+              style={{ backgroundColor: meta.color + "14" }}
             >
-              <Icon className="h-4.5 w-4.5" />
+              <SocialPlatformIcon platform={account.platform} bare className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1">
                 <p className="truncate text-[13px] font-semibold text-[#1C1B19]">
-                  {a.handle ? `@${a.handle}` : meta.label}
+                  {account.handle ? "@" + account.handle : meta.label}
                 </p>
-                {a.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />}
+                {account.isVerified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />}
               </div>
               <p className="text-[11.5px] text-[#9A9388]">
                 {meta.label}
-                {a.followers > 0 && ` · ${formatNumber(a.followers)} followers`}
+                {account.followers > 0 && " · " + formatNumber(account.followers) + " followers"}
               </p>
             </div>
           </a>

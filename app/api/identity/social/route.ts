@@ -25,21 +25,29 @@ const PLATFORMS = new Set([
  */
 export async function GET(req: NextRequest) {
   const userId = req.nextUrl.searchParams.get("userId");
+  const { user } = await requireUser();
   let targetId = userId;
 
   if (!targetId) {
-    const { user } = await requireUser();
     if (!user) return NextResponse.json({ error: "userId is required" }, { status: 400 });
     targetId = user.id;
   }
 
+  const isSelf = Boolean(user && user.id === targetId);
   const db = createServiceRoleClient();
-  const { data, error } = await db
+  let query = db
     .from("jip_social_accounts")
     .select("*")
     .eq("user_id", targetId)
     .order("followers", { ascending: false });
 
+  // A public lookup never returns private or unverified social accounts.
+  // The owner can still retrieve every account in their own settings.
+  if (!isSelf) {
+    query = query.eq("is_public", true).or("is_verified.eq.true,platform.eq.website");
+  }
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ accounts: ((data ?? []) as SocialAccount[]).map(toSocialAccount) });
 }
@@ -60,6 +68,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid or missing platform" }, { status: 400 });
   }
 
+  const { data: existing } = await db
+    .from("jip_social_accounts")
+    .select("is_public")
+    .eq("user_id", user.id)
+    .eq("platform", platform)
+    .maybeSingle();
+  const isPublic = typeof body.isPublic === "boolean" ? body.isPublic : existing?.is_public === true;
+
   const payload = {
     user_id: user.id,
     platform,
@@ -70,6 +86,7 @@ export async function POST(req: NextRequest) {
     engagement_rate: Number.isFinite(Number(body.engagementRate))
       ? Math.max(0, Number(body.engagementRate))
       : 0,
+    is_public: isPublic,
     metadata: typeof body.metadata === "object" && body.metadata !== null ? body.metadata : {},
   };
 
@@ -104,6 +121,7 @@ export async function PATCH(req: NextRequest) {
   if (body.engagementRate !== undefined) {
     updates.engagement_rate = Math.max(0, Number(body.engagementRate) || 0);
   }
+  if (typeof body.isPublic === "boolean") updates.is_public = body.isPublic;
   if (typeof body.metadata === "object" && body.metadata !== null) updates.metadata = body.metadata;
 
   const { data, error: updateErr } = await db

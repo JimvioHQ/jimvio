@@ -11,7 +11,11 @@ import {
   Compass,
   Facebook,
   FileArchive,
+  FileCode,
+  FileImage,
   FileText,
+  FileSpreadsheet,
+  FileVideo,
   FileUp,
   Globe,
   ImageIcon,
@@ -19,10 +23,8 @@ import {
   Instagram,
   Link2,
   Loader2,
-  Music2,
   Search,
   ShieldCheck,
-  Twitter,
   UploadCloud,
   X,
   Youtube,
@@ -31,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { TrustCheckerArt } from "./TrustCheckerArt";
 import { TrustReportView } from "./TrustReportView";
 import type { ScanReport } from "@/lib/trust/types";
+import { FaTiktok, FaXTwitter } from "react-icons/fa6";
 
 type Mode = "url" | "file" | "both";
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -63,10 +66,10 @@ const CARDS = [
     body: "Read available public engagement signals. YouTube statistics are checked when API access is available; TikTok and X provide limited post metadata. Private reach and website traffic are not publicly verifiable.",
     logos: [
       { icon: Youtube, color: "#FF0000" },
-      { icon: Music2, color: "#111111" },
+      { icon: FaTiktok, color: "#111111" },
       { icon: Instagram, color: "#D6295C" },
       { icon: Facebook, color: "#1877F2" },
-      { icon: Twitter, color: "#111111" },
+      { icon: FaXTwitter, color: "#111111" },
     ],
     tag: "Websites",
     items: ["YouTube public views, likes & comments", "YouTube public channel statistics", "TikTok & X public post metadata", "Signals of repetitive comments", "Private reach and website traffic unavailable"],
@@ -77,9 +80,9 @@ const CARDS = [
     body: "Inspect file structure, repeat fingerprints seen on Jimvio, product-page claims and visible seller details. This is not a full antivirus, legal copyright or ownership verification.",
     logos: [
       { icon: FileText, color: "#DC2626" },
-      { icon: FileText, color: "#2563EB" },
-      { icon: FileText, color: "#16A34A" },
-      { icon: FileText, color: "#EA580C" },
+      { icon: FileSpreadsheet, color: "#2563EB" },
+      { icon: FileCode, color: "#16A34A" },
+      { icon: FileImage, color: "#EA580C" },
       { icon: FileArchive, color: "#7C3AED" },
     ],
     tag: "Digital Products",
@@ -90,10 +93,10 @@ const CARDS = [
     title: "Media Metadata & Provenance Signals",
     body: "Inspect image metadata and available AI/provenance markers, plus duplicate fingerprints previously seen on Jimvio. Video and audio deepfake detection and global copyright matching are not currently available.",
     logos: [
-      { icon: Images, color: "#2563EB" },
+      { icon: FileImage, color: "#2563EB" },
       { icon: Youtube, color: "#FF0000" },
       { icon: AudioLines, color: "#7C3AED" },
-      { icon: FileText, color: "#9333EA" },
+      { icon: FileVideo, color: "#9333EA" },
     ],
     tag: "Images, Videos & Audio",
     items: ["AI/provenance metadata markers", "Image metadata and dimensions", "Duplicate image fingerprints on Jimvio", "Video/audio metadata only", "No deepfake or global copyright verdict"],

@@ -43,6 +43,9 @@ type FieldFlags = {
   showBio: boolean;
   showSkills: boolean;
   showSocial: boolean;
+  showResume: boolean;
+  showMediaKit: boolean;
+  showAnalytics: boolean;
 };
 
 export function SettingsPrivacyForm({
@@ -63,6 +66,9 @@ export function SettingsPrivacyForm({
     showBio: initialCustom.showBio !== false,
     showSkills: initialCustom.showSkills !== false,
     showSocial: initialCustom.showSocial !== false,
+    showResume: initialCustom.showResume === true,
+    showMediaKit: initialCustom.showMediaKit === true,
+    showAnalytics: initialCustom.showAnalytics === true,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +106,7 @@ export function SettingsPrivacyForm({
       />
 
       <div className="space-y-5">
-        <SettingsCard title="Public profile" description="This controls the /u profile people can open.">
+        <SettingsCard title="Public profile" description="This controls the /u profile people can open. Resume, media kit and analytics remain private until you enable them below.">
           <div className="space-y-2">
             {VISIBILITY_OPTIONS.map((option) => {
               const active = privacyVisibility === option.value;
@@ -149,6 +155,9 @@ export function SettingsPrivacyForm({
                 ["showWebsite", "Website"],
                 ["showSkills", "Skills and languages"],
                 ["showSocial", "External links"],
+                ["showResume", "Resume and work history"],
+                ["showMediaKit", "Media kit"],
+                ["showAnalytics", "Analytics"],
               ] as const
             ).map(([key, label]) => (
               <label

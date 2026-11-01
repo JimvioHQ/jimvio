@@ -247,7 +247,7 @@ export function UGCAssistantCard() {
               <span className="text-[15px] font-extrabold">Jimvio AI</span>
               <span className="rounded-full bg-white/25 px-1.5 py-px text-[9px] font-bold">Beta</span>
             </span>
-            <span className="block text-[11px] leading-snug text-white/85">Your AI assistant for UGC & Clipping</span>
+            <span className="block text-[11px] leading-snug text-white/85">Your AI assistant for UGC & Clipping.</span>
           </span>
           <ChevronRight className="mt-1 h-4 w-4 shrink-0 text-white/80" />
         </button>
@@ -282,16 +282,16 @@ export function UGCAssistantCard() {
         {!hasChat ? (
           <>
             <p className="mt-2.5 text-[11px] font-semibold text-white/90">Try these:</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
               {ASSISTANT_SUGGESTIONS.map((s) => (
                 <button
                   key={s.label}
                   type="button"
                   onClick={() => void a.ask(s.message)}
                   disabled={a.status === "loading"}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/45 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-white/15 disabled:opacity-60"
+                  className="inline-flex min-h-9 w-full min-w-0 items-start gap-1 rounded-xl border border-white/45 px-2 py-1.5 text-left text-[10.5px] font-semibold leading-tight text-white transition hover:bg-white/15 disabled:opacity-60"
                 >
-                  <Sparkles className="h-3 w-3 opacity-80" /> {s.label}
+                  <Sparkles className="mt-0.5 h-3 w-3 shrink-0 opacity-80" /> <span className="min-w-0">{s.label}</span>
                 </button>
               ))}
             </div>

@@ -44,6 +44,9 @@ type FieldFlags = {
   showBio: boolean;
   showSkills: boolean;
   showSocial: boolean;
+  showResume: boolean;
+  showMediaKit: boolean;
+  showAnalytics: boolean;
 };
 
 export function IdentityPrivacyClient({
@@ -61,6 +64,9 @@ export function IdentityPrivacyClient({
     showBio: initialCustom.showBio !== false,
     showSkills: initialCustom.showSkills !== false,
     showSocial: initialCustom.showSocial !== false,
+    showResume: initialCustom.showResume === true,
+    showMediaKit: initialCustom.showMediaKit === true,
+    showAnalytics: initialCustom.showAnalytics === true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -104,7 +110,7 @@ export function IdentityPrivacyClient({
         <IdentityCard className="p-5 sm:p-6">
           <p className="mb-1 text-[13px] font-semibold text-[#1C1B19]">Public profile</p>
           <p className="mb-4 text-[12.5px] text-[#8B8579]">
-            Choose who can view your professional identity.
+            Choose who can view your professional identity. Resume, media kit and analytics remain private until you enable them below.
           </p>
           <div className="space-y-2">
             {VISIBILITY_OPTIONS.map((opt) => {
@@ -155,6 +161,9 @@ export function IdentityPrivacyClient({
                 ["showWebsite", "Website"],
                 ["showSkills", "Skills & languages"],
                 ["showSocial", "External links"],
+                ["showResume", "Resume and work history"],
+                ["showMediaKit", "Media kit"],
+                ["showAnalytics", "Analytics"],
               ] as const
             ).map(([key, label]) => (
               <label

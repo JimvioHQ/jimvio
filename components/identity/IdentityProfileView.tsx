@@ -93,9 +93,23 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
       { id: "reviews", label: "Reviews" },
       { id: "bookings", label: "Bookings", href: isOwner ? "/identity/bookings" : undefined },
     ];
+    if (!isOwner) {
+      if (profile.privacyCustom?.showAnalytics !== true) {
+        const index = list.findIndex((tab) => tab.id === "analytics");
+        if (index >= 0) list.splice(index, 1);
+      }
+      if (!profile.mediaKitUrl) {
+        const index = list.findIndex((tab) => tab.id === "media-kit");
+        if (index >= 0) list.splice(index, 1);
+      }
+      if (payload.resume.length === 0) {
+        const index = list.findIndex((tab) => tab.id === "resume");
+        if (index >= 0) list.splice(index, 1);
+      }
+    }
     if (isOwner) list.push({ id: "settings", label: "Settings", href: "/settings/profile" });
     return list;
-  }, [isOwner]);
+  }, [isOwner, profile.privacyCustom, profile.mediaKitUrl, payload.resume.length]);
 
   if (payload.restricted) {
     return (

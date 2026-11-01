@@ -174,6 +174,7 @@ export function toSocialAccount(row: SocialAccount): IdentitySocialAccount {
     avgViews: Number(row.avg_views ?? 0),
     engagementRate: Number(row.engagement_rate ?? 0),
     isVerified: Boolean(row.is_verified),
+    isPublic: row.is_public === true,
     verificationMethod: row.verification_method ?? null,
     verifyStatus: (row.verify_status as IdentitySocialAccount["verifyStatus"]) ?? (row.is_verified ? "verified" : "unverified"),
   };
@@ -415,7 +416,7 @@ async function buildProfilePayload(
       identity.privacy_custom && typeof identity.privacy_custom === "object"
         ? (identity.privacy_custom as Record<string, unknown>)
         : {},
-    mediaKitUrl: identity.media_kit_url,
+    mediaKitUrl: isSelf || flags.isAdmin || privacyFieldVisible(identity.privacy_custom as Record<string, unknown> | null, "showMediaKit") ? identity.media_kit_url : null,
     creatorLevel: identity.creator_level,
     trustScore: Number(identity.trust_score ?? 50),
     aiScore: Number(identity.ai_score ?? 50),
@@ -433,6 +434,15 @@ async function buildProfilePayload(
     countJimvioFollowers(db, profile.id, profile.username),
     countJimvioFollowing(db, profile.id),
   ]);
+
+  let socialsQuery = db
+    .from("jip_social_accounts")
+    .select("*")
+    .eq("user_id", profile.id)
+    .order("followers", { ascending: false });
+  // Owners and admins can manage/review all accounts. Everyone else receives
+  // only accounts the owner explicitly marked public.
+  if (!isSelf && !flags.isAdmin) socialsQuery = socialsQuery.eq("is_public", true);
 
   const canBook =
     !isSelf && Boolean(viewerId) && identity.availability !== "unavailable" && contactPreferences.booking;
@@ -484,7 +494,7 @@ async function buildProfilePayload(
     creatorStats,
     reviews,
   ] = await Promise.all([
-    db.from("jip_social_accounts").select("*").eq("user_id", profile.id).order("followers", { ascending: false }),
+    socialsQuery,
     portfolioQuery,
     testimonialsQuery,
     db.from("jip_resume_entries").select("*").eq("user_id", profile.id).order("sort_order", { ascending: true }),
@@ -528,12 +538,12 @@ async function buildProfilePayload(
     social: publicSocial,
     portfolio: ((portfolio ?? []) as PortfolioItem[]).map(toPortfolioItem),
     testimonials: ((testimonials ?? []) as Testimonial[]).map(toTestimonial),
-    resume: ((resume ?? []) as ResumeEntry[]).map(toResumeEntry),
+    resume: isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showResume") ? ((resume ?? []) as ResumeEntry[]).map(toResumeEntry) : [],
     badges: badges.map(toBadge),
     milestones: ((milestones ?? []) as Milestone[]).map(toMilestone),
     aiInsights: toAiInsights((aiInsightsRow ?? null) as AIInsights | null),
     levelProgress: toLevelProgress(Number(identity.xp ?? 0)),
-    stats: toStatsSnapshot(creatorStats),
+    stats: isSelf || flags.isAdmin || privacyFieldVisible(profileCore.privacyCustom, "showAnalytics") ? toStatsSnapshot(creatorStats) : null,
     reviews,
     jimvioFollowers,
     jimvioFollowing,

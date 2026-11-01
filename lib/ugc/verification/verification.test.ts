@@ -112,21 +112,47 @@ describe("creator profile completion", () => {
   });
 });
 
-import { newVerifyCode, pageContainsCode, publicProfileUrl } from "../../identity/social-verification.ts";
+import { newVerifyCode, pageContainsCode, publicProfileUrl, readProfileBio } from "../../identity/social-verification.ts";
 import { CREATOR_CATEGORIES, cleanCategories } from "../../identity/creator-categories.ts";
 
 describe("social verification", () => {
   it("makes readable one-time codes", () => {
     assert.match(newVerifyCode(), /^JIMVIO-[A-HJ-NP-Z2-9]{6}$/);
   });
-  it("finds the code in escaped or spaced bios", () => {
+  it("finds a complete code embedded in normal bio text", () => {
     assert.equal(pageContainsCode('"biography":"Dancer JIMVIO\\u002DAB12CD"', "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("Creator | JIMVIO-AB12CD | Content marketing", "JIMVIO-AB12CD"), true);
+    assert.equal(pageContainsCode("Welcome! jimvio — ab12cd.", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: jimvio ab12cd", "JIMVIO-AB12CD"), true);
     assert.equal(pageContainsCode("bio: hello", "JIMVIO-AB12CD"), false);
   });
-  it("builds the public page from a handle", () => {
+  it("extracts only the official profile bio and confirms the returned username", () => {
+    const instagram = JSON.stringify({
+      business_discovery: {
+        username: "ana",
+        biography: "Creator profile: JIMVIO-AB12CD",
+        media: { data: [{ caption: "JIMVIO-OTHER1" }] },
+      },
+    });
+    assert.equal(readProfileBio("instagram", instagram, "ana"), "Creator profile: JIMVIO-AB12CD");
+    assert.equal(readProfileBio("instagram", instagram, "someone-else"), null);
+    assert.equal(readProfileBio("instagram", JSON.stringify({ edge_media_to_caption: "JIMVIO-AB12CD" }), "ana"), null);
+    assert.equal(readProfileBio("x", JSON.stringify({ data: { username: "ana", description: "JIMVIO-AB12CD" } }), "ana"), "JIMVIO-AB12CD");
+    assert.equal(readProfileBio("x", JSON.stringify({ data: { username: "other", description: "JIMVIO-AB12CD" } }), "ana"), null);
+    assert.equal(readProfileBio("youtube", JSON.stringify({ items: [{ snippet: { customUrl: "@ana", description: "JIMVIO-AB12CD" } }] }), "ana"), "JIMVIO-AB12CD");
+  });
+  it("rejects partial tokens and codes embedded in longer identifiers", () => {
+    assert.equal(pageContainsCode("JIMVIO-AB12CDA", "JIMVIO-AB12CD"), false);
+    assert.equal(pageContainsCode("XJIMVIO-AB12CD", "JIMVIO-AB12CD"), false);
+    assert.equal(pageContainsCode("JIMVIO-AB12CD-EXTRA", "JIMVIO-AB12CD"), false);
+  });
+  it("builds platform-owned public pages and rejects unrelated hosts", () => {
     assert.equal(publicProfileUrl("instagram", "@ana.k", null), "https://www.instagram.com/ana.k/");
     assert.equal(publicProfileUrl("tiktok", "ana", null), "https://www.tiktok.com/@ana");
+    assert.equal(publicProfileUrl("instagram", null, "https://evil.example/ana"), null);
+    assert.equal(publicProfileUrl("instagram", "ana", "https://evil.example/ana"), "https://www.instagram.com/ana/");
+    assert.equal(publicProfileUrl("instagram", "ana", "https://www.instagram.com/someone-else/"), "https://www.instagram.com/ana/");
+    assert.equal(handleFor("instagram", null, "https://evil.example/ana"), null);
   });
   it("has 500+ categories and keeps one", () => {
     assert.ok(CREATOR_CATEGORIES.length >= 500);
@@ -165,12 +191,44 @@ describe("jimvio checker", () => {
 
 import { bioSources, handleFor } from "../../identity/social-verification.ts";
 
-describe("bio sources", () => {
-  it("reads handles from links and lists several sources", () => {
+describe("official bio sources", () => {
+  it("uses only authorized platform APIs and validates profile handles", () => {
+    const previous = {
+      instagramToken: process.env.INSTAGRAM_ACCESS_TOKEN,
+      instagramAccount: process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID,
+      xToken: process.env.X_BEARER_TOKEN,
+      youtubeKey: process.env.YOUTUBE_API_KEY,
+    };
+    process.env.INSTAGRAM_ACCESS_TOKEN = "test-instagram-token";
+    process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID = "17841400000000000";
+    process.env.X_BEARER_TOKEN = "test-x-token";
+    process.env.YOUTUBE_API_KEY = "test-youtube-key";
+    try {
+      const instagram = bioSources("instagram", "ana", null)[0];
+      assert.ok(instagram.url.includes("graph.facebook.com/v26.0/"));
+      assert.equal(instagram.headers?.Authorization, "Bearer test-instagram-token");
+      const x = bioSources("x", "ana", null)[0];
+      assert.ok(x.url.startsWith("https://api.x.com/2/users/by/username/"));
+      assert.equal(x.headers?.Authorization, "Bearer test-x-token");
+      const youtube = bioSources("youtube", "ana", null)[0];
+      assert.ok(youtube.url.startsWith("https://www.googleapis.com/youtube/v3/channels"));
+      assert.equal(youtube.headers?.["X-Goog-Api-Key"], "test-youtube-key");
+      assert.deepEqual(bioSources("tiktok", "ana", null), []);
+      assert.deepEqual(bioSources("instagram", 'ana"){fields}', null), []);
+    } finally {
+      if (previous.instagramToken === undefined) delete process.env.INSTAGRAM_ACCESS_TOKEN;
+      else process.env.INSTAGRAM_ACCESS_TOKEN = previous.instagramToken;
+      if (previous.instagramAccount === undefined) delete process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+      else process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID = previous.instagramAccount;
+      if (previous.xToken === undefined) delete process.env.X_BEARER_TOKEN;
+      else process.env.X_BEARER_TOKEN = previous.xToken;
+      if (previous.youtubeKey === undefined) delete process.env.YOUTUBE_API_KEY;
+      else process.env.YOUTUBE_API_KEY = previous.youtubeKey;
+    }
+  });
+
+  it("reads handles from platform-owned profile links", () => {
     assert.equal(handleFor("instagram", null, "https://www.instagram.com/ana.k/"), "ana.k");
     assert.equal(handleFor("x", "@ana", null), "ana");
-    assert.ok(bioSources("instagram", "ana", null).some((s) => s.url.includes("web_profile_info")));
-    assert.ok(bioSources("x", "ana", null).some((s) => s.url.includes("fxtwitter")));
-    assert.ok(bioSources("tiktok", "ana", null).some((s) => s.url === "https://www.tiktok.com/@ana"));
   });
 });

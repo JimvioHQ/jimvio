@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { BadgeCheck, ChevronRight, Clock, Plus, Trash2 } from "lucide-react";
 import type { IdentitySocialAccount, IdentitySocialPlatform } from "@/lib/identity/types";
@@ -34,6 +36,30 @@ export function SocialAccountsManager({
 }) {
   const social = accounts.filter((a) => a.platform !== "website");
   const used = new Set(social.map((a) => a.platform));
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  async function togglePublic(account: IdentitySocialAccount, isPublic: boolean) {
+    const previous = account.isPublic === true;
+    onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic } : item));
+    setUpdatingId(account.id);
+    try {
+      const response = await fetch("/api/identity/social", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: account.id, isPublic }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(json.error || "Could not update account visibility.");
+      const savedVisibility = typeof json.account?.isPublic === "boolean" ? json.account.isPublic : isPublic;
+      onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic: savedVisibility } : item));
+      toast.success(savedVisibility ? "Account will appear on your public profile." : "Account hidden from your public profile.");
+    } catch (err) {
+      onChange((current) => current.map((item) => item.id === account.id ? { ...item, isPublic: previous } : item));
+      toast.error(err instanceof Error ? err.message : "Could not update account visibility.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   async function remove(id: string) {
     if (!window.confirm("Remove this account from your profile?")) return;
@@ -48,7 +74,7 @@ export function SocialAccountsManager({
           {social.map((a) => {
             const status = a.isVerified ? "verified" : a.verifyStatus ?? "unverified";
             return (
-              <li key={a.id} className="flex items-center gap-3 px-4 py-3">
+              <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap">
                 <SocialPlatformIcon platform={a.platform} className="h-10 w-10" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-semibold text-[#111827]">
@@ -75,6 +101,17 @@ export function SocialAccountsManager({
                     {status === "failed" ? "Try again" : "Verify"} <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 )}
+                <label className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-[#6B7280]">
+                  <input
+                    type="checkbox"
+                    checked={a.isPublic === true}
+                    disabled={updatingId === a.id}
+                    onChange={(event) => void togglePublic(a, event.target.checked)}
+                    aria-label={"Show " + SOCIAL_PLATFORM_LABEL[a.platform] + " on public profile"}
+                    className="h-3.5 w-3.5 rounded border-[#D1D5DB] text-[#FF5A1F] focus:ring-[#FF5A1F]/30"
+                  />
+                  Public
+                </label>
                 <button
                   type="button"
                   aria-label={`Remove ${SOCIAL_PLATFORM_LABEL[a.platform]}`}

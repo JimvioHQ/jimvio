@@ -34,8 +34,8 @@ export function IdentityPortfolio({
 }
 
 function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
-  const image = item.thumbnailUrl?.trim() || (item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
-  const isVideo = item.kind === "video";
+  const isVideo = item.kind === "video" || Boolean(item.mediaUrl && (/\/video\/upload\//i.test(item.mediaUrl) || /\.(mp4|m4v|mov|webm)(?:[?#]|$)/i.test(item.mediaUrl)));
+  const image = item.thumbnailUrl?.trim() || (!isVideo && item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
   const content = (
     <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-black/[0.06] bg-[#F1EFEA]">
       {image ? (
@@ -45,14 +45,24 @@ function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
           alt={item.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
+      ) : isVideo && item.mediaUrl ? (
+        <video
+          src={item.mediaUrl}
+          poster={item.thumbnailUrl ?? undefined}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={"Play " + item.title}
+          className="h-full w-full object-cover"
+        />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[#C7C1B4]">
           <Briefcase className="h-6 w-6" />
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 transition-opacity group-hover:opacity-100" />
       {isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90">
             <Play className="h-4 w-4 fill-current text-[#161512]" />
           </div>

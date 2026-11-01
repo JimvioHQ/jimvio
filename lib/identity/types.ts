@@ -133,7 +133,7 @@ export interface JipReviewRow {
   verification_source: string | null;
   booking_id: string | null;
   campaign_id: string | null;
-  is_public: boolean;
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -148,6 +148,7 @@ export interface SocialAccount {
   avg_views: number;
   engagement_rate: number;
   is_verified: boolean;
+  is_public: boolean;
   verification_method: string | null;
   verified_at: string | null;
   verify_status?: string | null;
@@ -402,6 +403,8 @@ export interface IdentitySocialAccount {
   avgViews: number;
   engagementRate: number;
   isVerified: boolean;
+  /** Whether the owner allows this account to appear on their public profile. */
+  isPublic?: boolean;
   /** How it was proven: "oauth" (official login) or "bio_code". */
   verificationMethod?: string | null;
   verifyStatus?: "unverified" | "code_issued" | "pending_review" | "verified" | "failed";

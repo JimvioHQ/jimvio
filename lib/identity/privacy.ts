@@ -70,11 +70,23 @@ export function isSelfViewer(viewerId: string | null | undefined, userId: string
   return Boolean(viewerId) && viewerId === userId;
 }
 
-/** Field-level visibility from privacy_custom (defaults to visible). */
+/** Field-level visibility from privacy_custom. Sensitive sections are opt-in. */
+export type PrivacyField =
+  | "showLocation"
+  | "showWebsite"
+  | "showBio"
+  | "showSkills"
+  | "showSocial"
+  | "showResume"
+  | "showMediaKit"
+  | "showAnalytics";
+
+const PRIVATE_BY_DEFAULT = new Set<PrivacyField>(["showResume", "showMediaKit", "showAnalytics"]);
+
 export function privacyFieldVisible(
   privacyCustom: Record<string, unknown> | null | undefined,
-  key: "showLocation" | "showWebsite" | "showBio" | "showSkills" | "showSocial",
+  key: PrivacyField,
 ): boolean {
-  if (!privacyCustom || typeof privacyCustom !== "object") return true;
-  return privacyCustom[key] !== false;
+  const value = privacyCustom && typeof privacyCustom === "object" ? privacyCustom[key] : undefined;
+  return value === undefined ? !PRIVATE_BY_DEFAULT.has(key) : value === true;
 }

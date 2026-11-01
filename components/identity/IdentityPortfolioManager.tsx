@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Briefcase, ExternalLink, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { Briefcase, ExternalLink, Loader2, Plus, Save, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 import type { IdentityPortfolioItem, IdentityPortfolioKind } from "@/lib/identity/types";
+import { useCloudinaryUpload } from "@/hooks/use-cloudinary-upload";
 import { SettingsButton, SettingsCard, SettingsField, settingsInputClass, settingsTextareaClass } from "@/components/settings-center/settings-ui";
 
 type Draft = {
@@ -17,11 +18,12 @@ type Draft = {
   brandName: string;
   isFeatured: boolean;
   isPublic: boolean;
+  mediaAccess: "public" | "private" | "unknown";
 };
 
 const EMPTY: Draft = {
   kind: "other", title: "", description: "", mediaUrl: "", thumbnailUrl: "",
-  externalUrl: "", brandName: "", isFeatured: false, isPublic: true,
+  externalUrl: "", brandName: "", isFeatured: false, isPublic: false, mediaAccess: "unknown",
 };
 
 const KINDS: { value: IdentityPortfolioKind; label: string }[] = [
@@ -39,6 +41,7 @@ function toDraft(item: IdentityPortfolioItem): Draft {
     description: item.description ?? "", mediaUrl: item.mediaUrl ?? "",
     thumbnailUrl: item.thumbnailUrl ?? "", externalUrl: item.externalUrl ?? "",
     brandName: item.brandName ?? "", isFeatured: item.isFeatured, isPublic: item.isPublic,
+    mediaAccess: /\/(private|authenticated)\//i.test(item.mediaUrl ?? "") || /\/(private|authenticated)\//i.test(item.thumbnailUrl ?? "") ? "private" : item.mediaUrl || item.thumbnailUrl ? "public" : "unknown",
   };
 }
 
@@ -47,6 +50,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { upload, uploading, progress } = useCloudinaryUpload("jimvio/identity");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -62,9 +66,40 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
 
   useEffect(() => { void refresh(); }, [refresh]);
 
+  async function uploadMedia(file: File) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      toast.error("Choose an image or video file.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error("Portfolio media must be 50 MB or smaller.");
+      return;
+    }
+    const accessType = draft?.isPublic ? "public" : "private";
+    const result = await upload(file, isVideo ? "video" : "image", accessType);
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    setDraft((current) => current ? {
+      ...current,
+      kind: current.kind === "image" || current.kind === "video" ? (isVideo ? "video" : "image") : current.kind,
+      mediaUrl: result.url,
+      thumbnailUrl: isImage ? result.url : current.thumbnailUrl,
+      mediaAccess: accessType,
+    } : current);
+    toast.success("Portfolio media uploaded.");
+  }
+
   async function save() {
     if (!draft?.title.trim()) {
       toast.error("Add a title for this portfolio item.");
+      return;
+    }
+    if (draft.isPublic && draft.mediaAccess === "private" && (draft.mediaUrl || draft.thumbnailUrl)) {
+      toast.error("This media was uploaded privately. Re-upload it after enabling public visibility before publishing.");
       return;
     }
     setBusy(true);
@@ -73,13 +108,16 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
         method: draft.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...draft,
+          id: draft.id,
+          kind: draft.kind,
           title: draft.title.trim(),
           description: draft.description.trim(),
           mediaUrl: draft.mediaUrl.trim(),
           thumbnailUrl: draft.thumbnailUrl.trim(),
           externalUrl: draft.externalUrl.trim(),
           brandName: draft.brandName.trim(),
+          isFeatured: draft.isFeatured,
+          isPublic: draft.isPublic,
         }),
       });
       const json = await response.json().catch(() => ({}));
@@ -108,12 +146,20 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
   }
 
   async function toggle(item: IdentityPortfolioItem, field: "isPublic" | "isFeatured") {
+    const nextValue = !item[field];
+    const hasPrivateMedia = [item.mediaUrl, item.thumbnailUrl].some((value) =>
+      Boolean(value && /\/(private|authenticated)\//i.test(value)),
+    );
+    if (field === "isPublic" && nextValue && hasPrivateMedia) {
+      toast.error("This item contains private media. Edit it, enable public visibility, and re-upload the media before publishing.");
+      return;
+    }
     setBusy(true);
     try {
       const response = await fetch("/api/identity/portfolio", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id, [field]: !item[field] }),
+        body: JSON.stringify({ id: item.id, [field]: nextValue }),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json.error || "Could not update portfolio item");
@@ -183,16 +229,55 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
               <SettingsField label="Media URL"><input className={settingsInputClass} value={draft.mediaUrl} placeholder="https://" inputMode="url" onChange={(e) => setDraft({ ...draft, mediaUrl: e.target.value })} /></SettingsField>
               <SettingsField label="Thumbnail URL"><input className={settingsInputClass} value={draft.thumbnailUrl} placeholder="https://" inputMode="url" onChange={(e) => setDraft({ ...draft, thumbnailUrl: e.target.value })} /></SettingsField>
               <div className="sm:col-span-2">
+                <SettingsField label="Upload image or video">
+                  <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-white p-3">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E5E7EB] px-3 py-2 text-xs font-semibold text-[#374151] hover:bg-[#F9FAFB]">
+                      <UploadCloud className="h-4 w-4" />
+                      {uploading ? "Uploading…" : "Choose media"}
+                      <input
+                        type="file"
+                        accept="image/*,video/*"
+                        className="sr-only"
+                        disabled={uploading || busy}
+                        onChange={(event) => {
+                          const file = event.currentTarget.files?.[0];
+                          event.currentTarget.value = "";
+                          if (file) void uploadMedia(file);
+                        }}
+                      />
+                    </label>
+                    <p className="mt-2 text-[11px] text-[#6B7280]">Images and videos up to 50 MB. Uploads use Jimvio's existing secure media pipeline.</p>
+                    {uploading ? (
+                      <div className="mt-3">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
+                          <div className="h-full rounded-full bg-[#FF5A1F] transition-all" style={{ width: progress + "%" }} />
+                        </div>
+                        <p className="mt-1 text-[11px] text-[#6B7280]">{progress}% uploaded</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </SettingsField>
+              </div>
+              <div className="sm:col-span-2">
                 <SettingsField label="Description"><textarea className={settingsTextareaClass} rows={3} value={draft.description} maxLength={1200} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></SettingsField>
               </div>
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-[#374151]">
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isPublic} onChange={(e) => setDraft({ ...draft, isPublic: e.target.checked })} /> Show on public profile</label>
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isFeatured} onChange={(e) => setDraft({ ...draft, isFeatured: e.target.checked })} /> Feature this item</label>
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "private" && draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#B45309]">This media is private. Re-upload it after enabling public visibility before publishing.</p>
+              ) : null}
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "private" && !draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#6B7280]">This upload is stored privately. If you later publish this item, enable public visibility and upload the media again.</p>
+              ) : null}
+              {(draft.mediaUrl || draft.thumbnailUrl) && draft.mediaAccess === "public" && !draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#6B7280]">The item is hidden from your profile, but this previously public media URL may still be accessible directly. Re-upload while hidden to store it privately.</p>
+              ) : null}
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-[#E5E7EB] px-4 py-2 text-xs font-semibold text-[#374151]">Cancel</button>
-              <SettingsButton type="button" loading={busy} onClick={() => void save()}><Save className="h-4 w-4" /> Save item</SettingsButton>
+              <SettingsButton type="button" loading={busy || uploading} onClick={() => void save()}><Save className="h-4 w-4" /> Save item</SettingsButton>
             </div>
           </div>
         )}
