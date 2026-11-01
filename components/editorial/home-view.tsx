@@ -41,11 +41,11 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
         </section>
       ) : null}
 
-      {composition.latest.length > 0 ? (
+      {composition.allStories.length > 0 ? (
         <section className="mt-12">
-          <SectionHeading title="The latest" href="/media/category/news" />
+          <SectionHeading title="Latest stories" />
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {composition.latest.map((article) => (
+            {composition.allStories.map((article) => (
               <StoryCard key={article.id} card={toCard(article)} stacked />
             ))}
           </div>
