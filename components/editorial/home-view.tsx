@@ -36,8 +36,8 @@ function MostRead({ articles }: { articles: HomeComposition["allStories"] }) {
 export function HomeView({ composition }: { composition: HomeComposition }) {
   const heroes = composition.heroes.slice(0, 3).map((article) => toCard(article, true));
   const featured = composition.featured.slice(0, 2);
-  const latest = composition.allStories.slice(0, 6);
-  const mostRead = composition.allStories.slice(0, 5);
+  const latest = (composition.latest.length >= 6 ? composition.latest : composition.allStories).slice(0, 6);
+  const mostRead = (composition.featured.length >= 5 ? composition.featured : composition.allStories).slice(0, 5);
   return (
     <div className="media-home mx-auto max-w-[1440px] px-4 pb-8 pt-3 sm:px-6 lg:px-10 lg:pt-1">
       <h1 className="sr-only">Jimvio Media — stories, ideas and insights</h1>
