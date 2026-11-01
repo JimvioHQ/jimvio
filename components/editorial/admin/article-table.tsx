@@ -54,7 +54,7 @@ export function ArticleTable({ articles }: { articles: AdminArticle[] }) {
               <td className="px-4 py-3 text-right">
                 <div className="inline-flex items-center gap-3">
                   <Link href={`/media/admin/articles/${article.id}`} className="font-semibold text-[#3b5ccc]">Edit</Link>
-                  <DeleteArticleButton articleId={article.id} title={article.title} />
+                  <DeleteArticleButton articleId={article.id} title={article.title} canDelete={article.status !== "published" && article.status !== "scheduled"} />
                 </div>
               </td>
             </tr>
