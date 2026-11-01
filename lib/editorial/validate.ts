@@ -13,9 +13,9 @@ const CATEGORY_SET = new Set<string>(MEDIA_CATEGORIES.map((item) => item.slug));
 const SECTION_SET = new Set<string>(MEDIA_SECTIONS);
 const STATUS_SET = new Set<string>(MEDIA_STATUSES);
 
+export const EDITORIAL_BYLINE = "Jimvio Editorial Team";
+
 const BANNED_BYLINES = [
-  /editorial\s+team/i,
-  /jimvio\s+editorial/i,
   /jimvio\s+staff/i,
   /staff\s+writer/i,
   /^jimvio$/i,
@@ -85,10 +85,8 @@ export function isBannedByline(name: string): boolean {
   return BANNED_BYLINES.some((pattern) => pattern.test(trimmed));
 }
 
-export function publicAuthorName(name: string | null | undefined): string | null {
-  const trimmed = String(name ?? "").trim();
-  if (!trimmed || isBannedByline(trimmed)) return null;
-  return trimmed.slice(0, 80);
+export function publicAuthorName(_name: string | null | undefined): string {
+  return EDITORIAL_BYLINE;
 }
 
 function isPrivateHostname(hostname: string): boolean {
@@ -207,7 +205,7 @@ export function kickerFor(category: MediaCategory, kicker: string): string {
   return (custom || categoryLabel(category)).slice(0, 32);
 }
 
-const MIN_PUBLISH_WORDS = 300;
+const MIN_PUBLISH_WORDS = 900;
 
 function countWords(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
@@ -228,12 +226,7 @@ export function validateArticle(
   if (!isMediaSection(input.section)) errors.section = "Choose a homepage section.";
 
   const author = input.authorName.trim();
-  if (author && (author.length > 80 || isBannedByline(author))) {
-    errors.authorName = "Use the writer's name. Do not use an editorial-team byline.";
-  }
-  if ((intent === "published" || intent === "scheduled") && !author) {
-    errors.authorName = "Add the real, accountable writer's full name before publication.";
-  }
+  if (author && author.length > 80) errors.authorName = "Byline must be 80 characters or fewer.";
 
   const image = input.imageUrl.trim();
   if (image && !isSafeImageUrl(image)) {
@@ -281,7 +274,7 @@ export function validateArticle(
       errors.excerpt = "Add an excerpt between 12 and 500 characters before publishing.";
     }
     if (countWords(plainText(input.bodyHtml)) < MIN_PUBLISH_WORDS) {
-      errors.bodyHtml = "Write a substantive article of at least 300 words before publication.";
+      errors.bodyHtml = "Write a researched article of at least 900 words before publication.";
     }
     if (!image) errors.imageUrl = "Add a featured image before publishing.";
   } else if (excerpt.length > 500) {

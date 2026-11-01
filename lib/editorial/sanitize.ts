@@ -91,15 +91,16 @@ function skipElement(source: string, index: number, name: string): number {
   return index;
 }
 
-function anchorTag(attrs: Attr[]): string {
+// Public article rendering can restrict links to first-party paths only.
+function anchorTag(attrs: Attr[], internalLinksOnly: boolean): string {
   const href = attrs.find((attr) => attr.name === "href")?.value.trim() ?? "";
-  if (/[\u0000-\u001f\u007f]/.test(href) || !isSafeHref(href)) return "<a>";
+  if (/[\u0000-\u001f\u007f]/.test(href) || !isSafeHref(href) || (internalLinksOnly && (!href.startsWith("/") || href.startsWith("//")))) return "<a>";
   const safe = escapeAttr(href);
   const target = href.startsWith("https:") ? ' target="_blank"' : "";
   return `<a href="${safe}" rel="noopener noreferrer"${target}>`;
 }
 
-export function sanitizeArticleHtml(input: string): SafeHtml {
+export function sanitizeArticleHtml(input: string, options: { internalLinksOnly?: boolean } = {}): SafeHtml {
   const source = String(input ?? "").replace(/\0/g, "").slice(0, 100_000);
   let index = 0;
   let html = "";
@@ -155,7 +156,7 @@ export function sanitizeArticleHtml(input: string): SafeHtml {
     } else if (name.name === "br") {
       html += "<br>";
     } else if (name.name === "a") {
-      html += anchorTag(tag.attrs);
+      html += anchorTag(tag.attrs, options.internalLinksOnly === true);
     } else {
       html += `<${name.name}>`;
     }

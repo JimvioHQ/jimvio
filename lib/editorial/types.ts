@@ -38,13 +38,13 @@ export type PublicArticle = {
   authorName: string | null;
   publishedAt: string | null;
   updatedAt?: string | null;
-  sourceName?: string | null;
-  sourceUrl?: string | null;
   correctionNote?: string | null;
   fixture: boolean;
 };
 
 export type AdminArticle = PublicArticle & {
+  sourceName?: string | null;
+  sourceUrl?: string | null;
   status: MediaStatus;
   scheduledAt: string | null;
   createdAt: string;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteArticleButton } from "@/components/editorial/admin/delete-article-button";
 import type { AdminArticle } from "@/lib/editorial/types";
 import { categoryLabel } from "@/lib/editorial/validate";
 import { statusClass, statusLabel } from "@/lib/editorial/status";
@@ -51,9 +52,10 @@ export function ArticleTable({ articles }: { articles: AdminArticle[] }) {
                 </span>
               </td>
               <td className="px-4 py-3 text-right">
-                <Link href={`/media/admin/articles/${article.id}`} className="font-semibold text-[#3b5ccc]">
-                  Edit
-                </Link>
+                <div className="inline-flex items-center gap-3">
+                  <Link href={`/media/admin/articles/${article.id}`} className="font-semibold text-[#3b5ccc]">Edit</Link>
+                  <DeleteArticleButton articleId={article.id} title={article.title} canDelete={article.status !== "published" && article.status !== "scheduled"} />
+                </div>
               </td>
             </tr>
           ))}

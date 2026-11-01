@@ -17,6 +17,7 @@ interface Chain<T> extends PromiseLike<DbResult<T>> {
   select: (columns?: string) => Chain<T>;
   insert: (row: Row) => Chain<T>;
   update: (row: Row) => Chain<T>;
+  delete: () => Chain<T>;
   eq: (column: string, value: unknown) => Chain<T>;
   contains: (column: string, value: unknown) => Chain<T>;
   order: (column: string, options?: { ascending?: boolean }) => Chain<T>;
@@ -143,6 +144,14 @@ export async function adminInsertArticle(
 export async function adminFindByIdempotency(key: string) {
   if (!isArticleId(key)) return { data: null, error: null };
   return table("media_articles").select("id, slug, updated_at").eq("idempotency_key", key).maybeSingle();
+}
+
+export async function adminDeleteArticle(id: string) {
+  return table("media_articles")
+    .delete()
+    .eq("id", id)
+    .select("id, slug, title, status, image_url")
+    .maybeSingle();
 }
 
 export async function adminUpdateArticle(id: string, row: ArticleWrite, expectedUpdatedAt: string) {

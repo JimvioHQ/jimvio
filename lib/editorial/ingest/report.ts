@@ -1,4 +1,5 @@
 import { completePrimaryText } from "@/lib/ai/text-generation";
+import { getDomain } from "tldts";
 import { readOpenAIKey } from "@/lib/ai/openai-runtime";
 import { containsDiagnosticProse, meaningfulCaption } from "@/lib/editorial/caption";
 import type { OriginalBrief } from "@/lib/editorial/ingest/compose";
@@ -26,8 +27,7 @@ export type ReportResult =
   | { ok: true; brief: OriginalBrief }
   | { ok: false; reason: "thin_source" | "writer_unavailable" | "quality_gate"; issues: string[] };
 
-const MIN_PAGE_WORDS = 80;
-const RICH_PAGE_WORDS = 600;
+const MIN_PAGE_WORDS = 300;
 
 function digitsOutside(generated: string, corpus: string): boolean {
   const text = generated.replace(/<[^>]+>/g, " ");
@@ -125,9 +125,8 @@ function acceptHref(href: string, allowed: ReadonlySet<string>): string | null {
   if (!trimmed || /^(?:javascript|data|blob|file|vbscript):/i.test(trimmed)) return null;
   if (/[\u0000-\u001f\u007f]/.test(trimmed)) return null;
   if (trimmed.startsWith("/u/")) return allowed.has(trimmed) ? trimmed : null;
-  const canonical = canonicalUrl(trimmed);
-  if (!canonical || !allowed.has(canonical)) return null;
-  return canonical;
+  // Public article links are restricted to Jimvio-owned relative paths.
+  return null;
 }
 
 function renderParagraph(text: string, annotations: { phrase: string; href: string }[]): string {
@@ -238,14 +237,10 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   if (sharesLongPhrase(generated, input.corpusParts)) issues.push("originality");
   if (digitsOutside(generated, corpus)) issues.push("unsupported_number");
   if (unsupportedQuote(generated, corpus)) issues.push("unsupported_quote");
-  const outputWords = wordCount(generated.replace(/<[^>]+>/g, " "));
+  const outputWords = wordCount(bodyHtml.replace(/<[^>]+>/g, " "));
   const headed = draft.sections.filter((section) => section.heading).length;
-  if (sourceWords >= RICH_PAGE_WORDS) {
-    if (outputWords < 350 || headed < 3) issues.push("structure");
-  } else if (outputWords < 40) {
-    issues.push("structure");
-  }
-  if (outputWords > Math.max(220, Math.round(sourceWords * 1.6))) issues.push("padded");
+  if (outputWords < 900 || headed < 3) issues.push("insufficient_depth");
+  if (outputWords > 1500) issues.push("overlong");
   const sentences = plain.split(/(?<=[.!?])\s+/);
   const seen = new Set<string>();
   for (const sentence of sentences) {
@@ -291,8 +286,8 @@ const INSTRUCTIONS = [
   "Do not describe feeds, metadata, extraction, confidence, or how the story was assembled.",
   "Do not start the headline with the feed name and do not write the words public notice.",
   "Do not repeat the source headline.",
-  "If the dossier contains at least 600 source words, write a substantial, well-researched article targeting 450–750 words with at least three informative sections. Each section must add distinct, source-supported information.",
-  "If the dossier contains fewer than 600 source words, write only what the evidence supports and do not pad. Such short-source stories must not be presented as deeply researched features.",
+  "Write a substantial, independently researched article of 900–1,500 words with at least four informative sections. Each section must add distinct, source-supported context, verified detail, implications, and clearly identified uncertainty.",
+  "If the dossier does not contain enough verified evidence for a substantive 900-word report, do not pad or invent; allow the story to fail publication quality checks.",
   "Use the specific people, dates, places, numbers, and program names from the dossier. Do not replace them with general claims about importance, innovation, or the future.",
   "When people lists two or more names, the body must include at least two of those exact full names.",
   "links may only use an href copied from allowedUrls. The phrase must appear exactly in the article.",
@@ -312,7 +307,7 @@ async function defaultComplete(request: { instructions: string; input: string })
     instructions: request.instructions,
     input: request.input,
     temperature: 0.2,
-    maxOutputTokens: 3200,
+    maxOutputTokens: 6000,
     timeoutMs: 20_000,
     format: "json_object",
   });
@@ -336,6 +331,10 @@ export async function writeGroundedReport(input: {
     { sourceName: input.sourceName, sourceTitle: input.page.title || input.sourceTitle, sourceUrl: source ?? input.sourceUrl, page: input.page },
     ...(input.corroboratingPages ?? []).slice(0, 3),
   ];
+  const independentHosts = new Set(documents.map((document) => {
+    try { return getDomain(new URL(document.sourceUrl).hostname) ?? ""; } catch { return ""; }
+  }).filter(Boolean));
+  if (independentHosts.size < 2) return { ok: false, reason: "quality_gate", issues: ["insufficient_independent_sources"] };
   for (const document of documents) {
     const canonicalSource = canonicalUrl(document.sourceUrl);
     const canonicalPage = canonicalUrl(document.page.url);
@@ -364,7 +363,7 @@ export async function writeGroundedReport(input: {
       paragraphs: document.page.paragraphs,
       captions: document.page.captions,
     })),
-    allowedUrls: [...allowed],
+    allowedUrls: [...allowed].filter((href) => href.startsWith("/u/")),
     people: sourcePeople(corpusParts.join(" ")),
   });
   const complete = input.complete ?? defaultComplete;

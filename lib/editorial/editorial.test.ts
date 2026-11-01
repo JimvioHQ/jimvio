@@ -50,7 +50,7 @@ function article(overrides: Partial<ArticleInput> = {}): ArticleInput {
   return {
     title: "A local report from Kigali",
     excerpt: "This excerpt is long enough to publish.",
-    bodyHtml: `<p>${Array.from({ length: 300 }, (_, index) => `verifiedword${index}`).join(" ")}</p>`,
+    bodyHtml: `<p>${Array.from({ length: 920 }, (_, index) => `verifiedword${index}`).join(" ")}</p>`,
     category: "news",
     kicker: "News",
     imageUrl: "/editorial/skyline.jpg",
@@ -83,6 +83,9 @@ describe("editorial publishing guards", () => {
     assert.match(html, /href="\/media"/);
     assert.equal(html.includes('href="/media" target='), false);
     assert.equal(html.includes("alert(1)"), false);
+    const publicOnly = sanitizeArticleHtml('<p><a href="https://news.example/story">External outlet</a> <a href="/media">Jimvio</a></p>', { internalLinksOnly: true });
+    assert.equal(publicOnly.includes("https://news.example"), false);
+    assert.match(publicOnly, /href="\/media"/);
     const hidden = sanitizeArticleHtml(`<p>Visible</p><!--<script>alert(1)</script>--><SCRIPT>alert(2)</SCRIPT><svg><img src=x onerror=alert(3)></svg>`);
     assert.equal(hidden.includes("alert"), false);
     assert.equal(hidden.includes("<svg"), false);
@@ -90,13 +93,14 @@ describe("editorial publishing guards", () => {
     assert.match(hidden, /<p>Visible<\/p>/);
   });
 
-  it("rejects editorial-team bylines and unsafe images", () => {
-    assert.equal(isBannedByline("Jimvio Editorial Team"), true);
-    assert.equal(isBannedByline("By Jimvio Editorial Team"), true);
+  it("accepts the canonical newsroom byline and rejects unsafe images", () => {
+    assert.equal(isBannedByline("Jimvio Editorial Team"), false);
+    assert.equal(isBannedByline("By Jimvio Editorial Team"), false);
     assert.equal(isBannedByline("Staff Writer"), true);
     assert.equal(isBannedByline("Jimvio"), true);
-    assert.equal(publicAuthorName("Jimvio Editorial Team"), null);
-    assert.equal(publicAuthorName("Aline Uwase"), "Aline Uwase");
+    assert.equal(publicAuthorName("Jimvio Editorial Team"), "Jimvio Editorial Team");
+    assert.equal(publicAuthorName(""), "Jimvio Editorial Team");
+    assert.equal(publicAuthorName("Aline Uwase"), "Jimvio Editorial Team");
     assert.equal(isSafeImageUrl("/editorial/skyline.jpg"), true);
     assert.equal(isSafeImageUrl("/editorial/../secret.jpg"), false);
     assert.equal(isSafeImageUrl("https://user:pass@cdn.example/a.jpg"), false);
@@ -125,7 +129,7 @@ describe("editorial publishing guards", () => {
     const shortBody = validateArticle(article({ bodyHtml: "<p>Too short to meet the publication standard.</p>" }), "published");
     assert.ok(shortBody.errors.bodyHtml);
     const missingAuthor = validateArticle(article({ authorName: "" }), "published");
-    assert.ok(missingAuthor.errors.authorName);
+    assert.deepEqual(missingAuthor.errors, {});
     const missingSource = validateArticle(article({ sourceName: "", sourceUrl: "" }), "published");
     assert.ok(missingSource.errors.sourceName);
     assert.ok(missingSource.errors.sourceUrl);
@@ -135,8 +139,8 @@ describe("editorial publishing guards", () => {
     assert.ok(tooSoon.errors.scheduledAt);
     const scheduled = validateArticle(article({ scheduledAt: future }), "scheduled");
     assert.deepEqual(scheduled.errors, {});
-    const banned = validateArticle(article({ authorName: "Jimvio Editorial Team" }), "draft");
-    assert.ok(banned.errors.authorName);
+    const newsroomByline = validateArticle(article({ authorName: "Jimvio Editorial Team" }), "draft");
+    assert.deepEqual(newsroomByline.errors, {});
   });
 
   it("uses design fixtures only outside production when nothing is published", () => {
@@ -260,8 +264,19 @@ describe("editorial publishing guards", () => {
 
   it("authorizes every editorial write on the server", () => {
     const actions = read("lib/editorial/actions.ts");
+    assert.match(actions, /permanentlyDeleteMediaArticle/);
+    assert.match(read("components/editorial/admin/article-table.tsx"), /DeleteArticleButton/);
+    assert.match(read("components/editorial/admin/delete-article-button.tsx"), /Type the full article title to confirm/);
+    const deletionStart = actions.indexOf("export async function permanentlyDeleteMediaArticle");
+    const deletionBody = actions.slice(deletionStart);
+    assert.ok(deletionBody.indexOf("publisherDenial") < deletionBody.indexOf("adminDeleteArticle"));
+    assert.ok(deletionBody.indexOf('existing.article.status === "published"') < deletionBody.indexOf("adminDeleteArticle"));
+    assert.ok(deletionBody.indexOf("confirmationTitle.trim() !== existing.article.title") < deletionBody.indexOf("adminDeleteArticle"));
+    assert.match(read("components/editorial/admin/delete-article-button.tsx"), /disabled=\{!canDelete\}/);
+    assert.ok(deletionBody.indexOf("adminDeleteArticle") < deletionBody.indexOf("media_article_permanently_deleted"));
+    assert.match(read("lib/editorial/admin-store.ts"), /\.delete\(\)/);
     const names = [...actions.matchAll(/export async function (\w+)/g)].map((match) => match[1]);
-    assert.deepEqual(names, ["saveMediaArticle", "removeMediaTag"]);
+    assert.deepEqual(names, ["saveMediaArticle", "removeMediaTag", "permanentlyDeleteMediaArticle"]);
     for (const name of names) {
       const start = actions.indexOf(`export async function ${name}`);
       const body = actions.slice(start, start + 700);
@@ -279,9 +294,10 @@ describe("editorial publishing guards", () => {
     assert.equal(read("app/media/sitemap.ts").includes("EDITORIAL_FIXTURES"), false);
     assert.match(read("app/media/sitemap.ts"), /export const revalidate = 60/);
     const reader = read("lib/editorial/public-store.ts");
+    assert.match(reader, /internalLinksOnly: true/);
     assert.equal(reader.includes("getAdminDB"), false);
     assert.match(reader, /getSupabasePublishableKey/);
-    assert.match(reader, /source_name/);
+    assert.doesNotMatch(reader, /source_name|source_url/);
     assert.match(reader, /updated_at/);
     assert.match(reader, /\.in\("status", \["published", "scheduled"\]\)/);
     const analytics = read("app/media/admin/analytics/page.tsx");
@@ -458,7 +474,7 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(data?.inLanguage, "en");
     assert.deepEqual(data?.publisher, { "@id": "https://www.jimvio.com/#organization" });
     assert.equal("datePublished" in (data ?? {}), false);
-    assert.equal("author" in (data ?? {}), false);
+    assert.deepEqual(data?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
     assert.equal(data?.headline, "A local report");
     assert.equal(
       articleJsonLd(
@@ -486,8 +502,6 @@ describe("editorial lifecycle decisions", () => {
         imageUrl: "/editorial/skyline.jpg",
         slug: "a-local-report",
         authorName: "Jimvio Editorial Team",
-        sourceName: "NASA",
-        sourceUrl: "https://www.nasa.gov/news-release/",
       },
       "https://www.jimvio.com",
     );
@@ -495,8 +509,8 @@ describe("editorial lifecycle decisions", () => {
     assert.equal(news?.datePublished, "2026-10-01T08:00:00.000Z");
     assert.equal("dateModified" in (news ?? {}), false);
     assert.deepEqual(news?.image, ["https://www.jimvio.com/editorial/skyline.jpg"]);
-    assert.equal("author" in (news ?? {}), false);
-    assert.deepEqual(news?.citation, { "@type": "CreativeWork", name: "NASA", url: "https://www.nasa.gov/news-release/" });
+    assert.deepEqual(news?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
+    assert.equal("citation" in (news ?? {}), false);
     const corrected = articleJsonLd(
       {
         fixture: false,
@@ -514,7 +528,7 @@ describe("editorial lifecycle decisions", () => {
     );
     assert.equal(corrected?.datePublished, "2026-10-01T08:00:00.000Z");
     assert.equal(corrected?.dateModified, "2026-10-02T08:00:00.000Z");
-    assert.deepEqual(corrected?.author, { "@type": "Person", name: "Aline Uwase" });
+    assert.deepEqual(corrected?.author, { "@type": "Organization", name: "Jimvio Editorial Team" });
     const recent = articleJsonLd(
       {
         fixture: false,
@@ -596,8 +610,8 @@ describe("editorial lifecycle decisions", () => {
     const articleView = read("components/editorial/article-view.tsx");
     assert.equal(articleView.includes("Updated {"), false);
     assert.match(articleView, /article\.authorName/);
-    assert.match(articleView, /publicSource\(article\)/);
-    assert.match(articleView, /Source:/);
+    assert.doesNotMatch(articleView, /publicSource\(article\)/);
+    assert.doesNotMatch(articleView, /Source:/);
     assert.match(articleView, /Published /);
     const storyImage = read("components/editorial/story-image-asset.tsx");
     assert.match(storyImage, /onError=\{\(\) => setFailed\(true\)\}/);
