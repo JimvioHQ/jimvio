@@ -168,7 +168,7 @@ export function bioSources(platform: string, handle: string | null, url: string 
   return out;
 }
 
-function readProfileBio(platform: string, body: string): string | null {
+export function readProfileBio(platform: string, body: string): string | null {
   const readPath = (value: unknown, path: string[]): unknown => {
     let current: unknown = value;
     for (const key of path) {
