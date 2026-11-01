@@ -18,12 +18,29 @@ type CreatorRow = {
   id: string;
   user_id: string;
   display_name: string | null;
-  niche: string | null;
+  niche: unknown;
   bio: string | null;
   profile_image: string | null;
   total_followers: number | null;
   is_verified: boolean | null;
 };
+
+function normalizeNiche(value: unknown): string | null {
+  if (typeof value === "string") return value.trim() || null;
+  if (Array.isArray(value)) {
+    const labels = value
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+    return labels.length ? [...new Set(labels)].join(" · ") : null;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of ["label", "name", "value"]) {
+      if (typeof record[key] === "string" && record[key].trim()) return record[key].trim();
+    }
+  }
+  return null;
+}
 
 function formatFollowers(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
@@ -46,7 +63,9 @@ export default async function InfluencersBrowsePage({
     .order("total_followers", { ascending: false })
     .limit(120);
 
-  const all = ((data ?? []) as CreatorRow[]).filter((c) => c.display_name?.trim());
+  const all = ((data ?? []) as CreatorRow[])
+    .map((c) => ({ ...c, niche: normalizeNiche(c.niche) }))
+    .filter((c) => c.display_name?.trim());
   const { data: seats } = await (admin as unknown as {
     from: (t: string) => { select: (c: string) => Promise<{ data: { user_id: string; seat_number: number }[] | null }> };
   })
