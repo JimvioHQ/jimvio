@@ -24,11 +24,15 @@ type MyPost = {
   published_at: string | null;
   scheduled_at: string | null;
   created_at: string | null;
+  archived_at?: string | null;
+  hidden_at?: string | null;
   community_id?: string | null;
   communities?: { name?: string | null; slug?: string | null } | { name?: string | null; slug?: string | null }[] | null;
 };
 
 function postStatus(post: MyPost) {
+  if (post.archived_at) return "Archived";
+  if (post.hidden_at) return "Hidden";
   if (!post.is_published && post.scheduled_at) return "Scheduled";
   if (!post.is_published) return "Draft";
   return "Published";
@@ -69,7 +73,9 @@ function collectMedia(post: MyPost): PostMedia[] {
   };
 
   if (Array.isArray(post.images)) post.images.forEach((item) => add(item, "image"));
+  else if (post.images) add(post.images, "image");
   if (Array.isArray(post.attachments)) post.attachments.forEach((item) => add(item));
+  else if (post.attachments) add(post.attachments);
   if (post.video_url) add(post.video_url, "video");
   return media;
 }
@@ -185,7 +191,7 @@ export default function MyPostsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
                       <span className="rounded-full bg-[#FF5A1F]/10 px-2.5 py-1 font-semibold text-[#D6480F]">{status}</span>
-                      <span>{community ? "Community · " + community : "Profile"}</span>
+                      <span>{community ? "Community · " + community : post.community_id ? "Community" : "Profile"}</span>
                       {date ? <time dateTime={date}>{new Date(date).toLocaleDateString()}</time> : null}
                       {post.post_type ? <span className="capitalize">{post.post_type.replace(/[_-]/g, " ")}</span> : null}
                     </div>
