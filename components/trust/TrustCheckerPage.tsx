@@ -340,7 +340,7 @@ export function TrustCheckerPage() {
           </div>
         </section>
 
-        <div ref={resultRef} className="scroll-mt-24" aria-live="polite">
+        <div id="trust-checker-results" ref={resultRef} className="scroll-mt-24" aria-live="polite">
           {report ? <TrustReportView report={report} onRunAnother={resetScan} /> : null}
         </div>
 
