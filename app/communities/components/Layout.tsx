@@ -40,6 +40,7 @@ function usePageTitle(pathname: string): string {
     else if (pathname.startsWith("/communities/missions")) staticTitle = "Missions";
     else if (pathname.startsWith("/communities/courses")) staticTitle = "Courses";
     else if (pathname.startsWith("/communities/events")) staticTitle = "Events";
+    else if (pathname.startsWith("/communities/my-posts")) staticTitle = "My Posts";
     else if (pathname.startsWith("/communities/my-communities")) staticTitle = "My Communities";
     else if (pathname.startsWith("/communities/u/")) {
         const parts = pathname.split("/");
