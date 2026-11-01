@@ -3,6 +3,10 @@ import { StorageNotice } from "@/components/editorial/admin/notice";
 import { retryIngestSource, runIngestNow } from "@/lib/editorial/ingest/actions";
 import { loadIngestDesk } from "@/lib/editorial/ingest/store";
 
+// Admin ingestion can research external sources and call the editorial writer.
+// Give this server-rendered route the same bounded execution window as the cron route.
+export const maxDuration = 180;
+
 const NOTICES: Record<string, string> = {
   storage: "Ingestion storage is not ready. No external items were written.",
   stopped: "Emergency stop is on. The cycle did not fetch sources.",

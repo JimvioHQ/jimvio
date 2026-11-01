@@ -141,7 +141,10 @@ async function syncSource(
   const paceClosed = context.settings.mode === "auto" && slots === 0 && fresh.length > 0;
   const research = new Map<string, ItemResearch>();
   const deadline = Date.now() + 45_000;
-  const budget = fresh.slice(0, paceClosed ? 0 : Math.min(2, slots));
+  // Research one candidate per source per cycle. Feed polling remains broad, while
+  // bounded research prevents sequential source-page, corroboration and AI calls
+  // from exhausting the serverless function's execution window.
+  const budget = fresh.slice(0, paceClosed ? 0 : Math.min(1, slots));
   let writerUnavailable = false;
   for (const item of budget) {
     if (Date.now() > deadline) break;
