@@ -566,7 +566,7 @@ describe("editorial research", () => {
     const view = readFileSync(join(root, "components/editorial/article-view.tsx"), "utf8");
     const css = readFileSync(join(root, "components/editorial/editorial.module.css"), "utf8");
     const cards = readFileSync(join(root, "components/editorial/presentation.tsx"), "utf8");
-    assert.match(view, /Source:/);
+    assert.doesNotMatch(view, /Source:/);
     assert.match(view, /splitHeroCaption/);
     assert.match(view, /sm:text-\[3rem\]/);
     assert.match(view, /max-w-\[72ch\]/);
