@@ -22,7 +22,7 @@ type Draft = {
 
 const EMPTY: Draft = {
   kind: "other", title: "", description: "", mediaUrl: "", thumbnailUrl: "",
-  externalUrl: "", brandName: "", isFeatured: false, isPublic: true,
+  externalUrl: "", brandName: "", isFeatured: false, isPublic: false,
 };
 
 const KINDS: { value: IdentityPortfolioKind; label: string }[] = [
