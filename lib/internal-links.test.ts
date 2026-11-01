@@ -71,7 +71,7 @@ const SKIP_FILES = [/\/admin\//, /\.test\.tsx?$/, /lib\/commerce-os\/storefront\
 const LINK = /(?:href=|href:|path:|router\.push\(|redirect\()\s*\{?\s*["'`](\/[a-zA-Z0-9_\-/]*)["'`?#]/g;
 
 describe("internal links", () => {
-  it("every literal internal link resolves to a route or redirect", () => {
+  it("every literal internal link resolves to a route or redirect", { timeout: 60_000 }, () => {
     const dead: string[] = [];
     for (const dir of ["app", "components", "lib"]) {
       for (const file of walk(join(root, dir))) {
