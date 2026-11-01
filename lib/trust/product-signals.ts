@@ -22,7 +22,7 @@ export function claimFindings(text: string): Finding[] {
     if (!m) continue;
     const prefix = sample.slice(Math.max(0, m.index - 24), m.index);
     // Do not flag protective advice such as "never share your seed phrase".
-    if (/(?:never|don't|do not|dont|can't|cannot)\\s+(?:ever\\s+)?$/i.test(prefix)) continue;
+    if (/(?:never|don't|do not|dont|can't|cannot)\s+(?:ever\s+)?$/i.test(prefix)) continue;
     f.push({ tone: label.includes("recovery phrase") ? "bad" : "warn", title: label, detail: `“…${sample.slice(Math.max(0, m.index - 40), m.index + m[0].length + 40).replace(/\s+/g, " ").trim()}…”`, source: "Claim check" });
   }
   if (/\b(plr|private label rights|master resell rights|mrr)\b/i.test(sample)) {
