@@ -10,7 +10,7 @@ import { MEDIA_CATEGORIES, MEDIA_SECTIONS, type AdminArticle, type ArticleInput,
 import { MAX_IMAGE_BYTES } from "@/lib/editorial/images";
 import { sanitizeArticleHtml } from "@/lib/editorial/sanitize";
 import { statusLabel } from "@/lib/editorial/status";
-import { categoryLabel } from "@/lib/editorial/validate";
+import { categoryLabel, EDITORIAL_BYLINE } from "@/lib/editorial/validate";
 
 const TABS = ["Content", "SEO", "Settings", "Preview"] as const;
 type Tab = (typeof TABS)[number];
@@ -60,7 +60,7 @@ export function ArticleEditor({
   const [tags, setTags] = useState(article?.tags.join(", ") ?? "");
   const [seoTitle, setSeoTitle] = useState(article?.seoTitle ?? "");
   const [seoDescription, setSeoDescription] = useState(article?.seoDescription ?? "");
-  const [authorName, setAuthorName] = useState(article?.authorName ?? suggestedAuthor ?? "");
+  const [authorName, setAuthorName] = useState(EDITORIAL_BYLINE);
   const [scheduledAt, setScheduledAt] = useState(article?.scheduledAt ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
   const [sourceName, setSourceName] = useState(article?.sourceName ?? "");
@@ -352,12 +352,14 @@ export function ArticleEditor({
             <input value={kicker} onChange={(event) => setKicker(event.target.value)} placeholder="Not shown on the public site" className={fieldClass} />
             <span className="mt-1 block text-xs font-medium text-[#667085]">Public cards use the category name.</span>
           </label>
-          <label className="text-sm font-semibold">
-            Internal attribution
-            <input value={authorName} onChange={(event) => setAuthorName(event.target.value)} className={fieldClass} />
-            <span className="mt-1 block text-xs font-medium text-[#667085]">Not shown on the public site.</span>
-            {fieldErrors.authorName ? <span className="mt-1 block text-xs font-medium text-[#b42318]">{fieldErrors.authorName}</span> : null}
-          </label>
+          <div className="text-sm font-semibold">
+            Editorial byline
+            <div className="mt-1 flex h-11 items-center gap-2 rounded-lg border border-[#e6e8ee] bg-[#f9fafb] px-3 text-sm font-medium text-[#344054]">
+              <img src="/jimvio-logo-mark.png" alt="" className="h-6 w-6 rounded-full" />
+              {EDITORIAL_BYLINE}
+            </div>
+            <span className="mt-1 block text-xs font-medium text-[#667085]">The same newsroom byline is used on every Jimvio Media story.</span>
+          </div>
           <label className="text-sm font-semibold sm:col-span-2">
             Address
             <input
