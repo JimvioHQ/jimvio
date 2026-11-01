@@ -174,7 +174,7 @@ export function toSocialAccount(row: SocialAccount): IdentitySocialAccount {
     avgViews: Number(row.avg_views ?? 0),
     engagementRate: Number(row.engagement_rate ?? 0),
     isVerified: Boolean(row.is_verified),
-    isPublic: row.is_public !== false,
+    isPublic: row.is_public === true,
     verificationMethod: row.verification_method ?? null,
     verifyStatus: (row.verify_status as IdentitySocialAccount["verifyStatus"]) ?? (row.is_verified ? "verified" : "unverified"),
   };
