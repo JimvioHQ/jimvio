@@ -1,5 +1,5 @@
-import type { CatalogSource } from "@/lib/editorial/ingest/types";
 import type { MediaCategory } from "@/lib/editorial/types";
+import type { CatalogSource } from "@/lib/editorial/ingest/types";
 
 const CHECKED = "2026-10-27T00:00:00.000Z";
 
