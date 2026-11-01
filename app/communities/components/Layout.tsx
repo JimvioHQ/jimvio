@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+    FileText,
     Menu,
     Users,
 } from "lucide-react";
@@ -32,6 +33,7 @@ function usePageTitle(pathname: string): string {
     if (pathname === "/communities") staticTitle = "Feed";
     else if (pathname.startsWith("/communities/messages")) staticTitle = "Messages";
     else if (pathname.startsWith("/communities/bookmarks")) staticTitle = "Bookmarks";
+    else if (pathname.startsWith("/communities/my-posts")) staticTitle = "My Posts";
     else if (pathname.startsWith("/communities/live")) staticTitle = "Live";
     else if (pathname.startsWith("/communities/channels")) staticTitle = "Spaces";
     else if (pathname.startsWith("/communities/spaces")) staticTitle = "Spaces";
@@ -258,7 +260,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         isAuthenticated
                             ? [
                                   {
-                                      label: myCommunityHome?.label ?? "My Community",
+                                      label: "My Posts", href: "/communities/my-posts", icon: FileText }, { label: myCommunityHome?.label ?? "My Community",
                                       href: myCommunityHome?.href ?? profileHref,
                                       icon: Users,
                                   },
