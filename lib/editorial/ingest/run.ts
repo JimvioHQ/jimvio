@@ -5,6 +5,7 @@ import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
 import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
 import { illustrativeImage } from "@/lib/editorial/ingest/illustrative";
+import { searchUnsplashPhotos } from "@/lib/community/photo-content/unsplash";
 import { writeGroundedReport } from "@/lib/editorial/ingest/report";
 import { loadCycleContext, lookupProfileNames, markJob, markSourceHealth, persistPlannedItem, startJob } from "@/lib/editorial/ingest/store";
 import type { CycleCounts, FeedItem, SourceRecord } from "@/lib/editorial/ingest/types";
@@ -204,18 +205,57 @@ async function syncSource(
 async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch, otherReports: { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[]): Promise<ItemResearch> {
   const loaded = await fetchArticlePage(item.url, fetchImpl);
   if (!loaded.ok) return { brief: null, image: null, reason: "thin_source" };
-  const imageTask = selectOfficialImage(loaded.page, fetchImpl).then(async (official) => {
-    if (official.status === "verified" || source.imageRights === "none" || !item.imageUrl) return official;
-    const bytes = await fetchImage(item.imageUrl, fetchImpl);
-    return evaluateImage({
-      rights: source.imageRights,
-      url: item.imageUrl,
-      bytes,
-      attribution: source.name,
-      sourceName: source.name,
-      license: source.imageRights,
-    });
-  });
+  const imageTask = (async () => {
+    const official = await selectOfficialImage(loaded.page, fetchImpl);
+    if (official.status === "verified") return official;
+
+    // A publisher credit or missing watermark is not a reuse licence. Search a
+    // licensed provider using the actual story subject, then validate the bytes.
+    const query = item.title
+      .replace(/[“”"'’]/g, "")
+      .replace(/\b(live|latest|update|breaking|watch)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 100);
+    try {
+      const candidates = await searchUnsplashPhotos({ query, perPage: 8 });
+      for (const candidate of candidates.slice(0, 8)) {
+        const bytes = await fetchImage(candidate.sourceUrl, fetchImpl);
+        const checked = evaluateImage({
+          rights: "licensed",
+          url: candidate.sourceUrl,
+          bytes,
+          attribution: candidate.photographer ? `${candidate.photographer} (Unsplash)` : "Unsplash",
+          sourceName: "Unsplash",
+          license: candidate.license,
+        });
+        if (checked.status === "verified") {
+          return {
+            ...checked,
+            alt: `Illustrative photograph related to: ${item.title}`.slice(0, 180),
+            caption: `Illustrative photo by ${candidate.photographer || "Unsplash contributor"} via Unsplash. Not a depiction of the specific event. ${candidate.attributionUrl} · License: ${candidate.licenseUrl}`.slice(0, 300),
+            note: `Topic-matched licensed Unsplash image. Photographer: ${candidate.photographer || "not supplied"}.`,
+          };
+        }
+      }
+    } catch {
+      // Provider outages must not block reporting; use the curated licensed set.
+    }
+
+    if (source.imageRights !== "none" && item.imageUrl) {
+      const bytes = await fetchImage(item.imageUrl, fetchImpl);
+      const supplied = evaluateImage({
+        rights: source.imageRights,
+        url: item.imageUrl,
+        bytes,
+        attribution: source.name,
+        sourceName: source.name,
+        license: source.imageRights,
+      });
+      if (supplied.status === "verified" || supplied.status === "fallback") return supplied;
+    }
+    return illustrativeImage(source.categories[0], item.title);
+  })();
   const primaryPublisher = publisherKey(item.url);
   const related = otherReports.filter((report) => {
     if (!report.url || !report.title || report.sourceName === source.name) return false;
