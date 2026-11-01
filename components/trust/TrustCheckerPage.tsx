@@ -125,6 +125,10 @@ export function TrustCheckerPage() {
   const pickFile = useCallback((f: File | null) => {
     setError(null);
     if (!f) return setFile(null);
+    if (f.size === 0) {
+      setError("This file is empty. Choose a file that contains data.");
+      return;
+    }
     if (f.size > MAX_BYTES) {
       setError("Files can be up to 4 MB.");
       return;
