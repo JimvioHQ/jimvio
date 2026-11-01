@@ -50,7 +50,7 @@ function article(overrides: Partial<ArticleInput> = {}): ArticleInput {
   return {
     title: "A local report from Kigali",
     excerpt: "This excerpt is long enough to publish.",
-    bodyHtml: "<p>This body is long enough to publish today.</p>",
+    bodyHtml: `<p>${Array.from({ length: 300 }, (_, index) => `verifiedword${index}`).join(" ")}</p>`,
     category: "news",
     kicker: "News",
     imageUrl: "/editorial/skyline.jpg",
@@ -60,6 +60,8 @@ function article(overrides: Partial<ArticleInput> = {}): ArticleInput {
     seoTitle: "",
     seoDescription: "",
     authorName: "Aline Uwase",
+    sourceName: "Reuters",
+    sourceUrl: "https://www.reuters.com/world/story",
     scheduledAt: "",
     ...overrides,
   };
@@ -120,6 +122,15 @@ describe("editorial publishing guards", () => {
     assert.deepEqual(ready.errors, {});
     const missingImage = validateArticle(article({ imageUrl: "" }), "published");
     assert.ok(missingImage.errors.imageUrl);
+    const shortBody = validateArticle(article({ bodyHtml: "<p>Too short to meet the publication standard.</p>" }), "published");
+    assert.ok(shortBody.errors.bodyHtml);
+    const missingAuthor = validateArticle(article({ authorName: "" }), "published");
+    assert.ok(missingAuthor.errors.authorName);
+    const missingSource = validateArticle(article({ sourceName: "", sourceUrl: "" }), "published");
+    assert.ok(missingSource.errors.sourceName);
+    assert.ok(missingSource.errors.sourceUrl);
+    const incompleteDraft = validateArticle(article({ authorName: "", sourceName: "", sourceUrl: "", bodyHtml: "<p>Short draft.</p>" }), "draft");
+    assert.deepEqual(incompleteDraft.errors, {});
     const tooSoon = validateArticle(article({ scheduledAt: new Date().toISOString() }), "scheduled");
     assert.ok(tooSoon.errors.scheduledAt);
     const scheduled = validateArticle(article({ scheduledAt: future }), "scheduled");
@@ -399,8 +410,8 @@ describe("editorial lifecycle decisions", () => {
     if (!created.ok) return;
     assert.equal(created.write.idempotencyKey, null);
     assert.equal(created.write.slugMode, "generated");
-    assert.equal(created.write.sourceName, null);
-    assert.equal(created.write.sourceUrl, null);
+    assert.equal(created.write.sourceName, "Reuters");
+    assert.equal(created.write.sourceUrl, "https://www.reuters.com/world/story");
     assert.equal(created.write.correctionNote, null);
   });
 
