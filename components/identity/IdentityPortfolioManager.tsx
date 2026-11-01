@@ -41,7 +41,7 @@ function toDraft(item: IdentityPortfolioItem): Draft {
     description: item.description ?? "", mediaUrl: item.mediaUrl ?? "",
     thumbnailUrl: item.thumbnailUrl ?? "", externalUrl: item.externalUrl ?? "",
     brandName: item.brandName ?? "", isFeatured: item.isFeatured, isPublic: item.isPublic,
-    mediaAccess: item.mediaUrl || item.thumbnailUrl ? "public" : "unknown",
+    mediaAccess: /\/(private|authenticated)\//i.test(item.mediaUrl ?? "") || /\/(private|authenticated)\//i.test(item.thumbnailUrl ?? "") ? "private" : item.mediaUrl || item.thumbnailUrl ? "public" : "unknown",
   };
 }
 
@@ -257,6 +257,12 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
             <div className="flex flex-wrap gap-4 text-xs text-[#374151]">
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isPublic} onChange={(e) => setDraft({ ...draft, isPublic: e.target.checked })} /> Show on public profile</label>
               <label className="inline-flex items-center gap-2"><input type="checkbox" checked={draft.isFeatured} onChange={(e) => setDraft({ ...draft, isFeatured: e.target.checked })} /> Feature this item</label>
+              {draft.mediaUrl && draft.mediaAccess === "private" && draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#B45309]">This media is private. Re-upload it after enabling public visibility before publishing.</p>
+              ) : null}
+              {draft.mediaUrl && draft.mediaAccess === "public" && !draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#6B7280]">The item is hidden from your profile, but this previously public media URL may still be accessible directly. Re-upload while hidden to store it privately.</p>
+              ) : null}
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setDraft(null)} className="rounded-full border border-[#E5E7EB] px-4 py-2 text-xs font-semibold text-[#374151]">Cancel</button>
