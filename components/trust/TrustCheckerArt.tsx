@@ -4,9 +4,9 @@ import { BarChart3, Box, ImageIcon, Link2, Play, Zap } from "lucide-react";
 export function TrustCheckerArt() {
   const tile = "absolute grid place-items-center rounded-2xl bg-white shadow-[0_12px_30px_rgba(255,90,31,0.18)]";
   return (
-    <div className="relative h-[260px] w-full max-w-[460px]" aria-hidden="true">
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(255,138,76,0.45),transparent_62%)]" />
-      <svg viewBox="0 0 200 220" className="absolute left-1/2 top-1/2 h-[230px] w-[210px] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_24px_40px_rgba(234,88,12,0.35)]">
+    <div className="relative h-[300px] w-full max-w-[520px] xl:h-[330px]" aria-hidden="true">
+      <div className="absolute inset-[3%] rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(255,138,76,0.48),transparent_62%)] after:absolute after:inset-[8%] after:rounded-full after:border after:border-white/60 before:absolute before:inset-[18%] before:rounded-full before:border before:border-[#FFB38E]/60" />
+      <svg viewBox="0 0 200 220" className="absolute left-1/2 top-1/2 h-[260px] w-[236px] -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_26px_44px_rgba(234,88,12,0.38)] xl:h-[280px] xl:w-[254px]">
         <defs>
           <linearGradient id="tc-shield" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#FF8A4C" />
