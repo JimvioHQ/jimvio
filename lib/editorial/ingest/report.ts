@@ -28,7 +28,6 @@ export type ReportResult =
   | { ok: false; reason: "thin_source" | "writer_unavailable" | "quality_gate"; issues: string[] };
 
 const MIN_PAGE_WORDS = 300;
-const RICH_PAGE_WORDS = 600;
 
 function digitsOutside(generated: string, corpus: string): boolean {
   const text = generated.replace(/<[^>]+>/g, " ");
