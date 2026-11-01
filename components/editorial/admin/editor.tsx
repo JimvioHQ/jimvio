@@ -34,7 +34,6 @@ function toLocalInput(iso: string | null) {
 
 export function ArticleEditor({
   article,
-  suggestedAuthor,
   audit,
 }: {
   article: AdminArticle | null;
