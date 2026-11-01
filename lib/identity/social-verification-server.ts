@@ -212,13 +212,15 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
     : "The code was not found in the bio.";
   await db()
     .from("jip_social_accounts")
-    .update({ verify_status: "failed", verify_checked_at: now(), verify_note: note })
+    // A temporarily unreadable profile remains pending; only a readable bio
+    // that lacks the complete token is recorded as a failed attempt.
+    .update({ verify_status: unreachable ? "code_issued" : "failed", verify_checked_at: now(), verify_note: note })
     .eq("id", id);
   return {
     ok: false,
     status: 409,
     error: unreachable
-      ? "Verification failed: Jimvio couldn't open your profile. Make sure the account is public and the handle is right, then press Verify again."
+      ? "Jimvio couldn't confirm your public profile right now. Make sure the account is public and the handle is correct, then retry. Your account remains unverified."
       : "Verification failed: the code isn't in your bio. Paste it exactly as shown, save your bio, then press Verify again.",
     unreachable,
   } as VerifyResult;
