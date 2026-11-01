@@ -50,18 +50,46 @@ export function loadAllowlist(root) {
 }
 
 export async function fetchRemoteMigrations({ token, ref }) {
-  const response = await fetch(
-    `https://api.supabase.com/v1/projects/${ref}/database/migrations`,
-    { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
-  );
-  if (!response.ok) {
-    throw new Error(`Management API migrations failed: HTTP ${response.status}`);
+  const url = `https://api.supabase.com/v1/projects/${ref}/database/migrations`;
+  const maxAttempts = 5;
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (response.ok) {
+        const remote = await response.json();
+        return (Array.isArray(remote) ? remote : remote.migrations || [])
+          .map((row) => ({
+            version: String(row.version || ""),
+            name: String(row.name || ""),
+          }))
+          .filter((row) => row.version);
+      }
+
+      const error = new Error(`Management API migrations failed: HTTP ${response.status}`);
+      // Retry transient gateway, rate-limit, and server errors only.
+      if (response.status < 500 && response.status !== 429) throw error;
+      lastError = error;
+    } catch (error) {
+      lastError = error;
+      if (error instanceof Error && /^Management API migrations failed: HTTP 4/.test(error.message)) {
+        throw error;
+      }
+    }
+
+    if (attempt < maxAttempts) {
+      const delayMs = Math.min(1_000 * 2 ** (attempt - 1), 8_000);
+      console.warn(`Supabase Management API request failed (attempt ${attempt}/${maxAttempts}); retrying in ${delayMs}ms.`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
-  const remote = await response.json();
-  return (Array.isArray(remote) ? remote : remote.migrations || [])
-    .map((row) => ({
-      version: String(row.version || ""),
-      name: String(row.name || ""),
-    }))
-    .filter((row) => row.version);
+
+  throw new Error(
+    `Supabase Management API migrations unavailable after ${maxAttempts} attempts: ${lastError instanceof Error ? lastError.message : "unknown error"}`
+  );
 }
