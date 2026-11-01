@@ -34,8 +34,8 @@ export function IdentityPortfolio({
 }
 
 function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
-  const image = item.thumbnailUrl?.trim() || (item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
-  const isVideo = item.kind === "video";
+  const isVideo = item.kind === "video" || Boolean(item.mediaUrl && (/\\/video\\/upload\\//i.test(item.mediaUrl) || /\\.(mp4|m4v|mov|webm)(?:[?#]|$)/i.test(item.mediaUrl)));
+  const image = item.thumbnailUrl?.trim() || (!isVideo && item.kind === "image" ? item.mediaUrl?.trim() : null) || null;
   const content = (
     <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-2xl border border-black/[0.06] bg-[#F1EFEA]">
       {image ? (
@@ -45,6 +45,8 @@ function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
           alt={item.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
         />
+      ) : isVideo && item.mediaUrl ? (
+        <video src={item.mediaUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[#C7C1B4]">
           <Briefcase className="h-6 w-6" />
