@@ -2,7 +2,6 @@
 
 import {
   AlertTriangle,
-  ArrowLeft,
   BarChart3,
   Box,
   CheckCircle2,
