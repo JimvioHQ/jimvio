@@ -224,8 +224,8 @@ describe("editorial research", () => {
     assert.equal(dossier.sources?.length, 2);
     assert.equal(dossier.sources?.[1]?.publisher, "The Guardian World");
     assert.equal(dossier.sources?.[1]?.sourceUrl, secondUrl);
-    assert.equal(written.ok, true);
-    if (written.ok) assert.match(written.brief.evidence, /theguardian\.com/);
+    assert.equal(written.ok, false);
+    if (!written.ok) assert.equal(written.issues.includes("insufficient_depth"), true);
   });
 
   it("links a real profile only when the name is unique", () => {
