@@ -133,7 +133,7 @@ export interface JipReviewRow {
   verification_source: string | null;
   booking_id: string | null;
   campaign_id: string | null;
-  is_public: boolean;
+  is_public?: boolean;
   created_at: string;
   updated_at: string;
 }
