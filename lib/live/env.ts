@@ -140,8 +140,8 @@ export function assertLiveStudioInfra(): void {
 
 /**
  * Boot-time validation.
- * - Always logs a structured report.
- * - Throws when LIVE_STUDIO_REQUIRE_INFRA=true and anything is missing.
+ * Optional Live Studio infrastructure is a warning, not an application-wide error.
+ * Required infrastructure remains fail-closed when LIVE_STUDIO_REQUIRE_INFRA=true.
  */
 export function validateLiveStudioEnvAtBoot(): LiveStudioEnvReport {
   const report = getLiveStudioEnvReport();
@@ -154,19 +154,27 @@ export function validateLiveStudioEnvAtBoot(): LiveStudioEnvReport {
         present: report.present,
       })
     );
-  } else {
+  } else if (report.requireInfra) {
     console.error(
       JSON.stringify({
         level: "error",
         scope: "live_studio",
-        event: "env_missing",
+        event: "env_missing_required",
         missing: report.missing,
-        requireInfra: report.requireInfra,
+        requireInfra: true,
       })
     );
-    if (report.requireInfra) {
-      throw new LiveStudioEnvError(report.missing);
-    }
+    throw new LiveStudioEnvError(report.missing);
+  } else {
+    console.warn(
+      JSON.stringify({
+        level: "warning",
+        scope: "live_studio",
+        event: "env_incomplete_optional",
+        missing: report.missing,
+        requireInfra: false,
+      })
+    );
   }
   return report;
 }
