@@ -27,7 +27,7 @@ export type ReportResult =
   | { ok: true; brief: OriginalBrief }
   | { ok: false; reason: "thin_source" | "writer_unavailable" | "quality_gate"; issues: string[] };
 
-const MIN_PAGE_WORDS = 300;
+const MIN_PAGE_WORDS = 180;
 
 function digitsOutside(generated: string, corpus: string): boolean {
   const text = generated.replace(/<[^>]+>/g, " ");
@@ -239,8 +239,8 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   if (unsupportedQuote(generated, corpus)) issues.push("unsupported_quote");
   const outputWords = wordCount(bodyHtml.replace(/<[^>]+>/g, " "));
   const headed = draft.sections.filter((section) => section.heading).length;
-  if (outputWords < 900 || headed < 3) issues.push("insufficient_depth");
-  if (outputWords > 1500) issues.push("overlong");
+  if (outputWords < 650 || headed < 3) issues.push("insufficient_depth");
+  if (outputWords > 1200) issues.push("overlong");
   const sentences = plain.split(/(?<=[.!?])\s+/);
   const seen = new Set<string>();
   for (const sentence of sentences) {
@@ -286,8 +286,8 @@ const INSTRUCTIONS = [
   "Do not describe feeds, metadata, extraction, confidence, or how the story was assembled.",
   "Do not start the headline with the feed name and do not write the words public notice.",
   "Do not repeat the source headline.",
-  "Write a substantial, independently researched article of 900–1,500 words with at least four informative sections. Each section must add distinct, source-supported context, verified detail, implications, and clearly identified uncertainty.",
-  "If the dossier does not contain enough verified evidence for a substantive 900-word report, do not pad or invent; allow the story to fail publication quality checks.",
+  "Write a substantial, independently researched article of 650–1,200 words with at least three informative sections. Each section must add distinct, source-supported context, verified detail, implications, and clearly identified uncertainty.",
+  "If the dossier does not contain enough verified evidence for a substantive 650-word report, do not pad or invent; allow the story to fail publication quality checks.",
   "Use the specific people, dates, places, numbers, and program names from the dossier. Do not replace them with general claims about importance, innovation, or the future.",
   "When people lists two or more names, the body must include at least two of those exact full names.",
   "links may only use an href copied from allowedUrls. The phrase must appear exactly in the article.",
