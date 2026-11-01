@@ -260,6 +260,9 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
               {draft.mediaUrl && draft.mediaAccess === "private" && draft.isPublic ? (
                 <p className="w-full text-[11px] text-[#B45309]">This media is private. Re-upload it after enabling public visibility before publishing.</p>
               ) : null}
+              {draft.mediaUrl && draft.mediaAccess === "private" && !draft.isPublic ? (
+                <p className="w-full text-[11px] text-[#6B7280]">This upload is stored privately. If you later publish this item, enable public visibility and upload the media again.</p>
+              ) : null}
               {draft.mediaUrl && draft.mediaAccess === "public" && !draft.isPublic ? (
                 <p className="w-full text-[11px] text-[#6B7280]">The item is hidden from your profile, but this previously public media URL may still be accessible directly. Re-upload while hidden to store it privately.</p>
               ) : null}
