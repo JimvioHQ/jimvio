@@ -120,9 +120,13 @@ export function TrustCheckerPage() {
   const showFile = mode !== "url";
   const validUrl = (() => {
     if (!showUrl || !url.trim()) return false;
+    const value = url.trim();
+    // Match the server normalizer: allow bare domains, but never non-web schemes.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value)) return false;
     try {
-      const parsed = new URL(url.trim());
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
+      const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+      return (parsed.protocol === "http:" || parsed.protocol === "https:")
+        && !parsed.username && !parsed.password && ["", "80", "443"].includes(parsed.port);
     } catch {
       return false;
     }
@@ -132,7 +136,7 @@ export function TrustCheckerPage() {
   async function run() {
     if (!canRun || busy) return;
     if (showUrl && url.trim() && !validUrl) {
-      setError("Enter a complete http:// or https:// URL.");
+      setError("Enter a valid website URL, such as example.com or https://example.com.");
       return;
     }
     setBusy(true);
