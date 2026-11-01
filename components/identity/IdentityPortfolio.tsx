@@ -60,9 +60,9 @@ function PortfolioTile({ item }: { item: IdentityPortfolioItem }) {
           <Briefcase className="h-6 w-6" />
         </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 transition-opacity group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 transition-opacity group-hover:opacity-100" />
       {isVideo && (
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90">
             <Play className="h-4 w-4 fill-current text-[#161512]" />
           </div>
