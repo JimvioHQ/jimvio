@@ -112,6 +112,7 @@ export function OverlayCard({
           {card.title}
         </h3>
         {card.excerpt ? <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#4b5568]">{card.excerpt}</p> : null}
+        <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold text-[#c94308]">Read story <span aria-hidden="true">→</span></span>
       </Link>
     );
   }
