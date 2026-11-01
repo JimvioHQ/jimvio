@@ -133,7 +133,7 @@ async function loadArticle(slug: string): Promise<PublicArticle | null> {
     if (error || !data) return null;
     const mapped = mapRow(data as Row, String((data as Row).body_html ?? ""));
     if (!mapped) return null;
-    return { ...mapped, bodyHtml: sanitizeArticleHtml(mapped.bodyHtml) };
+    return { ...mapped, bodyHtml: sanitizeArticleHtml(mapped.bodyHtml, { internalLinksOnly: true }) };
   } catch {
     return null;
   }
