@@ -135,10 +135,26 @@ export function TrustCheckerPage() {
 
   const showUrl = mode !== "file";
   const showFile = mode !== "url";
-  const canRun = (showUrl && url.trim().length > 3) || (showFile && file != null);
+  const validUrl = (() => {
+    if (!showUrl || !url.trim()) return false;
+    const value = url.trim();
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value)) return false;
+    try {
+      const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+      return (parsed.protocol === "http:" || parsed.protocol === "https:")
+        && !parsed.username && !parsed.password && ["", "80", "443"].includes(parsed.port);
+    } catch {
+      return false;
+    }
+  })();
+  const canRun = (showUrl && validUrl) || (showFile && file !== null);
 
   async function run() {
     if (!canRun || busy) return;
+    if (showUrl && url.trim() && !validUrl) {
+      setError("Enter a valid website URL, such as example.com or https://example.com.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setReport(null);
@@ -149,6 +165,9 @@ export function TrustCheckerPage() {
       const res = await fetch("/api/trust-checker/scan", { method: "POST", body: form });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "The check could not finish. Try again.");
+      if (!json.report || !Array.isArray(json.report.checkers) || !json.report.overall) {
+        throw new Error("The scan returned an incomplete report. No safety verdict was assumed.");
+      }
       setReport(json.report as ScanReport);
       setHistoryRefresh((value) => value + 1);
     } catch (e) {
