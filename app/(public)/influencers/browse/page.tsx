@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { BadgeCheck, Sparkles, UserPlus, Users } from "lucide-react";
+import { BadgeCheck, Sparkles } from "lucide-react";
 import { getAdminDB } from "@/services/db";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { constructMetadata } from "@/lib/seo";
@@ -92,16 +92,6 @@ export default async function InfluencersBrowsePage({
             counts come from each creator&apos;s own profile.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-text-primary)]">
-              <Users className="h-4 w-4 text-[var(--color-text-muted)]" />
-              {all.length.toLocaleString("en-US")} {all.length === 1 ? "creator" : "creators"}
-            </span>
-            <Link
-              href="/activate/influencer"
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#e04800]"
-            >
-              <UserPlus className="h-4 w-4" /> Join as a creator
-            </Link>
             <Link
               href="/founding-creators"
               className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-4 py-2 text-[13px] font-semibold text-amber-800 hover:bg-amber-100"
@@ -147,12 +137,7 @@ export default async function InfluencersBrowsePage({
             <p className="mx-auto mt-2 max-w-md text-[14px] text-[var(--color-text-secondary)]">
               Be one of the first creators on Jimvio — set up your profile and start working with brands.
             </p>
-            <Link
-              href="/activate/influencer"
-              className="mt-6 inline-flex items-center gap-1.5 rounded-full bg-[#fd5000] px-5 py-2.5 text-[13px] font-semibold text-white hover:bg-[#e04800]"
-            >
-              <UserPlus className="h-4 w-4" /> Join as a creator
-            </Link>
+
           </div>
         ) : (
           <ul className="grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
