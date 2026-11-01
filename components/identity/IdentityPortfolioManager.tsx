@@ -18,11 +18,12 @@ type Draft = {
   brandName: string;
   isFeatured: boolean;
   isPublic: boolean;
+  mediaAccess: "public" | "private" | "unknown";
 };
 
 const EMPTY: Draft = {
   kind: "other", title: "", description: "", mediaUrl: "", thumbnailUrl: "",
-  externalUrl: "", brandName: "", isFeatured: false, isPublic: false,
+  externalUrl: "", brandName: "", isFeatured: false, isPublic: false, mediaAccess: "unknown",
 };
 
 const KINDS: { value: IdentityPortfolioKind; label: string }[] = [
@@ -40,6 +41,7 @@ function toDraft(item: IdentityPortfolioItem): Draft {
     description: item.description ?? "", mediaUrl: item.mediaUrl ?? "",
     thumbnailUrl: item.thumbnailUrl ?? "", externalUrl: item.externalUrl ?? "",
     brandName: item.brandName ?? "", isFeatured: item.isFeatured, isPublic: item.isPublic,
+    mediaAccess: item.mediaUrl || item.thumbnailUrl ? "public" : "unknown",
   };
 }
 
@@ -75,7 +77,8 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
       toast.error("Portfolio media must be 50 MB or smaller.");
       return;
     }
-    const result = await upload(file, isVideo ? "video" : "image", "public");
+    const accessType = draft?.isPublic ? "public" : "private";
+    const result = await upload(file, isVideo ? "video" : "image", accessType);
     if ("error" in result) {
       toast.error(result.error);
       return;
@@ -85,6 +88,7 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
       kind: current.kind === "image" || current.kind === "video" ? (isVideo ? "video" : "image") : current.kind,
       mediaUrl: result.url,
       thumbnailUrl: isImage ? result.url : current.thumbnailUrl,
+      mediaAccess: accessType,
     } : current);
     toast.success("Portfolio media uploaded.");
   }
@@ -94,13 +98,18 @@ export function IdentityPortfolioManager({ initialItems }: { initialItems: Ident
       toast.error("Add a title for this portfolio item.");
       return;
     }
+    if (draft.isPublic && draft.mediaAccess === "private" && draft.mediaUrl) {
+      toast.error("This media was uploaded privately. Re-upload it after enabling public visibility before publishing.");
+      return;
+    }
+    const { mediaAccess: _mediaAccess, ...draftPayload } = draft;
     setBusy(true);
     try {
       const response = await fetch("/api/identity/portfolio", {
         method: draft.id ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...draft,
+          ...draftPayload,
           title: draft.title.trim(),
           description: draft.description.trim(),
           mediaUrl: draft.mediaUrl.trim(),
