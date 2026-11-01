@@ -44,6 +44,9 @@ type FieldFlags = {
   showBio: boolean;
   showSkills: boolean;
   showSocial: boolean;
+  showResume: boolean;
+  showMediaKit: boolean;
+  showAnalytics: boolean;
 };
 
 export function IdentityPrivacyClient({
@@ -61,6 +64,9 @@ export function IdentityPrivacyClient({
     showBio: initialCustom.showBio !== false,
     showSkills: initialCustom.showSkills !== false,
     showSocial: initialCustom.showSocial !== false,
+    showResume: initialCustom.showResume === true,
+    showMediaKit: initialCustom.showMediaKit === true,
+    showAnalytics: initialCustom.showAnalytics === true,
   });
   const [saving, setSaving] = useState(false);
 
@@ -155,6 +161,9 @@ export function IdentityPrivacyClient({
                 ["showWebsite", "Website"],
                 ["showSkills", "Skills & languages"],
                 ["showSocial", "External links"],
+                ["showResume", "Resume and work history"],
+                ["showMediaKit", "Media kit"],
+                ["showAnalytics", "Analytics"],
               ] as const
             ).map(([key, label]) => (
               <label
