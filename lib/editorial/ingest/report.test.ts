@@ -47,6 +47,18 @@ function pageHtml() {
     </article></body></html>`;
 }
 
+function withResearchContext(page: NonNullable<ReturnType<typeof extractArticlePage>>) {
+  const additionalEvidence = Array.from(
+    { length: 320 },
+    (_, index) => `Verified supporting record ${index} documents habitat operations, mission planning, crew scheduling, research protocols, safety procedures, and public event logistics.`,
+  ).join(" ");
+  return {
+    ...page,
+    paragraphs: [...page.paragraphs, additionalEvidence],
+    wordCount: page.wordCount + additionalEvidence.split(/\\s+/).length,
+  };
+}
+
 function draft(overrides: Partial<ReportDraft> = {}): ReportDraft {
   return {
     headline: "Yearlong Mars habitat crew prepares to step outside",
@@ -123,7 +135,7 @@ describe("editorial research", () => {
       sourceName: "NASA News Releases",
       sourceTitle: page?.title ?? "",
       sourceUrl: PAGE,
-      page: page!,
+      page: withResearchContext(page!),
       profiles: [{ name: "Ross Elder", username: "ross_elder" }],
       complete: async (request) => {
         requestInput = request.input;
@@ -138,7 +150,8 @@ describe("editorial research", () => {
   it("rejects invented numbers, copied headlines, and unsafe links", () => {
     const page = extractArticlePage(pageHtml(), PAGE);
     assert.ok(page);
-    const corpus = [page!.title, ...page!.paragraphs, ...page!.captions];
+    const research = withResearchContext(page!);
+    const corpus = [research.title, ...research.paragraphs, ...research.captions];
     const invented = assessEditorialDraft(draft({
       sections: [{ heading: "The departure", paragraphs: ["The crew count reached 999 people before the exit."] }],
     }), { sourceName: "NASA News Releases", sourceTitle: page!.title, sourceUrl: PAGE, corpusParts: corpus, allowedHrefs: [PAGE] });
@@ -208,12 +221,12 @@ describe("editorial research", () => {
       sourceName: "NASA News Releases",
       sourceTitle: page?.title ?? "",
       sourceUrl: PAGE,
-      page: page!,
+      page: withResearchContext(page!),
       corroboratingPages: [{
         sourceName: "The Guardian World",
         sourceTitle: page?.title ?? "",
         sourceUrl: secondUrl,
-        page: { ...page!, url: secondUrl },
+        page: { ...withResearchContext(page!), url: secondUrl },
       }],
       complete: async (request) => {
         requestInput = request.input;
@@ -239,7 +252,8 @@ describe("editorial research", () => {
     ]), null);
     assert.equal(uniqueProfileHref("Ross Elder", [{ name: "Ross Elder", username: "not a user" }]), null);
     const page = extractArticlePage(pageHtml(), PAGE);
-    const corpus = [page?.title ?? "", ...(page?.paragraphs ?? []), ...(page?.captions ?? [])];
+    const research = withResearchContext(page!);
+    const corpus = [research.title, ...research.paragraphs, ...research.captions];
     const invented = assessEditorialDraft(draft({ links: [{ phrase: "Ross Elder", href: "/u/made-up" }] }), {
       sourceName: "NASA News Releases",
       sourceTitle: page?.title ?? "",
