@@ -50,7 +50,7 @@ function article(overrides: Partial<ArticleInput> = {}): ArticleInput {
   return {
     title: "A local report from Kigali",
     excerpt: "This excerpt is long enough to publish.",
-    bodyHtml: `<p>${Array.from({ length: 300 }, (_, index) => `verifiedword${index}`).join(" ")}</p>`,
+    bodyHtml: `<p>${Array.from({ length: 920 }, (_, index) => `verifiedword${index}`).join(" ")}</p>`,
     category: "news",
     kicker: "News",
     imageUrl: "/editorial/skyline.jpg",
@@ -90,12 +90,13 @@ describe("editorial publishing guards", () => {
     assert.match(hidden, /<p>Visible<\/p>/);
   });
 
-  it("rejects editorial-team bylines and unsafe images", () => {
-    assert.equal(isBannedByline("Jimvio Editorial Team"), true);
-    assert.equal(isBannedByline("By Jimvio Editorial Team"), true);
+  it("accepts the canonical newsroom byline and rejects unsafe images", () => {
+    assert.equal(isBannedByline("Jimvio Editorial Team"), false);
+    assert.equal(isBannedByline("By Jimvio Editorial Team"), false);
     assert.equal(isBannedByline("Staff Writer"), true);
     assert.equal(isBannedByline("Jimvio"), true);
-    assert.equal(publicAuthorName("Jimvio Editorial Team"), null);
+    assert.equal(publicAuthorName("Jimvio Editorial Team"), "Jimvio Editorial Team");
+    assert.equal(publicAuthorName(""), "Jimvio Editorial Team");
     assert.equal(publicAuthorName("Aline Uwase"), "Aline Uwase");
     assert.equal(isSafeImageUrl("/editorial/skyline.jpg"), true);
     assert.equal(isSafeImageUrl("/editorial/../secret.jpg"), false);
@@ -125,7 +126,7 @@ describe("editorial publishing guards", () => {
     const shortBody = validateArticle(article({ bodyHtml: "<p>Too short to meet the publication standard.</p>" }), "published");
     assert.ok(shortBody.errors.bodyHtml);
     const missingAuthor = validateArticle(article({ authorName: "" }), "published");
-    assert.ok(missingAuthor.errors.authorName);
+    assert.deepEqual(missingAuthor.errors, {});
     const missingSource = validateArticle(article({ sourceName: "", sourceUrl: "" }), "published");
     assert.ok(missingSource.errors.sourceName);
     assert.ok(missingSource.errors.sourceUrl);
@@ -135,8 +136,8 @@ describe("editorial publishing guards", () => {
     assert.ok(tooSoon.errors.scheduledAt);
     const scheduled = validateArticle(article({ scheduledAt: future }), "scheduled");
     assert.deepEqual(scheduled.errors, {});
-    const banned = validateArticle(article({ authorName: "Jimvio Editorial Team" }), "draft");
-    assert.ok(banned.errors.authorName);
+    const newsroomByline = validateArticle(article({ authorName: "Jimvio Editorial Team" }), "draft");
+    assert.deepEqual(newsroomByline.errors, {});
   });
 
   it("uses design fixtures only outside production when nothing is published", () => {
