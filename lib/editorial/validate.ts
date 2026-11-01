@@ -85,11 +85,8 @@ export function isBannedByline(name: string): boolean {
   return BANNED_BYLINES.some((pattern) => pattern.test(trimmed));
 }
 
-export function publicAuthorName(name: string | null | undefined): string | null {
-  const trimmed = String(name ?? "").trim();
-  if (!trimmed) return EDITORIAL_BYLINE;
-  if (isBannedByline(trimmed) && trimmed.toLowerCase() !== EDITORIAL_BYLINE.toLowerCase()) return EDITORIAL_BYLINE;
-  return trimmed.slice(0, 80);
+export function publicAuthorName(_name: string | null | undefined): string {
+  return EDITORIAL_BYLINE;
 }
 
 function isPrivateHostname(hostname: string): boolean {
