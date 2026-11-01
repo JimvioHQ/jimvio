@@ -13,7 +13,8 @@ export function decideLinkStatus(findings: Finding[], knownThreat: boolean, fetc
   const warn = findings.filter((f) => f.tone === "warn").length;
   if (bad >= 2 || (bad >= 1 && warn >= 2)) return "high_risk";
   if (bad >= 1 || warn >= 2) return "suspicious";
-  if (!fetched && !reputationChecked) return "inconclusive";
+  // A clean reputation response alone cannot establish that an unreachable page is low risk.
+  if (!fetched || !reputationChecked) return "inconclusive";
   return "low_risk";
 }
 
@@ -120,7 +121,7 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     findings.unshift({ tone: "good", title: `Official ${platformName} address`, detail: `${startReg} belongs to ${platformName}.`, source: "URL analysis" });
   }
 
-  const status = decideLinkStatus(findings, knownThreat, Boolean(final) || Boolean(platformName), reputationChecked || Boolean(platformName));
+  const status = decideLinkStatus(findings, knownThreat, Boolean(final), reputationChecked);
   const summary =
     platformName && status === "low_risk"
       ? `Genuine ${platformName} link. No known threat found.`
