@@ -1,4 +1,4 @@
-import { safeFetch, normalizeUrl } from "@/lib/trust/safe-fetch";
+import { normalizeUrl } from "@/lib/trust/url-guard";
 
 /**
  * Proving a social account belongs to the person who added it.
@@ -141,6 +141,7 @@ export function bioSources(platform: string, handle: string | null, url: string 
 async function readSource(source: Source): Promise<string | null> {
   try {
     // Resolve and validate every hop, pin checked public IPs, and cap bytes.
+    const { safeFetch } = await import("@/lib/trust/safe-fetch");
     const chain = await safeFetch(normalizeUrl(source.url), "GET", source.headers);
     const response = chain.final;
     if (!response || chain.error || response.status < 200 || response.status >= 300) return null;
