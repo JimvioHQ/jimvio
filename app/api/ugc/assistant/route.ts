@@ -43,7 +43,7 @@ async function liveCampaigns(): Promise<AssistantCampaign[]> {
     .filter((r) => (r as { funding?: { state?: string } }).funding?.state === "funded")
     .map((r) => {
       const row = r as Record<string, unknown> & {
-        vendor?: { business_name?: string | null } | null;
+        vendor?: { business_name?: string | null; business_logo?: string | null } | null;
         funding?: { remainingUsd?: number } | null;
       };
       const n = (v: unknown) => (v == null || v === "" ? null : Number(v));
