@@ -145,7 +145,7 @@ function CampaignChips({ list, onCheck }: { list: AssistantCampaign[]; onCheck: 
           <div className="flex min-h-[88px] items-center gap-3 p-2.5">
             {c.imageUrl ? (
               // Public campaign artwork only; fallback remains polished if no image is supplied.
-              <img src={c.imageUrl} alt="" loading="lazy" className="h-[76px] w-[92px] shrink-0 rounded-lg object-cover bg-[#FFF1EA]" />
+              <span aria-hidden="true" className="h-[76px] w-[92px] shrink-0 rounded-lg bg-cover bg-center bg-[#FFF1EA]" style={{ backgroundImage: `url("${c.imageUrl}")` }} />
             ) : (
               <span className="grid h-[76px] w-[92px] shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#FFF1EA] to-[#FFD2BD] text-[#F45A1B]"><Video className="h-7 w-7" /></span>
             )}
