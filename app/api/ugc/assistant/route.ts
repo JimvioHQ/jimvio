@@ -51,6 +51,19 @@ async function liveCampaigns(): Promise<AssistantCampaign[]> {
         id: String(row.id),
         title: String(row.title ?? ""),
         brand: row.vendor?.business_name ?? null,
+        imageUrl: (() => {
+          const media = Array.isArray(row.media) ? row.media as Array<Record<string, unknown>> : [];
+          const banner = media.find((item) => item.usage === "banner" && typeof item.url === "string");
+          const image = banner?.url ?? row.banner_url ?? row.cover_image_url ?? row.thumbnail_url ?? row.image_url ?? row.vendor?.business_logo;
+          return typeof image === "string" && /^https:\/\//i.test(image) ? image : null;
+        })(),
+        description: typeof row.description === "string" ? row.description.slice(0, 1400) : "",
+        requiredHashtags: Array.isArray(row.required_hashtags) ? row.required_hashtags.map(String).slice(0, 12) : [],
+        requiredMentions: Array.isArray(row.required_mentions) ? row.required_mentions.map(String).slice(0, 12) : [],
+        minDuration: row.min_duration == null ? null : Number(row.min_duration),
+        maxDuration: row.max_duration == null ? null : Number(row.max_duration),
+        requiresFace: row.requires_face === true,
+        joinConfig: row.join_config && typeof row.join_config === "object" ? row.join_config : null,
         type: String(row.campaign_type ?? "ugc"),
         paymentModel: String(row.payment_model ?? "per_views"),
         ratePer1k: n(row.rate_per_1k_views),
