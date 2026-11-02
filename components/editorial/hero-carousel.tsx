@@ -37,7 +37,7 @@ export function HeroCarousel({ slides }: { slides: StoryCardModel[] }) {
         className={photo ? "h-full min-h-[360px] lg:min-h-[420px]" : ""}
         contentClassName="px-6 pb-14 pt-6 sm:px-8 sm:pb-16"
         scrim="hero"
-        titleClassName="max-w-[18ch] text-[26px] leading-[1.12] sm:text-[32px] lg:text-[36px]"
+        titleClassName="max-w-[18ch] text-[24px] leading-[1.14] sm:text-[29px] lg:text-[32px]"
       />
       {count > 1 ? (
         <>
