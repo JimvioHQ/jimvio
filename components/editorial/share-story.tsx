@@ -31,7 +31,7 @@ export function ShareStory({ title, url }: { title: string; url: string }) {
       <button
         type="button"
         onClick={onShare}
-        className="inline-flex h-9 items-center rounded-full border border-[#e6e8ee] bg-white px-3 text-sm font-semibold text-[#172033] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
+        className="inline-flex h-10 items-center rounded-full border border-[#ffd0bc] bg-[#fff5f0] px-4 text-sm font-bold text-[#df4b10] shadow-sm transition hover:border-[#ffb18e] hover:bg-[#ffebe1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fd5000]"
       >
         Share
       </button>
