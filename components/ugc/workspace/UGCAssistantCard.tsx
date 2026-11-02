@@ -187,7 +187,7 @@ function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
   );
 }
 
-function Composer({ a, light }: { a: Assistant; light: boolean }) {
+function Composer({ a, light, onActivate }: { a: Assistant; light: boolean; onActivate?: () => void }) {
   const [text, setText] = useState("");
   const send = () => {
     if (!text.trim()) return;
@@ -206,6 +206,8 @@ function Composer({ a, light }: { a: Assistant; light: boolean }) {
         value={text}
         onChange={(e) => setText(e.target.value)}
         maxLength={800}
+        autoFocus={!light}
+        onFocus={() => { if (light) onActivate?.(); }}
         placeholder="Ask Jimvio AI…"
         aria-label="Ask Jimvio AI"
         className="min-w-0 flex-1 bg-transparent py-1 text-[12.5px] text-[#111827] outline-none placeholder:text-[#9CA3AF]"
@@ -276,7 +278,7 @@ export function UGCAssistantCard() {
               </button>
             </p>
           ) : null}
-          <Composer a={a} light />
+          <Composer a={a} light onActivate={() => setOpen(true)} />
         </div>
 
         {!hasChat ? (
@@ -289,7 +291,7 @@ export function UGCAssistantCard() {
                   <button
                     key={s.label}
                     type="button"
-                    onClick={() => void a.ask(s.message)}
+                    onClick={() => { setOpen(true); void a.ask(s.message); }}
                     disabled={a.status === "loading"}
                     className="group flex min-h-[42px] w-full items-center gap-2 rounded-lg border border-[#F6C6B0] bg-[#FFF8F4] px-2.5 py-1.5 text-left transition-colors hover:border-[#FF9B70] hover:bg-[#FFF0E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -314,7 +316,7 @@ export function UGCAssistantCard() {
             role="dialog"
             aria-modal="true"
             aria-label="Jimvio AI chat"
-            className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl"
+            className="flex h-full w-full max-w-none flex-col bg-white shadow-2xl sm:w-[min(46vw,720px)]"
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center gap-2 px-4 py-3 text-white" style={{ background: JIMVIO_ORANGE.gradient135 }}>
