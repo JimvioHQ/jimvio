@@ -57,7 +57,7 @@ export function ArticleView({
 
         <header className="mx-auto max-w-[940px]">
           <Kicker label={displayKicker(article)} />
-          <h1 className={`${styles.display} mt-4 max-w-[20ch] text-[2.25rem] leading-[1.08] tracking-[-0.045em] text-[#111827] sm:text-[3rem] lg:text-[3.75rem]`}>
+          <h1 className={`${styles.display} mt-4 max-w-[24ch] text-[2rem] leading-[1.12] tracking-[-0.04em] text-[#111827] sm:text-[2.55rem] lg:text-[3rem]`}>
             {article.title}
           </h1>
           {article.excerpt ? <p className="mt-5 max-w-[70ch] text-[17px] leading-[1.7] text-[#475467] sm:text-[19px]">{article.excerpt}</p> : null}
@@ -110,22 +110,7 @@ export function ArticleView({
                 <ArrowLeft className="h-4 w-4" /> Back to Media
               </Link>
             </div>
-            {neighbors ? (
-              <nav aria-label={`More in ${label}`} className="mt-8 grid gap-3 border-t border-[#e9edf2] pt-6 sm:grid-cols-2">
-                {previous ? (
-                  <Link href={`/media/article/${previous.slug}`} className="rounded-xl border border-[#e9edf2] p-4 transition hover:border-[#d0d5dd] hover:bg-[#fafbfc]">
-                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#667085]">Previous story</span>
-                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{previous.title}</span>
-                  </Link>
-                ) : <span />}
-                {next ? (
-                  <Link href={`/media/article/${next.slug}`} className="rounded-xl border border-[#e9edf2] p-4 text-left transition hover:border-[#d0d5dd] hover:bg-[#fafbfc] sm:text-right">
-                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#667085]">Next story</span>
-                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{next.title}</span>
-                  </Link>
-                ) : null}
-              </nav>
-            ) : null}
+
           </div>
 
           <aside className="min-w-0 lg:sticky lg:top-24">
@@ -148,6 +133,23 @@ export function ArticleView({
             )}
           </aside>
         </div>
+      {neighbors ? 
+              <nav aria-label={`More in ${label}`} className="mx-auto mt-10 grid max-w-[1120px] gap-4 border-t border-[#e9edf2] pt-7 sm:grid-cols-2">
+                {previous ? (
+                  <Link href={`/media/article/${previous.slug}`} className="group min-h-[112px] rounded-2xl border border-[#edf0f4] bg-white p-5 shadow-[0_3px_12px_rgba(16,24,40,.04)] transition hover:-translate-y-0.5 hover:border-[#ffc5a8] hover:shadow-[0_8px_22px_rgba(16,24,40,.08)]">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#e94c08]">Previous story</span>
+                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{previous.title}</span>
+                  </Link>
+                ) : <span />}
+                {next ? (
+                  <Link href={`/media/article/${next.slug}`} className="group min-h-[112px] rounded-2xl border border-[#edf0f4] bg-white p-5 text-left shadow-[0_3px_12px_rgba(16,24,40,.04)] transition hover:-translate-y-0.5 hover:border-[#ffc5a8] hover:shadow-[0_8px_22px_rgba(16,24,40,.08)] sm:text-right">
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-[#e94c08]">Next story</span>
+                    <span className="mt-2 block text-sm font-bold leading-snug text-[#172033]">{next.title}</span>
+                  </Link>
+                ) : null}
+              </nav>
+             : null}
+
       </article>
     </>
   );
