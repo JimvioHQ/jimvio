@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Loader2, MessageCircle, RotateCcw, Send, Sparkles, X } from "lucide-react";
+import { ChevronRight, FileText, Lightbulb, Loader2, Megaphone, MessageCircle, RotateCcw, Send, Sparkles, Video, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 import { ASSISTANT_SUGGESTIONS, type AssistantCampaign, type CampaignDraft } from "@/lib/ugc/assistant";
@@ -280,22 +280,31 @@ export function UGCAssistantCard() {
         </div>
 
         {!hasChat ? (
-          <>
-            <p className="mt-2.5 text-[11px] font-semibold text-white/90">Try these:</p>
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-              {ASSISTANT_SUGGESTIONS.map((s) => (
-                <button
-                  key={s.label}
-                  type="button"
-                  onClick={() => void a.ask(s.message)}
-                  disabled={a.status === "loading"}
-                  className="inline-flex min-h-9 w-full min-w-0 items-start gap-1 rounded-xl border border-white/45 px-2 py-1.5 text-left text-[10.5px] font-semibold leading-tight text-white transition hover:bg-white/15 disabled:opacity-60"
-                >
-                  <Sparkles className="mt-0.5 h-3 w-3 shrink-0 opacity-80" /> <span className="min-w-0">{s.label}</span>
-                </button>
-              ))}
+          <div className="mt-2.5 rounded-2xl bg-white/95 p-3 text-[#111827] shadow-sm">
+            <p className="text-[12px] font-extrabold">Try these:</p>
+            <div className="mt-2 flex flex-col gap-2">
+              {ASSISTANT_SUGGESTIONS.slice(0, 4).map((s, index) => {
+                const Icon = [Megaphone, Lightbulb, FileText, Video][index];
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => void a.ask(s.message)}
+                    disabled={a.status === "loading"}
+                    className="group flex min-h-[54px] w-full items-center gap-3 rounded-xl border border-[#F6C6B0] bg-[#FFF8F4] px-3.5 py-2.5 text-left transition-colors hover:border-[#FF9B70] hover:bg-[#FFF0E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[#F45A1B]">
+                      <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1 text-[12px] font-bold leading-snug text-[#172033]">
+                      {s.label}
+                    </span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-[#344054] transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+                  </button>
+                );
+              })}
             </div>
-          </>
+          </div>
         ) : null}
       </section>
 
