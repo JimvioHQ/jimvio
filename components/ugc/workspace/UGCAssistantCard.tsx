@@ -136,21 +136,31 @@ function DraftCard({ draft, signedIn }: { draft: CampaignDraft; signedIn: boolea
   );
 }
 
-function CampaignChips({ list }: { list: AssistantCampaign[] }) {
+function CampaignChips({ list, onCheck }: { list: AssistantCampaign[]; onCheck: (campaign: AssistantCampaign) => void }) {
   if (!list.length) return null;
   return (
-    <div className="mt-1.5 space-y-1">
+    <div className="mt-2 grid gap-2 sm:grid-cols-2">
       {list.map((c) => (
-        <Link key={c.id} href={`/ugc/${c.id}`} className="flex min-h-9 items-center gap-2 rounded-lg bg-white/95 px-2 py-1 text-[#111827] hover:bg-white">
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[11px] font-bold">{c.title}</span>
-            <span className="block text-[10px] text-[#6B7280]">
-              {payLine(c)}
-              {c.remainingUsd != null ? ` · ${money(c.remainingUsd)} left` : ""}
+        <article key={c.id} className="overflow-hidden rounded-xl border border-[#F1E4DC] bg-white text-[#111827] shadow-sm">
+          <div className="flex min-h-[88px] items-center gap-3 p-2.5">
+            {c.imageUrl ? (
+              // Public campaign artwork only; fallback remains polished if no image is supplied.
+              <img src={c.imageUrl} alt="" loading="lazy" className="h-[76px] w-[92px] shrink-0 rounded-lg object-cover bg-[#FFF1EA]" />
+            ) : (
+              <span className="grid h-[76px] w-[92px] shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#FFF1EA] to-[#FFD2BD] text-[#F45A1B]"><Video className="h-7 w-7" /></span>
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block line-clamp-2 text-[12px] font-extrabold leading-snug">{c.title}</span>
+              {c.brand ? <span className="mt-0.5 block truncate text-[10px] text-[#6B7280]">{c.brand}</span> : null}
+              <span className="mt-1 block text-[11px] font-bold text-[#F45A1B]">{payLine(c)}</span>
+              <span className="block text-[10px] text-[#6B7280]">{c.remainingUsd != null ? `${money(c.remainingUsd)} remaining` : "Live campaign"}</span>
             </span>
-          </span>
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
-        </Link>
+          </div>
+          <div className="flex flex-wrap gap-1.5 border-t border-[#F3F4F6] p-2">
+            <button type="button" onClick={() => onCheck(c)} className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-[#FED7C7] px-2 text-[10.5px] font-bold text-[#C94A16] hover:bg-[#FFF5F0]">Check requirements</button>
+            <Link href={`/ugc/${c.id}/join`} className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-[#FF5A1F] px-2 text-[10.5px] font-bold text-white hover:bg-[#E94E18]">Join campaign</Link>
+          </div>
+        </article>
       ))}
     </div>
   );
@@ -172,7 +182,7 @@ function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
         ) : (
           <div key={i} className={cn("rounded-xl rounded-bl-sm px-2.5 py-2 text-[12px] leading-relaxed", compact ? "bg-white/15 text-white" : "bg-[#F3F4F6] text-[#111827]")}>
             <p className="whitespace-pre-wrap">{m.content}</p>
-            <CampaignChips list={m.campaigns ?? []} />
+            <CampaignChips list={m.campaigns ?? []} onCheck={(campaign) => void a.ask(`Please check and explain the full requirements for campaign "${campaign.title}" (campaign ID: ${campaign.id}). Use only verified campaign details and tell me what is missing from my profile, if known.`)} />
             {m.draft ? <DraftCard draft={m.draft} signedIn={a.signedIn} /> : null}
           </div>
         ),
