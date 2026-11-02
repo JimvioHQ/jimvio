@@ -86,6 +86,32 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   const history = cleanHistory(body.history);
 
+  // Restrict model context to non-sensitive matching attributes from this signed-in creator.
+  let creatorContext = "CREATOR PROFILE: not available.";
+  if (user) {
+    try {
+      const { data: creator } = await createServiceRoleClient()
+        .from("influencers")
+        .select("niche,total_followers,is_verified")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (creator) {
+        const niches = Array.isArray(creator.niche)
+          ? creator.niche.map((value) => String(value).slice(0, 48)).slice(0, 12)
+          : [];
+        creatorContext = [
+          "CREATOR PROFILE (authenticated user's own account; cautious matching only):",
+          `niches=${niches.join(", ") || "not provided"}`,
+          `followers=${Number.isFinite(Number(creator.total_followers)) ? Number(creator.total_followers) : "unknown"}`,
+          `verified=${creator.is_verified === true ? "yes" : creator.is_verified === false ? "no" : "unknown"}`,
+          "Country, account age and connected social account ownership are not provided. Never infer them.",
+        ].join("\\n");
+      }
+    } catch (error) {
+      console.warn("[ugc-assistant] creator context unavailable", error instanceof Error ? error.name : "unknown");
+    }
+  }
+
   let list: AssistantCampaign[] = [];
   try {
     list = await liveCampaigns();
@@ -100,6 +126,7 @@ export async function POST(req: NextRequest) {
   if (apiKey && model) {
     try {
       const input: ModelTurn[] = [
+        { role: "system", content: wrapUntrusted("Creator profile context", creatorContext, 1200) },
         { role: "system", content: liveCampaignsBlock(list) },
         ...history.map((t) => ({ role: t.role, content: t.role === "user" ? wrapUntrusted("Person", t.content, 1200) : t.content })),
         { role: "user", content: wrapUntrusted("Person", message, 800) },
