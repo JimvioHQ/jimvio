@@ -136,29 +136,29 @@ function DraftCard({ draft, signedIn }: { draft: CampaignDraft; signedIn: boolea
   );
 }
 
-function CampaignChips({ list, onCheck }: { list: AssistantCampaign[]; onCheck: (campaign: AssistantCampaign) => void }) {
+function CampaignChips({ list, onCheck, compact }: { list: AssistantCampaign[]; onCheck: (campaign: AssistantCampaign) => void; compact: boolean }) {
   if (!list.length) return null;
   return (
-    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+    <div className={cn("mt-2 grid grid-cols-1 gap-2", compact ? "" : "2xl:grid-cols-2")}>
       {list.map((c) => (
         <article key={c.id} className="overflow-hidden rounded-xl border border-[#F1E4DC] bg-white text-[#111827] shadow-sm">
-          <div className="flex min-h-[88px] items-center gap-3 p-2.5">
+          <div className={cn("flex items-center gap-3", compact ? "min-h-0 p-2" : "min-h-[104px] p-3")}>
             {c.imageUrl ? (
               // Public campaign artwork only; fallback remains polished if no image is supplied.
-              <span aria-hidden="true" className="h-[76px] w-[92px] shrink-0 rounded-lg bg-cover bg-center bg-[#FFF1EA]" style={{ backgroundImage: `url("${c.imageUrl}")` }} />
+              <span aria-hidden="true" className={cn("shrink-0 rounded-lg bg-cover bg-center bg-[#FFF1EA]", compact ? "h-11 w-11" : "h-[88px] w-[104px]")} style={{ backgroundImage: `url("${c.imageUrl}")` }} />
             ) : (
-              <span className="grid h-[76px] w-[92px] shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#FFF1EA] to-[#FFD2BD] text-[#F45A1B]"><Video className="h-7 w-7" /></span>
+              <span className={cn("grid shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#FFF1EA] to-[#FFD2BD] text-[#F45A1B]", compact ? "h-11 w-11" : "h-[88px] w-[104px]")}><Video className="h-7 w-7" /></span>
             )}
             <span className="min-w-0 flex-1">
-              <span className="block line-clamp-2 text-[12px] font-extrabold leading-snug">{c.title}</span>
+              <span className={cn("block line-clamp-2 font-extrabold leading-snug", compact ? "text-[11px]" : "text-[13px]")}>{c.title}</span>
               {c.brand ? <span className="mt-0.5 block truncate text-[10px] text-[#6B7280]">{c.brand}</span> : null}
               <span className="mt-1 block text-[11px] font-bold text-[#F45A1B]">{payLine(c)}</span>
               <span className="block text-[10px] text-[#6B7280]">{c.remainingUsd != null ? `${money(c.remainingUsd)} remaining` : "Live campaign"}</span>
             </span>
           </div>
-          <div className="flex flex-wrap gap-1.5 border-t border-[#F3F4F6] p-2">
-            <button type="button" onClick={() => onCheck(c)} className="inline-flex h-8 flex-1 items-center justify-center rounded-lg border border-[#FED7C7] px-2 text-[10.5px] font-bold text-[#C94A16] hover:bg-[#FFF5F0]">Check requirements</button>
-            <Link href={`/ugc/${c.id}/join`} className="inline-flex h-8 flex-1 items-center justify-center rounded-lg bg-[#FF5A1F] px-2 text-[10.5px] font-bold text-white hover:bg-[#E94E18]">Join campaign</Link>
+          <div className={cn("grid gap-1.5 border-t border-[#F3F4F6] p-2", compact ? "grid-cols-1" : "grid-cols-2")}>
+            <button type="button" onClick={() => onCheck(c)} className="inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-[#FED7C7] px-2 text-[10.5px] font-bold text-[#C94A16] hover:bg-[#FFF5F0]">Check requirements</button>
+            {!compact ? <Link href={`/ugc/${c.id}/join`} className="inline-flex min-h-8 w-full items-center justify-center rounded-lg bg-[#FF5A1F] px-2 text-[10.5px] font-bold text-white hover:bg-[#E94E18]">Join campaign</Link> : null}
           </div>
         </article>
       ))}
@@ -182,8 +182,8 @@ function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
         ) : (
           <div key={i} className={cn("rounded-xl rounded-bl-sm px-2.5 py-2 text-[12px] leading-relaxed", compact ? "bg-white/15 text-white" : "bg-[#F3F4F6] text-[#111827]")}>
             <p className="whitespace-pre-wrap">{m.content}</p>
-            <CampaignChips list={m.campaigns ?? []} onCheck={(campaign) => void a.ask(`Please check and explain the full requirements for campaign "${campaign.title}" (campaign ID: ${campaign.id}). Use only verified campaign details and tell me what is missing from my profile, if known.`)} />
-            {(m.campaigns?.length ?? 0) > 0 ? (
+            <CampaignChips compact={compact} list={m.campaigns ?? []} onCheck={(campaign) => void a.ask(`Please check and explain the full requirements for campaign "${campaign.title}" (campaign ID: ${campaign.id}). Use only verified campaign details and tell me what is missing from my profile, if known.`)} />
+            {!compact && (m.campaigns?.length ?? 0) > 0 ? (
               <div className="mt-2 space-y-2">
                 <div className="flex flex-wrap gap-1.5">
                   <button type="button" onClick={() => void a.ask(`Check the complete requirements for ${m.campaigns![0].title} (ID: ${m.campaigns![0].id}). Tell me which requirements I meet, which are missing, and which cannot be verified.`)} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-3 text-[10.5px] font-bold text-white hover:bg-[#E94E18]">
@@ -362,7 +362,7 @@ export function UGCAssistantCard() {
             role="dialog"
             aria-modal="true"
             aria-label="Jimvio AI chat"
-            className={cn("flex h-full w-full max-w-none flex-col bg-white shadow-2xl transition-[width] sm:ml-auto", wide ? "sm:w-[min(78vw,1100px)]" : "sm:w-[min(46vw,720px)]") }
+            className={cn("flex h-full w-full max-w-none flex-col bg-white shadow-2xl transition-[width] sm:ml-auto", wide ? "sm:w-[min(84vw,1200px)]" : "sm:w-[min(54vw,820px)]") }
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center gap-2 px-4 py-3 text-white" style={{ background: JIMVIO_ORANGE.gradient135 }}>
@@ -371,7 +371,10 @@ export function UGCAssistantCard() {
                 <p className="text-[15px] font-extrabold">Jimvio AI</p>
                 <p className="text-[11px] text-white/85">Campaigns, ideas, rules, and campaign drafts you approve</p>
               </div>
-              <button type="button" onClick={() => setWide((v) => !v)} aria-label={wide ? "Narrow chat" : "Expand chat"} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">\n                {wide ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}\n              </button>\n              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
+              <button type="button" onClick={() => setWide((v) => !v)} aria-label={wide ? "Narrow chat" : "Expand chat"} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
+                {wide ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
                 <X className="h-4 w-4" />
               </button>
             </header>
