@@ -275,7 +275,8 @@ function Composer({ a, light, onActivate }: { a: Assistant; light: boolean; onAc
  */
 export function UGCAssistantCard() {
   const a = useAssistant();
-  const [open, setOpen] = useState(false);\n  const [wide, setWide] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [wide, setWide] = useState(false);
   const hasChat = a.messages.length > 0;
 
   return (
