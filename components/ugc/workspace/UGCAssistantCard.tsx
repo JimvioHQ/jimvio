@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, FileText, Lightbulb, Loader2, Megaphone, MessageCircle, RotateCcw, Send, Sparkles, Video, X } from "lucide-react";
+import { ChevronRight, FileText, Lightbulb, Loader2, Megaphone, MessageCircle, RotateCcw, Send, Sparkles, Video, X, Users, Clapperboard, MoreHorizontal, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 import { ASSISTANT_SUGGESTIONS, type AssistantCampaign, type CampaignDraft } from "@/lib/ugc/assistant";
@@ -183,6 +183,41 @@ function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
           <div key={i} className={cn("rounded-xl rounded-bl-sm px-2.5 py-2 text-[12px] leading-relaxed", compact ? "bg-white/15 text-white" : "bg-[#F3F4F6] text-[#111827]")}>
             <p className="whitespace-pre-wrap">{m.content}</p>
             <CampaignChips list={m.campaigns ?? []} onCheck={(campaign) => void a.ask(`Please check and explain the full requirements for campaign "${campaign.title}" (campaign ID: ${campaign.id}). Use only verified campaign details and tell me what is missing from my profile, if known.`)} />
+            {(m.campaigns?.length ?? 0) > 0 ? (
+              <div className="mt-2 space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => void a.ask(`Check the complete requirements for ${m.campaigns![0].title} (ID: ${m.campaigns![0].id}). Tell me which requirements I meet, which are missing, and which cannot be verified.`)} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-3 text-[10.5px] font-bold text-white hover:bg-[#E94E18]">
+                    <FileText className="h-3.5 w-3.5" /> View requirements
+                  </button>
+                  <button type="button" onClick={() => void a.ask(`Guide me through joining ${m.campaigns![0].title} (ID: ${m.campaigns![0].id}). First check the published requirements and tell me the exact next steps. Do not submit anything for me.`)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
+                    <Users className="h-3.5 w-3.5" /> Help me join
+                  </button>
+                  <button type="button" onClick={() => void a.ask(`Create a campaign-specific short-form video concept and hook for ${m.campaigns![0].title} (ID: ${m.campaigns![0].id}), following its real requirements.`)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
+                    <Clapperboard className="h-3.5 w-3.5" /> Create content idea
+                  </button>
+                  <Link href={`/ugc/${m.campaigns[0].id}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
+                    <MoreHorizontal className="h-3.5 w-3.5" /> More options
+                  </Link>
+                </div>
+                <div className="rounded-xl border border-[#FFD5C3] bg-[#FFF7F2] p-2.5">
+                  <p className="flex items-center gap-1.5 text-[11.5px] font-extrabold text-[#C2410C]"><Sparkles className="h-3.5 w-3.5" /> Next step: join a campaign</p>
+                  <div className="mt-2 grid grid-cols-3 gap-2 text-[10px] leading-snug text-[#344054]">
+                    <div><span className="mb-1 inline-grid h-5 w-5 place-items-center rounded-full bg-[#FF5A1F] font-bold text-white">1</span><p className="font-bold">Open a campaign</p><p className="text-[#667085]">Choose a card to see its brief.</p></div>
+                    <div><span className="mb-1 inline-grid h-5 w-5 place-items-center rounded-full bg-[#FF5A1F] font-bold text-white">2</span><p className="font-bold">Check requirements</p><p className="text-[#667085]">Review rules and submission details.</p></div>
+                    <div><span className="mb-1 inline-grid h-5 w-5 place-items-center rounded-full bg-[#FF5A1F] font-bold text-white">3</span><p className="font-bold">Join campaign</p><p className="text-[#667085]">Complete the secure join steps.</p></div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#667085]">Which campaign do you want to explore? I can also:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    ["Explain requirements", "Explain the requirements for the first recommended campaign."],
+                    ["Give a content idea", "Give me a campaign-specific content idea for the first recommended campaign."],
+                    ["Help me write a script", "Help me write a video script for the first recommended campaign."],
+                    ["Find more", "Find more live campaigns that fit my profile."],
+                  ].map(([label, prompt]) => <button key={label} type="button" onClick={() => void a.ask(prompt)} className="rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] font-semibold text-[#344054] hover:border-[#FF5A1F]">{label}</button>)}
+                </div>
+              </div>
+            ) : null}
             {m.draft ? <DraftCard draft={m.draft} signedIn={a.signedIn} /> : null}
           </div>
         ),
@@ -240,7 +275,7 @@ function Composer({ a, light, onActivate }: { a: Assistant; light: boolean; onAc
  */
 export function UGCAssistantCard() {
   const a = useAssistant();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);\n  const [wide, setWide] = useState(false);
   const hasChat = a.messages.length > 0;
 
   return (
@@ -326,7 +361,7 @@ export function UGCAssistantCard() {
             role="dialog"
             aria-modal="true"
             aria-label="Jimvio AI chat"
-            className="flex h-full w-full max-w-none flex-col bg-white shadow-2xl sm:w-[min(46vw,720px)]"
+            className={cn("flex h-full w-full max-w-none flex-col bg-white shadow-2xl transition-[width] sm:ml-auto", wide ? "sm:w-[min(78vw,1100px)]" : "sm:w-[min(46vw,720px)]") }
             onClick={(e) => e.stopPropagation()}
           >
             <header className="flex items-center gap-2 px-4 py-3 text-white" style={{ background: JIMVIO_ORANGE.gradient135 }}>
@@ -335,7 +370,7 @@ export function UGCAssistantCard() {
                 <p className="text-[15px] font-extrabold">Jimvio AI</p>
                 <p className="text-[11px] text-white/85">Campaigns, ideas, rules, and campaign drafts you approve</p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
+              <button type="button" onClick={() => setWide((v) => !v)} aria-label={wide ? "Narrow chat" : "Expand chat"} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">\n                {wide ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}\n              </button>\n              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-white/15">
                 <X className="h-4 w-4" />
               </button>
             </header>
