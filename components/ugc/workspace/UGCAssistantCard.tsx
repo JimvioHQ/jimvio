@@ -195,7 +195,7 @@ function Conversation({ a, compact }: { a: Assistant; compact: boolean }) {
                   <button type="button" onClick={() => void a.ask(`Create a campaign-specific short-form video concept and hook for ${m.campaigns![0].title} (ID: ${m.campaigns![0].id}), following its real requirements.`)} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
                     <Clapperboard className="h-3.5 w-3.5" /> Create content idea
                   </button>
-                  <Link href={`/ugc/${m.campaigns[0].id}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
+                  <Link href={`/ugc/${m.campaigns![0].id}`} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-white px-3 text-[10.5px] font-semibold text-[#344054] hover:bg-[#FFF8F4]">
                     <MoreHorizontal className="h-3.5 w-3.5" /> More options
                   </Link>
                 </div>
