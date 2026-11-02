@@ -58,8 +58,8 @@ export function MediaHeader({ locale }: { locale: UgcLocale }) {
     <header className="sticky top-0 z-40 border-b border-[#e7eaf0] bg-white/95 shadow-[0_2px_12px_rgba(16,24,40,0.035)] backdrop-blur-xl">
       <div className="mx-auto flex h-[58px] max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:h-[58px] lg:px-10">
         <Link href="/media" aria-label="Jimvio Media home" className="flex shrink-0 items-center gap-2.5">
-          <Image src="/jimvio-logo-mark.png" alt="" width={38} height={38} className="h-[34px] w-[34px] rounded-full" priority />
-          <span className="text-[19px] font-extrabold tracking-[-0.045em] text-[#101828]">Jimvio <span className="text-[#fd5000]">Media</span></span>
+          <Image src="/jimvio-logo-mark.png" alt="" width={42} height={42} className="h-[38px] w-[38px] shrink-0 object-contain" priority />
+          <span className="text-[20px] font-extrabold tracking-[-0.045em] text-[#101828]">Jimvio <span className="text-[#fd5000]">Media</span></span>
         </Link>
         <div className="mx-1 hidden h-6 w-px bg-[#e7eaf0] xl:block" />
         <nav aria-label="Media sections" className="hidden min-w-0 flex-1 items-center justify-center gap-x-5 xl:flex">

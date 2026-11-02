@@ -56,16 +56,10 @@ export function TopicExplore({ sections }: { sections: HomeSection[] }) {
             <button type="button" className="media-topic-more" onClick={showMore}>
               Explore more <ChevronDown className="h-4 w-4" />
             </button>
-            <span className="media-topic-count">
-              {hasMoreTopics
-                ? `Showing ${visibleSections.length} of ${sections.length} topics`
-                : `Showing ${storiesPerTopic} of ${availableStories} stories in each topic`}
-            </span>
           </>
         ) : (
           <>
             <Link href="/media/latest" className="media-topic-more">Explore all stories <ArrowRight className="h-4 w-4" /></Link>
-            <span className="media-topic-count">You’re all caught up</span>
           </>
         )}
       </div>

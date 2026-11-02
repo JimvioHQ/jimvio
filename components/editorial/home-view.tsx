@@ -68,7 +68,7 @@ export function HomeView({ composition }: { composition: HomeComposition }) {
     ...composition.allStories,
     ...composition.magazine,
     ...composition.guides,
-  ], 2, heroIds);
+  ], 3, heroIds);
   const heroes = heroArticles.map((article) => toCard(article, true));
   const usedLeadIds = new Set([...heroIds, ...featured.map((article) => article.id)]);
   const latest = uniqueArticles([
