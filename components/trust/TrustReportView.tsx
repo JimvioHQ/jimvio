@@ -175,7 +175,7 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
   const steps = uniqueSteps.slice(0, 4);
   const submittedUrl = report.input.url;
   const socialMediaLink = isSocialMediaUrl(submittedUrl);
-  const sourceIcon = socialMediaLink ? Video : Globe2;
+  const SourceIcon = socialMediaLink ? Video : Globe2;
   const externalUrl = safeExternalUrl(submittedUrl);
   const itemName = title && available(title) ? title : report.input.file?.name ?? platformName(submittedUrl);
   const metricMap = new Map(metrics.map((metric) => [normalize(metric.label), metric.value]));
@@ -213,7 +213,7 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
       <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.035)]">
         <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(250px,0.8fr)] lg:items-center lg:gap-7">
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-            {thumbnail ? <a href={externalUrl ?? undefined} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 bg-cover bg-center transition duration-300 hover:brightness-95" style={{ backgroundImage: `url("${thumbnail}")` }} aria-label="Open source video"><span className="absolute inset-0 grid place-items-center bg-slate-950/10 text-white"><span className="grid h-11 w-11 place-items-center rounded-full bg-slate-950/65"><Video className="h-5 w-5" /></span></span>{duration && available(duration) ? <span className="absolute bottom-2 right-2 rounded bg-slate-950/85 px-2 py-1 text-[10px] font-bold text-white">{duration}</span> : null}</a> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><sourceIcon className="h-7 w-7" /></span>}
+            {thumbnail ? <a href={externalUrl ?? undefined} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 bg-cover bg-center transition duration-300 hover:brightness-95" style={{ backgroundImage: `url("${thumbnail}")` }} aria-label="Open source video"><span className="absolute inset-0 grid place-items-center bg-slate-950/10 text-white"><span className="grid h-11 w-11 place-items-center rounded-full bg-slate-950/65"><Video className="h-5 w-5" /></span></span>{duration && available(duration) ? <span className="absolute bottom-2 right-2 rounded bg-slate-950/85 px-2 py-1 text-[10px] font-bold text-white">{duration}</span> : null}</a> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><SourceIcon className="h-7 w-7" /></span>}
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F15A24]"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F]" /> {platformName(submittedUrl)} detected</p>
               <h2 className="mt-1 line-clamp-2 break-words text-lg font-black leading-snug tracking-tight text-slate-950 sm:text-xl">{itemName}</h2>
