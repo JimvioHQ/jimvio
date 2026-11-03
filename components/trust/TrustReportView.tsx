@@ -141,7 +141,7 @@ function platformName(url: string | null): string {
 function isSocialMediaUrl(url: string | null): boolean {
   if (!url) return false;
   try {
-    const host = new URL(url).hostname.toLowerCase().replace(/^www\\./, "");
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
     const domains = [
       "youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "fb.watch",
       "x.com", "twitter.com", "threads.net", "threads.com", "linkedin.com", "reddit.com",
