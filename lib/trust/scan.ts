@@ -51,6 +51,9 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   const ctx = link?.context ?? null;
   const finalUrl = ctx?.chain.final ? new URL(ctx.chain.final.url) : (ctx?.url ?? null);
 
+  const ctx = link?.context ?? null;
+  const finalUrl = ctx?.chain.final ? new URL(ctx.chain.final.url) : (ctx?.url ?? null);
+
   // URL-only submissions run only Scam & Malicious Link Detection.
   // Other verification tools remain available for uploaded files.
   if (!fileInfo) {
