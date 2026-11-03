@@ -51,38 +51,47 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   const ctx = link?.context ?? null;
   const finalUrl = ctx?.chain.final ? new URL(ctx.chain.final.url) : (ctx?.url ?? null);
 
-  // 2. Engagement.
-  checkers.engagement = await checkEngagement(ctx?.url ?? null, req.userId);
-
-  // 3. Digital product.
-  const pageIsProduct = Boolean(ctx?.html && readProductPage(ctx.html).isProduct && !socialPlatform(ctx.url));
-  const fileIsProduct = Boolean(fileInfo && PRODUCT_KINDS.has(fileInfo.type.kind));
-  checkers.product =
-    fileIsProduct || pageIsProduct
-      ? await checkProduct(
-          {
-            file: fileIsProduct ? fileInfo : null,
-            page: pageIsProduct && ctx?.html && finalUrl ? { url: finalUrl, html: ctx.html, domainAgeDays: ctx.domainAgeDays } : null,
-          },
-          "",
-        )
-      : emptyChecker("product", "Upload an ebook, template, course file or software, or paste a product page, to verify a digital product.");
-
-  // 4. Media: uploaded media, or media served directly at the link.
-  let mediaInput: Parameters<typeof checkMedia>[0] = null;
-  if (fileInfo && MEDIA_KINDS.has(fileInfo.type.kind)) {
-    mediaInput = { buf: fileInfo.buf, name: fileInfo.name, type: fileInfo.type, origin: "upload" };
-  } else if (ctx?.chain.final && /^(image|video|audio)\//i.test(ctx.contentType) && !ctx.chain.final.truncated) {
-    const t = sniffType(ctx.chain.final.body, finalUrl?.pathname ?? "");
-    if (MEDIA_KINDS.has(t.kind)) mediaInput = { buf: ctx.chain.final.body, name: finalUrl?.pathname ?? "media", type: t, origin: "url" };
+  // URL-only submissions run only Scam & Malicious Link Detection.
+  // Other verification tools remain available for uploaded files.
+  if (!fileInfo) {
+    checkers.engagement = emptyChecker("engagement", "Not run: this scan is focused on Scam & Malicious Link Detection.");
+    checkers.product = emptyChecker("product", "Not run: this scan is focused on Scam & Malicious Link Detection.");
+    checkers.media = emptyChecker("media", "Not run: this scan is focused on Scam & Malicious Link Detection.");
+  } else {
+    // 2. Engagement.
+    checkers.engagement = await checkEngagement(ctx?.url ?? null, req.userId);
+  
+    // 3. Digital product.
+    const pageIsProduct = Boolean(ctx?.html && readProductPage(ctx.html).isProduct && !socialPlatform(ctx.url));
+    const fileIsProduct = Boolean(fileInfo && PRODUCT_KINDS.has(fileInfo.type.kind));
+    checkers.product =
+      fileIsProduct || pageIsProduct
+        ? await checkProduct(
+            {
+              file: fileIsProduct ? fileInfo : null,
+              page: pageIsProduct && ctx?.html && finalUrl ? { url: finalUrl, html: ctx.html, domainAgeDays: ctx.domainAgeDays } : null,
+            },
+            "",
+          )
+        : emptyChecker("product", "Upload an ebook, template, course file or software, or paste a product page, to verify a digital product.");
+  
+    // 4. Media: uploaded media, or media served directly at the link.
+    let mediaInput: Parameters<typeof checkMedia>[0] = null;
+    if (fileInfo && MEDIA_KINDS.has(fileInfo.type.kind)) {
+      mediaInput = { buf: fileInfo.buf, name: fileInfo.name, type: fileInfo.type, origin: "upload" };
+    } else if (ctx?.chain.final && /^(image|video|audio)\//i.test(ctx.contentType) && !ctx.chain.final.truncated) {
+      const t = sniffType(ctx.chain.final.body, finalUrl?.pathname ?? "");
+      if (MEDIA_KINDS.has(t.kind)) mediaInput = { buf: ctx.chain.final.body, name: finalUrl?.pathname ?? "media", type: t, origin: "url" };
+    }
+    const mediaReason = ctx && socialPlatform(ctx.url)
+      ? "Upload the image, video or audio file itself: platforms don't let anyone download the original from a post link."
+      : ctx?.chain.final?.truncated && /^(image|video|audio)\//i.test(ctx.contentType)
+        ? "The media at this link is too large to fetch. Upload the file instead (up to 4.2 MiB)."
+        : "Upload an image, video or audio file to check for AI generation, edits, provenance and reuse.";
+    const media = await checkMedia(mediaInput, mediaReason);
+    checkers.media = media.result;
+  
   }
-  const mediaReason = ctx && socialPlatform(ctx.url)
-    ? "Upload the image, video or audio file itself: platforms don't let anyone download the original from a post link."
-    : ctx?.chain.final?.truncated && /^(image|video|audio)\//i.test(ctx.contentType)
-      ? "The media at this link is too large to fetch. Upload the file instead (up to 4.2 MiB)."
-      : "Upload an image, video or audio file to check for AI generation, edits, provenance and reuse.";
-  const media = await checkMedia(mediaInput, mediaReason);
-  checkers.media = media.result;
 
   // A social post or channel is mainly an engagement question: show that first.
   const isSocial = Boolean(ctx && socialPlatform(ctx.url));
