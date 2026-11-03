@@ -333,7 +333,7 @@ describe("editorial research", () => {
     assert.doesNotMatch(view, /Source:/);
     assert.match(readFileSync(join(root, "lib/editorial/public-store.ts"), "utf8"), /internalLinksOnly: true/);
     assert.match(view, /splitHeroCaption/);
-    assert.match(view, /sm:text-\[3rem\]/);
+    assert.match(view, /lg:text-\[3rem\]/);
     assert.match(view, /max-w-\[72ch\]/);
     assert.match(css, /\.body a[\s\S]*#fd5000/);
     assert.match(css, /\.body a:focus-visible/);
