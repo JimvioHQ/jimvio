@@ -153,7 +153,7 @@ function safeExternalUrl(url: string | null): string | null {
 }
 
 
-function MaliciousLinkReport({ report, checker }: { report: ScanReport; checker: CheckerResult }) {
+function MaliciousLinkReport({ report, checker, onRunAnother }: { report: ScanReport; checker: CheckerResult; onRunAnother?: () => void }) {
   const url = report.input.url;
   const checkedAt = new Date(report.createdAt);
   const checkedAtLabel = Number.isNaN(checkedAt.getTime()) ? "Time unavailable" : checkedAt.toLocaleString();
@@ -195,12 +195,15 @@ function MaliciousLinkReport({ report, checker }: { report: ScanReport; checker:
 
   return (
     <section className="mt-8 space-y-4 sm:space-y-5" aria-label="Scam and malicious link detection report">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldAlert className="h-7 w-7" /></span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Scam &amp; Malicious Link Detection</h2><span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">Detected</span></div>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">Security, reputation and risk analysis based on evidence available for this scan.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldAlert className="h-7 w-7" /></span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Scam &amp; Malicious Link Detection</h2><span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">Detected</span></div>
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">Security, reputation and risk analysis based on evidence available for this scan.</p>
+          </div>
         </div>
+        {onRunAnother ? <button type="button" onClick={onRunAnother} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"><RotateCcw className="h-4 w-4" /> New check</button> : null}
       </div>
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(260px,0.8fr)]">
         <div className="rounded-[24px] border border-rose-100 bg-[linear-gradient(120deg,#fff7f7,#fff0f1)] p-5 sm:p-6">
@@ -280,7 +283,7 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
 
   if (submittedUrl && (report.overall.level === "known_threat" || report.overall.level === "high_risk") && report.checkers.some((checker) => checker.id === "links" && (checker.status === "known_threat" || checker.status === "high_risk"))) {
     const linkChecker = report.checkers.find((checker) => checker.id === "links")!;
-    return <MaliciousLinkReport report={report} checker={linkChecker} />;
+    return <MaliciousLinkReport report={report} checker={linkChecker} onRunAnother={onRunAnother} />;
   }
 
   return (
