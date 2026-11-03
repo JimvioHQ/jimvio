@@ -100,6 +100,20 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
       }
       const st = item.statistics ?? {};
       const post = { views: n(st.viewCount), likes: n(st.likeCount), comments: n(st.commentCount), publishedAt: item.snippet?.publishedAt ?? null };
+      const channelId = String(item.snippet?.channelId ?? "");
+      const channelData = channelId ? await yt(userId, `channels?part=statistics,snippet&id=${encodeURIComponent(channelId)}`) : null;
+      const channelItem = (channelData?.items as Record<string, any>[] | undefined)?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const channelStats = channelItem?.statistics ?? {};
+      const channelSubscribers = channelStats.hiddenSubscriberCount ? null : n(channelStats.subscriberCount);
+      const channelViews = n(channelStats.viewCount);
+      const channelVideos = n(channelStats.videoCount);
+      const duration = String(item.contentDetails?.duration ?? "");
+      const durationParts = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(duration);
+      const durationLabel = durationParts
+        ? Number(durationParts[1] ?? 0) > 0
+          ? `${Number(durationParts[1])}:${String(Number(durationParts[2] ?? 0)).padStart(2, "0")}:${String(Number(durationParts[3] ?? 0)).padStart(2, "0")}`
+          : `${Number(durationParts[2] ?? 0)}:${String(Number(durationParts[3] ?? 0)).padStart(2, "0")}`
+        : null;
       const a = assessPost(post);
       const findings: Finding[] = a.signals.map((s) => ({ tone: s.tone, title: s.text, source: "YouTube Data API" }));
       const commentsJson = post.comments && post.comments > 0
@@ -131,6 +145,18 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
           { label: "Comments", value: fmt(post.comments) },
           { label: "Engagement", value: a.engagementRate == null ? "—" : `${(a.engagementRate * 100).toFixed(2)}%` },
           { label: "Views per day", value: fmt(a.viewsPerDay) },
+          { label: "Published", value: item.snippet?.publishedAt ? new Date(String(item.snippet.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
+          { label: "Category", value: String(item.snippet?.categoryId ?? "Not provided") },
+          { label: "Duration", value: durationLabel ?? "Not provided" },
+          { label: "Channel subscribers", value: channelSubscribers == null ? "Hidden / unavailable" : fmt(channelSubscribers) },
+          { label: "Channel total views", value: fmt(channelViews) },
+          { label: "Channel videos", value: fmt(channelVideos) },
+          { label: "Channel ID", value: channelId || "Not provided" },
+          { label: "Channel handle", value: String(channelItem?.snippet?.customUrl ?? "Not provided") },
+          { label: "Channel created", value: channelItem?.snippet?.publishedAt ? new Date(String(channelItem.snippet.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
+          { label: "Channel country", value: String(channelItem?.snippet?.country ?? "Not public") },
+          { label: "Video description", value: String(item.snippet?.description ?? "").trim().slice(0, 240) || "Not provided" },
+          { label: "Video visibility", value: String(item.status?.privacyStatus ?? "Not provided") },
         ],
         sources: ["YouTube Data API (public statistics)"],
         limits: ["Watch time, reach and audience details are private to the channel owner.", "One unusual ratio is a signal, not proof."],
