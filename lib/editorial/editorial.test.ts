@@ -618,7 +618,9 @@ describe("editorial lifecycle decisions", () => {
     assert.match(storyImage, /Jimvio Media/);
     assert.match(storyImage, /role="img"/);
     const homeView = read("components/editorial/home-view.tsx");
-    assert.match(homeView, /allStories\.slice\(0, 8\)/);
+    assert.match(homeView, /const latest = uniqueArticles\(/);
+    assert.match(homeView, /\], 6, usedLeadIds\)/);
+    assert.match(homeView, /latest\.map\(\(article\)/);
     assert.match(homeView, /section\.articles\.slice\(0, 2\)/);
     const presentation = read("components/editorial/presentation.tsx");
     assert.match(presentation, /aspect-\[16\/9\]/);
