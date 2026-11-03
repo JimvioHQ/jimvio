@@ -171,8 +171,12 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
     if (!submittedUrl) return null;
     try {
       const parsed = new URL(submittedUrl);
-      if (parsed.hostname === "youtu.be") return parsed.pathname.split("/").filter(Boolean)[0] ?? null;
-      return parsed.searchParams.get("v") ?? parsed.pathname.match(/\/(?:shorts|embed|live)\/([^/?#]+)/)?.[1] ?? null;
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+      if (host === "youtu.be") return parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+      if (host === "youtube.com" || host.endsWith(".youtube.com")) {
+        return parsed.searchParams.get("v") ?? parsed.pathname.match(/\/(?:shorts|embed|live)\/([^/?#]+)/)?.[1] ?? null;
+      }
+      return null;
     } catch { return null; }
   })();
   const thumbnail = videoId && /^[A-Za-z0-9_-]{6,20}$/.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
