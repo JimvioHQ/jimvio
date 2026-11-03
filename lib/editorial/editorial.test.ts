@@ -618,6 +618,7 @@ describe("editorial lifecycle decisions", () => {
     assert.match(storyImage, /Jimvio Media/);
     assert.match(storyImage, /role="img"/);
     const homeView = read("components/editorial/home-view.tsx");
+    // The current homepage composes six deduplicated latest stories after the lead cards.
     assert.match(homeView, /const latest = uniqueArticles\(/);
     assert.match(homeView, /\], 6, usedLeadIds\)/);
     assert.match(homeView, /latest\.map\(\(article\)/);
