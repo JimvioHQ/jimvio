@@ -1,9 +1,10 @@
 "use client";
 
 import {
-  AlertTriangle, BarChart3, Box, CheckCircle2, Clock3, ExternalLink,
-  FileCheck2, ImageIcon, Info, Link2, RotateCcw, ShieldAlert,
-  ShieldCheck, ShieldX, XCircle,
+  AlertTriangle, BarChart3, Bot, CheckCircle2, Clock3,
+  ExternalLink, Eye, FileCheck2, ImageIcon, Info, Link2, MessageCircle,
+  RotateCcw, ShieldAlert, ShieldCheck, ShieldX, ThumbsUp, Users, Video,
+  XCircle, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -11,108 +12,130 @@ import {
   type FindingTone, type OverallLevel, type ScanReport,
 } from "@/lib/trust/types";
 
-const ICONS: Record<CheckerId, React.ComponentType<{ className?: string }>> = {
-  links: Link2, engagement: BarChart3, product: Box, media: ImageIcon,
+const ICONS: Record<CheckerId, LucideIcon> = {
+  links: Link2, engagement: BarChart3, product: FileCheck2, media: ImageIcon,
 };
 
 const LEVEL: Record<OverallLevel, {
   label: string; description: string; surface: string; accent: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon; mark: string;
 }> = {
-  known_threat: { label: "Known threat detected", description: "A threat match was returned by an available source. Do not open, download or pay.", surface: "border-rose-200 bg-rose-50", accent: "text-rose-800", icon: ShieldX },
-  high_risk: { label: "High risk", description: "Strong warning signals were found. Avoid interacting until the evidence has been reviewed.", surface: "border-rose-200 bg-rose-50", accent: "text-rose-800", icon: ShieldX },
-  suspicious: { label: "Suspicious signals", description: "Some signals need attention. This is not, by itself, proof of malicious activity.", surface: "border-amber-200 bg-amber-50", accent: "text-amber-900", icon: ShieldAlert },
-  low_risk: { label: "Low risk signals", description: "The checks completed did not return known threats or strong warnings. This is not a guarantee of safety.", surface: "border-emerald-200 bg-emerald-50", accent: "text-emerald-900", icon: ShieldCheck },
-  inconclusive: { label: "Not enough evidence", description: "Jimvio could not gather enough evidence for a reliable assessment. Do not interpret missing data as safe.", surface: "border-slate-200 bg-slate-50", accent: "text-slate-800", icon: Info },
+  known_threat: { label: "Known threat detected", description: "A threat match was returned by an available source. Do not open, download or pay.", surface: "border-rose-200 bg-rose-50", accent: "text-rose-800", icon: ShieldX, mark: "bg-rose-100 text-rose-700" },
+  high_risk: { label: "High risk", description: "Strong warning signals were found. Avoid interacting until the evidence has been reviewed.", surface: "border-rose-200 bg-rose-50", accent: "text-rose-800", icon: ShieldX, mark: "bg-rose-100 text-rose-700" },
+  suspicious: { label: "Suspicious signals", description: "Some signals need attention. This is not, by itself, proof of malicious activity.", surface: "border-amber-200 bg-amber-50", accent: "text-amber-900", icon: ShieldAlert, mark: "bg-amber-100 text-amber-800" },
+  low_risk: { label: "Likely low risk", description: "No known threats or strong warning signals were returned by the checks completed. This is not a guarantee of safety.", surface: "border-emerald-200 bg-emerald-50", accent: "text-emerald-800", icon: ShieldCheck, mark: "bg-emerald-100 text-emerald-700" },
+  inconclusive: { label: "Not enough evidence", description: "Jimvio could not gather enough evidence for a reliable assessment. Missing data is not proof of safety.", surface: "border-slate-200 bg-slate-50", accent: "text-slate-800", icon: Info, mark: "bg-slate-100 text-slate-600" },
 };
 
-const STATUS: Record<CheckerStatus, { label: string; cls: string }> = {
-  known_threat: { label: "Threat found", cls: "bg-rose-50 text-rose-700 ring-rose-200" },
-  high_risk: { label: "High risk", cls: "bg-rose-50 text-rose-700 ring-rose-200" },
-  suspicious: { label: "Suspicious", cls: "bg-amber-50 text-amber-800 ring-amber-200" },
-  evidence_found: { label: "Evidence found", cls: "bg-amber-50 text-amber-800 ring-amber-200" },
-  low_risk: { label: "Low risk", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-  inconclusive: { label: "Inconclusive", cls: "bg-slate-100 text-slate-700 ring-slate-200" },
-  unavailable: { label: "Unavailable", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
-  not_applicable: { label: "Not checked", cls: "bg-slate-50 text-slate-500 ring-slate-200" },
+const STATUS: Record<CheckerStatus, { label: string; cls: string; icon: LucideIcon }> = {
+  known_threat: { label: "Threat found", cls: "bg-rose-50 text-rose-700", icon: ShieldX },
+  high_risk: { label: "High risk", cls: "bg-rose-50 text-rose-700", icon: ShieldX },
+  suspicious: { label: "Suspicious", cls: "bg-amber-50 text-amber-800", icon: AlertTriangle },
+  evidence_found: { label: "Evidence found", cls: "bg-amber-50 text-amber-800", icon: Info },
+  low_risk: { label: "Low risk", cls: "bg-emerald-50 text-emerald-700", icon: CheckCircle2 },
+  inconclusive: { label: "Inconclusive", cls: "bg-slate-100 text-slate-700", icon: Info },
+  unavailable: { label: "Unavailable", cls: "bg-slate-100 text-slate-600", icon: Info },
+  not_applicable: { label: "Not checked", cls: "bg-slate-100 text-slate-500", icon: Info },
 };
 
-const TONE: Record<FindingTone, { cls: string; icon: React.ComponentType<{ className?: string }> }> = {
+const TONE: Record<FindingTone, { cls: string; icon: LucideIcon }> = {
   good: { cls: "text-emerald-700", icon: CheckCircle2 },
   info: { cls: "text-slate-600", icon: Info },
   warn: { cls: "text-amber-700", icon: AlertTriangle },
   bad: { cls: "text-rose-700", icon: XCircle },
 };
 
-function CheckerCard({ checker }: { checker: CheckerResult }) {
+type Metric = { label: string; value: string };
+const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+function getMetric(metrics: Metric[], aliases: string[]): string | null {
+  const match = metrics.find((metric) => aliases.includes(normalize(metric.label)));
+  return match?.value ?? null;
+}
+
+function available(value: string | null): value is string {
+  return Boolean(value && value.trim() && !/^(—|-|not available(?: from .*)?|unavailable|hidden)$/i.test(value.trim()));
+}
+
+function MetricTile({ label, value, icon: Icon, tone, note }: {
+  label: string; value: string | null; icon: LucideIcon; tone: string; note?: string;
+}) {
+  const hasValue = available(value);
+  return (
+    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white px-3 py-3 shadow-[0_2px_10px_rgba(15,23,42,0.025)] sm:px-4">
+      <div className="flex items-center gap-2">
+        <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-xl", tone)}><Icon className="h-4 w-4" /></span>
+        <p className="min-w-0 truncate text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+      </div>
+      <p className={cn("mt-2 truncate text-lg font-black tracking-tight sm:text-xl", hasValue ? "text-slate-950" : "text-slate-400")} title={value ?? "Not available"}>
+        {hasValue ? value : "Not available"}
+      </p>
+      {note ? <p className="mt-0.5 text-[10px] text-slate-400">{note}</p> : null}
+    </div>
+  );
+}
+
+function CheckerRow({ checker }: { checker: CheckerResult }) {
   const Icon = ICONS[checker.id];
   const status = STATUS[checker.status];
-  const muted = checker.status === "unavailable";
+  const StatusIcon = status.icon;
+  const primaryFinding = checker.findings[0];
+  const moreFindings = checker.findings.slice(1);
   return (
-    <article className={cn("min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.035)] sm:p-6", muted && "bg-slate-50/70")}>
-      <div className="flex items-start gap-3">
-        <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", muted ? "bg-slate-100 text-slate-500" : "bg-orange-50 text-[#F15A24]")}>
+    <details className="group border-b border-slate-100 last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 transition hover:bg-slate-50/80 sm:px-5 [&::-webkit-details-marker]:hidden">
+        <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", checker.status === "unavailable" || checker.status === "inconclusive" ? "bg-slate-100 text-slate-500" : "bg-orange-50 text-[#F15A24]")}>
           <Icon className="h-5 w-5" />
         </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-extrabold text-slate-900">{CHECKER_LABELS[checker.id]}</h3>
-            <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold ring-1 ring-inset", status.cls)}>{status.label}</span>
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-extrabold text-slate-900">{CHECKER_LABELS[checker.id]}</span>
+            <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold", status.cls)}>{status.label}</span>
+          </span>
+          <span className="mt-1 block text-xs leading-5 text-slate-500">{checker.summary}</span>
+        </span>
+        <span className="ml-1 text-slate-400 transition group-open:rotate-90"><span className="text-lg">›</span></span>
+      </summary>
+      <div className="space-y-4 bg-slate-50/60 px-4 pb-4 pt-1 sm:px-5">
+        {checker.metrics.length > 0 ? (
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {checker.metrics.map((metric) => <div key={metric.label} className="min-w-0 rounded-xl border border-slate-100 bg-white px-3 py-2"><dt className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{metric.label}</dt><dd className="mt-1 break-words text-xs font-bold text-slate-800">{metric.value}</dd></div>)}
+          </dl>
+        ) : null}
+        {checker.findings.length > 0 ? (
+          <div>
+            <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.1em] text-slate-400">Evidence</p>
+            <ul className="space-y-3">
+              {[primaryFinding, ...moreFindings].map((finding, index) => {
+                const tone = TONE[finding.tone]; const FindingIcon = tone.icon;
+                return <li key={`${finding.source}-${finding.title}-${index}`} className="flex gap-2.5"><FindingIcon className={cn("mt-0.5 h-4 w-4 shrink-0", tone.cls)} /><div className="min-w-0"><p className={cn("text-xs font-bold", tone.cls)}>{finding.title}</p>{finding.detail ? <p className="mt-1 text-xs leading-5 text-slate-600">{finding.detail}</p> : null}<p className="mt-1 text-[10px] text-slate-400">Source: {finding.source}</p></div></li>;
+              })}
+            </ul>
           </div>
-          <p className="mt-1.5 text-xs leading-5 text-slate-600">{checker.summary}</p>
-        </div>
+        ) : null}
+        {checker.limits.length > 0 ? <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">What could not be verified</p><ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">{checker.limits.map((limit) => <li key={limit}>{limit}</li>)}</ul></div> : null}
+        {checker.sources.length > 0 ? <p className="text-[10px] text-slate-400">Sources: {checker.sources.join(" · ")}</p> : null}
       </div>
-
-      {checker.metrics.length > 0 ? (
-        <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {checker.metrics.map((metric) => (
-            <div key={metric.label} className="min-w-0 rounded-xl bg-slate-50 px-3 py-2.5">
-              <dt className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-500">{metric.label}</dt>
-              <dd className="mt-1 break-words text-[13px] font-bold text-slate-900" title={metric.value}>{metric.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-
-      {checker.findings.length > 0 ? (
-        <div className="mt-5 border-t border-slate-100 pt-4">
-          <h4 className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">Key findings</h4>
-          <ul className="mt-3 space-y-3">
-            {checker.findings.map((finding, index) => {
-              const tone = TONE[finding.tone];
-              return (
-                <li key={`${finding.source}-${finding.title}-${index}`} className="flex gap-2.5">
-                  <tone.icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone.cls)} aria-hidden="true" />
-                  <div className="min-w-0">
-                    <p className={cn("text-xs font-bold", finding.tone === "info" ? "text-slate-800" : tone.cls)}>{finding.title}</p>
-                    {finding.detail ? <p className="mt-1 break-words text-xs leading-5 text-slate-600">{finding.detail}</p> : null}
-                    <p className="mt-1 text-[10px] text-slate-400">Source: {finding.source}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-
-      {checker.nextSteps.length > 0 ? (
-        <div className="mt-4 rounded-xl border border-orange-100 bg-orange-50/60 p-3.5">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#D94B16]">What to do next</p>
-          <ul className="mt-2 space-y-1.5 pl-4 text-xs leading-5 text-slate-700 marker:text-[#FF5A1F]">
-            {checker.nextSteps.map((step) => <li key={step} className="list-disc">{step}</li>)}
-          </ul>
-        </div>
-      ) : null}
-
-      {(checker.limits.length > 0 || checker.sources.length > 0) ? (
-        <details className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
-          <summary className="cursor-pointer font-semibold text-slate-600">Verification details and limitations</summary>
-          {checker.limits.length > 0 ? <div className="mt-3"><p className="font-bold text-slate-700">Could not verify</p><ul className="mt-1 list-disc space-y-1 pl-4">{checker.limits.map((limit) => <li key={limit}>{limit}</li>)}</ul></div> : null}
-          {checker.sources.length > 0 ? <p className="mt-3 leading-5"><span className="font-bold text-slate-700">Sources:</span> {checker.sources.join(" · ")}</p> : null}
-        </details>
-      ) : null}
-    </article>
+    </details>
   );
+}
+
+function platformName(url: string | null): string {
+  if (!url) return "Uploaded file";
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be" || host.endsWith("youtube.com")) return "YouTube video";
+    if (host.endsWith("tiktok.com")) return "TikTok post";
+    if (host.endsWith("instagram.com")) return "Instagram post";
+    if (host === "x.com" || host.endsWith("twitter.com")) return "X post";
+    return "Website";
+  } catch { return "Submitted link"; }
+}
+
+function safeExternalUrl(url: string | null): string | null {
+  if (!url) return null;
+  try { const parsed = new URL(url); return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.toString() : null; }
+  catch { return null; }
 }
 
 export function TrustReportView({ report, onRunAnother }: { report: ScanReport; onRunAnother?: () => void }) {
@@ -120,64 +143,96 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
   const LevelIcon = level.icon;
   const ran = report.checkers.filter((checker) => checker.status !== "not_applicable");
   const skipped = report.checkers.filter((checker) => checker.status === "not_applicable");
+  const engagement = report.checkers.find((checker) => checker.id === "engagement");
+  const metrics = engagement?.metrics ?? [];
   const checkedAt = new Date(report.createdAt);
   const checkedAtLabel = Number.isNaN(checkedAt.getTime()) ? "Time unavailable" : checkedAt.toLocaleString();
+  const title = getMetric(metrics, ["video"]);
+  const channel = getMetric(metrics, ["channel", "author"]);
+  const subscribers = getMetric(metrics, ["subscribers"]);
+  const views = getMetric(metrics, ["public views youtube", "public views", "total views"]);
+  const realViews = getMetric(metrics, ["verified real views", "real views"]);
+  const botViews = getMetric(metrics, ["detected fake bot views", "bot fake views", "fake views", "bot views"]);
+  const likes = getMetric(metrics, ["likes"]);
+  const comments = getMetric(metrics, ["comments"]);
+  const engagementRate = getMetric(metrics, ["engagement"]);
+  const steps = report.checkers.flatMap((checker) => checker.nextSteps).slice(0, 3);
+  const submittedUrl = report.input.url;
+  const externalUrl = safeExternalUrl(submittedUrl);
+  const itemName = title && available(title) ? title : report.input.file?.name ?? platformName(submittedUrl);
 
   return (
-    <section className="mt-8 space-y-5" aria-label="Trust check results">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#F15A24]">Trust report</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Scan result</h2>
+    <section className="mt-8 space-y-4 sm:space-y-5" aria-label="Trust check results">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          <span className="grid h-8 w-8 place-items-center rounded-xl bg-orange-50 text-[#F15A24]"><ShieldCheck className="h-4 w-4" /></span>
+          <span>Trust Checker</span><span className="text-slate-300">/</span><span className="text-slate-900">Scan result</span>
         </div>
-        {onRunAnother ? <button type="button" onClick={onRunAnother} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50"><RotateCcw className="h-4 w-4" /> New scan</button> : null}
+        <div className="flex items-center gap-2">
+          <span className="hidden text-[11px] text-slate-400 sm:inline">{checkedAtLabel}</span>
+          {onRunAnother ? <button type="button" onClick={onRunAnother} className="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"><RotateCcw className="h-4 w-4" /> New check</button> : null}
+        </div>
       </div>
 
-      <div className={cn("rounded-2xl border p-5 sm:p-7", level.surface)}>
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white shadow-sm"><LevelIcon className={cn("h-6 w-6", level.accent)} /></span>
+      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.035)]">
+        <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(250px,0.8fr)] lg:items-center lg:gap-7">
+          <div className="flex min-w-0 items-center gap-4">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><Video className="h-7 w-7" /></span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-500">Overall assessment</p>
-              <h3 className={cn("mt-1 text-2xl font-black tracking-tight sm:text-[28px]", level.accent)}>{level.label}</h3>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700">{report.overall.headline}</p>
-              <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600">{level.description}</p>
+              <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F15A24]"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F]" /> {platformName(submittedUrl)}</p>
+              <h2 className="mt-1 line-clamp-2 break-words text-lg font-black leading-snug tracking-tight text-slate-950 sm:text-xl">{itemName}</h2>
+              {channel && available(channel) ? <p className="mt-1 text-xs font-semibold text-slate-700">{channel}{subscribers && available(subscribers) ? <span className="font-normal text-slate-500"> · {subscribers} subscribers</span> : null}</p> : null}
+              {externalUrl ? <a href={externalUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex max-w-full items-center gap-1 break-all text-[11px] font-medium text-blue-700 hover:underline">{submittedUrl} <ExternalLink className="h-3 w-3 shrink-0" /></a> : report.input.file ? <p className="mt-2 text-[11px] text-slate-500">{report.input.file.type || "File"} · {(report.input.file.size / 1024).toFixed(0)} KB</p> : null}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:w-[210px]">
-            <div className="rounded-xl border border-white/80 bg-white/80 p-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Checks run</p><p className="mt-1 text-xl font-black text-slate-900">{ran.length}</p></div>
-            <div className="rounded-xl border border-white/80 bg-white/80 p-3"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Duration</p><p className="mt-1 text-xl font-black text-slate-900">{Number.isFinite(report.durationMs) ? `${(report.durationMs / 1000).toFixed(1)}s` : "—"}</p></div>
-            <div className="col-span-2 rounded-xl bg-white/70 px-3 py-2.5"><p className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-slate-500"><Clock3 className="h-3 w-3" /> Checked</p><p className="mt-1 text-xs font-semibold text-slate-800">{checkedAtLabel}</p></div>
+          <div className={cn("flex min-w-0 items-center gap-4 rounded-2xl border p-4", level.surface)}>
+            <span className={cn("grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/90 shadow-sm", level.accent)}><LevelIcon className="h-7 w-7" /></span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Trust assessment</p>
+              <h3 className={cn("mt-1 text-xl font-black tracking-tight sm:text-2xl", level.accent)}>{level.label}</h3>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{report.overall.headline}</p>
+            </div>
           </div>
         </div>
       </div>
 
-      {(report.input.url || report.input.file) ? (
-        <div className="flex min-w-0 items-start gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <FileCheck2 className="mt-0.5 h-4 w-4 shrink-0 text-[#F15A24]" />
-          <div className="min-w-0"><p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">Checked item</p>
-            {report.input.url ? (() => {
-              let safeHref: string | null = null;
-              try { const parsed = new URL(report.input.url!); if (parsed.protocol === "http:" || parsed.protocol === "https:") safeHref = parsed.toString(); } catch { /* Keep malformed input as plain text. */ }
-              return safeHref ? <a href={safeHref} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 break-all text-xs font-semibold text-slate-800 underline decoration-orange-200 underline-offset-2 hover:text-[#E84B16]">{report.input.url} <ExternalLink className="h-3 w-3 shrink-0" /></a> : <p className="mt-1 break-all text-xs font-semibold text-slate-800">{report.input.url}</p>;
-            })() : null}
-            {report.input.file ? <p className="mt-1 break-words text-xs font-semibold text-slate-800">{report.input.file.name} <span className="font-normal text-slate-500">· {report.input.file.type} · {report.input.file.size.toLocaleString()} bytes</span></p> : null}
-          </div>
+      {engagement ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <MetricTile label="Total views" value={views} icon={Eye} tone="bg-blue-50 text-blue-700" />
+          <MetricTile label="Real views" value={realViews} icon={Users} tone="bg-emerald-50 text-emerald-700" note="Verified only" />
+          <MetricTile label="Bot / fake views" value={botViews} icon={Bot} tone="bg-rose-50 text-rose-700" note="Detected only" />
+          <MetricTile label="Likes" value={likes} icon={ThumbsUp} tone="bg-emerald-50 text-emerald-700" />
+          <MetricTile label="Comments" value={comments} icon={MessageCircle} tone="bg-blue-50 text-blue-700" />
+          <MetricTile label="Engagement" value={engagementRate} icon={BarChart3} tone="bg-orange-50 text-[#F15A24]" />
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-3"><h3 className="text-base font-extrabold text-slate-900">Verification findings</h3><span className="text-[11px] font-medium text-slate-500">{ran.length} applicable {ran.length === 1 ? "check" : "checks"}</span></div>
-      <div className="grid gap-4 xl:grid-cols-2">{ran.map((checker) => <CheckerCard key={checker.id} checker={checker} />)}</div>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.9fr)]">
+        <section className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_4px_18px_rgba(15,23,42,0.025)]">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-4 sm:px-5">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-50 text-[#F15A24]"><ShieldCheck className="h-5 w-5" /></span>
+            <div><h3 className="text-base font-black tracking-tight text-slate-950">Verification results</h3><p className="mt-0.5 text-[11px] text-slate-500">{ran.length} applicable checks</p></div>
+          </div>
+          <div>{ran.map((checker) => <CheckerRow key={checker.id} checker={checker} />)}</div>
+          {skipped.length > 0 ? <div className="border-t border-slate-100 px-4 py-3 sm:px-5"><details className="text-xs text-slate-500"><summary className="cursor-pointer font-semibold text-slate-600">Checks not applicable ({skipped.length})</summary><ul className="mt-2 space-y-2">{skipped.map((checker) => <li key={checker.id}><strong className="text-slate-700">{CHECKER_LABELS[checker.id]}:</strong> {checker.summary}</li>)}</ul></details></div> : null}
+        </section>
 
-      {skipped.length > 0 ? (
-        <details className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
-          <summary className="cursor-pointer font-semibold text-slate-700">Checks not applicable to this item ({skipped.length})</summary>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {skipped.map((checker) => { const Icon = ICONS[checker.id]; return <li key={checker.id} className="flex gap-2 rounded-lg bg-slate-50 p-3"><Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /><span><strong className="text-slate-700">{CHECKER_LABELS[checker.id]}</strong><span className="mt-0.5 block leading-5">{checker.summary}</span></span></li>; })}
-          </ul>
-        </details>
-      ) : null}
-      <p className="text-center text-[11px] leading-5 text-slate-400">This assessment reflects evidence available at scan time. Low risk does not guarantee safety.</p>
+        <div className="space-y-4">
+          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_4px_18px_rgba(15,23,42,0.025)] sm:p-5">
+            <div className="flex items-center gap-2"><Info className="h-5 w-5 text-slate-700" /><h3 className="text-base font-black tracking-tight text-slate-950">Item information</h3></div>
+            <dl className="mt-3 divide-y divide-slate-100">
+              <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Platform</dt><dd className="text-right text-xs font-bold text-slate-800">{platformName(submittedUrl)}</dd></div>
+              {channel && available(channel) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel / creator</dt><dd className="max-w-[65%] truncate text-right text-xs font-bold text-slate-800">{channel}</dd></div> : null}
+              {subscribers && available(subscribers) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Subscribers</dt><dd className="text-right text-xs font-bold text-slate-800">{subscribers}</dd></div> : null}
+              <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Checked</dt><dd className="text-right text-xs font-bold text-slate-800">{checkedAtLabel}</dd></div>
+              <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Duration</dt><dd className="text-right text-xs font-bold text-slate-800">{Number.isFinite(report.durationMs) ? `${(report.durationMs / 1000).toFixed(1)}s` : "—"}</dd></div>
+            </dl>
+          </section>
+
+          {steps.length > 0 ? <section className="rounded-[22px] border border-orange-100 bg-[linear-gradient(145deg,#FFF9F4,#FFF2E9)] p-4 sm:p-5"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#FF5A1F] text-white"><Info className="h-5 w-5" /></span><h3 className="text-base font-black tracking-tight text-[#D94B16]">Recommended next steps</h3></div><ul className="mt-3 space-y-2 pl-4 text-xs leading-5 text-slate-700 marker:text-[#F15A24]">{steps.map((step) => <li key={step} className="list-disc">{step}</li>)}</ul></section> : null}
+        </div>
+      </div>
+      <p className="text-center text-[11px] leading-5 text-slate-400">Results reflect evidence available at scan time. Real and bot-view counts are shown only when a trusted source provides them; unavailable data is never estimated.</p>
     </section>
   );
 }
