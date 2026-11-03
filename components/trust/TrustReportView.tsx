@@ -3,7 +3,7 @@
 import {
   AlertTriangle, BarChart3, Bot, CheckCircle2, Clock3,
   CalendarDays, ExternalLink, Eye, FileCheck2, ImageIcon, Info, Link2, MessageCircle,
-  RotateCcw, ShieldAlert, ShieldCheck, ShieldX, ThumbsUp, Users, Video,
+  RotateCcw, ShieldAlert, ShieldCheck, ShieldX, ThumbsUp, Users, Video, Globe2,
   XCircle, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -128,8 +128,27 @@ function platformName(url: string | null): string {
     if (host.endsWith("tiktok.com")) return "TikTok post";
     if (host.endsWith("instagram.com")) return "Instagram post";
     if (host === "x.com" || host.endsWith("twitter.com")) return "X post";
+    if (host === "facebook.com" || host === "fb.watch") return "Facebook post";
+    if (host === "linkedin.com") return "LinkedIn post";
+    if (host === "threads.net" || host === "threads.com") return "Threads post";
+    if (host === "reddit.com") return "Reddit post";
+    if (host === "pinterest.com") return "Pinterest pin";
+    if (host === "snapchat.com") return "Snapchat post";
     return "Website";
   } catch { return "Submitted link"; }
+}
+
+function isSocialMediaUrl(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\\./, "");
+    const domains = [
+      "youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "fb.watch",
+      "x.com", "twitter.com", "threads.net", "threads.com", "linkedin.com", "reddit.com",
+      "pinterest.com", "snapchat.com",
+    ];
+    return domains.some((domain) => host === domain || host.endsWith(`.${domain}`));
+  } catch { return false; }
 }
 
 function safeExternalUrl(url: string | null): string | null {
@@ -160,6 +179,8 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
   const uniqueSteps = [...new Set(allSteps)].filter((step) => !(/address bar/i.test(step) && Boolean(report.input.url && /youtube|tiktok|instagram|x\.com|twitter/i.test(report.input.url))));
   const steps = uniqueSteps.slice(0, 4);
   const submittedUrl = report.input.url;
+  const socialMediaLink = isSocialMediaUrl(submittedUrl);
+  const sourceIcon = socialMediaLink ? Video : Globe2;
   const externalUrl = safeExternalUrl(submittedUrl);
   const itemName = title && available(title) ? title : report.input.file?.name ?? platformName(submittedUrl);
   const metricMap = new Map(metrics.map((metric) => [normalize(metric.label), metric.value]));
@@ -197,9 +218,9 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
       <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.035)]">
         <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(250px,0.8fr)] lg:items-center lg:gap-7">
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-            {thumbnail ? <a href={externalUrl ?? undefined} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 bg-cover bg-center transition duration-300 hover:brightness-95" style={{ backgroundImage: `url("${thumbnail}")` }} aria-label="Open source video"><span className="absolute inset-0 grid place-items-center bg-slate-950/10 text-white"><span className="grid h-11 w-11 place-items-center rounded-full bg-slate-950/65"><Video className="h-5 w-5" /></span></span>{duration && available(duration) ? <span className="absolute bottom-2 right-2 rounded bg-slate-950/85 px-2 py-1 text-[10px] font-bold text-white">{duration}</span> : null}</a> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><Video className="h-7 w-7" /></span>}
+            {thumbnail ? <a href={externalUrl ?? undefined} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 bg-cover bg-center transition duration-300 hover:brightness-95" style={{ backgroundImage: `url("${thumbnail}")` }} aria-label="Open source video"><span className="absolute inset-0 grid place-items-center bg-slate-950/10 text-white"><span className="grid h-11 w-11 place-items-center rounded-full bg-slate-950/65"><Video className="h-5 w-5" /></span></span>{duration && available(duration) ? <span className="absolute bottom-2 right-2 rounded bg-slate-950/85 px-2 py-1 text-[10px] font-bold text-white">{duration}</span> : null}</a> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><sourceIcon className="h-7 w-7" /></span>}
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F15A24]"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F]" /> {platformName(submittedUrl)}</p>
+              <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F15A24]"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F]" /> {platformName(submittedUrl)} detected</p>
               <h2 className="mt-1 line-clamp-2 break-words text-lg font-black leading-snug tracking-tight text-slate-950 sm:text-xl">{itemName}</h2>
               {channel && available(channel) ? <p className="mt-1 text-xs font-semibold text-slate-700">{channel}{subscribers && available(subscribers) ? <span className="font-normal text-slate-500"> · {subscribers} subscribers</span> : null}</p> : null}
               {published && available(published) ? <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500"><CalendarDays className="h-3 w-3" /> Published {published}{category && available(category) ? <span> · Category ID {category}</span> : null}</p> : null}
@@ -217,7 +238,7 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
         </div>
       </div>
 
-      {engagement ? (
+      {engagement && socialMediaLink ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
           <MetricTile label="Total views" value={views} icon={Eye} tone="bg-blue-50 text-blue-700" />
           <MetricTile label="Real views" value={realViews} icon={Users} tone="bg-emerald-50 text-emerald-700" note="Verified only" />
@@ -268,7 +289,7 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
           </section>
         </div>
       </div>
-      <p className="text-center text-[11px] leading-5 text-slate-400">Results reflect evidence available at scan time. Real and bot-view counts are shown only when a trusted source provides them; unavailable data is never estimated.</p>
+      <p className="text-center text-[11px] leading-5 text-slate-400">{socialMediaLink ? "Results reflect evidence available at scan time. Real and bot-view counts are shown only when a trusted source provides them; unavailable data is never estimated." : "Website checks reflect publicly available safety signals. Visitor and traffic analytics remain private unless the site owner grants access."}</p>
     </section>
   );
 }
