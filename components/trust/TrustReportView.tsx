@@ -129,11 +129,7 @@ function platformName(url: string | null): string {
     if (host.endsWith("instagram.com")) return "Instagram post";
     if (host === "x.com" || host.endsWith("twitter.com")) return "X post";
     if (host === "facebook.com" || host === "fb.watch") return "Facebook post";
-    if (host === "linkedin.com") return "LinkedIn post";
     if (host === "threads.net" || host === "threads.com") return "Threads post";
-    if (host === "reddit.com") return "Reddit post";
-    if (host === "pinterest.com") return "Pinterest pin";
-    if (host === "snapchat.com") return "Snapchat post";
     return "Website";
   } catch { return "Submitted link"; }
 }
@@ -144,8 +140,7 @@ function isSocialMediaUrl(url: string | null): boolean {
     const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
     const domains = [
       "youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "fb.watch",
-      "x.com", "twitter.com", "threads.net", "threads.com", "linkedin.com", "reddit.com",
-      "pinterest.com", "snapchat.com",
+      "x.com", "twitter.com", "threads.net", "threads.com",
     ];
     return domains.some((domain) => host === domain || host.endsWith(`.${domain}`));
   } catch { return false; }
