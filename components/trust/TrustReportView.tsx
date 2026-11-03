@@ -168,7 +168,6 @@ function MaliciousLinkReport({ report, checker }: { report: ScanReport; checker:
   const redirectCount = metric("Redirects");
   const certificate = checker.findings.find((finding) => /certificate/i.test(finding.title));
   const pageFetchFailed = checker.findings.some((finding) => finding.title === "Could not open the page");
-  const pageWasFetched = hasSource("Safe page fetch") && !pageFetchFailed;
   const pageContentFindings = checker.findings.filter((finding) => /page content|content analysis|http headers/i.test(finding.source));
   const threatLabel = checker.status === "known_threat" ? "Known threat" : "High risk";
   const statusFor = (state: "detected" | "clean" | "review" | "available" | "unavailable") => ({
