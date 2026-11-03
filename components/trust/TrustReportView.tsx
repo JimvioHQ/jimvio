@@ -152,6 +152,90 @@ function safeExternalUrl(url: string | null): string | null {
   catch { return null; }
 }
 
+
+function MaliciousLinkReport({ report, checker, onRunAnother }: { report: ScanReport; checker: CheckerResult; onRunAnother?: () => void }) {
+  const url = report.input.url;
+  const checkedAt = new Date(report.createdAt);
+  const checkedAtLabel = Number.isNaN(checkedAt.getTime()) ? "Time unavailable" : checkedAt.toLocaleString();
+  const metric = (label: string) => checker.metrics.find((item) => normalize(item.label) === normalize(label))?.value ?? null;
+  const hasSource = (name: string) => checker.sources.some((source) => source.toLowerCase().includes(name.toLowerCase()));
+  const hasFinding = (pattern: RegExp) => checker.findings.some((finding) => pattern.test(finding.title + " " + (finding.detail ?? "")));
+  const webRiskMatch = checker.findings.some((finding) => finding.source === "Google Web Risk" && finding.tone === "bad");
+  const webRiskClean = checker.findings.some((finding) => finding.source === "Google Web Risk" && finding.tone === "good");
+  const phishingMatch = checker.findings.some((finding) => finding.source.toLowerCase().includes("phishing.database") && finding.tone === "bad");
+  const domainAge = metric("Domain age");
+  const registrar = metric("Registrar");
+  const serverIp = metric("Server IP");
+  const finalAddress = metric("Final address") ?? url;
+  const redirectCount = metric("Redirects");
+  const certificate = checker.findings.find((finding) => /certificate/i.test(finding.title));
+  const pageFetchFailed = checker.findings.some((finding) => finding.title === "Could not open the page");
+  const pageContentFindings = checker.findings.filter((finding) => /page content|content analysis|http headers/i.test(finding.source));
+  const threatLabel = checker.status === "known_threat" ? "Known threat" : "High risk";
+  const statusFor = (state: "detected" | "clean" | "review" | "available" | "unavailable") => ({
+    detected: { label: "Detected", cls: "bg-rose-50 text-rose-700" },
+    clean: { label: "No issue found", cls: "bg-emerald-50 text-emerald-700" },
+    review: { label: "Review", cls: "bg-amber-50 text-amber-800" },
+    available: { label: "Info available", cls: "bg-blue-50 text-blue-700" },
+    unavailable: { label: "Not available", cls: "bg-slate-100 text-slate-600" },
+  })[state];
+  const checks = [
+    { title: "URL & domain structure", description: "Checks the submitted address for deceptive patterns, unusual formatting and risky domain signals.", state: (hasFinding(/suspicious|deceptive|look.?alike|ip address|url shortener|unusual/i) ? "detected" : checker.findings.some((finding) => finding.source === "URL analysis" && (finding.tone === "warn" || finding.tone === "info")) ? "review" : "clean") as "detected" | "clean" | "review", evidence: checker.findings.filter((finding) => finding.source === "URL analysis"), source: "URL analysis" },
+    { title: "Malware & unsafe-site reputation", description: "Looks for malware, unwanted software and unsafe-site matches in connected threat intelligence.", state: (webRiskMatch || checker.findings.some((finding) => /downloads a program/i.test(finding.title)) ? "detected" : webRiskClean ? "clean" : "unavailable") as "detected" | "clean" | "unavailable", evidence: checker.findings.filter((finding) => finding.source === "Google Web Risk"), source: "Google Web Risk" },
+    { title: "Phishing & blacklist status", description: "Checks the domain against the active phishing list and available social-engineering threat signals.", state: (phishingMatch || checker.findings.some((finding) => finding.source === "Google Web Risk" && /social engineering/i.test(finding.detail ?? "")) ? "detected" : hasSource("Phishing.Database") ? "clean" : "unavailable") as "detected" | "clean" | "unavailable", evidence: checker.findings.filter((finding) => /phishing|social engineering|unsafe list/i.test(finding.title + " " + (finding.detail ?? ""))), source: "Phishing.Database · Google Web Risk" },
+    { title: "Redirect analysis", description: "Inspects the redirect path observed while safely requesting the submitted URL.", state: (hasFinding(/redirect/i) ? "review" : hasSource("Safe page fetch") && !pageFetchFailed ? "clean" : "unavailable") as "review" | "clean" | "unavailable", evidence: checker.findings.filter((finding) => /redirect/i.test(finding.title + " " + (finding.detail ?? ""))), source: "Safe page fetch" },
+    { title: "Domain age & registration", description: "Uses public RDAP registration data where the domain registry makes it available.", state: (domainAge || registrar ? hasFinding(/registered .* days ago/i) ? "review" : "available" : "unavailable") as "review" | "available" | "unavailable", evidence: checker.findings.filter((finding) => finding.source === "RDAP"), source: "RDAP" },
+    { title: "HTTPS & TLS certificate", description: "Checks certificate trust for the final HTTPS destination when a safe connection is available.", state: (certificate ? certificate.tone === "good" ? "clean" : "detected" : "unavailable") as "clean" | "detected" | "unavailable", evidence: certificate ? [certificate] : [], source: "TLS certificate" },
+    { title: "Website content signals", description: "Reviews safely fetched page content for suspicious patterns. Jimvio does not execute page scripts.", state: (pageContentFindings.some((finding) => finding.tone === "bad") ? "detected" : pageContentFindings.length ? "review" : "unavailable") as "detected" | "review" | "unavailable", evidence: pageContentFindings, source: "Safe page fetch · page heuristics" },
+    { title: "DNS & hosting information", description: "Shows the destination IP observed during the safe fetch. Hosting location and full DNS records are not inferred.", state: (serverIp ? "available" : "unavailable") as "available" | "unavailable", evidence: [], source: "Safe page fetch" },
+  ];
+  const findingCount = checker.findings.filter((finding) => finding.tone === "bad" || finding.tone === "warn").length;
+  const redirectValue = redirectCount ?? (hasSource("Safe page fetch") && !pageFetchFailed ? "0 recorded" : null);
+  const actions = checker.nextSteps.length ? checker.nextSteps : ["Do not enter passwords, verification codes or payment information until the link is independently verified."];
+
+  return (
+    <section className="mt-8 space-y-4 sm:space-y-5" aria-label="Scam and malicious link detection report">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldAlert className="h-7 w-7" /></span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">Scam &amp; Malicious Link Detection</h2><span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-extrabold text-rose-700">Detected</span></div>
+            <p className="mt-1 text-xs text-slate-500 sm:text-sm">Security, reputation and risk analysis based on evidence available for this scan.</p>
+          </div>
+        </div>
+        {onRunAnother ? <button type="button" onClick={onRunAnother} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-800 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"><RotateCcw className="h-4 w-4" /> New check</button> : null}
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(260px,0.8fr)]">
+        <div className="rounded-[24px] border border-rose-100 bg-[linear-gradient(120deg,#fff7f7,#fff0f1)] p-5 sm:p-6">
+          <div className="flex items-start gap-4"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-rose-100 text-rose-600"><AlertTriangle className="h-8 w-8" /></span><div className="min-w-0"><h3 className="text-2xl font-black tracking-tight text-red-600 sm:text-3xl">Malicious Link Detected</h3><p className="mt-2 text-sm leading-6 text-slate-800">{checker.summary} Avoid opening this link or sharing sensitive information.</p></div></div>
+          <div className="mt-5 flex min-w-0 items-center gap-3 rounded-2xl border border-rose-100 bg-white px-4 py-3"><Link2 className="h-5 w-5 shrink-0 text-slate-500" /><span className="min-w-0 flex-1 break-all text-sm font-bold text-slate-900">{url}</span>{url ? <button type="button" onClick={() => { void navigator.clipboard?.writeText(url); }} className="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="Copy submitted link"><Link2 className="h-4 w-4" /></button> : null}</div>
+        </div>
+        <div className="flex flex-col justify-center rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_4px_18px_rgba(15,23,42,0.025)]"><p className="text-xs font-bold uppercase tracking-wider text-slate-500">Overall risk assessment</p><div className="mt-3 flex items-center gap-3"><span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600"><ShieldX className="h-8 w-8" /></span><div><p className="text-xl font-black text-slate-950">{threatLabel}</p><span className="mt-1 inline-flex rounded-full bg-rose-50 px-3 py-1 text-xs font-extrabold text-rose-700">{checker.status === "known_threat" ? "Confirmed source match" : "Strong warning signals"}</span></div></div><p className="mt-4 text-xs leading-5 text-slate-500">No numeric score is shown because this scan does not calculate a calibrated risk score.</p></div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          { label: "Risk level", value: threatLabel, icon: ShieldAlert, tone: "text-rose-600 bg-rose-50" },
+          { label: "Risk signals", value: String(findingCount), icon: AlertTriangle, tone: "text-rose-600 bg-rose-50" },
+          { label: "Redirects", value: redirectValue ?? "Not available", icon: RotateCcw, tone: "text-orange-600 bg-orange-50" },
+          { label: "Evidence sources", value: String(checker.sources.length), icon: FileCheck2, tone: "text-slate-700 bg-slate-100" },
+        ].map((item) => <div key={item.label} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"><div className="flex items-center gap-2"><span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl " + item.tone}><item.icon className="h-4 w-4" /></span><span className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{item.label}</span></div><p className="mt-2 break-words text-base font-black text-slate-950">{item.value}</p></div>)}
+      </div>
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.9fr)]">
+        <section className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 px-4 py-4 sm:px-5"><h3 className="text-lg font-black tracking-tight text-slate-950">Detailed scan results</h3><p className="mt-1 text-xs text-slate-500">Each result reflects a check actually completed by Jimvio.</p></div>
+          <div className="divide-y divide-slate-100">{checks.map((check) => { const badge = statusFor(check.state); return <details key={check.title} className="group"><summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition hover:bg-slate-50 sm:px-5 [&::-webkit-details-marker]:hidden"><span className={"grid h-9 w-9 shrink-0 place-items-center rounded-xl " + (check.state === "detected" ? "bg-rose-50 text-rose-600" : check.state === "clean" ? "bg-emerald-50 text-emerald-600" : check.state === "available" ? "bg-blue-50 text-blue-600" : check.state === "review" ? "bg-amber-50 text-amber-600" : "bg-slate-100 text-slate-500")}><FileCheck2 className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-extrabold text-slate-900">{check.title}</span><span className="mt-0.5 block text-xs leading-5 text-slate-500">{check.description}</span></span><span className={"shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold " + badge.cls}>{badge.label}</span></summary><div className="space-y-2 bg-slate-50/70 px-4 pb-4 pt-1 sm:px-5">{check.evidence.length ? check.evidence.map((finding, index) => <div key={finding.title + index} className="rounded-xl border border-slate-200 bg-white p-3"><p className={"text-xs font-bold " + (finding.tone === "bad" ? "text-rose-700" : finding.tone === "good" ? "text-emerald-700" : finding.tone === "warn" ? "text-amber-800" : "text-slate-700")}>{finding.title}</p>{finding.detail ? <p className="mt-1 text-xs leading-5 text-slate-600">{finding.detail}</p> : null}<p className="mt-1 text-[10px] text-slate-400">Source: {finding.source}</p></div>) : <p className="text-xs leading-5 text-slate-500">{check.state === "unavailable" ? "This check could not be completed with the sources or access available during this scan." : check.state === "clean" ? "The check completed and did not return a matching warning signal. This is not a guarantee that the site is safe." : "Review this result carefully before interacting with the site."}</p>}<p className="text-[10px] text-slate-400">Check source: {check.source}</p></div></details>; })}</div>
+          {checker.limits.length ? <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-5"><h4 className="text-xs font-extrabold text-slate-800">Checks Jimvio could not complete</h4><ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">{checker.limits.map((limit) => <li key={limit}>{limit}</li>)}</ul></div> : null}
+        </section>
+        <div className="space-y-4">
+          <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center gap-2"><Info className="h-5 w-5 text-slate-700" /><h3 className="text-base font-black text-slate-950">Link information</h3></div><dl className="mt-3 divide-y divide-slate-100">{[["Submitted URL", url], ["Final address", finalAddress], ["Domain age", domainAge], ["Registrar", registrar], ["Destination IP", serverIp], ["Redirects recorded", redirectValue], ["TLS certificate", certificate?.title ?? null]].filter((entry): entry is [string, string] => Boolean(entry[1])).map(([label, value]) => <div key={label} className="flex items-start justify-between gap-3 py-2"><dt className="text-xs text-slate-500">{label}</dt><dd className="max-w-[65%] break-all text-right text-xs font-bold text-slate-800">{value}</dd></div>)}<div className="flex items-start justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Scan time</dt><dd className="text-right text-xs font-bold text-slate-800">{checkedAtLabel}</dd></div></dl></section>
+          <section className="rounded-[22px] border border-orange-100 bg-[linear-gradient(145deg,#FFFAF6,#FFF2E9)] p-4 sm:p-5"><div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-white"><Info className="h-5 w-5" /></span><div><h3 className="text-base font-black text-[#C94712]">Recommended actions</h3><p className="mt-0.5 text-[11px] text-slate-500">Protect your accounts and devices</p></div></div><ol className="mt-4 space-y-3">{actions.map((action, index) => <li key={action} className="flex gap-2.5 text-xs leading-5 text-slate-700"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[10px] font-extrabold text-[#E6531B] ring-1 ring-orange-100">{index + 1}</span><span>{action}</span></li>)}</ol></section>
+          <p className="px-1 text-[10px] leading-5 text-slate-400">A clean result from an individual source does not prove a website is safe. Jimvio only reports data it could verify at scan time.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function TrustReportView({ report, onRunAnother }: { report: ScanReport; onRunAnother?: () => void }) {
   const level = LEVEL[report.overall.level];
   const LevelIcon = level.icon;
@@ -196,6 +280,11 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
     } catch { return null; }
   })();
   const thumbnail = videoId && /^[A-Za-z0-9_-]{6,20}$/.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
+
+  if (submittedUrl && (report.overall.level === "known_threat" || report.overall.level === "high_risk") && report.checkers.some((checker) => checker.id === "links" && (checker.status === "known_threat" || checker.status === "high_risk"))) {
+    const linkChecker = report.checkers.find((checker) => checker.id === "links")!;
+    return <MaliciousLinkReport report={report} checker={linkChecker} onRunAnother={onRunAnother} />;
+  }
 
   return (
     <section className="mt-8 space-y-4 sm:space-y-5" aria-label="Trust check results">
