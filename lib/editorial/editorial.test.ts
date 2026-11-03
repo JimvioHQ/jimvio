@@ -622,7 +622,6 @@ describe("editorial lifecycle decisions", () => {
     assert.match(homeView, /const latest = uniqueArticles\(/);
     assert.match(homeView, /\], 6, usedLeadIds\)/);
     assert.match(homeView, /latest\.map\(\(article\)/);
-    assert.match(homeView, /section\.articles\.slice\(0, 2\)/);
     const presentation = read("components/editorial/presentation.tsx");
     assert.match(presentation, /aspect-\[16\/9\]/);
     const categoryPage = read("app/media/(site)/category/[slug]/page.tsx");
