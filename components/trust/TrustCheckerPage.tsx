@@ -5,7 +5,7 @@ import {
   ArrowRight, AudioLines, BarChart3, Box, ChevronRight,
   FileCheck2, FileImage, FileUp, Globe2, Instagram,
   Link2, Loader2, Search, Shield, ShieldCheck,
-  UploadCloud, X, Youtube, Music2,
+  UploadCloud, X, Youtube, Music2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TrustReportView } from "./TrustReportView";
