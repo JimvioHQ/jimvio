@@ -48,6 +48,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   } else {
     checkers.links = emptyChecker("links", "Paste a link to check it for scams, phishing and malware.");
   }
+  let media: Awaited<ReturnType<typeof checkMedia>> | null = null;
   const ctx = link?.context ?? null;
   const finalUrl = ctx?.chain.final ? new URL(ctx.chain.final.url) : (ctx?.url ?? null);
 
@@ -88,7 +89,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
       : ctx?.chain.final?.truncated && /^(image|video|audio)\//i.test(ctx.contentType)
         ? "The media at this link is too large to fetch. Upload the file instead (up to 4.2 MiB)."
         : "Upload an image, video or audio file to check for AI generation, edits, provenance and reuse.";
-    const media = await checkMedia(mediaInput, mediaReason);
+    media = await checkMedia(mediaInput, mediaReason);
     checkers.media = media.result;
   
   }
@@ -128,7 +129,7 @@ export async function runScan(req: ScanRequest): Promise<ScanReport> {
   if (saveError) throw new Error("The scan completed but its report could not be saved. Please try again.");
   const prints: { kind: "sha256" | "dhash"; value: string }[] = [];
   if (fileInfo) prints.push({ kind: "sha256", value: fileInfo.sha });
-  if (media.dhash) prints.push({ kind: "dhash", value: media.dhash });
+  if (media?.dhash) prints.push({ kind: "dhash", value: media.dhash });
   if (prints.length) await rememberFingerprints(id, prints).catch(() => undefined);
   return report;
 }
