@@ -54,7 +54,7 @@ export const CHECKER_LABELS: Record<CheckerId, string> = {
   links: "Scam & Malicious Link Detection",
   engagement: "Engagement & Traffic Detection",
   product: "Digital Product Verification",
-  media: "AI Media, Deepfake & Copyright",
+  media: "Media Metadata & Provenance",
 };
 
 const RANK: Record<CheckerStatus, number> = {

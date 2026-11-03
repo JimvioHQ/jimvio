@@ -1,111 +1,62 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight,
-  AudioLines,
-  BarChart3,
-  Box,
-  Check,
-  Chrome,
-  Compass,
-  Facebook,
-  FileArchive,
-  FileText,
-  FileUp,
-  Globe,
-  ImageIcon,
-  Images,
-  Instagram,
-  Link2,
-  Loader2,
-  Music2,
-  Search,
-  ShieldCheck,
-  Twitter,
-  UploadCloud,
-  X,
-  Youtube,
+  ArrowRight, AudioLines, BadgeCheck, BarChart3, Box, ChevronRight,
+  Clock3, FileCheck2, FileImage, FileUp, Globe2, ImageIcon, Instagram,
+  Link2, Loader2, Search, Shield, ShieldCheck, Sparkles,
+  UploadCloud, X, Youtube, Music2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TrustCheckerArt } from "./TrustCheckerArt";
 import { TrustReportView } from "./TrustReportView";
 import { TrustScanHistory } from "./TrustScanHistory";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
+type Platform = "YouTube" | "TikTok" | "Instagram" | "X" | "Website" | "Digital product" | "Media file" | "Unknown";
 const MAX_BYTES = 4 * 1024 * 1024;
 const ACCEPT = "image/*,video/*,audio/*,.pdf,.zip,.epub,.docx,.xlsx,.pptx,.doc,.xls,.ppt,.txt,.md,.csv,.json,.html,.exe,.apk,.dmg";
 
-const FEATURES = [
-  { icon: Link2, title: "Links & Websites", sub: "Scam & Malware" },
-  { icon: BarChart3, title: "Social Media", sub: "Public Engagement Signals" },
-  { icon: Box, title: "Digital Products", sub: "Originality & Safety" },
-  { icon: ImageIcon, title: "Images, Videos & Audio", sub: "Metadata & Provenance Signals" },
+const PLATFORMS: { name: Platform; icon: typeof Globe2; tone: string; note: string }[] = [
+  { name: "YouTube", icon: Youtube, tone: "text-red-600 bg-red-50", note: "Video details and public engagement signals" },
+  { name: "TikTok", icon: Music2, tone: "text-slate-900 bg-slate-100", note: "Available public post and creator signals" },
+  { name: "Instagram", icon: Instagram, tone: "text-pink-600 bg-pink-50", note: "Available public post and profile signals" },
+  { name: "X", icon: Globe2, tone: "text-slate-900 bg-slate-100", note: "Available public post signals" },
+  { name: "Website", icon: Globe2, tone: "text-blue-700 bg-blue-50", note: "Domain, redirect and website safety signals" },
+  { name: "Digital product", icon: Box, tone: "text-violet-700 bg-violet-50", note: "Product page and seller signals" },
+  { name: "Media file", icon: FileImage, tone: "text-amber-700 bg-amber-50", note: "File metadata and provenance signals" },
+  { name: "Unknown", icon: Link2, tone: "text-slate-600 bg-slate-100", note: "Platform will be identified where possible" },
 ];
 
-const CARDS = [
-  {
-    icon: Link2,
-    title: "Scam & Malicious Link Detection",
-    body: "Detect scams, phishing, malware, suspicious redirects, fake websites, impersonation, and unsafe downloads.",
-    logos: [
-      { icon: Chrome, color: "#1A73E8" },
-      { icon: Compass, color: "#0EA5E9" },
-      { icon: Globe, color: "#F97316" },
-      { icon: Search, color: "#0284C7" },
-    ],
-    tag: "Websites",
-    items: ["Phishing & Scam Detection", "Malware & Unsafe Downloads", "Suspicious Redirects", "Fake Websites & Impersonation", "Domain & SSL Analysis"],
-  },
-  {
-    icon: BarChart3,
-    title: "Engagement & Traffic Detection",
-    body: "Read available public engagement signals. YouTube statistics are checked when API access is available; TikTok and X provide limited post metadata. Private reach and website traffic are not publicly verifiable.",
-    logos: [
-      { icon: Youtube, color: "#FF0000" },
-      { icon: Music2, color: "#111111" },
-      { icon: Instagram, color: "#D6295C" },
-      { icon: Facebook, color: "#1877F2" },
-      { icon: Twitter, color: "#111111" },
-    ],
-    tag: "Websites",
-    items: ["YouTube public views, likes & comments", "YouTube public channel statistics", "TikTok & X public post metadata", "Signals of repetitive comments", "Private reach and website traffic unavailable"],
-  },
-  {
-    icon: Box,
-    title: "Digital Product Verification",
-    body: "Inspect file structure, repeat fingerprints seen on Jimvio, product-page claims and visible seller details. This is not a full antivirus, legal copyright or ownership verification.",
-    logos: [
-      { icon: FileText, color: "#DC2626" },
-      { icon: FileText, color: "#2563EB" },
-      { icon: FileText, color: "#16A34A" },
-      { icon: FileText, color: "#EA580C" },
-      { icon: FileArchive, color: "#7C3AED" },
-    ],
-    tag: "Digital Products",
-    items: ["Duplicate fingerprints within Jimvio", "Basic file-structure risk indicators", "Product-page claims and visible details", "Seller contact and refund-policy signals", "Ownership and licensing require documents"],
-  },
-  {
-    icon: ImageIcon,
-    title: "Media Metadata & Provenance Signals",
-    body: "Inspect image metadata and available AI/provenance markers, plus duplicate fingerprints previously seen on Jimvio. Video and audio deepfake detection and global copyright matching are not currently available.",
-    logos: [
-      { icon: Images, color: "#2563EB" },
-      { icon: Youtube, color: "#FF0000" },
-      { icon: AudioLines, color: "#7C3AED" },
-      { icon: FileText, color: "#9333EA" },
-    ],
-    tag: "Images, Videos & Audio",
-    items: ["AI/provenance metadata markers", "Image metadata and dimensions", "Duplicate image fingerprints on Jimvio", "Video/audio metadata only", "No deepfake or global copyright verdict"],
-  },
+const CAPABILITIES = [
+  { icon: ShieldCheck, title: "Link safety", text: "Phishing, suspicious redirects, domain and SSL signals", tone: "bg-orange-50 text-[#F15A24]" },
+  { icon: BarChart3, title: "Engagement signals", text: "Public views, likes, comments and available post data", tone: "bg-blue-50 text-blue-700" },
+  { icon: Box, title: "Product checks", text: "File structure, repeat fingerprints and seller details", tone: "bg-violet-50 text-violet-700" },
+  { icon: AudioLines, title: "Media provenance", text: "Metadata, dimensions and available provenance markers", tone: "bg-emerald-50 text-emerald-700" },
 ];
 
-function bytes(n: number) {
-  return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+function detectPlatform(raw: string): Platform {
+  if (!raw.trim()) return "Unknown";
+  try {
+    const value = /^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`;
+    const host = new URL(value).hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "youtu.be" || host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) return "YouTube";
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "TikTok";
+    if (host === "instagram.com" || host.endsWith(".instagram.com")) return "Instagram";
+    if (host === "x.com" || host === "twitter.com" || host.endsWith(".x.com")) return "X";
+    if (/\.(pdf|zip|epub|docx?|xlsx?|pptx?|mp4|mov|mp3|png|jpe?g|webp)(?:$|\/)/i.test(new URL(value).pathname)) {
+      return "Digital product";
+    }
+    return "Website";
+  } catch {
+    return "Unknown";
+  }
 }
 
-/** Jimvio Trust Checker: one input for links, files or both; four real checks. */
+function formatBytes(size: number) {
+  return size >= 1024 * 1024 ? `${(size / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(size / 1024))} KB`;
+}
+
 export function TrustCheckerPage() {
   const [mode, setMode] = useState<Mode>("url");
   const [url, setUrl] = useState("");
@@ -118,45 +69,38 @@ export function TrustCheckerPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
+  const showUrl = mode !== "file";
+  const showFile = mode !== "url";
+  const platform = useMemo(() => detectPlatform(url), [url]);
+  const platformInfo = PLATFORMS.find((item) => item.name === platform) ?? PLATFORMS[7];
+  const PlatformIcon = platformInfo.icon;
+
   useEffect(() => {
     if (report) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [report]);
 
-  const pickFile = useCallback((f: File | null) => {
+  const pickFile = useCallback((next: File | null) => {
     setError(null);
-    if (!f) return setFile(null);
-    if (f.size === 0) {
-      setError("This file is empty. Choose a file that contains data.");
-      return;
-    }
-    if (f.size > MAX_BYTES) {
-      setError("Files can be up to 4 MB.");
-      return;
-    }
-    setFile(f);
-    setMode((m) => (m === "url" ? (url.trim() ? "both" : "file") : m));
+    if (!next) { setFile(null); return; }
+    if (next.size === 0) { setError("This file is empty. Choose a file that contains data."); return; }
+    if (next.size > MAX_BYTES) { setError("Files can be up to 4 MB."); return; }
+    setFile(next);
+    setMode((current) => current === "url" ? (url.trim() ? "both" : "file") : current);
   }, [url]);
 
-  const showUrl = mode !== "file";
-  const showFile = mode !== "url";
   const validUrl = (() => {
     if (!showUrl || !url.trim()) return false;
-    const value = url.trim();
-    if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value)) return false;
     try {
-      const parsed = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
-      return (parsed.protocol === "http:" || parsed.protocol === "https:")
-        && !parsed.username && !parsed.password && ["", "80", "443"].includes(parsed.port);
-    } catch {
-      return false;
-    }
+      const parsed = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+      return (parsed.protocol === "http:" || parsed.protocol === "https:") && !parsed.username && !parsed.password && ["", "80", "443"].includes(parsed.port);
+    } catch { return false; }
   })();
   const canRun = (showUrl && validUrl) || (showFile && file !== null);
 
   async function run() {
     if (!canRun || busy) return;
     if (showUrl && url.trim() && !validUrl) {
-      setError("Enter a valid website URL, such as example.com or https://example.com.");
+      setError("Enter a valid URL, such as youtube.com/watch?v=… or example.com.");
       return;
     }
     setBusy(true);
@@ -166,234 +110,190 @@ export function TrustCheckerPage() {
       const form = new FormData();
       if (showUrl && url.trim()) form.set("url", url.trim());
       if (showFile && file) form.set("file", file);
-      const res = await fetch("/api/trust-checker/scan", { method: "POST", body: form });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || "The check could not finish. Try again.");
-      if (!json.report || !Array.isArray(json.report.checkers) || !json.report.overall) {
+      const response = await fetch("/api/trust-checker/scan", { method: "POST", body: form });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "The check could not finish. Try again.");
+      if (!payload.report || !Array.isArray(payload.report.checkers) || !payload.report.overall) {
         throw new Error("The scan returned an incomplete report. No safety verdict was assumed.");
       }
-      setReport(json.report as ScanReport);
+      setReport(payload.report as ScanReport);
       setHistoryRefresh((value) => value + 1);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "The check could not finish. Try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The check could not finish. Try again.");
     } finally {
       setBusy(false);
     }
   }
 
+  function resetScanner() {
+    setReport(null);
+    setError(null);
+    setUrl("");
+    setFile(null);
+    setMode("url");
+  }
+
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#FFF8F3_0%,#FFFFFF_52%,#FFF9F5_100%)] pb-20">
-      <div className="mx-auto max-w-[1488px] px-4 pt-4 sm:px-6 lg:px-6">
-        {/* Hero */}
-        <section className="relative isolate overflow-hidden rounded-[30px] border border-[#FFE4D6] bg-[radial-gradient(ellipse_at_88%_18%,rgba(255,116,53,0.28),transparent_34%),linear-gradient(112deg,#FFFFFF_0%,#FFF8F4_40%,#FFE9DD_72%,#FFD0B7_100%)] px-5 pb-6 pt-6 shadow-[0_18px_60px_rgba(186,79,34,0.08)] sm:px-8 sm:pb-8 sm:pt-8 lg:px-10">
-          <div className="grid items-center gap-5 lg:grid-cols-[1.45fr_0.9fr] xl:gap-8">
-            <div className="min-w-0">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[#FFD8C4] bg-white/90 px-4 py-2 text-[13px] font-bold text-[#E8430F] shadow-[0_5px_18px_rgba(255,90,31,0.08)]">
-                <ShieldCheck className="h-4 w-4" /> All-in-One Verification Tool
-              </span>
-              <h1 className="mt-4 text-[43px] font-black leading-[0.98] tracking-[-0.055em] text-[#0B1738] sm:text-[68px] xl:text-[76px]">
-                Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
-              </h1>
-              <p className="mt-4 max-w-[850px] text-[16px] font-semibold leading-[1.38] text-[#101B38] sm:text-[19px] xl:text-[20px]">
-                Check links, public engagement signals, digital product files, and media metadata — with clear evidence, limits, and next steps in one place.
-              </p>
-              <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-4">
-                {FEATURES.map((f, i) => (
-                  <div key={f.title} className={cn("flex min-w-0 items-center gap-2.5", i > 0 && "lg:border-l lg:border-[#FFCDB5] lg:pl-4")}>
-                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#FFE9DE] text-[#F0440C] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.05)]">
-                      <f.icon className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[14px] font-semibold leading-tight text-[#0F172A]">{f.title}</span>
-                      <span className="block text-[12.5px] text-[#64748B]">{f.sub}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-5 max-w-[850px] text-[15px] leading-[1.5] text-[#52627F] sm:text-[16px]">
-                Paste a URL, upload a file, or both, and get a complete trust analysis across websites, social media, digital
-                products, and media content with evidence-based results that clearly explain what Jimvio can and cannot verify.
-              </p>
-            </div>
-            <div className="hidden min-h-[300px] items-center justify-center lg:flex xl:min-h-[330px]">
-              <TrustCheckerArt />
-            </div>
+    <main className="min-h-screen bg-[#F7F8FA] pb-16">
+      <div className="mx-auto max-w-[1440px] px-4 pb-8 pt-5 sm:px-6 lg:px-8">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#FFF0E8] text-[#F15A24]"><Shield className="h-4 w-4" /></span>
+            <span>Trust &amp; Safety</span><ChevronRight className="h-3.5 w-3.5" /><span className="text-slate-900">Trust Checker</span>
           </div>
-
-          {/* Unified input */}
-          <div className="relative mt-6 rounded-[24px] border border-[#FFE0D0] bg-white/95 p-4 shadow-[0_16px_44px_rgba(32,45,75,0.07)] backdrop-blur-sm sm:p-5 lg:p-6">
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label="What to check">
-              {(
-                [
-                  ["url", "Paste URL", Link2],
-                  ["file", "Upload File", FileUp],
-                  ["both", "Paste & Upload", Images],
-                ] as const
-              ).map(([m, label, Icon]) => (
-                <button
-                  key={m}
-                  role="tab"
-                  aria-selected={mode === m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={cn(
-                    "inline-flex h-11 items-center gap-2 rounded-xl px-5 text-[14px] font-bold transition sm:min-w-[176px] sm:justify-center",
-                    mode === m ? "bg-gradient-to-r from-[#FF5A1F] to-[#F0440C] text-white shadow-[0_7px_18px_rgba(255,90,31,0.28)]" : "bg-[#F4F5F7] text-[#0F172A] hover:bg-[#ECEEF1]",
-                  )}
-                >
-                  <Icon className="h-4 w-4" /> {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_300px]">
-              <div className="space-y-3">
-                {showUrl ? (
-                  <label className="flex h-14 items-center gap-3 rounded-xl border border-[#D7DFEC] bg-white px-4 shadow-[inset_0_1px_2px_rgba(15,23,42,0.025)] transition focus-within:border-[#FF5A1F] focus-within:ring-4 focus-within:ring-[#FF5A1F]/10">
-                    <Link2 className="h-5 w-5 shrink-0 text-[#334155]" aria-hidden="true" />
-                    <input
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && void run()}
-                      placeholder="Paste any URL here (website, social media post, product page, image, video, etc.)"
-                      className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-[#0F172A] outline-none placeholder:text-[#64748B]"
-                      inputMode="url"
-                      aria-label="Link to check"
-                    />
-                    {url ? (
-                      <button type="button" onClick={() => setUrl("")} aria-label="Clear link" className="rounded-lg p-1 text-[#0F172A] hover:bg-black/5">
-                        <X className="h-5 w-5" />
-                      </button>
-                    ) : null}
-                  </label>
-                ) : null}
-                {showFile ? (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDrag(true);
-                    }}
-                    onDragLeave={() => setDrag(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDrag(false);
-                      pickFile(e.dataTransfer.files?.[0] ?? null);
-                    }}
-                    className={cn(
-                      "flex flex-col gap-3 rounded-xl border border-dashed px-4 py-4 transition sm:flex-row sm:items-center sm:px-5",
-                      drag ? "border-[#FF5A1F] bg-[#FFF6F1]" : "border-[#CBD5E1] bg-[#F8FAFC]",
-                    )}
-                  >
-                    <UploadCloud className="h-8 w-8 shrink-0 text-[#334155]" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      {file ? (
-                        <>
-                          <p className="truncate text-[15px] font-semibold text-[#0F172A]">{file.name}</p>
-                          <p className="text-[12.5px] text-[#64748B]">
-                            {file.type || "Unknown type"} · {bytes(file.size)} · ready to check
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-[15px] font-semibold text-[#0F172A]">Or drag &amp; drop files here</p>
-                          <p className="text-[12.5px] text-[#64748B]">
-                            Upload image, video, audio, document, or any file (JPG, PNG, MP4, MOV, MP3, PDF, ZIP, etc.) — up to 4 MB
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      {file ? (
-                        <button type="button" onClick={() => pickFile(null)} className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-3 text-[13px] font-semibold">
-                          <X className="h-4 w-4" /> Remove
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => fileRef.current?.click()}
-                        className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[#E2E8F0] bg-white px-4 text-[14px] font-semibold text-[#0F172A] shadow-sm"
-                      >
-                        <FileUp className="h-4 w-4" /> {file ? "Replace" : "Choose File"}
-                      </button>
-                    </div>
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      hidden
-                      accept={ACCEPT}
-                      onChange={(e) => {
-                        pickFile(e.target.files?.[0] ?? null);
-                        e.target.value = "";
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  disabled={!canRun || busy}
-                  onClick={() => void run()}
-                  className="inline-flex h-14 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#FF5A1F] to-[#F0440C] px-5 text-[18px] font-extrabold text-white shadow-[0_12px_26px_rgba(255,90,31,0.30)] transition hover:-translate-y-0.5 hover:shadow-[0_15px_30px_rgba(255,90,31,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
-                  {busy ? "Checking…" : "Run Full Check"}
-                  {!busy ? <ArrowRight className="h-5 w-5" /> : null}
-                </button>
-                <p className="text-center text-[13px] leading-snug text-[#64748B]">
-                  {busy ? "Running every check that applies — usually 5 to 20 seconds." : "Jimvio will automatically run all checks on your link, file, or both."}
-                </p>
-                {error ? (
-                  <p className="rounded-lg bg-rose-50 px-3 py-2 text-center text-[13px] font-medium text-rose-700" role="alert">
-                    {error}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Evidence-led verification
           </div>
-        </section>
-
-        <div ref={resultRef} className="scroll-mt-24">
-          {report ? <TrustReportView report={report} /> : null}
         </div>
 
-        <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
+        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.055)]">
+          <div className="relative isolate overflow-hidden border-b border-slate-100 bg-[radial-gradient(ellipse_at_88%_0%,rgba(255,90,31,0.13),transparent_36%),linear-gradient(115deg,#FFFFFF_0%,#FFFCFA_60%,#FFF3EC_100%)] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+            <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full border border-orange-100/80" />
+            <div className="pointer-events-none absolute -right-5 -top-12 h-64 w-64 rounded-full border border-orange-100/70" />
+            <div className="relative max-w-4xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/90 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#E94F18]">
+                <Sparkles className="h-3.5 w-3.5" /> Intelligent verification workspace
+              </div>
+              <h1 className="mt-5 max-w-4xl text-4xl font-black leading-[1.02] tracking-[-0.055em] text-[#111827] sm:text-5xl lg:text-[64px]">
+                Know what you can <span className="text-[#FF5A1F]">trust.</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                Check a link or file with the right verification tools. Get clear findings, real public signals and transparent limits — all in one place.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
+                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-600" /> Evidence-based results</span>
+                <span className="inline-flex items-center gap-1.5"><Clock3 className="h-4 w-4 text-slate-400" /> Clear scan timestamps</span>
+                <span className="inline-flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-[#FF5A1F]" /> No invented metrics</span>
+              </div>
+            </div>
+          </div>
 
-        {/* Four checkers */}
-        <section className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="What Jimvio checks">
-          {CARDS.map((c) => (
-            <article key={c.title} className="group flex flex-col rounded-[22px] border border-[#F3E5DE] bg-white p-5 shadow-[0_8px_28px_rgba(24,39,75,0.045)] transition duration-200 hover:-translate-y-1 hover:border-[#FFD0B8] hover:shadow-[0_16px_34px_rgba(24,39,75,0.08)] xl:p-6">
-              <div className="flex items-center gap-3">
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#FFF0E7] to-[#FFE1D2] text-[#F0440C] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.05)]">
-                  <c.icon className="h-7 w-7" />
-                </span>
-                <h2 className="text-[18px] font-bold leading-tight text-[#0F172A]">{c.title}</h2>
+          <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-8">
+            <div className="min-w-0">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F15A24]">Start a verification</p>
+                  <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900">What would you like to check?</h2>
+                </div>
+                {report ? <button type="button" onClick={resetScanner} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"><RefreshCw className="h-3.5 w-3.5" /> New check</button> : null}
               </div>
-              <p className="mt-3 text-[14px] leading-[1.55] text-[#5B6982]">{c.body}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-2.5 border-b border-[#FCE4D8] pb-4">
-                {c.logos.map((l, i) => (
-                  <l.icon key={i} className="h-6 w-6" style={{ color: l.color }} aria-hidden="true" />
+
+              <div className="mb-4 inline-flex flex-wrap rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Input type">
+                {([
+                  ["url", "Paste a link", Link2],
+                  ["file", "Upload a file", FileUp],
+                  ["both", "Link + file", FileCheck2],
+                ] as const).map(([value, label, Icon]) => (
+                  <button key={value} type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}
+                    className={cn("inline-flex h-10 items-center gap-2 rounded-lg px-4 text-xs font-bold transition", mode === value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800")}>
+                    <Icon className="h-4 w-4" />{label}
+                  </button>
                 ))}
-                <span className="text-[12px] text-[#64748B]">{c.tag}</span>
               </div>
-              <ul className="mt-4 space-y-2.5">
-                {c.items.map((it) => (
-                  <li key={it} className="flex items-center gap-2.5 text-[14px] text-[#0F172A]">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-white">
-                      <Check className="h-3 w-3" strokeWidth={3} />
-                    </span>
-                    {it}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
+
+              <div className="space-y-3">
+                {showUrl ? (
+                  <label className="flex min-h-[58px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 transition focus-within:border-[#FF8B61] focus-within:ring-4 focus-within:ring-orange-100">
+                    <Link2 className="h-5 w-5 shrink-0 text-slate-400" />
+                    <input value={url} onChange={(event) => setUrl(event.target.value)} onKeyDown={(event) => event.key === "Enter" && void run()}
+                      placeholder="Paste a YouTube, TikTok, Instagram, X or website URL…"
+                      aria-label="URL to verify" inputMode="url" className="min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400" />
+                    {url ? <button type="button" onClick={() => setUrl("")} aria-label="Clear URL" className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-4 w-4" /></button> : null}
+                  </label>
+                ) : null}
+
+                {showFile ? (
+                  <div onDragOver={(event) => { event.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
+                    onDrop={(event) => { event.preventDefault(); setDrag(false); pickFile(event.dataTransfer.files?.[0] ?? null); }}
+                    className={cn("rounded-2xl border border-dashed p-4 transition sm:p-5", drag ? "border-[#FF5A1F] bg-orange-50" : "border-slate-300 bg-slate-50/80")}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-[#F15A24] shadow-sm"><UploadCloud className="h-5 w-5" /></span>
+                      <div className="min-w-0 flex-1">
+                        {file ? <><p className="truncate text-sm font-bold text-slate-900">{file.name}</p><p className="mt-1 text-xs text-slate-500">{file.type || "Unknown file type"} · {formatBytes(file.size)} · Ready to scan</p></> :
+                          <><p className="text-sm font-bold text-slate-800">Drop your file here or browse</p><p className="mt-1 text-xs leading-5 text-slate-500">Images, video, audio, documents and archives · Maximum 4 MB</p></>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {file ? <button type="button" onClick={() => pickFile(null)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600">Remove</button> : null}
+                        <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-sm hover:border-orange-200"><FileUp className="h-4 w-4" />{file ? "Replace file" : "Choose file"}</button>
+                      </div>
+                    </div>
+                    <input ref={fileRef} type="file" hidden accept={ACCEPT} onChange={(event) => { pickFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
+                  </div>
+                ) : null}
+              </div>
+
+              {url.trim() && showUrl ? (
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", platformInfo.tone)}><PlatformIcon className="h-5 w-5" /></span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-extrabold text-slate-900">{platform === "Unknown" ? "Identifying source" : `${platform} detected`}</p>
+                        {validUrl ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700">Valid link format</span> : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Check URL format</span>}
+                      </div>
+                      <p className="mt-1 break-all text-xs text-slate-500">{url}</p>
+                      <p className="mt-1.5 text-xs leading-5 text-slate-600">{platformInfo.note}. The report will show only details returned by the available verification sources.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {file && showFile ? (
+                <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-lg bg-violet-50 text-violet-700"><FileImage className="h-4 w-4" /></span>
+                  <div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-800">{file.name}</p><p className="text-[11px] text-slate-500">{formatBytes(file.size)} · File selected</p></div>
+                  <span className="text-[10px] font-bold text-emerald-700">Ready</span>
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <button type="button" disabled={!canRun || busy} onClick={() => void run()}
+                  className="inline-flex h-12 items-center justify-center gap-2.5 rounded-xl bg-[#FF5A1F] px-6 text-sm font-extrabold text-white shadow-[0_8px_20px_rgba(255,90,31,0.22)] transition hover:-translate-y-0.5 hover:bg-[#ED4D16] disabled:cursor-not-allowed disabled:opacity-45">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}{busy ? "Verifying…" : "Run verification"}{!busy ? <ArrowRight className="h-4 w-4" /> : null}
+                </button>
+                <p className="text-xs leading-5 text-slate-500">{busy ? "Running the checks that apply to this input…" : "Only relevant checks run for the content you submit."}</p>
+              </div>
+              {error ? <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs font-semibold text-rose-700" role="alert">{error}</p> : null}
+            </div>
+
+            <aside className="space-y-3">
+              <div className="rounded-2xl border border-slate-200 bg-[#FBFCFD] p-4">
+                <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-[#F15A24]"><ShieldCheck className="h-4 w-4" /></span><h3 className="text-sm font-extrabold text-slate-900">What Jimvio checks</h3></div>
+                <div className="mt-4 space-y-4">
+                  {CAPABILITIES.map((item) => <div key={item.title} className="flex gap-3"><span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", item.tone)}><item.icon className="h-4 w-4" /></span><div><p className="text-xs font-bold text-slate-800">{item.title}</p><p className="mt-1 text-[11px] leading-5 text-slate-500">{item.text}</p></div></div>)}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-orange-100 bg-[linear-gradient(145deg,#FFF9F5,#FFF1E8)] p-4">
+                <div className="flex items-center gap-2 text-[#E94F18]"><Sparkles className="h-4 w-4" /><p className="text-xs font-extrabold">Built for clarity</p></div>
+                <p className="mt-2 text-xs leading-5 text-slate-600">A missing signal is never presented as proof of safety. Every report explains what was checked and what could not be verified.</p>
+              </div>
+            </aside>
+          </div>
         </section>
 
-        <p className="mt-6 text-center text-[12.5px] text-[#94A3B8]">
-          Results are evidence-based signals, not legal judgments. Uploaded files are checked in memory and not stored.
-        </p>
+        <div id="trust-checker-results" ref={resultRef} className="scroll-mt-24">
+          {report ? <TrustReportView report={report} onRunAnother={resetScanner} /> : null}
+        </div>
+
+        <div className="mt-6">
+          <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
+        </div>
+
+        <section className="mt-8" aria-labelledby="capabilities-heading">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#F15A24]">Verification coverage</p><h2 id="capabilities-heading" className="mt-1 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">One workspace. Four verification engines.</h2></div>
+            <p className="max-w-md text-xs leading-5 text-slate-500">Each engine reports its own evidence, status and limitations. Unrelated checks are marked not applicable.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {CAPABILITIES.map((item, index) => <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.025)]">
+              <div className="flex items-center justify-between"><span className={cn("grid h-11 w-11 place-items-center rounded-xl", item.tone)}><item.icon className="h-5 w-5" /></span><span className="text-[10px] font-bold text-slate-300">0{index + 1}</span></div>
+              <h3 className="mt-4 text-sm font-extrabold text-slate-900">{item.title}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{item.text}</p>
+            </article>)}
+          </div>
+        </section>
+
+        <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
       </div>
-    </div>
+    </main>
   );
 }

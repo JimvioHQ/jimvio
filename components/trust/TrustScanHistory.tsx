@@ -77,11 +77,11 @@ export function TrustScanHistory({
   }
 
   return (
-    <section className="mt-8 rounded-[22px] border border-[#E8EAF0] bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.035)] sm:p-6" aria-labelledby="trust-history-heading">
+    <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_32px_rgba(15,23,42,0.04)] sm:p-6" aria-labelledby="trust-history-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#F0521A]">Your workspace</p>
-          <h2 id="trust-history-heading" className="mt-1 text-xl font-black tracking-tight text-[#101B38]">Recent checks</h2>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#F15A24]">Your workspace</p>
+          <h2 id="trust-history-heading" className="mt-1 text-xl font-black tracking-tight text-slate-950">Recent checks</h2>
           <p className="mt-1 text-xs text-[#64748B]">Open a previous report from your signed-in account.</p>
         </div>
         <button type="button" onClick={() => setReload((value) => value + 1)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#46536C] hover:bg-[#F8FAFC]" aria-label="Refresh recent checks">
@@ -95,11 +95,11 @@ export function TrustScanHistory({
       ) : scans.length === 0 ? (
         <p className="mt-4 rounded-xl bg-[#F8FAFC] px-4 py-3 text-xs text-[#64748B]">Your saved checks will appear here after your first scan.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-[#EEF1F5]">
+        <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-100 bg-white px-3 sm:px-4">
           {scans.map((scan) => (
-            <li key={scan.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+            <li key={scan.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#FFF1E9] text-[#F0521A]"><FileText className="h-4 w-4" /></span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#F15A24]"><FileText className="h-4 w-4" /></span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-[#1B2947]">{scan.input_url || scan.file_name || "File check"}</p>
                   <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8792A5]"><Clock3 className="h-3 w-3" />{new Date(scan.created_at).toLocaleString()}</p>
@@ -107,7 +107,7 @@ export function TrustScanHistory({
               </div>
               <div className="flex items-center gap-2 pl-12 sm:pl-0">
                 <span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold", scan.overall_level === "known_threat" || scan.overall_level === "high_risk" ? "bg-rose-50 text-rose-700" : scan.overall_level === "low_risk" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800")}>{LEVEL[scan.overall_level] ?? "Inconclusive"}</span>
-                <button type="button" disabled={opening !== null} onClick={() => void openReport(scan.id)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#34415B] hover:border-[#FFBEA2] hover:bg-[#FFFAF7] disabled:opacity-50">
+                <button type="button" disabled={opening !== null} onClick={() => void openReport(scan.id)} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 text-xs font-bold text-slate-700 transition hover:border-orange-200 hover:bg-orange-50/60 disabled:opacity-50">
                   {opening === scan.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Open report
                 </button>
               </div>
