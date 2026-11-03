@@ -101,8 +101,8 @@ function CheckerCard({ checker }: { checker: CheckerResult }) {
 
   return (
     <article className={cn(
-      "min-w-0 rounded-[22px] border bg-white p-5 sm:p-6",
-      notRun ? "border-dashed border-[#DCE3ED]" : "border-[#E8EAF0] shadow-[0_8px_28px_rgba(15,23,42,0.045)]",
+      "min-w-0 rounded-[24px] border bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.045)] sm:p-6",
+      notRun ? "border-dashed border-slate-200 bg-slate-50/70" : "border-slate-200",
     )}>
       <div className="flex items-start gap-3">
         <span className={cn(
@@ -123,7 +123,7 @@ function CheckerCard({ checker }: { checker: CheckerResult }) {
       {checker.metrics.length > 0 ? (
         <dl className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {checker.metrics.map((metric) => (
-            <div key={metric.label} className="min-w-0 rounded-xl border border-[#E9EDF3] bg-[#F8FAFC] px-3 py-2.5">
+            <div key={metric.label} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
               <dt className="text-[10px] font-extrabold uppercase tracking-[0.09em] text-[#8490A4]">{metric.label}</dt>
               <dd className="mt-1 break-words text-[13px] font-bold text-[#182541]" title={metric.value}>{metric.value}</dd>
             </div>
@@ -194,11 +194,11 @@ export function TrustReportView({
   const checkedAtLabel = Number.isNaN(checkedAt.getTime()) ? "Time unavailable" : checkedAt.toLocaleString();
 
   return (
-    <section className="mt-8 space-y-5" aria-label="Trust check results">
+    <section className="mt-8 space-y-6" aria-label="Trust check results">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#F0521A]">Verification report</p>
-          <h2 className="mt-1 text-2xl font-black tracking-tight text-[#101B38] sm:text-[30px]">Your scan results</h2>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#F15A24]">Verification report</p>
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-[32px]">Your scan results</h2>
         </div>
         {onRunAnother ? (
           <button type="button" onClick={onRunAnother} className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E0E5ED] bg-white px-4 text-xs font-bold text-[#34415B] shadow-sm transition hover:border-[#FFC5A9] hover:bg-[#FFFAF7]">
@@ -207,7 +207,7 @@ export function TrustReportView({
         ) : null}
       </div>
 
-      <div className={cn("overflow-hidden rounded-[24px] border p-5 sm:p-7", level.cls)}>
+      <div className={cn("overflow-hidden rounded-[26px] border p-5 shadow-[0_12px_36px_rgba(15,23,42,0.045)] sm:p-7", level.cls)}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
           <div className="flex min-w-0 flex-1 items-start gap-4">
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/80 shadow-sm">
@@ -221,11 +221,11 @@ export function TrustReportView({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:min-w-[270px]">
-            <div className="rounded-xl bg-white/70 p-3">
+            <div className="rounded-2xl border border-white/80 bg-white/75 p-3.5 shadow-sm">
               <p className="text-[10px] font-bold uppercase tracking-wide opacity-65">Checks run</p>
               <p className="mt-1 text-xl font-black">{ran.length}</p>
             </div>
-            <div className="rounded-xl bg-white/70 p-3">
+            <div className="rounded-2xl border border-white/80 bg-white/75 p-3.5 shadow-sm">
               <p className="text-[10px] font-bold uppercase tracking-wide opacity-65">Duration</p>
               <p className="mt-1 text-xl font-black">{Number.isFinite(report.durationMs) ? `${(report.durationMs / 1000).toFixed(1)}s` : "—"}</p>
             </div>
@@ -239,7 +239,7 @@ export function TrustReportView({
       </div>
 
       {(report.input.url || report.input.file) ? (
-        <div className="rounded-2xl border border-[#E5E9F0] bg-white p-4 shadow-sm">
+        <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.035)]">
           <p className="flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#8490A4]"><FileCheck2 className="h-4 w-4 text-[#FF5A1F]" /> Submitted for verification</p>
           <div className="mt-2 space-y-2 text-[13px] text-[#24314D]">
             {report.input.url ? (
