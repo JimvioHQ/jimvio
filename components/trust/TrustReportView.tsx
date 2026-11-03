@@ -2,7 +2,7 @@
 
 import {
   AlertTriangle, BarChart3, Bot, CheckCircle2, Clock3,
-  ExternalLink, Eye, FileCheck2, ImageIcon, Info, Link2, MessageCircle,
+  CalendarDays, ExternalLink, Eye, FileCheck2, ImageIcon, Info, Link2, MessageCircle,
   RotateCcw, ShieldAlert, ShieldCheck, ShieldX, ThumbsUp, Users, Video,
   XCircle, type LucideIcon,
 } from "lucide-react";
@@ -54,7 +54,7 @@ function getMetric(metrics: Metric[], aliases: string[]): string | null {
 }
 
 function available(value: string | null): value is string {
-  return Boolean(value && value.trim() && !/^(—|-|not available(?: from .*)?|unavailable|hidden)$/i.test(value.trim()));
+  return Boolean(value && value.trim() && !/^(—|-|not available(?: from .*)?|not provided|not public|unavailable|hidden(?: \/ unavailable)?)$/i.test(value.trim()));
 }
 
 function MetricTile({ label, value, icon: Icon, tone, note }: {
@@ -156,10 +156,26 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
   const likes = getMetric(metrics, ["likes"]);
   const comments = getMetric(metrics, ["comments"]);
   const engagementRate = getMetric(metrics, ["engagement"]);
-  const steps = report.checkers.flatMap((checker) => checker.nextSteps).slice(0, 3);
+  const allSteps = report.checkers.flatMap((checker) => checker.nextSteps);
+  const uniqueSteps = [...new Set(allSteps)].filter((step) => !(/address bar/i.test(step) && Boolean(report.input.url && /youtube|tiktok|instagram|x\.com|twitter/i.test(report.input.url))));
+  const steps = uniqueSteps.slice(0, 4);
   const submittedUrl = report.input.url;
   const externalUrl = safeExternalUrl(submittedUrl);
   const itemName = title && available(title) ? title : report.input.file?.name ?? platformName(submittedUrl);
+  const metricMap = new Map(metrics.map((metric) => [normalize(metric.label), metric.value]));
+  const published = metricMap.get("published");
+  const category = metricMap.get("category");
+  const duration = metricMap.get("duration");
+  const channelId = metricMap.get("channel id");
+  const videoId = (() => {
+    if (!submittedUrl) return null;
+    try {
+      const parsed = new URL(submittedUrl);
+      if (parsed.hostname === "youtu.be") return parsed.pathname.split("/").filter(Boolean)[0] ?? null;
+      return parsed.searchParams.get("v") ?? parsed.pathname.match(/\/(?:shorts|embed|live)\/([^/?#]+)/)?.[1] ?? null;
+    } catch { return null; }
+  })();
+  const thumbnail = videoId && /^[A-Za-z0-9_-]{6,20}$/.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null;
 
   return (
     <section className="mt-8 space-y-4 sm:space-y-5" aria-label="Trust check results">
@@ -176,12 +192,13 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
 
       <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.035)]">
         <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(250px,0.8fr)] lg:items-center lg:gap-7">
-          <div className="flex min-w-0 items-center gap-4">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><Video className="h-7 w-7" /></span>
-            <div className="min-w-0">
+          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+            {thumbnail ? <a href={externalUrl ?? undefined} target="_blank" rel="noreferrer" className="group relative block aspect-video w-full max-w-[220px] shrink-0 overflow-hidden rounded-2xl bg-slate-100 bg-cover bg-center transition duration-300 hover:brightness-95" style={{ backgroundImage: `url("${thumbnail}")` }} aria-label="Open source video"><span className="absolute inset-0 grid place-items-center bg-slate-950/10 text-white"><span className="grid h-11 w-11 place-items-center rounded-full bg-slate-950/65"><Video className="h-5 w-5" /></span></span>{duration && available(duration) ? <span className="absolute bottom-2 right-2 rounded bg-slate-950/85 px-2 py-1 text-[10px] font-bold text-white">{duration}</span> : null}</a> : <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orange-50 text-[#F15A24] sm:h-16 sm:w-16"><Video className="h-7 w-7" /></span>}
+            <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#F15A24]"><span className="h-1.5 w-1.5 rounded-full bg-[#FF5A1F]" /> {platformName(submittedUrl)}</p>
               <h2 className="mt-1 line-clamp-2 break-words text-lg font-black leading-snug tracking-tight text-slate-950 sm:text-xl">{itemName}</h2>
               {channel && available(channel) ? <p className="mt-1 text-xs font-semibold text-slate-700">{channel}{subscribers && available(subscribers) ? <span className="font-normal text-slate-500"> · {subscribers} subscribers</span> : null}</p> : null}
+              {published && available(published) ? <p className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500"><CalendarDays className="h-3 w-3" /> Published {published}{category && available(category) ? <span> · Category ID {category}</span> : null}</p> : null}
               {externalUrl ? <a href={externalUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex max-w-full items-center gap-1 break-all text-[11px] font-medium text-blue-700 hover:underline">{submittedUrl} <ExternalLink className="h-3 w-3 shrink-0" /></a> : report.input.file ? <p className="mt-2 text-[11px] text-slate-500">{report.input.file.type || "File"} · {(report.input.file.size / 1024).toFixed(0)} KB</p> : null}
             </div>
           </div>
@@ -224,12 +241,27 @@ export function TrustReportView({ report, onRunAnother }: { report: ScanReport; 
               <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Platform</dt><dd className="text-right text-xs font-bold text-slate-800">{platformName(submittedUrl)}</dd></div>
               {channel && available(channel) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel / creator</dt><dd className="max-w-[65%] truncate text-right text-xs font-bold text-slate-800">{channel}</dd></div> : null}
               {subscribers && available(subscribers) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Subscribers</dt><dd className="text-right text-xs font-bold text-slate-800">{subscribers}</dd></div> : null}
+              {published && available(published) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Published</dt><dd className="text-right text-xs font-bold text-slate-800">{published}</dd></div> : null}
+              {category && available(category) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Category ID</dt><dd className="text-right text-xs font-bold text-slate-800">{category}</dd></div> : null}
+              {duration && available(duration) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Duration</dt><dd className="text-right text-xs font-bold text-slate-800">{duration}</dd></div> : null}
+              {metricMap.get("channel total views") && available(metricMap.get("channel total views") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel total views</dt><dd className="text-right text-xs font-bold text-slate-800">{metricMap.get("channel total views")}</dd></div> : null}
+              {metricMap.get("channel videos") && available(metricMap.get("channel videos") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel videos</dt><dd className="text-right text-xs font-bold text-slate-800">{metricMap.get("channel videos")}</dd></div> : null}
+              {videoId ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Video ID</dt><dd className="max-w-[65%] truncate text-right text-xs font-bold text-slate-800">{videoId}</dd></div> : null}
+              {channelId && available(channelId) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel ID</dt><dd className="max-w-[65%] truncate text-right text-xs font-bold text-slate-800">{channelId}</dd></div> : null}
+              {metricMap.get("channel handle") && available(metricMap.get("channel handle") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel handle</dt><dd className="text-right text-xs font-bold text-slate-800">{metricMap.get("channel handle")}</dd></div> : null}
+              {metricMap.get("channel created") && available(metricMap.get("channel created") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel created</dt><dd className="text-right text-xs font-bold text-slate-800">{metricMap.get("channel created")}</dd></div> : null}
+              {metricMap.get("channel country") && available(metricMap.get("channel country") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Channel country</dt><dd className="text-right text-xs font-bold text-slate-800">{metricMap.get("channel country")}</dd></div> : null}
+              {metricMap.get("video visibility") && available(metricMap.get("video visibility") ?? null) ? <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Visibility</dt><dd className="text-right text-xs font-bold capitalize text-slate-800">{metricMap.get("video visibility")}</dd></div> : null}
+              {metricMap.get("video description") && available(metricMap.get("video description") ?? null) ? <div className="border-t border-slate-100 py-3"><dt className="text-xs text-slate-500">Video description</dt><dd className="mt-1 whitespace-pre-wrap break-words text-xs leading-5 text-slate-700">{metricMap.get("video description")}</dd></div> : null}
               <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Checked</dt><dd className="text-right text-xs font-bold text-slate-800">{checkedAtLabel}</dd></div>
               <div className="flex items-center justify-between gap-3 py-2"><dt className="text-xs text-slate-500">Duration</dt><dd className="text-right text-xs font-bold text-slate-800">{Number.isFinite(report.durationMs) ? `${(report.durationMs / 1000).toFixed(1)}s` : "—"}</dd></div>
             </dl>
           </section>
 
-          {steps.length > 0 ? <section className="rounded-[22px] border border-orange-100 bg-[linear-gradient(145deg,#FFF9F4,#FFF2E9)] p-4 sm:p-5"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-full bg-[#FF5A1F] text-white"><Info className="h-5 w-5" /></span><h3 className="text-base font-black tracking-tight text-[#D94B16]">Recommended next steps</h3></div><ul className="mt-3 space-y-2 pl-4 text-xs leading-5 text-slate-700 marker:text-[#F15A24]">{steps.map((step) => <li key={step} className="list-disc">{step}</li>)}</ul></section> : null}
+          <section className="rounded-[22px] border border-orange-100 bg-[linear-gradient(145deg,#FFFAF6,#FFF2E9)] p-4 shadow-[0_4px_18px_rgba(15,23,42,0.025)] sm:p-5">
+            <div className="flex items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-white shadow-sm"><Info className="h-5 w-5" /></span><div><h3 className="text-base font-black tracking-tight text-[#C94712]">Recommended actions</h3><p className="mt-0.5 text-[11px] text-slate-500">Based on the evidence collected in this scan</p></div></div>
+            {steps.length > 0 ? <ol className="mt-4 space-y-3">{steps.map((step, index) => <li key={step} className="flex gap-3 text-xs leading-5 text-slate-700"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[10px] font-extrabold text-[#E6531B] ring-1 ring-orange-100">{index + 1}</span><span>{step}</span></li>)}</ol> : <p className="mt-4 rounded-xl border border-orange-100 bg-white/80 p-3 text-xs leading-5 text-slate-700">No immediate action was generated from the available evidence. Review the verification details and any listed limitations before making a decision.</p>}
+          </section>
         </div>
       </div>
       <p className="text-center text-[11px] leading-5 text-slate-400">Results reflect evidence available at scan time. Real and bot-view counts are shown only when a trusted source provides them; unavailable data is never estimated.</p>
