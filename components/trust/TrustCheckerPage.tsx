@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight, AudioLines, BadgeCheck, BarChart3, Box, Check, ChevronRight,
+  ArrowRight, AudioLines, BadgeCheck, BarChart3, Box, ChevronRight,
   Clock3, FileCheck2, FileImage, FileUp, Globe2, ImageIcon, Instagram,
-  Link2, Loader2, Search, Shield, ShieldAlert, ShieldCheck, Sparkles,
-  UploadCloud, Video, X, Youtube, Music2, ExternalLink, RefreshCw,
+  Link2, Loader2, Search, Shield, ShieldCheck, Sparkles,
+  UploadCloud, X, Youtube, Music2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TrustReportView } from "./TrustReportView";
