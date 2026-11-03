@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, AudioLines, BarChart3, Box, ChevronRight,
   FileCheck2, FileImage, FileUp, Globe2, Instagram,
-  Link2, Loader2, Search, Shield, ShieldCheck, Sparkles,
+  Link2, Loader2, Search, Shield, ShieldCheck,
   UploadCloud, X, Youtube, Music2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
