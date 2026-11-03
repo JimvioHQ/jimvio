@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight, AudioLines, BadgeCheck, BarChart3, Box, ChevronRight,
-  Clock3, FileCheck2, FileImage, FileUp, Globe2, ImageIcon, Instagram,
-  Link2, Loader2, Search, Shield, ShieldCheck, Sparkles,
-  UploadCloud, X, Youtube, Music2, RefreshCw,
+  ArrowRight, AudioLines, BarChart3, Box, ChevronRight,
+  FileCheck2, FileImage, FileUp, Globe2, Instagram,
+  Link2, Loader2, Search, Shield, ShieldCheck,
+  UploadCloud, X, Youtube, Music2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TrustReportView } from "./TrustReportView";
-import { TrustScanHistory } from "./TrustScanHistory";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
@@ -65,7 +64,6 @@ export function TrustCheckerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
-  const [historyRefresh, setHistoryRefresh] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -117,7 +115,6 @@ export function TrustCheckerPage() {
         throw new Error("The scan returned an incomplete report. No safety verdict was assumed.");
       }
       setReport(payload.report as ScanReport);
-      setHistoryRefresh((value) => value + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The check could not finish. Try again.");
     } finally {
@@ -151,20 +148,12 @@ export function TrustCheckerPage() {
             <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full border border-orange-100/80" />
             <div className="pointer-events-none absolute -right-5 -top-12 h-64 w-64 rounded-full border border-orange-100/70" />
             <div className="relative max-w-4xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/90 px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#E94F18]">
-                <Sparkles className="h-3.5 w-3.5" /> Intelligent verification workspace
-              </div>
-              <h1 className="mt-5 max-w-4xl text-4xl font-black leading-[1.02] tracking-[-0.055em] text-[#111827] sm:text-5xl lg:text-[64px]">
+              <h1 className="max-w-4xl text-4xl font-black leading-[1.02] tracking-[-0.055em] text-[#111827] sm:text-5xl lg:text-[60px]">
                 Know what you can <span className="text-[#FF5A1F]">trust.</span>
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
                 Check a link or file with the right verification tools. Get clear findings, real public signals and transparent limits — all in one place.
               </p>
-              <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-500">
-                <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-emerald-600" /> Evidence-based results</span>
-                <span className="inline-flex items-center gap-1.5"><Clock3 className="h-4 w-4 text-slate-400" /> Clear scan timestamps</span>
-                <span className="inline-flex items-center gap-1.5"><BadgeCheck className="h-4 w-4 text-[#FF5A1F]" /> No invented metrics</span>
-              </div>
             </div>
           </div>
 
@@ -263,10 +252,6 @@ export function TrustCheckerPage() {
                   {CAPABILITIES.map((item) => <div key={item.title} className="flex gap-3"><span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-xl", item.tone)}><item.icon className="h-4 w-4" /></span><div><p className="text-xs font-bold text-slate-800">{item.title}</p><p className="mt-1 text-[11px] leading-5 text-slate-500">{item.text}</p></div></div>)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-orange-100 bg-[linear-gradient(145deg,#FFF9F5,#FFF1E8)] p-4">
-                <div className="flex items-center gap-2 text-[#E94F18]"><Sparkles className="h-4 w-4" /><p className="text-xs font-extrabold">Built for clarity</p></div>
-                <p className="mt-2 text-xs leading-5 text-slate-600">A missing signal is never presented as proof of safety. Every report explains what was checked and what could not be verified.</p>
-              </div>
             </aside>
           </div>
         </section>
@@ -274,23 +259,6 @@ export function TrustCheckerPage() {
         <div id="trust-checker-results" ref={resultRef} className="scroll-mt-24">
           {report ? <TrustReportView report={report} onRunAnother={resetScanner} /> : null}
         </div>
-
-        <div className="mt-6">
-          <TrustScanHistory refreshKey={historyRefresh} onOpenReport={setReport} />
-        </div>
-
-        <section className="mt-8" aria-labelledby="capabilities-heading">
-          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-            <div><p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#F15A24]">Verification coverage</p><h2 id="capabilities-heading" className="mt-1 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">One workspace. Four verification engines.</h2></div>
-            <p className="max-w-md text-xs leading-5 text-slate-500">Each engine reports its own evidence, status and limitations. Unrelated checks are marked not applicable.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {CAPABILITIES.map((item, index) => <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_16px_rgba(15,23,42,0.025)]">
-              <div className="flex items-center justify-between"><span className={cn("grid h-11 w-11 place-items-center rounded-xl", item.tone)}><item.icon className="h-5 w-5" /></span><span className="text-[10px] font-bold text-slate-300">0{index + 1}</span></div>
-              <h3 className="mt-4 text-sm font-extrabold text-slate-900">{item.title}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{item.text}</p>
-            </article>)}
-          </div>
-        </section>
 
         <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
       </div>
