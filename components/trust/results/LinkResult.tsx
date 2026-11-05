@@ -53,8 +53,8 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
   const actions = useReportActions(doc);
 
   return (
-    <div className="space-y-5">
-      <ResultHeader icon={ShieldCheck} newIcon={CirclePlus} title="Scam & Malicious Link Detection" subtitle="Comprehensive security, reputation, and risk analysis for the provided link." onNewCheck={onNewCheck} {...actions} />
+    <div className="tc-stagger space-y-4 xl:space-y-5">
+      <ResultHeader icon={ShieldCheck} newIcon={CirclePlus} title="Scam & Malicious Link Detection" subtitle="Comprehensive security, reputation, and risk analysis for the provided link." onNewCheck={onNewCheck} compact {...actions} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className={cn("rounded-[20px] border px-5 py-5 sm:px-7", b.wrap)}>
@@ -87,20 +87,20 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="tc-stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {m.tiles.map((t) => (
           <StatTile key={t.key} tile={t} icon={TILE_ICON[t.key]} bubble={t.key === "db" ? (t.tone === "bad" ? "bad" : t.tone === "good" ? "good" : "neutral") : "orange"} />
         ))}
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2 xl:gap-5">
+        <Card className="tc-lift">
           <CardTitle icon={<Search className="text-[#111827]" strokeWidth={2.6} />}>Detailed Scan Results</CardTitle>
           <ul className="px-5 pb-3 sm:px-6">
             {m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key]} />)}
           </ul>
         </Card>
-        <Card>
+        <Card className="tc-lift">
           <CardTitle icon={<Info className="text-[#111827]" strokeWidth={2.4} />}>Link Information</CardTitle>
           <dl className="px-5 pb-4 sm:px-6">
             {m.info.map((r) => (

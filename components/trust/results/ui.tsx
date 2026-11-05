@@ -39,12 +39,12 @@ export function StatusPill({ pill, size = "md", className }: { pill: Pill; size?
 }
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <section className={cn("min-w-0 rounded-[20px] border border-[#E8EBF0] bg-white shadow-[0_6px_24px_rgba(15,23,42,0.045)]", className)}>{children}</section>;
+  return <section className={cn("min-w-0 rounded-[20px] border border-[#ECEEF2] bg-white shadow-[0_6px_24px_rgba(15,23,42,0.045)]", className)}>{children}</section>;
 }
 
-export function CardTitle({ icon, children, iconClass, right }: { icon: ReactNode; children: ReactNode; iconClass?: string; right?: ReactNode }) {
+export function CardTitle({ icon, children, iconClass, right, compact = false }: { icon: ReactNode; children: ReactNode; iconClass?: string; right?: ReactNode; compact?: boolean }) {
   return (
-    <div className="flex items-center gap-3 px-5 pb-2 pt-5 sm:px-6">
+    <div className={cn("flex items-center gap-3 px-5 sm:px-6", compact ? "pb-1 pt-4" : "pb-2 pt-5")}>
       <span className={cn("shrink-0 [&>svg]:h-6 [&>svg]:w-6", iconClass ?? "text-[#FF5A1F]")}>{icon}</span>
       <h3 className="min-w-0 flex-1 text-[19px] font-extrabold tracking-[-0.01em] text-[#111827] sm:text-[21px]">{children}</h3>
       {right}
@@ -95,15 +95,15 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
 
 /** Breadcrumb, category title and the three page actions. */
 export function ResultHeader({
-  icon: Icon, title, subtitle, onNewCheck, onShare, onDownload, newIcon: NewIcon,
+  icon: Icon, title, subtitle, onNewCheck, onShare, onDownload, newIcon: NewIcon, compact = false,
 }: {
-  icon: LucideIcon; title: string; subtitle: string; onNewCheck?: () => void; onShare: () => Promise<string | null>; onDownload: () => void; newIcon: LucideIcon;
+  icon: LucideIcon; title: string; subtitle: string; onNewCheck?: () => void; onShare: () => Promise<string | null>; onDownload: () => void; newIcon: LucideIcon; compact?: boolean;
 }) {
   const [shareNote, setShareNote] = useState<string | null>(null);
-  const btn = "inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-4 text-[14px] font-bold text-[#111827] shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition hover:border-[#FFC9B3] hover:bg-[#FFF8F4] sm:h-12 sm:px-5 sm:text-[15px]";
+  const btn = cn("tc-press inline-flex h-11 min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-[#E5E7EB] bg-white px-3 text-[13.5px] font-bold text-[#111827] shadow-[0_3px_10px_rgba(15,23,42,0.06)] transition duration-300 ease-out hover:-translate-y-0.5 hover:border-[#FFC9B3] hover:bg-[#FFF8F4] hover:shadow-[0_8px_18px_rgba(255,90,31,0.12)] active:translate-y-0 active:scale-[0.98] sm:px-5 sm:text-[15px]", compact ? "sm:h-11" : "sm:h-12");
   return (
     <div>
-      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-[13px] text-[#334155]">
+      <nav aria-label="Breadcrumb" data-bc="" className={cn("flex items-center gap-2 text-[13px] text-[#334155]", compact ? "mb-3" : "mb-4")}>
         <Link href="/" aria-label="Home" className="text-[#111827] hover:text-[#FF5A1F]"><House className="h-4 w-4 fill-current" /></Link>
         <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
         {onNewCheck ? <button type="button" onClick={onNewCheck} className="hover:text-[#FF5A1F]">Trust Checker</button> : <Link href="/trust-checker" className="hover:text-[#FF5A1F]">Trust Checker</Link>}
@@ -112,15 +112,15 @@ export function ResultHeader({
       </nav>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-[18px] bg-[#FFF1EA] text-[#FF5A1F] shadow-[0_6px_16px_rgba(255,90,31,0.10)] sm:h-[76px] sm:w-[76px]">
-            <Icon className="h-9 w-9 sm:h-10 sm:w-10" strokeWidth={2.1} />
+          <span className={cn("tc-pop grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-[linear-gradient(160deg,#FFF6F1,#FFE9DC)] text-[#FF5A1F] shadow-[0_8px_20px_rgba(255,90,31,0.14)]", compact ? "sm:h-[64px] sm:w-[64px]" : "sm:h-[76px] sm:w-[76px]")}>
+            <Icon className={cn("h-8 w-8", compact ? "sm:h-9 sm:w-9" : "sm:h-10 sm:w-10")} strokeWidth={2.1} />
           </span>
           <div className="min-w-0">
-            <h1 className="text-[26px] font-black leading-tight tracking-[-0.025em] text-[#111827] sm:text-[33px]">{title}</h1>
-            <p className="mt-1 text-[14px] text-[#334155] sm:text-[17px]">{subtitle}</p>
+            <h1 className={cn("text-[23px] font-black leading-tight tracking-[-0.025em] text-[#111827] min-[400px]:text-[26px]", compact ? "sm:text-[30px]" : "sm:text-[33px]")}>{title}</h1>
+            <p className={cn("mt-0.5 text-[13.5px] text-[#334155]", compact ? "sm:text-[16px]" : "sm:text-[17px]")}>{subtitle}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
           {onNewCheck ? <button type="button" onClick={onNewCheck} className={btn}><NewIcon className="h-5 w-5" strokeWidth={2.2} /> New Check</button> : null}
           <button
             type="button"
@@ -190,7 +190,7 @@ export function ScoreRing({ value, tone, size = 132 }: { value: number | null; t
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E7EAEE" strokeWidth={12} />
-        {value != null ? <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" strokeDasharray={`${circ * frac} ${circ}`} /> : null}
+        {value != null ? <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" pathLength={1} strokeDasharray={`${frac} 1`} className="tc-ring" style={{ ["--tc-ring" as string]: frac }} /> : null}
       </svg>
       <span className="absolute inset-0 grid place-items-center text-center">
         {value == null ? <span className="text-[15px] font-extrabold leading-tight text-[#64748B]">No<br />score</span> : <span className={cn("font-black tracking-[-0.03em] text-[#111827]", value >= 100 ? "text-[23px]" : "text-[27px]")}>{value}/100</span>}
@@ -232,7 +232,7 @@ const TILE_TONE: Record<Tone, string> = {
 export function StatTile({ tile, icon, bubble = "orange" }: { tile: Tile; icon: LucideIcon; bubble?: Parameters<typeof IconBubble>[0]["tone"] }) {
   const has = tile.value != null && tile.value !== "";
   return (
-    <div className="flex min-w-0 items-center gap-3 rounded-[16px] border border-[#ECEEF2] bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)]" title={tile.hint}>
+    <div className="tc-lift flex min-w-0 items-center gap-3 rounded-[16px] border border-[#ECEEF2] bg-white px-3.5 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)]" title={tile.hint}>
       <IconBubble icon={icon} tone={bubble} />
       <div className="min-w-0">
         <p className={cn("line-clamp-2 break-words text-[15px] font-extrabold leading-tight sm:text-[16.5px]", has ? TILE_TONE[tile.tone ?? "neutral"] : "text-[#94A3B8]")}>{has ? tile.value : "Not Available"}</p>
@@ -265,7 +265,7 @@ export function CheckRowItem({ row, icon, compact = false }: { row: CheckRow; ic
         {expandable ? <ChevronRight className={cn("h-5 w-5 shrink-0 text-[#111827] transition", open && "rotate-90")} strokeWidth={2.4} /> : <span className="w-5 shrink-0" />}
       </button>
       {open ? (
-        <div className="mb-3 ml-[58px] space-y-2 rounded-xl bg-[#F8FAFC] p-3 text-[12.5px] leading-5 text-[#334155]">
+        <div className="tc-swap mb-3 ml-[58px] space-y-2 rounded-xl bg-[#F8FAFC] p-3 text-[12.5px] leading-5 text-[#334155]">
           {row.evidence.map((e, i) => (
             <div key={`${e.title}-${i}`}>
               <p className={cn("font-bold", e.tone === "bad" ? "text-[#DC2626]" : e.tone === "warn" ? "text-[#C2410C]" : e.tone === "good" ? "text-[#15803D]" : "text-[#111827]")}>{e.title}</p>
@@ -282,10 +282,10 @@ export function CheckRowItem({ row, icon, compact = false }: { row: CheckRow; ic
 }
 
 /** A label/value row in an information card. */
-export function InfoLine({ row, icon: Icon, action, compact = false }: { row: InfoRow; icon: LucideIcon; action?: ReactNode; compact?: boolean }) {
+export function InfoLine({ row, icon: Icon, action, compact = false, dense = false }: { row: InfoRow; icon: LucideIcon; action?: ReactNode; compact?: boolean; dense?: boolean }) {
   const empty = row.value == null && !row.pill;
   return (
-    <div className="flex min-h-[38px] items-center gap-3 border-b border-[#EEF0F3] py-1.5 last:border-b-0">
+    <div className={cn("flex items-center gap-3 border-b border-[#EEF0F3] last:border-b-0", dense ? "tc-fit-line min-h-[34px] flex-1 py-1" : "min-h-[38px] py-1.5")}>
       <Icon className="h-5 w-5 shrink-0 text-[#111827]" strokeWidth={1.9} />
       <dt className={cn("shrink-0 text-[#111827]", compact ? "max-w-[46%] text-[13.5px]" : "w-[38%] text-[14px] sm:text-[15px]")}>{row.label}</dt>
       <dd className={cn("flex min-w-0 flex-1 items-center justify-end gap-2 text-right font-semibold text-[#111827]", compact ? "text-[13.5px]" : "text-[14px] sm:text-[15px]")}>

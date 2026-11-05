@@ -51,12 +51,12 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
   const creationBad = m.creation.headline.tone === "bad";
 
   return (
-    <div className="space-y-5">
-      <ResultHeader icon={HeaderIcon} newIcon={RotateCw} title="Media Metadata & Provenance" subtitle="Verification of media authenticity, origin, creation method, and technical details." onNewCheck={onNewCheck} {...actions} />
+    <div className="tc-stagger space-y-4 xl:space-y-5">
+      <ResultHeader icon={HeaderIcon} newIcon={RotateCw} title="Media Metadata & Provenance" subtitle="Verification of media authenticity, origin, creation method, and technical details." onNewCheck={onNewCheck} compact {...actions} />
       <VerdictBanner banner={m.banner} icon={bannerIcon} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <Card className="flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:p-5">
+        <Card className="tc-lift flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:p-5">
           <div className="relative aspect-[3/2] w-full shrink-0 overflow-hidden rounded-[14px] bg-[#0F172A] sm:w-[300px] xl:w-[330px]">
             {showPreview?.kind === "image" ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -105,12 +105,12 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
         })}
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-2 xl:grid-cols-[1.18fr_1fr_0.98fr]">
-        <Card>
+      <div className="grid items-stretch gap-4 lg:grid-cols-2 xl:grid-cols-[1.18fr_1fr_0.98fr] xl:gap-5">
+        <Card className="tc-lift">
           <CardTitle icon={<ShieldCheck strokeWidth={2.2} />}>Verification Checks</CardTitle>
           <ul className="px-5 pb-3 sm:px-6">{m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key]} compact />)}</ul>
         </Card>
-        <Card>
+        <Card className="tc-lift">
           <CardTitle icon={<Layers strokeWidth={2.2} />}>Creation &amp; Origin Analysis</CardTitle>
           <div className="px-5 pb-4 sm:px-6">
             <div className={cn("mb-2 flex items-center gap-3 rounded-[14px] px-4 py-3", creationGood ? "bg-[#EAF8EE]" : creationBad ? "bg-[#FDECEC]" : "bg-[#F1F5F9]")}>
@@ -123,7 +123,7 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
             <dl>{m.creation.rows.map((r) => <InfoLine key={r.key} row={r} icon={CREATION_ICON[r.key] ?? Info} compact />)}</dl>
           </div>
         </Card>
-        <Card>
+        <Card className="tc-lift">
           <CardTitle icon={<Info className="text-[#111827]" strokeWidth={2.4} />}>{m.technicalTitle}</CardTitle>
           <dl className="px-5 pb-4 sm:px-6">{m.technical.map((r) => <InfoLine key={r.key} row={r} icon={TECH_ICON[r.key] ?? Info} compact />)}</dl>
         </Card>

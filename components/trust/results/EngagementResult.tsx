@@ -56,8 +56,8 @@ function Gauge({ level, label, color }: { level: EngagementModel["quality"]["lev
       <svg viewBox="0 0 180 100" className="h-[100px] w-[180px]" aria-hidden>
         <defs><linearGradient id="gq" x1="0" x2="1"><stop offset="0" stopColor="#F59E0B" /><stop offset="1" stopColor="#FF5A1F" /></linearGradient></defs>
         <path d={arc(1)} fill="none" stroke="#FAD9C4" strokeWidth="20" />
-        {frac > 0 ? <path d={arc(frac)} fill="none" stroke="url(#gq)" strokeWidth="20" /> : null}
-        {frac > 0 ? <line x1={n0x} y1={n0y} x2={n1x} y2={n1y} stroke="#E2561B" strokeWidth="4" strokeLinecap="round" /> : null}
+        {frac > 0 ? <path d={arc(frac)} pathLength={1} className="tc-dash" fill="none" stroke="url(#gq)" strokeWidth="20" /> : null}
+        {frac > 0 ? <line className="tc-fade" x1={n0x} y1={n0y} x2={n1x} y2={n1y} stroke="#E2561B" strokeWidth="4" strokeLinecap="round" /> : null}
       </svg>
       <p className={cn("absolute inset-x-0 bottom-0 text-center text-[22px] font-black leading-none", color)}>{label}</p>
     </div>
@@ -89,34 +89,35 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
   const isYt = m.platform === "youtube";
 
   return (
-    <div className="space-y-5">
-      <ResultHeader icon={BarChart3} newIcon={RotateCw} title="Engagement & Traffic Detection" subtitle="Analysis of public engagement, audience activity, and traffic signals." onNewCheck={onNewCheck} {...actions} />
+    <div className="tc-stagger tc-fit space-y-4 xl:space-y-[18px]">
+      <ResultHeader icon={BarChart3} newIcon={RotateCw} title="Engagement & Traffic Detection" subtitle="Analysis of public engagement, audience activity, and traffic signals." onNewCheck={onNewCheck} compact {...actions} />
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(0,1fr)]">
-        <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
-          <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" className={cn("relative block shrink-0 overflow-hidden rounded-[14px] bg-[#F1F5F9]", isYt ? "aspect-video w-full sm:w-[300px]" : "aspect-[4/5] w-full max-w-[220px] sm:w-[190px]")} aria-label={`Open on ${m.platformName}`}>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] xl:gap-5">
+        <Card className="tc-lift flex flex-col gap-4 p-4 min-[440px]:flex-row min-[440px]:items-center sm:gap-5 xl:p-[18px]">
+          <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" className={cn("group/thumb relative block shrink-0 overflow-hidden rounded-[14px] bg-[#F1F5F9]", isYt ? "tc-fit-thumb aspect-video w-full min-[440px]:w-[42%] sm:w-[44%] sm:max-w-[330px]" : "tc-fit-portrait aspect-[4/5] w-full max-w-[200px] min-[440px]:w-[120px] sm:w-[132px]")} aria-label={`Open on ${m.platformName}`}>
             {m.thumbnail ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={m.thumbnail} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+              <img src={m.thumbnail} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/thumb:scale-[1.04]" />
             ) : (
               <span className="grid h-full w-full place-items-center text-[#94A3B8]"><PlatformMark platform={m.platform} className="h-12 w-12 opacity-70" /></span>
             )}
-            {!isYt && m.thumbnail ? <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full border-2 border-white/90 bg-black/30"><Play className="ml-0.5 h-5 w-5 fill-white text-white" /></span></span> : null}
+            {m.thumbnail ? <span className="absolute inset-0 grid place-items-center"><span className="grid h-12 w-12 place-items-center rounded-full bg-black/45 backdrop-blur-sm transition-transform duration-300 group-hover/thumb:scale-110"><Play className="ml-0.5 h-5 w-5 fill-white text-white" /></span></span> : null}
             {m.duration ? <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-0.5 text-[13px] font-bold text-white">{m.duration}</span> : null}
           </a>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-[14px] font-semibold text-[#111827] sm:text-[16px]"><PlatformMark platform={m.platform} className={isYt ? "h-5 w-7" : "h-7 w-7"} /> {m.itemLabel}</span>
-              {!isYt ? <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Open on ${m.platformName}`} className="text-[#1D4ED8]"><ExternalLink className="h-5 w-5" /></a> : null}
+              <span className="flex items-center gap-2 text-[14px] font-bold text-[#111827] sm:text-[15px]"><PlatformMark platform={m.platform} className={isYt ? "h-5 w-7" : "h-6 w-6"} /> {m.itemLabel}</span>
             </div>
-            <h2 className="mt-2 flex items-center gap-2 text-[18px] font-extrabold leading-snug text-[#111827] sm:text-[20px]">
-              <span className="line-clamp-2 break-words">{m.heading}</span>
-              {m.verified ? <BadgeCheck className="h-6 w-6 shrink-0 fill-[#1D9BF0] text-white" /> : null}
-              {isYt ? <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" aria-label="Open on YouTube" className="shrink-0 text-[#1D4ED8]"><ExternalLink className="h-5 w-5" /></a> : null}
-            </h2>
-            {m.subline ? <p className="mt-2 flex items-center gap-2 text-[15px] text-[#111827]"><User className="h-5 w-5" /> {m.subline}</p> : null}
-            {m.caption ? <p className="mt-2 line-clamp-2 text-[15px] text-[#111827] sm:text-[17px]">{m.caption}</p> : null}
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-[#111827] sm:text-[15.5px]">
+            <div className="mt-2 flex items-start justify-between gap-3">
+              <h2 className="flex min-w-0 items-center gap-2 text-[18px] font-extrabold leading-snug text-[#111827] xl:text-[20px]">
+                <span className="line-clamp-3 break-words sm:line-clamp-2">{m.heading}</span>
+                {m.verified ? <BadgeCheck className="h-6 w-6 shrink-0 fill-[#1D9BF0] text-white" /> : null}
+              </h2>
+              <a href={m.url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Open on ${m.platformName}`} className="mt-1 shrink-0 text-[#1D4ED8] transition hover:scale-110"><ExternalLink className="h-5 w-5" /></a>
+            </div>
+            {m.subline ? <p className="mt-2 flex items-center gap-2 truncate text-[15px] text-[#111827]"><User className="h-5 w-5 shrink-0" /> {m.subline}</p> : null}
+            {m.caption ? <p className="mt-2 line-clamp-2 text-[15px] text-[#111827]">{m.caption}</p> : null}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-[#111827] xl:text-[15px]">
               <span className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> {m.postedLabel}: {m.posted ?? "Not available"}</span>
               <span className="hidden h-6 w-px bg-[#E5E7EB] sm:block" />
               <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> Duration: {m.duration ?? "Not available"}</span>
@@ -124,62 +125,62 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
           </div>
         </Card>
 
-        <div className="flex flex-col items-center gap-5 rounded-[20px] border border-[#F8DCC8] bg-[linear-gradient(115deg,#FFF6EF_0%,#FFEFE4_100%)] px-5 py-5 sm:flex-row sm:px-7">
+        <div className="tc-lift flex flex-col items-center gap-4 rounded-[20px] border border-[#F8DCC8] bg-[linear-gradient(115deg,#FFF7F1_0%,#FFEEE3_100%)] px-5 py-4 shadow-[0_6px_24px_rgba(255,90,31,0.06)] min-[440px]:flex-row min-[440px]:gap-5 sm:gap-6 sm:px-7">
           <div className="flex shrink-0 flex-col items-center">
             <Gauge level={m.quality.level} label={m.quality.label} color={qualityColor} />
-            <p className="mt-1 text-[14px] text-[#334155] sm:text-[15px]">Engagement Quality</p>
+            <p className="mt-1 text-[14px] text-[#334155] xl:text-[15px]">Engagement Quality</p>
           </div>
-          <span className="hidden h-24 w-0.5 bg-[#F0A97E] sm:block" />
-          <div className="min-w-0">
-            <h3 className="flex items-center gap-2 text-[21px] font-black text-[#B42318] sm:text-[24px]">Analysis Summary <InfoTip text="From the platform's public counts only: views over time, likes and comments per view, and repeated comments. Signals, not proof." /></h3>
-            <p className="mt-1.5 text-[15px] leading-6 text-[#111827] sm:text-[17px]">{m.quality.text}</p>
+          <span className="hidden h-24 w-0.5 shrink-0 rounded bg-[#F3A57D] min-[440px]:block" />
+          <div className="min-w-0 text-center min-[440px]:text-left">
+            <h3 className="flex items-center justify-center gap-2 text-[20px] font-black text-[#C2410C] min-[440px]:justify-start xl:text-[24px]">Analysis Summary <InfoTip text="From the platform's public counts only: views over time, likes and comments per view, and repeated comments. Signals, not proof." /></h3>
+            <p className="mt-1.5 text-[15px] leading-6 text-[#111827] xl:text-[16.5px]">{m.quality.text}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:flex xl:flex-nowrap">
+      <div className="tc-stagger tc-metrics grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3 xl:grid-cols-[repeat(8,minmax(min-content,1fr))] xl:gap-2 2xl:gap-3">
         {m.tiles.map((t) => {
           const Icon = t.key === "likes" && m.platform === "instagram" ? Heart : TILE_ICON[t.key];
           const has = t.value != null;
           return (
-            <div key={t.key} className="flex min-w-0 items-center gap-2.5 rounded-[16px] border border-[#ECEEF2] bg-white px-3 py-3.5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] xl:flex-auto" title={t.hint}>
+            <div key={t.key} className="tc-lift flex min-w-0 items-center gap-2.5 rounded-[16px] border border-[#ECEEF2] bg-white px-3 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] xl:gap-2 xl:px-2.5 2xl:gap-2.5 2xl:px-3.5" title={t.hint}>
               <IconBubble icon={Icon} tone={t.key === "bot" ? "red" : "orange"} size="sm" />
               <div className="min-w-0">
-                <p className="flex items-center gap-1 whitespace-nowrap text-[12.5px] text-[#111827] sm:text-[13.5px]">{t.label}{t.key === "rate" ? <InfoTip text={t.hint ?? ""} /> : null}</p>
-                <p className={cn("whitespace-nowrap font-extrabold leading-tight", has ? "text-[20px] text-[#111827] sm:text-[22px]" : "mt-0.5 text-[14px] text-[#94A3B8]")}>{has ? t.value : t.key === "real" || t.key === "bot" ? "Not public" : "Not available"}</p>
+                <p className="flex items-center gap-1 truncate text-[12px] text-[#111827] sm:text-[13px] xl:overflow-visible xl:whitespace-normal xl:leading-tight 2xl:whitespace-nowrap">{t.label}{t.key === "rate" ? <InfoTip text={t.hint ?? ""} /> : null}</p>
+                <p className={cn("truncate font-extrabold leading-tight tracking-[-0.01em] xl:overflow-visible xl:whitespace-normal xl:[text-overflow:clip]", has ? "text-[18px] text-[#111827] sm:text-[20px] xl:text-[19px] 2xl:text-[22px]" : "mt-0.5 text-[14px] text-[#94A3B8] sm:text-[15px]")}>{has ? t.value : t.key === "real" || t.key === "bot" ? "Not public" : "Not available"}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card>
-          <CardTitle icon={<Users strokeWidth={2.2} />} right={null}>
+      <div className="grid items-stretch gap-4 md:grid-cols-2 xl:gap-5">
+        <Card className="tc-lift flex h-full flex-col">
+          <CardTitle icon={<Users strokeWidth={2.2} />} right={null} compact>
             <span className="flex items-center gap-2">Audience Quality <InfoTip text="Read from the public numbers. Bot and fake views can't be counted from outside the platform, so Jimvio doesn't estimate them." /></span>
           </CardTitle>
-          <ul className="px-5 pb-3 sm:px-6">
+          <ul className="flex flex-1 flex-col justify-between px-5 pb-3 sm:px-6">
             {m.audience.map((r) => {
               const Icon = r.key === "real" ? CircleCheck : r.key === "suspicious" ? TriangleAlert : Bot;
               const tone = r.key === "real" ? "good" : r.key === "suspicious" ? "orange" : "neutral";
               return (
-                <li key={r.key} className="flex items-center gap-4 border-b border-[#EEF0F3] py-3.5 last:border-b-0">
-                  <IconBubble icon={Icon} tone={tone} size="lg" />
+                <li key={r.key} className="tc-fit-row flex flex-1 items-center gap-3.5 border-b border-[#EEF0F3] py-2.5 last:border-b-0 sm:gap-4">
+                  <IconBubble icon={Icon} tone={tone} size="md" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[17px] font-extrabold text-[#111827] sm:text-[19px]">{r.title}</p>
-                    <p className="text-[14px] leading-5 text-[#334155] sm:text-[15px]">{r.description}</p>
+                    <p className="text-[15.5px] font-extrabold text-[#111827] xl:text-[17px]">{r.title}</p>
+                    <p className="text-[13px] leading-5 text-[#334155] xl:text-[14px]">{r.description}</p>
                     {r.note ? <p className="text-[12px] text-[#64748B]">{r.note}</p> : null}
                   </div>
-                  <StatusPill pill={r.pill} size="lg" className="min-w-[120px]" />
+                  <StatusPill pill={r.pill} className="tc-pill shrink-0 sm:min-w-[118px]" />
                 </li>
               );
             })}
           </ul>
         </Card>
-        <Card>
-          <CardTitle icon={<PlatformMark platform={m.platform} className={isYt ? "h-6 w-8" : "h-8 w-8"} />}>{m.accountTitle}</CardTitle>
-          <dl className="px-5 pb-4 sm:px-6">
-            {m.account.map((r) => <InfoLine key={r.key} row={r} icon={ACCOUNT_ICON[r.key] ?? User} />)}
+        <Card className="tc-lift flex h-full flex-col">
+          <CardTitle icon={<PlatformMark platform={m.platform} className={isYt ? "h-6 w-8" : "h-7 w-7"} />} compact>{m.accountTitle}</CardTitle>
+          <dl className="flex flex-1 flex-col justify-between px-5 pb-3 sm:px-6">
+            {m.account.map((r) => <InfoLine key={r.key} row={r} icon={ACCOUNT_ICON[r.key] ?? User} dense />)}
           </dl>
         </Card>
       </div>

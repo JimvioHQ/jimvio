@@ -62,12 +62,12 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
   const scoreTone = m.score.value == null ? "neutral" : m.score.value >= 80 ? "good" : m.score.value >= 50 ? "warn" : "bad";
 
   return (
-    <div className="space-y-5">
-      <ResultHeader icon={Layers} newIcon={RotateCw} title="Digital Product Verification" subtitle="Verification of digital product legitimacy, authorship, and quality." onNewCheck={onNewCheck} {...actions} />
+    <div className="tc-stagger space-y-4 xl:space-y-5">
+      <ResultHeader icon={Layers} newIcon={RotateCw} title="Digital Product Verification" subtitle="Verification of digital product legitimacy, authorship, and quality." onNewCheck={onNewCheck} compact {...actions} />
       <VerdictBanner banner={m.banner} icon={bannerIcon} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <Card className="flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:p-5">
+        <Card className="tc-lift flex flex-col gap-5 p-4 sm:flex-row sm:items-center sm:p-5">
           {m.isBook ? <BookArt title={m.title} author={m.author} /> : <PdfArt label={m.formatShort} />}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 text-[15px] text-[#111827] sm:text-[16px]">
@@ -90,7 +90,7 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
         <ScoreCard title="Trust Score" score={m.score} tone={scoreTone} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="tc-stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {m.tiles.map((t) => {
           const icon = t.key === "status" ? (t.tone === "good" ? CircleCheck : t.tone === "bad" ? CircleX : t.tone === "warn" ? TriangleAlert : Info) : t.key === "type" ? (m.isBook ? BookOpen : FileText) : t.key === "size" ? Database : t.key === "format" ? FileText : t.key === "authorship" ? (d.aiToolInMetadata ? Bot : User) : CalendarDays;
           const bubble = t.key === "status" ? (t.tone === "good" ? "good" : t.tone === "bad" ? "bad" : t.tone === "warn" ? "warn" : "neutral") : t.key === "authorship" && d.aiToolInMetadata ? "bad" : "orange";
@@ -98,12 +98,12 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
         })}
       </div>
 
-      <div className="grid items-start gap-5 xl:grid-cols-2">
-        <Card>
+      <div className="grid items-stretch gap-4 xl:grid-cols-2 xl:gap-5">
+        <Card className="tc-lift">
           <CardTitle icon={<ShieldCheck strokeWidth={2.2} />}>Verification Checks</CardTitle>
           <ul className="px-5 pb-3 sm:px-6">{m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key]} />)}</ul>
         </Card>
-        <Card>
+        <Card className="tc-lift">
           <CardTitle icon={<Info className="text-[#111827]" strokeWidth={2.4} />}>Product Information</CardTitle>
           <dl className="px-5 pb-4 sm:px-6">{m.info.map((r) => <InfoLine key={r.key} row={r} icon={INFO_ICON[r.key]} />)}</dl>
         </Card>
