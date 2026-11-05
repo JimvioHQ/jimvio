@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { inflateSync } from "node:zlib";
 import { unzipSync, strFromU8 } from "fflate";
 import type { Finding } from "./types";
+import { inspectPdf } from "./pdf-structure";
 
 export type FileKind = "image" | "video" | "audio" | "pdf" | "archive" | "office" | "ebook" | "executable" | "text" | "unknown";
 
@@ -151,11 +152,12 @@ export function fileSafety(buf: Buffer, name: string, type: FileType): Finding[]
     if (/VBA|_VBA_PROJECT|Macros/.test(raw)) f.push({ tone: "bad", title: "Older Office file with macros", source: "File inspection" });
   }
   if (type.kind === "pdf") {
-    const raw = buf.toString("latin1");
-    if (/\/JavaScript|\/JS\b/.test(raw)) f.push({ tone: "bad", title: "PDF contains JavaScript", detail: "Normal ebooks and guides don't need code.", source: "PDF scan" });
-    if (/\/Launch\b/.test(raw)) f.push({ tone: "bad", title: "PDF can launch programs", source: "PDF scan" });
-    if (/\/EmbeddedFile\b/.test(raw)) f.push({ tone: "warn", title: "PDF carries embedded files", source: "PDF scan" });
-    if (/\/OpenAction\b/.test(raw) && /\/URI\b/.test(raw)) f.push({ tone: "warn", title: "PDF opens a web link automatically", source: "PDF scan" });
+    // Real action dictionaries only (raw compressed bytes can contain "/JS" by chance).
+    const s = inspectPdf(buf).security;
+    if (s.javascript) f.push({ tone: "bad", title: "PDF contains JavaScript", detail: "Normal ebooks and guides don't need code.", source: "PDF scan" });
+    if (s.launch) f.push({ tone: "bad", title: "PDF can launch programs", source: "PDF scan" });
+    if (s.embeddedFiles) f.push({ tone: "warn", title: "PDF carries embedded files", source: "PDF scan" });
+    if (s.openActionKind === "Open web link") f.push({ tone: "warn", title: "PDF opens a web link automatically", source: "PDF scan" });
   }
   return f;
 }

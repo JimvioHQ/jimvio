@@ -5,8 +5,10 @@
  * Verify") and the item never counts as passed or failed.
  */
 import type {
-  CheckerResult, EngagementDetails, Finding, LinkDetails, MediaDetails, ProductDetails, ScanCategory, ScanReport,
+  AssessmentState, CheckerResult, CheckExecution, ProductAssessment, ProductCheck, ProductCheckStatus, EngagementDetails, Finding, LinkAssessment, LinkDetails, MediaDetails, ProductDetails, ScanCategory, ScanReport,
 } from "./types";
+import { assessLink } from "./link-assessment";
+import { assessProduct } from "./product-assessment";
 
 export type Tone = "good" | "warn" | "bad" | "neutral" | "info" | "ai";
 export type Pill = { label: string; tone: Tone };
@@ -160,220 +162,153 @@ export function primaryChecker(report: ScanReport): CheckerResult | null {
 
 // ── 1. Scam & malicious link ──────────────────────────────────────────────
 
+export type AssessmentSections = { found: string[]; couldNotVerify: string[]; actions: string[] };
 export type LinkModel = {
   banner: Banner;
+  state: AssessmentState;
   risk: Score;
+  coverage: { value: number; completed: number; total: number };
+  confidence: LinkAssessment["confidence"];
   tiles: Tile[];
   checks: CheckRow[];
   info: InfoRow[];
   redirects: { url: string; status: number }[];
+  sections: AssessmentSections;
   limits: string[];
 };
 
+/** Exact hero texts, one per assessment state (product spec, Nov 2026). */
+export const HERO: Record<AssessmentState, { tone: Banner["tone"]; title: string; text: string; result: Pill }> = {
+  NO_KNOWN_THREATS: { tone: "good", title: "No Known Threats Detected", text: "Jimvio completed its available security checks and found no known threats. This does not guarantee the link is completely safe.", result: { label: "No Known Threats", tone: "good" } },
+  INCOMPLETE_ASSESSMENT: { tone: "neutral", title: "Security Assessment Incomplete", text: "Some important security checks could not be completed. Review the missing checks before trusting this link.", result: { label: "Incomplete", tone: "neutral" } },
+  THREAT_DETECTED: { tone: "danger", title: "Potential Security Threat Detected", text: "Jimvio identified suspicious or malicious indicators associated with this link. Review the findings before proceeding.", result: { label: "Threat Detected", tone: "bad" } },
+  SUSPICIOUS_ACTIVITY: { tone: "warn", title: "Suspicious Activity Detected", text: "Jimvio found unusual indicators that require further investigation. The available evidence is not sufficient to confirm a threat.", result: { label: "Suspicious", tone: "warn" } },
+  WEBSITE_UNREACHABLE: { tone: "neutral", title: "Website Could Not Be Inspected", text: "Jimvio could not access the destination to complete its content analysis. Some security risks may therefore remain unverified.", result: { label: "Not Inspected", tone: "neutral" } },
+  SCAN_FAILED: { tone: "neutral", title: "Security Scan Could Not Be Completed", text: "Jimvio encountered a technical problem while analyzing this link. Please try again.", result: { label: "Scan Failed", tone: "neutral" } },
+};
+
+const EXEC_PILL: Record<CheckExecution, Pill> = {
+  CLEAN: { label: "Clean", tone: "good" },
+  THREAT_DETECTED: { label: "Threat Detected", tone: "bad" },
+  SUSPICIOUS: { label: "Suspicious", tone: "warn" },
+  INCONCLUSIVE: { label: "Inconclusive", tone: "neutral" },
+  NOT_CHECKED: { label: "Not Checked", tone: "neutral" },
+  UNAVAILABLE: { label: "Unavailable", tone: "neutral" },
+  FAILED: { label: "Failed", tone: "neutral" },
+};
+const EXEC_POINTS: Record<CheckExecution, CheckRow["points"]> = { CLEAN: 1, SUSPICIOUS: 0.5, THREAT_DETECTED: 0, INCONCLUSIVE: null, NOT_CHECKED: null, UNAVAILABLE: null, FAILED: null };
+const CHECK_DESC: Record<string, string> = {
+  url: "Checks the address for encoding tricks, raw IPs and hidden credentials.",
+  redirects: "Follows every redirect to the final destination.",
+  malware: "Checks Google's malware and unwanted-software lists.",
+  phishing: "Phishing lists plus the page's own sign-in behaviour.",
+  reputation: "Checks the domain for abused endings and bait words.",
+  brand: "Looks for well-known brand names on domains that aren't theirs.",
+  blocklist: "Google Web Risk and the public Phishing.Database.",
+  tls: "Checks the website's HTTPS certificate.",
+  registration: "Domain age, registrar and nameservers (RDAP).",
+  dns: "Server address and the network that operates it.",
+  content: "Reads the page safely (no scripts) for scam patterns.",
+  downloads: "Checks whether the link starts a program download.",
+};
+
+function regionName(cc: string | null | undefined): string | null {
+  if (!cc) return null;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(cc.toUpperCase()) ?? cc;
+  } catch {
+    return cc;
+  }
+}
+
 export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl: string, checkedAt: string): LinkModel {
-  const f = c.findings;
-  const fetched = d?.pageFetched ?? !f.some((x) => x.title === "Could not open the page");
-  const listed = d ? d.webRisk.status === "match" || d.phishingList.status === "match" : f.some((x) => x.tone === "bad" && /Web Risk|Phishing/i.test(x.source));
-  const dbChecked = d ? [d.webRisk.status, d.phishingList.status].filter((s) => s !== "unavailable").length : 0;
-  const dbTotal = 2;
+  // Older reports have no stored assessment: rebuild it from the same evidence.
+  const a: LinkAssessment | null = d ? (d.assessment ?? assessLink({ findings: c.findings, details: d })) : null;
+  const state: AssessmentState = a?.state ?? "SCAN_FAILED";
+  const h = HERO[state];
+  const banner: Banner = { tone: h.tone, title: h.title, text: h.text, result: h.result };
 
-  const downloads = hits(f, /downloads a program|direct download of a program/i);
-  const malware = d?.webRisk.threats.some((t) => /MALWARE|UNWANTED/i.test(t)) ?? false;
-  const redirectF = f.filter((x) => x.source === "Redirect chain");
-  const phishF = [
-    ...f.filter((x) => /phishing/i.test(x.source) && x.tone === "bad"),
-    ...hits(f, /password form sends|recovery phrase|page titled as|uses the name|looks like “/i),
-    ...f.filter((x) => x.source === "Google Web Risk" && /social engineering/i.test(x.detail ?? "")),
-  ];
-  const urlF = f.filter((x) => x.source === "URL analysis" && x.tone !== "good");
-  const pageF = f.filter((x) => /page content|http headers/i.test(x.source));
-  const ageDays = d?.ageDays ?? null;
+  const checks: CheckRow[] = (a?.checks ?? []).map((k) => ({
+    key: k.id,
+    title: k.name,
+    description: CHECK_DESC[k.id] ?? k.source,
+    pill: EXEC_PILL[k.status],
+    points: EXEC_POINTS[k.status],
+    note: k.explanation,
+    evidence: k.evidence.map((e) => ({ tone: k.status === "THREAT_DETECTED" ? "bad" : k.status === "SUSPICIOUS" ? "warn" : "info", title: e, source: k.source }) as Finding),
+  }));
 
-  const checks: CheckRow[] = [
-    {
-      key: "code",
-      title: "Malicious Code Scan",
-      description: "Checks for program downloads and known malware listings.",
-      evidence: [...downloads, ...f.filter((x) => x.source === "Google Web Risk" && /malware|unwanted/i.test(x.detail ?? ""))],
-      ...(downloads.length || malware
-        ? { pill: pill("Detected", "bad"), points: 0 as const }
-        : fetched || d?.webRisk.status === "clean"
-          ? { pill: pill("No Threats", "good"), points: 1 as const }
-          : { pill: pill("Not Checked", "neutral"), points: null }),
-    },
-    {
-      key: "redirects",
-      title: "Suspicious Redirects",
-      description: "Checks for hidden or unexpected redirections.",
-      evidence: redirectF,
-      ...(redirectF.some((x) => x.tone === "warn")
-        ? { pill: pill("Detected", "warn"), points: 0.5 as const }
-        : redirectF.length
-          ? { pill: pill("Cross-domain", "info"), points: 1 as const }
-          : fetched
-            ? { pill: pill("None", "good"), points: 1 as const }
-            : { pill: pill("Not Checked", "neutral"), points: null }),
-    },
-    {
-      key: "phishing",
-      title: "Phishing Detection",
-      description: "Identifies attempts to steal personal or financial information.",
-      evidence: phishF,
-      ...(phishF.length
-        ? { pill: pill("Detected", "bad"), points: 0 as const }
-        : fetched || dbChecked
-          ? { pill: pill("Not Detected", "good"), points: 1 as const }
-          : { pill: pill("Unable to Verify", "neutral"), points: null }),
-    },
-    {
-      key: "reputation",
-      title: "Domain Reputation",
-      description: "Checks the address for look-alike names, risky endings and bait words.",
-      evidence: [...urlF, ...f.filter((x) => x.source === "URL analysis" && x.tone === "good")],
-      ...(urlF.some((x) => x.tone === "bad")
-        ? { pill: pill("Dangerous", "bad"), points: 0 as const }
-        : urlF.some((x) => x.tone === "warn")
-          ? { pill: pill("Suspicious", "warn"), points: 0.5 as const }
-          : d?.officialPlatform
-            ? { pill: pill(`Official ${d.officialPlatform}`, "good"), points: 1 as const }
-            : { pill: pill("Normal", "good"), points: 1 as const }),
-    },
-    {
-      key: "blocklist",
-      title: "Blacklist Status",
-      description: "Checks the domain against Google Web Risk and the public phishing database.",
-      evidence: f.filter((x) => /Web Risk|Phishing/i.test(x.source)),
-      ...(listed
-        ? { pill: pill("Blocklisted", "bad"), points: 0 as const }
-        : dbChecked
-          ? { pill: pill("Not Blocklisted", "good"), points: 1 as const }
-          : { pill: pill("Not Checked", "neutral"), points: null }),
-      note: dbChecked ? `${dbChecked} of ${dbTotal} security databases answered.` : "No security database could be reached for this scan.",
-    },
-    {
-      key: "tls",
-      title: "SSL / HTTPS Certificate",
-      description: "Checks the security and validity of the website's SSL certificate.",
-      evidence: hits(f, /certificate|not encrypted/i),
-      ...(d?.tls.status === "valid"
-        ? { pill: pill("Valid (HTTPS)", "good"), points: 1 as const }
-        : d?.tls.status === "invalid"
-          ? { pill: pill("Invalid", "bad"), points: 0 as const }
-          : d?.tls.status === "not_https"
-            ? { pill: pill("Not Encrypted", "warn"), points: 0.5 as const }
-            : { pill: pill("Not Checked", "neutral"), points: null }),
-    },
-    {
-      key: "whois",
-      title: "Domain Information (WHOIS)",
-      description: "Analyzes domain age, registrar and registration data (RDAP).",
-      evidence: f.filter((x) => x.source === "RDAP"),
-      ...(ageDays == null
-        ? { pill: pill("Not Available", "neutral"), points: null }
-        : ageDays < 30
-          ? { pill: pill("New Domain", "warn"), points: 0.5 as const }
-          : { pill: pill("Normal", "good"), points: 1 as const }),
-    },
-    {
-      key: "content",
-      title: "Website Content Analysis",
-      description: "Scans page content for scam signals, fake offers, or risky behavior.",
-      evidence: pageF,
-      ...(!fetched || (d && !d.contentType?.includes("html") && !pageF.length)
-        ? { pill: pill("Not Checked", "neutral"), points: null }
-        : worst(pageF) === "bad"
-          ? { pill: pill("Dangerous", "bad"), points: 0 as const }
-          : worst(pageF) === "warn"
-            ? { pill: pill("Suspicious", "warn"), points: 0.5 as const }
-            : worst(pageF) === "info"
-              ? { pill: pill("Review", "info"), points: 1 as const }
-              : { pill: pill("No Issues", "good"), points: 1 as const }),
-    },
-  ];
-
-  const issues = f.filter((x) => x.tone === "bad" || x.tone === "warn").length;
-  const score = evidenceScore(checks);
-  // 100 − evidence score, kept inside the band of the overall verdict so the number never contradicts it.
-  const band: [number, number] =
-    c.status === "known_threat" ? [95, 100] : c.status === "high_risk" ? [70, 94] : c.status === "suspicious" || c.status === "evidence_found" ? [35, 69] : c.status === "low_risk" ? [0, 34] : [0, 100];
-  const riskValue = c.status === "known_threat" ? Math.max(95, score == null ? 95 : 100 - score) : score == null ? null : Math.min(band[1], Math.max(band[0], 100 - score));
-  const st = c.status;
-  const banner: Banner =
-    st === "known_threat"
-      ? { tone: "danger", title: "Known Threat Detected", text: "This link is listed as an active phishing or malware site. Do not open it, log in, pay or download anything.", result: pill("Known Threat", "bad") }
-      : st === "high_risk"
-        ? { tone: "bad", title: "Malicious Activity Detected", text: "This link shows strong signs of scam or malicious activity. Review the details below before proceeding.", result: pill("High Risk", "bad") }
-        : st === "suspicious" || st === "evidence_found"
-          ? { tone: "warn", title: "Suspicious Activity Detected", text: "This link shows suspicious or potentially malicious activity. Review the details below before proceeding.", result: pill("Suspicious", "warn") }
-          : st === "low_risk"
-            ? { tone: "good", title: "No Threats Detected", text: "No known threats or strong warning signs were found. Still check the address before entering passwords or payment details.", result: pill("Low Risk", "good") }
-            : { tone: "neutral", title: "Link Could Not Be Fully Verified", text: c.summary || "Jimvio couldn't gather enough evidence to judge this link.", result: pill("Inconclusive", "neutral") };
-
-  const riskBadge: Pill =
-    riskValue == null ? pill("Not Scored", "neutral") : riskValue >= 70 ? pill("High Risk", "bad") : riskValue >= 35 ? pill("Detected", "warn") : pill("Low Risk", "good");
+  const total = a?.checks.length ?? 12;
+  const completed = a?.counts.completed ?? 0;
+  const coverage = a?.coverage ?? 0;
+  // No score from almost nothing: a number with no evidence behind it would read as "safe".
+  const scored = a != null && state !== "SCAN_FAILED" && (a.counts.threats > 0 || coverage >= 40);
+  const riskValue = scored ? a!.riskScore : null;
+  const rc = a?.riskClass ?? "Very Low Observed Risk";
+  const riskBadge: Pill = riskValue == null ? pill("Not Scored", "neutral") : pill(rc, riskValue >= 60 ? "bad" : riskValue >= 40 ? "warn" : riskValue >= 20 ? "info" : "good");
   const riskText =
     riskValue == null
-      ? "Not enough checks completed to give a reliable score."
-      : riskValue >= 70
-        ? "Strong warning signs found. Avoid this link."
-        : riskValue >= 35
-          ? "Suspicious activity found. Proceed with caution."
-          : "No strong warning signs found.";
-
-  const threatType = listed && d?.phishingList.status === "match"
-    ? "Phishing"
-    : malware || downloads.length
-      ? "Malware"
-      : d?.webRisk.threats.length
-        ? d.webRisk.threats.map((t) => t.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase())).join(", ")
-        : phishF.length
-          ? "Phishing"
-          : hits(f, /recovery phrase|money-doubling|guaranteed-profit/i).length
-            ? "Scam"
-            : issues
-              ? "Suspicious"
-              : st === "low_risk"
-                ? "None Found"
-                : "Unknown";
+      ? "Too few checks completed to give a reliable score."
+      : riskValue >= 80
+        ? "Credible threat evidence. Avoid this link."
+        : riskValue >= 60
+          ? "Strong warning signs found. Avoid this link."
+          : riskValue >= 40
+            ? "Several warning signs. Proceed with great care."
+            : riskValue >= 20
+              ? "Some minor warning signs were observed."
+              : state === "NO_KNOWN_THREATS"
+                ? "No warning signs observed in the completed checks."
+                : "No warning signs observed — but not every check completed.";
 
   const redirects = d?.redirects ?? [];
+  const n = a?.counts;
   const tiles: Tile[] = [
-    { key: "result", value: st === "low_risk" ? "Clean" : st === "inconclusive" || st === "unavailable" ? "Inconclusive" : "Detected", label: "Scan Result", tone: st === "low_risk" ? "good" : st === "inconclusive" || st === "unavailable" ? "neutral" : "bad" },
-    { key: "threat", value: threatType, label: "Threat Type" },
-    { key: "category", value: st === "known_threat" || st === "high_risk" ? "Malicious" : st === "suspicious" || st === "evidence_found" ? "Suspicious" : st === "low_risk" ? "Low Risk" : "Unverified", label: "Category" },
-    { key: "redirects", value: d ? String(redirects.length) : null, label: redirectF.some((x) => x.tone === "warn") ? "Suspicious Redirects" : "Redirects" },
-    { key: "issues", value: String(issues), label: "Total Issues" },
-    { key: "db", value: listed ? "Blocklisted" : dbChecked ? "Not Blocklisted" : "Not Checked", label: "In Security Databases", tone: listed ? "bad" : dbChecked ? "good" : "neutral" },
+    { key: "result", value: h.result.label, label: "Assessment", tone: h.result.tone === "bad" ? "bad" : h.result.tone === "good" ? "good" : "neutral" },
+    { key: "completed", value: a ? `${completed}/${total}` : null, label: "Checks Completed" },
+    { key: "threats", value: n ? String(n.threats) : null, label: "Threats Detected", tone: n?.threats ? "bad" : undefined },
+    { key: "suspicious", value: n ? String(n.suspicious) : null, label: "Suspicious Indicators", tone: n?.suspicious ? "warn" : undefined },
+    { key: "unavailable", value: n ? String(n.unavailable) : null, label: "Unavailable / Failed" },
+    { key: "notrun", value: n ? String(n.notExecuted) : null, label: "Inconclusive / Not Run" },
   ];
 
   const finalUrl = d?.finalUrl ?? submittedUrl;
+  const tlsRow = checks.find((r) => r.key === "tls");
+  const blocklisted = d ? d.webRisk.status === "match" || d.phishingList.status === "match" : false;
+  const dbChecked = d ? [d.webRisk.status, d.phishingList.status].filter((s) => s !== "unavailable").length : 0;
   const info: InfoRow[] = [
-    { key: "url", label: "URL", value: finalUrl, href: /^https?:\/\//.test(finalUrl) ? finalUrl : undefined, copy: finalUrl },
-    { key: "domain", label: "Domain", value: d?.domain ?? safeHost(submittedUrl).replace(/\/$/, "") ?? null, copy: d?.domain ?? undefined },
+    { key: "url", label: "Submitted URL", value: submittedUrl || null, copy: submittedUrl || undefined },
+    { key: "final", label: "Final URL", value: d?.finalUrl ?? null, href: d?.finalUrl && /^https?:\/\//.test(d.finalUrl) ? d.finalUrl : undefined, copy: d?.finalUrl ?? undefined },
+    { key: "domain", label: "Domain", value: d?.domain ?? (safeHost(finalUrl).replace(/\/$/, "") || null), copy: d?.domain ?? undefined },
     { key: "age", label: "Domain Age", value: fmtAge(d?.ageDays ?? null, d?.registeredAt ?? null) },
     { key: "registrar", label: "Registrar", value: d?.registrar ?? null },
-    { key: "host", label: "Hosting Provider", value: null },
-    { key: "location", label: "Hosting Location", value: null },
+    { key: "ns", label: "Nameservers", value: d?.nameservers?.length ? d.nameservers.join(", ") : null },
+    { key: "host", label: "Hosting Network", value: d?.network?.org ?? d?.network?.network ?? null },
+    { key: "location", label: "Network Country", value: regionName(d?.network?.country) },
     { key: "ip", label: "IP Address", value: d?.ip ?? null, copy: d?.ip ?? undefined },
-    {
-      key: "tls",
-      label: "SSL Certificate",
-      value: d?.tls.issuer ?? null,
-      pill: checks.find((r) => r.key === "tls")!.pill,
-    },
-    { key: "redirects", label: "Redirects", value: null, pill: d ? (redirects.length ? pill(`${redirects.length} detected`, redirectF.some((x) => x.tone === "warn") ? "warn" : "info") : pill("None", "good")) : pill(NA, "neutral") },
+    { key: "tls", label: "SSL Certificate", value: d?.tls.issuer ?? null, pill: tlsRow?.pill ?? pill(NA, "neutral") },
+    { key: "redirects", label: "Redirects", value: null, pill: d ? (redirects.length ? pill(`${redirects.length} followed`, "info") : d.pageFetched ? pill("None", "good") : pill("Not Followed", "neutral")) : pill(NA, "neutral") },
     { key: "type", label: "Content Type", value: d?.contentType ? `${d.contentType.includes("html") ? "HTML" : d.contentType.split("/")[1]?.toUpperCase() ?? "File"} (${d.contentType})` : null },
-    { key: "db", label: "Security Databases", value: null, pill: listed ? pill(`Blocklisted (${[d?.webRisk.status, d?.phishingList.status].filter((s) => s === "match").length}/${dbTotal})`, "bad") : dbChecked ? pill(`Not Blocklisted (0/${dbChecked})`, "good") : pill("Not Checked", "neutral") },
+    { key: "db", label: "Security Databases", value: null, pill: blocklisted ? pill("Listed", "bad") : dbChecked ? pill(`Not Listed (${dbChecked}/2 answered)`, dbChecked === 2 ? "good" : "info") : pill("Not Checked", "neutral") },
     { key: "checked", label: "Last Checked", value: fmtDateTime(checkedAt) },
   ];
 
   return {
     banner,
-    risk: { value: riskValue, badge: riskBadge, text: riskText, basis: `Risk score = 100 − evidence score. ${SCORE_BASIS}${c.status === "known_threat" ? " A confirmed listing sets the score to at least 95." : ""}` },
+    state,
+    risk: {
+      value: riskValue,
+      badge: riskBadge,
+      text: riskText,
+      basis: "Risk score counts only credible evidence found (0–100): a threat-intelligence listing sets it to at least 90; dangerous page behaviour adds 35; suspicious indicators add 7–14. Checks that did not run add nothing and never count as clean — see Coverage and Confidence.",
+    },
+    coverage: { value: coverage, completed, total },
+    confidence: a?.confidence ?? "LOW",
     tiles,
     checks,
     info,
     redirects,
+    sections: { found: a?.found ?? [], couldNotVerify: a?.couldNotVerify ?? [], actions: a?.actions ?? ["Try the check again in a few minutes."] },
     limits: c.limits,
   };
 }
@@ -524,7 +459,11 @@ const PRODUCT_TYPE_LABEL: Record<ProductDetails["productType"], string> = {
 
 export type ProductModel = {
   banner: Banner;
+  verdict: ProductAssessment["verdict"];
   score: Score;
+  scoreState: ProductAssessment["scoreState"];
+  coverage: number;
+  confidence: ProductAssessment["confidence"];
   typeLabel: string;
   isBook: boolean;
   isTemplate: boolean;
@@ -536,163 +475,141 @@ export type ProductModel = {
   formatShort: string;
   size: string | null;
   tiles: Tile[];
+  groups: { key: ProductCheck["group"]; title: string; checks: CheckRow[] }[];
   checks: CheckRow[];
   info: InfoRow[];
+  sections: AssessmentSections;
   limits: string[];
 };
 
-const LICENSE_LABEL: Record<NonNullable<ProductDetails["license"]>, Pill> = {
-  commercial: { label: "Commercial Use Allowed", tone: "good" },
-  creative_commons: { label: "Creative Commons", tone: "good" },
-  all_rights_reserved: { label: "All Rights Reserved", tone: "info" },
-  resell_rights: { label: "Resell Rights (PLR/MRR)", tone: "warn" },
-  personal_use: { label: "Personal Use Only", tone: "info" },
+/** Exact banner texts, one per verdict (product spec, Nov 2026). */
+export const PRODUCT_HERO: Record<ProductAssessment["verdict"], Banner> = {
+  VERIFIED: { tone: "good", title: "Verified", text: "Jimvio completed the applicable checks and found supporting evidence for this product's verification.", result: { label: "Verified", tone: "good" } },
+  NEEDS_REVIEW: { tone: "warn", title: "Needs Review", text: "Some findings require further review before this product can be fully verified.", result: { label: "Needs Review", tone: "warn" } },
+  POTENTIAL_RISK_DETECTED: { tone: "bad", title: "Potential Risk Detected", text: "Jimvio identified credible indicators of a potential product or security risk. Review the evidence before opening, buying, or sharing this file.", result: { label: "Potential Risk", tone: "bad" } },
+  VERIFICATION_INCOMPLETE: { tone: "neutral", title: "Verification Incomplete", text: "Jimvio could not complete enough checks to reliably verify this product. Some important information remains unavailable.", result: { label: "Incomplete", tone: "neutral" } },
+  UNABLE_TO_VERIFY: { tone: "neutral", title: "Unable to Verify", text: "The available information is insufficient to confirm this product's authenticity or rights.", result: { label: "Unverified", tone: "neutral" } },
+  SCAN_FAILED: { tone: "neutral", title: "Scan Failed", text: "Jimvio encountered a technical issue while analyzing this file. Please try again.", result: { label: "Scan Failed", tone: "neutral" } },
+};
+
+const PCHECK_PILL: Record<ProductCheckStatus, Tone> = { PASS: "good", INFO: "info", REVIEW: "warn", RISK: "bad", NOT_CHECKED: "neutral", UNAVAILABLE: "neutral", FAILED: "neutral" };
+const PCHECK_POINTS: Record<ProductCheckStatus, CheckRow["points"]> = { PASS: 1, INFO: 1, REVIEW: 0.5, RISK: 0, NOT_CHECKED: null, UNAVAILABLE: null, FAILED: null };
+const GROUP_TITLE: Record<ProductCheck["group"], string> = { security: "File Security", authenticity: "Product Authenticity", authorship: "Authorship", rights: "Copyright & Rights", content: "Content Quality", seller: "Seller & Publisher" };
+const FILE_SAFETY_LABEL: Record<ProductAssessment["fileSafety"], Pill> = {
+  CLEAN: { label: "No Threats Found", tone: "good" }, MALWARE_DETECTED: { label: "Malware Detected", tone: "bad" }, SUSPICIOUS: { label: "Suspicious", tone: "warn" },
+  SCAN_FAILED: { label: "Scan Failed", tone: "neutral" }, SCAN_UNAVAILABLE: { label: "Scan Unavailable", tone: "neutral" }, INCONCLUSIVE: { label: "Inconclusive", tone: "neutral" }, NOT_CHECKED: { label: "Not Checked", tone: "neutral" },
+};
+const RIGHTS_LABEL: Record<ProductAssessment["rights"], Pill> = {
+  LICENSE_FOUND: { label: "License Found", tone: "good" }, COPYRIGHT_NOTICE_FOUND: { label: "Copyright Notice Found", tone: "info" },
+  PUBLIC_DOMAIN_EVIDENCE_FOUND: { label: "Work Likely Public Domain", tone: "info" }, PUBLISHER_AUTHORIZATION_FOUND: { label: "Authorized by Jimvio", tone: "good" },
+  RIGHTS_UNCLEAR: { label: "Rights Unclear", tone: "warn" }, RIGHTS_NOT_ASSESSED: { label: "Not Assessed", tone: "neutral" }, POSSIBLE_UNAUTHORIZED_DISTRIBUTION: { label: "Possible Unauthorized Copy", tone: "warn" },
 };
 
 export function productModel(c: CheckerResult, d: ProductDetails): ProductModel {
-  const f = c.findings;
-  const safetyF = f.filter((x) => /File signature|File inspection|Archive scan|PDF features|File type|Active content/i.test(x.source) || /macro|javascript|program|disguised|zip bomb/i.test(x.title));
-  const claimF = f.filter((x) => x.source === "Claim check");
-  const safetyWorst = worst(safetyF.filter((x) => x.tone !== "good" && x.tone !== "info"));
-  const checks: CheckRow[] = [
-    {
-      key: "authenticity",
-      title: "Product Authenticity",
-      description: "Checks if the file is already sold or shared on Jimvio.",
-      evidence: f.filter((x) => /fingerprint|marketplace/i.test(x.source)),
-      ...(d.marketplaceDuplicates.length
-        ? { pill: pill("Duplicate Found", "bad"), points: 0 as const }
-        : d.seenBefore > 0
-          ? { pill: pill("Seen Before", "warn"), points: 0.5 as const }
-          : d.fileName
-            ? { pill: pill("No Copies Found", "good"), points: 1 as const }
-            : { pill: pill("Not Checked", "neutral"), points: null }),
-      note: "Compared with files checked or sold on Jimvio, not the whole internet.",
-    },
-    {
-      key: "safety",
-      title: "File Safety (Malware Scan)",
-      description: "Checks the file structure for programs, macros and harmful code.",
-      evidence: safetyF,
-      ...(!d.fileName
-        ? { pill: pill("Not Checked", "neutral"), points: null }
-        : safetyWorst === "bad"
-          ? { pill: pill("Failed", "bad"), points: 0 as const }
-          : safetyWorst === "warn"
-            ? { pill: pill("Review", "warn"), points: 0.5 as const }
-            : { pill: pill("Passed", "good"), points: 1 as const }),
-      note: "A structure check, not a full antivirus scan.",
-    },
-    ...(d.sellerPage
-      ? [(() => {
-          const sp = d.sellerPage!;
-          const ok = [sp.hasContact, sp.hasRefund, sp.hasPrivacy].filter(Boolean).length;
-          const young = sp.domainAgeDays != null && sp.domainAgeDays < 60;
-          return {
-            key: "seller",
-            title: "Seller & Source Verification",
-            description: "Validates the seller page: contact details, refund and privacy policy.",
-            evidence: f.filter((x) => x.source === "Product page" || x.source === "Jimvio marketplace" || x.source === "RDAP"),
-            pill: !sp.hasContact || young ? pill("Review", "warn") : ok === 3 ? pill("Passed", "good") : pill("Partial", "warn"),
-            points: (!sp.hasContact || young ? 0.5 : ok === 3 ? 1 : 0.5) as 0.5 | 1,
-          } satisfies CheckRow;
-        })()]
-      : []),
-    {
-      key: "authorship",
-      title: "Authorship Detection (AI vs Human)",
-      description: "Looks for AI writing tools named in the file's metadata.",
-      evidence: f.filter((x) => /AI writing tool/i.test(x.title)),
-      ...(d.aiToolInMetadata
-        ? { pill: pill("AI Tool Named", "ai"), points: 0.5 as const }
-        : { pill: pill("Unable to Verify", "neutral"), points: null }),
-      note: d.aiToolInMetadata ? undefined : "Jimvio has no reliable way to tell AI-written text from human writing, so no guess is made.",
-    },
-    {
-      key: "copyright",
-      title: "Copyright & Usage Rights",
-      description: "Checks for clear copyright and permitted usage rights.",
-      evidence: f.filter((x) => x.source === "Licensing text"),
-      ...(d.license
-        ? { pill: LICENSE_LABEL[d.license], points: (d.license === "resell_rights" ? 0.5 : 1) as 0.5 | 1 }
-        : d.copyrightNotice
-          ? { pill: pill("Notice Found", "info"), points: 1 as const }
-          : { pill: pill("Unclear", "warn"), points: null }),
-      note: d.copyrightNotice ? `“${d.copyrightNotice}”` : "No licence or copyright wording was found in the readable text.",
-    },
-    {
-      key: "quality",
-      title: "Content Quality",
-      description: "Analyzes readable content and checks for misleading claims.",
-      evidence: claimF,
-      ...(claimF.some((x) => x.tone === "bad")
-        ? { pill: pill("Harmful Claims", "bad"), points: 0 as const }
-        : claimF.length
-          ? { pill: pill("Claims Flagged", "warn"), points: 0.5 as const }
-          : d.textReadable
-            ? { pill: pill("Passed", "good"), points: 1 as const }
-            : { pill: pill("Unable to Assess", "neutral"), points: null }),
-      note: d.textReadable ? `${fmtCount(d.wordCount)} words read${d.pages ? ` across ${d.pages} pages` : ""}.` : "The text inside the file couldn't be read.",
-    },
-  ];
+  // Older reports have no stored assessment: rebuild it from the same evidence.
+  const a = d.assessment ?? assessProduct({ details: d, findings: c.findings });
+  const banner = PRODUCT_HERO[a.verdict];
+  const toRow = (k: ProductCheck): CheckRow => ({
+    key: k.id,
+    title: k.name,
+    description: k.explanation,
+    pill: pill(k.label, PCHECK_PILL[k.status]),
+    points: PCHECK_POINTS[k.status],
+    evidence: k.evidence.map((e) => ({ tone: k.status === "RISK" ? "bad" : k.status === "REVIEW" ? "warn" : "info", title: e, source: k.source }) as Finding),
+    note: `Source: ${k.source}`,
+  });
+  const order: ProductCheck["group"][] = ["security", "authenticity", "authorship", "rights", "content", "seller"];
+  const groups = order
+    .map((g) => ({ key: g, title: GROUP_TITLE[g], checks: a.checks.filter((k) => k.group === g).map(toRow) }))
+    .filter((g) => g.checks.length);
 
-  const score = bandedScore(checks, evidenceScore(checks));
-  const bad = checks.some((r) => r.points === 0);
-  const review = checks.some((r) => r.points === 0.5);
-  const banner: Banner = bad
-    ? { tone: "bad", title: "High Risk Digital Product", text: "This product failed one or more checks. Review the details before buying, opening or sharing it.", result: pill("Not Trustworthy", "bad") }
-    : score == null
-      ? { tone: "neutral", title: "Product Could Not Be Fully Verified", text: "Too few checks could run on this file to give a reliable result.", result: pill("Inconclusive", "neutral") }
-      : review
-        ? { tone: "warn", title: "Review This Digital Product", text: "Most checks passed, but some need your attention before you rely on this product.", result: pill("Needs Review", "warn") }
-        : { tone: "good", title: "Verified Digital Product", text: "The checks Jimvio ran found no safety, originality or claim problems.", result: pill("Legitimate", "good") };
-  const scoreBadge: Pill = score == null ? pill("Not Scored", "neutral") : score >= 80 ? pill("High Trust", "good") : score >= 50 ? pill("Medium Trust", "warn") : pill("High Risk", "bad");
-  const scoreText = score == null ? "Not enough checks completed for a reliable score." : score >= 80 ? "This digital product is likely legitimate and safe to use." : score >= 50 ? "Some checks need review before you rely on it." : "Low trust. Several checks failed.";
+  const score = a.score;
+  const scoreBadge: Pill =
+    score == null ? pill(a.scoreState === "INCOMPLETE" ? "Incomplete" : "Not Scored", "neutral") : a.verdict === "VERIFIED" ? pill("High Trust", "good") : score >= 50 ? pill("Medium Trust", "warn") : pill("Low Trust", "bad");
+  const scoreText =
+    score == null
+      ? a.scoreState === "INCOMPLETE"
+        ? "Important checks did not complete, so no score is given."
+        : "Too few checks completed for a reliable score."
+      : a.verdict === "POTENTIAL_RISK_DETECTED"
+        ? "Credible risk indicators lower the trust score."
+        : a.verdict === "VERIFIED"
+          ? "The completed checks support this product."
+          : a.verdict === "UNABLE_TO_VERIFY"
+            ? "The file is sound, but its source and rights are unconfirmed."
+            : "Some checks need review before you rely on it.";
 
-  const typeLabel = (d.productType === "document" || d.productType === "template") && d.format && !/PDF/.test(d.format) ? d.format : PRODUCT_TYPE_LABEL[d.productType];
-  const title = d.title ?? d.fileName?.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_-]+/g, " ") ?? "Digital product";
+  const pages = d.pdf?.pages ?? null;
+  const scanned = pages && pages.total > 0 && pages.withText === 0 && pages.imageOnly > 0;
   const isBook = d.productType === "book" || d.productType === "ebook";
+  const typeLabel =
+    d.productType === "book"
+      ? scanned ? "Scanned Book (PDF)" : "Text-Based Book (PDF)"
+      : d.productType === "document" && scanned
+        ? "Scanned Document (PDF)"
+        : (d.productType === "document" || d.productType === "template") && d.format && !/PDF/.test(d.format)
+          ? d.format
+          : PRODUCT_TYPE_LABEL[d.productType];
+  const fileTitle = d.fileName?.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_-]+/g, " ") ?? null;
+  const title = d.inferredTitle?.value ?? d.title ?? fileTitle ?? "Digital product";
   const date = fmtDate(d.createdAt);
   const formatShort = shortFormat(d.format, d.mime);
-  const authorship: Pill = d.aiToolInMetadata ? pill(`AI Tool Named (${d.aiToolInMetadata})`, "ai") : pill("Unable to Verify", "neutral");
+  const tool = d.producer ?? d.creator;
   const tiles: Tile[] = [
-    { key: "status", value: banner.result.label, label: "Product Status", tone: banner.result.tone },
+    { key: "status", value: banner.result.label, label: "Verification", tone: banner.result.tone },
+    { key: "safety", value: FILE_SAFETY_LABEL[a.fileSafety].label, label: "File Security", tone: FILE_SAFETY_LABEL[a.fileSafety].tone },
+    { key: "rights", value: RIGHTS_LABEL[a.rights].label, label: "Rights", tone: RIGHTS_LABEL[a.rights].tone },
+    { key: "pages", value: pages?.total ? `${pages.withText}/${pages.total}` : d.wordCount ? `${fmtCount(d.wordCount)} words` : null, label: pages?.total ? "Pages Read" : "Content Read" },
     { key: "type", value: typeLabel, label: "Product Type" },
     { key: "size", value: fmtBytes(d.size), label: "File Size" },
-    { key: "format", value: formatShort, label: "File Format" },
-    { key: "authorship", value: d.aiToolInMetadata ? "AI Tool Named" : "Not Verified", label: "Authorship", tone: d.aiToolInMetadata ? "ai" : "neutral" },
-    { key: "date", value: date ?? "Unknown", label: isBook ? "Published Date" : "Created Date" },
   ];
+  const meta = (v: string | null | undefined, src: string) => (v ? `${v} · ${src}` : null);
   const info: InfoRow[] = [
-    { key: "name", label: "Product Name", value: title },
+    { key: "name", label: "Product Name", value: d.inferredTitle ? `${d.inferredTitle.value} · from ${d.inferredTitle.source}` : title },
+    ...(d.title && d.inferredTitle ? [{ key: "metatitle", label: "Title (Metadata)", value: d.title }] : []),
+    { key: "file", label: "File Name", value: d.fileName, copy: d.fileName ?? undefined },
     { key: "type", label: "Product Type", value: typeLabel },
     { key: "basis", label: "Type Detected From", value: d.productTypeBasis },
-    { key: "format", label: "File Format", value: formatShort },
+    { key: "format", label: "File Format", value: d.format ? `${formatShort} · verified from file signature` : formatShort },
     { key: "size", label: "File Size", value: fmtBytes(d.size, true) },
-    { key: "pages", label: "Pages", value: fmtCount(d.pages) },
-    { key: "author", label: "Author / Written By", value: d.author ?? "Not verified" },
-    { key: "authorship", label: "Authorship Result", value: null, pill: authorship },
-    { key: "date", label: isBook ? "Published Date" : "Created Date", value: date ?? "Unknown" },
-    { key: "tool", label: "Made With", value: d.producer ?? d.creator },
-    { key: "license", label: "License / Usage Rights", value: null, pill: d.license ? LICENSE_LABEL[d.license] : d.copyrightNotice ? pill("Copyright Notice Found", "info") : pill("Unclear / Not Specified", "warn") },
-    { key: "description", label: "Description", value: d.subject },
+    { key: "pages", label: "Pages", value: pages?.total ? `${fmtCount(pages.total)} total · ${fmtCount(pages.withText)} with readable text${pages.blank ? ` · ${pages.blank} blank` : ""}${pages.imageOnly ? ` · ${pages.imageOnly} image-only` : ""}` : fmtCount(d.pages) },
+    { key: "author", label: "Author / Written By", value: meta(d.author, "from file metadata, not independently verified") ?? "Not stated" },
+    { key: "authorship", label: "Authorship Result", value: null, pill: d.aiToolInMetadata ? pill(`AI Tool Named (${d.aiToolInMetadata})`, "ai") : d.author ? pill("Metadata Found · Unverified", "info") : pill("Unverified", "neutral") },
+    { key: "date", label: "PDF File Created", value: date ? `${date} · file metadata (not the publication date)` : null },
+    ...(d.modifiedAt && d.modifiedAt !== d.createdAt ? [{ key: "modified", label: "PDF File Modified", value: fmtDate(d.modifiedAt) }] : []),
+    ...(d.firstSeenAt ? [{ key: "firstseen", label: "First Seen on Jimvio", value: fmtDate(d.firstSeenAt) }] : []),
+    { key: "tool", label: "Creator Application", value: tool ? `${[d.producer, d.creator && d.creator !== d.producer ? d.creator : null].filter(Boolean).join(" · ")} · file metadata` : null },
+    ...(d.isbn ? [{ key: "isbn", label: "ISBN", value: d.isbn }] : []),
+    { key: "license", label: "License / Usage Rights", value: null, pill: RIGHTS_LABEL[a.rights] },
+    { key: "description", label: "Description", value: d.subject ? `“${d.subject}” · from file metadata (a claim, not verified)` : null },
   ];
   return {
     banner,
-    score: { value: score, badge: scoreBadge, text: scoreText, basis: SCORE_BASIS },
+    verdict: a.verdict,
+    score: {
+      value: score,
+      badge: scoreBadge,
+      text: scoreText,
+      basis: "Trust score = share of completed checks that passed (review counts as partial). Checks that did not run are left out, never counted as failed. The score stays inside the verdict's band so the two never contradict.",
+    },
+    scoreState: a.scoreState,
+    coverage: a.coverage,
+    confidence: a.confidence,
     typeLabel,
     isBook,
     isTemplate: d.productType === "template",
     title,
-    description: d.subject ?? (d.textReadable ? `${d.pages ? `${d.pages} pages · ` : ""}${fmtCount(d.wordCount)} words of readable text.` : null),
+    description: d.subject ?? (d.textReadable ? `${d.pages ? `${fmtCount(d.pages)} pages · ` : ""}${fmtCount(d.wordCount)} words of readable text.` : null),
     author: d.author,
-    dateLabel: isBook ? "Published" : "Created",
+    dateLabel: "File created",
     date,
     formatShort,
     size: fmtBytes(d.size),
     tiles,
-    checks,
+    groups,
+    checks: groups.flatMap((g) => g.checks),
     info,
+    sections: { found: a.found, couldNotVerify: a.couldNotVerify, actions: a.actions },
     limits: c.limits,
   };
 }

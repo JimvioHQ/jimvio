@@ -93,7 +93,7 @@ describe("file inspection", () => {
     assert.ok(has(fileSafety(macro, "a.docm", sniffType(macro)), /macros/));
   });
   it("finds active content in PDFs and extracts docx text", () => {
-    const pdf = Buffer.from("%PDF-1.4\n1 0 obj << /OpenAction 2 0 R /JS (app.alert(1)) /URI (http://x) >> endobj");
+    const pdf = Buffer.from("%PDF-1.4\n1 0 obj << /Type /Catalog /OpenAction 2 0 R /Names << /JavaScript 3 0 R >> >> endobj\n2 0 obj << /S /URI /URI (http://x.test/) >> endobj\n3 0 obj << /S /JavaScript /JS (app.alert(1)) >> endobj\ntrailer << /Root 1 0 R >>");
     const f = fileSafety(pdf, "a.pdf", sniffType(pdf));
     assert.ok(has(f, /JavaScript/));
     assert.ok(has(f, /opens a web link/));

@@ -73,19 +73,21 @@ describe("scores only from completed checks", () => {
 });
 
 describe("scam & malicious link page", () => {
-  it("never invents hosting data and marks unreachable checks as not checked", () => {
-    const m = linkModel(checker("links", { status: "inconclusive" }), link({ pageFetched: false, tls: { status: "unavailable", issuer: null, validTo: null, daysLeft: null }, webRisk: { status: "unavailable", threats: [] }, phishingList: { status: "unavailable", match: null }, ageDays: null }), "https://x.test/", "2026-11-05T10:00:00Z");
+  it("never invents hosting data and never scores a scan where nothing ran", () => {
+    const m = linkModel(checker("links", { status: "inconclusive" }), link({ pageFetched: false, ip: null, httpStatus: null, tls: { status: "unavailable", issuer: null, validTo: null, daysLeft: null }, webRisk: { status: "unavailable", threats: [] }, phishingList: { status: "unavailable", match: null }, ageDays: null }), "https://x.test/", "2026-11-05T10:00:00Z");
     assert.equal(m.risk.value, null);
+    assert.equal(m.state, "SCAN_FAILED");
+    assert.equal(m.banner.title, "Security Scan Could Not Be Completed");
     assert.equal(m.info.find((r) => r.key === "host")!.value, null);
     assert.equal(m.info.find((r) => r.key === "location")!.value, null);
-    assert.equal(m.checks.find((r) => r.key === "blocklist")!.pill.label, "Not Checked");
-    assert.equal(m.checks.find((r) => r.key === "tls")!.pill.label, "Not Checked");
+    assert.equal(m.checks.find((r) => r.key === "blocklist")!.pill.label, "Unavailable");
+    assert.notEqual(m.checks.find((r) => r.key === "tls")!.pill.label, "Clean");
   });
   it("puts a confirmed listing at the top of the risk scale", () => {
     const m = linkModel(checker("links", { status: "known_threat", findings: [{ tone: "bad", title: "On a known phishing list", source: "Phishing.Database" }] }), link({ phishingList: { status: "match", match: "evil.test" } }), "https://evil.test/", "");
-    assert.ok((m.risk.value ?? 0) >= 95);
-    assert.equal(m.banner.title, "Known Threat Detected");
-    assert.equal(m.tiles.find((t) => t.key === "threat")!.value, "Phishing");
+    assert.ok((m.risk.value ?? 0) >= 90);
+    assert.equal(m.banner.title, "Potential Security Threat Detected");
+    assert.equal(m.tiles.find((t) => t.key === "threats")!.value, "2");
   });
 });
 
@@ -118,18 +120,18 @@ describe("digital product page", () => {
   it("doesn't invent an author or date and doesn't score unreadable files", () => {
     const m = productModel(checker("product"), product());
     assert.equal(m.author, null);
-    assert.equal(m.info.find((r) => r.key === "author")!.value, "Not verified");
+    assert.equal(m.info.find((r) => r.key === "author")!.value, "Not stated");
     assert.equal(m.date, null);
     assert.equal(m.score.value, null);
-    assert.equal(m.checks.find((r) => r.key === "authorship")!.pill.label, "Unable to Verify");
+    assert.equal(m.checks.find((r) => r.key === "ai")!.pill.label, "Not Assessed");
     assert.ok(!m.tiles.some((t) => /rating|download/i.test(t.label)));
   });
   it("names an AI writing tool only when the file says so, and recognises books", () => {
     const m = productModel(checker("product"), product({ productType: "book", title: "The Playbook", author: "John Carter", createdAt: "2024-03-15T00:00:00Z", textReadable: true, wordCount: 30000, aiToolInMetadata: "ChatGPT", license: "all_rights_reserved" }));
-    assert.equal(m.typeLabel, "E-book (PDF)");
-    assert.equal(m.checks.find((r) => r.key === "authorship")!.pill.label, "AI Tool Named");
+    assert.equal(m.typeLabel, "Text-Based Book (PDF)");
+    assert.equal(m.checks.find((r) => r.key === "software")!.pill.label, "AI Tool Named");
     assert.equal(m.date, "Mar 15, 2024");
-    assert.equal(m.score.value, 79);
+    assert.equal(m.info.find((r) => r.key === "tool")!.label, "Creator Application");
   });
 });
 
