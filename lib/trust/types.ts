@@ -31,7 +31,140 @@ export type CheckerResult = {
   sources: string[];
   limits: string[];
   nextSteps: string[];
+  /** Structured evidence for the category's result page (reports from Nov 2026 on). null = unknown. */
+  details?: CheckerDetails;
 };
+
+/** Which single result experience a scan opens. */
+export type ScanCategory = CheckerId | "unsupported";
+
+export type ReputationStatus = "match" | "clean" | "unavailable";
+
+export type LinkDetails = {
+  kind: "links";
+  submittedUrl: string;
+  finalUrl: string | null;
+  domain: string | null;
+  registeredAt: string | null;
+  ageDays: number | null;
+  registrar: string | null;
+  ip: string | null;
+  httpStatus: number | null;
+  contentType: string | null;
+  pageFetched: boolean;
+  redirects: { url: string; status: number }[];
+  tls: { status: "valid" | "invalid" | "not_https" | "unavailable"; issuer: string | null; validTo: string | null; daysLeft: number | null };
+  webRisk: { status: ReputationStatus; threats: string[] };
+  phishingList: { status: ReputationStatus; match: string | null };
+  officialPlatform: string | null;
+};
+
+export type SocialPlatform = "youtube" | "tiktok" | "instagram" | "facebook" | "x" | "threads";
+
+export type EngagementDetails = {
+  kind: "engagement";
+  platform: SocialPlatform;
+  contentType: "video" | "short" | "channel" | "post" | "reel";
+  url: string;
+  /** Whether the platform returned this content at all. */
+  found: boolean;
+  title: string | null;
+  caption: string | null;
+  authorName: string | null;
+  authorHandle: string | null;
+  authorUrl: string | null;
+  thumbnailUrl: string | null;
+  publishedAt: string | null;
+  durationSec: number | null;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  engagementRate: number | null;
+  account: {
+    createdAt: string | null;
+    followers: number | null;
+    followersHidden: boolean;
+    totalViews: number | null;
+    totalLikes: number | null;
+    posts: number | null;
+    country: string | null;
+    verified: boolean | null;
+    visibility: string | null;
+  };
+  visibility: string | null;
+  verdict: "real" | "review" | "suspicious" | "too_early" | null;
+  commentsRead: number;
+  /** Why numbers are missing, in plain words. */
+  accessNote: string | null;
+};
+
+export type ProductType = "ebook" | "book" | "document" | "template" | "spreadsheet" | "presentation" | "archive" | "software" | "text";
+
+export type ProductDetails = {
+  kind: "product";
+  fileName: string | null;
+  size: number | null;
+  format: string | null;
+  mime: string | null;
+  productType: ProductType;
+  /** What the product type was decided from. */
+  productTypeBasis: string;
+  title: string | null;
+  author: string | null;
+  subject: string | null;
+  createdAt: string | null;
+  modifiedAt: string | null;
+  pages: number | null;
+  producer: string | null;
+  creator: string | null;
+  textReadable: boolean;
+  wordCount: number | null;
+  copyrightNotice: string | null;
+  license: "commercial" | "creative_commons" | "all_rights_reserved" | "resell_rights" | "personal_use" | null;
+  aiToolInMetadata: string | null;
+  seenBefore: number;
+  marketplaceDuplicates: string[];
+  sellerPage: { url: string; hasContact: boolean; hasRefund: boolean; hasPrivacy: boolean; domainAgeDays: number | null } | null;
+};
+
+export type MediaDetails = {
+  kind: "media";
+  mediaType: "image" | "video" | "audio";
+  fileName: string;
+  size: number;
+  format: string;
+  mime: string;
+  width: number | null;
+  height: number | null;
+  durationSec: number | null;
+  frameRate: number | null;
+  videoCodec: string | null;
+  audioCodec: string | null;
+  bitrate: number | null;
+  colorSpace: string | null;
+  iccProfile: string | null;
+  exifPresent: boolean;
+  make: string | null;
+  model: string | null;
+  lens: string | null;
+  fNumber: number | null;
+  exposureTime: number | null;
+  iso: number | null;
+  focalLength: number | null;
+  capturedAt: string | null;
+  gps: { lat: number; lon: number } | null;
+  software: string | null;
+  editingSoftware: string | null;
+  c2pa: { present: boolean; generator: string | null; aiAction: boolean };
+  declaredAi: string[];
+  aiTools: string[];
+  prompt: string | null;
+  copyright: string | null;
+  artist: string | null;
+  duplicate: { count: number; near: boolean; firstSeenAt: string | null } | null;
+};
+
+export type CheckerDetails = LinkDetails | EngagementDetails | ProductDetails | MediaDetails;
 
 export type OverallLevel = "known_threat" | "high_risk" | "suspicious" | "low_risk" | "inconclusive";
 
@@ -48,6 +181,9 @@ export type ScanReport = {
   overall: { level: OverallLevel; headline: string };
   checkers: CheckerResult[];
   durationMs: number;
+  /** The one result experience to show. Older reports omit it. */
+  category?: ScanCategory;
+  unsupportedReason?: string;
 };
 
 export const CHECKER_LABELS: Record<CheckerId, string> = {

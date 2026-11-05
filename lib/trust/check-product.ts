@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import type { CheckerResult, Finding } from "./types";
-import { extractText, fileSafety, pdfInfo, type FileType } from "./file-inspect";
+import type { CheckerResult, Finding, ProductDetails, ProductType } from "./types";
+import { extractText, fileSafety, pdfMeta, type FileType, type PdfMeta } from "./file-inspect";
 import { claimFindings, readProductPage } from "./product-signals";
 import { seenFile } from "./fingerprints";
 
@@ -35,6 +35,45 @@ async function jimvioListing(url: URL): Promise<Finding[]> {
   return f;
 }
 
+const AI_WRITERS = /chatgpt|openai|gpt-?[345]|claude|gemini|bard|jasper|copy\.ai|writesonic|sudowrite|gamma\.app|\bgamma\b|tome\.app|designrr|sqribble|aiwriter/i;
+
+/** Book, document or template, decided from evidence in the file only. */
+export function classifyProduct(type: FileType, name: string, meta: PdfMeta | null, text: string): { type: ProductType; basis: string } {
+  if (type.kind === "ebook") return { type: "ebook", basis: "EPUB e-book file" };
+  if (type.kind === "executable") return { type: "software", basis: type.label };
+  if (type.kind === "archive") return { type: "archive", basis: "ZIP archive" };
+  if (type.kind === "text") return { type: "text", basis: "Plain text file" };
+  if (type.kind === "office") {
+    if (/Excel/.test(type.label)) return { type: "spreadsheet", basis: type.label };
+    if (/PowerPoint/.test(type.label)) return { type: "presentation", basis: type.label };
+  }
+  const label = `${name} ${meta?.title ?? ""}`;
+  if (/\btemplates?\b|\bplanner\b|\bworksheet\b|\bfillable\b/i.test(label)) return { type: "template", basis: "Title or file name says template" };
+  const isbn = /\bISBN(?:-1[03])?:?\s*[0-9][0-9- ]{8,16}[0-9X]\b/i.test(text);
+  const chapters = new Set((text.match(/\bchapter\s+(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\b/gi) ?? []).map((c) => c.toLowerCase())).size;
+  if (isbn) return { type: "book", basis: "ISBN found in the text" };
+  if (chapters >= 3 && (meta?.pages ?? 0) >= 20) return { type: "book", basis: `${chapters} chapters across ${meta?.pages} pages` };
+  return { type: "document", basis: type.kind === "pdf" ? "PDF without book markers (ISBN or chapters)" : type.label };
+}
+
+/** Licence wording inside the product. */
+export function licenseFrom(text: string): { license: ProductDetails["license"]; notice: string | null } {
+  const sample = text.slice(0, 400_000);
+  const notice = /(?:©|\(c\)|copyright)\s*(?:©\s*)?(?:\d{4}[^.\n]{0,70}|[A-Z][^.\n]{2,70})/i.exec(sample)?.[0]?.replace(/\s+/g, " ").trim() ?? null;
+  const license: ProductDetails["license"] = /\b(plr|private label rights|master resell rights|mrr|resell rights)\b/i.test(sample)
+    ? "resell_rights"
+    : /creative commons|\bCC[- ]BY\b/i.test(sample)
+      ? "creative_commons"
+      : /commercial use (?:is )?(?:allowed|permitted)|for commercial use|commercial licen[cs]e/i.test(sample)
+        ? "commercial"
+        : /personal use only|for personal use|non-?commercial/i.test(sample)
+          ? "personal_use"
+          : /all rights reserved/i.test(sample)
+            ? "all_rights_reserved"
+            : null;
+  return { license, notice: notice && notice.length > 6 ? notice.slice(0, 90) : null };
+}
+
 /** Checker 3: is this digital product safe, original-looking and honestly sold? */
 export async function checkProduct(input: ProductInput, applicableReason: string): Promise<CheckerResult> {
   const base: CheckerResult = { id: "product", status: "not_applicable", summary: applicableReason, findings: [], metrics: [], sources: [], limits: [], nextSteps: [] };
@@ -47,6 +86,9 @@ export async function checkProduct(input: ProductInput, applicableReason: string
   const limits: string[] = [];
   let text = "";
   let nameForMatch: string | null = null;
+  let meta: PdfMeta | null = null;
+  let seenCount = 0;
+  let duplicates: string[] = [];
 
   if (file) {
     sources.add("File inspection");
@@ -54,14 +96,16 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     metrics.push({ label: "File", value: `${file.type.label} · ${(file.buf.length / 1024).toFixed(0)} KB` });
     metrics.push({ label: "SHA-256", value: `${file.sha.slice(0, 16)}…` });
     if (file.type.kind === "pdf") {
-      const info = pdfInfo(file.buf);
-      if (info.pages) metrics.push({ label: "Pages", value: String(info.pages) });
-      if (info.producer) metrics.push({ label: "Made with", value: info.producer });
+      meta = pdfMeta(file.buf);
+      if (meta.pages) metrics.push({ label: "Pages", value: String(meta.pages) });
+      if (meta.producer) metrics.push({ label: "Made with", value: meta.producer });
     }
     const seen = await seenFile(file.sha);
+    seenCount = seen.count;
     if (seen.count > 0) findings.push({ tone: "warn", title: `This exact file was checked ${seen.count} time${seen.count === 1 ? "" : "s"} before on Jimvio`, detail: "Others may be selling or sharing the same file.", source: "Jimvio fingerprint history" });
     const { data: same } = await db().from("products").select("name, slug").eq("file_digest", file.sha).is("deleted_at", null).limit(3);
     if ((same ?? []).length) {
+      duplicates = (same as { name: string }[]).map((x) => x.name);
       sources.add("Jimvio marketplace");
       findings.push({ tone: "warn", title: "The same file is already sold on Jimvio", detail: (same as { name: string }[]).map((s) => s.name).join(", "), source: "Jimvio marketplace" });
     }
@@ -70,8 +114,10 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     nameForMatch = file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ");
   }
 
+  let sellerPage: ProductDetails["sellerPage"] = null;
   if (page) {
     const p = readProductPage(page.html);
+    sellerPage = { url: page.url.toString(), hasContact: p.hasContact, hasRefund: p.hasRefund, hasPrivacy: p.hasPrivacy, domainAgeDays: page.domainAgeDays };
     sources.add("Product page");
     text += ` ${p.text}`;
     nameForMatch = p.name ?? nameForMatch;
@@ -114,8 +160,40 @@ export async function checkProduct(input: ProductInput, applicableReason: string
   const unsupportedFile = Boolean(file && file.type.kind === "unknown");
   if (unsupportedFile) limits.push("This file format is not recognized. Jimvio could not inspect its internal structure or confirm whether it is safe.");
   const status: CheckerResult["status"] = bad >= 2 || (bad && warn >= 2) ? "high_risk" : bad || warn >= 2 ? "suspicious" : warn === 1 ? "evidence_found" : unsupportedFile ? "inconclusive" : "low_risk";
+  const fileText = file ? (extractText(file.buf, file.type) ?? "") : "";
+  const cls = file ? classifyProduct(file.type, file.name, meta, fileText) : { type: "document" as ProductType, basis: "Product page" };
+  const lic = licenseFrom(text);
+  const aiTool = [meta?.producer, meta?.creator].map((v) => (v && AI_WRITERS.test(v) ? v : null)).find(Boolean) ?? null;
+  const words = fileText ? fileText.split(/\s+/).filter((w) => /[\p{L}]{2,}/u.test(w)).length : 0;
+  const details: ProductDetails = {
+    kind: "product",
+    fileName: file?.name ?? null,
+    size: file?.buf.length ?? null,
+    format: file?.type.label ?? null,
+    mime: file?.type.mime ?? null,
+    productType: cls.type,
+    productTypeBasis: cls.basis,
+    title: meta?.title ?? (page ? readProductPage(page.html).name : null),
+    author: meta?.author ?? null,
+    subject: meta?.subject ?? null,
+    createdAt: meta?.createdAt ?? null,
+    modifiedAt: meta?.modifiedAt ?? null,
+    pages: meta?.pages ?? null,
+    producer: meta?.producer ?? null,
+    creator: meta?.creator ?? null,
+    textReadable: words >= 20,
+    wordCount: words >= 20 ? words : null,
+    copyrightNotice: lic.notice,
+    license: lic.license,
+    aiToolInMetadata: aiTool,
+    seenBefore: seenCount,
+    marketplaceDuplicates: duplicates,
+    sellerPage,
+  };
+  if (aiTool) findings.push({ tone: "warn", title: `Made with an AI writing tool: ${aiTool}`, detail: "The file's own metadata names the tool.", source: "PDF metadata" });
   return {
     ...base,
+    details,
     status,
     summary:
       status === "high_risk"

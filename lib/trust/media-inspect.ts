@@ -14,7 +14,16 @@ export type MediaMarkers = {
   capturedAt: string | null;
   hasGps: boolean;
   sdParameters: boolean;
+  /** Generation prompt stored in the file by the AI tool itself, if any. */
+  prompt: string | null;
 };
+
+const EDITORS = /photoshop|lightroom|gimp|affinity|snapseed|picsart|canva|facetune|pixelmator|capture one|darktable|luminar|premiere|final cut|davinci|resolve|capcut|imovie|after effects|vsco|inshot|kinemaster|clipchamp/i;
+
+/** Editing software named in metadata (not camera firmware). */
+export function editingSoftware(software: string | null): string | null {
+  return software && EDITORS.test(software) ? software.slice(0, 80) : null;
+}
 
 const AI_TOOLS: [RegExp, string][] = [
   [/midjourney/i, "Midjourney"],
@@ -111,6 +120,7 @@ export function findMarkers(buf: Buffer, exif: Record<string, unknown> | null): 
     capturedAt: captured instanceof Date ? captured.toISOString() : captured ? String(captured) : null,
     hasGps: exif?.latitude != null || exif?.GPSLatitude != null,
     sdParameters,
+    prompt: png.parameters ? png.parameters.split(/\n\s*Negative prompt:/i)[0].trim().slice(0, 400) || null : null,
   };
 }
 
