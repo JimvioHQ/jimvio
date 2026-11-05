@@ -164,7 +164,26 @@ export function primaryChecker(report: ScanReport): CheckerResult | null {
 
 // ── 1. Scam & malicious link ──────────────────────────────────────────────
 
-export type AssessmentSections = { found: string[]; couldNotVerify: string[]; actions: string[] };
+/** One line of a summary card, carrying the same pill as its row in the detailed checks. */
+export type SummaryItem = { title: string; text: string; pill: Pill | null };
+export type AssessmentSections = { found: SummaryItem[]; couldNotVerify: SummaryItem[]; actions: string[] };
+
+/** "Check name: explanation" lines → items, matched to their check rows (deduplicated). */
+export function summaryItems(lines: string[], rows: CheckRow[]): SummaryItem[] {
+  const seen = new Set<string>();
+  const out: SummaryItem[] = [];
+  for (const line of lines) {
+    const i = line.indexOf(": ");
+    const title = i > 0 ? line.slice(0, i) : "";
+    const text = (i > 0 ? line.slice(i + 2) : line).trim().replace(/\.{2,}$/, ".");
+    const key = `${title}|${text}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const row = title ? rows.find((r) => r.title === title) : undefined;
+    out.push({ title: title || "Note", text, pill: row?.pill ?? null });
+  }
+  return out;
+}
 export type LinkModel = {
   banner: Banner;
   state: AssessmentState;
@@ -202,11 +221,11 @@ const EXEC_POINTS: Record<CheckExecution, CheckRow["points"]> = { CLEAN: 1, SUSP
 const CHECK_DESC: Record<string, string> = {
   url: "Checks the address for encoding tricks, raw IPs and hidden credentials.",
   redirects: "Follows every redirect to the final destination.",
-  malware: "Checks Google's malware and unwanted-software lists.",
+  malware: "Malware-URL coverage plus the abuse.ch botnet lists.",
   phishing: "Phishing lists plus the page's own sign-in behaviour.",
   reputation: "Checks the domain for abused endings and bait words.",
   brand: "Looks for well-known brand names on domains that aren't theirs.",
-  blocklist: "Google Web Risk and the public Phishing.Database.",
+  blocklist: "Public threat lists: Phishing.Database, CERT Polska and abuse.ch.",
   tls: "Checks the website's HTTPS certificate.",
   registration: "Domain age, registrar and nameservers (RDAP).",
   dns: "Server address and the network that operates it.",
@@ -277,9 +296,11 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
   const finalUrl = d?.finalUrl ?? submittedUrl;
   const tlsRow = checks.find((r) => r.key === "tls");
   const intel = d?.intel ?? null;
-  const blocklisted = intel ? intel.some((r) => r.status === "match") : d ? d.webRisk.status === "match" || d.phishingList.status === "match" : false;
-  const dbChecked = intel ? intel.filter((r) => r.status === "match" || r.status === "clean").length : d ? [d.webRisk.status, d.phishingList.status].filter((s) => s !== "unavailable").length : 0;
-  const dbTotal = intel ? intel.length : 2;
+  const legacy = d ? [d.phishingList.status, ...(d.webRisk ? [d.webRisk.status] : [])] : [];
+  const blocklisted = intel ? intel.some((r) => r.status === "match") : d ? d.webRisk?.status === "match" || d.phishingList.status === "match" : false;
+  const askedIntel = intel ? intel.filter((r) => r.status !== "skipped") : null;
+  const dbChecked = askedIntel ? askedIntel.filter((r) => r.status === "match" || r.status === "clean").length : legacy.filter((s) => s !== "unavailable").length;
+  const dbTotal = askedIntel ? askedIntel.length : legacy.length;
   const info: InfoRow[] = [
     { key: "url", label: "Submitted URL", value: submittedUrl || null, copy: submittedUrl || undefined },
     { key: "final", label: "Final URL", value: d?.finalUrl ?? null, href: d?.finalUrl && /^https?:\/\//.test(d.finalUrl) ? d.finalUrl : undefined, copy: d?.finalUrl ?? undefined },
@@ -312,7 +333,15 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
     checks,
     info,
     redirects,
-    sections: { found: a?.found ?? [], couldNotVerify: a?.couldNotVerify ?? [], actions: a?.actions ?? ["Try the check again in a few minutes."] },
+    sections: {
+      found: a?.foundItems
+        ? a.foundItems.map((x) => ({ title: x.name, text: x.text, pill: checks.find((r) => r.key === x.checkId)?.pill ?? null }))
+        : summaryItems(a?.found ?? [], checks),
+      couldNotVerify: a?.couldNotVerifyItems
+        ? a.couldNotVerifyItems.map((x) => ({ title: x.name, text: x.text, pill: checks.find((r) => r.key === x.checkId)?.pill ?? (x.status === "INCONCLUSIVE" ? ({ label: "Partial", tone: "neutral" } as Pill) : null) }))
+        : summaryItems(a?.couldNotVerify ?? [], checks),
+      actions: a?.actions ?? ["Try the check again in a few minutes."],
+    },
     limits: c.limits,
   };
 }
@@ -419,9 +448,14 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
       key: "bots",
       title: "Suspicious / Bot Views (Estimate)",
       description: est?.suspicious
-        ? `About ${rangeLabel(est.suspicious)} views (${Math.round((est.suspiciousShare?.[0] ?? 0) * 100)}–${Math.round((est.suspiciousShare?.[1] ?? 0) * 100)}%) aren't explained by engagement. Estimate, ${est.confidence.toLowerCase()} confidence — never an exact count.`
+        ? `About ${rangeLabel(est.suspicious)} views aren't explained by the likes and comments. This is an estimate from public numbers, not an exact count.`
         : `${INSUFFICIENT_TEXT} ${isYt ? "YouTube filters invalid views privately and doesn't publish the count." : `${name} doesn't publish bot or fake view counts.`}`,
-      pill: !est?.suspicious ? pill("Insufficient Evidence", "neutral") : (est.suspiciousShare?.[0] ?? 0) >= 0.5 ? pill(`High · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "bad") : (est.suspiciousShare?.[0] ?? 0) >= 0.2 ? pill(`Moderate · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "warn") : pill(`Low · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "good"),
+      pill: !est?.suspicious
+        ? pill("Insufficient Evidence", "neutral")
+        : pill(
+            `${Math.round((est.suspiciousShare?.[0] ?? 0) * 100)}–${Math.round((est.suspiciousShare?.[1] ?? 0) * 100)}% est. · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} confidence`,
+            (est.suspiciousShare?.[0] ?? 0) >= 0.5 ? "bad" : (est.suspiciousShare?.[0] ?? 0) >= 0.2 ? "warn" : "good",
+          ),
       evidence: (est?.reasons ?? []).map((r) => ({ tone: "info", title: r, source: "Jimvio estimate (public numbers)" }) as Finding),
       points: null,
       note: est ? est.method : undefined,
@@ -439,7 +473,7 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
         { key: "followers", label: "Subscribers", value: followersValue },
         { key: "views", label: "Total Views", value: fmtCount(a.totalViews) },
         { key: "posts", label: "Videos", value: fmtCount(a.posts) },
-        { key: "country", label: "Country", value: a.country ?? (d.found ? "Not public" : null) },
+        { key: "country", label: "Country", value: a.country ?? (d.found ? "Not set by the channel" : null) },
         { key: "visibility", label: "Visibility", value: null, pill: visibility(d.visibility ?? a.visibility) },
       ]
     : [
@@ -636,7 +670,7 @@ export function productModel(c: CheckerResult, d: ProductDetails): ProductModel 
     groups,
     checks: groups.flatMap((g) => g.checks),
     info,
-    sections: { found: a.found, couldNotVerify: a.couldNotVerify, actions: a.actions },
+    sections: { found: summaryItems(a.found, groups.flatMap((g) => g.checks)), couldNotVerify: summaryItems(a.couldNotVerify, groups.flatMap((g) => g.checks)), actions: a.actions },
     limits: c.limits,
   };
 }
@@ -753,7 +787,7 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
     { key: "camera", label: "Camera / Device", value: tagged(camera, "Declared in metadata") ?? (swKind === "os" ? `Not available (“${d.software}” is an operating system)` : "Unavailable") },
     { key: "source", label: "Source / Provenance", value: a.provenance === "CREDENTIALS_PRESENT_UNVERIFIED" ? `Content Credentials${d.c2pa.generator ? ` (${d.c2pa.generator})` : ""} · Unverified` : a.provenance === "METADATA_INDICATED" ? "Indicated by metadata · Unverified" : "Unknown" },
     { key: "c2pa", label: "C2PA Validation", value: null, pill: d.c2pa.present ? pill("Not Validated", "neutral") : pill("No Credentials", "neutral") },
-    { key: "edit", label: "Editing Detection", value: null, pill: editor ? pill(`Editor Recorded (${editor})`, "warn") : pill("No Editor Recorded · Pixels Not Analysed", "neutral") },
+    { key: "edit", label: "Editing Detection", value: null, pill: editor ? pill(`Editor Recorded (${editor})`, "warn") : pill("No Editor Recorded", "neutral") },
     { key: "date", label: aiEvidence ? "Creation Date" : "Capture Date", value: tagged(date, "Declared in metadata") ?? "Unavailable" },
     { key: "confidence", label: "Provenance Confidence", value: a.confidence[0] + a.confidence.slice(1).toLowerCase() },
   ];
@@ -842,7 +876,7 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
     },
     technicalTitle: isVideo || isAudio ? "Technical Metadata (Container)" : "Technical Metadata",
     technical,
-    sections: { found: a.found, couldNotVerify: a.couldNotVerify, actions: a.actions },
+    sections: { found: summaryItems(a.found, checks), couldNotVerify: summaryItems(a.couldNotVerify, checks), actions: a.actions },
     limits: c.limits,
   };
 }

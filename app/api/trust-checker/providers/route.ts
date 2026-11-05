@@ -5,29 +5,26 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * GET /api/trust-checker/providers — which threat-intelligence sources are
- * configured and their last outcome on this server instance. Never returns
- * keys or values, only whether each one is set.
+ * GET /api/trust-checker/providers — the threat-intelligence sources Jimvio
+ * actually queries (all free forever, no credentials) and their last outcome
+ * on this server instance. Nothing secret is involved or returned.
  */
 export async function GET() {
-  const env = process.env;
-  const configured: Record<string, boolean> = {
-    phishing_database: true,
-    cert_pl: true,
-    feodo: true,
-    sslbl: true,
-    urlhaus: Boolean(env.URLHAUS_AUTH_KEY?.trim()),
-    phishtank: Boolean(env.PHISHTANK_APP_KEY?.trim() && env.PHISHTANK_USERNAME?.trim()),
-    openphish: Boolean(env.OPENPHISH_FEED_URL?.trim()),
-    google_web_risk: Boolean(env.WEB_RISK_API_KEY?.trim()),
-  };
   const providers = Object.values(PROVIDERS).map((p) => ({
     id: p.id,
     name: p.name,
     covers: p.covers,
     terms: p.terms,
-    configured: configured[p.id] ?? false,
+    credentials: "none",
     last: health.get(p.id) ?? null,
   }));
-  return NextResponse.json({ providers, note: "Last outcomes are per server instance and reset on deploy." }, { headers: { "cache-control": "no-store" } });
+  return NextResponse.json(
+    {
+      providers,
+      count: providers.length,
+      malwareUrlDatabase: false,
+      note: "No eligible free-forever malware-URL database is available; malware checks report that gap instead of a result. Last outcomes are per server instance and reset on deploy.",
+    },
+    { headers: { "cache-control": "no-store" } },
+  );
 }

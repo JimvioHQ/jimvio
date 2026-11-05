@@ -9,8 +9,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { CheckerResult, LinkDetails, ScanReport } from "@/lib/trust/types";
 import { linkModel } from "@/lib/trust/result-model";
-import { rowsFromChecks, rowsFromInfo, rowsFromTiles, type ReportDoc } from "@/lib/trust/report-doc";
-import { Card, CardTitle, CheckRowItem, CopyButton, InfoLine, InfoTip, Limits, ResultHeader, ScoreRing, StatTile, StatusPill } from "./ui";
+import { rowsFromChecks, rowsFromInfo, rowsFromTiles, sectionDocs, type ReportDoc } from "@/lib/trust/report-doc";
+import { Card, CardTitle, CheckRowItem, CopyButton, CoverageCard, InfoLine, InfoTip, Limits, ResultHeader, ScoreRing, StatTile, StatusPill, SummaryCards } from "./ui";
+import { isActiveProvider } from "@/lib/trust/intel-providers";
 import { useReportActions } from "./actions";
 
 const CHECK_ICON: Record<string, LucideIcon> = { url: Link2, redirects: ArrowRightLeft, malware: Bug, phishing: Fish, reputation: Globe, brand: Tag, blocklist: Ban, tls: Lock, registration: IdCard, dns: Network, content: FileText, downloads: Download };
@@ -20,7 +21,6 @@ const STATE_ICON: Record<string, LucideIcon> = { NO_KNOWN_THREATS: CircleCheck, 
 const INTEL_LABEL: Record<NonNullable<LinkDetails["intel"]>[number]["status"], string> = {
   match: "Listed", clean: "Not listed", not_configured: "Not configured", error: "Unavailable", timeout: "Timed out", quota: "Quota reached", skipped: "Skipped", invalid_response: "Invalid response",
 };
-const CONF_TONE = { HIGH: "text-[#15803D]", MEDIUM: "text-[#C2410C]", LOW: "text-[#B91C1C]" } as const;
 
 const BANNER_STYLE = {
   danger: { wrap: "border-[#F6C9C6] bg-[linear-gradient(110deg,#FFF5F4_0%,#FFEDEB_100%)]", title: "text-[#D92D20]", circle: "bg-[#FDE2E0]", icon: ShieldX, iconCls: "text-[#D92D20]" },
@@ -49,13 +49,11 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
     score: { title: "Overall Risk Score", score: m.risk },
     sections: [
       { title: "Assessment", rows: [{ label: "Coverage", value: `${m.coverage.value}% (${m.coverage.completed} of ${m.coverage.total} checks completed)` }, { label: "Confidence", value: m.confidence }] },
-      { title: "What We Found", rows: m.sections.found.map((v, i) => ({ label: String(i + 1), value: v })) },
-      { title: "What We Could Not Verify", rows: m.sections.couldNotVerify.map((v, i) => ({ label: String(i + 1), value: v })) },
-      { title: "Recommended Action", rows: m.sections.actions.map((v, i) => ({ label: String(i + 1), value: v })) },
       { title: "Summary", rows: rowsFromTiles(m.tiles) },
       { title: "Detailed Scan Results", rows: rowsFromChecks(m.checks) },
       { title: "Link Information", rows: rowsFromInfo(m.info) },
-      ...(d?.intel?.length ? [{ title: "Threat Intelligence Sources", rows: d.intel.map((r) => ({ label: r.name, value: `${INTEL_LABEL[r.status]}${r.status === "match" && r.matches[0] ? ` (${r.matches[0]})` : ""}${r.note && r.status !== "clean" ? ` — ${r.note}` : ""}` })) }] : []),
+      ...(d?.intel?.length ? [{ title: "Threat Intelligence Sources", rows: d.intel.map((r) => ({ label: `${r.name}${isActiveProvider(r.id) ? "" : " (retired source)"}`, value: `${INTEL_LABEL[r.status]}${r.status === "match" && r.matches[0] ? ` (${r.matches[0]})` : ""}${r.note && r.status !== "clean" ? ` — ${r.note}` : ""}` })) }] : []),
+      ...sectionDocs(m.sections),
       ...(m.redirects.length ? [{ title: "Redirect Path", rows: m.redirects.map((h, i) => ({ label: `${i + 1}. HTTP ${h.status}`, value: h.url })) }] : []),
     ],
     limits: m.limits,
@@ -67,7 +65,7 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
       <ResultHeader icon={ShieldCheck} newIcon={CirclePlus} title="Scam & Malicious Link Detection" subtitle="Comprehensive security, reputation, and risk analysis for the provided link." onNewCheck={onNewCheck} compact {...actions} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <div className={cn("rounded-[20px] border px-5 py-5 sm:px-7", b.wrap)}>
+        <div className={cn("flex flex-col justify-center gap-4 rounded-[20px] border px-5 py-5 sm:px-7", b.wrap)}>
           <div className="flex items-center gap-4 sm:gap-6">
             <span className={cn("grid h-[78px] w-[78px] shrink-0 place-items-center rounded-full sm:h-[100px] sm:w-[100px]", b.circle)}>
               <BIcon className={cn("h-11 w-11 sm:h-14 sm:w-14", b.iconCls)} strokeWidth={m.banner.tone === "neutral" ? 2.2 : 1.6} />
@@ -78,7 +76,7 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
               <p className="mt-1.5 text-[14px] leading-6 text-[#111827] sm:text-[17px]">{m.banner.text}</p>
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-3 rounded-[14px] border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+          <div className="flex items-center gap-3 rounded-[14px] border border-[#E5E7EB] bg-white px-4 py-3 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
             <Link2 className="h-6 w-6 shrink-0 text-[#111827]" strokeWidth={2.2} />
             <span className="min-w-0 flex-1 break-all text-[15px] font-extrabold text-[#111827] sm:text-[18px]">{url}</span>
             {url ? <CopyButton value={url} label="Copy link" /> : null}
@@ -94,41 +92,9 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
               <p className="mt-3 text-[14px] leading-6 text-[#1F2937] sm:text-[16px]">{m.risk.text}</p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#EEF0F3] pt-3">
-            <div>
-              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Coverage</p>
-              <p className="text-[18px] font-black text-[#111827]">{m.coverage.value}% <span className="text-[13px] font-semibold text-[#475569]">({m.coverage.completed}/{m.coverage.total} checks)</span></p>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#EEF0F3]" role="progressbar" aria-valuenow={m.coverage.value} aria-valuemin={0} aria-valuemax={100} aria-label="Scan coverage">
-                <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${m.coverage.value}%` }} />
-              </div>
-            </div>
-            <div>
-              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Confidence</p>
-              <p className={cn("text-[18px] font-black", CONF_TONE[m.confidence])}>{m.confidence[0] + m.confidence.slice(1).toLowerCase()}</p>
-              <p className="text-[12px] leading-tight text-[#475569]">How reliable this result is</p>
-            </div>
-          </div>
+          <CoverageCard className="mt-4 border-t border-[#EEF0F3] pt-3" coverage={m.coverage.value} completed={m.coverage.completed} total={m.coverage.total} confidence={m.confidence} />
         </Card>
       </div>
-
-      <Card className="grid gap-0 divide-y divide-[#EEF0F3] md:grid-cols-3 md:divide-x md:divide-y-0">
-        {([
-          ["What We Found", m.sections.found, Search, "text-[#111827]"],
-          ["What We Could Not Verify", m.sections.couldNotVerify, CircleHelp, "text-[#475569]"],
-          ["Recommended Action", m.sections.actions, ShieldCheck, "text-[#FF5A1F]"],
-        ] as const).map(([title, items, Icon, cls]) => (
-          <div key={title} className="min-w-0 px-5 py-4 sm:px-6">
-            <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.06em] text-[#111827]"><Icon className={cn("h-[18px] w-[18px]", cls)} strokeWidth={2.4} />{title}</h3>
-            {items.length ? (
-              <ul className="mt-2 space-y-1.5 text-[13.5px] leading-snug text-[#1F2937]">
-                {items.map((t) => <li key={t} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" />{t}</li>)}
-              </ul>
-            ) : (
-              <p className="mt-2 text-[13.5px] text-[#475569]">{title === "What We Could Not Verify" ? "Every check completed." : "Nothing to report."}</p>
-            )}
-          </div>
-        ))}
-      </Card>
 
       <div className="tc-stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {m.tiles.map((t) => (
@@ -170,7 +136,8 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
                     {d.intel?.length ? (
                       d.intel.map((r) => (
                         <li key={r.id}>
-                          {r.name}:{" "}
+                          {r.name}
+                          {isActiveProvider(r.id) ? "" : <span className="ml-1 text-[11px] font-semibold uppercase text-[#94A3B8]">retired</span>}:{" "}
                           <b className={r.status === "match" ? "text-[#DC2626]" : r.status === "clean" ? "text-[#15803D]" : "text-[#475569]"}>
                             {INTEL_LABEL[r.status]}{r.status === "match" && r.matches[0] ? ` (${r.matches[0]})` : ""}
                           </b>
@@ -179,7 +146,7 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
                       ))
                     ) : (
                       <>
-                        <li>Google Web Risk: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : (d.webRisk.note ?? "Not checked")}</b></li>
+                        {d.webRisk ? <li>Google Web Risk <span className="text-[11px] font-semibold uppercase text-[#94A3B8]">retired</span>: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : (d.webRisk.note ?? "Not checked")}</b></li> : null}
                         <li>Phishing.Database: <b>{d.phishingList.status === "match" ? `Listed (${d.phishingList.match})` : d.phishingList.status === "clean" ? "Not listed" : "Not checked"}</b></li>
                       </>
                     )}
@@ -190,6 +157,8 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
           </dl>
         </Card>
       </div>
+
+      <SummaryCards sections={m.sections} />
       <Limits items={m.limits} />
     </div>
   );

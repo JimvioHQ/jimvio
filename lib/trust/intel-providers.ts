@@ -1,54 +1,58 @@
 /**
- * Unified threat-intelligence adapters for Scam & Malicious Link Detection.
+ * Threat-intelligence adapters for Scam & Malicious Link Detection.
  *
- * Every provider returns the same shape and an honest status: a timeout,
- * outage, missing key, quota or bad response is NEVER "clean". Providers
- * are only queried when their terms allow Jimvio's (commercial) use:
+ * Only sources that are free forever AND allow Jimvio's commercial use are
+ * active (licensing record: docs/trust-checker/threat-intel-providers.md):
  *
- * | Provider            | Covers            | Access / terms (checked Nov 2026)                               |
+ * | Provider            | Covers            | Terms (checked Nov 2026)                                         |
  * |---------------------|-------------------|------------------------------------------------------------------|
- * | Phishing.Database   | phishing domains  | MIT licence, public list (keep the copyright notice)             |
+ * | Phishing.Database   | phishing domains  | MIT licence (keep the copyright notice)                          |
  * | CERT Polska         | phishing domains  | "any purpose, including commercial"; refresh ≤5 min; no endorsement |
- * | Feodo Tracker       | botnet C2 IPs     | abuse.ch, CC0 — free for commercial use                          |
- * | SSL Blacklist       | botnet C2 certs   | abuse.ch, CC0 — free for commercial use                          |
- * | URLhaus             | malware URLs      | free Auth-Key; commercial use may need a Spamhaus subscription   |
- * | PhishTank           | phishing URLs     | app key; new registrations closed since 2020                     |
- * | OpenPhish           | phishing URLs     | community feed is non-commercial; licensed feed URL required     |
- * | Google Web Risk     | malware/phishing  | API key + billing on the Google Cloud project                    |
+ * | Feodo Tracker       | botnet C2 IPs     | abuse.ch, CC0 — commercial use permitted                         |
+ * | SSL Blacklist       | botnet C2 certs   | abuse.ch, CC0 — commercial use permitted                         |
  *
- * Pure apart from injected deps (fetch, env, quota, clock), so it is unit-testable.
+ * PhishTank, URLhaus, OpenPhish and Google Web Risk were removed (Nov 2026):
+ * none is free forever for commercial use. No malware-URL database is
+ * therefore available, and the assessment says so instead of guessing.
+ *
+ * Every adapter returns an honest status: a timeout, outage, empty feed or
+ * bad response is NEVER "clean". Pure apart from injected deps (fetch, clock).
  */
 import type { IntelResult } from "./types";
 
 export type IntelDeps = {
   fetch: typeof fetch;
-  env: Record<string, string | undefined>;
-  quota: (provider: string, dailyLimit: number) => Promise<boolean>;
   now: () => number;
 };
 
+/** The providers Jimvio actually queries. */
+export type ActiveProviderId = "phishing_database" | "cert_pl" | "feodo" | "sslbl";
+
 export type IntelQuery = { url: URL; hosts: string[]; ips: string[]; certSha1: string | null };
 
-type Meta = Pick<IntelResult, "id" | "name" | "family" | "covers" | "terms">;
+type Meta = Pick<IntelResult, "name" | "family" | "covers" | "terms"> & { id: ActiveProviderId };
 
-export const PROVIDERS: Record<IntelResult["id"], Meta> = {
+export const PROVIDERS: Record<ActiveProviderId, Meta> = {
   phishing_database: { id: "phishing_database", name: "Phishing.Database", family: "phish-aggregate", covers: ["phishing"], terms: "MIT licence — © Mitchell Krog, Nissar Chababy & Phishing.Database contributors" },
   cert_pl: { id: "cert_pl", name: "CERT Polska Warning List", family: "cert-pl", covers: ["phishing"], terms: "NASK-PIB / CERT Polska — any use incl. commercial; no endorsement implied" },
-  openphish: { id: "openphish", name: "OpenPhish", family: "phish-aggregate", covers: ["phishing"], terms: "Licensed feed only (community feed is non-commercial)" },
-  phishtank: { id: "phishtank", name: "PhishTank", family: "phish-aggregate", covers: ["phishing"], terms: "Requires a PhishTank app key (registrations closed)" },
-  urlhaus: { id: "urlhaus", name: "URLhaus (abuse.ch)", family: "abusech-urlhaus", covers: ["malware"], terms: "Auth-Key; commercial use may require a Spamhaus subscription" },
   feodo: { id: "feodo", name: "Feodo Tracker (abuse.ch)", family: "abusech-c2", covers: ["c2"], terms: "CC0, commercial use permitted" },
   sslbl: { id: "sslbl", name: "SSL Blacklist (abuse.ch)", family: "abusech-c2", covers: ["c2"], terms: "CC0, commercial use permitted" },
-  google_web_risk: { id: "google_web_risk", name: "Google Web Risk", family: "google", covers: ["malware", "phishing"], terms: "API key + billing" },
 };
 
-export const URLHAUS_DAILY_CAP = 2000;
-export const PHISHTANK_DAILY_CAP = 2000;
+
+/** Display names for sources that older saved reports may contain. They are never queried. */
+export const RETIRED_PROVIDERS: Record<string, string> = {
+  phishtank: "PhishTank",
+  urlhaus: "URLhaus (abuse.ch)",
+  openphish: "OpenPhish",
+  google_web_risk: "Google Web Risk",
+};
+
+export const isActiveProvider = (id: string): id is ActiveProviderId => id in PROVIDERS;
 const TIMEOUT_MS = 8_000;
 const FEED_TTL_MS = 15 * 60_000;
-const LOOKUP_TTL_MS = 15 * 60_000;
 
-const result = (id: IntelResult["id"], deps: IntelDeps, started: number, r: Partial<IntelResult> & Pick<IntelResult, "status">): IntelResult => ({
+const result = (id: ActiveProviderId, deps: IntelDeps, started: number, r: Partial<IntelResult> & Pick<IntelResult, "status">): IntelResult => ({
   ...PROVIDERS[id],
   matches: [],
   threat: null,
@@ -57,20 +61,6 @@ const result = (id: IntelResult["id"], deps: IntelDeps, started: number, r: Part
   checkedAt: new Date(deps.now()).toISOString(),
   ms: Math.max(0, deps.now() - started),
 });
-
-/** Parameters that often carry personal tokens: such URLs are never sent to third parties in full. */
-const SENSITIVE_PARAM = /(^|_|-)(token|key|apikey|auth|code|session|sid|sig|signature|password|pass|pwd|secret|email|otp|ticket|access)($|_|-)/i;
-
-/** Canonical form for external lookups: no credentials, no fragment; null when the query looks private. */
-export function shareableUrl(u: URL): string | null {
-  const c = new URL(u.toString());
-  c.username = "";
-  c.password = "";
-  c.hash = "";
-  c.hostname = c.hostname.toLowerCase().replace(/\.$/, "");
-  for (const k of c.searchParams.keys()) if (SENSITIVE_PARAM.test(k)) return null;
-  return c.toString();
-}
 
 async function fetchWithRetry(deps: IntelDeps, url: string, init: RequestInit, retries = 1): Promise<Response> {
   let last: unknown;
@@ -86,7 +76,6 @@ async function fetchWithRetry(deps: IntelDeps, url: string, init: RequestInit, r
   throw last ?? new Error("fetch failed");
 }
 
-const isTimeout = (e: unknown) => e instanceof Error && /timeout|aborted/i.test(`${e.name} ${e.message}`);
 
 // ── Feed-based providers (downloaded, indexed locally, refreshed on schedule) ──
 type Feed = { at: number; items: Set<string> } | null;
@@ -135,15 +124,6 @@ export function parseSslbl(text: string): Set<string> {
     if (line.startsWith("#")) continue;
     const sha1 = line.split(",")[1]?.trim().toLowerCase();
     if (sha1 && /^[0-9a-f]{40}$/.test(sha1)) s.add(sha1);
-  }
-  return s;
-}
-
-export function parseUrlList(text: string): Set<string> {
-  const s = new Set<string>();
-  for (const line of text.split("\n")) {
-    const t = line.trim();
-    if (/^https?:\/\//i.test(t)) s.add(t.replace(/\/+$/, "").toLowerCase());
   }
   return s;
 }
@@ -197,124 +177,13 @@ export async function checkSslbl(q: IntelQuery, deps: IntelDeps): Promise<IntelR
   return result("sslbl", deps, t, hit ? { status: "match", matches: [q.certSha1], threat: "botnet_c2_certificate" } : { status: "clean", note: `Certificate checked against ${f!.items.size} blacklisted certificates.` });
 }
 
-export async function checkOpenPhish(q: IntelQuery, deps: IntelDeps): Promise<IntelResult> {
-  const t = deps.now();
-  const feedUrl = deps.env.OPENPHISH_FEED_URL?.trim();
-  if (!feedUrl) return result("openphish", deps, t, { status: "not_configured", note: "OpenPhish's free community feed is licensed for non-commercial use only; a licensed feed URL (OPENPHISH_FEED_URL) is required." });
-  const f = await loadFeed(deps, "openphish", feedUrl, parseUrlList);
-  if (!fresh(f, deps)) return result("openphish", deps, t, { status: "error", note: "The OpenPhish feed could not be downloaded." });
-  const target = q.url.toString().replace(/\/+$/, "").toLowerCase();
-  // Exact URL, or a listed URL that is a path prefix of it. Never host-only: phishing kits often sit on shared hosts (sites.google.com, github.io…).
-  const hits = [...f!.items]
-    .filter((u) => {
-      if (u === target) return true;
-      try {
-        const l = new URL(u);
-        return l.hostname === q.url.hostname.toLowerCase() && l.pathname.length > 1 && target.startsWith(u.replace(/\/+$/, "") + "/");
-      } catch {
-        return false;
-      }
-    })
-    .slice(0, 5);
-  return result("openphish", deps, t, hits.length ? { status: "match", matches: hits, threat: "phishing" } : { status: "clean" });
-}
-
-// ── Lookup APIs ──
-const lookups = new Map<string, { at: number; r: IntelResult }>();
-const cached = (key: string, deps: IntelDeps) => {
-  const c = lookups.get(key);
-  return c && deps.now() - c.at < LOOKUP_TTL_MS ? c.r : null;
-};
-const remember = (key: string, r: IntelResult, deps: IntelDeps) => {
-  if (r.status === "match" || r.status === "clean") {
-    if (lookups.size > 2000) lookups.delete(lookups.keys().next().value as string);
-    lookups.set(key, { at: deps.now(), r });
-  }
-  return r;
-};
-
-export async function checkUrlhaus(q: IntelQuery, deps: IntelDeps): Promise<IntelResult> {
-  const t = deps.now();
-  const key = deps.env.URLHAUS_AUTH_KEY?.trim();
-  if (!key) return result("urlhaus", deps, t, { status: "not_configured", note: "URLHAUS_AUTH_KEY is not set (free key from auth.abuse.ch; commercial use may require a Spamhaus subscription)." });
-  const share = shareableUrl(q.url);
-  const cacheKey = `urlhaus:${share ?? q.hosts[0]}`;
-  const c = cached(cacheKey, deps);
-  if (c) return { ...c, note: `${c.note ? `${c.note} ` : ""}(cached)` };
-  if (!(await deps.quota("urlhaus", URLHAUS_DAILY_CAP))) return result("urlhaus", deps, t, { status: "quota", note: "Today's URLhaus query allowance is used up." });
-  try {
-    const post = (path: string, body: Record<string, string>) =>
-      fetchWithRetry(deps, `https://urlhaus-api.abuse.ch/v1/${path}/`, { method: "POST", headers: { "Auth-Key": key, "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(body).toString() });
-    const matches: string[] = [];
-    let threat: string | null = null;
-    // Exact URL (only when it carries nothing private), then every host on the path.
-    if (share) {
-      const res = await post("url", { url: share });
-      const j = await parseJson(res);
-      if (res.status === 401 || res.status === 403) return result("urlhaus", deps, t, { status: "error", note: "URLhaus rejected the Auth-Key." });
-      if (res.status === 429) return result("urlhaus", deps, t, { status: "quota", note: "URLhaus rate limit reached." });
-      if (!res.ok || !j || typeof j.query_status !== "string") return result("urlhaus", deps, t, { status: "invalid_response", note: `URLhaus answered ${res.status} without a usable result.` });
-      if (j.query_status === "ok") { matches.push(`${share} (${String(j.url_status ?? "listed")})`); threat = String(j.threat ?? "malware_download"); }
-      else if (j.query_status !== "no_results" && j.query_status !== "invalid_url") return result("urlhaus", deps, t, { status: "invalid_response", note: `URLhaus: ${j.query_status}` });
-    }
-    for (const host of q.hosts.slice(0, 3)) {
-      const res = await post("host", { host });
-      const j = await parseJson(res);
-      if (!res.ok || !j || typeof j.query_status !== "string") return result("urlhaus", deps, t, { status: res.status === 429 ? "quota" : "invalid_response", note: `URLhaus host lookup answered ${res.status}.` });
-      const online = Array.isArray(j.urls) ? (j.urls as { url_status?: string }[]).filter((u) => u.url_status === "online").length : 0;
-      if (j.query_status === "ok" && online > 0) { matches.push(`${host} (${online} malware URL${online > 1 ? "s" : ""} online)`); threat = threat ?? "malware_download"; }
-    }
-    return remember(cacheKey, result("urlhaus", deps, t, matches.length ? { status: "match", matches, threat } : { status: "clean", note: share ? null : "Only the host was checked (the link's parameters look private)." }), deps);
-  } catch (e) {
-    return result("urlhaus", deps, t, { status: isTimeout(e) ? "timeout" : "error", note: isTimeout(e) ? "URLhaus did not answer in time." : "URLhaus could not be reached." });
-  }
-}
-
-export async function checkPhishTank(q: IntelQuery, deps: IntelDeps): Promise<IntelResult> {
-  const t = deps.now();
-  const appKey = deps.env.PHISHTANK_APP_KEY?.trim();
-  const user = deps.env.PHISHTANK_USERNAME?.trim();
-  if (!appKey || !user) return result("phishtank", deps, t, { status: "not_configured", note: "PhishTank needs PHISHTANK_APP_KEY and PHISHTANK_USERNAME; PhishTank has closed new registrations." });
-  const share = shareableUrl(q.url);
-  if (!share) return result("phishtank", deps, t, { status: "skipped", note: "Not sent: the link's parameters look private and PhishTank only checks full URLs." });
-  const cacheKey = `phishtank:${share}`;
-  const c = cached(cacheKey, deps);
-  if (c) return c;
-  if (!(await deps.quota("phishtank", PHISHTANK_DAILY_CAP))) return result("phishtank", deps, t, { status: "quota", note: "Today's PhishTank allowance is used up." });
-  try {
-    const res = await fetchWithRetry(deps, "https://checkurl.phishtank.com/checkurl/", {
-      method: "POST",
-      headers: { "user-agent": `phishtank/${user}`, "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ url: share, format: "json", app_key: appKey }).toString(),
-    });
-    if (res.status === 509 || res.status === 429) return result("phishtank", deps, t, { status: "quota", note: "PhishTank rate limit reached." });
-    const j = await parseJson(res);
-    const r = j?.results as { in_database?: boolean; verified?: boolean; valid?: boolean; phish_id?: number | string } | undefined;
-    if (!res.ok || !r || typeof r.in_database !== "boolean") return result("phishtank", deps, t, { status: "invalid_response", note: `PhishTank answered ${res.status} without a usable result.` });
-    // Only verified, still-valid entries count as threats; unverified submissions are not evidence.
-    const hit = r.in_database && r.verified === true && r.valid === true;
-    return remember(cacheKey, result("phishtank", deps, t, hit ? { status: "match", matches: [`${share} (PhishTank #${r.phish_id ?? "?"})`], threat: "phishing" } : { status: "clean", note: r.in_database ? "Submitted to PhishTank but not verified as phishing." : null }), deps);
-  } catch (e) {
-    return result("phishtank", deps, t, { status: isTimeout(e) ? "timeout" : "error", note: isTimeout(e) ? "PhishTank did not answer in time." : "PhishTank could not be reached." });
-  }
-}
-
-async function parseJson(res: Response): Promise<Record<string, unknown> | null> {
-  try {
-    const j = (await res.json()) as unknown;
-    return j && typeof j === "object" ? (j as Record<string, unknown>) : null;
-  } catch {
-    return null;
-  }
-}
-
 /** Provider health, kept in memory per server instance (last outcome per provider). */
-export const health = new Map<IntelResult["id"], { status: IntelResult["status"]; at: string; ms: number }>();
+export const health = new Map<ActiveProviderId, { status: IntelResult["status"]; at: string; ms: number }>();
 
 export async function runIntel(q: IntelQuery, deps: IntelDeps, extra: IntelResult[] = []): Promise<IntelResult[]> {
-  const settled = await Promise.all([checkCertPl(q, deps), checkUrlhaus(q, deps), checkPhishTank(q, deps), checkOpenPhish(q, deps), checkFeodo(q, deps), checkSslbl(q, deps)]);
+  const settled = await Promise.all([checkCertPl(q, deps), checkFeodo(q, deps), checkSslbl(q, deps)]);
   const all = [...extra, ...settled];
-  for (const r of all) health.set(r.id, { status: r.status, at: r.checkedAt, ms: r.ms });
+  for (const r of all) if (isActiveProvider(r.id)) health.set(r.id, { status: r.status, at: r.checkedAt, ms: r.ms });
   return all;
 }
 
@@ -345,10 +214,9 @@ export function summarizeIntel(rs: IntelResult[]): IntelSummary {
   };
 }
 
-/** Test helper: forget cached feeds and lookups. */
+/** Test helper: forget cached feeds and provider health. */
 export function resetIntelCaches(): void {
   feeds.clear();
   loading.clear();
-  lookups.clear();
   health.clear();
 }

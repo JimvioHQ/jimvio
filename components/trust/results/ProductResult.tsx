@@ -9,8 +9,8 @@ import {
 import { cn } from "@/lib/utils";
 import type { CheckerResult, ProductDetails, ScanReport } from "@/lib/trust/types";
 import { productModel } from "@/lib/trust/result-model";
-import { rowsFromChecks, rowsFromInfo, rowsFromTiles, type ReportDoc } from "@/lib/trust/report-doc";
-import { Card, CardTitle, CheckRowItem, InfoLine, Limits, ResultHeader, ScoreCard, StatTile, VerdictBanner } from "./ui";
+import { rowsFromChecks, rowsFromInfo, rowsFromTiles, sectionDocs, type ReportDoc } from "@/lib/trust/report-doc";
+import { Card, CardTitle, CheckRowItem, InfoLine, Limits, ResultHeader, ScoreCard, StatTile, VerdictBanner, CoverageCard, SummaryCards } from "./ui";
 import { useReportActions } from "./actions";
 
 const CHECK_ICON: Record<string, LucideIcon> = {
@@ -20,7 +20,6 @@ const CHECK_ICON: Record<string, LucideIcon> = {
   extraction: ScanText, structure_content: ListTree, claims: Megaphone, seller: Store, jimvio_seller: BadgeCheck,
 };
 const INFO_ICON: Record<string, LucideIcon> = { name: FileText, metatitle: FileText, file: FileText, type: Layers, basis: Search, format: FileText, size: Database, pages: BookOpen, author: User, authorship: BrainCircuit, date: CalendarDays, modified: CalendarDays, firstseen: Clock, tool: PenTool, isbn: Hash, license: Copyright, description: FileText };
-const CONF_TONE = { HIGH: "text-[#15803D]", MEDIUM: "text-[#C2410C]", LOW: "text-[#B91C1C]" } as const;
 
 function PdfArt({ label }: { label: string }) {
   return (
@@ -60,12 +59,10 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
     score: { title: "Trust Score", score: m.score },
     sections: [
       { title: "Assessment", rows: [{ label: "Coverage", value: `${m.coverage}% of applicable checks completed` }, { label: "Confidence", value: m.confidence }] },
-      { title: "What We Found", rows: m.sections.found.map((v, i) => ({ label: String(i + 1), value: v })) },
-      { title: "What We Could Not Verify", rows: m.sections.couldNotVerify.map((v, i) => ({ label: String(i + 1), value: v })) },
-      { title: "Recommended Action", rows: m.sections.actions.map((v, i) => ({ label: String(i + 1), value: v })) },
       { title: "Summary", rows: rowsFromTiles(m.tiles) },
       ...m.groups.map((g) => ({ title: g.title, rows: rowsFromChecks(g.checks) })),
       { title: "Product Information", rows: rowsFromInfo(m.info) },
+      ...sectionDocs(m.sections),
     ],
     limits: m.limits,
   };
@@ -101,40 +98,11 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
         </Card>
         <div className="flex flex-col gap-3">
           <ScoreCard title="Trust Score" score={m.score} tone={scoreTone} />
-          <Card className="grid grid-cols-2 gap-3 px-5 py-3.5">
-            <div>
-              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Coverage</p>
-              <p className="text-[18px] font-black text-[#111827]">{m.coverage}%</p>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#EEF0F3]" role="progressbar" aria-valuenow={m.coverage} aria-valuemin={0} aria-valuemax={100} aria-label="Check coverage">
-                <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${m.coverage}%` }} />
-              </div>
-            </div>
-            <div>
-              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Confidence</p>
-              <p className={cn("text-[18px] font-black", CONF_TONE[m.confidence])}>{m.confidence[0] + m.confidence.slice(1).toLowerCase()}</p>
-            </div>
+          <Card className="px-5 py-3.5">
+            <CoverageCard coverage={m.coverage} confidence={m.confidence} />
           </Card>
         </div>
       </div>
-
-      <Card className="grid gap-0 divide-y divide-[#EEF0F3] md:grid-cols-3 md:divide-x md:divide-y-0">
-        {([
-          ["What We Found", m.sections.found, Search, "text-[#111827]"],
-          ["What We Could Not Verify", m.sections.couldNotVerify, CircleHelp, "text-[#475569]"],
-          ["Recommended Action", m.sections.actions, ShieldCheck, "text-[#FF5A1F]"],
-        ] as const).map(([title, items, Icon, cls]) => (
-          <div key={title} className="min-w-0 px-5 py-4 sm:px-6">
-            <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.06em] text-[#111827]"><Icon className={cn("h-[18px] w-[18px]", cls)} strokeWidth={2.4} />{title}</h3>
-            {items.length ? (
-              <ul className="mt-2 space-y-1.5 text-[13.5px] leading-snug text-[#1F2937]">
-                {items.map((t) => <li key={t} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" />{t}</li>)}
-              </ul>
-            ) : (
-              <p className="mt-2 text-[13.5px] text-[#475569]">{title === "What We Could Not Verify" ? "Every applicable check completed." : "Nothing to report."}</p>
-            )}
-          </div>
-        ))}
-      </Card>
 
       <div className="tc-stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {m.tiles.map((t) => {
@@ -144,7 +112,7 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
         })}
       </div>
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-2 xl:gap-5">
+      <div className="grid items-start gap-4 xl:grid-cols-2 xl:gap-5">
         <Card className="tc-lift">
           <CardTitle icon={<ShieldCheck strokeWidth={2.2} />}>Verification Checks</CardTitle>
           <div className="px-5 pb-3 sm:px-6">
@@ -156,11 +124,13 @@ export function ProductResult({ report, checker, onNewCheck }: { report: ScanRep
             ))}
           </div>
         </Card>
-        <Card className="tc-lift">
+        <Card className="xl:sticky xl:top-24">
           <CardTitle icon={<Info className="text-[#111827]" strokeWidth={2.4} />}>Product Information</CardTitle>
           <dl className="px-5 pb-4 sm:px-6">{m.info.map((r) => <InfoLine key={r.key} row={r} icon={INFO_ICON[r.key] ?? Info} />)}</dl>
         </Card>
       </div>
+
+      <SummaryCards sections={m.sections} />
       <Limits items={m.limits} />
     </div>
   );

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
-  ChevronRight, CircleCheck, CircleX, Copy, Download, ExternalLink, House, Info, Share2, TriangleAlert,
+  ChevronRight, CircleCheck, CircleHelp, CircleX, Copy, Download, ExternalLink, House, Info, Search, Share2, ShieldCheck, TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Banner, CheckRow, InfoRow, Pill, Score, Tile, Tone } from "@/lib/trust/result-model";
+import type { AssessmentSections, Banner, CheckRow, InfoRow, Pill, Score, Tile, Tone } from "@/lib/trust/result-model";
 
 export const ORANGE = "#FF5A1F";
 
@@ -199,12 +200,186 @@ export function ScoreRing({ value, tone, size = 132 }: { value: number | null; t
   );
 }
 
-export function InfoTip({ text }: { text: string }) {
+/**
+ * Explanation bubble. Rendered in a portal at a viewport-clamped position so
+ * neighbouring cards (which create their own stacking contexts) never cover it;
+ * opens on hover, keyboard focus, or tap.
+ */
+export function InfoTip({ text, label = "How this is worked out" }: { text: string; label?: string }) {
+  const btn = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    above: boolean;
+  } | null>(null);
+  const place = useCallback(() => {
+    const r = btn.current?.getBoundingClientRect();
+    if (!r) return;
+    const w = Math.min(288, window.innerWidth - 24);
+    const left = Math.max(12, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 12));
+    const above = r.bottom + 160 > window.innerHeight && r.top > 180;
+    setPos({ left, top: above ? r.top - 8 : r.bottom + 8, above });
+  }, []);
+  useLayoutEffect(() => {
+    if (open) place();
+  }, [open, place]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (e.type === "keydown" && (e as KeyboardEvent).key !== "Escape") return;
+      if (e.type === "pointerdown" && btn.current?.contains(e.target as Node)) return;
+      if (e.type === "scroll") {
+        // Follow the button while it stays on screen (focus can scroll a clipped parent).
+        const r = btn.current?.getBoundingClientRect();
+        if (r && r.bottom > 0 && r.top < window.innerHeight) return place();
+      }
+      setOpen(false);
+    };
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    window.addEventListener("keydown", close);
+    window.addEventListener("pointerdown", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("keydown", close);
+      window.removeEventListener("pointerdown", close);
+    };
+  }, [open, place]);
+  if (!text) return null;
   return (
-    <span className="group relative inline-flex align-middle">
-      <button type="button" aria-label="How this is worked out" className="text-[#111827]"><Info className="h-[18px] w-[18px]" strokeWidth={2.2} /></button>
-      <span role="tooltip" className="pointer-events-none absolute left-1/2 top-7 z-30 hidden w-64 max-w-[78vw] -translate-x-1/2 rounded-xl bg-[#111827] p-3 text-[12px] font-medium normal-case leading-5 tracking-normal text-white shadow-xl group-focus-within:block group-hover:block">{text}</span>
+    <span className="inline-flex align-middle">
+      <button
+        ref={btn}
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onClick={() => setOpen(true)}
+        className="rounded-full text-[#111827] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A1F]"
+      >
+        <Info className="h-[17px] w-[17px]" strokeWidth={2.2} />
+      </button>
+      {open && pos && typeof document !== "undefined"
+        ? createPortal(
+            <span
+              role="tooltip"
+              style={{
+                left: pos.left,
+                top: pos.top,
+                width: Math.min(288, window.innerWidth - 24),
+                transform: pos.above ? "translateY(-100%)" : undefined,
+              }}
+              className="pointer-events-none fixed z-[1000] rounded-xl bg-[#111827] p-3 text-[12.5px] font-medium normal-case leading-5 tracking-normal text-white shadow-2xl"
+            >
+              {text}
+            </span>,
+            document.body,
+          )
+        : null}
     </span>
+  );
+}
+
+const CONF_TONE = {
+  HIGH: "text-[#15803D]",
+  MEDIUM: "text-[#C2410C]",
+  LOW: "text-[#B91C1C]",
+} as const;
+
+/** Coverage and confidence, always shown side by side and never merged into the score. */
+export function CoverageCard({
+  coverage,
+  completed,
+  total,
+  confidence,
+  className,
+}: {
+  coverage: number;
+  completed?: number;
+  total?: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  className?: string;
+}) {
+  return (
+    <div className={cn("grid grid-cols-2 gap-4", className)}>
+      <div className="min-w-0">
+        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">
+          Coverage <InfoTip label="What coverage means" text="The share of applicable checks that actually completed. Checks that couldn't run are never counted as passed." />
+        </p>
+        <p className="text-[18px] font-black tabular-nums text-[#111827]">
+          {coverage}%
+          {completed != null && total != null ? (
+            <span className="ml-1 text-[13px] font-semibold text-[#475569]">
+              ({completed}/{total} checks)
+            </span>
+          ) : null}
+        </p>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#EEF0F3]" role="progressbar" aria-valuenow={coverage} aria-valuemin={0} aria-valuemax={100} aria-label="Check coverage">
+          <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${coverage}%` }} />
+        </div>
+      </div>
+      <div className="min-w-0">
+        <p className="flex items-center gap-1.5 text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">
+          Confidence <InfoTip label="What confidence means" text="How reliable this result is, given which independent sources and checks answered. Missing data never raises confidence." />
+        </p>
+        <p className={cn("text-[18px] font-black", CONF_TONE[confidence])}>{confidence[0] + confidence.slice(1).toLowerCase()}</p>
+      </div>
+    </div>
+  );
+}
+
+/** What We Found / What We Could Not Verify / Recommended Action — placed after the detailed results. */
+export function SummaryCards({ sections }: { sections: AssessmentSections }) {
+  const col = (title: string, Icon: LucideIcon, iconCls: string, body: ReactNode, cls?: string) => (
+    <section aria-label={title} className={cn("flex min-w-0 flex-col rounded-[18px] border border-[#ECEEF2] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(15,23,42,0.04)] sm:px-6", cls)}>
+      <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.07em] text-[#111827]">
+        <Icon className={cn("h-[18px] w-[18px] shrink-0", iconCls)} strokeWidth={2.4} />
+        {title}
+      </h3>
+      <div className="mt-3 flex-1">{body}</div>
+    </section>
+  );
+  const items = (list: AssessmentSections["found"], empty: string) =>
+    list.length ? (
+      <ul className="divide-y divide-[#F1F3F6]">
+        {list.map((it) => (
+          <li key={`${it.title}|${it.text}`} className="py-2.5 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <p className="text-[14px] font-bold text-[#111827]">{it.title}</p>
+              {it.pill ? <StatusPill pill={it.pill} size="sm" /> : null}
+            </div>
+            <p className="mt-0.5 text-[13.5px] leading-[1.45] text-[#475569]">{it.text}</p>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-[13.5px] text-[#475569]">{empty}</p>
+    );
+  return (
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] xl:gap-5">
+      {col("What We Found", Search, "text-[#111827]", items(sections.found, "No findings to report."))}
+      <div className="flex min-w-0 flex-col gap-4 xl:gap-5">
+        {col("What We Could Not Verify", CircleHelp, "text-[#475569]", items(sections.couldNotVerify, "Every applicable check completed."))}
+        {col(
+          "Recommended Action",
+          ShieldCheck,
+          "text-[#FF5A1F]",
+          <ol className="space-y-2.5">
+            {sections.actions.map((t, i) => (
+              <li key={t} className="flex gap-3 text-[14px] leading-[1.45] text-[#1F2937]">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#FFF1EA] text-[12px] font-black text-[#FF5A1F]">{i + 1}</span>
+                <span className="pt-0.5">{t}</span>
+              </li>
+            ))}
+          </ol>,
+        )}
+      </div>
+    </div>
   );
 }
 

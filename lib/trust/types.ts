@@ -54,7 +54,8 @@ export type LinkDetails = {
   pageFetched: boolean;
   redirects: { url: string; status: number }[];
   tls: { status: "valid" | "invalid" | "not_https" | "unavailable"; issuer: string | null; validTo: string | null; daysLeft: number | null; sha1?: string | null };
-  webRisk: { status: ReputationStatus; threats: string[]; reason?: string | null; note?: string | null };
+  /** Google Web Risk result — only on reports from before Nov 2026 (provider removed). */
+  webRisk?: { status: ReputationStatus; threats: string[]; reason?: string | null; note?: string | null };
   phishingList: { status: ReputationStatus; match: string | null };
   officialPlatform: string | null;
   /** Added Nov 2026. */
@@ -71,7 +72,8 @@ export type LinkDetails = {
 };
 
 export type IntelResult = {
-  id: "phishing_database" | "cert_pl" | "openphish" | "phishtank" | "urlhaus" | "feodo" | "sslbl" | "google_web_risk";
+  /** Active: phishing_database, cert_pl, feodo, sslbl. The others appear only in older saved reports. */
+  id: "phishing_database" | "cert_pl" | "feodo" | "sslbl" | "openphish" | "phishtank" | "urlhaus" | "google_web_risk";
   name: string;
   /** Providers in one family share upstream data, so they never count as independent confirmation. */
   family: string;
@@ -110,6 +112,9 @@ export type LinkAssessment = {
   counts: { completed: number; threats: number; suspicious: number; unavailable: number; notExecuted: number };
   found: string[];
   couldNotVerify: string[];
+  /** Structured versions of found / couldNotVerify (reports from Nov 6 2026 on). */
+  foundItems?: { checkId: string; name: string; kind: "threat" | "suspicious" | "checked"; text: string; source: string }[];
+  couldNotVerifyItems?: { checkId: string; name: string; status: CheckExecution; text: string }[];
   actions: string[];
   topFinding: string | null;
 };

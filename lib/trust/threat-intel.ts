@@ -3,14 +3,10 @@ import tls from "node:tls";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 /**
- * Free, commercially permitted sources only:
+ * Free-forever, commercially permitted sources only:
  * - Phishing.Database (MIT licence) active phishing domain list.
- * - Google Web Risk Lookup API (commercial; first 100,000 calls/month free),
- *   only when WEB_RISK_API_KEY is set, hard-capped below the free allowance.
- * - IANA RDAP bootstrap + registry RDAP servers for domain age.
- * Google Safe Browsing, VirusTotal public, OpenPhish community and abuse.ch
- * URLhaus without a subscription are non-commercial and are NOT used unless
- * their credentials are configured. See lib/trust/intel-providers.ts.
+ * - IANA RDAP bootstrap + registry RDAP servers for domain age and IP owner.
+ * The other threat-intelligence feeds live in lib/trust/intel-providers.ts.
  */
 
 // The project's own host went offline; the same MIT list is published on GitHub.
@@ -20,7 +16,6 @@ const PHISH_LIST_URLS = [
   "https://phish.co.za/latest/phishing-domains-ACTIVE.txt",
 ];
 const LIST_TTL_MS = 6 * 60 * 60 * 1000;
-export const WEB_RISK_DAILY_CAP = 3000; // ≈ 90k/month, under the 100k free tier.
 
 let phishCache: { at: number; domains: Set<string> } | null = null;
 let phishLoading: Promise<Set<string> | null> | null = null;
@@ -77,51 +72,6 @@ export async function takeQuota(provider: string, dailyLimit: number): Promise<b
     return !error && data === true;
   } catch {
     return false;
-  }
-}
-
-export type WebRiskResult = {
-  status: "match" | "clean" | "unavailable";
-  threats: string[];
-  note?: string;
-  /** Why it was unavailable, without secrets. */
-  reason?: "not_configured" | "quota" | "forbidden" | "invalid_key" | "provider_error" | "timeout";
-};
-
-export async function webRiskLookup(url: string): Promise<WebRiskResult> {
-  const key = process.env.WEB_RISK_API_KEY?.trim();
-  if (!key) return { status: "unavailable", threats: [], note: "Google Web Risk is not configured.", reason: "not_configured" };
-  if (!(await takeQuota("google_web_risk", WEB_RISK_DAILY_CAP))) {
-    return { status: "unavailable", threats: [], note: "Today's free Web Risk allowance is used up.", reason: "quota" };
-  }
-  const qs = new URLSearchParams({ uri: url, key });
-  for (const t of ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"]) qs.append("threatTypes", t);
-  try {
-    const res = await fetch(`https://webrisk.googleapis.com/v1/uris:search?${qs}`, {
-      signal: AbortSignal.timeout(8_000),
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const reason: WebRiskResult["reason"] =
-        res.status === 429 ? "quota" : res.status === 400 && /API key not valid/i.test(body) ? "invalid_key" : res.status === 403 ? "forbidden" : "provider_error";
-      // Log the provider's reason (never the key) so the misconfiguration can be fixed.
-      console.warn(`[trust] Web Risk ${res.status}: ${body.replace(/key=[^&\s"]+/g, "key=***").slice(0, 200)}`);
-      const note =
-        reason === "forbidden"
-          ? "Google Web Risk refused the request (403): the Web Risk API is not enabled or billing is not set up for this key's project."
-          : reason === "invalid_key"
-            ? "Google Web Risk rejected the API key."
-            : reason === "quota"
-              ? "Google Web Risk quota is exhausted."
-              : `Google Web Risk answered ${res.status}.`;
-      return { status: "unavailable", threats: [], note, reason };
-    }
-    const json = (await res.json().catch(() => ({}))) as { threat?: { threatTypes?: string[] } };
-    const threats = json.threat?.threatTypes ?? [];
-    return threats.length ? { status: "match", threats } : { status: "clean", threats: [] };
-  } catch {
-    return { status: "unavailable", threats: [], note: "Google Web Risk did not answer in time.", reason: "timeout" };
   }
 }
 
@@ -232,4 +182,4 @@ export function tlsInfo(host: string, ip: string): Promise<TlsInfo> {
 }
 
 /** Production dependencies for lib/trust/intel-providers.ts. */
-export const intelDeps = { fetch: (...a: Parameters<typeof fetch>) => fetch(...a), env: process.env, quota: takeQuota, now: () => Date.now() };
+export const intelDeps = { fetch: (...a: Parameters<typeof fetch>) => fetch(...a), now: () => Date.now() };

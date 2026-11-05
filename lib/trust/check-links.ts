@@ -3,8 +3,8 @@ import { getDomain } from "tldts";
 import type { CheckerResult, Finding, LinkDetails } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
 import { officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
-import { domainAge, intelDeps, ipNetwork, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
-import { PROVIDERS, runIntel } from "./intel-providers";
+import { domainAge, intelDeps, ipNetwork, phishingListMatch, tlsInfo } from "./threat-intel";
+import { PROVIDERS, runIntel, type ActiveProviderId } from "./intel-providers";
 import type { IntelResult } from "./types";
 import { assessLink, contentBlock } from "./link-assessment";
 
@@ -62,15 +62,6 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     knownThreat = true;
     findings.unshift({ tone: "bad", title: "On a known phishing list", detail: `${hit.match} is listed as an active phishing domain.`, source: "Phishing.Database" });
   }
-  const risk = await webRiskLookup(finalUrl.toString());
-  if (risk.status === "match") {
-    knownThreat = true;
-    sources.add("Google Web Risk");
-    findings.unshift({ tone: "bad", title: "Google flags this link", detail: risk.threats.join(", ").toLowerCase().replace(/_/g, " "), source: "Google Web Risk" });
-  } else if (risk.status === "clean") {
-    sources.add("Google Web Risk");
-    findings.push({ tone: "good", title: "Not on Google's unsafe list", detail: "Not being listed doesn't prove a site is safe.", source: "Google Web Risk" });
-  } else if (risk.note) limits.push(risk.note);
 
   const facts = urlFacts(finalUrl);
   const reg = facts.registrable ?? getDomain(finalUrl.hostname);
@@ -99,16 +90,15 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
 
   // Unified threat intelligence: every source with its honest outcome.
   const nowIso = new Date().toISOString();
-  const base = (id: IntelResult["id"], r: Partial<IntelResult> & Pick<IntelResult, "status">): IntelResult => ({ ...PROVIDERS[id], matches: [], threat: null, note: null, checkedAt: nowIso, ms: 0, ...r });
+  const base = (id: ActiveProviderId, r: Partial<IntelResult> & Pick<IntelResult, "status">): IntelResult => ({ ...PROVIDERS[id], matches: [], threat: null, note: null, checkedAt: nowIso, ms: 0, ...r });
   const intel = await runIntel(
     { url: finalUrl, hosts, ips: [...new Set([...chain.hops.map((h) => h.ip), ...(final?.ip ? [final.ip] : [])].filter(Boolean))], certSha1: tlsRes?.sha1 ?? null },
     intelDeps,
     [
       base("phishing_database", listHits.some((r) => r.checked) ? (hit?.match ? { status: "match", matches: [hit.match], threat: "phishing" } : { status: "clean" }) : { status: "error", note: "The Phishing.Database list could not be loaded." }),
-      base("google_web_risk", risk.status === "match" ? { status: "match", matches: [finalUrl.toString()], threat: risk.threats.join(", ") } : risk.status === "clean" ? { status: "clean" } : { status: risk.reason === "not_configured" ? "not_configured" : risk.reason === "quota" ? "quota" : risk.reason === "timeout" ? "timeout" : "error", note: risk.note ?? null }),
     ],
   ).catch(() => [] as IntelResult[]);
-  for (const r of intel.filter((x) => x.status === "match" && x.id !== "phishing_database" && x.id !== "google_web_risk")) {
+  for (const r of intel.filter((x) => x.status === "match" && x.id !== "phishing_database")) {
     knownThreat = true;
     sources.add(r.name);
     findings.unshift({ tone: "bad", title: `Listed by ${r.name}`, detail: `${r.threat ?? "threat"}: ${r.matches.slice(0, 3).join(", ")}`, source: r.name });
@@ -150,7 +140,6 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
         : tlsRes
           ? { status: tlsRes.ok ? "valid" : "invalid", issuer: tlsRes.issuer, validTo: tlsRes.validTo, daysLeft: tlsRes.daysLeft, sha1: tlsRes.sha1 ?? null }
           : { status: "unavailable", issuer: null, validTo: null, daysLeft: null },
-    webRisk: { status: risk.status === "match" ? "match" : risk.status === "clean" ? "clean" : "unavailable", threats: risk.threats ?? [], reason: risk.reason ?? null, note: risk.status === "unavailable" ? (risk.note ?? null) : null },
     phishingList: { status: hit?.match ? "match" : listHits.some((r) => r.checked) ? "clean" : "unavailable", match: hit?.match ?? null },
     officialPlatform: platformName,
     nameservers: age?.nameservers ?? [],
