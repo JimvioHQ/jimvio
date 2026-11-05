@@ -241,13 +241,59 @@ export type MediaDetails = {
   gps: { lat: number; lon: number } | null;
   software: string | null;
   editingSoftware: string | null;
-  c2pa: { present: boolean; generator: string | null; aiAction: boolean };
+  c2pa: { present: boolean; generator: string | null; aiAction: boolean; assertions?: string[] };
   declaredAi: string[];
   aiTools: string[];
   prompt: string | null;
   copyright: string | null;
   artist: string | null;
   duplicate: { count: number; near: boolean; firstSeenAt: string | null } | null;
+  /** Added Nov 2026 (media-provenance-v2). */
+  exifFields?: number;
+  iptc?: Record<string, string> | null;
+  xmp?: { creatorTool: string | null; historyActions: string[]; digitalSourceType: string | null; createDate: string | null; modifyDate: string | null; rights: string | null; license: string | null } | null;
+  aiModel?: string | null;
+  quality?: { bitDepth: number | null; hasAlpha: boolean; frames: number | null; compression: string | null; sharpness: number | null; entropy: number | null; orientation: number | null; density: number | null } | null;
+  integrityIssue?: string | null;
+  metadataConflicts?: string[];
+  exactSeen?: number;
+  digitizedAt?: string | null;
+  modifiedAt?: string | null;
+  flash?: string | null;
+  whiteBalance?: string | null;
+  assessment?: MediaAssessment;
+};
+
+export type MediaCheckStatus = "VERIFIED" | "DETECTED" | "NOT_FOUND" | "NOT_AVAILABLE" | "NOT_CHECKED" | "INCONCLUSIVE" | "FAILED" | "UNAVAILABLE" | "NOT_APPLICABLE";
+export type MediaCheck = {
+  id: string;
+  name: string;
+  status: MediaCheckStatus;
+  /** Display tone for the pill: what the finding means, separate from whether the check ran. */
+  tone: "good" | "info" | "warn" | "bad" | "neutral" | "ai";
+  label: string;
+  explanation: string;
+  evidence: string[];
+  source: string;
+};
+export type MediaAssessment = {
+  model: string;
+  verdict: "AI_GENERATED_DECLARED" | "CREDENTIALS_UNVERIFIED" | "CAMERA_ORIGIN_INDICATED" | "EDITED_RECORDED" | "PREVIOUSLY_SEEN" | "ORIGIN_UNKNOWN" | "INTEGRITY_ISSUE" | "SCAN_FAILED";
+  creationMethod: "AI_GENERATED" | "AI_EDITED" | "EDITED" | "CAMERA_INDICATED" | "UNKNOWN";
+  creation: "AI_GENERATION_CONFIRMED_BY_VALID_PROVENANCE" | "AI_GENERATION_INDICATED_BY_METADATA" | "AI_GENERATION_SUSPECTED" | "NO_AI_MARKERS_FOUND" | "INCONCLUSIVE" | "NOT_ASSESSED";
+  provenance: "VERIFIED_PROVENANCE" | "CREDENTIALS_PRESENT_UNVERIFIED" | "METADATA_INDICATED" | "SOURCE_IDENTIFIED" | "ORIGIN_UNKNOWN" | "NO_PROVENANCE_FOUND" | "INSUFFICIENT_EVIDENCE";
+  manipulation: "EDITING_SOFTWARE_RECORDED" | "EDITING_HISTORY_FOUND" | "POSSIBLE_MANIPULATION" | "STRONG_MANIPULATION_INDICATORS" | "NO_MANIPULATION_EVIDENCE_FOUND" | "NOT_ASSESSED" | "INCONCLUSIVE";
+  rights: "LICENSE_VERIFIED" | "LICENSE_DECLARED_UNVERIFIED" | "COPYRIGHT_NOTICE_FOUND" | "RIGHTS_UNCLEAR" | "RIGHTS_NOT_ASSESSED" | "HUMAN_REVIEW_REQUIRED";
+  integrity: "PASSED" | "ISSUE" | "FAILED";
+  scoreState: "SCORED" | "NOT_SCORED";
+  score: number | null;
+  scoreBasis: string[];
+  coverage: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  checks: MediaCheck[];
+  found: string[];
+  couldNotVerify: string[];
+  actions: string[];
 };
 
 export type CheckerDetails = LinkDetails | EngagementDetails | ProductDetails | MediaDetails;

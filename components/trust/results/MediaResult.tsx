@@ -4,6 +4,7 @@ import {
   Aperture, AudioLines, BarChart3, Bot, CalendarDays, Camera, CircleCheck, CircleX, Clock, Copyright, Cpu, Database, Expand,
   ExternalLink, FileCode, FileText, Film, Focus, ImageIcon, Info, Layers, MapPin, Maximize2, Palette, PenTool, PencilLine,
   Quote, RotateCw, Ruler, ScanEye, ShieldCheck, Sparkles, Timer, TriangleAlert, User, Video, Volume2, WandSparkles,
+  Search, CircleHelp, Fingerprint, Tags, BadgeCheck, KeyRound, Microscope, Gauge, Globe, Clapperboard, Sun, Zap, Binary, Shrink, Navigation,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,14 +16,20 @@ import { useReportActions } from "./actions";
 
 export type LocalPreview = { url: string; kind: "image" | "video" | "audio" };
 
-const CHECK_ICON: Record<string, LucideIcon> = { integrity: FileText, exif: Camera, origin: ScanEye, ai: Cpu, edit: PencilLine, copyright: Copyright };
-const CREATION_ICON: Record<string, LucideIcon> = { ai: Bot, tool: WandSparkles, model: Cpu, prompt: Quote, capture: Camera, source: ScanEye, edit: PencilLine, location: MapPin, date: Clock };
+const CHECK_ICON: Record<string, LucideIcon> = {
+  integrity: FileText, exif: Camera, iptc: Tags, xmp: FileCode, c2pa: BadgeCheck, c2pa_sig: KeyRound, origin: ScanEye, ai: Cpu, ai_tool: WandSparkles, ai_model: Cpu,
+  camera: Camera, date: Clock, gps: MapPin, software: PenTool, manipulation: PencilLine, forensic: Microscope, duplicate: Fingerprint, copyright: Copyright,
+  source: Globe, quality: Gauge, frames: Clapperboard, audio: Volume2, video_prov: BadgeCheck,
+};
+const CREATION_ICON: Record<string, LucideIcon> = { ai: Bot, tool: WandSparkles, model: Cpu, prompt: Quote, capture: Camera, camera: Camera, source: ScanEye, c2pa: BadgeCheck, edit: PencilLine, location: MapPin, date: Clock, confidence: Gauge };
+const CONF_TONE = { HIGH: "text-[#15803D]", MEDIUM: "text-[#C2410C]", LOW: "text-[#B91C1C]" } as const;
 const TECH_ICON: Record<string, LucideIcon> = {
   name: FileText, format: Layers, size: Database, dims: Expand, exif: FileCode, camera: Camera, lens: Aperture, exposure: Aperture, aperture: Aperture,
   shutter: Timer, iso: Focus, focal: Ruler, date: CalendarDays, gps: MapPin, color: Palette, generated: CalendarDays, vcodec: Film, acodec: Volume2,
   res: Expand, fps: Timer, bitrate: BarChart3, duration: Clock, aspect: Ruler, device: Camera, software: PenTool, meta: FileCode,
+  iptc: Tags, xmp: FileCode, flash: Zap, wb: Sun, depth: Binary, compression: Shrink, orientation: Navigation, modified: CalendarDays, c2pa: BadgeCheck, dst: Cpu, created: CalendarDays,
 };
-const TILE_ICON: Record<string, LucideIcon> = { method: Sparkles, type: Video, format: ImageIcon, size: Database, res: Expand, duration: Timer, tool: Bot, camera: Camera, date: CalendarDays, gps: MapPin };
+const TILE_ICON: Record<string, LucideIcon> = { method: Sparkles, prov: ScanEye, type: Video, format: ImageIcon, size: Database, res: Expand, duration: Timer, tool: Bot, camera: Camera, date: CalendarDays, gps: MapPin };
 
 export function MediaResult({ report, checker, preview, onNewCheck }: { report: ScanReport; checker: CheckerResult; preview?: LocalPreview | null; onNewCheck?: () => void }) {
   const d = checker.details as MediaDetails;
@@ -35,6 +42,10 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
     banner: m.banner,
     score: { title: "Trust Score", score: m.score },
     sections: [
+      { title: "Assessment", rows: [{ label: "Coverage", value: `${m.coverage}% of applicable checks completed` }, { label: "Confidence", value: m.confidence }] },
+      { title: "What We Found", rows: m.sections.found.map((v, i) => ({ label: String(i + 1), value: v })) },
+      { title: "What We Could Not Verify", rows: m.sections.couldNotVerify.map((v, i) => ({ label: String(i + 1), value: v })) },
+      { title: "Recommended Action", rows: m.sections.actions.map((v, i) => ({ label: String(i + 1), value: v })) },
       { title: "Summary", rows: rowsFromTiles(m.tiles) },
       { title: "Verification Checks", rows: rowsFromChecks(m.checks) },
       { title: "Creation & Origin Analysis", rows: [{ label: "Creation Method", value: m.creation.headline.label }, ...rowsFromInfo(m.creation.rows)] },
@@ -44,8 +55,8 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
   };
   const actions = useReportActions(doc);
   const HeaderIcon = m.isVideo ? Video : m.isAudio ? AudioLines : ImageIcon;
-  const bannerIcon = m.aiEvidence ? Cpu : m.banner.tone === "good" ? ShieldCheck : m.banner.tone === "neutral" ? Info : TriangleAlert;
-  const scoreTone = m.score.value == null ? "neutral" : m.score.value >= 80 ? "good" : m.score.value >= 50 ? "warn" : "bad";
+  const bannerIcon = m.aiEvidence ? Cpu : m.banner.tone === "good" ? ShieldCheck : m.banner.tone === "neutral" ? CircleHelp : TriangleAlert;
+  const scoreTone = m.score.value == null ? "neutral" : m.score.badge.tone === "good" ? "good" : m.score.badge.tone === "bad" ? "bad" : "warn";
   const showPreview = preview && preview.kind === d.mediaType ? preview : null;
   const creationGood = m.creation.headline.tone === "good";
   const creationBad = m.creation.headline.tone === "bad";
@@ -84,8 +95,8 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
             <h2 className="mt-2 break-words text-[21px] font-extrabold leading-snug text-[#111827] sm:text-[26px]">{m.title}</h2>
             {m.description ? <p className="mt-1 text-[14.5px] text-[#1F2937] sm:text-[16.5px]">{m.description}</p> : null}
             <div className="mt-3 grid gap-x-5 gap-y-2 text-[14px] text-[#111827] sm:grid-cols-2 sm:text-[15px]">
-              <span className="flex min-w-0 items-center gap-2"><User className="h-5 w-5 shrink-0" /><span className="truncate">{m.aiEvidence ? "Created by" : m.isVideo ? "Captured by" : "Captured by"}: {m.byLine ?? "Not available"}</span></span>
-              <span className="flex min-w-0 items-center gap-2"><CalendarDays className="h-5 w-5 shrink-0" /><span className="truncate">{m.dateLabel}: {m.date ?? "Not available"}</span></span>
+              <span className="flex min-w-0 items-center gap-2"><User className="h-5 w-5 shrink-0" /><span className="truncate">{m.aiEvidence ? "Created with" : "Captured by"}: {m.byLine ?? "Unavailable"}</span></span>
+              <span className="flex min-w-0 items-center gap-2"><CalendarDays className="h-5 w-5 shrink-0" /><span className="truncate">{m.dateLabel}: {m.date ?? "Unavailable"}</span></span>
               {m.location ? (
                 <span className="flex min-w-0 items-center gap-2"><MapPin className="h-5 w-5 shrink-0" /><span className="truncate">Location: {m.location}</span>{m.mapHref ? <a href={m.mapHref} target="_blank" rel="noopener noreferrer nofollow" aria-label="Open location map" className="text-[#1D4ED8]"><ExternalLink className="h-4 w-4" /></a> : null}</span>
               ) : null}
@@ -94,13 +105,47 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
             </div>
           </div>
         </Card>
-        <ScoreCard title="Trust Score" score={m.score} tone={scoreTone} />
+        <div className="flex flex-col gap-3">
+          <ScoreCard title="Provenance Confidence" score={m.score} tone={scoreTone} />
+          <Card className="grid grid-cols-2 gap-3 px-5 py-3.5">
+            <div>
+              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Coverage</p>
+              <p className="text-[18px] font-black text-[#111827]">{m.coverage}%</p>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#EEF0F3]" role="progressbar" aria-valuenow={m.coverage} aria-valuemin={0} aria-valuemax={100} aria-label="Check coverage">
+                <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${m.coverage}%` }} />
+              </div>
+            </div>
+            <div>
+              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Confidence</p>
+              <p className={cn("text-[18px] font-black", CONF_TONE[m.confidence])}>{m.confidence[0] + m.confidence.slice(1).toLowerCase()}</p>
+            </div>
+          </Card>
+        </div>
       </div>
+
+      <Card className="grid gap-0 divide-y divide-[#EEF0F3] md:grid-cols-3 md:divide-x md:divide-y-0">
+        {([
+          ["What We Found", m.sections.found, Search, "text-[#111827]"],
+          ["What We Could Not Verify", m.sections.couldNotVerify, CircleHelp, "text-[#475569]"],
+          ["Recommended Action", m.sections.actions, ShieldCheck, "text-[#FF5A1F]"],
+        ] as const).map(([title, items, Icon, cls]) => (
+          <div key={title} className="min-w-0 px-5 py-4 sm:px-6">
+            <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.06em] text-[#111827]"><Icon className={cn("h-[18px] w-[18px]", cls)} strokeWidth={2.4} />{title}</h3>
+            {items.length ? (
+              <ul className="mt-2 space-y-1.5 text-[13.5px] leading-snug text-[#1F2937]">
+                {items.map((t) => <li key={t} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" />{t}</li>)}
+              </ul>
+            ) : (
+              <p className="mt-2 text-[13.5px] text-[#475569]">{title === "What We Could Not Verify" ? "Every applicable check completed." : "Nothing to report."}</p>
+            )}
+          </div>
+        ))}
+      </Card>
 
       <div className={cn("grid grid-cols-2 gap-3 md:grid-cols-4", m.tiles.length >= 8 ? "xl:grid-cols-8" : "xl:grid-cols-7")}>
         {m.tiles.map((t) => {
           const icon = t.key === "status" ? (t.tone === "good" ? CircleCheck : t.tone === "bad" ? CircleX : t.tone === "warn" ? TriangleAlert : Info) : TILE_ICON[t.key] ?? Info;
-          const bubble = t.key === "status" ? (t.tone === "good" ? "good" : t.tone === "bad" ? "bad" : t.tone === "warn" ? "warn" : "neutral") : t.key === "method" && m.aiEvidence ? "ai" : t.key === "tool" ? "bad" : "orange";
+          const bubble = t.key === "status" ? (t.tone === "good" ? "good" : t.tone === "bad" ? "bad" : t.tone === "warn" ? "warn" : t.tone === "ai" ? "ai" : "neutral") : (t.key === "method" && m.aiEvidence) || t.key === "tool" ? "ai" : "orange";
           return <StatTile key={t.key} tile={t} icon={icon} bubble={bubble} />;
         })}
       </div>
@@ -108,7 +153,7 @@ export function MediaResult({ report, checker, preview, onNewCheck }: { report: 
       <div className="grid items-stretch gap-4 lg:grid-cols-2 xl:grid-cols-[1.18fr_1fr_0.98fr] xl:gap-5">
         <Card className="tc-lift">
           <CardTitle icon={<ShieldCheck strokeWidth={2.2} />}>Verification Checks</CardTitle>
-          <ul className="px-5 pb-3 sm:px-6">{m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key]} compact />)}</ul>
+          <ul className="px-5 pb-3 sm:px-6">{m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key] ?? Info} compact />)}</ul>
         </Card>
         <Card className="tc-lift">
           <CardTitle icon={<Layers strokeWidth={2.2} />}>Creation &amp; Origin Analysis</CardTitle>
