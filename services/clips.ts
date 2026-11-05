@@ -12,7 +12,7 @@ export async function getViralClips(limit = 6) {
     .select(`
       id,
       post_url,
-      view_count,
+      latest_views,
       status,
       influencers ( id, display_name, profile_image ),
       ugc_campaigns ( 
@@ -23,7 +23,7 @@ export async function getViralClips(limit = 6) {
       )
     `)
     .eq("status", "approved")
-    .order("view_count", { ascending: false })
+    .order("latest_views", { ascending: false, nullsFirst: false })
     .limit(limit);
 
   return (data ?? []).map((clip: any) => {
@@ -36,7 +36,7 @@ export async function getViralClips(limit = 6) {
       thumbnail_url: "",
       video_url: clip.post_url,
       duration: 0,
-      total_views: Number(clip.view_count) || 0,
+      total_views: Number(clip.latest_views) || 0,
       total_shares: 0,
       total_downloads: 0,
       total_conversions: 0,
@@ -54,7 +54,7 @@ export async function getFeedClips(limit = 30) {
     .select(`
       id,
       post_url,
-      view_count,
+      latest_views,
       status,
       influencers ( id, user_id, display_name, profile_image ),
       ugc_campaigns ( 
@@ -65,7 +65,7 @@ export async function getFeedClips(limit = 30) {
       )
     `)
     .eq("status", "approved")
-    .order("view_count", { ascending: false })
+    .order("latest_views", { ascending: false, nullsFirst: false })
     .limit(limit);
 
   return (data ?? []).map((clip: any) => {
@@ -78,7 +78,7 @@ export async function getFeedClips(limit = 30) {
       description: campaign?.description || "",
       thumbnail_url: "",
       video_url: clip.post_url,
-      total_views: Number(clip.view_count) || 0,
+      total_views: Number(clip.latest_views) || 0,
       vendor_id: vendor?.id,
       influencer_id: influencer?.id,
       vendors: vendor,
@@ -93,7 +93,7 @@ export async function getVendorClips(vendorId: string) {
   const { data } = await db
     .from("ugc_submissions")
     .select(`
-      id, post_url, view_count, status, created_at,
+      id, post_url, latest_views, status, created_at,
       ugc_campaigns!inner(id, brand_id)
     `)
     .eq("ugc_campaigns.brand_id", vendorId)
@@ -107,7 +107,7 @@ export async function getVendorClipsWithDetails(vendorId: string, limit = 50) {
   const { data } = await db
     .from("ugc_submissions")
     .select(`
-      id, post_url, view_count, status,
+      id, post_url, latest_views, status,
       influencers ( id, display_name ),
       ugc_campaigns!inner(
         id, brand_id, title, description,
@@ -116,7 +116,7 @@ export async function getVendorClipsWithDetails(vendorId: string, limit = 50) {
     `)
     .eq("ugc_campaigns.brand_id", vendorId)
     .eq("status", "approved")
-    .order("view_count", { ascending: false })
+    .order("latest_views", { ascending: false, nullsFirst: false })
     .limit(limit);
 
   return (data ?? []).map((clip: any) => {
@@ -128,7 +128,7 @@ export async function getVendorClipsWithDetails(vendorId: string, limit = 50) {
       description: campaign?.description || "",
       video_url: clip.post_url,
       thumbnail_url: null,
-      total_views: Number(clip.view_count) || 0,
+      total_views: Number(clip.latest_views) || 0,
       total_shares: 0,
       vendor_id: vendor?.id,
       vendors: vendor,
