@@ -134,6 +134,10 @@ export type EngagementDetails = {
   commentsRead: number;
   /** Why numbers are missing, in plain words. */
   accessNote: string | null;
+  /** Added Nov 2026: where each number comes from. */
+  metricClass?: Partial<Record<"views" | "likes" | "comments" | "followers" | "totalViews" | "posts" | "genuine" | "suspicious", "PLATFORM_REPORTED" | "OWNER_VERIFIED" | "ESTIMATED" | "UNAVAILABLE">>;
+  /** Evidence-based range, never an exact count (see lib/trust/engagement-estimate.ts). */
+  estimate?: import("./engagement-estimate").ViewEstimate | null;
 };
 
 export type ProductType = "ebook" | "book" | "document" | "template" | "spreadsheet" | "presentation" | "archive" | "software" | "text";

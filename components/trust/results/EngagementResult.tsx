@@ -146,8 +146,8 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
             <div key={t.key} className="tc-lift flex min-w-0 items-center gap-2.5 rounded-[16px] border border-[#ECEEF2] bg-white px-3 py-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] xl:gap-2 xl:px-2.5 2xl:gap-2.5 2xl:px-3.5" title={t.hint}>
               <IconBubble icon={Icon} tone={t.key === "bot" ? "red" : "orange"} size="sm" />
               <div className="min-w-0">
-                <p className="flex items-center gap-1 truncate text-[12px] text-[#111827] sm:text-[13px] xl:overflow-visible xl:whitespace-normal xl:leading-tight 2xl:whitespace-nowrap">{t.label}{t.key === "rate" ? <InfoTip text={t.hint ?? ""} /> : null}</p>
-                <p className={cn("truncate font-extrabold leading-tight tracking-[-0.01em] xl:overflow-visible xl:whitespace-normal xl:[text-overflow:clip]", has ? "text-[18px] text-[#111827] sm:text-[20px] xl:text-[19px] 2xl:text-[22px]" : "mt-0.5 text-[14px] text-[#94A3B8] sm:text-[15px]")}>{has ? t.value : t.key === "real" || t.key === "bot" ? "Not public" : "Not available"}</p>
+                <p className="flex items-center gap-1 truncate text-[12px] text-[#111827] sm:text-[13px] xl:overflow-visible xl:whitespace-normal xl:leading-tight 2xl:whitespace-nowrap">{t.label}{t.key === "rate" || t.key === "real" || t.key === "bot" ? <InfoTip text={t.hint ?? ""} /> : null}</p>
+                <p className={cn("truncate font-extrabold leading-tight tracking-[-0.01em] xl:overflow-visible xl:whitespace-normal xl:[text-overflow:clip]", (t.key === "real" || t.key === "bot") && "xl:whitespace-nowrap", has ? "text-[18px] text-[#111827] sm:text-[20px] xl:text-[19px] 2xl:text-[22px]" : "mt-0.5 text-[14px] text-[#94A3B8] sm:text-[15px]")}>{has ? t.value : t.key === "real" || t.key === "bot" ? "Insufficient data" : "Not available"}</p>
               </div>
             </div>
           );

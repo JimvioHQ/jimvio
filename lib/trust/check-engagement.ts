@@ -5,6 +5,7 @@ import { takeQuota } from "./threat-intel";
 import { assessPost } from "@/lib/ugc/checker/post-signals";
 import { youtubeVideoId } from "@/lib/ugc/verification/video-ref";
 import { youtubeKeyEnvs, youtubeOembed, youtubePublic } from "@/lib/youtube/public-data";
+import { estimateViews } from "./engagement-estimate";
 
 /**
  * Checker 2: engagement on public posts and channels.
@@ -29,10 +30,37 @@ export function socialPlatform(u: URL): Platform {
   return null;
 }
 
+// Repeat scans of the same video within a few minutes reuse YouTube's answer (saves quota, same public numbers).
+const ytCache = new Map<string, { at: number; json: Record<string, unknown> }>();
+const YT_TTL_MS = 10 * 60_000;
+
 async function yt(userId: string | null, path: string): Promise<Record<string, unknown> | null> {
+  const key = `${userId ?? "anon"}:${path}`;
+  const hit = ytCache.get(key);
+  if (hit && Date.now() - hit.at < YT_TTL_MS) return hit.json;
   if (!(await takeQuota("youtube_data_api", YOUTUBE_DAILY_UNITS))) return null;
   const r = await youtubePublic(path, userId);
+  if (r.ok && r.json) {
+    if (ytCache.size > 500) ytCache.delete(ytCache.keys().next().value as string);
+    ytCache.set(key, { at: Date.now(), json: r.json });
+  }
   return r.ok ? r.json : null;
+}
+
+/** Meta's official oEmbed (needs an app token with oEmbed Read). Author/thumbnail only — Meta never returns counts here. */
+async function metaOembed(kind: "instagram" | "facebook", url: string): Promise<{ author: string | null; thumb: string | null; title: string | null } | null> {
+  const id = process.env.META_APP_ID;
+  const secret = process.env.META_APP_SECRET;
+  if (!id || !secret) return null;
+  const edge = kind === "instagram" ? "instagram_oembed" : /\/videos?\/|\/watch|\/reel\//.test(url) ? "oembed_video" : "oembed_post";
+  try {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${edge}?url=${encodeURIComponent(url)}&omitscript=true&access_token=${encodeURIComponent(`${id}|${secret}`)}`, { signal: AbortSignal.timeout(8_000), cache: "no-store" });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { author_name?: string; thumbnail_url?: string; title?: string };
+    return { author: str(j.author_name), thumb: str(j.thumbnail_url) && /^https:\/\//.test(String(j.thumbnail_url)) ? String(j.thumbnail_url) : null, title: str(j.title) };
+  } catch {
+    return null;
+  }
 }
 
 const n = (v: unknown) => (v == null || v === "" ? null : Number(v));
@@ -231,6 +259,15 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         verdict: a.verdict === "unknown" ? null : a.verdict,
         commentsRead: texts.length,
       };
+      details.estimate = estimateViews({
+        platform: "youtube", contentType: details.contentType, views: post.views, likes: post.likes, comments: post.comments, publishedAt: details.publishedAt,
+        channelViews, channelVideos, followers: channelSubscribers, commentWarnings: findings.filter((f) => f.tone === "warn" && /comment/i.test(f.title)).length,
+      });
+      const rep = (v: number | null) => (v == null ? "UNAVAILABLE" : "PLATFORM_REPORTED") as "UNAVAILABLE" | "PLATFORM_REPORTED";
+      details.metricClass = {
+        views: rep(post.views), likes: rep(post.likes), comments: rep(post.comments), followers: rep(channelSubscribers), totalViews: rep(channelViews), posts: rep(channelVideos),
+        genuine: details.estimate.status === "ESTIMATED" ? "ESTIMATED" : "UNAVAILABLE", suspicious: details.estimate.status === "ESTIMATED" ? "ESTIMATED" : "UNAVAILABLE",
+      };
       return {
         ...base,
         details,
@@ -246,8 +283,8 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
           { label: "Video", value: String(item.snippet?.title ?? "").slice(0, 80) },
           { label: "Channel", value: String(item.snippet?.channelTitle ?? "") },
           { label: "Public views (YouTube)", value: fmt(post.views) },
-          { label: "Verified real views", value: "Not available" },
-          { label: "Detected fake / bot views", value: "Not available" },
+          { label: "Estimated genuine views", value: details.estimate.genuine ? `${fmt(details.estimate.genuine[0])} – ${fmt(details.estimate.genuine[1])} (estimate, ${details.estimate.confidence.toLowerCase()} confidence)` : "Insufficient public evidence" },
+          { label: "Estimated suspicious views", value: details.estimate.suspicious ? `${fmt(details.estimate.suspicious[0])} – ${fmt(details.estimate.suspicious[1])} (estimate)` : "Insufficient public evidence" },
           { label: "Likes", value: fmt(post.likes) },
           { label: "Comments", value: fmt(post.comments) },
           { label: "Engagement", value: a.engagementRate == null ? "—" : `${(a.engagementRate * 100).toFixed(2)}%` },
@@ -381,6 +418,21 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
   }
 
   const metaName = platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : "Threads";
+  const oe = platform === "instagram" || platform === "facebook" ? await metaOembed(platform, url.toString()) : null;
+  if (oe?.author) {
+    const d = blankDetails(platform, url);
+    return {
+      ...base,
+      details: { ...d, found: true, authorName: oe.author, caption: oe.title, thumbnailUrl: oe.thumb, account: { ...d.account, visibility: "public" }, metricClass: { views: "UNAVAILABLE", likes: "UNAVAILABLE", comments: "UNAVAILABLE" }, estimate: null, accessNote: `${metaName} confirms who posted this, but only shares views, likes and follower numbers with the account owner.` },
+      status: "unavailable",
+      summary: `Post by ${oe.author}. ${metaName} doesn't share engagement numbers publicly.`,
+      findings: [{ tone: "info", title: `Confirmed public post by ${oe.author}`, detail: oe.title ?? undefined, source: `${metaName} oEmbed (Meta Graph API)` }],
+      metrics: [{ label: "Author", value: oe.author }, { label: "Public views", value: "Not shared by Meta" }],
+      sources: [`${metaName} oEmbed (official)`],
+      limits: ["Meta only shares counts with the account owner; Jimvio never scrapes them."],
+      nextSteps: ["On Jimvio campaigns, creators connect their account so real numbers are read directly."],
+    };
+  }
   return {
     ...base,
     details: { ...blankDetails(platform, url), accessNote: `${metaName} only shares post and account numbers with approved apps and the account owner, so Jimvio can't read them from a link.` },
