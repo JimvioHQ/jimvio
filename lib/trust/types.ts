@@ -53,7 +53,7 @@ export type LinkDetails = {
   contentType: string | null;
   pageFetched: boolean;
   redirects: { url: string; status: number }[];
-  tls: { status: "valid" | "invalid" | "not_https" | "unavailable"; issuer: string | null; validTo: string | null; daysLeft: number | null };
+  tls: { status: "valid" | "invalid" | "not_https" | "unavailable"; issuer: string | null; validTo: string | null; daysLeft: number | null; sha1?: string | null };
   webRisk: { status: ReputationStatus; threats: string[]; reason?: string | null; note?: string | null };
   phishingList: { status: ReputationStatus; match: string | null };
   officialPlatform: string | null;
@@ -64,8 +64,25 @@ export type LinkDetails = {
   contentInspected?: boolean;
   contentBlockedReason?: string | null;
   fetchError?: string | null;
+  /** Every threat-intelligence source asked, with its honest outcome (Nov 2026). */
+  intel?: IntelResult[];
   /** The single authoritative verdict (see lib/trust/link-assessment.ts). */
   assessment?: LinkAssessment;
+};
+
+export type IntelResult = {
+  id: "phishing_database" | "openphish" | "phishtank" | "urlhaus" | "feodo" | "sslbl" | "google_web_risk";
+  name: string;
+  /** Providers in one family share upstream data, so they never count as independent confirmation. */
+  family: string;
+  covers: ("phishing" | "malware" | "c2")[];
+  status: "match" | "clean" | "not_configured" | "error" | "timeout" | "quota" | "skipped" | "invalid_response";
+  matches: string[];
+  threat: string | null;
+  note: string | null;
+  terms: string | null;
+  checkedAt: string;
+  ms: number;
 };
 
 export type CheckExecution = "CLEAN" | "THREAT_DETECTED" | "SUSPICIOUS" | "INCONCLUSIVE" | "NOT_CHECKED" | "UNAVAILABLE" | "FAILED";

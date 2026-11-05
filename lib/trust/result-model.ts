@@ -276,8 +276,10 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
 
   const finalUrl = d?.finalUrl ?? submittedUrl;
   const tlsRow = checks.find((r) => r.key === "tls");
-  const blocklisted = d ? d.webRisk.status === "match" || d.phishingList.status === "match" : false;
-  const dbChecked = d ? [d.webRisk.status, d.phishingList.status].filter((s) => s !== "unavailable").length : 0;
+  const intel = d?.intel ?? null;
+  const blocklisted = intel ? intel.some((r) => r.status === "match") : d ? d.webRisk.status === "match" || d.phishingList.status === "match" : false;
+  const dbChecked = intel ? intel.filter((r) => r.status === "match" || r.status === "clean").length : d ? [d.webRisk.status, d.phishingList.status].filter((s) => s !== "unavailable").length : 0;
+  const dbTotal = intel ? intel.length : 2;
   const info: InfoRow[] = [
     { key: "url", label: "Submitted URL", value: submittedUrl || null, copy: submittedUrl || undefined },
     { key: "final", label: "Final URL", value: d?.finalUrl ?? null, href: d?.finalUrl && /^https?:\/\//.test(d.finalUrl) ? d.finalUrl : undefined, copy: d?.finalUrl ?? undefined },
@@ -291,7 +293,7 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
     { key: "tls", label: "SSL Certificate", value: d?.tls.issuer ?? null, pill: tlsRow?.pill ?? pill(NA, "neutral") },
     { key: "redirects", label: "Redirects", value: null, pill: d ? (redirects.length ? pill(`${redirects.length} followed`, "info") : d.pageFetched ? pill("None", "good") : pill("Not Followed", "neutral")) : pill(NA, "neutral") },
     { key: "type", label: "Content Type", value: d?.contentType ? `${d.contentType.includes("html") ? "HTML" : d.contentType.split("/")[1]?.toUpperCase() ?? "File"} (${d.contentType})` : null },
-    { key: "db", label: "Security Databases", value: null, pill: blocklisted ? pill("Listed", "bad") : dbChecked ? pill(`Not Listed (${dbChecked}/2 answered)`, dbChecked === 2 ? "good" : "info") : pill("Not Checked", "neutral") },
+    { key: "db", label: "Security Databases", value: null, pill: blocklisted ? pill("Listed", "bad") : dbChecked ? pill(`Not Listed (${dbChecked}/${dbTotal} answered)`, dbChecked === dbTotal ? "good" : "info") : pill("Not Checked", "neutral") },
     { key: "checked", label: "Last Checked", value: fmtDateTime(checkedAt) },
   ];
 

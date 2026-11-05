@@ -9,7 +9,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
  *   only when WEB_RISK_API_KEY is set, hard-capped below the free allowance.
  * - IANA RDAP bootstrap + registry RDAP servers for domain age.
  * Google Safe Browsing, VirusTotal public, OpenPhish community and abuse.ch
- * community feeds are non-commercial and are deliberately NOT used.
+ * URLhaus without a subscription are non-commercial and are NOT used unless
+ * their credentials are configured. See lib/trust/intel-providers.ts.
  */
 
 // The project's own host went offline; the same MIT list is published on GitHub.
@@ -202,7 +203,7 @@ export async function domainAge(registrable: string): Promise<DomainAge> {
   }
 }
 
-export type TlsInfo = { ok: boolean; issuer: string | null; validTo: string | null; daysLeft: number | null; error?: string };
+export type TlsInfo = { ok: boolean; issuer: string | null; validTo: string | null; daysLeft: number | null; error?: string; sha1?: string | null };
 
 /** Reads the certificate from an already validated public IP. */
 export function tlsInfo(host: string, ip: string): Promise<TlsInfo> {
@@ -218,6 +219,7 @@ export function tlsInfo(host: string, ip: string): Promise<TlsInfo> {
         issuer,
         validTo,
         daysLeft: validTo ? Math.floor((Date.parse(validTo) - Date.now()) / 86_400_000) : null,
+        sha1: cert?.fingerprint ? String(cert.fingerprint).replace(/:/g, "").toLowerCase() : null,
         error: authorized ? undefined : String(socket.authorizationError ?? "Certificate not trusted"),
       });
     });
@@ -228,3 +230,6 @@ export function tlsInfo(host: string, ip: string): Promise<TlsInfo> {
     socket.on("error", (e) => resolve({ ok: false, issuer: null, validTo: null, daysLeft: null, error: e.message }));
   });
 }
+
+/** Production dependencies for lib/trust/intel-providers.ts. */
+export const intelDeps = { fetch: (...a: Parameters<typeof fetch>) => fetch(...a), env: process.env, quota: takeQuota, now: () => Date.now() };
