@@ -157,12 +157,13 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
       <div className="grid items-stretch gap-4 md:grid-cols-2 xl:gap-5">
         <Card className="tc-lift flex h-full flex-col">
           <CardTitle icon={<Users strokeWidth={2.2} />} right={null} compact>
-            <span className="flex items-center gap-2">Audience Quality <InfoTip text="Read from the public numbers. Bot and fake views can't be counted from outside the platform, so Jimvio doesn't estimate them." /></span>
+            <span className="flex items-center gap-2">Audience Quality <InfoTip text="Read from the public numbers only. Exact bot or fake views can't be counted from outside the platform, so suspicious views are shown as an estimated range with a confidence level, never as an exact count." /></span>
           </CardTitle>
           <ul className="flex flex-1 flex-col justify-between px-5 pb-3 sm:px-6">
             {m.audience.map((r) => {
-              const Icon = r.key === "real" ? CircleCheck : r.key === "suspicious" ? TriangleAlert : Bot;
-              const tone = r.key === "real" ? "good" : r.key === "suspicious" ? "orange" : "neutral";
+              const pt = r.pill.tone;
+              const Icon = r.key === "bots" ? Bot : pt === "good" ? CircleCheck : pt === "bad" || pt === "warn" ? TriangleAlert : CircleCheck;
+              const tone = pt === "good" ? "good" : pt === "bad" ? "bad" : pt === "warn" ? "warn" : "neutral";
               return (
                 <li key={r.key} className="tc-fit-row flex flex-1 items-center gap-3.5 border-b border-[#EEF0F3] py-2.5 last:border-b-0 sm:gap-4">
                   <IconBubble icon={Icon} tone={tone} size="md" />
@@ -171,7 +172,7 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
                     <p className="text-[13px] leading-5 text-[#334155] xl:text-[14px]">{r.description}</p>
                     {r.note ? <p className="text-[12px] text-[#64748B]">{r.note}</p> : null}
                   </div>
-                  <StatusPill pill={r.pill} className="tc-pill shrink-0 sm:min-w-[118px]" />
+                  <StatusPill pill={r.pill} className="tc-pill max-w-[46%] shrink whitespace-normal text-center leading-tight sm:min-w-[118px] sm:max-w-none sm:shrink-0 sm:whitespace-nowrap" />
                 </li>
               );
             })}

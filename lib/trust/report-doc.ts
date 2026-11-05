@@ -2,7 +2,7 @@
  * The downloadable / shareable form of a result page. Built from the same
  * view model the page renders, so the file always matches the screen.
  */
-import type { Banner, CheckRow, InfoRow, Score, Tile } from "./result-model";
+import type { AssessmentSections, Banner, CheckRow, InfoRow, Score, Tile } from "./result-model";
 
 export type ReportDoc = {
   scanId: string;
@@ -27,6 +27,15 @@ export function rowsFromInfo(rows: InfoRow[]) {
 
 export function rowsFromTiles(tiles: Tile[]) {
   return tiles.map((t) => ({ label: t.label, value: t.value ?? "Not Available" }));
+}
+
+/** The three summary cards, in the same order as on the page (after the detailed results). */
+export function sectionDocs(s: AssessmentSections) {
+  return [
+    { title: "What We Found", rows: s.found.map((it) => ({ label: it.title, value: `${it.pill ? `[${it.pill.label}] ` : ""}${it.text}` })) },
+    { title: "What We Could Not Verify", rows: s.couldNotVerify.map((it) => ({ label: it.title, value: `${it.pill ? `[${it.pill.label}] ` : ""}${it.text}` })) },
+    { title: "Recommended Action", rows: s.actions.map((v, i) => ({ label: String(i + 1), value: v })) },
+  ];
 }
 
 export function reportHtml(doc: ReportDoc): string {

@@ -14,16 +14,28 @@
 import type { AssessmentState, CheckExecution, Finding, IntelResult, LinkAssessment, LinkDetails, SecurityCheck } from "./types";
 import { PROVIDERS, summarizeIntel } from "./intel-providers";
 
-/** Reports from before Nov 2026 only stored Web Risk + Phishing.Database. */
+/**
+ * Sources as recorded on the report. Reports from before Nov 2026 stored only
+ * Google Web Risk + Phishing.Database (both kept as historical evidence).
+ */
 function intelOf(d: LinkDetails): IntelResult[] {
   if (d.intel?.length) return d.intel;
   const at = new Date(0).toISOString();
-  const mk = (id: IntelResult["id"], status: IntelResult["status"], matches: string[] = [], threat: string | null = null, note: string | null = null): IntelResult => ({ ...PROVIDERS[id], status, matches, threat, note, checkedAt: at, ms: 0 });
-  return [
-    mk("phishing_database", d.phishingList.status === "match" ? "match" : d.phishingList.status === "clean" ? "clean" : "error", d.phishingList.match ? [d.phishingList.match] : [], d.phishingList.match ? "phishing" : null),
-    mk("google_web_risk", d.webRisk.status === "match" ? "match" : d.webRisk.status === "clean" ? "clean" : d.webRisk.reason === "not_configured" ? "not_configured" : "error", [], d.webRisk.threats.join(", ") || null, d.webRisk.note ?? null),
+  const out: IntelResult[] = [
+    { ...PROVIDERS.phishing_database, status: d.phishingList.status === "match" ? "match" : d.phishingList.status === "clean" ? "clean" : "error", matches: d.phishingList.match ? [d.phishingList.match] : [], threat: d.phishingList.match ? "phishing" : null, note: null, checkedAt: at, ms: 0 },
   ];
+  if (d.webRisk) {
+    const w = d.webRisk;
+    out.push({ id: "google_web_risk", name: "Google Web Risk", family: "google", covers: ["malware", "phishing"], terms: "Retired provider (historical result)", status: w.status === "match" ? "match" : w.status === "clean" ? "clean" : w.reason === "not_configured" ? "not_configured" : "error", matches: [], threat: w.threats.join(", ") || null, note: w.note ?? null, checkedAt: at, ms: 0 });
+  }
+  return out;
 }
+
+/** One sentence, ending in exactly one full stop. */
+const sentence = (t: string) => `${t.trim().replace(/[.\s]+$/, "")}.`;
+const STATUS_WORD: Record<IntelResult["status"], string> = {
+  match: "listed", clean: "not listed", not_configured: "not configured", error: "unavailable", timeout: "timed out", quota: "quota reached", skipped: "skipped", invalid_response: "invalid response",
+};
 
 export const LINK_MODEL = "link-risk-v2 (Nov 2026)";
 
@@ -71,9 +83,17 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
   const intel = intelOf(d);
   const sum = summarizeIntel(intel);
   const providerHits: string[] = sum.matches.map((r) => `${r.name} lists it${r.threat ? ` (${r.threat.toLowerCase().replace(/_/g, " ")})` : ""}${r.matches[0] ? `: ${r.matches[0]}` : ""}`);
-  const malwareHits = sum.matches.filter((r) => r.covers.includes("malware") || r.covers.includes("c2")).filter((r) => r.id !== "google_web_risk" || d.webRisk.threats.some((t) => /MALWARE|UNWANTED/i.test(t)));
-  const phishHits = sum.matches.filter((r) => r.covers.includes("phishing")).filter((r) => r.id !== "google_web_risk" || d.webRisk.threats.some((t) => /SOCIAL_ENGINEERING/i.test(t)));
-  const names = (rs: IntelResult[]) => rs.map((r) => r.name).join(", ");
+  const wrThreats = d.webRisk?.threats ?? [];
+  const malwareHits = sum.matches.filter((r) => r.covers.includes("malware") || r.covers.includes("c2")).filter((r) => r.id !== "google_web_risk" || wrThreats.some((t) => /MALWARE|UNWANTED/i.test(t)));
+  const phishHits = sum.matches.filter((r) => r.covers.includes("phishing")).filter((r) => r.id !== "google_web_risk" || wrThreats.some((t) => /SOCIAL_ENGINEERING/i.test(t)));
+  const names = (rs: IntelResult[]) => {
+    const n = rs.map((r) => r.name.replace(/ \(abuse\.ch\)$/, "").replace(/ Warning List$/, ""));
+    return n.length <= 1 ? (n[0] ?? "") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`;
+  };
+  const orNames = (rs: IntelResult[]) => names(rs).replace(/ and ([^,]+)$/, " or $1");
+  // Sources that were actually asked for this link (skipped = not applicable here, e.g. no certificate).
+  const asked = intel.filter((r) => r.status !== "skipped");
+  const notAnswered = asked.filter((r) => r.status !== "match" && r.status !== "clean");
   const malwareUrlAnswered = sum.answered.filter((r) => r.covers.includes("malware"));
   const c2Answered = sum.answered.filter((r) => r.covers.includes("c2"));
   const phishAnswered = sum.answered.filter((r) => r.covers.includes("phishing"));
@@ -84,8 +104,8 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
   const pageF = f.filter((x) => /page content/i.test(x.source));
   const downloadF = any(f, /downloads a program|direct download of a program/i);
   const phishContentF = any(pageF, /password form sends|recovery phrase/i);
-  const malwareListed = d.webRisk.threats.some((t) => /MALWARE|UNWANTED/i.test(t));
-  const seListed = d.webRisk.threats.some((t) => /SOCIAL_ENGINEERING/i.test(t));
+  const malwareListed = wrThreats.some((t) => /MALWARE|UNWANTED/i.test(t));
+  const seListed = wrThreats.some((t) => /SOCIAL_ENGINEERING/i.test(t));
 
   const c = (id: string, name: string, critical: boolean, source: string, status: CheckExecution, explanation: string, evidence: string[] = [], severity: SecurityCheck["severity"] = "none"): SecurityCheck => ({
     id, name, critical, source, status, explanation, evidence, severity: status === "THREAT_DETECTED" ? (severity === "none" ? "high" : severity) : status === "SUSPICIOUS" ? (severity === "none" ? "medium" : severity) : "none",
@@ -100,21 +120,21 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
       !fetched ? (d.redirects.length ? "INCONCLUSIVE" : "FAILED") : redirectF.some((x) => x.tone === "warn") ? "SUSPICIOUS" : "CLEAN",
       !fetched ? "The redirect chain could not be followed to the end." : d.redirects.length ? `${d.redirects.length} redirect${d.redirects.length > 1 ? "s" : ""} followed to the final page.` : "No redirects.",
       [...d.redirects.map((h) => `${h.status} → ${h.url}`), ...ev(redirectF)]),
-    c("malware", "Malicious Code / Malware Detection", true, "URLhaus · Feodo Tracker · SSL Blacklist · Google Web Risk",
+    c("malware", "Malicious Code / Malware Detection", true, names(intel.filter((r) => r.covers.includes("malware") || r.covers.includes("c2"))) || "Threat intelligence",
       malwareHits.length || malwareListed ? "THREAT_DETECTED" : malwareUrlAnswered.length ? "CLEAN" : c2Answered.length ? "INCONCLUSIVE" : "UNAVAILABLE",
       malwareHits.length || malwareListed
         ? `Listed for malware or botnet activity by ${names(malwareHits) || "Google Web Risk"}.`
         : malwareUrlAnswered.length
-          ? `Not listed by ${names([...malwareUrlAnswered, ...c2Answered])}. Not being listed doesn't prove a link is safe.`
+          ? `Not listed by ${orNames([...malwareUrlAnswered, ...c2Answered])}. Not being listed doesn't prove a link is safe.`
           : c2Answered.length
-            ? `Only botnet command-and-control lists answered (${names(c2Answered)}); no malware-URL database was available.`
-            : `No malware database answered for this scan (${intel.filter((r) => r.covers.includes("malware") || r.covers.includes("c2")).map((r) => `${r.name}: ${r.status.replace(/_/g, " ")}`).join("; ") || "none configured"}).`,
-      [...malwareHits.flatMap((r) => r.matches.map((m) => `${r.name}: ${m}`)), ...intel.filter((r) => (r.covers.includes("malware") || r.covers.includes("c2")) && !["match", "clean"].includes(r.status)).map((r) => `${r.name}: ${r.status.replace(/_/g, " ")}${r.note ? ` — ${r.note}` : ""}`)], "critical"),
-    c("phishing", "Phishing Detection", true, "Phishing.Database · PhishTank · OpenPhish · Google Web Risk · page content",
+            ? `No eligible malware-URL database is available to Jimvio. The botnet lists (${names(c2Answered)}) don't list this server.`
+            : "No eligible malware-URL database is available, and the botnet lists could not be checked for this link.",
+      [...malwareHits.flatMap((r) => r.matches.map((m) => `${r.name}: ${m}`)), ...intel.filter((r) => (r.covers.includes("malware") || r.covers.includes("c2")) && !["match", "clean"].includes(r.status)).map((r) => `${r.name}: ${STATUS_WORD[r.status]}${r.note ? ` — ${r.note}` : ""}`)], "critical"),
+    c("phishing", "Phishing Detection", true, `${names(intel.filter((r) => r.covers.includes("phishing")))} · page content`,
       phishHits.length || seListed || phishContentF.length ? "THREAT_DETECTED"
         : phishAnswered.length && inspected ? "CLEAN"
           : !phishAnswered.length && !inspected ? "UNAVAILABLE" : "INCONCLUSIVE",
-      phishHits.length || seListed ? `Listed as an active phishing destination by ${names(phishHits) || "Google Web Risk"}.` : phishContentF.length ? "The page asks for credentials in a dangerous way." : phishAnswered.length && inspected ? `Not listed by ${names(phishAnswered)}, and the page shows no credential theft.` : phishAnswered.length ? `Not listed by ${names(phishAnswered)}, but the page itself could not be inspected.` : `No phishing source answered for this scan (${intel.filter((r) => r.covers.includes("phishing")).map((r) => `${r.name}: ${r.status.replace(/_/g, " ")}`).join("; ")}).`,
+      phishHits.length || seListed ? `Listed as an active phishing destination by ${names(phishHits) || "Google Web Risk"}.` : phishContentF.length ? "The page asks for credentials in a dangerous way." : phishAnswered.length && inspected ? `Not listed by ${orNames(phishAnswered)}, and the page shows no credential theft.` : phishAnswered.length ? `Not listed by ${orNames(phishAnswered)}, but the page itself could not be inspected.` : `No phishing source answered for this scan (${intel.filter((r) => r.covers.includes("phishing")).map((r) => `${r.name}: ${STATUS_WORD[r.status]}`).join("; ")}).`,
       [...providerHits, ...ev(phishContentF)], "critical"),
     c("reputation", "Domain Reputation", false, "URL analysis · RDAP",
       urlF.some((x) => /abused|bait/i.test(text(x))) ? "SUSPICIOUS" : "CLEAN",
@@ -123,11 +143,15 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
       brandF.some((x) => x.tone === "bad") ? "THREAT_DETECTED" : brandF.length ? "SUSPICIOUS" : inspected ? "CLEAN" : "INCONCLUSIVE",
       brandF.length ? "Uses a well-known brand on a domain that isn't theirs." : inspected ? "No look-alike brand name in the address or page title." : "The address was checked, but the page could not be read for brand misuse.", ev(brandF), "high"),
     c("blocklist", "Blacklist / Threat Intelligence", true, names(intel),
-      providerHits.length ? "THREAT_DETECTED" : sum.phishingCovered && sum.malwareUrlCovered ? "CLEAN" : sum.answered.length ? "INCONCLUSIVE" : "UNAVAILABLE",
+      providerHits.length ? "THREAT_DETECTED" : !sum.answered.length ? "UNAVAILABLE" : notAnswered.length ? "INCONCLUSIVE" : "CLEAN",
       providerHits.length
-        ? `Listed by ${sum.independentHits} independent source famil${sum.independentHits === 1 ? "y" : "ies"}.`
-        : `${sum.answered.length} of ${intel.length} sources answered (${names(sum.answered) || "none"})${sum.phishingCovered && sum.malwareUrlCovered ? "" : `; ${!sum.malwareUrlCovered ? "no malware-URL database" : "no phishing database"} was available`}.`,
-      [...providerHits, ...intel.filter((r) => !["match", "clean"].includes(r.status)).map((r) => `${r.name}: ${r.status.replace(/_/g, " ")}${r.note ? ` — ${r.note}` : ""}`)], "critical"),
+        ? `Listed by ${sum.independentHits} independent source famil${sum.independentHits === 1 ? "y" : "ies"} (${names(sum.matches)}).`
+        : !sum.answered.length
+          ? `None of the ${asked.length} eligible threat-intelligence sources answered.`
+          : notAnswered.length
+            ? `${sum.answered.length} of ${asked.length} eligible sources answered; ${notAnswered.map((r) => `${r.name} ${STATUS_WORD[r.status]}`).join(", ")}.`
+            : `All ${asked.length} eligible sources answered and none lists it (${names(sum.answered)}). Not being listed is not proof of safety.`,
+      [...providerHits, ...intel.filter((r) => !["match", "clean"].includes(r.status)).map((r) => `${r.name}: ${STATUS_WORD[r.status]}${r.note ? ` — ${r.note}` : ""}`)], "critical"),
     c("tls", "SSL / HTTPS", false, "TLS certificate",
       d.tls.status === "valid" ? "CLEAN" : d.tls.status === "invalid" || d.tls.status === "not_https" ? "SUSPICIOUS" : fetched ? "NOT_CHECKED" : "FAILED",
       d.tls.status === "valid" ? `Valid certificate${d.tls.issuer ? ` from ${d.tls.issuer}` : ""}${d.tls.daysLeft != null ? `, ${d.tls.daysLeft} days left` : ""}. A valid certificate doesn't make a site trustworthy.` : d.tls.status === "invalid" ? "The certificate is not trusted." : d.tls.status === "not_https" ? "The page is not encrypted." : "The certificate could not be read.", [], "low"),
@@ -182,26 +206,51 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
               : criticalMissing.length ? "INCOMPLETE_ASSESSMENT"
                 : "NO_KNOWN_THREATS";
 
-  const found: string[] = [
-    ...threats.map((k) => `${k.name}: ${k.explanation}`),
-    ...susp.map((k) => `${k.name}: ${k.explanation}`),
+  // What We Found: real findings first; otherwise the most telling completed checks (a completed check is not a safety guarantee).
+  const FOUND_ORDER = ["phishing", "blocklist", "content", "url", "redirects", "brand", "downloads", "reputation", "tls", "registration"];
+  const foundItems: NonNullable<LinkAssessment["foundItems"]> = [
+    ...threats.map((k) => ({ checkId: k.id, name: k.name, kind: "threat" as const, text: sentence(k.explanation), source: k.source })),
+    ...susp.map((k) => ({ checkId: k.id, name: k.name, kind: "suspicious" as const, text: sentence(k.explanation), source: k.source })),
   ];
-  if (!found.length) {
-    found.push(...checks.filter((k) => k.status === "CLEAN").slice(0, 4).map((k) => `${k.name}: ${k.explanation.split(". ")[0]}.`));
+  const cleanChecks = checks.filter((k) => k.status === "CLEAN").sort((x, y) => FOUND_ORDER.indexOf(x.id) - FOUND_ORDER.indexOf(y.id));
+  for (const k of cleanChecks) {
+    if (foundItems.length >= 5) break;
+    foundItems.push({ checkId: k.id, name: k.name, kind: "checked", text: sentence(k.explanation.split(/(?<=\.) /)[0]), source: k.source });
   }
-  const couldNotVerify = checks.filter((k) => !DONE.includes(k.status)).map((k) => `${k.name}: ${k.explanation}`);
-  const actions =
+  const unverifiedItems: NonNullable<LinkAssessment["couldNotVerifyItems"]> = checks
+    .filter((k) => !DONE.includes(k.status))
+    .map((k) => ({ checkId: k.id, name: k.name, status: k.status, text: sentence(k.explanation) }));
+  // A source that failed is still a gap even when another source already found a threat.
+  const blocklistDone = checks.find((k) => k.id === "blocklist");
+  if (blocklistDone && DONE.includes(blocklistDone.status) && notAnswered.length && sum.answered.length)
+    unverifiedItems.push({ checkId: "intel_sources", name: "Threat Intelligence Sources", status: "INCONCLUSIVE", text: sentence(`${notAnswered.map((r) => `${r.name} ${STATUS_WORD[r.status]}`).join(", ")}; ${sum.answered.length} of ${asked.length} eligible sources answered`) });
+
+  // Recommended Action: from this assessment's own evidence.
+  const finalHost = (() => {
+    try {
+      return d.finalUrl ? new URL(d.finalUrl).hostname : null;
+    } catch {
+      return null;
+    }
+  })();
+  const temporaryGap = notAnswered.filter((r) => r.status === "timeout" || r.status === "error" || r.status === "quota" || r.status === "invalid_response");
+  const onlyStructuralGap = state === "INCOMPLETE_ASSESSMENT" && providerGap.every((k) => k.id === "malware") && !temporaryGap.length;
+  const actions: string[] =
     state === "THREAT_DETECTED"
       ? ["Do not enter passwords, codes or payment details on this link.", "Do not download or open anything from it.", ...(providerHits.length ? ["If you already entered details, change that password now and contact your bank or wallet provider."] : []), ...(malwareHits.length ? ["If you downloaded anything from it, scan your device with up-to-date antivirus."] : [])]
       : state === "SUSPICIOUS_ACTIVITY"
         ? ["Open the official website yourself instead of using this link.", "Never share one-time codes, card details or wallet phrases through it."]
         : state === "WEBSITE_UNREACHABLE"
           ? ["Sign in only through the service's official app or a bookmarked address.", "If someone sent you this link unexpectedly, confirm with them another way."]
-          : state === "INCOMPLETE_ASSESSMENT"
-            ? ["Treat the link with care until the missing checks can run — try again later.", "Check the address bar before typing passwords or payment details."]
-            : state === "SCAN_FAILED"
-              ? ["Try the check again in a few minutes."]
-              : ["Still check the address bar before typing passwords or payment details."];
+          : state === "SCAN_FAILED"
+            ? ["Try the check again in a few minutes."]
+            : [
+                ...(state === "NO_KNOWN_THREATS" ? ["The checks performed found no known threats. That isn't a guarantee, so stay alert to unexpected requests for passwords or payment."] : []),
+                ...(onlyStructuralGap || providerGap.some((k) => k.id === "malware") ? ["Files from this link were not checked against a malware database. Download only if you trust the sender."] : []),
+                ...(temporaryGap.length ? [`${names(temporaryGap)} didn't answer. Run the check again in a few minutes for fuller coverage.`] : []),
+                ...(d.officialPlatform ? [`This is ${d.officialPlatform}'s official address. Sign in only if you opened the link yourself.`] : ["Before typing a password or payment details, confirm the address is the one you expect."]),
+                ...(d.redirects.length && finalHost ? [`The link redirects to ${finalHost}. Make sure that's where you meant to go.`] : []),
+              ];
 
   return {
     model: LINK_MODEL,
@@ -218,8 +267,10 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
       unavailable: checks.filter((k) => k.status === "UNAVAILABLE" || k.status === "FAILED").length,
       notExecuted: checks.filter((k) => k.status === "NOT_CHECKED" || k.status === "INCONCLUSIVE").length,
     },
-    found: found.slice(0, 5),
-    couldNotVerify: couldNotVerify.slice(0, 6),
+    found: foundItems.map((x) => `${x.name}: ${x.text}`),
+    couldNotVerify: unverifiedItems.map((x) => `${x.name}: ${x.text}`).slice(0, 6),
+    foundItems,
+    couldNotVerifyItems: unverifiedItems.slice(0, 6),
     actions,
     topFinding: threats[0]?.explanation ?? susp[0]?.explanation ?? null,
   };

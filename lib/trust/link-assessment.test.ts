@@ -98,3 +98,32 @@ describe("link assessment states", () => {
     assert.equal(riskClass(80), "Critical Risk");
   });
 });
+
+describe("URL shapes through the real heuristics", async () => {
+  const { urlSignals, redirectSignals } = await import("./url-heuristics.ts");
+  const { normalizeUrl, isPublicAddress } = await import("./url-guard.ts");
+  const urlCheck = (raw: string) => {
+    const u = new URL(raw);
+    return assessLink({ findings: urlSignals(u), details: d({ submittedUrl: raw, finalUrl: raw }) }).checks.find((k) => k.id === "url")!;
+  };
+  it("raw IP address is flagged", () => assert.notEqual(urlCheck("http://203.0.113.10/login").status, "CLEAN"));
+  it("embedded credentials are flagged", () => assert.notEqual(urlCheck("https://paypal.com@evil.example/").status, "CLEAN"));
+  it("encoded / punycode hosts are flagged", () => assert.notEqual(urlCheck("https://xn--pypal-4ve.com/").status, "CLEAN"));
+  it("an ordinary address is clean", () => assert.equal(urlCheck("https://www.wikipedia.org/").status, "CLEAN"));
+  it("malformed, non-web and credential links are rejected before any request; private IPs are never fetched", () => {
+    assert.throws(() => normalizeUrl("https://exa mple.com/"));
+    assert.throws(() => normalizeUrl("javascript:alert(1)"));
+    assert.throws(() => normalizeUrl("https://user:pass@example.com/"));
+    assert.throws(() => normalizeUrl("http://localhost/"));
+    assert.equal(isPublicAddress("127.0.0.1"), false);
+    assert.equal(isPublicAddress("10.0.0.5"), false);
+    assert.equal(isPublicAddress("169.254.169.254"), false);
+  });
+  it("redirects are followed and listed as evidence", () => {
+    const hops = [{ url: "https://bit.ly/x", status: 301 }, { url: "https://a.example/", status: 200 }];
+    const a = assessLink({ findings: redirectSignals(hops), details: d({ redirects: [hops[0]] }) });
+    const r = a.checks.find((k) => k.id === "redirects")!;
+    assert.match(r.explanation, /1 redirect/);
+    assert.ok(r.evidence.some((e) => e.includes("bit.ly")));
+  });
+});
