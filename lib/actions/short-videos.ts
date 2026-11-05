@@ -276,7 +276,7 @@ export async function recordVideoView(videoId: string, watchTimeSec: number) {
     return { error: insertError.message };
   }
 
-  const { error: rpcError } = await supabase.rpc("increment_video_view_count" as any, { vid: videoId });
+  const { error: rpcError } = await createAdminClient().rpc("increment_video_view_count" as any, { vid: videoId });
 
   if (rpcError) {
     console.error("[DATABASE ERROR] increment_video_view_count failed:", rpcError);
@@ -325,7 +325,7 @@ export async function recordVideoClick(videoId: string, productId?: string, comm
   });
 
   // Increment click counter
-  const { error: rpcError } = await supabase.rpc("increment_video_click_count" as any, { vid: videoId });
+  const { error: rpcError } = await createAdminClient().rpc("increment_video_click_count" as any, { vid: videoId });
 
   if (rpcError) {
     console.error("[DATABASE ERROR] increment_video_click_count failed:", rpcError);
@@ -413,7 +413,7 @@ export async function toggleShortVideoLike(videoId: string) {
         .eq("user_id", user.id);
 
       if (error) throw error;
-      const { error: rpcError } = await supabase.rpc("decrement_video_like_count" as any, { vid: videoId });
+      const { error: rpcError } = await createAdminClient().rpc("decrement_video_like_count" as any, { vid: videoId });
       if (rpcError) {
         console.error("[DATABASE ERROR] decrement_video_like_count failed:", rpcError);
       }
@@ -427,7 +427,7 @@ export async function toggleShortVideoLike(videoId: string) {
         });
 
       if (error) throw error;
-      const { error: rpcError } = await supabase.rpc("increment_video_like_count" as any, { vid: videoId });
+      const { error: rpcError } = await createAdminClient().rpc("increment_video_like_count" as any, { vid: videoId });
 
       if (rpcError) {
         console.error("[DATABASE ERROR] increment_video_like_count failed:", rpcError);

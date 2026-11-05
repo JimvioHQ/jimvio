@@ -205,9 +205,7 @@ export async function POST(req: NextRequest) {
     bodyLength: rawBody.length,
     hasSignatureV4: !!req.headers.get("flutterwave-signature"),
     hasSignatureLegacy: !!req.headers.get("verif-hash"),
-    secretPresent: !!(
-      process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH
-    ),
+    secretPresent: flutterwaveWebhookSecretConfigured(),
     contentType: req.headers.get("content-type"),
   });
 

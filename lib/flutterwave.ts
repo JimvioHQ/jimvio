@@ -14,7 +14,14 @@ function getSecretKey(): string {
 }
 
 function getWebhookSecretOrNull(): string | null {
-  const secret = process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH;
+  // Flutterwave calls this the "Secret hash" (Settings → Webhooks); accept the common names.
+  const secret =
+    process.env.FLW_WEBHOOK_SECRET ||
+    process.env.FLUTTERWAVE_WEBHOOK_HASH ||
+    process.env.FLW_SECRET_HASH ||
+    process.env.FLW_WEBHOOK_HASH ||
+    process.env.FLUTTERWAVE_SECRET_HASH ||
+    process.env.FLUTTERWAVE_WEBHOOK_SECRET;
   if (!secret) return null;
   return secret.trim().replace(/^["']|["']$/g, "");
 }
