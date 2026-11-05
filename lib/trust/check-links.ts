@@ -1,6 +1,6 @@
 import "server-only";
 import { getDomain } from "tldts";
-import type { CheckerResult, Finding } from "./types";
+import type { CheckerResult, Finding, LinkDetails } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
 import { decideLinkStatus, officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
 import { domainAge, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
@@ -131,8 +131,32 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
         ? ["Open the official site yourself instead of using this link.", "Never share one-time codes or wallet phrases."]
         : ["Still check the address bar before typing passwords."];
 
+  const details: LinkDetails = {
+    kind: "links",
+    submittedUrl: url.toString(),
+    finalUrl: final ? finalUrl.toString() : null,
+    domain: reg ?? finalUrl.hostname,
+    registeredAt: age?.registeredAt ?? null,
+    ageDays: age?.ageDays ?? null,
+    registrar: age?.registrar ?? null,
+    ip: final?.ip ?? null,
+    httpStatus: final?.status ?? null,
+    contentType: contentType ? contentType.split(";")[0].trim() : null,
+    pageFetched: Boolean(final),
+    redirects: chain.hops.filter((h) => h.status >= 300 && h.status < 400).map((h) => ({ url: h.url, status: h.status })),
+    tls:
+      finalUrl.protocol !== "https:"
+        ? { status: "not_https", issuer: null, validTo: null, daysLeft: null }
+        : tlsRes
+          ? { status: tlsRes.ok ? "valid" : "invalid", issuer: tlsRes.issuer, validTo: tlsRes.validTo, daysLeft: tlsRes.daysLeft }
+          : { status: "unavailable", issuer: null, validTo: null, daysLeft: null },
+    webRisk: { status: risk.status === "match" ? "match" : risk.status === "clean" ? "clean" : "unavailable", threats: risk.threats ?? [] },
+    phishingList: { status: hit?.match ? "match" : listHits.some((r) => r.checked) ? "clean" : "unavailable", match: hit?.match ?? null },
+    officialPlatform: platformName,
+  };
+
   return {
     context: { url, chain, html, contentType, domainAgeDays: age?.ageDays ?? null },
-    result: { id: "links", status, summary, findings, metrics, sources: [...sources], limits, nextSteps },
+    result: { id: "links", status, summary, findings, metrics, sources: [...sources], limits, nextSteps, details },
   };
 }

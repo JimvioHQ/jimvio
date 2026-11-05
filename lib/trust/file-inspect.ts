@@ -4,6 +4,7 @@
  * a SHA-256 fingerprint. Pure functions, safe on any input.
  */
 import { createHash } from "node:crypto";
+import { inflateSync } from "node:zlib";
 import { unzipSync, strFromU8 } from "fflate";
 import type { Finding } from "./types";
 
@@ -167,10 +168,8 @@ export function extractText(buf: Buffer, type: FileType): string | null {
     return xml ? xml.replace(/<w:p[^>]*>/g, "\n").replace(/<[^>]+>/g, "").replace(/\s+\n/g, "\n") : null;
   }
   if (type.kind === "pdf") {
-    // Text drawn with simple string operators only; compressed streams are skipped.
-    const raw = buf.subarray(0, 4_000_000).toString("latin1");
-    const parts = [...raw.matchAll(/\(([^()\\]{3,200})\)\s*Tj/g)].map((m) => m[1]);
-    return parts.length >= 20 ? parts.join(" ") : null;
+    const text = pdfText(buf);
+    return text && text.split(/\s+/).length >= 20 ? text : null;
   }
   return null;
 }
@@ -181,4 +180,140 @@ export function pdfInfo(buf: Buffer): { pages: number | null; producer: string |
   const producer = /\/Producer\s*\(([^)]{1,120})\)/.exec(raw)?.[1] ?? null;
   const creator = /\/Creator\s*\(([^)]{1,120})\)/.exec(raw)?.[1] ?? null;
   return { pages, producer, creator };
+}
+
+/** Decodes a PDF literal "(…)" or hex "<…>" string, including UTF-16BE. */
+export function pdfString(raw: string): string {
+  let bytes: number[];
+  if (raw.startsWith("<")) {
+    const hex = raw.slice(1, -1).replace(/[^0-9a-f]/gi, "");
+    bytes = [];
+    for (let i = 0; i + 1 < hex.length; i += 2) bytes.push(parseInt(hex.slice(i, i + 2), 16));
+  } else {
+    const body = raw.slice(1, -1);
+    bytes = [];
+    for (let i = 0; i < body.length; i++) {
+      const c = body[i];
+      if (c !== "\\") { bytes.push(body.charCodeAt(i) & 0xff); continue; }
+      const nx = body[++i];
+      if (nx === undefined) break;
+      if (/[0-7]/.test(nx)) {
+        let oct = nx;
+        while (oct.length < 3 && /[0-7]/.test(body[i + 1] ?? "")) oct += body[++i];
+        bytes.push(parseInt(oct, 8) & 0xff);
+      } else if (nx === "n") bytes.push(10);
+      else if (nx === "r") bytes.push(13);
+      else if (nx === "t") bytes.push(9);
+      else if (nx === "\n" || nx === "\r") continue;
+      else bytes.push(nx.charCodeAt(0) & 0xff);
+    }
+  }
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) {
+    let out = "";
+    for (let i = 2; i + 1 < bytes.length; i += 2) out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
+    return out.replace(/\0/g, "").trim();
+  }
+  return Buffer.from(bytes).toString("latin1").replace(/\0/g, "").trim();
+}
+
+/** PDF date "D:20240315093000+02'00'" to ISO, or null. */
+export function pdfDate(v: string | null): string | null {
+  const m = v ? /(?:D:)?(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/.exec(v) : null;
+  if (!m) return null;
+  const [y, mo = "01", d = "01", h = "00", mi = "00", se = "00"] = m.slice(1).map((x) => x ?? undefined) as string[];
+  const iso = `${y}-${mo ?? "01"}-${d ?? "01"}T${h ?? "00"}:${mi ?? "00"}:${se ?? "00"}Z`;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) && Number(y) >= 1990 && Number(y) <= 2100 ? new Date(t).toISOString() : null;
+}
+
+export type PdfMeta = {
+  pages: number | null;
+  producer: string | null;
+  creator: string | null;
+  title: string | null;
+  author: string | null;
+  subject: string | null;
+  createdAt: string | null;
+  modifiedAt: string | null;
+};
+
+/** The PDF's Info dictionary, falling back to XMP (dc:title, dc:creator). */
+export function pdfMeta(buf: Buffer): PdfMeta {
+  const raw = buf.toString("latin1");
+  const field = (key: string): string | null => {
+    const re = new RegExp(`/${key}\\s*(\\((?:\\\\.|[^\\\\)]){0,400}\\)|<[0-9A-Fa-f\\s]{2,800}>)`);
+    const m = re.exec(raw);
+    const v = m ? pdfString(m[1]) : "";
+    return v && /[\p{L}\p{N}]/u.test(v) ? v.slice(0, 200) : null;
+  };
+  const xmp = /<x:xmpmeta[\s\S]{0,200000}?<\/x:xmpmeta>/i.exec(raw)?.[0] ?? "";
+  const xmpTag = (tag: string) => {
+    const block = new RegExp(`<${tag}>([\\s\\S]{0,2000}?)</${tag}>`, "i").exec(xmp)?.[1] ?? "";
+    const li = /<rdf:li[^>]*>([^<]{1,200})<\/rdf:li>/i.exec(block)?.[1] ?? (block.includes("<") ? "" : block);
+    return li.trim() ? Buffer.from(li.trim(), "latin1").toString("utf8") : null;
+  };
+  const xmpDate = (tag: string) => new RegExp(`<${tag}>([^<]{4,40})</${tag}>|${tag}="([^"]{4,40})"`, "i").exec(xmp);
+  const createdX = xmpDate("xmp:CreateDate");
+  const modX = xmpDate("xmp:ModifyDate");
+  const iso = (v: string | undefined) => (v && Number.isFinite(Date.parse(v)) ? new Date(Date.parse(v)).toISOString() : null);
+  return {
+    pages: (raw.match(/\/Type\s*\/Page\b/g) ?? []).length || null,
+    producer: field("Producer"),
+    creator: field("Creator"),
+    title: field("Title") ?? xmpTag("dc:title"),
+    author: field("Author") ?? xmpTag("dc:creator"),
+    subject: field("Subject") ?? xmpTag("dc:description"),
+    createdAt: pdfDate(field("CreationDate")) ?? iso(createdX?.[1] ?? createdX?.[2]),
+    modifiedAt: pdfDate(field("ModDate")) ?? iso(modX?.[1] ?? modX?.[2]),
+  };
+}
+
+/** Text shown by a PDF's content streams (inflates FlateDecode; never runs anything). */
+export function pdfText(buf: Buffer, maxChars = 400_000): string | null {
+  const raw = buf.toString("latin1");
+  const chunks: string[] = [];
+  let total = 0;
+  const take = (content: string) => {
+    for (const m of content.matchAll(/(\((?:\\.|[^\\)]){1,400}\))\s*(?:Tj|'|")|\[((?:\s*(?:\((?:\\.|[^\\)]){0,400}\)|-?[\d.]+))*)\s*\]\s*TJ/g)) {
+      let piece = "";
+      if (m[1]) piece = pdfString(m[1]);
+      else if (m[2]) {
+        for (const part of m[2].matchAll(/(\((?:\\.|[^\\)]){0,400}\))|(-?[\d.]+)/g)) {
+          if (part[1]) piece += pdfString(part[1]);
+          else if (Number(part[2]) < -200) piece += " ";
+        }
+      }
+      if (piece) {
+        chunks.push(piece);
+        total += piece.length + 1;
+        if (total > maxChars) return true;
+      }
+    }
+    return false;
+  };
+  const re = /<<([^]{0,600}?)>>\s*stream\r?\n/g;
+  let m: RegExpExecArray | null;
+  let streams = 0;
+  while ((m = re.exec(raw)) && streams < 400) {
+    const start = m.index + m[0].length;
+    const end = raw.indexOf("endstream", start);
+    if (end < 0) break;
+    streams++;
+    const dict = m[1];
+    if (/\/Subtype\s*\/Image|\/Type\s*\/XObject|\/Length1|\/FontFile/.test(dict)) continue;
+    let body = buf.subarray(start, end);
+    if (/\/FlateDecode/.test(dict)) {
+      try {
+        body = inflateSync(body, { maxOutputLength: 4_000_000 });
+      } catch {
+        continue;
+      }
+    } else if (/\/Filter/.test(dict)) continue;
+    if (take(body.toString("latin1"))) break;
+    re.lastIndex = end;
+  }
+  const text = chunks.join(" ").replace(/\s+/g, " ").trim();
+  if (!text) return null;
+  const letters = (text.match(/[A-Za-z\u00C0-\u024F]/g) ?? []).length;
+  return letters / text.length > 0.5 ? text : null;
 }

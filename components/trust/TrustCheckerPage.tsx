@@ -8,7 +8,8 @@ import {
   UploadCloud, X, Youtube, Music2, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TrustReportView } from "./TrustReportView";
+import { TrustResult } from "./results/TrustResult";
+import type { LocalPreview } from "./results/MediaResult";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file" | "both";
@@ -64,8 +65,9 @@ export function TrustCheckerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<ScanReport | null>(null);
+  const [preview, setPreview] = useState<LocalPreview | null>(null);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const resultRef = useRef<HTMLDivElement>(null);
 
   const showUrl = mode !== "file";
   const showFile = mode !== "url";
@@ -74,8 +76,25 @@ export function TrustCheckerPage() {
   const PlatformIcon = platformInfo.icon;
 
   useEffect(() => {
-    if (report) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (report) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [report]);
+
+  // Reopen a saved result from ?scan=<id> (only the person who ran it can load it).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("scan");
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+    setLoadingSaved(true);
+    fetch(`/api/trust-checker/scan/${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then(async (r) => {
+        const p = await r.json().catch(() => ({}));
+        if (!r.ok || !p.report) throw new Error(r.status === 404 ? "This result is private to the person who ran the check, or it no longer exists." : "The saved result couldn't be loaded. Try again.");
+        setReport(p.report as ScanReport);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "The saved result couldn't be loaded."))
+      .finally(() => setLoadingSaved(false));
+  }, []);
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url); }, [preview]);
 
   const pickFile = useCallback((next: File | null) => {
     setError(null);
@@ -104,6 +123,7 @@ export function TrustCheckerPage() {
     setBusy(true);
     setError(null);
     setReport(null);
+    setPreview(null);
     try {
       const form = new FormData();
       if (showUrl && url.trim()) form.set("url", url.trim());
@@ -114,7 +134,12 @@ export function TrustCheckerPage() {
       if (!payload.report || !Array.isArray(payload.report.checkers) || !payload.report.overall) {
         throw new Error("The scan returned an incomplete report. No safety verdict was assumed.");
       }
-      setReport(payload.report as ScanReport);
+      const next = payload.report as ScanReport;
+      if (showFile && file && /^(image|video|audio)\//.test(file.type)) {
+        setPreview({ url: URL.createObjectURL(file), kind: file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image" });
+      }
+      setReport(next);
+      if (next.id) window.history.replaceState(null, "", `/trust-checker?scan=${encodeURIComponent(next.id)}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "The check could not finish. Try again.");
     } finally {
@@ -124,10 +149,24 @@ export function TrustCheckerPage() {
 
   function resetScanner() {
     setReport(null);
+    setPreview(null);
     setError(null);
     setUrl("");
     setFile(null);
     setMode("url");
+    window.history.replaceState(null, "", "/trust-checker");
+    window.scrollTo({ top: 0 });
+  }
+
+  if (report) {
+    return (
+      <main className="min-h-screen overflow-x-clip bg-[#F7F8FA] pb-16">
+        <div className="mx-auto max-w-[1520px] px-4 pb-8 pt-5 sm:px-6 lg:px-8">
+          <TrustResult report={report} preview={preview} onNewCheck={resetScanner} />
+          <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -164,7 +203,6 @@ export function TrustCheckerPage() {
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F15A24]">Start a verification</p>
                   <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-900">What would you like to check?</h2>
                 </div>
-                {report ? <button type="button" onClick={resetScanner} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"><RefreshCw className="h-3.5 w-3.5" /> New check</button> : null}
               </div>
 
               <div className="mb-4 inline-flex flex-wrap rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Input type">
@@ -242,7 +280,13 @@ export function TrustCheckerPage() {
                 </button>
                 <p className="text-xs leading-5 text-slate-500">{busy ? "Running the checks that apply to this input…" : "Only relevant checks run for the content you submit."}</p>
               </div>
-              {error ? <p className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-xs font-semibold text-rose-700" role="alert">{error}</p> : null}
+              {loadingSaved ? <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Opening your saved result…</p> : null}
+              {error ? (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3" role="alert">
+                  <p className="text-xs font-semibold text-rose-700">{error}</p>
+                  {canRun ? <button type="button" onClick={() => void run()} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"><RefreshCw className="h-3.5 w-3.5" /> Try again</button> : null}
+                </div>
+              ) : null}
             </div>
 
             <aside className="space-y-3">
@@ -256,9 +300,6 @@ export function TrustCheckerPage() {
           </div>
         </section>
 
-        <div id="trust-checker-results" ref={resultRef} className="scroll-mt-24">
-          {report ? <TrustReportView report={report} onRunAnother={resetScanner} /> : null}
-        </div>
 
         <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
       </div>

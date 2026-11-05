@@ -1,9 +1,10 @@
 import "server-only";
 import exifr from "exifr";
 import sharp from "sharp";
-import type { CheckerResult, Finding } from "./types";
+import type { CheckerResult, Finding, MediaDetails } from "./types";
 import type { FileType } from "./file-inspect";
-import { dHashFromPixels, findMarkers, markerFindings } from "./media-inspect";
+import { dHashFromPixels, editingSoftware, findMarkers, markerFindings } from "./media-inspect";
+import { readVideoMeta } from "./video-meta";
 import { seenImage } from "./fingerprints";
 
 export type MediaInput = { buf: Buffer; name: string; type: FileType; origin: "upload" | "url" };
@@ -20,7 +21,7 @@ export async function checkMedia(input: MediaInput | null, reasonWhenMissing: st
   let exif: Record<string, unknown> | null = null;
   if (type.kind === "image") {
     try {
-      exif = ((await exifr.parse(buf, { tiff: true, exif: true, gps: true, xmp: true, iptc: true, icc: false, mergeOutput: true })) ?? null) as Record<string, unknown> | null;
+      exif = ((await exifr.parse(buf, { tiff: true, exif: true, gps: true, xmp: true, iptc: true, icc: true, mergeOutput: true })) ?? null) as Record<string, unknown> | null;
       sources.add("EXIF/XMP/IPTC");
     } catch {
       exif = null;
@@ -31,15 +32,24 @@ export async function checkMedia(input: MediaInput | null, reasonWhenMissing: st
   const findings: Finding[] = markerFindings(markers);
 
   let dhash: string | null = null;
+  let width: number | null = null;
+  let height: number | null = null;
+  let colorSpace: string | null = null;
+  let duplicate: MediaDetails["duplicate"] = null;
+  const video = type.kind === "video" ? readVideoMeta(buf) : null;
   if (type.kind === "image") {
     try {
       const img = sharp(buf, { limitInputPixels: 80_000_000, failOn: "none" });
       const meta = await img.metadata();
+      width = meta.width ?? null;
+      height = meta.height ?? null;
+      colorSpace = meta.space ? String(meta.space) : null;
       if (meta.width && meta.height) metrics.push({ label: "Size", value: `${meta.width} × ${meta.height}` });
       const px = await sharp(buf, { limitInputPixels: 80_000_000, failOn: "none" }).greyscale().resize(9, 8, { fit: "fill" }).raw().toBuffer();
       dhash = dHashFromPixels(new Uint8Array(px));
       sources.add("Perceptual hash");
       const seen = await seenImage(dhash);
+      duplicate = { count: seen.count, near: Boolean(seen.near), firstSeenAt: seen.firstSeenAt ?? null };
       if (seen.count > 0) {
         findings.push({
           tone: "warn",
@@ -56,6 +66,7 @@ export async function checkMedia(input: MediaInput | null, reasonWhenMissing: st
   } else {
     limits.push("Frame-by-frame video and voice analysis is not available yet; only metadata was read.");
   }
+  if (video) sources.add("MP4/MOV container metadata");
   if (markers.camera) metrics.push({ label: "Camera", value: markers.camera });
   if (markers.software) metrics.push({ label: "Software", value: markers.software });
   metrics.push({ label: "Content Credentials", value: markers.c2pa.present ? "Found (not validated)" : "None" });
@@ -69,10 +80,52 @@ export async function checkMedia(input: MediaInput | null, reasonWhenMissing: st
     : dup
       ? "This media was seen on Jimvio before — it may be reused."
       : "No AI, provenance or duplicate evidence found. That isn't proof it's original or human-made.";
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 80) : null);
+  const lat = num(exif?.latitude);
+  const lon = num(exif?.longitude);
+  const software = markers.software ?? video?.software ?? null;
+  const details: MediaDetails = {
+    kind: "media",
+    mediaType: type.kind === "video" ? "video" : type.kind === "audio" ? "audio" : "image",
+    fileName: input.name.split("/").pop()?.slice(0, 120) || "media",
+    size: buf.length,
+    format: type.label,
+    mime: type.mime,
+    width: width ?? video?.width ?? null,
+    height: height ?? video?.height ?? null,
+    durationSec: video?.durationSec ?? null,
+    frameRate: video?.frameRate ?? null,
+    videoCodec: video?.videoCodec ?? null,
+    audioCodec: video?.audioCodec ?? null,
+    bitrate: video?.bitrate ?? null,
+    colorSpace,
+    iccProfile: text(exif?.ProfileDescription),
+    exifPresent: Boolean(exif && Object.keys(exif).length > 0),
+    make: text(exif?.Make) ?? video?.make ?? null,
+    model: text(exif?.Model) ?? video?.model ?? null,
+    lens: text(exif?.LensModel) ?? text(exif?.Lens),
+    fNumber: num(exif?.FNumber),
+    exposureTime: num(exif?.ExposureTime),
+    iso: num(exif?.ISO),
+    focalLength: num(exif?.FocalLength),
+    capturedAt: markers.capturedAt ?? video?.createdAt ?? null,
+    gps: lat != null && lon != null ? { lat, lon } : (video?.gps ?? null),
+    software,
+    editingSoftware: editingSoftware(software),
+    c2pa: markers.c2pa,
+    declaredAi: markers.declaredAi,
+    aiTools: markers.toolHits,
+    prompt: markers.prompt,
+    copyright: text(exif?.Copyright) ?? text(exif?.rights),
+    artist: text(exif?.Artist) ?? text(exif?.creator),
+    duplicate,
+  };
   return {
     dhash,
     result: {
       ...base,
+      details,
       status,
       summary,
       findings,

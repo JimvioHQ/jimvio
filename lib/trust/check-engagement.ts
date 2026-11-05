@@ -1,6 +1,6 @@
 import "server-only";
 import { getDomain } from "tldts";
-import type { CheckerResult, Finding } from "./types";
+import type { CheckerResult, EngagementDetails, Finding, SocialPlatform } from "./types";
 import { takeQuota } from "./threat-intel";
 import { assessPost } from "@/lib/ugc/checker/post-signals";
 import { youtubeVideoId } from "@/lib/ugc/verification/video-ref";
@@ -16,7 +16,7 @@ import { youtubeKeyEnvs, youtubeOembed, youtubePublic } from "@/lib/youtube/publ
 
 export const YOUTUBE_DAILY_UNITS = 9000;
 
-type Platform = "youtube" | "tiktok" | "instagram" | "facebook" | "x" | "threads" | null;
+type Platform = SocialPlatform | null;
 
 export function socialPlatform(u: URL): Platform {
   const reg = getDomain(u.hostname) ?? "";
@@ -37,6 +37,79 @@ async function yt(userId: string | null, path: string): Promise<Record<string, u
 
 const n = (v: unknown) => (v == null || v === "" ? null : Number(v));
 const fmt = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-US"));
+
+const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+/** ISO 8601 duration (PT1H2M3S) to seconds. */
+export function isoDurationSeconds(d: string): number | null {
+  const m = /^P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(d);
+  if (!m || d === "P" || d === "PT") return null;
+  return Number(m[1] ?? 0) * 86400 + Number(m[2] ?? 0) * 3600 + Number(m[3] ?? 0) * 60 + Number(m[4] ?? 0);
+}
+
+/** What kind of item a social link points at, from its path alone. */
+export function socialContentType(platform: SocialPlatform, u: URL): EngagementDetails["contentType"] {
+  const p = u.pathname.toLowerCase();
+  if (platform === "youtube") {
+    if (p.startsWith("/shorts/")) return "short";
+    if (/^\/(@|channel\/|c\/|user\/)/.test(p)) return "channel";
+    return "video";
+  }
+  if (platform === "instagram") return /\/(reel|reels)\//.test(p) ? "reel" : "post";
+  if (platform === "tiktok") return /\/video\//.test(p) ? "video" : /^\/@[^/]+\/?$/.test(p) ? "channel" : "post";
+  return "post";
+}
+
+/** @handle written in the link itself (tiktok.com/@name/…, instagram.com/name/reel/…). */
+export function handleFromUrl(platform: SocialPlatform, u: URL): string | null {
+  const parts = u.pathname.split("/").filter(Boolean);
+  if (platform === "tiktok" || platform === "youtube") {
+    const at = parts.find((x) => x.startsWith("@"));
+    return at ? decodeURIComponent(at) : null;
+  }
+  if (platform === "instagram" && parts.length >= 2 && !["p", "reel", "reels", "tv", "stories", "explore"].includes(parts[0].toLowerCase())) {
+    return `@${decodeURIComponent(parts[0])}`;
+  }
+  if (platform === "x" && parts.length >= 1 && !["i", "home", "search"].includes(parts[0].toLowerCase())) return `@${decodeURIComponent(parts[0])}`;
+  return null;
+}
+
+function blankDetails(platform: SocialPlatform, url: URL): EngagementDetails {
+  return {
+    kind: "engagement",
+    platform,
+    contentType: socialContentType(platform, url),
+    url: url.toString(),
+    found: false,
+    title: null,
+    caption: null,
+    authorName: null,
+    authorHandle: handleFromUrl(platform, url),
+    authorUrl: null,
+    thumbnailUrl: null,
+    publishedAt: null,
+    durationSec: null,
+    views: null,
+    likes: null,
+    comments: null,
+    engagementRate: null,
+    account: { createdAt: null, followers: null, followersHidden: false, totalViews: null, totalLikes: null, posts: null, country: null, verified: null, visibility: null },
+    visibility: null,
+    verdict: null,
+    commentsRead: 0,
+    accessNote: null,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function bestThumb(thumbs: any): string | null {
+  if (!thumbs || typeof thumbs !== "object") return null;
+  for (const k of ["maxres", "standard", "high", "medium", "default"]) {
+    const u = str(thumbs[k]?.url);
+    if (u && /^https:\/\//.test(u)) return u;
+  }
+  return null;
+}
 
 /** Repetitive or empty comments are a common sign of comment bots. */
 export function commentSignals(comments: string[]): Finding[] {
@@ -75,8 +148,10 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
 
   if (platform === "youtube") {
     const videoId = youtubeVideoId(url.toString());
+    const d = blankDetails("youtube", url);
     const noAccess = (): CheckerResult => ({
       ...base,
+      details: { ...d, accessNote: "YouTube's statistics could not be read for this scan." },
       status: "unavailable",
       summary: "Jimvio couldn't read YouTube's numbers for this link right now.",
       limits: [
@@ -93,10 +168,10 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         if (!data) {
           const r = noAccess();
           return oe
-            ? { ...r, findings: [{ tone: "info", title: `Public video by ${oe.author ?? "a YouTube channel"}`, detail: oe.title ?? undefined, source: "YouTube oEmbed" }], metrics: [{ label: "Video", value: (oe.title ?? "").slice(0, 80) }, { label: "Channel", value: oe.author ?? "—" }], sources: ["YouTube oEmbed (official)"] }
+            ? { ...r, details: { ...d, found: true, title: oe.title, authorName: oe.author, thumbnailUrl: /^[A-Za-z0-9_-]{6,20}$/.test(videoId) ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : null, accessNote: "YouTube confirmed the video, but its statistics could not be read for this scan." }, findings: [{ tone: "info", title: `Public video by ${oe.author ?? "a YouTube channel"}`, detail: oe.title ?? undefined, source: "YouTube oEmbed" }], metrics: [{ label: "Video", value: (oe.title ?? "").slice(0, 80) }, { label: "Channel", value: oe.author ?? "—" }], sources: ["YouTube oEmbed (official)"] }
             : r;
         }
-        return { ...base, status: "inconclusive", summary: "This video is private or was removed.", sources: ["YouTube Data API"] };
+        return { ...base, status: "inconclusive", summary: "This video is private or was removed.", sources: ["YouTube Data API"], details: { ...d, accessNote: "YouTube did not return this video. It may be private or removed." } };
       }
       const st = item.statistics ?? {};
       const post = { views: n(st.viewCount), likes: n(st.likeCount), comments: n(st.commentCount), publishedAt: item.snippet?.publishedAt ?? null };
@@ -125,8 +200,40 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
       findings.push(...commentSignals(texts));
       const status: CheckerResult["status"] =
         a.verdict === "suspicious" ? "suspicious" : a.verdict === "review" ? "suspicious" : a.verdict === "real" ? "low_risk" : "inconclusive";
+      const customUrl = str(channelItem?.snippet?.customUrl);
+      const details: EngagementDetails = {
+        ...d,
+        found: true,
+        title: str(item.snippet?.title),
+        caption: str(item.snippet?.description)?.slice(0, 280) ?? null,
+        authorName: str(item.snippet?.channelTitle),
+        authorHandle: customUrl ? (customUrl.startsWith("@") ? customUrl : `@${customUrl}`) : d.authorHandle,
+        authorUrl: channelId ? `https://www.youtube.com/channel/${encodeURIComponent(channelId)}` : null,
+        thumbnailUrl: bestThumb(item.snippet?.thumbnails),
+        publishedAt: str(item.snippet?.publishedAt),
+        durationSec: duration ? isoDurationSeconds(duration) : null,
+        views: post.views,
+        likes: post.likes,
+        comments: post.comments,
+        engagementRate: a.engagementRate,
+        account: {
+          createdAt: str(channelItem?.snippet?.publishedAt),
+          followers: channelSubscribers,
+          followersHidden: Boolean(channelStats.hiddenSubscriberCount),
+          totalViews: channelViews,
+          totalLikes: null,
+          posts: channelVideos,
+          country: str(channelItem?.snippet?.country),
+          verified: null,
+          visibility: channelItem ? "public" : null,
+        },
+        visibility: str(item.status?.privacyStatus),
+        verdict: a.verdict === "unknown" ? null : a.verdict,
+        commentsRead: texts.length,
+      };
       return {
         ...base,
+        details,
         status: findings.some((f) => f.tone === "warn") && status === "low_risk" ? "suspicious" : status,
         summary:
           a.verdict === "real"
@@ -167,11 +274,11 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
     const handle = /\/@([^/?#]+)/.exec(url.pathname)?.[1];
     const channelId = /\/channel\/([A-Za-z0-9_-]+)/.exec(url.pathname)?.[1];
     const q = handle ? `forHandle=${encodeURIComponent("@" + handle)}` : channelId ? `id=${encodeURIComponent(channelId)}` : null;
-    if (!q) return { ...base, status: "inconclusive", summary: "Paste a video link or a channel link (youtube.com/@name)." };
+    if (!q) return { ...base, status: "inconclusive", summary: "Paste a video link or a channel link (youtube.com/@name).", details: { ...d, accessNote: "This YouTube link is not a video or channel link." } };
     const data = await yt(userId, `channels?part=statistics,snippet&${q}`);
     if (!data) return noAccess();
     const ch = (data?.items as Record<string, any>[] | undefined)?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
-    if (!ch) return { ...base, status: "inconclusive", summary: "YouTube didn't return this channel.", sources: ["YouTube Data API"] };
+    if (!ch) return { ...base, status: "inconclusive", summary: "YouTube didn't return this channel.", sources: ["YouTube Data API"], details: { ...d, accessNote: "YouTube did not return this channel." } };
     const subs = ch.statistics?.hiddenSubscriberCount ? null : n(ch.statistics?.subscriberCount);
     const views = n(ch.statistics?.viewCount);
     const videos = n(ch.statistics?.videoCount);
@@ -182,8 +289,25 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
     } else if (subs != null && avg != null) {
       findings.push({ tone: "good", title: "Views per video fit the subscriber count", source: "YouTube Data API" });
     }
+    const chCustom = str(ch.snippet?.customUrl);
+    const chId = str(ch.id);
     return {
       ...base,
+      details: {
+        ...d,
+        contentType: "channel",
+        found: true,
+        title: str(ch.snippet?.title),
+        caption: str(ch.snippet?.description)?.slice(0, 280) ?? null,
+        authorName: str(ch.snippet?.title),
+        authorHandle: chCustom ? (chCustom.startsWith("@") ? chCustom : `@${chCustom}`) : d.authorHandle,
+        authorUrl: chId ? `https://www.youtube.com/channel/${encodeURIComponent(chId)}` : url.toString(),
+        thumbnailUrl: bestThumb(ch.snippet?.thumbnails),
+        publishedAt: str(ch.snippet?.publishedAt),
+        views: views,
+        account: { createdAt: str(ch.snippet?.publishedAt), followers: subs, followersHidden: Boolean(ch.statistics?.hiddenSubscriberCount), totalViews: views, totalLikes: null, posts: videos, country: str(ch.snippet?.country), verified: null, visibility: "public" },
+        verdict: findings.some((f) => f.tone === "warn") ? "suspicious" : findings.length ? "real" : null,
+      },
       status: findings.some((f) => f.tone === "warn") ? "suspicious" : findings.length ? "low_risk" : "inconclusive",
       summary: findings.some((f) => f.tone === "warn") ? "The audience numbers don't fit together well." : "Channel numbers look consistent.",
       findings,
@@ -207,19 +331,40 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         : `https://publish.twitter.com/oembed?omit_script=1&url=${encodeURIComponent(url.toString())}`;
     let author: string | null = null;
     let title: string | null = null;
+    let authorUrl: string | null = null;
+    let handle: string | null = null;
+    let thumb: string | null = null;
     try {
       const res = await fetch(endpoint, { signal: AbortSignal.timeout(8_000), cache: "no-store" });
       if (res.ok) {
-        const j = (await res.json()) as { author_name?: string; title?: string };
+        const j = (await res.json()) as { author_name?: string; title?: string; author_url?: string; author_unique_id?: string; thumbnail_url?: string };
         author = j.author_name ?? null;
         title = j.title ?? null;
+        authorUrl = str(j.author_url) && /^https:\/\//.test(String(j.author_url)) ? String(j.author_url) : null;
+        handle = str(j.author_unique_id) ? `@${j.author_unique_id}` : null;
+        thumb = str(j.thumbnail_url) && /^https:\/\//.test(String(j.thumbnail_url)) ? String(j.thumbnail_url) : null;
       }
     } catch {
       /* unavailable */
     }
     const label = platform === "tiktok" ? "TikTok" : "X";
+    const d = blankDetails(platform, url);
+    if (!handle && authorUrl) handle = handleFromUrl(platform, new URL(authorUrl));
     return {
       ...base,
+      details: {
+        ...d,
+        found: Boolean(author),
+        caption: title,
+        authorName: author,
+        authorHandle: handle ?? d.authorHandle,
+        authorUrl,
+        thumbnailUrl: thumb,
+        account: { ...d.account, visibility: author ? "public" : null },
+        accessNote: author
+          ? `${label} confirms who posted this, but only shares views, likes and account numbers with the account owner.`
+          : `${label} did not confirm this post. It may be private, removed or the link may be incomplete.`,
+      },
       status: "unavailable",
       summary: author ? `Post by ${author}. ${label} doesn't share view or like counts publicly.` : `${label} didn't confirm this post.`,
       findings: author ? [{ tone: "info", title: `Confirmed public post by ${author}`, detail: title ?? undefined, source: `${label} oEmbed` }] : [],
@@ -235,10 +380,12 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
     };
   }
 
+  const metaName = platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : "Threads";
   return {
     ...base,
+    details: { ...blankDetails(platform, url), accessNote: `${metaName} only shares post and account numbers with approved apps and the account owner, so Jimvio can't read them from a link.` },
     status: "unavailable",
-    summary: `${platform === "instagram" ? "Instagram" : platform === "facebook" ? "Facebook" : "Threads"} doesn't share engagement numbers publicly.`,
+    summary: `${metaName} doesn't share engagement numbers publicly.`,
     metrics: [
       { label: "Public views", value: "Not available from public access" },
       { label: "Verified real views", value: "Not available" },

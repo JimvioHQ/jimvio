@@ -236,7 +236,7 @@ function MaliciousLinkReport({ report, checker, onRunAnother }: { report: ScanRe
   );
 }
 
-export function TrustReportView({ report, onRunAnother }: { report: ScanReport; onRunAnother?: () => void }) {
+export function LegacyReportView({ report, onRunAnother }: { report: ScanReport; onRunAnother?: () => void }) {
   const level = LEVEL[report.overall.level];
   const LevelIcon = level.icon;
   const ran = report.checkers.filter((checker) => checker.status !== "not_applicable");
