@@ -17,6 +17,9 @@ const CHECK_ICON: Record<string, LucideIcon> = { url: Link2, redirects: ArrowRig
 const INFO_ICON: Record<string, LucideIcon> = { url: Link2, final: Link2, domain: Globe, age: CalendarDays, registrar: User, ns: Server, host: Server, location: MapPin, ip: Network, tls: ShieldCheck, redirects: ArrowRightLeft, type: CodeXml, db: Database, checked: Clock };
 const TILE_ICON: Record<string, LucideIcon> = { result: Gauge, completed: ListChecks, threats: ShieldAlert, suspicious: TriangleAlert, unavailable: CloudOff, notrun: CircleDashed };
 const STATE_ICON: Record<string, LucideIcon> = { NO_KNOWN_THREATS: CircleCheck, INCOMPLETE_ASSESSMENT: CircleHelp, THREAT_DETECTED: ShieldX, SUSPICIOUS_ACTIVITY: TriangleAlert, WEBSITE_UNREACHABLE: WifiOff, SCAN_FAILED: CloudOff };
+const INTEL_LABEL: Record<NonNullable<LinkDetails["intel"]>[number]["status"], string> = {
+  match: "Listed", clean: "Not listed", not_configured: "Not configured", error: "Unavailable", timeout: "Timed out", quota: "Quota reached", skipped: "Skipped", invalid_response: "Invalid response",
+};
 const CONF_TONE = { HIGH: "text-[#15803D]", MEDIUM: "text-[#C2410C]", LOW: "text-[#B91C1C]" } as const;
 
 const BANNER_STYLE = {
@@ -52,6 +55,7 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
       { title: "Summary", rows: rowsFromTiles(m.tiles) },
       { title: "Detailed Scan Results", rows: rowsFromChecks(m.checks) },
       { title: "Link Information", rows: rowsFromInfo(m.info) },
+      ...(d?.intel?.length ? [{ title: "Threat Intelligence Sources", rows: d.intel.map((r) => ({ label: r.name, value: `${INTEL_LABEL[r.status]}${r.status === "match" && r.matches[0] ? ` (${r.matches[0]})` : ""}${r.note && r.status !== "clean" ? ` — ${r.note}` : ""}` })) }] : []),
       ...(m.redirects.length ? [{ title: "Redirect Path", rows: m.redirects.map((h, i) => ({ label: `${i + 1}. HTTP ${h.status}`, value: h.url })) }] : []),
     ],
     limits: m.limits,
@@ -162,9 +166,23 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
                   </ol>
                 ) : null}
                 {r.key === "db" && showDbs && d ? (
-                  <ul className="mb-2 ml-8 space-y-1 rounded-xl bg-[#F8FAFC] p-3 text-[12.5px] text-[#334155]">
-                    <li>Google Web Risk: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : (d.webRisk.note ?? "Not checked")}</b></li>
-                    <li>Phishing.Database: <b>{d.phishingList.status === "match" ? `Listed (${d.phishingList.match})` : d.phishingList.status === "clean" ? "Not listed" : "Not checked"}</b></li>
+                  <ul className="mb-2 ml-8 space-y-1.5 rounded-xl bg-[#F8FAFC] p-3 text-[12.5px] text-[#334155]">
+                    {d.intel?.length ? (
+                      d.intel.map((r) => (
+                        <li key={r.id}>
+                          {r.name}:{" "}
+                          <b className={r.status === "match" ? "text-[#DC2626]" : r.status === "clean" ? "text-[#15803D]" : "text-[#475569]"}>
+                            {INTEL_LABEL[r.status]}{r.status === "match" && r.matches[0] ? ` (${r.matches[0]})` : ""}
+                          </b>
+                          {r.note && r.status !== "clean" ? <span className="block text-[11.5px] text-[#64748B]">{r.note}</span> : null}
+                        </li>
+                      ))
+                    ) : (
+                      <>
+                        <li>Google Web Risk: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : (d.webRisk.note ?? "Not checked")}</b></li>
+                        <li>Phishing.Database: <b>{d.phishingList.status === "match" ? `Listed (${d.phishingList.match})` : d.phishingList.status === "clean" ? "Not listed" : "Not checked"}</b></li>
+                      </>
+                    )}
                   </ul>
                 ) : null}
               </div>

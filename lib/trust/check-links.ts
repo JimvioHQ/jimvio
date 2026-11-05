@@ -3,7 +3,9 @@ import { getDomain } from "tldts";
 import type { CheckerResult, Finding, LinkDetails } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
 import { officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
-import { domainAge, ipNetwork, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
+import { domainAge, intelDeps, ipNetwork, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
+import { PROVIDERS, runIntel } from "./intel-providers";
+import type { IntelResult } from "./types";
 import { assessLink, contentBlock } from "./link-assessment";
 
 export type LinkContext = { url: URL; chain: FetchChain; html: string | null; contentType: string; domainAgeDays: number | null };
@@ -95,6 +97,24 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     }
   }
 
+  // Unified threat intelligence: every source with its honest outcome.
+  const nowIso = new Date().toISOString();
+  const base = (id: IntelResult["id"], r: Partial<IntelResult> & Pick<IntelResult, "status">): IntelResult => ({ ...PROVIDERS[id], matches: [], threat: null, note: null, checkedAt: nowIso, ms: 0, ...r });
+  const intel = await runIntel(
+    { url: finalUrl, hosts, ips: [...new Set([...chain.hops.map((h) => h.ip), ...(final?.ip ? [final.ip] : [])].filter(Boolean))], certSha1: tlsRes?.sha1 ?? null },
+    intelDeps,
+    [
+      base("phishing_database", listHits.some((r) => r.checked) ? (hit?.match ? { status: "match", matches: [hit.match], threat: "phishing" } : { status: "clean" }) : { status: "error", note: "The Phishing.Database list could not be loaded." }),
+      base("google_web_risk", risk.status === "match" ? { status: "match", matches: [finalUrl.toString()], threat: risk.threats.join(", ") } : risk.status === "clean" ? { status: "clean" } : { status: risk.reason === "not_configured" ? "not_configured" : risk.reason === "quota" ? "quota" : risk.reason === "timeout" ? "timeout" : "error", note: risk.note ?? null }),
+    ],
+  ).catch(() => [] as IntelResult[]);
+  for (const r of intel.filter((x) => x.status === "match" && x.id !== "phishing_database" && x.id !== "google_web_risk")) {
+    knownThreat = true;
+    sources.add(r.name);
+    findings.unshift({ tone: "bad", title: `Listed by ${r.name}`, detail: `${r.threat ?? "threat"}: ${r.matches.slice(0, 3).join(", ")}`, source: r.name });
+  }
+  for (const r of intel.filter((x) => x.status === "clean")) sources.add(r.name);
+
   metrics.unshift({ label: "Final address", value: finalUrl.toString().slice(0, 120) });
   if (chain.hops.length > 1) metrics.push({ label: "Redirects", value: String(chain.hops.length - 1) });
   if (final) metrics.push({ label: "Server IP", value: final.ip });
@@ -128,7 +148,7 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
       finalUrl.protocol !== "https:"
         ? { status: "not_https", issuer: null, validTo: null, daysLeft: null }
         : tlsRes
-          ? { status: tlsRes.ok ? "valid" : "invalid", issuer: tlsRes.issuer, validTo: tlsRes.validTo, daysLeft: tlsRes.daysLeft }
+          ? { status: tlsRes.ok ? "valid" : "invalid", issuer: tlsRes.issuer, validTo: tlsRes.validTo, daysLeft: tlsRes.daysLeft, sha1: tlsRes.sha1 ?? null }
           : { status: "unavailable", issuer: null, validTo: null, daysLeft: null },
     webRisk: { status: risk.status === "match" ? "match" : risk.status === "clean" ? "clean" : "unavailable", threats: risk.threats ?? [], reason: risk.reason ?? null, note: risk.status === "unavailable" ? (risk.note ?? null) : null },
     phishingList: { status: hit?.match ? "match" : listHits.some((r) => r.checked) ? "clean" : "unavailable", match: hit?.match ?? null },
@@ -136,6 +156,7 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     nameservers: age?.nameservers ?? [],
     network: net ? { network: net.network, org: net.org, country: net.country, range: net.range } : null,
     fetchError: !final ? (chain.error ?? "The page could not be fetched.") : null,
+    intel,
   };
   details.contentBlockedReason = contentBlock(details, html);
   details.contentInspected = details.pageFetched && !details.contentBlockedReason;
