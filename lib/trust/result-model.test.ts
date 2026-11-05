@@ -136,20 +136,20 @@ describe("digital product page", () => {
 });
 
 describe("media page", () => {
-  it("calls AI only from AI evidence and gives a low score", () => {
+  it("calls AI only from AI evidence and doesn't penalise AI creation", () => {
     const m = mediaModel(checker("media"), media({ aiTools: ["Midjourney"], declaredAi: ["IPTC says the image was made by a trained AI model"] }));
-    assert.equal(m.banner.title, "AI-Generated Image Detected");
-    assert.ok((m.score.value ?? 100) < 50);
+    assert.equal(m.banner.title, "AI-Generated Image (Declared)");
+    assert.ok((m.score.value ?? 0) >= 45);
     assert.equal(m.tiles.find((t) => t.key === "tool")!.value, "Midjourney");
   });
   it("doesn't score camera metadata alone and doesn't call a bare file AI", () => {
     const cam = mediaModel(checker("media"), media({ exifPresent: true, make: "NIKON CORPORATION", model: "NIKON D850", fNumber: 8, exposureTime: 0.004, iso: 100 }));
     assert.equal(cam.score.value, null);
-    assert.equal(cam.banner.result.label, "Verified");
+    assert.equal(cam.banner.result.label, "Camera Indicated");
     assert.equal(cam.technical.find((r) => r.key === "shutter")!.value, "1/250 s");
     const bare = mediaModel(checker("media"), media());
-    assert.equal(bare.banner.result.label, "Inconclusive");
-    assert.equal(bare.checks.find((r) => r.key === "ai")!.pill.label, "No Markers Found");
+    assert.equal(bare.banner.result.label, "Origin Unknown");
+    assert.equal(bare.checks.find((r) => r.key === "ai")!.pill.label, "No AI Markers Found");
   });
   it("uses video fields for video and no camera-lens fields", () => {
     const v = mediaModel(checker("media"), media({ mediaType: "video", fileName: "clip.mp4", format: "MP4 video", mime: "video/mp4", width: 1920, height: 1080, durationSec: 156, frameRate: 30, videoCodec: "H.264 (AVC)", audioCodec: "AAC", bitrate: 18_500_000 }));

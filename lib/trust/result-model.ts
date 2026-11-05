@@ -5,10 +5,11 @@
  * Verify") and the item never counts as passed or failed.
  */
 import type {
-  AssessmentState, CheckerResult, CheckExecution, ProductAssessment, ProductCheck, ProductCheckStatus, EngagementDetails, Finding, LinkAssessment, LinkDetails, MediaDetails, ProductDetails, ScanCategory, ScanReport,
+  AssessmentState, CheckerResult, CheckExecution, ProductAssessment, ProductCheck, ProductCheckStatus, MediaAssessment, MediaCheckStatus, EngagementDetails, Finding, LinkAssessment, LinkDetails, MediaDetails, ProductDetails, ScanCategory, ScanReport,
 } from "./types";
 import { assessLink } from "./link-assessment";
 import { assessProduct } from "./product-assessment";
+import { assessMedia, softwareKind } from "./media-assessment";
 
 export type Tone = "good" | "warn" | "bad" | "neutral" | "info" | "ai";
 export type Pill = { label: string; tone: Tone };
@@ -620,8 +621,11 @@ export type MediaModel = {
   isVideo: boolean;
   isAudio: boolean;
   aiEvidence: boolean;
+  verdict: MediaAssessment["verdict"];
   banner: Banner;
   score: Score;
+  coverage: number;
+  confidence: MediaAssessment["confidence"];
   formatShort: string;
   typeLabel: string;
   title: string;
@@ -638,8 +642,14 @@ export type MediaModel = {
   creation: { headline: Pill; text: string; rows: InfoRow[] };
   technicalTitle: string;
   technical: InfoRow[];
+  sections: AssessmentSections;
   limits: string[];
 };
+
+const MSTATUS_POINTS: Record<MediaCheckStatus, CheckRow["points"]> = { VERIFIED: 1, DETECTED: 1, NOT_FOUND: null, NOT_AVAILABLE: null, NOT_CHECKED: null, INCONCLUSIVE: null, FAILED: null, UNAVAILABLE: null, NOT_APPLICABLE: null };
+
+/** Tag a value with where it came from (metadata is a claim, not a fact). */
+const tagged = (v: string | null | undefined, how: "Declared in metadata" | "Measured" | "Inferred" | "Unverified" | "Verified") => (v ? `${v} · ${how}` : null);
 
 function gpsLabel(g: MediaDetails["gps"]): string | null {
   if (!g) return null;
@@ -647,144 +657,85 @@ function gpsLabel(g: MediaDetails["gps"]): string | null {
 }
 
 export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
-  const f = c.findings;
+  const a = d.assessment ?? assessMedia({ details: d });
   const isVideo = d.mediaType === "video";
   const isAudio = d.mediaType === "audio";
   const noun = isVideo ? "video" : isAudio ? "audio file" : "image";
   const Noun = isVideo ? "Video" : isAudio ? "Audio" : "Image";
-  const aiEvidence = d.declaredAi.length > 0 || d.aiTools.length > 0 || d.c2pa.aiAction || Boolean(d.prompt);
+  const aiEvidence = a.creation === "AI_GENERATION_INDICATED_BY_METADATA" || a.creation === "AI_GENERATION_CONFIRMED_BY_VALID_PROVENANCE";
   const camera = [d.make, d.model].filter(Boolean).join(" ").replace(/^(\w+)\s+\1\b/i, "$1") || null;
-  const edited = d.editingSoftware;
-  const dup = d.duplicate && d.duplicate.count > 0 ? d.duplicate : null;
   const aiTool = d.aiTools[0] ?? (d.prompt ? "Stable Diffusion / ComfyUI" : null) ?? (d.c2pa.aiAction ? d.c2pa.generator : null);
   const formatShort = shortFormat(d.format, d.mime);
-  const decoded = isVideo ? d.width != null || d.durationSec != null : isAudio ? true : d.width != null;
+  const swKind = softwareKind(d.software);
+  const editor = swKind === "editor" ? d.software : d.editingSoftware;
 
-  const checks: CheckRow[] = [
-    {
-      key: "integrity",
-      title: "File Integrity & Format",
-      description: decoded ? "Valid file structure and no corruption." : "The file structure could not be fully read.",
-      evidence: [],
-      ...(decoded ? { pill: pill("Passed", "good"), points: 1 as const } : { pill: pill("Unable to Verify", "neutral"), points: null }),
-    },
-    {
-      key: "exif",
-      title: isVideo || isAudio ? "Metadata" : "EXIF Metadata",
-      description: camera
-        ? `${isVideo ? "Recording device" : "Camera"} metadata found${d.capturedAt ? ", with date" : ""}${d.gps ? " and location" : ""}.`
-        : d.exifPresent
-          ? "Metadata present, without camera details."
-          : `${isVideo ? "Device" : "Camera"} metadata (${isVideo ? "make/model" : "EXIF"}) not found.`,
-      evidence: f.filter((x) => x.source === "EXIF"),
-      ...(camera ? { pill: pill("Passed", "good"), points: null } : { pill: pill("Not Found", aiEvidence ? "bad" : "neutral"), points: null }),
-      note: "Metadata can be copied or edited, so it isn't counted as proof either way.",
-    },
-    {
-      key: "origin",
-      title: "Origin & Provenance",
-      description: d.c2pa.present ? `Content Credentials found${d.c2pa.generator ? ` (${d.c2pa.generator})` : ""}; signature not validated.` : aiEvidence ? "Source analysis indicates AI generation." : dup ? `This ${noun} was checked on Jimvio before.` : "No provenance record (Content Credentials) in the file.",
-      evidence: f.filter((x) => /C2PA|fingerprint/i.test(x.source)),
-      ...(aiEvidence
-        ? { pill: pill("AI-Generated", "bad"), points: 0 as const }
-        : d.c2pa.present
-          ? { pill: pill("Credentials Found", "good"), points: 1 as const }
-          : dup
-            ? { pill: pill("Seen Before", "warn"), points: 0.5 as const }
-            : { pill: pill("Not Available", "neutral"), points: null }),
-    },
-    {
-      key: "ai",
-      title: "AI-Generated Detection",
-      description: aiEvidence ? "The file's own metadata declares generative AI." : "Checks metadata for AI-generation markers and prompts.",
-      evidence: f.filter((x) => /AI|prompt|trained/i.test(x.title) && x.tone !== "info"),
-      ...(aiEvidence ? { pill: pill("Detected", "bad"), points: 0 as const } : { pill: pill("No Markers Found", "neutral"), points: null }),
-      note: aiEvidence ? undefined : "Markers are easy to remove, so their absence doesn't prove the file is human-made.",
-    },
-    {
-      key: "edit",
-      title: isVideo ? "Manipulation & Editing" : "Manipulation Detection",
-      description: edited ? `Saved with editing software: ${edited}.` : "Checks metadata for editing software.",
-      evidence: f.filter((x) => /Saved with/i.test(x.title)),
-      ...(edited ? { pill: pill("Edited", "warn"), points: 0.5 as const } : { pill: pill("None Recorded", "neutral"), points: null }),
-      note: edited ? undefined : "No editing software is recorded. Pixel-level edit detection isn't available yet.",
-    },
-    {
-      key: "copyright",
-      title: "Copyright & Usage Rights",
-      description: d.copyright ? `Copyright: ${d.copyright}` : aiEvidence ? `Likely AI-generated; check the tool's license terms${aiTool ? ` (e.g., ${aiTool})` : ""} for commercial use.` : "No copyright field in the metadata.",
-      evidence: [],
-      pill: d.copyright ? pill("Notice Found", "info") : pill("Check License", "warn"),
-      points: null,
-    },
-  ];
+  const BANNER: Record<MediaAssessment["verdict"], Banner> = {
+    AI_GENERATED_DECLARED: { tone: "warn", title: `AI-Generated ${Noun} (Declared)`, text: `This ${noun}'s own metadata declares it was made with generative AI${aiTool ? ` (${aiTool})` : ""}. That describes how it was created; it doesn't make it fake or fraudulent. The declaration is not cryptographically verified.`, result: pill("AI-Generated", "ai") },
+    CREDENTIALS_UNVERIFIED: { tone: "neutral", title: "Content Credentials Found — Unverified", text: `The ${noun} carries Content Credentials, but their signature was not validated, so the origin they describe is not verified.`, result: pill("Unverified", "neutral") },
+    CAMERA_ORIGIN_INDICATED: { tone: "good", title: "Camera Origin Indicated", text: `The metadata names a ${isVideo ? "recording device" : "camera"} (${camera}) and no AI or editing markers were found. Metadata can be edited, so this supports — but doesn't prove — a genuine capture.`, result: pill("Camera Indicated", "good") },
+    EDITED_RECORDED: { tone: "warn", title: `Edited ${Noun}`, text: `Editing is recorded in the metadata${editor ? ` (${editor})` : ""}. Editing is often harmless and is not proof of deceptive tampering.`, result: pill("Edited", "warn") },
+    PREVIOUSLY_SEEN: { tone: "neutral", title: "Previously Seen on Jimvio", text: `This ${noun} was checked on Jimvio before. A match doesn't prove copying, and the file's origin remains unconfirmed.`, result: pill("Seen Before", "info") },
+    ORIGIN_UNKNOWN: { tone: "neutral", title: "Origin Could Not Be Determined", text: `Jimvio found no camera metadata, no Content Credentials and no AI markers. That doesn't mean the ${noun} is fake — only that its origin can't be confirmed from the file.`, result: pill("Origin Unknown", "neutral") },
+    INTEGRITY_ISSUE: { tone: "bad", title: "File Integrity Problem", text: d.integrityIssue ?? `The ${noun}'s structure doesn't match how it is presented.`, result: pill("Integrity Issue", "bad") },
+    SCAN_FAILED: { tone: "neutral", title: "Media Could Not Be Analysed", text: `Jimvio encountered a technical problem while reading this ${noun}. Please try again with the original file.`, result: pill("Scan Failed", "neutral") },
+  };
+  const banner = BANNER[a.verdict];
 
-  const scoredRows = checks.filter((r) => r.points != null);
-  // Media is scored only on provenance evidence (AI markers, credentials or reuse).
-  const hasProvenance = aiEvidence || d.c2pa.present || Boolean(dup);
-  const score = bandedScore(checks, hasProvenance && scoredRows.length >= 2 ? Math.round((scoredRows.reduce((a, r) => a + (r.points ?? 0), 0) / scoredRows.length) * 100) : null);
-  const scoreBadge: Pill = score == null ? pill("Not Scored", "neutral") : score >= 80 ? pill("High Trust", "good") : score >= 50 ? pill("Medium Trust", "warn") : pill("Low Trust", "bad");
+  const checks: CheckRow[] = a.checks.map((k) => ({
+    key: k.id,
+    title: k.name,
+    description: k.explanation,
+    pill: pill(k.label, k.tone),
+    points: MSTATUS_POINTS[k.status],
+    evidence: k.evidence.map((e) => ({ tone: "info", title: e, source: k.source }) as Finding),
+    note: `Status: ${k.status.replace(/_/g, " ").toLowerCase()} · Source: ${k.source}`,
+  }));
+
+  const score = a.score;
+  const scoreBadge: Pill = score == null ? pill("Not Scored", "neutral") : score >= 70 ? pill("Good Confidence", "good") : score >= 45 ? pill("Medium Confidence", "warn") : pill("Low Confidence", "bad");
   const scoreText =
     score == null
-      ? `No provenance evidence (Content Credentials or AI markers) to score. Camera metadata can be edited, so it isn't scored on its own.`
+      ? `Not enough provenance evidence to score. Missing EXIF or AI markers is not penalised, and camera metadata alone isn't scored.`
       : aiEvidence
-        ? `This ${noun} is AI-generated and not a real ${isVideo ? "recording" : "photograph"}. It is not recommended for use as authentic media.`
-        : score >= 80
-          ? `Provenance evidence supports this ${noun}.`
-          : `Some provenance checks need review.`;
+        ? `Provenance confidence in what the file says about itself. Being AI-generated is not penalised.`
+        : `Provenance confidence from the evidence found.`;
 
-  const banner: Banner = aiEvidence
-    ? { tone: "bad", title: `AI-Generated ${Noun} Detected`, text: `This ${noun} was created using artificial intelligence (generative AI), not a physical ${isVideo ? "camera recording" : "camera"}, according to its own metadata.`, result: pill("Not Authentic (AI-Generated)", "bad") }
-    : edited
-      ? { tone: "warn", title: `Edited ${Noun} — Review Before Use`, text: `The ${noun} was saved with editing software (${edited}). Edits can be harmless, but it is not an untouched original.`, result: pill("Edited", "warn") }
-      : dup
-        ? { tone: "warn", title: `Previously Seen ${Noun}`, text: `This ${noun} was checked on Jimvio before${dup.firstSeenAt ? ` (first seen ${fmtDate(dup.firstSeenAt)})` : ""}. It may be reused content.`, result: pill("Possibly Reused", "warn") }
-        : camera
-          ? { tone: "good", title: `${Noun} Verified — Metadata & Provenance Checked`, text: `The ${noun} carries ${isVideo ? "recording-device" : "camera"} metadata and no AI or editing markers were found. Metadata can be edited, so this supports — but doesn't prove — an original ${isVideo ? "recording" : "photograph"}.`, result: pill("Verified", "good") }
-          : { tone: "neutral", title: `${Noun} Origin Could Not Be Verified`, text: `The ${noun} has no camera metadata and no AI or provenance markers, so Jimvio can't tell how it was made.`, result: pill("Inconclusive", "neutral") };
-
-  const creationChip: Pill = aiEvidence ? pill("AI-Generated", "ai") : camera ? pill(isVideo ? "Real Video (Camera)" : "Photograph (Camera)", "good") : pill("Origin Unknown", "neutral");
-  const creationMethod = aiEvidence ? "Generative AI" : camera ? (isVideo ? "Recorded (Camera)" : "Photograph") : "Unknown";
+  const creationChip: Pill = aiEvidence ? pill("AI-Generated (Declared)", "ai") : editor ? pill("Edited", "warn") : camera ? pill(isVideo ? "Camera Recording (Indicated)" : "Camera Photo (Indicated)", "good") : pill("Origin Unknown", "neutral");
+  const methodLabel = a.creationMethod === "AI_GENERATED" ? "AI-Generated" : a.creationMethod === "AI_EDITED" ? "AI-Edited" : a.creationMethod === "EDITED" ? "Edited" : a.creationMethod === "CAMERA_INDICATED" ? (isVideo ? "Camera Recording (indicated)" : "Camera Capture (indicated)") : "Unknown";
   const date = fmtDateTime(d.capturedAt, false);
   const loc = gpsLabel(d.gps);
   const mapHref = d.gps ? `https://www.openstreetmap.org/?mlat=${d.gps.lat}&mlon=${d.gps.lon}#map=13/${d.gps.lat}/${d.gps.lon}` : null;
   const res = resolutionLabel(d.width, d.height, isVideo);
 
   const tiles: Tile[] = [
-    { key: "status", value: aiEvidence ? "AI-Generated" : camera && !edited ? "Authentic" : edited ? "Edited" : "Unverified", label: "Media Status", tone: aiEvidence ? "bad" : camera && !edited ? "good" : edited ? "warn" : "neutral" },
-    isVideo || isAudio ? { key: "type", value: `${Noun} (${formatShort})`, label: "Media Type" } : { key: "method", value: creationMethod, label: "Creation Method", tone: aiEvidence ? "ai" : undefined },
-    ...(isVideo || isAudio ? [] : [{ key: "format", value: formatShort, label: "File Format" } as Tile]),
+    { key: "status", value: banner.result.label, label: "Assessment", tone: banner.result.tone === "ai" ? "ai" : banner.result.tone },
+    { key: "method", value: methodLabel, label: "Creation Method", tone: aiEvidence ? "ai" : undefined },
+    { key: "prov", value: a.provenance === "CREDENTIALS_PRESENT_UNVERIFIED" ? "Credentials (Unverified)" : a.provenance === "METADATA_INDICATED" ? "Metadata Only" : "Unknown", label: "Provenance" },
+    { key: "format", value: formatShort, label: "File Format" },
     { key: "size", value: fmtBytes(d.size), label: "File Size" },
-    ...(isAudio ? [] : [{ key: "res", value: d.width && d.height ? `${d.width} × ${d.height}` : null, label: isVideo ? `Resolution${res ? ` (${res.split("(")[1]?.replace(")", "") ?? ""})` : ""}` : `Resolution${d.width && d.height ? ` (${((d.width * d.height) / 1e6).toFixed(1)} MP)` : ""}` } as Tile]),
+    ...(isAudio ? [] : [{ key: "res", value: d.width && d.height ? `${d.width} × ${d.height}` : null, label: isVideo ? "Resolution" : `Resolution${d.width && d.height ? ` (${((d.width * d.height) / 1e6).toFixed(1)} MP)` : ""}` } as Tile]),
     ...(isVideo || isAudio ? [{ key: "duration", value: fmtDuration(d.durationSec), label: "Duration" } as Tile] : []),
-    aiEvidence ? { key: "tool", value: aiTool, label: "AI Tool" } : { key: "camera", value: camera, label: "Camera / Device" },
-    aiEvidence || !d.gps ? { key: "date", value: fmtDate(d.capturedAt), label: aiEvidence ? "Generated Date" : isVideo ? "Recording Date" : "Capture Date" } : { key: "gps", value: loc, label: "Location (GPS)" },
+    aiEvidence ? { key: "tool", value: aiTool ? `${aiTool}` : "Not Named", label: "AI Tool (Declared)" } : { key: "camera", value: camera, label: "Camera / Device" },
   ];
 
-  const creationRows: InfoRow[] = aiEvidence
-    ? [
-        { key: "ai", label: "AI Generation", value: null, pill: pill("Detected (Metadata)", "bad") },
-        { key: "tool", label: "AI Tool Identified", value: aiTool },
-        { key: "model", label: "Model / Version", value: d.c2pa.generator && d.c2pa.generator !== aiTool ? d.c2pa.generator : null },
-        { key: "prompt", label: "Prompt (Stored in File)", value: d.prompt ? `“${d.prompt.slice(0, 160)}${d.prompt.length > 160 ? "…" : ""}”` : null },
-        { key: "capture", label: "Capture Type", value: `Not a ${isVideo ? "Camera Recording" : "Photograph"}` },
-        { key: "source", label: "Source / Provenance", value: `AI-Generated${aiTool ? ` (${aiTool})` : ""}` },
-        { key: "edit", label: "Editing Detection", value: edited ? `Edited with ${edited}` : "No Additional Editing Recorded" },
-      ]
-    : [
-        { key: "ai", label: "AI Generation", value: null, pill: pill("No Markers Found", "neutral") },
-        { key: "capture", label: "Capture Type", value: camera ? (isVideo ? "Real Recording (Camera)" : "Photograph (Real Capture)") : "Unknown" },
-        { key: "edit", label: "Editing Detection", value: null, pill: edited ? pill(`Edited (${edited})`, "warn") : pill("None Recorded", "neutral") },
-        { key: "source", label: isVideo ? "Source / Device" : "Source / Provenance", value: d.c2pa.present ? `Content Credentials${d.c2pa.generator ? ` (${d.c2pa.generator})` : ""}` : camera ? (isVideo ? camera : "Original (Camera Metadata Present)") : null },
-        { key: "tool", label: "Creation Tool", value: d.software },
-        { key: "location", label: "Capture Location", value: loc, href: mapHref ?? undefined },
-        { key: "date", label: "Capture Date & Time", value: date },
-      ];
-
+  const creationRows: InfoRow[] = [
+    { key: "ai", label: "AI Generation", value: null, pill: aiEvidence ? pill(d.c2pa.aiAction && !d.declaredAi.length && !d.aiTools.length ? "Unverified Credential Claim" : "Declared in Metadata", "ai") : pill("No Markers Found", "neutral") },
+    { key: "tool", label: "AI Tool Identified", value: aiEvidence ? (aiTool ? tagged(aiTool, "Declared in metadata") : "Not named") : "Not applicable" },
+    { key: "model", label: "Model / Version", value: d.aiModel ? tagged(d.aiModel, "Declared in metadata") : aiEvidence ? "Unavailable" : "Not applicable" },
+    { key: "prompt", label: "Prompt", value: d.prompt ? `“${d.prompt.slice(0, 140)}${d.prompt.length > 140 ? "…" : ""}” · stored in file` : "Unavailable (not stored in the file)" },
+    { key: "capture", label: "Capture Type", value: aiEvidence ? "Not expected (generated)" : camera ? `${isVideo ? "Recording" : "Photograph"} · Inferred from metadata` : "Unknown" },
+    { key: "camera", label: "Camera / Device", value: tagged(camera, "Declared in metadata") ?? (swKind === "os" ? `Not available (“${d.software}” is an operating system)` : "Unavailable") },
+    { key: "source", label: "Source / Provenance", value: a.provenance === "CREDENTIALS_PRESENT_UNVERIFIED" ? `Content Credentials${d.c2pa.generator ? ` (${d.c2pa.generator})` : ""} · Unverified` : a.provenance === "METADATA_INDICATED" ? "Indicated by metadata · Unverified" : "Unknown" },
+    { key: "c2pa", label: "C2PA Validation", value: null, pill: d.c2pa.present ? pill("Not Validated", "neutral") : pill("No Credentials", "neutral") },
+    { key: "edit", label: "Editing Detection", value: null, pill: editor ? pill(`Editor Recorded (${editor})`, "warn") : pill("No Editor Recorded · Pixels Not Analysed", "neutral") },
+    { key: "date", label: aiEvidence ? "Creation Date" : "Capture Date", value: tagged(date, "Declared in metadata") ?? "Unavailable" },
+    { key: "confidence", label: "Provenance Confidence", value: a.confidence[0] + a.confidence.slice(1).toLowerCase() },
+  ];
+  const q = d.quality ?? null;
   const technical: InfoRow[] = isVideo || isAudio
     ? [
         { key: "name", label: "File Name", value: d.fileName },
-        { key: "format", label: "Format", value: d.format },
+        { key: "format", label: "Container", value: `${d.format} · from file signature` },
         ...(isVideo ? [{ key: "vcodec", label: "Video Codec", value: d.videoCodec } as InfoRow] : []),
         { key: "acodec", label: "Audio Codec", value: d.audioCodec },
         ...(isVideo ? [{ key: "res", label: "Resolution", value: res } as InfoRow, { key: "fps", label: "Frame Rate", value: d.frameRate ? `${d.frameRate.toFixed(2)} fps` : null } as InfoRow] : []),
@@ -792,31 +743,43 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
         { key: "duration", label: "Duration", value: d.durationSec != null ? `${fmtDuration(d.durationSec)} (${Math.round(d.durationSec)} seconds)` : null },
         { key: "size", label: "File Size", value: fmtBytes(d.size, true) },
         ...(isVideo ? [{ key: "aspect", label: "Aspect Ratio", value: aspect(d.width, d.height) } as InfoRow] : []),
-        { key: "device", label: "Camera / Device", value: camera },
+        { key: "device", label: "Camera / Device", value: tagged(camera, "Declared in metadata") },
         { key: "software", label: "Encoder / Software", value: d.software },
+        { key: "created", label: "Container Creation Time", value: tagged(date, "Declared in metadata") },
         { key: "gps", label: "GPS Coordinates", value: loc, href: mapHref ?? undefined },
-        { key: "meta", label: "Device Metadata", value: null, pill: camera || d.gps ? pill(`Present (${[camera ? "Device" : null, d.gps ? "GPS" : null].filter(Boolean).join(" & ")})`, "good") : pill("Not Found", "neutral") },
+        { key: "c2pa", label: "C2PA Credentials", value: null, pill: d.c2pa.present ? pill("Present · Unverified", "info") : pill("None", "neutral") },
       ]
     : [
         { key: "name", label: "File Name", value: d.fileName },
-        { key: "format", label: "File Format", value: `${formatShort === "JPG" ? "JPEG" : formatShort} (${d.mime})` },
+        { key: "format", label: "File Format", value: `${formatShort === "JPG" ? "JPEG" : formatShort} (${d.mime}) · from file signature` },
         { key: "size", label: "File Size", value: fmtBytes(d.size, true) },
         { key: "dims", label: "Dimensions", value: resolutionLabel(d.width, d.height) },
-        ...(aiEvidence ? [{ key: "exif", label: "EXIF Data", value: null, pill: d.exifPresent && camera ? pill("Present", "good") : pill("Not Available (AI)", "bad") } as InfoRow] : []),
-        { key: "camera", label: "Camera / Device", value: camera },
-        { key: "lens", label: "Lens", value: d.lens },
-        ...(aiEvidence
-          ? [{ key: "exposure", label: "Aperture / Shutter / ISO", value: d.fNumber || d.exposureTime || d.iso ? [d.fNumber ? `f/${d.fNumber}` : null, d.exposureTime ? exposure(d.exposureTime) : null, d.iso ? `ISO ${d.iso}` : null].filter(Boolean).join(" · ") : null } as InfoRow]
-          : [
-              { key: "aperture", label: "Aperture (f)", value: d.fNumber ? `f/${d.fNumber}` : null } as InfoRow,
+        { key: "exif", label: "EXIF Data", value: null, pill: d.exifPresent ? pill(`Present${d.exifFields ? ` (${d.exifFields} fields)` : ""}`, "info") : pill("Not Found", "neutral") },
+        { key: "iptc", label: "IPTC Data", value: d.iptc ? Object.entries(d.iptc).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(" · ") : null, pill: d.iptc ? undefined : pill("Not Found", "neutral") },
+        { key: "xmp", label: "XMP Data", value: d.xmp ? [d.xmp.creatorTool, d.xmp.historyActions.length ? `${d.xmp.historyActions.length} history steps` : null].filter(Boolean).join(" · ") || "Present" : null, pill: d.xmp ? undefined : pill("Not Found", "neutral") },
+        { key: "camera", label: "Camera / Device", value: tagged(camera, "Declared in metadata") },
+        // Capture settings only when the file has any; otherwise one row says so instead of six empty ones.
+        ...(camera || d.lens || d.fNumber || d.exposureTime || d.iso != null || d.focalLength
+          ? [
+              { key: "lens", label: "Lens", value: d.lens } as InfoRow,
+              { key: "aperture", label: "Aperture", value: d.fNumber ? `f/${d.fNumber}` : null } as InfoRow,
               { key: "shutter", label: "Shutter Speed", value: d.exposureTime ? exposure(d.exposureTime) : null } as InfoRow,
               { key: "iso", label: "ISO", value: d.iso != null ? String(d.iso) : null } as InfoRow,
               { key: "focal", label: "Focal Length", value: d.focalLength ? `${Math.round(d.focalLength)} mm` : null } as InfoRow,
-            ]),
-        ...(aiEvidence ? [] : [{ key: "date", label: "Date Taken", value: date } as InfoRow]),
+            ]
+          : [{ key: "exposure", label: "Capture Settings", value: null, pill: pill(aiEvidence ? "Not Expected (Generated)" : "None in Metadata", "neutral") } as InfoRow]),
+        ...(d.flash ? [{ key: "flash", label: "Flash", value: d.flash } as InfoRow] : []),
+        ...(d.whiteBalance ? [{ key: "wb", label: "White Balance", value: d.whiteBalance } as InfoRow] : []),
         { key: "gps", label: "GPS Coordinates", value: loc, href: mapHref ?? undefined },
         { key: "color", label: "Color Profile", value: d.iccProfile ?? (d.colorSpace ? d.colorSpace.toUpperCase().replace("SRGB", "sRGB") : null) },
-        ...(aiEvidence ? [{ key: "generated", label: "Created / Generated", value: fmtDate(d.capturedAt) ? `${fmtDate(d.capturedAt)} (AI Generation)` : null } as InfoRow] : []),
+        { key: "depth", label: "Bit Depth / Alpha", value: q ? [q.bitDepth ? `${q.bitDepth}-bit` : null, q.hasAlpha ? "alpha channel" : "no alpha"].filter(Boolean).join(" · ") : null },
+        { key: "compression", label: "Compression", value: q?.compression ?? null },
+        ...(q?.orientation && q.orientation !== 1 ? [{ key: "orientation", label: "Orientation", value: `EXIF ${q.orientation}` } as InfoRow] : []),
+        { key: "date", label: "Capture Date", value: tagged(date, "Declared in metadata") },
+        ...(d.modifiedAt ? [{ key: "modified", label: "Modification Date", value: fmtDateTime(d.modifiedAt, false) } as InfoRow] : []),
+        { key: "software", label: swKind === "os" ? "Operating System (Metadata)" : "Creator Software", value: d.software },
+        { key: "c2pa", label: "C2PA Credentials", value: null, pill: d.c2pa.present ? pill("Present · Unverified", "info") : pill("None", "neutral") },
+        ...(d.xmp?.digitalSourceType ? [{ key: "dst", label: "Digital Source Type", value: tagged(d.xmp.digitalSourceType, "Declared in metadata") } as InfoRow] : []),
       ];
 
   const fileTitle = d.fileName.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_-]+/g, " ").trim();
@@ -824,14 +787,17 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
     isVideo,
     isAudio,
     aiEvidence,
+    verdict: a.verdict,
     banner,
-    score: { value: score, badge: scoreBadge, text: scoreText, basis: `Media is scored only when the file carries provenance evidence. ${SCORE_BASIS}` },
+    score: { value: score, badge: scoreBadge, text: scoreText, basis: `Provenance confidence starts at 30 and adds only real evidence: ${a.scoreBasis.join("; ") || "none found"}. AI creation and missing EXIF are never penalised; unvalidated credentials cap the score at 85.` },
+    coverage: a.coverage,
+    confidence: a.confidence,
     formatShort,
     typeLabel: `${Noun} File (${formatShort})`,
     title: fileTitle ? fileTitle[0].toUpperCase() + fileTitle.slice(1) : d.fileName,
     description: [res, d.durationSec != null ? fmtDuration(d.durationSec) : null, isVideo && d.frameRate ? `${Math.round(d.frameRate)} fps` : null, isVideo ? d.videoCodec : null].filter(Boolean).join(" · ") || d.format,
-    byLine: aiEvidence ? (aiTool ? `AI (${aiTool})` : "AI") : camera,
-    dateLabel: aiEvidence ? "Generated" : isVideo ? "Recorded" : "Taken",
+    byLine: aiEvidence ? (aiTool ? `AI (${aiTool}, declared)` : "AI (declared)") : camera ? `${camera} (metadata)` : null,
+    dateLabel: aiEvidence ? "Created" : isVideo ? "Recorded" : "Captured",
     date: aiEvidence ? fmtDate(d.capturedAt) : date,
     location: loc,
     mapHref,
@@ -840,16 +806,17 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
     tiles,
     checks,
     creation: {
-      headline: aiEvidence ? pill("AI-Generated", "bad") : camera ? pill(isVideo ? "Recorded (Physical Camera)" : "Photographed (Real Camera)", "good") : pill("Unknown", "neutral"),
+      headline: aiEvidence ? pill("AI-Generated (Declared)", "ai") : camera ? pill(isVideo ? "Camera Recording (Indicated)" : "Camera Capture (Indicated)", "good") : editor ? pill("Edited", "warn") : pill("Unknown", "neutral"),
       text: aiEvidence
-        ? `This ${noun} was created using a generative AI tool, not captured by a real camera.`
+        ? `The metadata declares generative AI. That's how it was made, not a judgement of authenticity.`
         : camera
-          ? `The ${noun} carries ${isVideo ? "recording-device" : "camera"} metadata (${camera}) and no AI markers.`
-          : `No camera metadata or AI markers were found, so the creation method is unknown.`,
+          ? `Metadata names ${camera}. EXIF is editable, so this is an indication, not proof.`
+          : `No camera metadata, credentials or AI markers. No AI markers doesn't mean human-made.`,
       rows: creationRows,
     },
-    technicalTitle: isVideo || isAudio ? "Technical Metadata (Container)" : "Technical Metadata (EXIF)",
+    technicalTitle: isVideo || isAudio ? "Technical Metadata (Container)" : "Technical Metadata",
     technical,
+    sections: { found: a.found, couldNotVerify: a.couldNotVerify, actions: a.actions },
     limits: c.limits,
   };
 }

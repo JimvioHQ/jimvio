@@ -163,3 +163,50 @@ export function hamming(a: string, b: string): number {
   }
   return c;
 }
+
+/** Fields from the XMP packet (creator tool, edit history, AI source type, rights). */
+export function xmpFields(buf: Buffer): { creatorTool: string | null; historyActions: string[]; digitalSourceType: string | null; createDate: string | null; modifyDate: string | null; rights: string | null; license: string | null } | null {
+  const text = latin(buf);
+  const xmpRaw = /<x:xmpmeta[\s\S]{0,400000}?<\/x:xmpmeta>/i.exec(text)?.[0];
+  if (!xmpRaw) return null;
+  const xmp = Buffer.from(xmpRaw, "latin1").toString("utf8");
+  const tag = (name: string) => {
+    const m = new RegExp(`<${name}>\\s*(?:<rdf:(?:Alt|Seq|Bag)>\\s*<rdf:li[^>]*>)?([^<]{1,300})<`, "i").exec(xmp) ?? new RegExp(`${name}="([^"]{1,300})"`, "i").exec(xmp);
+    return m?.[1]?.trim() || null;
+  };
+  const actions = [...xmp.matchAll(/stEvt:action(?:="([^"]{1,60})"|>([^<]{1,60})<)/gi)].map((m) => (m[1] ?? m[2]).trim());
+  const agents = [...xmp.matchAll(/stEvt:softwareAgent(?:="([^"]{1,80})"|>([^<]{1,80})<)/gi)].map((m) => (m[1] ?? m[2]).trim());
+  const historyActions = actions.map((a, i) => (agents[i] ? `${a} (${agents[i]})` : a)).slice(0, 30);
+  const dst = tag("Iptc4xmpExt:DigitalSourceType") ?? tag("photoshop:DigitalSourceType");
+  return {
+    creatorTool: tag("xmp:CreatorTool"),
+    historyActions,
+    digitalSourceType: dst ? dst.replace(/^.*\//, "") : null,
+    createDate: tag("xmp:CreateDate"),
+    modifyDate: tag("xmp:ModifyDate"),
+    rights: tag("dc:rights"),
+    license: tag("xmpRights:UsageTerms") ?? tag("xmpRights:WebStatement") ?? tag("plus:LicensorURL"),
+  };
+}
+
+/** Assertion labels inside an embedded C2PA manifest store (labels only; nothing is validated here). */
+export function c2paAssertions(buf: Buffer): string[] {
+  const text = latin(buf);
+  const labels = new Set<string>();
+  for (const m of text.matchAll(/\b(c2pa\.[a-z_.]{3,40}|stds\.[a-z_.-]{3,40}|cawg\.[a-z_.]{3,40})/g)) {
+    const l = m[1].replace(/\.+$/, "");
+    if (!/^c2pa\.(claim|signature|assertions|manifest|ingredient\.v\d)$/.test(l)) labels.add(l);
+    if (labels.size >= 20) break;
+  }
+  return [...labels];
+}
+
+/** Model/version strings stored by generators (PNG parameters, C2PA claim generator). */
+export function aiModelString(buf: Buffer, generator: string | null): string | null {
+  const png = pngTextChunks(buf);
+  const p = png.parameters ?? "";
+  const model = /(?:^|,\s*)Model:\s*([^,\n]{1,80})/i.exec(p)?.[1]?.trim();
+  if (model) return model;
+  if (generator && /gpt|dall|firefly|imagen|sora|midjourney|\bv\d/i.test(generator)) return generator.slice(0, 80);
+  return null;
+}
