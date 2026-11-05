@@ -226,6 +226,9 @@ export function pdfDate(v: string | null): string | null {
   return Number.isFinite(t) && Number(y) >= 1990 && Number(y) <= 2100 ? new Date(t).toISOString() : null;
 }
 
+// Values some tools write when the author left a field empty.
+const PLACEHOLDER = /^(anonymous|unspecified|unknown|untitled|none|n\/?a|author|user|admin|owner|microsoft word - .*)$/i;
+
 export type PdfMeta = {
   pages: number | null;
   producer: string | null;
@@ -244,7 +247,7 @@ export function pdfMeta(buf: Buffer): PdfMeta {
     const re = new RegExp(`/${key}\\s*(\\((?:\\\\.|[^\\\\)]){0,400}\\)|<[0-9A-Fa-f\\s]{2,800}>)`);
     const m = re.exec(raw);
     const v = m ? pdfString(m[1]) : "";
-    return v && /[\p{L}\p{N}]/u.test(v) ? v.slice(0, 200) : null;
+    return v && /[\p{L}\p{N}]/u.test(v) && !PLACEHOLDER.test(v) ? v.slice(0, 200) : null;
   };
   const xmp = /<x:xmpmeta[\s\S]{0,200000}?<\/x:xmpmeta>/i.exec(raw)?.[0] ?? "";
   const xmpTag = (tag: string) => {
@@ -266,6 +269,31 @@ export function pdfMeta(buf: Buffer): PdfMeta {
     createdAt: pdfDate(field("CreationDate")) ?? iso(createdX?.[1] ?? createdX?.[2]),
     modifiedAt: pdfDate(field("ModDate")) ?? iso(modX?.[1] ?? modX?.[2]),
   };
+}
+
+/** ASCII85 (PDF /ASCII85Decode) to bytes, or null if malformed. */
+export function ascii85(input: string): Buffer | null {
+  const src = input.replace(/^\s*<~/, "").replace(/~>[\s\S]*$/, "").replace(/\s+/g, "");
+  const out: number[] = [];
+  let group: number[] = [];
+  for (const ch of src) {
+    if (ch === "z" && group.length === 0) { out.push(0, 0, 0, 0); continue; }
+    const c = ch.charCodeAt(0) - 33;
+    if (c < 0 || c > 84) return null;
+    group.push(c);
+    if (group.length === 5) {
+      const v = group.reduce((a, d) => a * 85 + d, 0);
+      out.push((v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255);
+      group = [];
+    }
+  }
+  if (group.length) {
+    const n = group.length;
+    while (group.length < 5) group.push(84);
+    const v = group.reduce((a, d) => a * 85 + d, 0);
+    out.push(...[(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255].slice(0, n - 1));
+  }
+  return Buffer.from(out);
 }
 
 /** Text shown by a PDF's content streams (inflates FlateDecode; never runs anything). */
@@ -302,13 +330,18 @@ export function pdfText(buf: Buffer, maxChars = 400_000): string | null {
     const dict = m[1];
     if (/\/Subtype\s*\/Image|\/Type\s*\/XObject|\/Length1|\/FontFile/.test(dict)) continue;
     let body = buf.subarray(start, end);
+    if (/\/ASCII85Decode|\/A85\b/.test(dict)) {
+      const decoded = ascii85(body.toString("latin1"));
+      if (!decoded) continue;
+      body = decoded;
+    }
     if (/\/FlateDecode/.test(dict)) {
       try {
         body = inflateSync(body, { maxOutputLength: 4_000_000 });
       } catch {
         continue;
       }
-    } else if (/\/Filter/.test(dict)) continue;
+    } else if (/\/Filter/.test(dict) && !/\/ASCII85Decode|\/A85\b/.test(dict)) continue;
     if (take(body.toString("latin1"))) break;
     re.lastIndex = end;
   }

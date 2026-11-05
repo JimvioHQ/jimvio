@@ -48,11 +48,12 @@ export function fmtDate(iso: string | null | undefined): string | null {
   return Number.isFinite(t) ? new Date(t).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }) : null;
 }
 
-export function fmtDateTime(iso: string | null | undefined): string | null {
+/** `zoned` = the instant is a real UTC time; EXIF/QuickTime local times carry no zone, so no label. */
+export function fmtDateTime(iso: string | null | undefined, zoned = true): string | null {
   if (!iso) return null;
   const t = Date.parse(iso);
   return Number.isFinite(t)
-    ? new Date(t).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC"
+    ? new Date(t).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + (zoned ? " UTC" : "")
     : null;
 }
 
@@ -827,7 +828,7 @@ export function mediaModel(c: CheckerResult, d: MediaDetails): MediaModel {
 
   const creationChip: Pill = aiEvidence ? pill("AI-Generated", "ai") : camera ? pill(isVideo ? "Real Video (Camera)" : "Photograph (Camera)", "good") : pill("Origin Unknown", "neutral");
   const creationMethod = aiEvidence ? "Generative AI" : camera ? (isVideo ? "Recorded (Camera)" : "Photograph") : "Unknown";
-  const date = fmtDateTime(d.capturedAt);
+  const date = fmtDateTime(d.capturedAt, false);
   const loc = gpsLabel(d.gps);
   const mapHref = d.gps ? `https://www.openstreetmap.org/?mlat=${d.gps.lat}&mlon=${d.gps.lon}#map=13/${d.gps.lat}/${d.gps.lon}` : null;
   const res = resolutionLabel(d.width, d.height, isVideo);
