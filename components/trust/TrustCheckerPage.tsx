@@ -185,8 +185,9 @@ export function TrustCheckerPage() {
 
   if (report) {
     return (
-      <main className="min-h-screen overflow-x-clip bg-[#F7F8FA] pb-16">
-        <div className="mx-auto max-w-[1520px] px-4 pb-8 pt-5 sm:px-6 lg:px-8">
+      <main className="relative min-h-screen overflow-x-clip bg-[linear-gradient(180deg,#FFFAF6_0%,#F8F9FB_360px)] pb-16">
+        <HeroWave side="right" className="tc-fade pointer-events-none absolute right-0 top-0 h-[160px] w-[220px] opacity-70 sm:h-[240px] sm:w-[380px]" />
+        <div className="relative mx-auto max-w-[1600px] px-4 pb-8 pt-4 sm:px-6 lg:px-8 xl:px-10">
           <TrustResult report={report} preview={preview} onNewCheck={resetScanner} />
           <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
         </div>
