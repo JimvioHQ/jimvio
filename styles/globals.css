@@ -2390,3 +2390,21 @@ html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
   .media-home .media-topic-count { display: none !important; }
 }
 .media-footer-brand img { flex: none; }
+
+/* Trust Checker landing: gentle, one-time entrance motion. */
+@keyframes tc-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes tc-pop { from { opacity: 0; transform: translateY(8px) scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes tc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tc-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes tc-twinkle { 0%, 100% { opacity: 0.35; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes tc-swap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tc-rise { animation: tc-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tc-pop { animation: tc-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tc-fade { animation: tc-fade 1.2s ease-out both; }
+.tc-float { animation: tc-float 4.5s ease-in-out 1s infinite; }
+.tc-twinkle { animation: tc-twinkle 3.6s ease-in-out infinite; }
+.tc-swap { animation: tc-swap 0.35s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .tc-rise, .tc-pop, .tc-fade, .tc-float, .tc-twinkle, .tc-swap { animation: none !important; }
+  .tc-press, .tc-press * { transition: none !important; }
+}
