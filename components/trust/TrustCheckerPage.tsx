@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TrustResult } from "./results/TrustResult";
 import type { LocalPreview } from "./results/MediaResult";
-import { EngagementArt, Laurel, MediaArt, ProductArt, ScamArt } from "./TrustLandingArt";
+import { EngagementArt, HeroWave, MediaArt, ProductArt, ScamArt } from "./TrustLandingArt";
 import type { ScanReport } from "@/lib/trust/types";
 
 type Mode = "url" | "file";
@@ -57,10 +57,10 @@ const FEATURES: { icon: LucideIcon; label: string }[] = [
 ];
 
 const CATEGORIES = [
-  { key: "links", title: "Scam & Malicious Link Detection", text: "Check websites and links for threats, phishing, and security risks.", icon: ShieldCheck, tile: "bg-[linear-gradient(135deg,#FF8A3D,#FF5A1F)]", bg: "bg-[linear-gradient(135deg,#FFF4EC_0%,#FFFFFF_70%)]", Art: ScamArt, mode: "url" as Mode },
-  { key: "engagement", title: "Engagement & Traffic Detection", text: "Analyze real engagement, audience quality, and traffic authenticity.", icon: ChartColumnIncreasing, tile: "bg-[linear-gradient(135deg,#A77BFF,#7C3AED)]", bg: "bg-[linear-gradient(135deg,#F6F0FF_0%,#FFFFFF_70%)]", Art: EngagementArt, mode: "url" as Mode },
-  { key: "product", title: "Digital Product Verification", text: "Verify e-books, PDFs, templates, and other digital products.", icon: Layers, tile: "bg-[linear-gradient(135deg,#4C9BFF,#1E6BF0)]", bg: "bg-[linear-gradient(135deg,#EFF5FF_0%,#FFFFFF_70%)]", Art: ProductArt, mode: "file" as Mode },
-  { key: "media", title: "Media Metadata & Provenance", text: "Check images and videos for authenticity, origin, and AI generation.", icon: ImageIcon, tile: "bg-[linear-gradient(135deg,#43D16A,#16A34A)]", bg: "bg-[linear-gradient(135deg,#EEFAF1_0%,#FFFFFF_70%)]", Art: MediaArt, mode: "file" as Mode },
+  { key: "links", title: "Scam & Malicious Link Detection", text: "Check websites and links for threats, phishing, and security risks.", icon: ShieldCheck, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: ScamArt, mode: "url" as Mode },
+  { key: "engagement", title: "Engagement & Traffic Detection", text: "Analyze real engagement, audience quality, and traffic authenticity.", icon: ChartColumnIncreasing, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: EngagementArt, mode: "url" as Mode },
+  { key: "product", title: "Digital Product Verification", text: "Verify e-books, PDFs, templates, and other digital products.", icon: Layers, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: ProductArt, mode: "file" as Mode },
+  { key: "media", title: "Media Metadata & Provenance", text: "Check images and videos for authenticity, origin, and AI generation.", icon: ImageIcon, tile: "bg-[linear-gradient(135deg,#FF8A4C,#FF5A1F)]", bg: "bg-[linear-gradient(140deg,#FFF6F0_0%,#FFFFFF_62%)]", Art: MediaArt, mode: "file" as Mode },
 ];
 
 const STEPS = [
@@ -199,18 +199,21 @@ export function TrustCheckerPage() {
       type="button"
       onClick={() => void run()}
       disabled={busy}
-      className="inline-flex h-[52px] w-full shrink-0 items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(90deg,#FF7A2F,#FF5A1F)] px-8 text-[17px] font-extrabold text-white shadow-[0_10px_24px_rgba(255,90,31,0.30)] transition hover:brightness-105 disabled:cursor-wait disabled:opacity-80 md:h-12 md:w-auto md:text-[16px]"
+      className="tc-press group/btn inline-flex h-[52px] w-full shrink-0 items-center justify-center gap-2.5 rounded-full bg-[linear-gradient(90deg,#FF7A2F,#FF5A1F)] px-8 text-[17px] font-extrabold text-white shadow-[0_10px_24px_rgba(255,90,31,0.30)] transition duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(255,90,31,0.38)] active:translate-y-0 active:scale-[0.98] disabled:cursor-wait disabled:opacity-80 md:h-12 md:w-auto md:text-[16px]"
     >
       {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-6 w-6" strokeWidth={2} />}
       {busy ? "Checking…" : "Check Now"}
-      {!busy ? <ArrowRight className="h-5 w-5" strokeWidth={2.4} /> : null}
+      {!busy ? <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover/btn:translate-x-1" strokeWidth={2.4} /> : null}
     </button>
   );
 
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-[#FBFBFC] pb-16">
-      <div aria-hidden className="pointer-events-none absolute -left-40 -top-24 h-[460px] w-[560px] rounded-full bg-[radial-gradient(closest-side,rgba(255,170,120,0.35),rgba(255,200,170,0.12)_60%,transparent)] blur-2xl" />
-      <div aria-hidden className="pointer-events-none absolute -right-44 top-10 h-[420px] w-[600px] rounded-full bg-[radial-gradient(closest-side,rgba(255,180,140,0.30),rgba(255,215,190,0.10)_60%,transparent)] blur-2xl" />
+    <main className="relative min-h-screen overflow-x-clip bg-[linear-gradient(180deg,#FFFBF8_0%,#FBFBFC_420px)] pb-16">
+      <HeroWave side="left" className="tc-fade pointer-events-none absolute left-0 top-10 h-[200px] w-[260px] sm:top-16 sm:h-[300px] sm:w-[480px]" />
+      <HeroWave side="right" className="tc-fade pointer-events-none absolute right-0 top-0 h-[180px] w-[240px] sm:h-[280px] sm:w-[440px]" />
+      <span aria-hidden className="tc-twinkle pointer-events-none absolute left-[26%] top-[150px] hidden h-1.5 w-1.5 rounded-full bg-[#FF9A66] sm:block" />
+      <span aria-hidden className="tc-twinkle pointer-events-none absolute right-[27%] top-[165px] hidden h-1.5 w-1.5 rounded-full bg-[#FF9A66] [animation-delay:1.2s] sm:block" />
+      <span aria-hidden className="tc-twinkle pointer-events-none absolute right-[9%] top-[235px] h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)] [animation-delay:2s]" />
 
       <div className="relative mx-auto max-w-[1600px] px-4 pb-8 pt-4 sm:px-6 lg:px-10">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2.5 text-[15px] font-bold text-[#111827] sm:text-[14px]">
@@ -221,20 +224,16 @@ export function TrustCheckerPage() {
 
         {/* Hero */}
         <header className="mx-auto mt-1 flex max-w-[1100px] flex-col items-center text-center">
-          <span className="grid h-[84px] w-[84px] place-items-center rounded-[24px] border border-[#FFD9C5] bg-[linear-gradient(160deg,#FFFFFF_0%,#FFE8DA_100%)] shadow-[0_12px_30px_rgba(255,90,31,0.18)] sm:h-[96px] sm:w-[96px]">
-            <ShieldCheck className="h-12 w-12 text-[#FF5A1F] sm:h-14 sm:w-14" strokeWidth={2} />
+          <span className="tc-pop grid h-[84px] w-[84px] place-items-center rounded-[24px] border border-[#FFD9C5] bg-[linear-gradient(160deg,#FFFFFF_0%,#FFE8DA_100%)] shadow-[0_14px_34px_rgba(255,90,31,0.20)] sm:h-[100px] sm:w-[100px]">
+            <ShieldCheck className="tc-float h-12 w-12 text-[#FF5A1F] sm:h-[60px] sm:w-[60px]" strokeWidth={2} />
           </span>
-          <div className="mt-3 flex items-center justify-center gap-2 sm:gap-6">
-            <Laurel className="h-10 w-6 shrink-0 sm:h-16 sm:w-11" />
-            <h1 className="whitespace-nowrap text-[25px] font-black leading-tight tracking-[-0.03em] text-[#111827] min-[430px]:text-[29px] sm:text-[44px] lg:text-[48px]">
-              Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
-            </h1>
-            <Laurel flip className="h-10 w-6 shrink-0 sm:h-16 sm:w-11" />
-          </div>
-          <p className="mt-2 max-w-[1100px] text-[15px] leading-6 text-[#1F2937] sm:text-[16.5px]">
+          <h1 className="tc-rise mt-3 whitespace-nowrap text-[28px] font-black leading-tight tracking-[-0.035em] text-[#111827] [animation-delay:80ms] min-[430px]:text-[32px] sm:text-[46px] lg:text-[52px]">
+            Jimvio <span className="text-[#FF5A1F]">Trust Checker</span>
+          </h1>
+          <p className="tc-rise mt-2 max-w-[1100px] text-[15px] leading-6 text-[#1F2937] [animation-delay:160ms] sm:text-[17px]">
             Verify the authenticity, safety, and legitimacy of links, digital products, images, videos, and more with AI-powered analysis.
           </p>
-          <span className="mt-4 inline-flex items-center gap-2.5 rounded-full bg-[#FFEBDF] px-6 py-2.5 text-[15px] font-extrabold text-[#111827] shadow-[0_4px_14px_rgba(255,90,31,0.10)]">
+          <span className="tc-rise mt-4 inline-flex items-center gap-2.5 rounded-full border border-[#FFE0CF] bg-[#FFF1E9] px-6 py-2.5 text-[15px] font-extrabold text-[#FF5A1F] shadow-[0_4px_14px_rgba(255,90,31,0.10)] [animation-delay:240ms]">
             <Sparkles className="h-5 w-5 fill-[#FF5A1F] text-[#FF5A1F]" /> AI-Powered Verification Engine
           </span>
         </header>
@@ -246,7 +245,7 @@ export function TrustCheckerPage() {
           onDragLeave={() => setDrag(false)}
           onDrop={onDrop}
           className={cn(
-            "mx-auto mt-6 max-w-[1360px] rounded-[24px] border bg-white px-4 py-5 shadow-[0_14px_40px_rgba(15,23,42,0.07)] sm:px-8 lg:px-16",
+            "tc-rise mx-auto mt-7 max-w-[1360px] rounded-[26px] border bg-white/95 px-4 py-5 shadow-[0_18px_50px_rgba(15,23,42,0.07)] backdrop-blur [animation-delay:300ms] sm:px-8 sm:py-7 lg:px-16",
             drag ? "border-[#FF8A5B] ring-4 ring-orange-100" : "border-[#EEF0F3]",
           )}
         >
@@ -262,19 +261,19 @@ export function TrustCheckerPage() {
                 aria-selected={mode === value}
                 onClick={() => { setMode(value); setError(null); }}
                 className={cn(
-                  "inline-flex h-[52px] items-center justify-center gap-3 rounded-[14px] text-[16px] font-extrabold transition sm:h-12 sm:text-[17px]",
-                  mode === value ? "bg-[linear-gradient(90deg,#FF7A2F,#FF5A1F)] text-white shadow-[0_10px_22px_rgba(255,90,31,0.28)]" : "bg-[#F3F5F8] text-[#111827] hover:bg-[#ECEFF3]",
+                  "tc-press inline-flex h-[52px] items-center justify-center gap-3 rounded-[16px] text-[16px] font-extrabold transition-all duration-300 ease-out active:scale-[0.98] sm:h-[52px] sm:text-[17px]",
+                  mode === value ? "bg-[linear-gradient(90deg,#FF7A2F,#FF5A1F)] text-white shadow-[0_10px_22px_rgba(255,90,31,0.28)]" : "bg-[#F4F6F9] text-[#111827] hover:bg-[#FFF1E9] hover:text-[#C2410C]",
                 )}
               >
-                <Icon className="h-6 w-6" strokeWidth={2.1} /> {label}
+                <Icon className="h-6 w-6 transition-transform duration-300" strokeWidth={2.1} /> {label}
               </button>
             ))}
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+          <div key={mode} className="tc-swap mt-4 flex flex-col gap-3 md:flex-row md:items-center">
             {mode === "url" ? (
               <label className="flex h-[52px] w-full min-w-0 items-center md:flex-1 gap-3 rounded-full border border-[#E1E5EB] bg-white px-5 transition focus-within:border-[#FF8B61] focus-within:ring-4 focus-within:ring-orange-100 md:h-12">
-                <Link2 className="h-6 w-6 shrink-0 text-[#64748B]" strokeWidth={2} />
+                <Link2 className="h-6 w-6 shrink-0 text-[#FF5A1F]" strokeWidth={2} />
                 <input
                   ref={urlRef}
                   value={url}
@@ -290,7 +289,7 @@ export function TrustCheckerPage() {
               </label>
             ) : (
               <div className="flex h-[52px] w-full min-w-0 items-center gap-3 rounded-full border border-dashed md:flex-1 border-[#D5DAE1] bg-white px-5 md:h-12">
-                <Upload className="h-6 w-6 shrink-0 text-[#64748B]" strokeWidth={2} />
+                <Upload className="h-6 w-6 shrink-0 text-[#FF5A1F]" strokeWidth={2} />
                 {file ? (
                   <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[#111827]">{file.name} <span className="font-normal text-[#64748B]">· {formatBytes(file.size)}</span></span>
                 ) : (
@@ -314,66 +313,71 @@ export function TrustCheckerPage() {
               {canRun ? <button type="button" onClick={() => void run()} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"><RefreshCw className="h-3.5 w-3.5" /> Try again</button> : null}
             </div>
           ) : null}
-          <p className="mx-auto mt-4 flex max-w-[760px] items-start justify-center gap-2 text-center text-[13.5px] leading-5 text-[#1F2937] sm:text-[13px]">
-            <Info className="mt-0.5 h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-            <span><b>Supports:</b> Websites (URLs), PDFs, Images (JPG/PNG), Videos (MP4/MOV), e-books, and other digital files.</span>
-          </p>
+          <div className="mt-5 flex justify-center">
+            <p className="inline-flex max-w-[820px] items-start gap-2 rounded-[14px] bg-[#FFF7F2] px-4 py-2.5 text-left text-[13px] leading-5 text-[#1F2937] sm:items-center sm:rounded-full sm:px-5 sm:text-[13.5px]">
+              <Info className="mt-0.5 h-[18px] w-[18px] shrink-0 text-[#FF5A1F] sm:mt-0" strokeWidth={2.2} />
+              <span><b>Supports:</b> Websites (URLs), PDFs, Images (JPG/PNG), Videos (MP4/MOV), e-books, and other digital files.</span>
+            </p>
+          </div>
         </section>
 
         {/* Features */}
-        <ul className="mx-auto mt-6 grid max-w-[1380px] grid-cols-5 gap-1.5 sm:flex sm:items-center sm:justify-center sm:gap-0">
+        <ul className="mx-auto mt-10 grid max-w-[1400px] grid-cols-5 sm:mt-11 lg:flex lg:items-center lg:justify-between">
           {FEATURES.map((f, i) => (
-            <li key={f.label} className="flex min-w-0 items-center">
-              {i > 0 ? <span aria-hidden className="hidden h-8 w-px bg-[#E2E5EA] sm:mx-6 sm:block lg:mx-8" /> : null}
-              <span className="flex w-full flex-col items-center gap-1 rounded-[16px] bg-white px-1 py-2 text-center text-[10.5px] font-extrabold leading-tight text-[#111827] shadow-[0_6px_18px_rgba(15,23,42,0.07)] min-[440px]:text-[12px] sm:w-auto sm:flex-row sm:text-left sm:gap-2.5 sm:rounded-full sm:px-6 sm:py-3 sm:text-[15px]">
-                <f.icon className="h-5 w-5 shrink-0 min-[440px]:h-6 min-[440px]:w-6 sm:h-7 sm:w-7" strokeWidth={1.9} /> <span className="min-w-0 sm:whitespace-nowrap">{f.label}</span>
+            <li key={f.label} style={{ animationDelay: `${380 + i * 60}ms` }} className="tc-rise flex min-w-0 items-center justify-center lg:flex-1">
+              {i > 0 ? <span aria-hidden className="h-10 w-px shrink-0 bg-[#E7E9ED] lg:h-8" /> : null}
+              <span className="group/feat flex min-w-0 flex-1 flex-col items-center gap-1.5 px-1 text-center text-[11px] font-extrabold leading-tight text-[#111827] min-[440px]:text-[12.5px] sm:text-[14px] lg:flex-none lg:flex-row lg:gap-3 lg:rounded-full lg:border lg:border-[#F1F2F5] lg:bg-white lg:px-6 lg:py-3 lg:text-left lg:text-[15px] lg:shadow-[0_4px_14px_rgba(15,23,42,0.04)] lg:transition lg:duration-300 lg:hover:-translate-y-0.5 lg:hover:shadow-[0_8px_20px_rgba(255,90,31,0.10)]">
+                <f.icon className="h-6 w-6 shrink-0 text-[#FF5A1F] transition-transform duration-300 group-hover/feat:scale-110 sm:h-7 sm:w-7" strokeWidth={2} /> <span className="min-w-0 lg:whitespace-nowrap">{f.label}</span>
               </span>
             </li>
           ))}
         </ul>
 
         {/* Categories */}
-        <div className="mx-auto mt-6 grid max-w-[1600px] grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
-          {CATEGORIES.map((c) => (
+        <div className="mx-auto mt-9 grid max-w-[1600px] grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
+          {CATEGORIES.map((c, i) => (
             <button
               key={c.key}
               type="button"
               onClick={() => chooseCategory(c.mode)}
-              className={cn("group relative flex min-h-[190px] min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#EEF0F3] p-3.5 text-left shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.09)] sm:min-h-[210px] sm:p-7", c.bg)}
+              style={{ animationDelay: `${520 + i * 80}ms` }}
+              className={cn("tc-rise group relative flex h-full min-h-[190px] min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#F1ECE8] p-3.5 text-left shadow-[0_10px_30px_rgba(15,23,42,0.05)] transition duration-300 ease-out hover:-translate-y-1 hover:border-[#FFD9C5] hover:shadow-[0_18px_40px_rgba(255,90,31,0.12)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-100 sm:min-h-[214px] sm:p-7", c.bg)}
             >
-              <span className={cn("grid h-9 w-9 place-items-center rounded-[10px] text-white shadow-md sm:h-[34px] sm:w-[34px]", c.tile)}><c.icon className="h-5 w-5" strokeWidth={2.2} /></span>
+              <span className={cn("grid h-9 w-9 place-items-center rounded-[10px] text-white shadow-[0_6px_14px_rgba(255,90,31,0.28)] transition-transform duration-300 group-hover:scale-105 sm:h-[34px] sm:w-[34px]", c.tile)}><c.icon className="h-5 w-5" strokeWidth={2.2} /></span>
               <div className="relative z-10 mt-3 sm:max-w-[58%]">
                 <h2 className="text-[15px] font-black leading-[1.18] tracking-[-0.01em] text-[#111827] sm:text-[20px]">{c.title}</h2>
                 <p className="mt-1.5 text-[12.5px] leading-[1.35] text-[#1F2937] sm:mt-2 sm:text-[14.5px]">{c.text}</p>
               </div>
-              <c.Art className="absolute right-1.5 top-2 h-[58px] w-[74px] sm:right-4 sm:top-1/2 sm:h-[118px] sm:w-[148px] sm:-translate-y-1/3" />
+              <span className="absolute right-1.5 top-2 transition-transform duration-500 ease-out group-hover:-translate-y-1 group-hover:scale-[1.04] sm:right-4 sm:top-1/2 sm:-translate-y-1/3 sm:group-hover:-translate-y-[38%]"><c.Art className="h-[58px] w-[74px] sm:h-[118px] sm:w-[148px]" /></span>
             </button>
           ))}
         </div>
 
         {/* How it works */}
-        <section className="mx-auto mt-6 flex max-w-[1600px] flex-col gap-5 rounded-[22px] border border-[#F6E3D7] bg-[linear-gradient(100deg,#FFF6F0_0%,#FFF2EA_100%)] p-5 shadow-[0_8px_26px_rgba(255,90,31,0.06)] min-[440px]:flex-row min-[440px]:items-center min-[440px]:gap-5 sm:gap-8 sm:px-10 sm:py-6">
-          <div className="flex shrink-0 flex-col items-start gap-3 min-[440px]:w-[36%] sm:w-[30%] sm:flex-row sm:items-center sm:gap-5 lg:w-[26%]">
-            <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white shadow-[0_6px_16px_rgba(255,90,31,0.12)]"><Layers className="h-9 w-9 text-[#FF5A1F]" strokeWidth={2} /></span>
-            <span className="hidden h-16 w-0.5 bg-[#F2A57B] lg:block" />
+        <section className="tc-rise mx-auto mt-6 flex max-w-[1600px] flex-col gap-5 rounded-[24px] border border-[#F6E6DC] bg-[linear-gradient(100deg,#FFF8F3_0%,#FFFFFF_55%,#FFF6F0_100%)] p-5 shadow-[0_10px_30px_rgba(255,90,31,0.06)] [animation-delay:820ms] sm:p-7 lg:flex-row lg:items-center lg:gap-8 lg:px-10 lg:py-6">
+          <div className="flex shrink-0 items-center gap-4 lg:w-[27%] lg:gap-5">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white shadow-[0_8px_20px_rgba(255,90,31,0.14)] sm:h-16 sm:w-16"><Layers className="h-8 w-8 text-[#FF5A1F] sm:h-9 sm:w-9" strokeWidth={2} /></span>
+            <span className="h-14 w-0.5 shrink-0 rounded bg-[#FF8A5B]" />
             <div>
-              <h2 className="text-[24px] font-black tracking-[-0.01em] text-[#111827]">How It Works</h2>
-              <p className="mt-1 text-[15px] leading-6 text-[#1F2937]">A simple, fast, and reliable process in three easy steps.</p>
+              <h2 className="text-[21px] font-black tracking-[-0.01em] text-[#111827] sm:text-[24px]">How It Works</h2>
+              <p className="mt-0.5 text-[13.5px] leading-5 text-[#1F2937] sm:text-[15px] sm:leading-6">A simple, fast, and reliable process in three easy steps.</p>
             </div>
           </div>
-          <span className="hidden h-24 w-0.5 shrink-0 bg-[#F2A57B] min-[440px]:block lg:hidden" />
-          <ol className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-2">
+          <span className="hidden h-16 w-px shrink-0 bg-[#F0D6C7] lg:block" />
+          <ol className="grid flex-1 grid-cols-[1fr_auto_1fr_auto_1fr] items-start gap-1.5 sm:gap-3 lg:items-center">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="flex flex-col lg:flex-row lg:items-center">
-                <div className="flex items-start gap-3">
-                  <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#FF8A3D,#FF5A1F)] text-[15px] font-black text-white shadow-[0_6px_14px_rgba(255,90,31,0.30)]">{i + 1}</span>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[#FF5A1F] shadow-[0_4px_12px_rgba(255,90,31,0.10)]"><s.icon className="h-6 w-6" strokeWidth={2.1} /></span>
+              <li key={s.title} className="contents">
+                <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-start sm:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2.5">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#FF8A3D,#FF5A1F)] text-[14px] font-black text-white shadow-[0_6px_14px_rgba(255,90,31,0.30)] sm:h-9 sm:w-9 sm:text-[15px]">{i + 1}</span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#FF5A1F] shadow-[0_4px_12px_rgba(255,90,31,0.12)] sm:h-11 sm:w-11"><s.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.1} /></span>
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-[16px] font-extrabold text-[#111827]">{s.title}</p>
-                    <p className="max-w-[230px] text-[13.5px] leading-5 text-[#1F2937]">{s.text}</p>
+                    <p className="text-[13px] font-extrabold text-[#111827] sm:text-[16px]">{s.title}</p>
+                    <p className="text-[11.5px] leading-[1.35] text-[#1F2937] sm:max-w-[230px] sm:text-[13.5px] sm:leading-5">{s.text}</p>
                   </div>
                 </div>
-                {i < STEPS.length - 1 ? <ArrowRight aria-hidden className="ml-[70px] mt-1 h-5 w-5 rotate-90 text-[#64748B] lg:mx-4 lg:mt-0 lg:rotate-0" /> : null}
+                {i < STEPS.length - 1 ? <ArrowRight aria-hidden className="mt-2.5 h-4 w-4 shrink-0 text-[#475569] sm:h-5 sm:w-5 lg:mt-0" strokeWidth={2.2} /> : null}
               </li>
             ))}
           </ol>
