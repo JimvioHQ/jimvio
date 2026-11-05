@@ -4,7 +4,7 @@ import { categoryFor } from "./category.ts";
 import { engagementModel, evidenceScore, linkModel, mediaModel, productModel, reportCategory, type CheckRow } from "./result-model.ts";
 import { reportHtml } from "./report-doc.ts";
 import { readVideoMeta, iso6709 } from "./video-meta.ts";
-import { pdfMeta } from "./file-inspect.ts";
+import { pdfMeta, pdfText } from "./file-inspect.ts";
 import type { CheckerResult, EngagementDetails, LinkDetails, MediaDetails, ProductDetails, ScanReport } from "./types.ts";
 
 const checker = (id: CheckerResult["id"], over: Partial<CheckerResult> = {}): CheckerResult => ({
@@ -167,6 +167,20 @@ describe("file readers", () => {
     assert.equal(meta.createdAt, "2023-06-10T12:00:00.000Z");
     assert.deepEqual(iso6709("+46.8182+008.2275+1234/"), { lat: 46.8182, lon: 8.2275 });
     assert.equal(readVideoMeta(Buffer.from("not a video")), null);
+  });
+  it("follows indirect PDF info values and reads hex text (PDFKit style)", () => {
+    const { deflateSync } = require("node:zlib") as typeof import("node:zlib");
+    const content = deflateSync(Buffer.from("BT /F1 12 Tf [<4953424e2031> 60 <204368617074657220> 0] TJ ET"));
+    const pdf = Buffer.concat([
+      Buffer.from("%PDF-1.3\n12 0 obj\n(D:20240315000000Z)\nendobj\n13 0 obj\n(The Productivity Playbook)\nendobj\n14 0 obj\n(John Carter)\nendobj\n"),
+      Buffer.from(`5 0 obj\n<< /Length ${content.length} /Filter /FlateDecode >>\nstream\n`), content, Buffer.from("\nendstream\nendobj\n"),
+      Buffer.from("8 0 obj\n<< /Producer (PDFKit) /CreationDate 12 0 R /Title 13 0 R /Author 14 0 R >>\nendobj\n"),
+    ]);
+    const meta = pdfMeta(pdf);
+    assert.equal(meta.title, "The Productivity Playbook");
+    assert.equal(meta.author, "John Carter");
+    assert.equal(meta.createdAt, "2024-03-15T00:00:00.000Z");
+    assert.equal(pdfText(pdf)?.startsWith("ISBN 1 Chapter"), true);
   });
   it("escapes report content", () => {
     const html = reportHtml({ scanId: "abc", category: "X", item: "<script>", checkedAt: "", banner: { tone: "good", title: "T", text: "t", result: { label: "L", tone: "good" } }, score: null, sections: [], limits: [] });

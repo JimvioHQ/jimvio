@@ -183,7 +183,7 @@ export function pdfInfo(buf: Buffer): { pages: number | null; producer: string |
 }
 
 /** Decodes a PDF literal "(…)" or hex "<…>" string, including UTF-16BE. */
-export function pdfString(raw: string): string {
+export function pdfString(raw: string, trim = true): string {
   let bytes: number[];
   if (raw.startsWith("<")) {
     const hex = raw.slice(1, -1).replace(/[^0-9a-f]/gi, "");
@@ -211,9 +211,11 @@ export function pdfString(raw: string): string {
   if (bytes[0] === 0xfe && bytes[1] === 0xff) {
     let out = "";
     for (let i = 2; i + 1 < bytes.length; i += 2) out += String.fromCharCode((bytes[i] << 8) | bytes[i + 1]);
-    return out.replace(/\0/g, "").trim();
+    const u = out.replace(/\0/g, "");
+    return trim ? u.trim() : u;
   }
-  return Buffer.from(bytes).toString("latin1").replace(/\0/g, "").trim();
+  const l = Buffer.from(bytes).toString("latin1").replace(/\0/g, "");
+  return trim ? l.trim() : l;
 }
 
 /** PDF date "D:20240315093000+02'00'" to ISO, or null. */
@@ -243,9 +245,14 @@ export type PdfMeta = {
 /** The PDF's Info dictionary, falling back to XMP (dc:title, dc:creator). */
 export function pdfMeta(buf: Buffer): PdfMeta {
   const raw = buf.toString("latin1");
+  const STR = "(\\((?:\\\\.|[^\\\\)]){0,400}\\)|<[0-9A-Fa-f\\s]{2,800}>)";
   const field = (key: string): string | null => {
-    const re = new RegExp(`/${key}\\s*(\\((?:\\\\.|[^\\\\)]){0,400}\\)|<[0-9A-Fa-f\\s]{2,800}>)`);
-    const m = re.exec(raw);
+    let m = new RegExp(`/${key}\\s*${STR}`).exec(raw);
+    if (!m) {
+      // Indirect value: "/Title 13 0 R" -> "13 0 obj (…) endobj".
+      const ref = new RegExp(`/${key}\\s+(\\d+)\\s+(\\d+)\\s+R\\b`).exec(raw);
+      if (ref) m = new RegExp(`(?:^|[\\r\\n\\s])${ref[1]}\\s+${ref[2]}\\s+obj\\s*${STR}`).exec(raw);
+    }
     const v = m ? pdfString(m[1]) : "";
     return v && /[\p{L}\p{N}]/u.test(v) && !PLACEHOLDER.test(v) ? v.slice(0, 200) : null;
   };
@@ -302,12 +309,12 @@ export function pdfText(buf: Buffer, maxChars = 400_000): string | null {
   const chunks: string[] = [];
   let total = 0;
   const take = (content: string) => {
-    for (const m of content.matchAll(/(\((?:\\.|[^\\)]){1,400}\))\s*(?:Tj|'|")|\[((?:\s*(?:\((?:\\.|[^\\)]){0,400}\)|-?[\d.]+))*)\s*\]\s*TJ/g)) {
+    for (const m of content.matchAll(/(\((?:\\.|[^\\)]){1,400}\)|<[0-9A-Fa-f\s]{2,800}>)\s*(?:Tj|'|")|\[((?:\s*(?:\((?:\\.|[^\\)]){0,400}\)|<[0-9A-Fa-f\s]{0,800}>|-?[\d.]+))*)\s*\]\s*TJ/g)) {
       let piece = "";
-      if (m[1]) piece = pdfString(m[1]);
+      if (m[1]) piece = pdfString(m[1], false);
       else if (m[2]) {
-        for (const part of m[2].matchAll(/(\((?:\\.|[^\\)]){0,400}\))|(-?[\d.]+)/g)) {
-          if (part[1]) piece += pdfString(part[1]);
+        for (const part of m[2].matchAll(/(\((?:\\.|[^\\)]){0,400}\)|<[0-9A-Fa-f\s]{0,800}>)|(-?[\d.]+)/g)) {
+          if (part[1]) piece += pdfString(part[1], false);
           else if (Number(part[2]) < -200) piece += " ";
         }
       }
