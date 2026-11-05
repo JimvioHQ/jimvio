@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canEngageWithRoom } from "@/services/accessControl";
 import { isPostReactionId, type PostReactionId } from "@/lib/feed/reactions";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
@@ -82,7 +83,7 @@ export async function POST(
         .delete()
         .eq("post_id", postId)
         .eq("user_id", user.id);
-      await supabase.rpc("decrement_post_like_count" as any, { p_post_id: postId });
+      await createServiceRoleClient().rpc("decrement_post_like_count" as any, { p_post_id: postId });
     }
     const counts = await recountReactions(supabase, postId);
     return NextResponse.json({ reaction: null, counts });
@@ -109,7 +110,7 @@ export async function POST(
       .maybeSingle();
     if (!existing) {
       await supabase.from("community_post_likes").insert({ post_id: postId, user_id: user.id });
-      await supabase.rpc("increment_post_like_count" as any, { p_post_id: postId });
+      await createServiceRoleClient().rpc("increment_post_like_count" as any, { p_post_id: postId });
       if (post.author_id !== user.id) {
         try {
           const [{ data: actor }, { data: community }] = await Promise.all([

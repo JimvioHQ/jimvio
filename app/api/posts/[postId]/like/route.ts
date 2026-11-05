@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { canEngageWithCommunityPost } from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
 
@@ -59,7 +60,7 @@ export async function POST(
       return NextResponse.json({ error: delError.message }, { status: 400 });
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error: decError } = await supabase.rpc("decrement_post_like_count" as any, {
+    const { error: decError } = await createServiceRoleClient().rpc("decrement_post_like_count" as any, {
       p_post_id: postId,
     });
     if (decError) {
@@ -81,7 +82,7 @@ export async function POST(
     return NextResponse.json({ error: insertError.message }, { status: 400 });
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: incError } = await supabase.rpc("increment_post_like_count" as any, {
+  const { error: incError } = await createServiceRoleClient().rpc("increment_post_like_count" as any, {
     p_post_id: postId,
   });
   if (incError) {

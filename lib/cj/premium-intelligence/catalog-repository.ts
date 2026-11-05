@@ -188,14 +188,14 @@ export async function backfillIntelligenceFromRaw(): Promise<number> {
   if (!isCjProductIntelligenceProcessingEnabled()) return 0;
   const db = getCatalogDB();
   let backfilled = 0;
-  let offset = 0;
+  let afterPid: string | null = null;
   const pageSize = 1000;
 
   while (true) {
-    const { data: rawRows, error } = await db
-      .from("cj_raw_products")
-      .select("pid")
-      .range(offset, offset + pageSize - 1);
+    // Keyset paging on the pid index: each page costs the same (OFFSET grew linearly).
+    let pageQuery = db.from("cj_raw_products").select("pid").order("pid", { ascending: true }).limit(pageSize);
+    if (afterPid) pageQuery = pageQuery.gt("pid", afterPid);
+    const { data: rawRows, error } = await pageQuery;
 
     if (error) throw new Error(error.message);
     if (!rawRows?.length) break;
@@ -215,7 +215,7 @@ export async function backfillIntelligenceFromRaw(): Promise<number> {
     }
 
     if (rawRows.length < pageSize) break;
-    offset += pageSize;
+    afterPid = pids[pids.length - 1];
   }
 
   return backfilled;
