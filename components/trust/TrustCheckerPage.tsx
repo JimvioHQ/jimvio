@@ -321,12 +321,12 @@ export function TrustCheckerPage() {
         </section>
 
         {/* Features */}
-        <ul className="mx-auto mt-6 flex max-w-[1380px] items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:justify-center sm:gap-0 [&::-webkit-scrollbar]:hidden">
+        <ul className="mx-auto mt-6 grid max-w-[1380px] grid-cols-5 gap-1.5 sm:flex sm:items-center sm:justify-center sm:gap-0">
           {FEATURES.map((f, i) => (
-            <li key={f.label} className="flex shrink-0 items-center">
-              {i > 0 ? <span aria-hidden className="mx-1 hidden h-8 w-px bg-[#E2E5EA] sm:mx-6 sm:block lg:mx-8" /> : null}
-              <span className="inline-flex items-center gap-2.5 rounded-full bg-white px-3.5 py-2.5 text-[13px] font-extrabold leading-tight text-[#111827] shadow-[0_6px_18px_rgba(15,23,42,0.07)] sm:px-6 sm:py-3 sm:text-[15px]">
-                <f.icon className="h-6 w-6 shrink-0 sm:h-7 sm:w-7" strokeWidth={1.9} /> {f.label}
+            <li key={f.label} className="flex min-w-0 items-center">
+              {i > 0 ? <span aria-hidden className="hidden h-8 w-px bg-[#E2E5EA] sm:mx-6 sm:block lg:mx-8" /> : null}
+              <span className="flex w-full flex-col items-center gap-1 rounded-[16px] bg-white px-1 py-2 text-center text-[10.5px] font-extrabold leading-tight text-[#111827] shadow-[0_6px_18px_rgba(15,23,42,0.07)] min-[440px]:text-[12px] sm:w-auto sm:flex-row sm:text-left sm:gap-2.5 sm:rounded-full sm:px-6 sm:py-3 sm:text-[15px]">
+                <f.icon className="h-5 w-5 shrink-0 min-[440px]:h-6 min-[440px]:w-6 sm:h-7 sm:w-7" strokeWidth={1.9} /> <span className="min-w-0 sm:whitespace-nowrap">{f.label}</span>
               </span>
             </li>
           ))}
@@ -352,8 +352,8 @@ export function TrustCheckerPage() {
         </div>
 
         {/* How it works */}
-        <section className="mx-auto mt-6 flex max-w-[1600px] flex-col gap-5 rounded-[22px] border border-[#F6E3D7] bg-[linear-gradient(100deg,#FFF6F0_0%,#FFF2EA_100%)] p-5 shadow-[0_8px_26px_rgba(255,90,31,0.06)] sm:flex-row sm:items-center sm:gap-8 sm:px-10 sm:py-6">
-          <div className="flex shrink-0 items-center gap-5 sm:w-[30%] lg:w-[26%]">
+        <section className="mx-auto mt-6 flex max-w-[1600px] flex-col gap-5 rounded-[22px] border border-[#F6E3D7] bg-[linear-gradient(100deg,#FFF6F0_0%,#FFF2EA_100%)] p-5 shadow-[0_8px_26px_rgba(255,90,31,0.06)] min-[440px]:flex-row min-[440px]:items-center min-[440px]:gap-5 sm:gap-8 sm:px-10 sm:py-6">
+          <div className="flex shrink-0 flex-col items-start gap-3 min-[440px]:w-[36%] sm:w-[30%] sm:flex-row sm:items-center sm:gap-5 lg:w-[26%]">
             <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-white shadow-[0_6px_16px_rgba(255,90,31,0.12)]"><Layers className="h-9 w-9 text-[#FF5A1F]" strokeWidth={2} /></span>
             <span className="hidden h-16 w-0.5 bg-[#F2A57B] lg:block" />
             <div>
@@ -361,7 +361,7 @@ export function TrustCheckerPage() {
               <p className="mt-1 text-[15px] leading-6 text-[#1F2937]">A simple, fast, and reliable process in three easy steps.</p>
             </div>
           </div>
-          <span className="hidden h-24 w-0.5 bg-[#F2A57B] sm:block lg:hidden" />
+          <span className="hidden h-24 w-0.5 shrink-0 bg-[#F2A57B] min-[440px]:block lg:hidden" />
           <ol className="flex flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-2">
             {STEPS.map((s, i) => (
               <li key={s.title} className="flex flex-col lg:flex-row lg:items-center">
