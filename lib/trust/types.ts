@@ -54,9 +54,47 @@ export type LinkDetails = {
   pageFetched: boolean;
   redirects: { url: string; status: number }[];
   tls: { status: "valid" | "invalid" | "not_https" | "unavailable"; issuer: string | null; validTo: string | null; daysLeft: number | null };
-  webRisk: { status: ReputationStatus; threats: string[] };
+  webRisk: { status: ReputationStatus; threats: string[]; reason?: string | null; note?: string | null };
   phishingList: { status: ReputationStatus; match: string | null };
   officialPlatform: string | null;
+  /** Added Nov 2026. */
+  nameservers?: string[];
+  network?: { network: string | null; org: string | null; country: string | null; range: string | null } | null;
+  /** Whether the destination page itself could be read (not a login wall, error or block). */
+  contentInspected?: boolean;
+  contentBlockedReason?: string | null;
+  fetchError?: string | null;
+  /** The single authoritative verdict (see lib/trust/link-assessment.ts). */
+  assessment?: LinkAssessment;
+};
+
+export type CheckExecution = "CLEAN" | "THREAT_DETECTED" | "SUSPICIOUS" | "INCONCLUSIVE" | "NOT_CHECKED" | "UNAVAILABLE" | "FAILED";
+export type AssessmentState = "NO_KNOWN_THREATS" | "INCOMPLETE_ASSESSMENT" | "THREAT_DETECTED" | "SUSPICIOUS_ACTIVITY" | "WEBSITE_UNREACHABLE" | "SCAN_FAILED";
+
+export type SecurityCheck = {
+  id: string;
+  name: string;
+  status: CheckExecution;
+  severity: "none" | "low" | "medium" | "high" | "critical";
+  critical: boolean;
+  source: string;
+  explanation: string;
+  evidence: string[];
+};
+
+export type LinkAssessment = {
+  model: string;
+  state: AssessmentState;
+  riskScore: number;
+  riskClass: "Very Low Observed Risk" | "Low Observed Risk" | "Moderate Risk" | "High Risk" | "Critical Risk";
+  coverage: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  checks: SecurityCheck[];
+  counts: { completed: number; threats: number; suspicious: number; unavailable: number; notExecuted: number };
+  found: string[];
+  couldNotVerify: string[];
+  actions: string[];
+  topFinding: string | null;
 };
 
 export type SocialPlatform = "youtube" | "tiktok" | "instagram" | "facebook" | "x" | "threads";
@@ -125,6 +163,54 @@ export type ProductDetails = {
   seenBefore: number;
   marketplaceDuplicates: string[];
   sellerPage: { url: string; hasContact: boolean; hasRefund: boolean; hasPrivacy: boolean; domainAgeDays: number | null } | null;
+  /** Added Nov 2026 (product-verification-v2). */
+  firstSeenAt?: string | null;
+  inferredTitle?: { value: string; source: string } | null;
+  pdf?: {
+    security: { javascript: number; launch: number; openActionKind: string | null; additionalActions: number; embeddedFiles: number; uriActions: number; externalHosts: string[]; submitForm: number; richMedia: number; xfa: boolean; encrypted: boolean; malformedStreams: number };
+    pages: { total: number; withText: number; imageOnly: number; blank: number; failed: number; processed: number; duplicatePages: number; coverage: number; truncated: boolean };
+    outlineChapters: number;
+    parseError: string | null;
+  } | null;
+  textChapters?: number;
+  isbn?: string | null;
+  linkCheck?: { status: "clean" | "match" | "unavailable" | "none"; matches: string[] };
+  claims?: { bad: number; warn: number };
+  jimvio?: { verifiedSeller: boolean; approved: boolean } | null;
+  similarProducts?: string[];
+  assessment?: ProductAssessment;
+};
+
+export type ProductCheckStatus = "PASS" | "INFO" | "REVIEW" | "RISK" | "NOT_CHECKED" | "UNAVAILABLE" | "FAILED";
+export type ProductCheck = {
+  id: string;
+  group: "security" | "authenticity" | "authorship" | "rights" | "content" | "seller";
+  name: string;
+  status: ProductCheckStatus;
+  /** Short result shown on the pill, e.g. "None Found", "Metadata Found". */
+  label: string;
+  explanation: string;
+  evidence: string[];
+  source: string;
+  critical: boolean;
+};
+export type ProductVerdict = "VERIFIED" | "NEEDS_REVIEW" | "POTENTIAL_RISK_DETECTED" | "VERIFICATION_INCOMPLETE" | "UNABLE_TO_VERIFY" | "SCAN_FAILED";
+export type FileSafetyStatus = "CLEAN" | "MALWARE_DETECTED" | "SUSPICIOUS" | "SCAN_FAILED" | "SCAN_UNAVAILABLE" | "INCONCLUSIVE" | "NOT_CHECKED";
+export type ProductAssessment = {
+  model: string;
+  verdict: ProductVerdict;
+  fileSafety: FileSafetyStatus;
+  authorship: "AUTHORSHIP_METADATA_FOUND" | "AUTHORSHIP_SOURCE_VERIFIED" | "AUTHORSHIP_UNVERIFIED" | "INSUFFICIENT_EVIDENCE";
+  rights: "LICENSE_FOUND" | "COPYRIGHT_NOTICE_FOUND" | "PUBLIC_DOMAIN_EVIDENCE_FOUND" | "PUBLISHER_AUTHORIZATION_FOUND" | "RIGHTS_UNCLEAR" | "RIGHTS_NOT_ASSESSED" | "POSSIBLE_UNAUTHORIZED_DISTRIBUTION";
+  content: "CONTENT_QUALITY_ACCEPTABLE" | "CONTENT_READABLE" | "CONTENT_INCOMPLETE" | "CONTENT_EXTRACTION_FAILED" | "CONTENT_QUALITY_ISSUES_FOUND" | "CONTENT_NOT_ASSESSED";
+  scoreState: "SCORED" | "NOT_SCORED" | "INCOMPLETE";
+  score: number | null;
+  coverage: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+  checks: ProductCheck[];
+  found: string[];
+  couldNotVerify: string[];
+  actions: string[];
 };
 
 export type MediaDetails = {

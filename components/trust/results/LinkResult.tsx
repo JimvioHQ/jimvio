@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import {
-  ArrowRightLeft, Ban, Biohazard, CalendarDays, CirclePlus, Clock, CodeXml, Database, FileText, Fish, Gauge, Globe,
-  IdCard, Layers, Link2, Lock, MapPin, Network, Search, Server, ShieldCheck, TriangleAlert, User, Info, ShieldX, CircleCheck,
+  ArrowRightLeft, Ban, Bug, CalendarDays, CircleDashed, CircleHelp, CirclePlus, Clock, CodeXml, Database, Download, FileText, Fish, Gauge, Globe,
+  IdCard, Link2, Lock, MapPin, Network, Search, Server, ShieldAlert, ShieldCheck, TriangleAlert, User, Info, ShieldX, CircleCheck, Tag, ListChecks, CloudOff, WifiOff,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,11 @@ import { rowsFromChecks, rowsFromInfo, rowsFromTiles, type ReportDoc } from "@/l
 import { Card, CardTitle, CheckRowItem, CopyButton, InfoLine, InfoTip, Limits, ResultHeader, ScoreRing, StatTile, StatusPill } from "./ui";
 import { useReportActions } from "./actions";
 
-const CHECK_ICON: Record<string, LucideIcon> = { code: CodeXml, redirects: ArrowRightLeft, phishing: Fish, reputation: Globe, blocklist: Ban, tls: Lock, whois: IdCard, content: FileText };
-const INFO_ICON: Record<string, LucideIcon> = { url: Link2, domain: Globe, age: CalendarDays, registrar: User, host: Server, location: MapPin, ip: Network, tls: ShieldCheck, redirects: Link2, type: CodeXml, db: Database, checked: Clock };
-const TILE_ICON: Record<string, LucideIcon> = { result: Gauge, threat: Biohazard, category: Fish, redirects: ArrowRightLeft, issues: Layers, db: Globe };
+const CHECK_ICON: Record<string, LucideIcon> = { url: Link2, redirects: ArrowRightLeft, malware: Bug, phishing: Fish, reputation: Globe, brand: Tag, blocklist: Ban, tls: Lock, registration: IdCard, dns: Network, content: FileText, downloads: Download };
+const INFO_ICON: Record<string, LucideIcon> = { url: Link2, final: Link2, domain: Globe, age: CalendarDays, registrar: User, ns: Server, host: Server, location: MapPin, ip: Network, tls: ShieldCheck, redirects: ArrowRightLeft, type: CodeXml, db: Database, checked: Clock };
+const TILE_ICON: Record<string, LucideIcon> = { result: Gauge, completed: ListChecks, threats: ShieldAlert, suspicious: TriangleAlert, unavailable: CloudOff, notrun: CircleDashed };
+const STATE_ICON: Record<string, LucideIcon> = { NO_KNOWN_THREATS: CircleCheck, INCOMPLETE_ASSESSMENT: CircleHelp, THREAT_DETECTED: ShieldX, SUSPICIOUS_ACTIVITY: TriangleAlert, WEBSITE_UNREACHABLE: WifiOff, SCAN_FAILED: CloudOff };
+const CONF_TONE = { HIGH: "text-[#15803D]", MEDIUM: "text-[#C2410C]", LOW: "text-[#B91C1C]" } as const;
 
 const BANNER_STYLE = {
   danger: { wrap: "border-[#F6C9C6] bg-[linear-gradient(110deg,#FFF5F4_0%,#FFEDEB_100%)]", title: "text-[#D92D20]", circle: "bg-[#FDE2E0]", icon: ShieldX, iconCls: "text-[#D92D20]" },
@@ -32,8 +34,8 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
   const [showHops, setShowHops] = useState(false);
   const [showDbs, setShowDbs] = useState(false);
   const b = BANNER_STYLE[m.banner.tone];
-  const BIcon = b.icon;
-  const riskTone = m.risk.value == null ? "neutral" : m.risk.value >= 70 ? "bad" : m.risk.value >= 35 ? "warn" : "good";
+  const BIcon = STATE_ICON[m.state] ?? b.icon;
+  const riskTone = m.risk.value == null ? "neutral" : m.risk.value >= 60 ? "bad" : m.risk.value >= 40 ? "warn" : "good";
 
   const doc: ReportDoc = {
     scanId: report.id,
@@ -43,6 +45,10 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
     banner: m.banner,
     score: { title: "Overall Risk Score", score: m.risk },
     sections: [
+      { title: "Assessment", rows: [{ label: "Coverage", value: `${m.coverage.value}% (${m.coverage.completed} of ${m.coverage.total} checks completed)` }, { label: "Confidence", value: m.confidence }] },
+      { title: "What We Found", rows: m.sections.found.map((v, i) => ({ label: String(i + 1), value: v })) },
+      { title: "What We Could Not Verify", rows: m.sections.couldNotVerify.map((v, i) => ({ label: String(i + 1), value: v })) },
+      { title: "Recommended Action", rows: m.sections.actions.map((v, i) => ({ label: String(i + 1), value: v })) },
       { title: "Summary", rows: rowsFromTiles(m.tiles) },
       { title: "Detailed Scan Results", rows: rowsFromChecks(m.checks) },
       { title: "Link Information", rows: rowsFromInfo(m.info) },
@@ -80,16 +86,49 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
           <div className="mt-3 flex items-center gap-5">
             <ScoreRing value={m.risk.value} tone={riskTone} size={150} />
             <div className="min-w-0">
-              <StatusPill pill={m.risk.badge} size="lg" />
+              <StatusPill pill={m.risk.badge} size="md" className="whitespace-normal text-left leading-tight [&>span]:whitespace-normal" />
               <p className="mt-3 text-[14px] leading-6 text-[#1F2937] sm:text-[16px]">{m.risk.text}</p>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#EEF0F3] pt-3">
+            <div>
+              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Coverage</p>
+              <p className="text-[18px] font-black text-[#111827]">{m.coverage.value}% <span className="text-[13px] font-semibold text-[#475569]">({m.coverage.completed}/{m.coverage.total} checks)</span></p>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#EEF0F3]" role="progressbar" aria-valuenow={m.coverage.value} aria-valuemin={0} aria-valuemax={100} aria-label="Scan coverage">
+                <div className="h-full rounded-full bg-[#FF5A1F]" style={{ width: `${m.coverage.value}%` }} />
+              </div>
+            </div>
+            <div>
+              <p className="text-[12.5px] font-semibold uppercase tracking-wide text-[#64748B]">Confidence</p>
+              <p className={cn("text-[18px] font-black", CONF_TONE[m.confidence])}>{m.confidence[0] + m.confidence.slice(1).toLowerCase()}</p>
+              <p className="text-[12px] leading-tight text-[#475569]">How reliable this result is</p>
             </div>
           </div>
         </Card>
       </div>
 
+      <Card className="grid gap-0 divide-y divide-[#EEF0F3] md:grid-cols-3 md:divide-x md:divide-y-0">
+        {([
+          ["What We Found", m.sections.found, Search, "text-[#111827]"],
+          ["What We Could Not Verify", m.sections.couldNotVerify, CircleHelp, "text-[#475569]"],
+          ["Recommended Action", m.sections.actions, ShieldCheck, "text-[#FF5A1F]"],
+        ] as const).map(([title, items, Icon, cls]) => (
+          <div key={title} className="min-w-0 px-5 py-4 sm:px-6">
+            <h3 className="flex items-center gap-2 text-[13px] font-black uppercase tracking-[0.06em] text-[#111827]"><Icon className={cn("h-[18px] w-[18px]", cls)} strokeWidth={2.4} />{title}</h3>
+            {items.length ? (
+              <ul className="mt-2 space-y-1.5 text-[13.5px] leading-snug text-[#1F2937]">
+                {items.map((t) => <li key={t} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#FF5A1F]" />{t}</li>)}
+              </ul>
+            ) : (
+              <p className="mt-2 text-[13.5px] text-[#475569]">{title === "What We Could Not Verify" ? "Every check completed." : "Nothing to report."}</p>
+            )}
+          </div>
+        ))}
+      </Card>
+
       <div className="tc-stagger grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {m.tiles.map((t) => (
-          <StatTile key={t.key} tile={t} icon={TILE_ICON[t.key]} bubble={t.key === "db" ? (t.tone === "bad" ? "bad" : t.tone === "good" ? "good" : "neutral") : "orange"} />
+          <StatTile key={t.key} tile={t} icon={TILE_ICON[t.key]} bubble={t.key === "result" ? (t.tone === "bad" ? "bad" : t.tone === "good" ? "good" : "neutral") : "orange"} />
         ))}
       </div>
 
@@ -124,7 +163,7 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
                 ) : null}
                 {r.key === "db" && showDbs && d ? (
                   <ul className="mb-2 ml-8 space-y-1 rounded-xl bg-[#F8FAFC] p-3 text-[12.5px] text-[#334155]">
-                    <li>Google Web Risk: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : "Not checked"}</b></li>
+                    <li>Google Web Risk: <b>{d.webRisk.status === "match" ? `Listed (${d.webRisk.threats.join(", ").toLowerCase().replace(/_/g, " ")})` : d.webRisk.status === "clean" ? "Not listed" : (d.webRisk.note ?? "Not checked")}</b></li>
                     <li>Phishing.Database: <b>{d.phishingList.status === "match" ? `Listed (${d.phishingList.match})` : d.phishingList.status === "clean" ? "Not listed" : "Not checked"}</b></li>
                   </ul>
                 ) : null}

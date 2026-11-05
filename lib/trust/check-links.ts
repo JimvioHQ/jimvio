@@ -2,8 +2,9 @@ import "server-only";
 import { getDomain } from "tldts";
 import type { CheckerResult, Finding, LinkDetails } from "./types";
 import { BlockedUrlError, normalizeUrl, safeFetch, type FetchChain } from "./safe-fetch";
-import { decideLinkStatus, officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
-import { domainAge, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
+import { officialFor, pageSignals, redirectSignals, urlFacts, urlSignals } from "./url-heuristics";
+import { domainAge, ipNetwork, phishingListMatch, tlsInfo, webRiskLookup } from "./threat-intel";
+import { assessLink, contentBlock } from "./link-assessment";
 
 export type LinkContext = { url: URL; chain: FetchChain; html: string | null; contentType: string; domainAgeDays: number | null };
 
@@ -50,10 +51,8 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
   // Reputation: every domain on the path.
   const hosts = [...new Set([url.hostname, ...chain.hops.map((h) => new URL(h.url).hostname)])];
   let knownThreat = false;
-  let reputationChecked = false;
   const listHits = await Promise.all(hosts.map((h) => phishingListMatch(h)));
   if (listHits.some((r) => r.checked)) {
-    reputationChecked = true;
     sources.add("Phishing.Database (MIT)");
   } else limits.push("The public phishing list could not be loaded for this scan.");
   const hit = listHits.find((r) => r.match);
@@ -67,17 +66,18 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     sources.add("Google Web Risk");
     findings.unshift({ tone: "bad", title: "Google flags this link", detail: risk.threats.join(", ").toLowerCase().replace(/_/g, " "), source: "Google Web Risk" });
   } else if (risk.status === "clean") {
-    reputationChecked = true;
     sources.add("Google Web Risk");
     findings.push({ tone: "good", title: "Not on Google's unsafe list", detail: "Not being listed doesn't prove a site is safe.", source: "Google Web Risk" });
   } else if (risk.note) limits.push(risk.note);
 
   const facts = urlFacts(finalUrl);
   const reg = facts.registrable ?? getDomain(finalUrl.hostname);
-  const [age, tlsRes] = await Promise.all([
+  const [age, tlsRes, net] = await Promise.all([
     reg && !facts.isIp ? domainAge(reg) : Promise.resolve(null),
     finalUrl.protocol === "https:" && final ? tlsInfo(finalUrl.hostname, final.ip) : Promise.resolve(null),
+    final?.ip ? ipNetwork(final.ip).catch(() => null) : Promise.resolve(null),
   ]);
+  if (net?.source) sources.add("RDAP (IP network)");
   if (age?.source) sources.add("RDAP (domain registry)");
   if (age?.ageDays != null) {
     metrics.push({ label: "Domain age", value: age.ageDays >= 365 ? `${Math.floor(age.ageDays / 365)} yr` : `${age.ageDays} days` });
@@ -111,26 +111,6 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
     findings.unshift({ tone: "good", title: `Official ${platformName} address`, detail: `${startReg} belongs to ${platformName}.`, source: "URL analysis" });
   }
 
-  const status = decideLinkStatus(findings, knownThreat, Boolean(final), reputationChecked);
-  const summary =
-    platformName && status === "low_risk"
-      ? `Genuine ${platformName} link. No known threat found.`
-      : status === "known_threat"
-      ? "Known threat: this link is on a list of active phishing or malware sites."
-      : status === "high_risk"
-        ? "Several strong scam or phishing signs."
-        : status === "suspicious"
-          ? "Some warning signs. Be careful before logging in, paying or downloading."
-          : status === "low_risk"
-            ? "No known threat found and no strong warning signs."
-            : "Jimvio couldn't get enough evidence to judge this link.";
-  const nextSteps =
-    status === "known_threat" || status === "high_risk"
-      ? ["Do not enter passwords, codes or payment details.", "Do not download anything from this link.", "If you already did, change your password and contact your bank or wallet provider."]
-      : status === "suspicious"
-        ? ["Open the official site yourself instead of using this link.", "Never share one-time codes or wallet phrases."]
-        : ["Still check the address bar before typing passwords."];
-
   const details: LinkDetails = {
     kind: "links",
     submittedUrl: url.toString(),
@@ -150,10 +130,42 @@ export async function checkLink(raw: string): Promise<{ result: CheckerResult; c
         : tlsRes
           ? { status: tlsRes.ok ? "valid" : "invalid", issuer: tlsRes.issuer, validTo: tlsRes.validTo, daysLeft: tlsRes.daysLeft }
           : { status: "unavailable", issuer: null, validTo: null, daysLeft: null },
-    webRisk: { status: risk.status === "match" ? "match" : risk.status === "clean" ? "clean" : "unavailable", threats: risk.threats ?? [] },
+    webRisk: { status: risk.status === "match" ? "match" : risk.status === "clean" ? "clean" : "unavailable", threats: risk.threats ?? [], reason: risk.reason ?? null, note: risk.status === "unavailable" ? (risk.note ?? null) : null },
     phishingList: { status: hit?.match ? "match" : listHits.some((r) => r.checked) ? "clean" : "unavailable", match: hit?.match ?? null },
     officialPlatform: platformName,
+    nameservers: age?.nameservers ?? [],
+    network: net ? { network: net.network, org: net.org, country: net.country, range: net.range } : null,
+    fetchError: !final ? (chain.error ?? "The page could not be fetched.") : null,
   };
+  details.contentBlockedReason = contentBlock(details, html);
+  details.contentInspected = details.pageFetched && !details.contentBlockedReason;
+  if (details.contentBlockedReason && final) limits.push(details.contentBlockedReason);
+
+  // One authoritative verdict: the checker status, summary and page all follow it.
+  const assessment = assessLink({ findings, details });
+  details.assessment = assessment;
+  const status: CheckerResult["status"] =
+    assessment.state === "THREAT_DETECTED"
+      ? knownThreat
+        ? "known_threat"
+        : assessment.riskScore >= 60
+          ? "high_risk"
+          : "suspicious"
+      : assessment.state === "SUSPICIOUS_ACTIVITY"
+        ? "suspicious"
+        : assessment.state === "NO_KNOWN_THREATS"
+          ? "low_risk"
+          : "inconclusive";
+  const SUMMARY: Record<typeof assessment.state, string> = {
+    NO_KNOWN_THREATS: platformName ? `Genuine ${platformName} link. No known threats detected.` : "No known threats detected.",
+    INCOMPLETE_ASSESSMENT: "Some important security checks could not be completed.",
+    THREAT_DETECTED: knownThreat ? "Known threat: this link is on a list of active phishing or malware sites." : "Potential security threat detected.",
+    SUSPICIOUS_ACTIVITY: "Suspicious indicators found. Be careful before logging in, paying or downloading.",
+    WEBSITE_UNREACHABLE: "The destination could not be inspected.",
+    SCAN_FAILED: "The security scan could not be completed.",
+  };
+  const summary = SUMMARY[assessment.state];
+  const nextSteps = assessment.actions;
 
   return {
     context: { url, chain, html, contentType, domainAgeDays: age?.ageDays ?? null },

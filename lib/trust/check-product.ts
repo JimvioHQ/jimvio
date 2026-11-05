@@ -4,6 +4,9 @@ import type { CheckerResult, Finding, ProductDetails, ProductType } from "./type
 import { extractText, fileSafety, pdfMeta, type FileType, type PdfMeta } from "./file-inspect";
 import { claimFindings, readProductPage } from "./product-signals";
 import { seenFile } from "./fingerprints";
+import { inspectPdf, type PdfStructure } from "./pdf-structure";
+import { assessProduct } from "./product-assessment";
+import { phishingListMatch } from "./threat-intel";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = () => createServiceRoleClient() as unknown as { from: (t: string) => any; rpc: (f: string, a: Record<string, unknown>) => Promise<{ data: any }> };
@@ -38,7 +41,7 @@ async function jimvioListing(url: URL): Promise<Finding[]> {
 const AI_WRITERS = /chatgpt|openai|gpt-?[345]|claude|gemini|bard|jasper|copy\.ai|writesonic|sudowrite|gamma\.app|\bgamma\b|tome\.app|designrr|sqribble|aiwriter/i;
 
 /** Book, document or template, decided from evidence in the file only. */
-export function classifyProduct(type: FileType, name: string, meta: PdfMeta | null, text: string): { type: ProductType; basis: string } {
+export function classifyProduct(type: FileType, name: string, meta: PdfMeta | null, text: string, outlineChapters = 0): { type: ProductType; basis: string } {
   if (type.kind === "ebook") return { type: "ebook", basis: "EPUB e-book file" };
   if (type.kind === "executable") return { type: "software", basis: type.label };
   if (type.kind === "archive") return { type: "archive", basis: "ZIP archive" };
@@ -52,8 +55,12 @@ export function classifyProduct(type: FileType, name: string, meta: PdfMeta | nu
   const isbn = /\bISBN(?:-1[03])?:?\s*[0-9][0-9- ]{8,16}[0-9X]\b/i.test(text);
   const chapters = new Set((text.match(/\bchapter\s+(\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\b/gi) ?? []).map((c) => c.toLowerCase())).size;
   if (isbn) return { type: "book", basis: "ISBN found in the text" };
-  if (chapters >= 3 && (meta?.pages ?? 0) >= 20) return { type: "book", basis: `${chapters} chapters across ${meta?.pages} pages` };
-  return { type: "document", basis: type.kind === "pdf" ? "PDF without book markers (ISBN or chapters)" : type.label };
+  if (outlineChapters >= 3 && (meta?.pages ?? 0) >= 20) return { type: "book", basis: `File signature (PDF) · ${outlineChapters} chapter bookmarks across ${meta?.pages} pages` };
+  if (chapters >= 3 && (meta?.pages ?? 0) >= 20) return { type: "book", basis: `File signature (PDF) · ${chapters} chapter headings in the text across ${meta?.pages} pages` };
+  return {
+    type: "document",
+    basis: type.kind === "pdf" ? (text ? "File signature (PDF) · no ISBN or chapter structure found in the text" : "File signature (PDF) · text not readable, so book markers could not be checked") : type.label,
+  };
 }
 
 /** Licence wording inside the product. */
@@ -89,6 +96,11 @@ export async function checkProduct(input: ProductInput, applicableReason: string
   let meta: PdfMeta | null = null;
   let seenCount = 0;
   let duplicates: string[] = [];
+  let pdf: PdfStructure | null = null;
+  let pdfError: string | null = null;
+  let firstSeenAt: string | null = null;
+  let similar: string[] = [];
+  let linkCheck: NonNullable<ProductDetails["linkCheck"]> = { status: "none", matches: [] };
 
   if (file) {
     sources.add("File inspection");
@@ -96,20 +108,35 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     metrics.push({ label: "File", value: `${file.type.label} · ${(file.buf.length / 1024).toFixed(0)} KB` });
     metrics.push({ label: "SHA-256", value: `${file.sha.slice(0, 16)}…` });
     if (file.type.kind === "pdf") {
+      try {
+        pdf = inspectPdf(file.buf);
+      } catch (e) {
+        pdf = null;
+        pdfError = e instanceof Error ? e.message : "PDF could not be parsed";
+      }
       meta = pdfMeta(file.buf);
+      if (pdf?.pages.total && (!meta.pages || meta.pages !== pdf.pages.total)) meta = { ...meta, pages: pdf.pages.total };
       if (meta.pages) metrics.push({ label: "Pages", value: String(meta.pages) });
       if (meta.producer) metrics.push({ label: "Made with", value: meta.producer });
     }
     const seen = await seenFile(file.sha);
     seenCount = seen.count;
-    if (seen.count > 0) findings.push({ tone: "warn", title: `This exact file was checked ${seen.count} time${seen.count === 1 ? "" : "s"} before on Jimvio`, detail: "Others may be selling or sharing the same file.", source: "Jimvio fingerprint history" });
+    firstSeenAt = seen.firstSeenAt;
+    if (seen.count > 0) findings.push({ tone: "info", title: `This exact file has been checked ${seen.count} time${seen.count === 1 ? "" : "s"} on Jimvio`, source: "Jimvio fingerprint history" });
     const { data: same } = await db().from("products").select("name, slug").eq("file_digest", file.sha).is("deleted_at", null).limit(3);
     if ((same ?? []).length) {
       duplicates = (same as { name: string }[]).map((x) => x.name);
       sources.add("Jimvio marketplace");
       findings.push({ tone: "warn", title: "The same file is already sold on Jimvio", detail: (same as { name: string }[]).map((s) => s.name).join(", "), source: "Jimvio marketplace" });
     }
-    text = extractText(file.buf, file.type) ?? "";
+    text = file.type.kind === "pdf" ? (pdf && pdf.text.split(/\s+/).length >= 20 ? pdf.text : (extractText(file.buf, file.type) ?? "")) : (extractText(file.buf, file.type) ?? "");
+    const hosts = pdf?.security.externalHosts ?? [];
+    if (hosts.length) {
+      const hits = await Promise.all(hosts.slice(0, 12).map((h) => phishingListMatch(h).catch(() => ({ checked: false, match: null }))));
+      const matches = hits.map((h) => h.match).filter((m): m is string => Boolean(m));
+      linkCheck = { status: matches.length ? "match" : hits.some((h) => h.checked) ? "clean" : "unavailable", matches };
+      if (matches.length) findings.push({ tone: "bad", title: "Links to a known phishing domain", detail: matches.join(", "), source: "Phishing.Database" });
+    }
     if (!text && ["pdf", "office", "ebook"].includes(file.type.kind)) limits.push("Text inside this file couldn't be read, so originality and claims were checked from the name only.");
     nameForMatch = file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ");
   }
@@ -140,11 +167,12 @@ export async function checkProduct(input: ProductInput, applicableReason: string
 
   findings.push(...claimFindings(text));
   if (nameForMatch && nameForMatch.length >= 6) {
-    const { data: similar } = await db().rpc("trust_similar_products", { q: nameForMatch.slice(0, 200), max_rows: 3, only_digital: true });
-    const close = ((similar ?? []) as { name: string; store: string | null; similarity: number }[]).filter((s) => s.similarity >= 0.6);
+    const { data: simRows } = await db().rpc("trust_similar_products", { q: nameForMatch.slice(0, 200), max_rows: 3, only_digital: true });
+    const close = ((simRows ?? []) as { name: string; store: string | null; similarity: number }[]).filter((s) => s.similarity >= 0.6);
     if (close.length) {
       sources.add("Jimvio marketplace");
-      findings.push({ tone: "info", title: "Similar products on Jimvio", detail: close.map((c) => `${c.name}${c.store ? ` (${c.store})` : ""}`).join("; "), source: "Jimvio marketplace" });
+      similar = close.map((c) => `${c.name}${c.store ? ` (${c.store})` : ""}`);
+      findings.push({ tone: "info", title: "Similar products on Jimvio", detail: similar.join("; "), source: "Jimvio marketplace" });
     }
   }
 
@@ -154,17 +182,27 @@ export async function checkProduct(input: ProductInput, applicableReason: string
   );
   if (file && file.type.kind !== "executable") limits.push("Jimvio checks file structure for risky features; it is not a full antivirus scan.");
 
-  const bad = findings.filter((x) => x.tone === "bad").length;
-  const warn = findings.filter((x) => x.tone === "warn").length;
   // An unrecognized binary with no readable evidence must never receive a low-risk verdict.
   const unsupportedFile = Boolean(file && file.type.kind === "unknown");
   if (unsupportedFile) limits.push("This file format is not recognized. Jimvio could not inspect its internal structure or confirm whether it is safe.");
-  const status: CheckerResult["status"] = bad >= 2 || (bad && warn >= 2) ? "high_risk" : bad || warn >= 2 ? "suspicious" : warn === 1 ? "evidence_found" : unsupportedFile ? "inconclusive" : "low_risk";
-  const fileText = file ? (extractText(file.buf, file.type) ?? "") : "";
-  const cls = file ? classifyProduct(file.type, file.name, meta, fileText) : { type: "document" as ProductType, basis: "Product page" };
+  const fileText = file ? (file.type.kind === "pdf" ? (pdf?.text || extractText(file.buf, file.type) || "") : (extractText(file.buf, file.type) ?? "")) : "";
+  const cls = file ? classifyProduct(file.type, file.name, meta, fileText, pdf?.outlineTitles.filter((t) => /^(chapter|part|book|section)\b|^[ivxlc]+\.?$|^\d+\.?\s/i.test(t.trim())).length ?? 0) : { type: "document" as ProductType, basis: "Product page" };
   const lic = licenseFrom(text);
   const aiTool = [meta?.producer, meta?.creator].map((v) => (v && AI_WRITERS.test(v) ? v : null)).find(Boolean) ?? null;
   const words = fileText ? fileText.split(/\s+/).filter((w) => /[\p{L}]{2,}/u.test(w)).length : 0;
+  const isbn = /\bISBN(?:-1[03])?:?\s*([0-9][0-9- ]{8,16}[0-9X])\b/i.exec(fileText)?.[1]?.replace(/\s+/g, "") ?? null;
+  const textChapters = new Set((fileText.match(/\bchapter\s+(\d{1,3}|[ivxlc]{1,7}|one|two|three|four|five|six|seven|eight|nine|ten)\b/gi) ?? []).map((c) => c.toLowerCase())).size;
+  const outlineChapters = pdf ? pdf.outlineTitles.filter((t) => /^(chapter|part|book|section|letter)\b/i.test(t.trim())).length : 0;
+  // Title: the document's own metadata stays as is; a stronger title is shown separately with its source.
+  const subjectTitle = meta?.subject ? /^(.{2,120}?),?\s+by\s+[^.]{2,80}/i.exec(meta.subject)?.[1]?.trim() ?? null : null;
+  const weakTitle = !meta?.title || /^(chapter|part|section)\s+\w+$|^untitled|^document\d*$/i.test(meta.title.trim());
+  const headTitle = pdf?.head.split(/\n/).map((l) => l.trim()).find((l) => /\p{L}{3}/u.test(l) && l.length <= 80) ?? null;
+  const inferredTitle = weakTitle ? (subjectTitle ? { value: subjectTitle, source: "PDF subject metadata" } : headTitle && headTitle !== meta?.title ? { value: headTitle, source: "First page text" } : null) : null;
+  const claimF = findings.filter((x) => x.source === "Claim check");
+  const jf = findings.filter((x) => x.source === "Jimvio marketplace" || x.source === "Jimvio digital review");
+  const jimvio = page && /(^|\.)jimvio\.com$/.test(page.url.hostname) && jf.length
+    ? { verifiedSeller: jf.some((x) => /verified Jimvio store/.test(x.title)), approved: jf.some((x) => /approved by Jimvio/.test(x.title)) }
+    : null;
   const details: ProductDetails = {
     kind: "product",
     fileName: file?.name ?? null,
@@ -189,29 +227,58 @@ export async function checkProduct(input: ProductInput, applicableReason: string
     seenBefore: seenCount,
     marketplaceDuplicates: duplicates,
     sellerPage,
+    firstSeenAt,
+    inferredTitle,
+    pdf: file?.type.kind === "pdf"
+      ? pdf
+        ? {
+            security: { javascript: pdf.security.javascript, launch: pdf.security.launch, openActionKind: pdf.security.openActionKind, additionalActions: pdf.security.additionalActions, embeddedFiles: pdf.security.embeddedFiles, uriActions: pdf.security.uriActions, externalHosts: pdf.security.externalHosts, submitForm: pdf.security.submitForm, richMedia: pdf.security.richMedia, xfa: pdf.security.xfa, encrypted: pdf.security.encrypted, malformedStreams: pdf.security.malformedStreams },
+            pages: { total: pdf.pages.total, withText: pdf.pages.withText, imageOnly: pdf.pages.imageOnly, blank: pdf.pages.blank, failed: pdf.pages.failed, processed: pdf.pages.processed, duplicatePages: pdf.pages.duplicatePages, coverage: pdf.pages.coverage, truncated: pdf.pages.truncated },
+            outlineChapters,
+            parseError: pdf.error,
+          }
+        : { security: { javascript: 0, launch: 0, openActionKind: null, additionalActions: 0, embeddedFiles: 0, uriActions: 0, externalHosts: [], submitForm: 0, richMedia: 0, xfa: false, encrypted: false, malformedStreams: 0 }, pages: { total: 0, withText: 0, imageOnly: 0, blank: 0, failed: 0, processed: 0, duplicatePages: 0, coverage: 0, truncated: false }, outlineChapters: 0, parseError: pdfError ?? "PDF could not be parsed" }
+      : null,
+    textChapters,
+    isbn,
+    linkCheck,
+    claims: { bad: claimF.filter((x) => x.tone === "bad").length, warn: claimF.filter((x) => x.tone === "warn").length },
+    jimvio,
+    similarProducts: similar,
   };
+  if (pdf?.security.encrypted) limits.push("The PDF is encrypted, so some of its content may not have been readable.");
+  if (pdf?.pages.imageOnly) limits.push(`${pdf.pages.imageOnly} page(s) are images without text. OCR is not configured, so they were not read.`);
   if (aiTool) findings.push({ tone: "warn", title: `Made with an AI writing tool: ${aiTool}`, detail: "The file's own metadata names the tool.", source: "PDF metadata" });
+
+  // One authoritative verdict: checker status, summary and page all follow it.
+  const assessment = assessProduct({ details, findings });
+  details.assessment = assessment;
+  const status: CheckerResult["status"] = unsupportedFile
+    ? "inconclusive"
+    : assessment.verdict === "POTENTIAL_RISK_DETECTED"
+      ? assessment.fileSafety === "SUSPICIOUS" && (assessment.score ?? 100) < 30 ? "high_risk" : "suspicious"
+      : assessment.verdict === "NEEDS_REVIEW"
+        ? "evidence_found"
+        : assessment.verdict === "VERIFIED"
+          ? "low_risk"
+          : "inconclusive";
+  const SUMMARY: Record<typeof assessment.verdict, string> = {
+    VERIFIED: "Verified: the applicable checks completed and support this product.",
+    NEEDS_REVIEW: "Some findings need review before this product can be fully verified.",
+    POTENTIAL_RISK_DETECTED: "Credible indicators of a potential product or security risk.",
+    VERIFICATION_INCOMPLETE: "Not enough checks completed to verify this product.",
+    UNABLE_TO_VERIFY: "The file looks technically sound, but its source and rights could not be confirmed.",
+    SCAN_FAILED: "The file could not be analysed because of a technical problem.",
+  };
   return {
     ...base,
     details,
     status,
-    summary:
-      status === "high_risk"
-        ? "Strong warning signs: don't open or buy this before checking further."
-        : status === "suspicious"
-          ? "Some warning signs about safety, originality or the seller."
-          : status === "evidence_found"
-            ? "Mostly fine, with one thing worth checking."
-            : status === "inconclusive"
-              ? "The file type could not be recognized, so safety could not be assessed."
-              : "No safety problems or suspicious claims found.",
+    summary: SUMMARY[assessment.verdict],
     findings,
     metrics,
     sources: [...sources],
     limits,
-    nextSteps:
-      status === "low_risk"
-        ? ["Keep your receipt and the seller's contact details."]
-        : ["Pay only through a platform with buyer protection.", "Ask the seller for proof they own or licensed the content.", "Never run programs from unknown sellers."],
+    nextSteps: assessment.actions,
   };
 }
