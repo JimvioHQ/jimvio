@@ -10,6 +10,7 @@ import type {
 import { assessLink } from "./link-assessment";
 import { assessProduct } from "./product-assessment";
 import { assessMedia, softwareKind } from "./media-assessment";
+import { INSUFFICIENT_TEXT, rangeLabel } from "./engagement-estimate";
 
 export type Tone = "good" | "warn" | "bad" | "neutral" | "info" | "ai";
 export type Pill = { label: string; tone: Tone };
@@ -342,8 +343,16 @@ export type EngagementModel = {
   limits: string[];
 };
 
+const CLASS_HINT: Record<"PLATFORM_REPORTED" | "OWNER_VERIFIED" | "ESTIMATED" | "UNAVAILABLE", string> = {
+  PLATFORM_REPORTED: "Platform-reported public count.",
+  OWNER_VERIFIED: "Read from the owner's connected account.",
+  ESTIMATED: "Jimvio estimate (range), not a platform figure.",
+  UNAVAILABLE: "Not available from public sources.",
+};
+
 export function engagementModel(c: CheckerResult, d: EngagementDetails): EngagementModel {
   const name = PLATFORM_LABEL[d.platform];
+  const est = d.estimate ?? null;
   const isYt = d.platform === "youtube";
   const kindLabel = d.contentType === "short" ? "Short" : d.contentType === "reel" ? "Reel" : d.contentType === "channel" ? (isYt ? "Channel" : "Account") : isYt || d.platform === "tiktok" ? (d.platform === "tiktok" ? "Post" : "Video") : "Post";
   const warns = c.findings.filter((x) => x.tone === "warn" || x.tone === "bad");
@@ -364,10 +373,22 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
   const notPublic = `${name} doesn't publish this number.`;
   const tiles: Tile[] = [
     { key: "views", value: fmtCount(d.views), label: `Total ${viewsWord}` },
-    { key: "real", value: null, label: "Real Views", hint: `No public source reports bot-filtered views for ${name}. Jimvio won't estimate them.` },
-    { key: "bot", value: null, label: "Bot Views", hint: `${isYt ? "YouTube removes views it detects as invalid but doesn't say how many." : notPublic} Jimvio won't estimate them.` },
-    { key: "likes", value: fmtCount(d.likes), label: "Likes", hint: d.likes == null ? notPublic : undefined },
-    { key: "comments", value: fmtCount(d.comments), label: "Comments", hint: d.comments == null ? notPublic : undefined },
+    {
+      key: "real",
+      value: est?.genuine ? rangeLabel(est.genuine) : null,
+      label: est?.genuine ? "Genuine (est.)" : "Genuine Views",
+      tone: est?.genuine ? "good" : undefined,
+      hint: est?.genuine ? `ESTIMATED, ${est.confidence.toLowerCase()} confidence. ${est.method} Exact real views are not public.` : `${INSUFFICIENT_TEXT} Exact real views are never public.`,
+    },
+    {
+      key: "bot",
+      value: est?.suspicious ? rangeLabel(est.suspicious) : null,
+      label: est?.suspicious ? "Suspicious (est.)" : "Suspicious Views",
+      tone: est?.suspicious && est.suspicious[1] > 0 && (est.suspiciousShare?.[0] ?? 0) > 0.2 ? "warn" : undefined,
+      hint: est?.suspicious ? `ESTIMATED range of views the engagement doesn't explain — possibly, not certainly, inorganic. ${isYt ? "YouTube removes invalid views privately and never publishes the count." : ""}` : `${INSUFFICIENT_TEXT}`,
+    },
+    { key: "likes", value: fmtCount(d.likes), label: "Likes", hint: d.likes == null ? notPublic : `${CLASS_HINT[d.metricClass?.likes ?? "PLATFORM_REPORTED"]}` },
+    { key: "comments", value: fmtCount(d.comments), label: "Comments", hint: d.comments == null ? notPublic : `${CLASS_HINT[d.metricClass?.comments ?? "PLATFORM_REPORTED"]}` },
     { key: "rate", value: d.engagementRate == null ? null : `${(d.engagementRate * 100).toFixed(2)}%`, label: "Engagement Rate", hint: "(Likes + comments) ÷ views, from the public counts." },
     { key: "posts", value: fmtCount(d.account.posts), label: postsLabel },
     { key: "reach", value: fmtCount(d.account.totalViews), label: isYt ? "Channel Total Views" : d.platform === "instagram" ? "Account Total Reach" : "Account Total Views" },
@@ -394,11 +415,14 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
     },
     {
       key: "bots",
-      title: "Bot / Fake Views",
-      description: isYt ? "YouTube filters invalid views itself and doesn't publish the count." : `${name} doesn't publish bot or fake view counts.`,
-      pill: pill("Not Measurable", "neutral"),
-      evidence: [],
+      title: "Suspicious / Bot Views (Estimate)",
+      description: est?.suspicious
+        ? `About ${rangeLabel(est.suspicious)} views (${Math.round((est.suspiciousShare?.[0] ?? 0) * 100)}–${Math.round((est.suspiciousShare?.[1] ?? 0) * 100)}%) aren't explained by engagement. Estimate, ${est.confidence.toLowerCase()} confidence — never an exact count.`
+        : `${INSUFFICIENT_TEXT} ${isYt ? "YouTube filters invalid views privately and doesn't publish the count." : `${name} doesn't publish bot or fake view counts.`}`,
+      pill: !est?.suspicious ? pill("Insufficient Evidence", "neutral") : (est.suspiciousShare?.[0] ?? 0) >= 0.5 ? pill(`High · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "bad") : (est.suspiciousShare?.[0] ?? 0) >= 0.2 ? pill(`Moderate · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "warn") : pill(`Low · ${est.confidence[0] + est.confidence.slice(1).toLowerCase()} Conf.`, "good"),
+      evidence: (est?.reasons ?? []).map((r) => ({ tone: "info", title: r, source: "Jimvio estimate (public numbers)" }) as Finding),
       points: null,
+      note: est ? est.method : undefined,
     },
   ];
 
