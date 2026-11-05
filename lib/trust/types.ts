@@ -71,7 +71,7 @@ export type LinkDetails = {
 };
 
 export type IntelResult = {
-  id: "phishing_database" | "openphish" | "phishtank" | "urlhaus" | "feodo" | "sslbl" | "google_web_risk";
+  id: "phishing_database" | "cert_pl" | "openphish" | "phishtank" | "urlhaus" | "feodo" | "sslbl" | "google_web_risk";
   name: string;
   /** Providers in one family share upstream data, so they never count as independent confirmation. */
   family: string;

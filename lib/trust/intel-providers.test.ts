@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
-import { checkFeodo, checkOpenPhish, checkPhishTank, checkSslbl, checkUrlhaus, resetIntelCaches, shareableUrl, summarizeIntel, type IntelDeps, type IntelQuery } from "./intel-providers.ts";
+import { checkCertPl, checkFeodo, checkOpenPhish, checkPhishTank, checkSslbl, checkUrlhaus, domainListed, parseDomainList, PROVIDERS, resetIntelCaches, runIntel, shareableUrl, summarizeIntel, type IntelDeps, type IntelQuery } from "./intel-providers.ts";
 import { assessLink } from "./link-assessment.ts";
 import type { IntelResult, LinkDetails } from "./types.ts";
 
@@ -103,5 +103,56 @@ describe("correlation", () => {
     const a = assessLink({ findings: [], details: link([r("urlhaus", "abusech-urlhaus", "match", ["malware"]), r("phishing_database", "phish-aggregate", "timeout", ["phishing"])]) });
     assert.equal(a.state, "THREAT_DETECTED");
     assert.ok(a.riskScore >= 90);
+  });
+});
+
+describe("CERT Polska Warning List", () => {
+  const feed = "# comment\nbank-login-pl.example\nBANK-LOGIN-PL.example\n\n1.2.3.4\nnot a domain\npaczka-dopłata.example\nsecure-parcel.example.\n";
+  it("parses only valid domains and collapses duplicates", () => {
+    const s = parseDomainList(feed);
+    assert.deepEqual([...s].sort(), ["bank-login-pl.example", "secure-parcel.example"]);
+  });
+  it("matches the domain and its subdomains, never a parent", () => {
+    const s = new Set(["login.shop-pl.example"]);
+    assert.equal(domainListed("login.shop-pl.example", s), "login.shop-pl.example");
+    assert.equal(domainListed("a.b.login.shop-pl.example", s), "login.shop-pl.example");
+    assert.equal(domainListed("shop-pl.example", s), null);
+    assert.equal(domainListed("notlogin.shop-pl.example", s), null);
+  });
+  it("match, clean, outage and empty feed", async () => {
+    assert.equal((await checkCertPl(q("https://x.bank-login-pl.example/a"), deps(() => new Response(feed)))).status, "match");
+    resetIntelCaches();
+    assert.equal((await checkCertPl(q("https://www.example.com/"), deps(() => new Response(feed)))).status, "clean");
+    resetIntelCaches();
+    assert.equal((await checkCertPl(q(), deps(() => new Response("", { status: 503 })))).status, "error");
+    resetIntelCaches();
+    assert.equal((await checkCertPl(q(), deps(() => new Response("# nothing\n")))).status, "error", "an empty list is not evidence of clean");
+  });
+  it("caches the feed between lookups (one download within the refresh window)", async () => {
+    let downloads = 0;
+    const d = deps(() => { downloads++; return new Response(feed); });
+    await checkCertPl(q(), d);
+    await checkCertPl(q("https://other.example/"), d);
+    assert.equal(downloads, 1);
+  });
+});
+
+describe("attribution, independence and secrets", () => {
+  it("every provider carries its licence/attribution text", () => {
+    for (const p of Object.values(PROVIDERS)) assert.ok(p.terms && p.terms.length > 5, p.id);
+    assert.match(PROVIDERS.phishing_database.terms!, /Mitchell Krog/);
+  });
+  it("CERT Polska is an independent family from Phishing.Database", () => {
+    assert.notEqual(PROVIDERS.cert_pl.family, PROVIDERS.phishing_database.family);
+  });
+  it("no secret ever appears in results", async () => {
+    const secret = "S3CR3T-KEY-VALUE";
+    const all = await runIntel(q(), deps(() => json({ query_status: "no_results", results: { in_database: false } }), { URLHAUS_AUTH_KEY: secret, PHISHTANK_APP_KEY: secret, PHISHTANK_USERNAME: "u", OPENPHISH_FEED_URL: `https://feed.example/?key=${secret}` }));
+    assert.ok(!JSON.stringify(all).includes(secret));
+  });
+  it("with no credentials at all, every keyed provider is visible as not configured — none is clean", async () => {
+    const all = await runIntel(q(), deps(() => new Response("", { status: 500 })));
+    for (const id of ["urlhaus", "phishtank", "openphish"]) assert.equal(all.find((r) => r.id === id)!.status, "not_configured");
+    assert.ok(all.every((r) => r.status !== "clean"));
   });
 });
