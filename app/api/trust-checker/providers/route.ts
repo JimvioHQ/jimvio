@@ -13,6 +13,7 @@ export async function GET() {
   const env = process.env;
   const configured: Record<string, boolean> = {
     phishing_database: true,
+    cert_pl: true,
     feodo: true,
     sslbl: true,
     urlhaus: Boolean(env.URLHAUS_AUTH_KEY?.trim()),

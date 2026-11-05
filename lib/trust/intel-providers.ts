@@ -7,7 +7,8 @@
  *
  * | Provider            | Covers            | Access / terms (checked Nov 2026)                               |
  * |---------------------|-------------------|------------------------------------------------------------------|
- * | Phishing.Database   | phishing domains  | MIT licence, public list (aggregates OpenPhish, PhishTank, …)    |
+ * | Phishing.Database   | phishing domains  | MIT licence, public list (keep the copyright notice)             |
+ * | CERT Polska         | phishing domains  | "any purpose, including commercial"; refresh ≤5 min; no endorsement |
  * | Feodo Tracker       | botnet C2 IPs     | abuse.ch, CC0 — free for commercial use                          |
  * | SSL Blacklist       | botnet C2 certs   | abuse.ch, CC0 — free for commercial use                          |
  * | URLhaus             | malware URLs      | free Auth-Key; commercial use may need a Spamhaus subscription   |
@@ -31,7 +32,8 @@ export type IntelQuery = { url: URL; hosts: string[]; ips: string[]; certSha1: s
 type Meta = Pick<IntelResult, "id" | "name" | "family" | "covers" | "terms">;
 
 export const PROVIDERS: Record<IntelResult["id"], Meta> = {
-  phishing_database: { id: "phishing_database", name: "Phishing.Database", family: "phish-aggregate", covers: ["phishing"], terms: "MIT licence" },
+  phishing_database: { id: "phishing_database", name: "Phishing.Database", family: "phish-aggregate", covers: ["phishing"], terms: "MIT licence — © Mitchell Krog, Nissar Chababy & Phishing.Database contributors" },
+  cert_pl: { id: "cert_pl", name: "CERT Polska Warning List", family: "cert-pl", covers: ["phishing"], terms: "NASK-PIB / CERT Polska — any use incl. commercial; no endorsement implied" },
   openphish: { id: "openphish", name: "OpenPhish", family: "phish-aggregate", covers: ["phishing"], terms: "Licensed feed only (community feed is non-commercial)" },
   phishtank: { id: "phishtank", name: "PhishTank", family: "phish-aggregate", covers: ["phishing"], terms: "Requires a PhishTank app key (registrations closed)" },
   urlhaus: { id: "urlhaus", name: "URLhaus (abuse.ch)", family: "abusech-urlhaus", covers: ["malware"], terms: "Auth-Key; commercial use may require a Spamhaus subscription" },
@@ -91,9 +93,9 @@ type Feed = { at: number; items: Set<string> } | null;
 const feeds = new Map<string, Feed>();
 const loading = new Map<string, Promise<Feed>>();
 
-async function loadFeed(deps: IntelDeps, key: string, url: string, parse: (text: string) => Set<string>): Promise<Feed> {
+async function loadFeed(deps: IntelDeps, key: string, url: string, parse: (text: string) => Set<string>, ttlMs = FEED_TTL_MS): Promise<Feed> {
   const cur = feeds.get(key) ?? null;
-  if (cur && deps.now() - cur.at < FEED_TTL_MS) return cur;
+  if (cur && deps.now() - cur.at < ttlMs) return cur;
   const inflight = loading.get(key);
   if (inflight) return inflight;
   const p = (async () => {
@@ -144,6 +146,37 @@ export function parseUrlList(text: string): Set<string> {
     if (/^https?:\/\//i.test(t)) s.add(t.replace(/\/+$/, "").toLowerCase());
   }
   return s;
+}
+
+/** One registrable domain or host per line; comments, blanks, IPs and junk are dropped; duplicates collapse. */
+export function parseDomainList(text: string): Set<string> {
+  const s = new Set<string>();
+  for (const line of text.split("\n")) {
+    const t = line.trim().toLowerCase().replace(/\.$/, "");
+    if (!t || t.startsWith("#")) continue;
+    if (/^(?=.{3,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{1,62}$/.test(t)) s.add(t);
+  }
+  return s;
+}
+
+/** A host matches a listed domain when it IS that domain or a subdomain of it — never a parent of it. */
+export function domainListed(host: string, list: Set<string>): string | null {
+  const h = host.toLowerCase().replace(/\.$/, "");
+  const parts = h.split(".");
+  for (let i = 0; i < parts.length - 1; i++) {
+    const cand = parts.slice(i).join(".");
+    if (list.has(cand)) return cand;
+  }
+  return null;
+}
+
+export async function checkCertPl(q: IntelQuery, deps: IntelDeps): Promise<IntelResult> {
+  const t = deps.now();
+  // CERT Polska asks integrators to refresh every 5 minutes.
+  const f = await loadFeed(deps, "cert_pl", "https://hole.cert.pl/domains/v2/domains.txt", parseDomainList, 5 * 60_000);
+  if (!fresh(f, deps) || !f!.items.size) return result("cert_pl", deps, t, { status: "error", note: "The CERT Polska Warning List could not be downloaded." });
+  const hits = [...new Set(q.hosts.map((h) => domainListed(h, f!.items)).filter((x): x is string => Boolean(x)))];
+  return result("cert_pl", deps, t, hits.length ? { status: "match", matches: hits, threat: "phishing" } : { status: "clean", note: `Checked against ${f!.items.size} listed domains (mainly campaigns targeting Polish users).` });
 }
 
 export async function checkFeodo(q: IntelQuery, deps: IntelDeps): Promise<IntelResult> {
@@ -279,7 +312,7 @@ async function parseJson(res: Response): Promise<Record<string, unknown> | null>
 export const health = new Map<IntelResult["id"], { status: IntelResult["status"]; at: string; ms: number }>();
 
 export async function runIntel(q: IntelQuery, deps: IntelDeps, extra: IntelResult[] = []): Promise<IntelResult[]> {
-  const settled = await Promise.all([checkUrlhaus(q, deps), checkPhishTank(q, deps), checkOpenPhish(q, deps), checkFeodo(q, deps), checkSslbl(q, deps)]);
+  const settled = await Promise.all([checkCertPl(q, deps), checkUrlhaus(q, deps), checkPhishTank(q, deps), checkOpenPhish(q, deps), checkFeodo(q, deps), checkSslbl(q, deps)]);
   const all = [...extra, ...settled];
   for (const r of all) health.set(r.id, { status: r.status, at: r.checkedAt, ms: r.ms });
   return all;
