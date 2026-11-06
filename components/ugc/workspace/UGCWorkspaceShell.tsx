@@ -72,14 +72,14 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           <aside
             id="ugc-mobile-nav"
             className={cn(
-              "relative h-full w-[min(280px,88vw)] bg-white shadow-2xl transition-transform duration-150 ease-out",
+              "relative flex h-full w-[min(300px,88vw)] flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl transition-transform duration-150 ease-out",
               mobileNav ? "translate-x-0" : "-translate-x-full",
             )}
             role="dialog"
             aria-modal={mobileNav}
             aria-label={t("ugcClipping")}
           >
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#E5E7EB] px-4 py-3">
               <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
               <button
                 type="button"
@@ -90,9 +90,11 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <Suspense fallback={null}>
-              <UGCWorkspaceSidebar onNavigate={() => setMobileNav(false)} />
-            </Suspense>
+            <div className="min-h-0 flex-1">
+              <Suspense fallback={null}>
+                <UGCWorkspaceSidebar variant="drawer" onNavigate={() => setMobileNav(false)} />
+              </Suspense>
+            </div>
           </aside>
         </div>
 
