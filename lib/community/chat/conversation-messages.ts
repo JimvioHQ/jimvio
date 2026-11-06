@@ -6,9 +6,17 @@ import type { Msg } from "@/types";
 
 const PAGE_SIZE = 50;
 
+/** `slug: null` = platform-wide direct message (no community). Same tables + realtime either way. */
 export type ConversationTarget =
   | { kind: "room"; roomId: string }
-  | { kind: "inbox"; slug: string; conversationId: string };
+  | { kind: "inbox"; slug: string | null; conversationId: string };
+
+/** API base for a 1:1 conversation: community DM or platform-wide DM. */
+export function inboxApiBase(slug: string | null | undefined, conversationId: string): string {
+  return slug
+    ? `/api/communities/${encodeURIComponent(slug)}/inbox/${conversationId}/messages`
+    : `/api/messages/direct/${conversationId}/messages`;
+}
 
 /** Hub outbox / optimistic client ids use this prefix. */
 export function isOptimisticMessageId(id: string): boolean {
@@ -23,7 +31,7 @@ export function messagesUrl(target: ConversationTarget, opts?: { before?: string
   if (target.kind === "room") {
     return `/api/messages/${target.roomId}?${params.toString()}`;
   }
-  return `/api/communities/${encodeURIComponent(target.slug)}/inbox/${target.conversationId}/messages?${params.toString()}`;
+  return `${inboxApiBase(target.slug, target.conversationId)}?${params.toString()}`;
 }
 
 /**

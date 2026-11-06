@@ -19,7 +19,8 @@ export function ChatInput({
 }: {
   conversationId: string;
   userId: string;
-  onSent: () => void;
+  /** Receives the saved row so callers can show it before realtime echoes it. */
+  onSent: (row?: Record<string, unknown>) => void;
   replyTo: { id: string } | null;
   onCancelReply: () => void;
   isVendor: boolean;
@@ -29,6 +30,7 @@ export function ChatInput({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
@@ -81,29 +83,35 @@ export function ChatInput({
   }) {
     if (!conversationId || !userId) return;
     setSending(true);
-    const { error } = await supabase.from("conversation_messages").insert({
-      conversation_id: conversationId,
-      sender_id: userId,
-      body: payload.body ?? "",
-      message_type: payload.message_type ?? "text",
-      reply_to_id: payload.reply_to_id ?? replyTo?.id ?? null,
-      metadata: payload.metadata ?? {},
-    });
+    setError(null);
+    const { data: row, error } = await supabase
+      .from("conversation_messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        body: payload.body ?? "",
+        message_type: payload.message_type ?? "text",
+        reply_to_id: payload.reply_to_id ?? replyTo?.id ?? null,
+        metadata: payload.metadata ?? {},
+      })
+      .select("id, body, sender_id, created_at, message_type, reply_to_id, metadata")
+      .single();
     setSending(false);
     if (error) {
-      console.error(error);
+      // Keep the typed text so the user can retry.
+      setError("Message not sent. Check your connection and try again.");
       return;
     }
     setInput("");
     onCancelReply();
     await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
-    onSent();
+    onSent((row ?? undefined) as Record<string, unknown> | undefined);
   }
 
   async function handleSend() {
     const body = input.trim();
-    if (!body && !replyTo) return;
-    await sendMessage({ body: body || " ", message_type: "text", reply_to_id: replyTo?.id ?? null });
+    if (!body || sending) return;
+    await sendMessage({ body, message_type: "text", reply_to_id: replyTo?.id ?? null });
   }
 
   async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -112,8 +120,8 @@ export function ChatInput({
     try {
       const { url } = await uploadFile(file, "image");
       await sendMessage({ body: input.trim() || null, message_type: "image", metadata: { url } });
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError("The photo couldn't be uploaded. Try again.");
     }
     e.target.value = "";
   }
@@ -124,8 +132,8 @@ export function ChatInput({
     try {
       const { url, file_name } = await uploadFile(file, "file");
       await sendMessage({ body: input.trim() || null, message_type: "file", metadata: { url, file_name } });
-    } catch (err) {
-      console.error(err);
+    } catch {
+      setError("The file couldn't be uploaded. Try again.");
     }
     e.target.value = "";
   }
@@ -144,8 +152,13 @@ export function ChatInput({
           </button>
         </div>
       )}
-      <div className="flex gap-2 items-end">
-        <div className="flex-1 flex flex-wrap gap-1">
+      {error && (
+        <p role="alert" className="mb-2 px-2 text-[12px] text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap sm:flex-nowrap gap-2 items-end">
+        <div className="flex gap-1 w-full sm:w-auto shrink-0">
           <input
             type="file"
             accept="image/*"
@@ -165,6 +178,7 @@ export function ChatInput({
             size="icon"
             className="h-9 w-9 rounded-sm shrink-0"
             onClick={() => imageInputRef.current?.click()}
+            aria-label="Send a photo"
           >
             <ImageIcon className="h-4 w-4" />
           </Button>
@@ -174,16 +188,17 @@ export function ChatInput({
             size="icon"
             className="h-9 w-9 rounded-sm shrink-0"
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Send a file"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
           {onShareProduct && (
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-sm shrink-0" onClick={onShareProduct}>
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-sm shrink-0" onClick={onShareProduct} aria-label="Share a product" title="Share a product">
               <Package className="h-4 w-4" />
             </Button>
           )}
           {onRequestQuote && (
-            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-sm shrink-0" onClick={onRequestQuote} title="Request quote">
+            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-sm shrink-0" onClick={onRequestQuote} title="Request quote" aria-label="Request a quote">
               <Quote className="h-4 w-4" />
             </Button>
           )}
@@ -193,6 +208,8 @@ export function ChatInput({
             size="icon"
             className="h-9 w-9 rounded-sm shrink-0"
             onClick={() => setShowEmoji((s) => !s)}
+            aria-label="Add emoji"
+            aria-expanded={showEmoji}
           >
             <Smile className="h-4 w-4" />
           </Button>
@@ -208,12 +225,14 @@ export function ChatInput({
           }}
           placeholder="Type a message..."
           rows={1}
-          className="flex-1 min-h-[40px] max-h-32 px-4 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
+          aria-label="Message"
+          className="flex-1 min-w-0 min-h-[40px] max-h-32 px-4 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20"
         />
         <Button
           type="button"
           onClick={handleSend}
-          disabled={sending || (!input.trim() && !replyTo)}
+          disabled={sending || !input.trim()}
+          aria-label="Send message"
           size="icon"
           className="h-10 w-10 rounded-sm shrink-0 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
         >
