@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
           `followers=${Number.isFinite(Number(creator.total_followers)) ? Number(creator.total_followers) : "unknown"}`,
           `verified=${creator.is_verified === true ? "yes" : creator.is_verified === false ? "no" : "unknown"}`,
           "Country, account age and connected social account ownership are not provided. Never infer them.",
-        ].join("\\n");
+        ].join("\n");
       }
     } catch (error) {
       console.warn("[ugc-assistant] creator context unavailable", error instanceof Error ? error.name : "unknown");
