@@ -40,6 +40,7 @@ export type StrategyImportResult = {
   categoriesFull: string[];
   rejected: Record<string, number>;
   publishedPids: string[];
+  publishedWithVideo: number;
 };
 
 async function liveCountsByCategory(): Promise<Map<StrategyCategoryId, number>> {
@@ -58,9 +59,13 @@ async function liveCountsByCategory(): Promise<Map<StrategyCategoryId, number>> 
   return counts;
 }
 
-export async function runStrategyImport(options: { keywordsPerRun?: number; maxPublish?: number; now?: Date } = {}): Promise<StrategyImportResult> {
+export async function runStrategyImport(options: { keywordsPerRun?: number; maxPublish?: number; maxWithoutVideo?: number; now?: Date } = {}): Promise<StrategyImportResult> {
   const keywords = keywordsForRun(options.now ?? new Date(), options.keywordsPerRun ?? 2);
   const maxPublish = options.maxPublish ?? 6;
+  // Trending + verified products without a supplier video are allowed, but fewer of them,
+  // so video coverage keeps rising toward the 50% goal.
+  const maxWithoutVideo = options.maxWithoutVideo ?? 2;
+  let publishedWithoutVideo = 0;
   const result: StrategyImportResult = {
     keywords: keywords.map((k) => k.keyword),
     searched: 0,
@@ -71,6 +76,7 @@ export async function runStrategyImport(options: { keywordsPerRun?: number; maxP
     categoriesFull: [],
     rejected: {},
     publishedPids: [],
+    publishedWithVideo: 0,
   };
 
   const counts = await liveCountsByCategory();
@@ -135,16 +141,19 @@ export async function runStrategyImport(options: { keywordsPerRun?: number; maxP
         },
       );
       const candidate = await withCjVideos(base);
-      if (candidate.payload_videos.length === 0) {
+      const hasVideo = candidate.payload_videos.length > 0;
+      if (!hasVideo && publishedWithoutVideo >= maxWithoutVideo) {
         result.rejected.no_video = (result.rejected.no_video ?? 0) + 1;
         continue;
       }
 
       try {
-        const { outcome } = await importAndPublishStrategyCandidate(candidate);
+        const { outcome } = await importAndPublishStrategyCandidate(candidate, { requireVideo: hasVideo });
         if (outcome === "published") {
           result.published += 1;
           result.publishedPids.push(row.pid);
+          if (hasVideo) result.publishedWithVideo += 1;
+          else publishedWithoutVideo += 1;
           counts.set(kw.category, (counts.get(kw.category) ?? 0) + 1);
         } else if (outcome === "skipped") result.skipped += 1;
         else result.failed += 1;
