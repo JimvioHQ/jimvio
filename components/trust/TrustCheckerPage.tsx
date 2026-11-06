@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TrustResult } from "./results/TrustResult";
+import { TrustScanHistory } from "./TrustScanHistory";
 import type { LocalPreview } from "./results/MediaResult";
 import { EngagementArt, HeroWave, MediaArt, ProductArt, ScamArt } from "./TrustLandingArt";
 import type { ScanReport } from "@/lib/trust/types";
@@ -400,6 +401,20 @@ export function TrustCheckerPage() {
             ))}
           </ol>
         </section>
+
+        <div className="mx-auto mt-6 max-w-[1600px]">
+          <TrustScanHistory
+            refreshKey={0}
+            onOpenReport={(saved) => {
+              setError(null);
+              setSharedUntil(null);
+              setPreview(null);
+              setReport(saved);
+              if (saved.id) window.history.replaceState(null, "", `/trust-checker?scan=${encodeURIComponent(saved.id)}`);
+              window.scrollTo({ top: 0 });
+            }}
+          />
+        </div>
 
         <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
       </div>
