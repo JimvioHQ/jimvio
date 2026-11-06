@@ -25,3 +25,33 @@ describe("course tree never ships paid lesson content without access", () => {
     assert.ok(fn.includes("redactCourseTreeForAccess("));
   });
 });
+
+describe("redaction of a paid course tree", () => {
+  it("hides paid lesson text, video and files without access, keeps free previews, keeps all with access", async () => {
+    const { redactCourseTreeForAccess } = await import("@/lib/community/courses/access");
+    const tree = {
+      id: "c1",
+      course_modules: [
+        {
+          id: "m1",
+          course_lessons: [
+            { id: "l1", title: "Paid lesson", is_free: false, body: "SECRET", video_url: "https://x.test/secret.mp4", attachments: { files: [{ url: "https://x.test/s.pdf" }] } },
+            { id: "l2", title: "Free preview", is_free: true, body: "free text", video_url: "https://x.test/free.mp4", attachments: {} },
+          ],
+        },
+      ],
+    };
+    const locked = redactCourseTreeForAccess(tree, false) as typeof tree;
+    const [paid, free] = locked.course_modules[0]!.course_lessons as Array<Record<string, unknown>>;
+    assert.equal(paid!.body, null);
+    assert.equal(paid!.video_url, null);
+    assert.deepEqual((paid!.attachments as { files: unknown[] }).files, []);
+    assert.equal(paid!.locked, true);
+    assert.equal(paid!.title, "Paid lesson");
+    assert.equal(free!.body, "free text");
+    assert.equal(free!.video_url, "https://x.test/free.mp4");
+    assert.ok(!JSON.stringify(locked).includes("SECRET") && !JSON.stringify(locked).includes("secret.mp4") && !JSON.stringify(locked).includes("s.pdf"));
+    const open = redactCourseTreeForAccess(tree, true) as typeof tree;
+    assert.equal((open.course_modules[0]!.course_lessons[0] as Record<string, unknown>).body, "SECRET");
+  });
+});
