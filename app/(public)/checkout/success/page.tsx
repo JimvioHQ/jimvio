@@ -350,8 +350,9 @@ export default async function CheckoutSuccessPage({
 
   const { data: order, error } = await supabase
     .from("orders")
+    // Buyer-safe fields only (no supplier cost, supplier order ids or internal metadata).
     .select(`
-      *,
+      id, order_number, status, payment_status, total_amount, subtotal, shipping_amount, currency, created_at, paid_at,
       order_items(product_name, quantity, total_price),
       transactions(id, provider, status, provider_transaction_id, amount)
     `)

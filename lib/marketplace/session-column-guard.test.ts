@@ -53,3 +53,25 @@ describe("browser code reads only storefront product columns", () => {
     });
   }
 });
+
+describe("buyer-facing cart and order reads never carry supplier data", () => {
+  it("getCart lists explicit line columns and attaches only buyer-safe facts", () => {
+    const src = readFileSync("lib/actions/marketplace.ts", "utf8");
+    const getCart = src.slice(src.indexOf("export async function getCart("), src.indexOf("export async function updateCartItemQuantity("));
+    assert.ok(!/cart_items \(\s*\*/.test(getCart), "cart_items(*) in getCart");
+    assert.ok(getCart.includes("withBuyerLineFacts"));
+  });
+
+  it("the checkout success page does not select * from orders", () => {
+    const src = readFileSync("app/(public)/checkout/success/page.tsx", "utf8");
+    const live = src.split("\n").filter((line) => !line.trim().startsWith("//")).join("\n");
+    assert.ok(!/\.from\("orders"\)\s*\.select\(`\s*\*/.test(live));
+  });
+
+  it("checkout pages send only cj_vid and weight of line metadata to the browser", () => {
+    for (const path of ["app/(public)/checkout/page.tsx", "app/(public)/s/[handle]/checkout/page.tsx"]) {
+      const src = readFileSync(path, "utf8");
+      assert.ok(src.includes('cj_vid: metaString(itemMeta, "cj_vid"), cj_weight: metaNumber(itemMeta, "cj_weight")'), path);
+    }
+  });
+});

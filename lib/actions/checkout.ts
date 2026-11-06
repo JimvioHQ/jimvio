@@ -1105,7 +1105,8 @@ export async function startCheckout(
     return ok({ orderIds: existingOrders.map((o) => o.id) });
   }
 
-  const { data: rawItems, error: itemsError } = await supabase
+  // cartId was read above with the user's session filtered by user_id; line metadata is server-only.
+  const { data: rawItems, error: itemsError } = await admin
     .from("cart_items")
     .select(`
       id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata, affiliate_link_id, unit_price_at_add, currency_at_add,
@@ -1449,7 +1450,10 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
   }
 
   // ── Fetch current cart items (only this vendor's items) ─────────────────────
-  let cartItemsQuery = supabase
+  // The cart must be this user's (RLS on carts); line metadata is then read server-side.
+  const { data: ownedCart } = await supabase.from("carts").select("id").eq("id", cartId).eq("user_id", user.id).maybeSingle();
+  if (!ownedCart) return { ok: false, error: "Cart not found" };
+  let cartItemsQuery = admin
     .from("cart_items")
     .select(
       `
