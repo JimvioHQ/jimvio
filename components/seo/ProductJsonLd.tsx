@@ -20,6 +20,7 @@ type ProductJsonLdInput = {
   images?: unknown;
   sku?: string | null;
   brand?: string | null;
+  seller_name?: string | null;
   average_rating?: number | null;
   review_count?: number | null;
   in_stock?: boolean;
@@ -73,7 +74,7 @@ export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
       availability: product.in_stock === false
         ? "https://schema.org/OutOfStock"
         : "https://schema.org/InStock",
-      seller: { "@type": "Organization", name: SITE.name },
+      seller: { "@type": "Organization", name: product.seller_name || SITE.name },
     } }),
     ...(product.average_rating && product.review_count
       ? {
