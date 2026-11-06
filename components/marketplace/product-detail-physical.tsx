@@ -1,5 +1,6 @@
 "use client";
 
+import { isFulfilledSource } from "@/lib/marketplace/public-product";
 import { publicSku } from "@/lib/marketplace/public-sku";
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -1306,6 +1307,8 @@ export function PhysicalProductDetail({
     }
     if (vwt) add("Weight", `${vwt} g`);
     add("Ships from", shippingDisplay.shipsFrom);
+    // Honest fulfilment: Jimvio sells it; a fulfilment partner ships it.
+    if (isFulfilledSource(product.source)) add("Fulfilment", "Shipped by a Jimvio fulfilment partner");
     if (!isUnsourcedDeliveryEstimate(shippingDisplay)) add("Est. delivery", shippingDisplay.deliveryEstimate);
     add("Weight", weightDisplay);
     add("SKU", publicSku(product.sku));

@@ -109,8 +109,8 @@ export function ProductTitleBadges({
               "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
             )}
           >
-            <BadgeCheck className="h-3 w-3" />
-            Jimvio Verified
+            <BadgeCheck className="h-3 w-3" aria-hidden />
+            <span title="Chosen by Jimvio: passed our listing checks (photos, description, delivery) from a supplier with a verified track record.">Jimvio Selected</span>
           </span>
         )}
         {isBestseller && (
@@ -148,8 +148,8 @@ export function ProductTitleBadges({
             "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
           )}
         >
-          <BadgeCheck className="h-3 w-3" />
-          Jimvio Verified
+          <BadgeCheck className="h-3 w-3" aria-hidden />
+          <span title="Chosen by Jimvio: passed our listing checks (photos, description, delivery) from a supplier with a verified track record.">Jimvio Selected</span>
         </span>
       )}
       {isBestseller && (
