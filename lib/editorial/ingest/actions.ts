@@ -9,7 +9,7 @@ import { catalogByLocator } from "@/lib/editorial/ingest/catalog";
 import { fetchFeed } from "@/lib/editorial/ingest/fetch";
 import { canonicalUrl } from "@/lib/editorial/ingest/feed";
 import { serverAutopublishAuthorized } from "@/lib/editorial/ingest/plan";
-import { getIngestSource, insertSource, loadIngestDesk, saveIngestSettings, setSourceEnabled } from "@/lib/editorial/ingest/store";
+import { getIngestSource, insertSource, loadIngestDesk, saveIngestSettings, setSourceAlwaysReview, setSourceEnabled } from "@/lib/editorial/ingest/store";
 import { runIngestCycle } from "@/lib/editorial/ingest/run";
 import { DAILY_PUBLISH_MAX, type IngestMode } from "@/lib/editorial/ingest/types";
 import { isArticleId, isMediaCategory } from "@/lib/editorial/validate";
@@ -109,6 +109,24 @@ export async function setIngestSourceEnabled(formData: FormData) {
   const saved = await setSourceEnabled(id, enabled);
   if (saved.unavailable) notice("/media/admin/sources", "storage");
   await audit(user.id, enabled ? "media_source_enabled" : "media_source_disabled", id, {});
+  revalidatePath("/media/admin/sources");
+  notice("/media/admin/sources", "saved");
+}
+
+/**
+ * Admin-only: whether a source's stories always wait for an editor, or may
+ * publish automatically when every other check passes (corroboration,
+ * sensitivity, quality, image rights, cap and authorization still apply).
+ */
+export async function setIngestSourceReview(formData: FormData) {
+  const user = await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!isArticleId(id)) notice("/media/admin/sources", "invalid");
+  const alwaysReview = formData.get("review") === "1";
+  const saved = await setSourceAlwaysReview(id, alwaysReview);
+  if (saved.unavailable) notice("/media/admin/sources", "storage");
+  if (!saved.ok) notice("/media/admin/sources", "invalid");
+  await audit(user.id, alwaysReview ? "media_source_review_required" : "media_source_autopublish_allowed", id, {});
   revalidatePath("/media/admin/sources");
   notice("/media/admin/sources", "saved");
 }

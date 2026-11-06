@@ -239,6 +239,14 @@ export async function setSourceEnabled(id: string, enabled: boolean): Promise<{ 
   return { ok: !error, unavailable: false };
 }
 
+/** Per-source editorial policy: when true every story from it waits for a human editor. */
+export async function setSourceAlwaysReview(id: string, alwaysReview: boolean): Promise<{ ok: boolean; unavailable: boolean }> {
+  if (!isArticleId(id)) return { ok: false, unavailable: false };
+  const { error } = await from("media_sources").update({ always_review: alwaysReview, updated_at: new Date().toISOString() }).eq("id", id);
+  if (ingestUnavailable(error)) return { ok: false, unavailable: true };
+  return { ok: !error, unavailable: false };
+}
+
 export type CycleContext = {
   unavailable: boolean;
   settings: IngestSettings;
