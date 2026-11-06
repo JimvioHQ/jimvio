@@ -1180,6 +1180,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+/**
+ * Server-only reader for catalog rows (supplier metadata, private file URLs).
+ * Signed-in sessions cannot read those columns; cart and checkout actions read
+ * them here, for a product id the action has already validated.
+ */
+function catalogReader() {
+  return createServiceRoleClient();
+}
 import { revalidatePath } from "next/cache";
 import { finalizeAndCompleteOrder } from "./order-lifecycle";
 import {
@@ -1600,7 +1609,7 @@ export async function addToCart(
     if (!user) return { success: false, error: "Authentication required" };
 
     const [productResult, variantsResult] = await Promise.all([
-      supabase
+      catalogReader()
         .from("products")
         .select(
           `id, name, price, images, currency, source, source_metadata,
@@ -1609,8 +1618,9 @@ export async function addToCart(
            status, is_active, track_inventory, inventory_quantity, allow_backorder`
         )
         .eq("id", productId)
+        .is("deleted_at", null)
         .single(),
-      supabase
+      catalogReader()
         .from("product_variants")
         .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active")
         .eq("product_id", productId)
@@ -1996,7 +2006,7 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
       .select(`
         id, cart_id, product_id, variant_id, vendor_id, quantity, source_metadata, currency_at_add,
         carts!inner(user_id),
-        products(id, source, source_metadata, price, currency, track_inventory, inventory_quantity, allow_backorder)
+        products(id, source, price, currency, track_inventory, inventory_quantity, allow_backorder)
       `)
       .eq("id", cartItemId)
       .eq("carts.user_id", user.id)
@@ -2004,10 +2014,17 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
 
     if (itemErr || !item) return { success: false, error: "Item not found" };
 
-    const product = Array.isArray(item.products) ? item.products[0] : item.products;
-    if (!product) return { success: false, error: "Product not found" };
+    const embedded = Array.isArray(item.products) ? item.products[0] : item.products;
+    if (!embedded) return { success: false, error: "Product not found" };
+    // Supplier metadata is server-only: read it with the catalog reader, for the product already in this user's cart.
+    const { data: productMetaRow } = await catalogReader()
+      .from("products")
+      .select("source_metadata")
+      .eq("id", item.product_id)
+      .maybeSingle();
+    const product = { ...embedded, source_metadata: productMetaRow?.source_metadata ?? null };
 
-    const { data: variant, error: vErr } = await supabase
+    const { data: variant, error: vErr } = await catalogReader()
       .from("product_variants")
       .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source")
       .eq("id", variantId)
@@ -2406,7 +2423,7 @@ export async function buyDirectCheckout(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     const [productResult, variantsResult] = await Promise.all([
-      supabase
+      catalogReader()
         .from("products")
         .select(`
           id, name, price, images, currency, source, source_metadata,
@@ -2415,8 +2432,9 @@ export async function buyDirectCheckout(
           status, is_active, track_inventory, inventory_quantity, allow_backorder
         `)
         .eq("id", productId)
+        .is("deleted_at", null)
         .maybeSingle(),
-      supabase
+      catalogReader()
         .from("product_variants")
         .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active")
         .eq("product_id", productId)

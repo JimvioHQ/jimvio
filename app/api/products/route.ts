@@ -214,7 +214,8 @@ export async function POST(req: NextRequest) {
         published_at: null,
         submitted_for_review_at: productData.intent === "submit" ? new Date().toISOString() : null,
       } as never)
-      .select()
+      // Return storefront-safe columns only (cost, file URL and review fields are not readable by sessions).
+      .select("id, name, slug, status, product_type, price, currency, images, is_active, vendor_id, created_at, updated_at")
       .single();
 
     if (error) throw error;

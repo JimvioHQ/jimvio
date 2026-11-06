@@ -492,11 +492,13 @@ export async function duplicateSellerProduct(
     return { success: false, error: "A seller account is required.", code: "vendor_required" };
   }
 
-  const { data: source, error: fetchErr } = await supabase
+  // The seller's own private fields (file URL) are read server-side, scoped to their vendor.
+  const { data: source, error: fetchErr } = await createServiceRoleClient()
     .from("products")
     .select("*")
     .eq("id", productId)
     .eq("vendor_id", vendor.id)
+    .is("deleted_at", null)
     .maybeSingle();
   if (fetchErr || !source) {
     return { success: false, error: "Product not found.", code: "not_found" };
@@ -541,4 +543,34 @@ export async function duplicateSellerProduct(
     is_flash_deal: Boolean(source.is_flash_deal),
     intent: "draft",
   });
+}
+
+/**
+ * Loads one of the signed-in seller's own products for the edit form.
+ * Private fields (cost, file URL) are not readable with the browser session, so
+ * the row is read server-side, only after the vendor ownership check.
+ */
+export async function getSellerProductForEdit(
+  productId: string,
+): Promise<{ success: true; product: Record<string, unknown> } | { success: false; error: string }> {
+  if (!/^[0-9a-f-]{36}$/i.test(productId)) return { success: false, error: "Product not found." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+  const vendor = await ensureSellerVendor(user.id);
+  if (!vendor) return { success: false, error: "A seller account is required." };
+  const { data, error } = await createServiceRoleClient()
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("vendor_id", vendor.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error || !data) return { success: false, error: "Product not found." };
+  const product = { ...(data as Record<string, unknown>) };
+  // Supplier and admin-only fields never go to the browser, even for the owner.
+  for (const key of ["source_metadata", "review_notes", "override_reason", "override_user", "override_time", "verification_assignee_id", "approved_file_digest", "file_digest"]) delete product[key];
+  return { success: true, product };
 }
