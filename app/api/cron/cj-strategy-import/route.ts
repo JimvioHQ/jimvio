@@ -10,7 +10,7 @@ import { runStrategyImport } from "@/lib/cj/premium-intelligence/strategy-import
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-/** Every 2 hours — 2 strategy keywords, at most 6 new products, only trending + verified + video + in stock. */
+/** Hourly — 2 strategy keywords, at most 6 new products, only trending + verified + video + in stock. */
 export async function GET(req: Request) {
   const denied = assertCronAuthorized(req);
   if (denied) return denied;
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, skipped: true, reason: "cj_api_quota_circuit_open" });
   }
 
-  const lock = await tryAcquireHeavyWorkerLock("strategy_import", { metadata: { source: "cj-strategy-import-cron" } });
+  const lock = await tryAcquireHeavyWorkerLock("list_sync", { metadata: { source: "cj-strategy-import-cron" } });
   if (!lock.acquired) {
     return NextResponse.json({ ok: true, skipped: true, reason: lock.reason });
   }
