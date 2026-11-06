@@ -101,7 +101,10 @@ function flattenOrderItems(rawItems: unknown[]): OrderItemRow[] {
         metaNumber(variantMeta, "cj_weight") ??
         metaNumber(itemMeta, "cj_weight") ??
         null,
-      source_metadata: itemMeta,
+      // Only what the checkout screen reads; supplier pricing and catalog fields stay on the server.
+      source_metadata: itemMeta
+        ? { cj_vid: metaString(itemMeta, "cj_vid"), cj_weight: metaNumber(itemMeta, "cj_weight") }
+        : null,
     };
   });
 }
@@ -150,7 +153,7 @@ export default async function StorefrontCheckoutPage({
     }
   }
 
-  const { data: rawOrder, error: orderError } = await cosTable(supabase, "orders")
+  const { data: rawOrder, error: orderError } = await cosTable(createAdminClient(), "orders")
     .select(ORDER_SELECT)
     .eq("id", orderId)
     .eq("buyer_id", user.id)
