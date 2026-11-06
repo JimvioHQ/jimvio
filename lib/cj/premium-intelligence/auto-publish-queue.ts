@@ -403,6 +403,15 @@ export async function processAutoPublishQueue(
       await promoteMarketplaceTier(pid, product, v3.publishTier);
 
       const pub = await publishProductSystem(productId);
+      if (!pub.success && pub.permanentlyRemoved) {
+        // Deliberately removed from sale: close the job instead of retrying it.
+        result.skipped += 1;
+        await db
+          .from("cj_auto_publish_queue")
+          .update({ status: "complete", last_error: pub.error ?? "Permanently removed", updated_at: new Date().toISOString() })
+          .eq("id", job.id);
+        continue;
+      }
       if (!pub.success) throw new Error(pub.error ?? "Publish failed");
 
       const verification = await verifyPublishedProduct(productId);
