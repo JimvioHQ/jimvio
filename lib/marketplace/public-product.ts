@@ -50,6 +50,17 @@ const INTERNAL_PRODUCT_KEYS = [
   "cj_last_synced_at",
   "cj_vid",
   "cj_pid",
+  // camelCase shapes used by ranking/intelligence payloads
+  "costPrice",
+  "supplierCost",
+  "supplierCostUsd",
+  "saleCount",
+  "soldCount",
+  "viewCount",
+  "wishlistCount",
+  "cjVid",
+  "cjPid",
+  "sourceMetadata",
 ] as const;
 
 type Meta = Record<string, unknown>;
@@ -114,6 +125,7 @@ function publicRow<T extends object>(row: T): T {
   const copy = { ...(row as Record<string, unknown>) };
   for (const key of INTERNAL_PRODUCT_KEYS) delete copy[key];
   if ("source_metadata" in copy) copy.source_metadata = publicSourceMetadata(copy.source_metadata);
+  if ("sourceMetadata" in copy) delete copy.sourceMetadata;
   if (copy.source === "cj") copy.source = PUBLIC_FULFILLED_SOURCE;
   cleanText(copy);
   return copy as T;

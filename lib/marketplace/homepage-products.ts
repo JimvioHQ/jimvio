@@ -41,7 +41,7 @@ const HOMEPAGE_PRODUCT_SELECT = `
   delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
   created_at, auto_unpublished, deleted_at, sku, source,
-  published_by_admin_override, inventory_quantity, source_metadata,
+  published_by_admin_override, inventory_quantity, is_trending, has_supplier_video, is_partner_verified,
   vendors(id, verification_status)
 `;
 
@@ -109,16 +109,12 @@ async function fetchPhysicalProductPool(): Promise<{
   return { pool, total };
 }
 
-function slimIntelFlags(meta: unknown): Record<string, unknown> | null {
-  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
-  const record = meta as Record<string, unknown>;
+function slimIntelFlags(row: unknown): Record<string, unknown> | null {
+  const p = (row ?? {}) as { is_trending?: boolean | null; has_supplier_video?: boolean | null; is_partner_verified?: boolean | null };
   const out: Record<string, unknown> = {};
-  if (record.cj_supplier_verified === true) out.cj_supplier_verified = true;
-  if (record.cj_trending === true) out.cj_trending = true;
-  if (Number(record.cj_verified_warehouse) === 1) out.cj_verified_warehouse = 1;
-  if (record.cj_has_video === true && Array.isArray(record.cj_videos) && record.cj_videos.length > 0) {
-    out.cj_has_video = true;
-  }
+  if (p.is_partner_verified) out.verified = true;
+  if (p.is_trending) out.trending = true;
+  if (p.has_supplier_video) out.has_video = true;
   return Object.keys(out).length > 0 ? out : null;
 }
 
@@ -193,7 +189,7 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
     ({
       ...p,
       images: slimListingImages(p.images, 3, 480),
-      source_metadata: slimIntelFlags(p.source_metadata),
+      source_metadata: slimIntelFlags(p),
     }) as T;
 
   return {

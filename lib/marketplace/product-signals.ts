@@ -8,6 +8,9 @@ type SignalProduct = {
   sale_count?: number | null;
   sold_count?: number | null;
   source_metadata?: unknown;
+  is_trending?: boolean | null;
+  has_supplier_video?: boolean | null;
+  is_partner_verified?: boolean | null;
   vendors?: { verification_status?: string | null } | null;
   product_videos?: unknown;
 };
@@ -19,13 +22,14 @@ function readMeta(meta: unknown): Record<string, unknown> {
 
 export function productHasVerifiedSupplier(product: SignalProduct): boolean {
   if (product.vendors?.verification_status === "verified") return true;
+  if (product.is_partner_verified) return true;
   const meta = readMeta(product.source_metadata);
   return meta.verified === true || meta.cj_supplier_verified === true;
 }
 
 export function productHasTrendingSignal(product: SignalProduct): boolean {
   const meta = readMeta(product.source_metadata);
-  if (meta.trending === true) return true;
+  if (product.is_trending || meta.trending === true) return true;
   return meta.cj_trending === true && meta.trend_classification !== "cj_order_count";
 }
 
@@ -43,6 +47,6 @@ export function productHasCustomerDescription(product: SignalProduct): boolean {
 export function productHasVideoSignal(product: SignalProduct): boolean {
   if (productHasVideos(product as never)) return true;
   const meta = readMeta(product.source_metadata);
-  if (meta.has_video === true && Array.isArray(meta.videos) && meta.videos.length > 0) return true;
+  if (product.has_supplier_video || meta.has_video === true) return true;
   return meta.cj_has_video === true && Array.isArray(meta.cj_videos) && meta.cj_videos.length > 0;
 }

@@ -55,7 +55,7 @@ export default function ContentHubPage() {
       if (filterType === "all" || filterType === "clipping") {
         let query = supabase
           .from("viral_clips")
-          .select("*, influencers(*), products(*)")
+          .select("*, influencers(*), products(id, name, slug, price, currency, images)")
           .eq("is_active", true)
           .order(sortBy === "recent" ? "created_at" : "total_views", { ascending: false })
           .limit(16);
@@ -81,7 +81,7 @@ export default function ContentHubPage() {
       if (filterType === "all" || filterType === "ugc") {
         let query = supabase
           .from("ugc_posts")
-          .select("*, profiles(*), ugc_post_product_tags(products(*)), ugc_post_hashtags(ugc_hashtags(*))")
+          .select("*, profiles(*), ugc_post_product_tags(products(id, name, slug, price, currency, images)), ugc_post_hashtags(ugc_hashtags(*))")
           .eq("is_published", true)
           .eq("moderation_status", "approved")
           .order(sortBy === "recent" ? "created_at" : "view_count", { ascending: false })
