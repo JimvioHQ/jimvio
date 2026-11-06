@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { IMAGE_HOSTS } from "./lib/media/image-hosts";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
@@ -27,12 +28,8 @@ const nextConfig: NextConfig = {
   },
 
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    // Explicit allowlist (lib/media/image-hosts.ts) instead of any host.
+    remotePatterns: IMAGE_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname })),
   },
 
   experimental: {
