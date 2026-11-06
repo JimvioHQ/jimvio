@@ -1,5 +1,6 @@
 "use client";
 
+import { STRATEGY_CATEGORIES } from "@/lib/marketplace/catalog-strategy";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -1120,6 +1121,36 @@ export default function CJImportBrowser({
         )}
 
         {!dashboardPrefs.hideIntelligenceMonitor && <IntelligenceMonitor />}
+
+        {/* Jimvio 2026–2030 strategy: one tap searches the CJ catalog for a focus category. */}
+        <div className="flex flex-wrap items-center gap-1.5" aria-label="Strategy categories">
+          <span className="text-[11px] font-semibold text-[#6B7280]">2026–2030 focus:</span>
+          {STRATEGY_CATEGORIES.map((category) => (
+            <details key={category.id} className="relative">
+              <summary className="cursor-pointer list-none rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 text-[11px] font-semibold text-[#111827] hover:border-[#FF5A1F]">
+                {category.label}
+                <span className="ml-1 text-[#9CA3AF]">· {category.target}</span>
+              </summary>
+              <div className="absolute z-20 mt-1 flex w-56 flex-col rounded-xl border border-[#E5E7EB] bg-white p-1 shadow-lg">
+                {category.keywords.map((keyword) => (
+                  <button
+                    key={keyword}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      setSearchQuery(keyword);
+                      saveRecentSearch(keyword);
+                      loadPage(1, false, undefined, { search: keyword });
+                    }}
+                    className="rounded-lg px-2 py-1.5 text-left text-[12px] text-[#374151] hover:bg-[#FFF4EF] disabled:opacity-50"
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
 
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">

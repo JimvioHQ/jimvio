@@ -1,3 +1,4 @@
+import { isPermanentUnpublishReason } from "@/lib/cj/import-intelligence/progressive-publish";
 /**
  * Select qualified CJ catalog products and publish them through the existing
  * import + system-publish pipeline. Does not replace auto-publish scoring.
@@ -471,9 +472,15 @@ async function importAndPublishPid(
   if (productId) {
     const { data: existing } = await supabase
       .from("products")
-      .select("id, status, is_active, images, inventory_quantity, vendor_id, deleted_at")
+      .select("id, status, is_active, images, inventory_quantity, vendor_id, deleted_at, auto_unpublish_reason")
       .eq("id", productId)
       .maybeSingle();
+
+    // Removed on purpose (owner curation, supplier removal, blacklist): never bring it back automatically.
+    if (existing?.id && !existing.deleted_at && isPermanentUnpublishReason(existing.auto_unpublish_reason as string | null)) {
+      stats.skipped += 1;
+      return "skipped";
+    }
 
     if (existing?.id && !existing.deleted_at) {
       if (existing.status === "active" && existing.is_active) {
