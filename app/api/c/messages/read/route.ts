@@ -55,5 +55,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
+  // Opening a conversation also clears its message notifications (header badge).
+  const urlPattern = notificationPatternFor(conversationKey);
+  if (urlPattern) {
+    await supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: now })
+      .eq("user_id", user.id)
+      .eq("type", "message")
+      .eq("is_read", false)
+      .ilike("action_url", urlPattern);
+  }
+
   return NextResponse.json({ ok: true, last_read_at: now });
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function notificationPatternFor(key: string): string | null {
+  const [kind, id] = key.split(":");
+  if (!id || !UUID.test(id)) return null;
+  if (kind === "inbox") return `%thread=${id}%`;
+  if (kind === "market") return `%conversation=${id}%`;
+  return null;
 }
