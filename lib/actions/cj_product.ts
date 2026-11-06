@@ -1023,7 +1023,7 @@ export async function upsertCJProduct(
                 mapped.is_active = false;
             }
 
-            mapped.slug = await uniqueProductSlug(supabase, mapped.slug);
+            mapped.slug = await uniqueProductSlug(supabase as unknown as Parameters<typeof uniqueProductSlug>[0], mapped.slug);
             const { data: inserted, error: insErr } = await supabase
                 .from("products")
                 .insert({ ...mapped })
