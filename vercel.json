@@ -71,7 +71,7 @@
     },
     {
       "path": "/api/cron/cj-strategy-import",
-      "schedule": "40 */2 * * *"
+      "schedule": "10 * * * *"
     }
   ]
 }

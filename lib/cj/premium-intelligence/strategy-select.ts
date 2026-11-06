@@ -15,7 +15,7 @@ export function strategyKeywords(): StrategyKeyword[] {
     .flatMap((c) => c.keywords.map((keyword) => ({ category: c.id, keyword, target: c.target })));
 }
 
-/** Keywords for this run: rotates every 2 hours so the whole list is covered in about a day. */
+/** Keywords for this run: rotates every 2 hours (hourly runs repeat a slot once, then move on). */
 export function keywordsForRun(now: Date, perRun: number): StrategyKeyword[] {
   const all = strategyKeywords();
   const slot = Math.floor(now.getTime() / (2 * 60 * 60 * 1000));
