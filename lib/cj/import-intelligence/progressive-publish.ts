@@ -155,10 +155,14 @@ export function publishTierCatalogMapping(tier: PublishTier): "PREMIUM" | "STAND
 }
 
 /** Hard blocks that justify unpublishing — nothing else. */
+/** Owner-approved catalog curation: never undone by automatic restore jobs (an admin can still republish by hand). */
+export const CATALOG_REFRESH_UNPUBLISH_REASON = "Catalog refresh 2026–2030";
+
 export const PERMANENT_UNPUBLISH_REASONS = new Set([
   "Product removed from CJ",
   "Stock became zero",
   "Supplier blacklisted",
+  CATALOG_REFRESH_UNPUBLISH_REASON,
 ]);
 
 export function isPermanentUnpublishReason(reason: string | null | undefined): boolean {
