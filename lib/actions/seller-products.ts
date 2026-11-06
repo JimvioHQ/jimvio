@@ -530,10 +530,10 @@ export async function duplicateSellerProduct(
     affiliate_commission_rate: source.affiliate_commission_rate,
     button_text: source.button_text,
     tags: Array.isArray(source.tags)
-      ? source.tags.filter((tag): tag is string => typeof tag === "string")
+      ? source.tags.filter((tag: unknown): tag is string => typeof tag === "string")
       : null,
     images: Array.isArray(source.images)
-      ? source.images.filter((url): url is string => typeof url === "string")
+      ? source.images.filter((url: unknown): url is string => typeof url === "string")
       : [],
     show_author: source.show_author ?? true,
     show_reviews: source.show_reviews ?? true,
