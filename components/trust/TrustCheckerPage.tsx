@@ -79,6 +79,7 @@ export function TrustCheckerPage() {
   const [report, setReport] = useState<ScanReport | null>(null);
   const [preview, setPreview] = useState<LocalPreview | null>(null);
   const [loadingSaved, setLoadingSaved] = useState(false);
+  const [sharedUntil, setSharedUntil] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
 
@@ -86,15 +87,24 @@ export function TrustCheckerPage() {
     if (report) window.scrollTo({ top: 0, behavior: "smooth" });
   }, [report]);
 
-  // Reopen a saved result from ?scan=<id> (only the person who ran it can load it).
+  // Reopen a saved result from ?scan=<id> (owner only), or a shared copy from ?scan=<id>&share=<token>.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("scan");
+    const q = new URLSearchParams(window.location.search);
+    const id = q.get("scan");
+    const share = q.get("share");
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
     setLoadingSaved(true);
-    fetch(`/api/trust-checker/scan/${encodeURIComponent(id)}`, { cache: "no-store" })
+    fetch(`/api/trust-checker/scan/${encodeURIComponent(id)}${share ? `?share=${encodeURIComponent(share)}` : ""}`, { cache: "no-store" })
       .then(async (r) => {
         const p = await r.json().catch(() => ({}));
-        if (!r.ok || !p.report) throw new Error(r.status === 404 ? "This result is private to the person who ran the check, or it no longer exists." : "The saved result couldn't be loaded. Try again.");
+        if (!r.ok || !p.report) {
+          throw new Error(
+            share && typeof p.error === "string" ? p.error
+              : r.status === 404 ? "This result is private to the person who ran the check, or it no longer exists. Ask them to use Share to send you a link."
+              : "The saved result couldn't be loaded. Try again.",
+          );
+        }
+        setSharedUntil(p.shared?.expiresAt ?? null);
         setReport(p.report as ScanReport);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "The saved result couldn't be loaded."))
@@ -135,6 +145,7 @@ export function TrustCheckerPage() {
     setBusy(true);
     setError(null);
     setReport(null);
+    setSharedUntil(null);
     setPreview(null);
     try {
       const form = new FormData();
@@ -161,6 +172,7 @@ export function TrustCheckerPage() {
 
   function resetScanner() {
     setReport(null);
+    setSharedUntil(null);
     setPreview(null);
     setError(null);
     setUrl("");
@@ -188,6 +200,11 @@ export function TrustCheckerPage() {
       <main className="relative min-h-screen overflow-x-clip bg-[linear-gradient(180deg,#FFFAF6_0%,#F8F9FB_360px)] pb-16">
         <HeroWave side="right" className="tc-fade pointer-events-none absolute right-0 top-0 h-[160px] w-[220px] opacity-70 sm:h-[240px] sm:w-[380px]" />
         <div className="relative mx-auto max-w-[1600px] px-4 pb-8 pt-4 sm:px-6 lg:px-8 xl:px-10">
+          {sharedUntil ? (
+            <p role="status" className="mb-4 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-[13.5px] leading-5 text-[#334155]">
+              <b className="text-[#111827]">Shared result.</b> Someone shared this read-only copy of their check with you. The link works until {new Date(sharedUntil).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}.
+            </p>
+          ) : null}
           <TrustResult report={report} preview={preview} onNewCheck={resetScanner} />
           <p className="mt-7 text-center text-[11px] leading-5 text-slate-400">Jimvio reports evidence-based signals, not legal judgments. Uploaded files are checked in memory and are not stored.</p>
         </div>
