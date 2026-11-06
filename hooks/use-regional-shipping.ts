@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { isFulfilledSource } from "@/lib/marketplace/public-product";
 import { detectBrowserCountry, countryDisplayName } from "@/lib/geo/buyer-country";
 import {
   filterShippingOptions,
@@ -61,7 +62,7 @@ export function useRegionalShipping({
       return;
     }
 
-    if (productSource !== "cj") {
+    if (!isFulfilledSource(productSource)) {
       setLiveOptions([]);
       return;
     }

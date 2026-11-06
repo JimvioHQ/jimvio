@@ -20,11 +20,12 @@ function readMeta(meta: unknown): Record<string, unknown> {
 export function productHasVerifiedSupplier(product: SignalProduct): boolean {
   if (product.vendors?.verification_status === "verified") return true;
   const meta = readMeta(product.source_metadata);
-  return meta.cj_supplier_verified === true;
+  return meta.verified === true || meta.cj_supplier_verified === true;
 }
 
 export function productHasTrendingSignal(product: SignalProduct): boolean {
   const meta = readMeta(product.source_metadata);
+  if (meta.trending === true) return true;
   return meta.cj_trending === true && meta.trend_classification !== "cj_order_count";
 }
 
@@ -42,5 +43,6 @@ export function productHasCustomerDescription(product: SignalProduct): boolean {
 export function productHasVideoSignal(product: SignalProduct): boolean {
   if (productHasVideos(product as never)) return true;
   const meta = readMeta(product.source_metadata);
+  if (meta.has_video === true && Array.isArray(meta.videos) && meta.videos.length > 0) return true;
   return meta.cj_has_video === true && Array.isArray(meta.cj_videos) && meta.cj_videos.length > 0;
 }

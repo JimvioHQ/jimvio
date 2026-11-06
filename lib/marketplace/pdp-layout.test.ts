@@ -125,16 +125,16 @@ describe("product share dialog", () => {
 });
 
 describe("customer stock and shipping money", () => {
-  it("includes quantity on in-stock and low-stock labels", () => {
+  it("shows a quantity only when stock is low", () => {
     const plenty = resolveStockStatus({ inventory_quantity: 1073, track_inventory: true });
-    assert.match(plenty.label, /In stock · .+ available/);
-    assert.match(plenty.label.replace(/[^\d]/g, ""), /1073/);
+    assert.equal(plenty.label, "In stock");
+    assert.equal(plenty.showQuantity, false);
     const low = resolveStockStatus({
       inventory_quantity: 4,
       track_inventory: true,
       low_stock_threshold: 5,
     });
-    assert.equal(low.label, "Low stock · 4 left");
+    assert.equal(low.label, "Only 4 left");
     const empty = resolveStockStatus({ inventory_quantity: 0, track_inventory: true });
     assert.equal(empty.label, "Out of stock");
   });

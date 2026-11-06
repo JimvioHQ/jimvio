@@ -28,8 +28,30 @@ type Props = {
 };
 
 /** Publish marketplace products to a native Jimvio store only (Shopify path retired). */
-export function SellToStoreButton({ productId, productName, className, label = "Sell to store" }: Props) {
+export function SellToStoreButton({ productId, productName, className, label = "Sell to store", sellersOnly = false }: Props & { sellersOnly?: boolean }) {
   const [open, setOpen] = useState(false);
+  // On buyer-facing pages the button only appears for signed-in people who run a Jimvio store.
+  const [isSeller, setIsSeller] = useState(!sellersOnly);
+
+  useEffect(() => {
+    if (!sellersOnly) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { createClient } = await import("@/lib/supabase/client");
+        const { data } = await createClient().auth.getSession();
+        if (!data.session) return;
+        const res = await fetch("/api/commerce/stores");
+        const json = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(json.stores) && json.stores.length > 0) setIsSeller(true);
+      } catch {
+        /* stays hidden */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sellersOnly]);
   const [jimvioStores, setJimvioStores] = useState<JimvioStore[]>([]);
   const [storeId, setStoreId] = useState("");
   const [loadingStores, setLoadingStores] = useState(false);
@@ -104,6 +126,8 @@ export function SellToStoreButton({ productId, productName, className, label = "
       setSubmitting(false);
     }
   }
+
+  if (!isSeller) return null;
 
   return (
     <>

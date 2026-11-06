@@ -21,8 +21,9 @@ describe("stock status", () => {
     });
     assert.equal(stock.status, "in_stock");
     assert.equal(stock.available, 128);
-    assert.match(stock.label, /In stock/);
-    assert.match(stock.label, /128/);
+    // The count is kept for logic but not shown while stock is plentiful.
+    assert.equal(stock.label, "In stock");
+    assert.equal(stock.showQuantity, false);
   });
 
   it("resolves low stock from threshold", () => {
@@ -32,8 +33,7 @@ describe("stock status", () => {
       low_stock_threshold: 5,
     });
     assert.equal(stock.status, "low_stock");
-    assert.match(stock.label, /Low stock/);
-    assert.match(stock.label, /4 left/);
+    assert.equal(stock.label, "Only 4 left");
   });
 
   it("resolves out of stock and blocks purchase", () => {

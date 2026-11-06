@@ -512,7 +512,6 @@ import {
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
-import { ListingQualityCard } from "@/components/marketplace/listing-quality-card";
 import { DigitalTrustPanel } from "@/components/marketplace/digital-trust-panel";
 import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 
@@ -1263,7 +1262,6 @@ export function DigitalProductDetail({
     <>
       <DigitalDeliveryCard product={product} />
       <LicenseInfoCard product={product} vendorStatus={vendor?.verification_status} trust={trust} />
-      <ListingQualityCard product={{ ...(product as object), vendors: vendor ?? null } as never} />
     </>
   );
 
@@ -1391,6 +1389,7 @@ export function DigitalProductDetail({
                       className="w-full"
                     />
                     <SellToStoreButton
+                    sellersOnly
                       productId={product.id}
                       productName={product.name}
                       className="w-full border-[#FF5A1F]/30 text-[#FF5A1F] hover:bg-[#FF5A1F]/5"

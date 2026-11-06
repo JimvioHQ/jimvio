@@ -184,6 +184,7 @@ export function ProductCardCommerceActions({
           onPointerDown={stop}
         >
           <SellToStoreButton
+            sellersOnly
             productId={productId}
             productName={productName}
             label="Sell to Store"

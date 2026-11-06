@@ -10,6 +10,7 @@ import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { getImage } from "@/lib/utils";
 import { publicSku } from "@/lib/marketplace/public-sku";
+import { toPublicProduct } from "@/lib/marketplace/public-product";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -54,7 +55,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   if (!pageData) notFound();
 
-  const { product, vendor, relatedProducts, allShippingOptions, isDigital } = pageData;
+  // Only buyer-safe fields leave the server (no cost, supplier, file or admin data).
+  const product = toPublicProduct(pageData.product);
+  const relatedProducts = pageData.relatedProducts.map((related) => toPublicProduct(related));
+  const { vendor, allShippingOptions, isDigital } = pageData;
 
   const reviews = product.reviews ?? [];
   const reviewCount = reviews.length;

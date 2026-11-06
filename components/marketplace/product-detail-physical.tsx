@@ -58,7 +58,6 @@ import {
   resolveStockStatus,
 } from "@/lib/marketplace/stock-status";
 import { PdpTrustStrip } from "@/components/marketplace/pdp-trust-strip";
-import { ListingQualityCard } from "@/components/marketplace/listing-quality-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1481,6 +1480,7 @@ export function PhysicalProductDetail({
                 )}
                 <div className="mt-2.5">
                   <SellToStoreButton
+                    sellersOnly
                     productId={product.id}
                     productName={product.name}
                     className="h-10 w-full rounded-xl border-[#FF5A1F]/30 text-[13px] text-[#FF5A1F] hover:bg-[#FF5A1F]/5"
@@ -1492,7 +1492,6 @@ export function PhysicalProductDetail({
             <section className="order-5 min-w-0 space-y-3 lg:order-none">
               {shippingCards}
               <PdpTrustStrip />
-              <ListingQualityCard product={product as never} />
             </section>
           </div>
         </div>
