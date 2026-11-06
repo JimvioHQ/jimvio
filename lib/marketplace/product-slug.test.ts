@@ -29,3 +29,14 @@ describe("clean product URLs", () => {
     assert.equal(await uniqueProductSlug(db, "lamp"), "lamp-3");
   });
 });
+
+describe("legacy product URL detection", () => {
+  it("matches only supplier-code product URLs", async () => {
+    const { legacyProductSlug } = await import("@/lib/marketplace/legacy-product-redirect");
+    assert.equal(legacyProductSlug("/marketplace/whitehead-deep-cleansing-acne-mask-cjbjpfmb00711"), "whitehead-deep-cleansing-acne-mask-cjbjpfmb00711");
+    assert.equal(legacyProductSlug("/marketplace/CJBJPFMB00711"), "cjbjpfmb00711");
+    assert.equal(legacyProductSlug("/marketplace/whitehead-deep-cleansing-acne-mask"), null);
+    assert.equal(legacyProductSlug("/marketplace/physical"), null);
+    assert.equal(legacyProductSlug("/marketplace/a/b-cjbjpfmb00711"), null);
+  });
+});

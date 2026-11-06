@@ -6,6 +6,7 @@ import {
   resolveStoreHostPath,
   shouldAttemptStoreHostRewrite,
 } from "@/lib/commerce-os/domains/host";
+import { currentProductSlug, legacyProductSlug } from "@/lib/marketplace/legacy-product-redirect";
 
 /**
  * Auth session middleware + host rewrite for *.jimvio.com → /s/[handle]/...
@@ -25,6 +26,19 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Old supplier-code product URLs: a real permanent redirect (one hop) to the current URL.
+  const legacySlug = subdomainHandle ? null : legacyProductSlug(pathname);
+  if (legacySlug) {
+    const current = await currentProductSlug(legacySlug);
+    if (current) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/marketplace/${current}`;
+      const res = NextResponse.redirect(url, 308);
+      res.headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400");
+      return res;
+    }
   }
 
   const needsStoreRewrite =
