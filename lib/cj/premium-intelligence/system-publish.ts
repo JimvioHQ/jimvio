@@ -4,6 +4,7 @@
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isPermanentUnpublishReason } from "@/lib/cj/import-intelligence/progressive-publish";
 import { revalidatePath } from "next/cache";
 import {
   filterProductsForCustomers,
@@ -33,6 +34,8 @@ export interface SystemPublishResult {
   success: boolean;
   error?: string;
   alreadyPublished?: boolean;
+  /** The product carries a permanent removal reason; automation must leave it unpublished. */
+  permanentlyRemoved?: boolean;
 }
 
 export interface PublishVerification {
@@ -56,12 +59,17 @@ export async function publishProductSystem(
 
   const { data: product, error: fetchErr } = await admin
     .from("products")
-    .select("id, images, status, is_active, source, source_metadata, auto_unpublished")
+    .select("id, images, status, is_active, source, source_metadata, auto_unpublished, auto_unpublish_reason")
     .eq("id", productId)
     .maybeSingle();
 
   if (fetchErr) return { success: false, error: fetchErr.message };
   if (!product) return { success: false, error: "Product not found." };
+  // A deliberate, permanent removal (e.g. the 2026–2030 catalog refresh) is never
+  // undone by automation; only an admin override can bring the product back.
+  if (isPermanentUnpublishReason(product.auto_unpublish_reason as string | null)) {
+    return { success: false, permanentlyRemoved: true, error: "Product was permanently removed from sale; automatic publishing is not allowed." };
+  }
 
   if (product.status === "active" && product.is_active) {
     if (product.auto_unpublished) {
