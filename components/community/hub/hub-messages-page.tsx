@@ -12,7 +12,9 @@ import {
 } from "@/lib/community-chat-upload";
 import { createClient } from "@/lib/supabase/client";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
-import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import { inboxApiBase, type ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import { marketplaceThreadId } from "@/lib/messaging/marketplace-thread";
+import { MarketplaceChatPane } from "@/components/messages/marketplace-chat-pane";
 import type { Msg } from "@/types";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -113,13 +115,47 @@ export function HubMessagesPage() {
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
+  const vendorHandled = useRef(false);
+  const loadThreadsRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
+
+  /** "Message store" links (?vendor=): open the buyer's chat with that store, creating it once. */
+  async function openStoreConversation(vendorId: string) {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: found } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("buyer_id", user.id)
+      .eq("vendor_id", vendorId)
+      .maybeSingle();
+    let id = (found as { id?: string } | null)?.id ?? null;
+    if (!id) {
+      const { data: created, error } = await supabase
+        .from("conversations")
+        .insert({ buyer_id: user.id, vendor_id: vendorId })
+        .select("id")
+        .single();
+      if (error || !created) {
+        toast.error("We couldn't open a chat with this store. Try again.");
+        return;
+      }
+      id = (created as { id: string }).id;
+    }
+    await loadThreadsRef.current({ silent: true });
+    setActiveThreadId(marketplaceThreadId(id));
+    setMobileShowChat(true);
+  }
 
   const conversationTarget = useMemo((): ConversationTarget | null => {
     if (!activeThread) return null;
-    if (activeThread.kind === "direct" && activeThread.communitySlug) {
+    if (activeThread.kind === "direct") {
+      // No community slug = platform-wide direct message.
       return {
         kind: "inbox",
-        slug: activeThread.communitySlug,
+        slug: activeThread.communitySlug || null,
         conversationId: activeThread.id,
       };
     }
@@ -137,7 +173,7 @@ export function HubMessagesPage() {
   });
 
   useEffect(() => {
-    if (!activeThread || activeThread.kind === "space") {
+    if (!activeThread || activeThread.kind === "space" || activeThread.kind === "marketplace") {
       setActiveChatTarget({ roomId: null, convId: null });
       return () => setActiveChatTarget({ roomId: null, convId: null });
     }
@@ -153,7 +189,7 @@ export function HubMessagesPage() {
   }, [activeThread]);
 
   const presenceKey = useMemo(() => {
-    if (!activeThread) return null;
+    if (!activeThread || activeThread.kind === "marketplace") return null;
     return conversationKey(
       activeThread.kind,
       activeThread.id,
@@ -166,7 +202,7 @@ export function HubMessagesPage() {
     userId: currentUserId,
     displayName,
     avatarUrl,
-    enabled: !!presenceKey && activeThread?.kind !== "space",
+    enabled: !!presenceKey && activeThread?.kind !== "space" && activeThread?.kind !== "marketplace",
   });
 
   const visibleMessages = useMemo((): HubChatMessage[] => {
@@ -220,10 +256,21 @@ export function HubMessagesPage() {
       setTabCounts(data.tabCounts ?? { all: 0, unread: 0, groups: 0, spaces: 0 });
       // Opened from a notification: jump to that conversation once.
       if (!opts?.silent && typeof window !== "undefined") {
-        const wanted = new URLSearchParams(window.location.search).get("thread");
-        if (wanted && (data.threads ?? []).some((t) => t.id === wanted)) {
+        const params = new URLSearchParams(window.location.search);
+        const list = data.threads ?? [];
+        // ?thread=<dm id>, ?conversation=<marketplace id> (older links), ?vendor=<store id>.
+        const conversation = params.get("conversation");
+        const vendor = params.get("vendor");
+        const wanted =
+          params.get("thread") ??
+          (conversation ? marketplaceThreadId(conversation) : null) ??
+          (vendor ? list.find((t) => t.market && !t.market.isVendorSide && t.market.vendorId === vendor)?.id ?? null : null);
+        if (wanted && list.some((t) => t.id === wanted)) {
           setActiveThreadId(wanted);
           setMobileShowChat(true);
+        } else if (vendor && !vendorHandled.current) {
+          vendorHandled.current = true;
+          void openStoreConversation(vendor);
         }
       }
     } finally {
@@ -232,6 +279,7 @@ export function HubMessagesPage() {
   }, []);
 
   useEffect(() => {
+    loadThreadsRef.current = loadThreads;
     void loadThreads();
   }, [loadThreads]);
 
@@ -241,7 +289,8 @@ export function HubMessagesPage() {
   );
 
   useEffect(() => {
-    if (!currentUserId || communityIdsForRealtime.length === 0) return;
+    // Everyone gets live list updates: DMs and marketplace chats don't need a community.
+    if (!currentUserId) return;
     const supabase = createClient();
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const scheduleRefresh = () => {
@@ -293,6 +342,16 @@ export function HubMessagesPage() {
         },
         scheduleRefresh
       )
+      // Marketplace (buyer ↔ store) messages; RLS delivers only the viewer's chats.
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "conversation_messages",
+        },
+        scheduleRefresh
+      )
       .subscribe();
 
     const readChannel = supabase
@@ -335,7 +394,7 @@ export function HubMessagesPage() {
   }, []);
 
   useEffect(() => {
-    if (!activeThread || activeThread.kind === "space") {
+    if (!activeThread || activeThread.kind === "space" || activeThread.kind === "marketplace") {
       setPeerLastReadAt(null);
       return;
     }
@@ -665,9 +724,9 @@ export function HubMessagesPage() {
 
     try {
       let res: Response;
-      if (activeThread.kind === "direct" && activeThread.communitySlug) {
+      if (activeThread.kind === "direct") {
         res = await fetch(
-          `/api/communities/${activeThread.communitySlug}/inbox/${activeThreadId}/messages`,
+          inboxApiBase(activeThread.communitySlug || null, activeThreadId ?? activeThread.id),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -731,9 +790,9 @@ export function HubMessagesPage() {
           reply_to_sender: item.replyToSender ?? null,
         };
         let res: Response;
-        if (item.kind === "direct" && item.communitySlug) {
+        if (item.kind === "direct") {
           res = await fetch(
-            `/api/communities/${item.communitySlug}/inbox/${item.threadId}/messages`,
+            inboxApiBase(item.communitySlug || null, item.threadId),
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -817,9 +876,9 @@ export function HubMessagesPage() {
     if (!activeThread) return;
     try {
       let res: Response;
-      if (activeThread.kind === "direct" && activeThread.communitySlug) {
+      if (activeThread.kind === "direct") {
         res = await fetch(
-          `/api/communities/${activeThread.communitySlug}/inbox/${activeThread.id}/messages/${msg.id}/react`,
+          `${inboxApiBase(activeThread.communitySlug || null, activeThread.id)}/${msg.id}/react`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -959,7 +1018,21 @@ export function HubMessagesPage() {
         )}
       >
         {activeThread ? (
-          activeThread.kind === "space" ? (
+          activeThread.kind === "marketplace" && activeThread.market && currentUserId ? (
+            <MarketplaceChatPane
+              key={activeThread.market.conversationId}
+              conversationId={activeThread.market.conversationId}
+              userId={currentUserId}
+              isVendorSide={activeThread.market.isVendorSide}
+              vendorId={activeThread.market.vendorId}
+              peerName={activeThread.name}
+              peerAvatar={activeThread.avatarUrl}
+              contextLabel={activeThread.subtitle ?? "Marketplace"}
+              storeHref={activeThread.market.storeHref}
+              onBack={() => setMobileShowChat(false)}
+              onActivity={() => void loadThreads({ silent: true })}
+            />
+          ) : activeThread.kind === "space" ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
               <p className="text-[15px] font-bold">{activeThread.name}</p>
               <p className="max-w-sm text-[12px] text-[var(--color-text-muted)]">
@@ -1198,6 +1271,11 @@ export function HubMessagesPage() {
         threads={threads}
         onSelect={(id) => {
           setActiveThreadId(id);
+          setMobileShowChat(true);
+        }}
+        onConversationOpened={async (conversationId) => {
+          await loadThreads({ silent: true });
+          setActiveThreadId(conversationId);
           setMobileShowChat(true);
         }}
       />

@@ -50,5 +50,13 @@ export function rankPeople(rows: PersonHit[], q: string, selfId: string, limit =
         (a.full_name ?? a.username ?? "").localeCompare(b.full_name ?? b.username ?? "")
     )
     .slice(0, limit)
-    .map((p) => ({ ...p, bio: p.bio ? p.bio.slice(0, 120) : null }));
+    // Explicit allow-list: nothing else (email, phone, …) can leave the server.
+    .map((p) => ({
+      id: p.id,
+      full_name: p.full_name ?? null,
+      username: p.username ?? null,
+      avatar_url: p.avatar_url ?? null,
+      bio: p.bio ? p.bio.slice(0, 120) : null,
+      is_verified: p.is_verified ?? null,
+    }));
 }

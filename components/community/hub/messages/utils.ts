@@ -2,7 +2,8 @@ import { format, formatDistanceToNow, isSameDay, isToday, isYesterday } from "da
 import type { Msg } from "@/types";
 import type { HubChatMessage, HubMessageAttachment } from "./types";
 
-export function conversationKey(kind: "direct" | "group" | "space", id: string, roomId?: string | null) {
+export function conversationKey(kind: "direct" | "group" | "space" | "marketplace", id: string, roomId?: string | null) {
+  if (kind === "marketplace") return `market:${id.replace(/^mkt:/, "")}`;
   if (kind === "group" && roomId) return `room:${roomId}`;
   if (kind === "group" && id.startsWith("room:")) return id;
   if (kind === "space") return id.startsWith("space:") ? id : `space:${id}`;
