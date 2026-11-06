@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
     if (method === "mobile_money") {
       await db
         .from("wallet_deposits")
-        .update({ status: "cancelled", updated_at: new Date().toISOString() })
+        .update({ status: "cancelled" })
         .eq("id", inserted.id)
         .eq("status", "pending");
       return NextResponse.json(

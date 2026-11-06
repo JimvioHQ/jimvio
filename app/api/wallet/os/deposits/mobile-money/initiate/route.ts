@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     await db
       .from("wallet_deposits")
-      .update({ status: "failed", updated_at: new Date().toISOString() })
+      .update({ status: "failed" })
       .eq("id", deposit.id);
     const msg =
       err instanceof FlutterwaveError
