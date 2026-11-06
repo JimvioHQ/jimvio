@@ -77,13 +77,13 @@ export async function listCourseTree(courseId: string, userId?: string) {
   }
 
   let fullContent = course.creator_id === userId || isManager;
-  if (!fullContent && userId && course.room_id) {
-    const { assertCourseAccess, redactCourseTreeForAccess } = await import(
-      "@/lib/community/courses/access"
-    );
+  const { assertCourseAccess, redactCourseTreeForAccess } = await import("@/lib/community/courses/access");
+  // Signed-in learners: full lesson content only with valid access (staff or active enrollment).
+  // Anonymous visitors never get it. Free lessons stay previewable for everyone (redaction keeps them).
+  if (!fullContent && userId) {
     const access = await assertCourseAccess({
       userId,
-      roomId: course.room_id,
+      roomId: course.room_id ?? "",
       courseId: course.id,
       communityId: course.community_id,
       creatorId: course.creator_id,
@@ -93,32 +93,6 @@ export async function listCourseTree(courseId: string, userId?: string) {
       accessMode: course.access_mode,
     });
     fullContent = access.fullContent;
-    const { data: modules, error: modulesError } = await client
-      .from("course_modules")
-      .select("*, course_lessons(*)")
-      .eq("course_id", courseId)
-      .order("sort_order");
-    if (modulesError) throw modulesError;
-    const tree = {
-      ...course,
-      modules: (modules ?? []).map((module) => ({
-        ...module,
-        course_lessons: [...(module.course_lessons ?? [])].sort(
-          (a, b) => a.sort_order - b.sort_order
-        ),
-      })),
-    };
-    // redact expects course_modules key used by room API; CE uses modules
-    const redacted = redactCourseTreeForAccess(
-      { ...tree, course_modules: tree.modules } as Record<string, unknown>,
-      fullContent
-    );
-    return {
-      ...tree,
-      modules:
-        (redacted as { course_modules?: typeof tree.modules }).course_modules ??
-        tree.modules,
-    };
   }
 
   const { data: modules, error: modulesError } = await client
@@ -127,7 +101,7 @@ export async function listCourseTree(courseId: string, userId?: string) {
     .eq("course_id", courseId)
     .order("sort_order");
   if (modulesError) throw modulesError;
-  return {
+  const tree = {
     ...course,
     modules: (modules ?? []).map((module) => ({
       ...module,
@@ -136,7 +110,18 @@ export async function listCourseTree(courseId: string, userId?: string) {
       ),
     })),
   };
+  if (fullContent) return tree;
+  // redact expects the room API's course_modules key; this API uses modules
+  const redacted = redactCourseTreeForAccess(
+    { ...tree, course_modules: tree.modules } as Record<string, unknown>,
+    false
+  );
+  return {
+    ...tree,
+    modules: (redacted as { course_modules?: typeof tree.modules }).course_modules ?? tree.modules,
+  };
 }
+
 
 export async function saveQuiz(input: { userId: string; courseId: string; lessonId: string; title: string; questions: unknown[]; passScore?: number }) {
   await assertCreator(input.courseId, input.userId);
