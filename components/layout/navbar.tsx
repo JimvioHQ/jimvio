@@ -308,7 +308,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
               />
             </div>
 
-            {/* Desktop nav — clips before overlapping search; shorter UGC label until 2xl */}
+            {/* Desktop nav — all five sections, full labels; the search box collapses to an icon below 2xl so nothing clips */}
             <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-1.5 overflow-hidden pl-3 xl:gap-2.5 xl:pl-5 2xl:gap-3">
 
               {navLinks.map((item) => {
@@ -415,7 +415,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 type="button"
                 onClick={() => openCommandCenter()}
                 aria-label="Search everything or run a command"
-                className="hidden min-[1240px]:flex h-9 w-[min(100%,140px)] xl:w-[160px] 2xl:w-[200px] min-w-0 shrink items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
+                className="hidden 2xl:flex h-9 w-[200px] min-w-0 shrink items-center gap-2 rounded-full border border-border bg-stone-50/90 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white"
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
                 <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
@@ -425,6 +425,15 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   ⌘K
                 </kbd>
               </button>
+
+              {/* 1240–1535px: compact search so all five primary sections fit without clipping */}
+              <ConsoleIconBtn
+                className="hidden min-[1240px]:flex 2xl:hidden"
+                onClick={() => openCommandCenter()}
+                aria-label="Search everything or run a command"
+              >
+                <Search className="h-[18px] w-[18px]" />
+              </ConsoleIconBtn>
 
               {/* Global Create — authenticated only; instant shared menu */}
               {user ? (
@@ -516,7 +525,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
               </div>
 
               {/* Mobile search — opens Global Search / Command Center */}
-              <ConsoleIconBtn className="md:hidden" onClick={() => openCommandCenter()} aria-label="Search">
+              <ConsoleIconBtn className="min-[1240px]:hidden" onClick={() => openCommandCenter()} aria-label="Search">
                 <Search className="h-[18px] w-[18px]" />
               </ConsoleIconBtn>
 

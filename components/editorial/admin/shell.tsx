@@ -69,7 +69,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen">
         <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col bg-[#0c1222] px-3 py-4 text-white lg:flex">
           <Link href="/media/admin" className="mb-6 flex items-center gap-2.5 px-2">
-            <Image src="/jimvio-logo-mark.png" alt="" width={32} height={32} className="h-8 w-8 rounded-lg" />
+            <Image src="/jimvio-logo.svg" alt="" width={32} height={32} unoptimized className="h-8 w-8" />
             <span>
               <span className="block text-sm font-extrabold leading-tight">
                 Jimvio <span className="text-[#fd5000]">Media</span>

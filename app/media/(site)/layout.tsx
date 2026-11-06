@@ -33,7 +33,7 @@ export default async function MediaSiteLayout({ children }: { children: React.Re
       <main id="media-main">{children}</main>
       <footer className="media-footer">
         <Link href="/media" className="media-footer-brand">
-          <Image src="/jimvio-logo-mark.png" alt="" width={34} height={34} />
+          <Image src="/jimvio-logo.svg" alt="" width={30} height={30} unoptimized />
           <span>Jimvio Media</span>
         </Link>
         <p>Trusted news and analysis from Africa and around the world.</p>
