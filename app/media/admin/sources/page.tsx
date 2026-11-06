@@ -14,6 +14,7 @@ const NOTICES: Record<string, string> = {
   invalid: "That address did not return a usable RSS or Atom feed, so it was not enabled.",
   credentials: "That provider needs credentials or a license. It was not activated.",
   autopublish: "Automatic publication was not turned on. The server authorization flag is not set.",
+  confirm: "Settings were saved, but owner authorization was not granted. Type AUTHORIZE AUTOMATIC PUBLICATION to grant it.",
 };
 
 export default async function MediaSourcesPage({
@@ -85,7 +86,8 @@ export default async function MediaSourcesPage({
         </label>
         <label className="block text-sm">
           Confirmation phrase
-          <input name="confirmation" autoComplete="off" className="mt-1 h-11 w-full rounded-lg border border-[#e6e8ee] px-3" />
+          <input name="confirmation" autoComplete="off" placeholder={desk.settings.ownerAutopublishAuthorized ? "Already authorized. Leave blank to keep it." : "AUTHORIZE AUTOMATIC PUBLICATION"} className="mt-1 h-11 w-full rounded-lg border border-[#e6e8ee] px-3" />
+          <span className="mt-1 block text-xs text-[#667085]">{desk.settings.ownerAutopublishAuthorized ? "Authorization is active. Untick the box above to revoke it." : "Needed only to grant authorization the first time."}</span>
         </label>
         <button type="submit" className="inline-flex h-11 items-center rounded-lg bg-[#fd5000] px-4 text-sm font-semibold text-white">Save controls</button>
       </form>

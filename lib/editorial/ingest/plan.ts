@@ -113,6 +113,30 @@ export function serverAutopublishAuthorized(env: NodeJS.ProcessEnv = process.env
   return env.MEDIA_AUTOPUBLISH_AUTHORIZED === "1";
 }
 
+export const OWNER_CONFIRMATION_PHRASE = "AUTHORIZE AUTOMATIC PUBLICATION";
+
+/**
+ * Owner authorization on "Save controls". Granting it needs the typed phrase.
+ * An existing authorization stays while the box stays ticked, so saving other
+ * settings never revokes it silently. Unticking always revokes. The server flag
+ * is required either way.
+ */
+export function ownerAuthorizationDecision(input: {
+  ticked: boolean;
+  phrase: string;
+  currentlyAuthorized: boolean;
+  serverAuthorized: boolean;
+}): { authorized: boolean; requested: boolean; needsPhrase: boolean } {
+  if (!input.ticked) return { authorized: false, requested: false, needsPhrase: false };
+  const phraseOk = input.phrase.trim() === OWNER_CONFIRMATION_PHRASE;
+  const requested = phraseOk || input.currentlyAuthorized;
+  return {
+    authorized: requested && input.serverAuthorized,
+    requested,
+    needsPhrase: !requested,
+  };
+}
+
 /** An item already saved under this external key must not be inserted again. */
 export function alreadyStoredDuplicate(item: { status: string; filterReason: string | null }): boolean {
   return item.status === "duplicate" && item.filterReason === "already_stored";
