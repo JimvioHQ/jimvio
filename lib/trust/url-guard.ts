@@ -28,6 +28,12 @@ export function normalizeUrl(raw: string): URL {
   if (u.username || u.password) throw new BlockedUrlError("Links with a username or password inside can't be checked.");
   if (!ALLOWED_PORTS.has(u.port)) throw new BlockedUrlError("Only standard web ports (80 and 443) are checked.");
   const host = u.hostname.toLowerCase();
+  // A real host is an IP address or a dotted DNS name; anything else (e.g. "ht!tp" parsed out of a typo) is not a link.
+  const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith("[");
+  if (!isIp && !/^(?=.{1,253}$)(?:[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host)) {
+    throw new BlockedUrlError("That doesn't look like a valid link.");
+  }
+  if (!isIp && /^\d+$/.test(host.split(".").pop() ?? "")) throw new BlockedUrlError("That doesn't look like a valid link.");
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) {
     throw new BlockedUrlError("Private or local addresses can't be checked.");
   }

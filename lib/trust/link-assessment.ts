@@ -86,8 +86,9 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
   const wrThreats = d.webRisk?.threats ?? [];
   const malwareHits = sum.matches.filter((r) => r.covers.includes("malware") || r.covers.includes("c2")).filter((r) => r.id !== "google_web_risk" || wrThreats.some((t) => /MALWARE|UNWANTED/i.test(t)));
   const phishHits = sum.matches.filter((r) => r.covers.includes("phishing")).filter((r) => r.id !== "google_web_risk" || wrThreats.some((t) => /SOCIAL_ENGINEERING/i.test(t)));
+  const short = (r: IntelResult) => r.name.replace(/ \(abuse\.ch\)$/, "").replace(/ Warning List$/, "");
   const names = (rs: IntelResult[]) => {
-    const n = rs.map((r) => r.name.replace(/ \(abuse\.ch\)$/, "").replace(/ Warning List$/, ""));
+    const n = rs.map(short);
     return n.length <= 1 ? (n[0] ?? "") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`;
   };
   const orNames = (rs: IntelResult[]) => names(rs).replace(/ and ([^,]+)$/, " or $1");
@@ -115,7 +116,7 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
   const checks: SecurityCheck[] = [
     c("url", "URL Validation", false, "URL analysis",
       urlF.some((x) => x.tone === "bad") ? "THREAT_DETECTED" : urlF.length ? "SUSPICIOUS" : "CLEAN",
-      urlF.length ? "The address itself has deceptive or risky features." : "The address has no deceptive structure (encoding tricks, raw IP, embedded credentials).", ev(urlF), urlF.length ? "low" : "none"),
+      urlF.length ? `The address itself has risky features: ${urlF.map((x) => x.title.replace(/\.$/, "")).join("; ")}.` : "The address has no deceptive structure (encoding tricks, raw IP, embedded credentials).", ev(urlF), urlF.length ? "low" : "none"),
     c("redirects", "Redirect Chain Analysis", false, "Safe page fetch",
       !fetched ? (d.redirects.length ? "INCONCLUSIVE" : "FAILED") : redirectF.some((x) => x.tone === "warn") ? "SUSPICIOUS" : "CLEAN",
       !fetched ? "The redirect chain could not be followed to the end." : d.redirects.length ? `${d.redirects.length} redirect${d.redirects.length > 1 ? "s" : ""} followed to the final page.` : "No redirects.",
@@ -138,7 +139,7 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
       [...providerHits, ...ev(phishContentF)], "critical"),
     c("reputation", "Domain Reputation", false, "URL analysis · RDAP",
       urlF.some((x) => /abused|bait/i.test(text(x))) ? "SUSPICIOUS" : "CLEAN",
-      d.officialPlatform ? `${d.officialPlatform}'s own domain.` : "Checked the domain name for abused endings and bait words.", ev(urlF.filter((x) => /abused|bait/i.test(text(x)))), "low"),
+      d.officialPlatform ? `${d.officialPlatform}'s own domain.` : urlF.some((x) => /abused|bait/i.test(text(x))) ? `The domain name raises flags: ${urlF.filter((x) => /abused|bait/i.test(text(x))).map((x) => x.title.replace(/\.$/, "")).join("; ")}.` : "No abused domain ending or bait words in the domain name.", ev(urlF.filter((x) => /abused|bait/i.test(text(x)))), "low"),
     c("brand", "Brand Impersonation", false, "URL analysis · page content",
       brandF.some((x) => x.tone === "bad") ? "THREAT_DETECTED" : brandF.length ? "SUSPICIOUS" : inspected ? "CLEAN" : "INCONCLUSIVE",
       brandF.length ? "Uses a well-known brand on a domain that isn't theirs." : inspected ? "No look-alike brand name in the address or page title." : "The address was checked, but the page could not be read for brand misuse.", ev(brandF), "high"),
@@ -149,7 +150,7 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
         : !sum.answered.length
           ? `None of the ${asked.length} eligible threat-intelligence sources answered.`
           : notAnswered.length
-            ? `${sum.answered.length} of ${asked.length} eligible sources answered; ${notAnswered.map((r) => `${r.name} ${STATUS_WORD[r.status]}`).join(", ")}.`
+            ? `${sum.answered.length} of ${asked.length} eligible sources answered; ${notAnswered.map((r) => `${short(r)} ${STATUS_WORD[r.status]}`).join(", ")}.`
             : `All ${asked.length} eligible sources answered and none lists it (${names(sum.answered)}). Not being listed is not proof of safety.`,
       [...providerHits, ...intel.filter((r) => !["match", "clean"].includes(r.status)).map((r) => `${r.name}: ${STATUS_WORD[r.status]}${r.note ? ` — ${r.note}` : ""}`)], "critical"),
     c("tls", "SSL / HTTPS", false, "TLS certificate",
@@ -157,7 +158,7 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
       d.tls.status === "valid" ? `Valid certificate${d.tls.issuer ? ` from ${d.tls.issuer}` : ""}${d.tls.daysLeft != null ? `, ${d.tls.daysLeft} days left` : ""}. A valid certificate doesn't make a site trustworthy.` : d.tls.status === "invalid" ? "The certificate is not trusted." : d.tls.status === "not_https" ? "The page is not encrypted." : "The certificate could not be read.", [], "low"),
     c("registration", "Domain Registration Information", false, "RDAP",
       d.ageDays == null ? "UNAVAILABLE" : d.ageDays < 30 ? "SUSPICIOUS" : "CLEAN",
-      d.ageDays == null ? "The registry did not share registration data." : d.ageDays < 30 ? `Registered only ${d.ageDays} days ago. New domains are common for scams, but this alone proves nothing.` : `Registered ${Math.floor(d.ageDays / 365) || "<1"} year(s) ago. Age is supporting evidence, not proof of safety.`,
+      d.ageDays == null ? "The registry did not share registration data." : d.ageDays < 30 ? `Registered only ${d.ageDays} days ago. New domains are common for scams, but this alone proves nothing.` : `Registered ${d.ageDays < 365 ? `${Math.max(1, Math.floor(d.ageDays / 30))} month${Math.floor(d.ageDays / 30) > 1 ? "s" : ""}` : `${Math.floor(d.ageDays / 365)} year${Math.floor(d.ageDays / 365) > 1 ? "s" : ""}`} ago. Age is supporting evidence, not proof of safety.`,
       [d.registrar ? `Registrar: ${d.registrar}` : "", ...(d.nameservers ?? []).map((n) => `Nameserver: ${n}`)].filter(Boolean), "low"),
     c("dns", "DNS & Network Intelligence", false, "DNS · RDAP (IP)",
       d.ip ? "CLEAN" : fetched ? "NOT_CHECKED" : "FAILED",
@@ -223,7 +224,7 @@ export function assessLink({ findings: f, details: d, failed = false }: Input): 
   // A source that failed is still a gap even when another source already found a threat.
   const blocklistDone = checks.find((k) => k.id === "blocklist");
   if (blocklistDone && DONE.includes(blocklistDone.status) && notAnswered.length && sum.answered.length)
-    unverifiedItems.push({ checkId: "intel_sources", name: "Threat Intelligence Sources", status: "INCONCLUSIVE", text: sentence(`${notAnswered.map((r) => `${r.name} ${STATUS_WORD[r.status]}`).join(", ")}; ${sum.answered.length} of ${asked.length} eligible sources answered`) });
+    unverifiedItems.push({ checkId: "intel_sources", name: "Threat Intelligence Sources", status: "INCONCLUSIVE", text: sentence(`${notAnswered.map((r) => `${short(r)} ${STATUS_WORD[r.status]}`).join(", ")}; ${sum.answered.length} of ${asked.length} eligible sources answered`) });
 
   // Recommended Action: from this assessment's own evidence.
   const finalHost = (() => {

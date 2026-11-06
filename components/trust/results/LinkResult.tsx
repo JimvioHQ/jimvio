@@ -102,11 +102,12 @@ export function LinkResult({ report, checker, onNewCheck }: { report: ScanReport
         ))}
       </div>
 
-      <div className="grid items-stretch gap-4 xl:grid-cols-2 xl:gap-5">
+      <div className={cn("grid gap-4 xl:grid-cols-2 xl:gap-5", m.checks.length ? "items-stretch" : "items-start")}>
         <Card className="tc-lift">
           <CardTitle icon={<Search className="text-[#111827]" strokeWidth={2.6} />}>Detailed Scan Results</CardTitle>
           <ul className="px-5 pb-3 sm:px-6">
             {m.checks.map((r) => <CheckRowItem key={r.key} row={r} icon={CHECK_ICON[r.key]} />)}
+            {m.checks.length ? null : <li className="py-3 text-[14.5px] leading-6 text-[#475569]">No checks ran for this link. {m.banner.text}</li>}
           </ul>
         </Card>
         <Card className="tc-lift">

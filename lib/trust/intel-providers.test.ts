@@ -5,7 +5,6 @@ import { checkCertPl, checkFeodo, checkSslbl, domainListed, health, isActiveProv
 import { assessLink } from "./link-assessment.ts";
 import type { IntelResult, LinkDetails } from "./types.ts";
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 const deps = (handler: (url: string, init?: RequestInit) => Response | Promise<Response>): IntelDeps => ({
   fetch: (async (u: RequestInfo | URL, init?: RequestInit) => handler(String(u), init)) as typeof fetch,
   now: () => Date.now(),
@@ -115,7 +114,7 @@ describe("current architecture (four free-forever sources)", () => {
     assert.equal(a.state, "THREAT_DETECTED");
     const gap = (a.couldNotVerifyItems ?? []).filter((x) => x.checkId === "intel_sources");
     assert.equal(gap.length, 1);
-    assert.match(gap[0].text, /SSL Blacklist \(abuse\.ch\) timed out; 3 of 4 eligible sources answered\.$/);
+    assert.match(gap[0].text, /^SSL Blacklist timed out; 3 of 4 eligible sources answered\.$/);
   });
   it("clean URL: blocklist clean with a dynamic count, malware honestly not covered", () => {
     const a = assessLink({ findings: [], details: link(all4()) });
@@ -140,7 +139,7 @@ describe("current architecture (four free-forever sources)", () => {
     const a = assessLink({ findings: [], details: link(all4({ cert_pl: "timeout" })) });
     const bl = a.checks.find((k) => k.id === "blocklist")!;
     assert.equal(bl.status, "INCONCLUSIVE");
-    assert.match(bl.explanation, /^3 of 4 eligible sources answered; CERT Polska Warning List timed out/);
+    assert.match(bl.explanation, /^3 of 4 eligible sources answered; CERT Polska timed out\.$/);
     assert.ok(a.actions.some((x) => /didn't answer/.test(x)));
   });
   it("skipped sources are not in the denominator", () => {

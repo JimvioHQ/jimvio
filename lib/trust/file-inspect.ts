@@ -98,6 +98,61 @@ export function zipText(buf: Buffer, entry: string, maxBytes = 2_000_000): strin
   }
 }
 
+/** The EPUB package: its OPF XML and the reading-order (spine) documents, decompressed within size caps. */
+export function epubPackage(buf: Buffer): { opf: string; spine: string[] } | null {
+  const container = zipText(buf, "META-INF/container.xml", 64_000);
+  const opfPath = container ? /full-path\s*=\s*"([^"]+)"/i.exec(container)?.[1] : null;
+  if (!opfPath) return null;
+  const opf = zipText(buf, opfPath, 1_000_000);
+  if (!opf) return null;
+  const dir = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
+  const hrefs = new Map<string, string>();
+  for (const m of opf.matchAll(/<item\b[^>]*>/gi)) {
+    const id = /\bid\s*=\s*"([^"]+)"/i.exec(m[0])?.[1];
+    const href = /\bhref\s*=\s*"([^"]+)"/i.exec(m[0])?.[1];
+    if (id && href && /x?html|xml/i.test(/media-type\s*=\s*"([^"]+)"/i.exec(m[0])?.[1] ?? "")) hrefs.set(id, dir + decodeURIComponent(href.split("#")[0]));
+  }
+  const order = [...opf.matchAll(/<itemref\b[^>]*\bidref\s*=\s*"([^"]+)"/gi)].map((m) => hrefs.get(m[1])).filter((x): x is string => Boolean(x)).slice(0, 400);
+  const wanted = new Set(order);
+  let budget = 8_000_000;
+  const files: Record<string, Uint8Array> = {};
+  try {
+    Object.assign(files, unzipSync(new Uint8Array(buf), { filter: (f) => wanted.has(f.name) && f.originalSize <= 2_000_000 && (budget -= f.originalSize) >= 0 }));
+  } catch {
+    return { opf, spine: [] };
+  }
+  return { opf, spine: order.filter((n) => files[n]).map((n) => strFromU8(files[n])) };
+}
+
+const xmlText = (s: string) => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).trim();
+const dc = (opf: string, tag: string) => {
+  const m = new RegExp(`<dc:${tag}\\b[^>]*>([\\s\\S]*?)</dc:${tag}>`, "i").exec(opf);
+  return m ? xmlText(m[1].replace(/<[^>]+>/g, "")) || null : null;
+};
+
+/** Title, author, dates and generator from the EPUB's OPF metadata (the EPUB equivalent of a PDF Info dictionary). */
+export function epubMeta(buf: Buffer): (PdfMeta & { rights: string | null }) | null {
+  const pkg = epubPackage(buf);
+  if (!pkg) return null;
+  const o = pkg.opf;
+  const modified = /<meta\b[^>]*property\s*=\s*"dcterms:modified"[^>]*>([^<]+)</i.exec(o)?.[1]?.trim() ?? null;
+  const generator = /<meta\b[^>]*name\s*=\s*"generator"[^>]*content\s*=\s*"([^"]+)"/i.exec(o)?.[1] ?? null;
+  return { pages: null, producer: generator, creator: generator, title: dc(o, "title"), author: dc(o, "creator"), subject: dc(o, "subject") ?? dc(o, "description"), createdAt: dc(o, "date"), modifiedAt: modified, rights: dc(o, "rights") };
+}
+
+/** Readable text of an EPUB in reading order, with its rights statement first so licence/copyright checks see it. */
+export function epubText(buf: Buffer): string | null {
+  const pkg = epubPackage(buf);
+  if (!pkg) return null;
+  const rights = dc(pkg.opf, "rights");
+  const body = pkg.spine
+    .map((h) => xmlText(h.replace(/<(head|script|style)\b[\s\S]*?<\/\1>/gi, " ").replace(/<\/(p|div|h[1-6]|li|br|tr)>|<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ")).replace(/[ \t]+/g, " "))
+    .join("\n")
+    .slice(0, 2_000_000);
+  const text = `${rights ? `${rights}\n` : ""}${body}`.trim();
+  return text.split(/\s+/).length >= 20 ? text : null;
+}
+
 const EXEC_EXT = /\.(exe|scr|msi|bat|cmd|com|pif|vbs|vbe|js|jse|wsf|ps1|hta|jar|apk|dll|sh|app|dmg|pkg|lnk|iso|img)$/i;
 const DOC_EXT = /\.(pdf|docx?|xlsx?|pptx?|jpe?g|png|gif|mp4|mov|mp3|txt|zip)$/i;
 
@@ -169,6 +224,7 @@ export function extractText(buf: Buffer, type: FileType): string | null {
     const xml = zipText(buf, "word/document.xml");
     return xml ? xml.replace(/<w:p[^>]*>/g, "\n").replace(/<[^>]+>/g, "").replace(/\s+\n/g, "\n") : null;
   }
+  if (type.kind === "ebook") return epubText(buf);
   if (type.kind === "pdf") {
     const text = pdfText(buf);
     return text && text.split(/\s+/).length >= 20 ? text : null;
