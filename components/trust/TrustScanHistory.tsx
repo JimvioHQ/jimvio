@@ -68,7 +68,6 @@ export function TrustScanHistory({
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || !payload.report) throw new Error(payload.error || "This report could not be opened.");
       onOpenReport(payload.report as ScanReport);
-      document.getElementById("trust-checker-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "This report could not be opened.");
     } finally {
@@ -80,7 +79,7 @@ export function TrustScanHistory({
     <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_32px_rgba(15,23,42,0.04)] sm:p-6" aria-labelledby="trust-history-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#F15A24]">Your workspace</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#FF5A1F]">Your workspace</p>
           <h2 id="trust-history-heading" className="mt-1 text-xl font-black tracking-tight text-slate-950">Recent checks</h2>
           <p className="mt-1 text-xs text-[#64748B]">Open a previous report from your signed-in account.</p>
         </div>
@@ -99,7 +98,7 @@ export function TrustScanHistory({
           {scans.map((scan) => (
             <li key={scan.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#F15A24]"><FileText className="h-4 w-4" /></span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-[#FF5A1F]"><FileText className="h-4 w-4" /></span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-[#1B2947]">{scan.input_url || scan.file_name || "File check"}</p>
                   <p className="mt-1 flex items-center gap-1.5 text-[11px] text-[#8792A5]"><Clock3 className="h-3 w-3" />{new Date(scan.created_at).toLocaleString()}</p>
