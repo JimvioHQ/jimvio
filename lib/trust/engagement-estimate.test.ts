@@ -41,3 +41,11 @@ describe("YouTube placeholder dates", async () => {
     assert.equal(ytDate("2005-09-19T05:00:00Z"), "2005-09-19T05:00:00Z");
   });
 });
+
+describe("rangeLabel at billion scale (report and tiles agree)", () => {
+  it("uses B for billions instead of thousands of millions", () => {
+    assert.equal(rangeLabel([1_650_709_823, 1_834_122_026]), "1.65B–1.83B");
+    assert.equal(rangeLabel([2_000_000_000, 2_000_000_000]), "2B");
+    assert.equal(rangeLabel([0, 183_412_203]), "0–183M");
+  });
+});

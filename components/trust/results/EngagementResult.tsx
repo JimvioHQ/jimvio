@@ -75,7 +75,7 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
     category: "Engagement & Traffic Detection",
     item: `${m.itemLabel}: ${m.heading} — ${m.url}`,
     checkedAt: new Date(report.createdAt).toUTCString(),
-    banner: { tone: m.quality.level === "high" ? "good" : m.quality.level === "moderate" ? "warn" : m.quality.level === "low" ? "bad" : "neutral", title: `Engagement Quality: ${m.quality.label}`, text: m.quality.text, result: { label: m.quality.label, tone: "neutral" } },
+    banner: { tone: m.quality.level === "high" ? "good" : m.quality.level === "moderate" ? "warn" : m.quality.level === "low" ? "bad" : "neutral", title: "Engagement Quality", text: m.quality.text, result: { label: m.quality.label, tone: "neutral" } },
     score: null,
     sections: [
       { title: "Metrics", rows: rowsFromTiles(m.tiles) },
