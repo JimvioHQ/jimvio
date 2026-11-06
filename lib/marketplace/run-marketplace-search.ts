@@ -1,3 +1,4 @@
+import { toPublicProduct } from "@/lib/marketplace/public-product";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
@@ -231,7 +232,8 @@ export async function runMarketplaceSearch(
     pageSize: page.pageSize,
     total: page.total,
     pageCount: page.pageCount,
-    products: attachProductVideos(pageItems, videoMap),
+    // Results go straight to buyers' browsers: buyer-safe fields only.
+    products: attachProductVideos(pageItems, videoMap).map((product) => toPublicProduct(product)),
   };
 }
 

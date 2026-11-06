@@ -110,7 +110,7 @@ export function ProductTitleBadges({
             )}
           >
             <BadgeCheck className="h-3 w-3" />
-            Verified Supplier
+            Jimvio Verified
           </span>
         )}
         {isBestseller && (
@@ -149,7 +149,7 @@ export function ProductTitleBadges({
           )}
         >
           <BadgeCheck className="h-3 w-3" />
-          Verified Supplier
+          Jimvio Verified
         </span>
       )}
       {isBestseller && (

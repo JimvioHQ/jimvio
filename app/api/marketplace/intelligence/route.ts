@@ -1,3 +1,4 @@
+import { toPublicPayload } from "@/lib/marketplace/public-product";
 import { NextResponse } from "next/server";
 import {
   getHomepageIntelligenceFeed,
@@ -13,7 +14,7 @@ export async function GET(req: Request) {
 
   try {
     const rankings = await getMarketplaceRankings(limit);
-    return NextResponse.json({ success: true, rankings });
+    return NextResponse.json({ success: true, rankings: toPublicPayload(rankings) });
   } catch (err) {
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : "failed" },
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       cartProductIds: body.cartProductIds ?? [],
       newProductIds: body.newProductIds ?? [],
     });
-    return NextResponse.json({ success: true, sections });
+    return NextResponse.json({ success: true, sections: toPublicPayload(sections) });
   } catch (err) {
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : "failed" },

@@ -125,7 +125,8 @@ describe("storefront inventory presentation", () => {
       inventory_quantity: 12,
       track_inventory: true,
     });
-    assert.match(marketplace.label, /12/);
+    // Marketplace shows a count only when stock is low.
+    assert.equal(marketplace.label, "In stock");
   });
 });
 

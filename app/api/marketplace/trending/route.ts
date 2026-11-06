@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRotatedTrendingProducts } from "@/lib/marketplace/trending-selection";
+import { toPublicPayload } from "@/lib/marketplace/public-product";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const products = await getRotatedTrendingProducts(type, seed);
     return NextResponse.json(
-      { products },
+      { products: toPublicPayload(products) },
       { headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {

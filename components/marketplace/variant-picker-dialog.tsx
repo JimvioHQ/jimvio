@@ -759,6 +759,7 @@
 
 "use client";
 
+import { isFulfilledSource } from "@/lib/marketplace/public-product";
 import { publicSku } from "@/lib/marketplace/public-sku";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -1219,7 +1220,7 @@ export function VariantPickerDialog({
 
   // whether any CJ variant has dimension data to show size guide
   const showSizeGuide = useMemo(
-    () => visibleVariants.some((v) => v.source === "cj" && hasDimensions(v)),
+    () => visibleVariants.some((v) => isFulfilledSource(v.source) && hasDimensions(v)),
     [visibleVariants]
   );
 

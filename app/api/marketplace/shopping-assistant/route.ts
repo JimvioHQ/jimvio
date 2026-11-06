@@ -1,3 +1,4 @@
+import { toPublicPayload } from "@/lib/marketplace/public-product";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CONFIDENTIAL_AI_REFUSAL, isConfidentialAiRequest } from "@/lib/ai/ai-guard";
@@ -73,7 +74,7 @@ function assistantJson(
   const serverTiming = Object.entries(timing)
     .map(([name, dur]) => `${name};dur=${Math.max(0, Math.round(dur))}`)
     .join(", ");
-  return NextResponse.json(body, {
+  return NextResponse.json(toPublicPayload(body), {
     status,
     headers: serverTiming ? { "Server-Timing": serverTiming } : undefined,
   });

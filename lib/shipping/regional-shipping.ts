@@ -75,16 +75,17 @@ export function storefrontMetaFromProduct(product: {
     typeof meta.cj_ships_from === "string" ? meta.cj_ships_from.trim() : "",
     typeof meta.ships_from === "string" ? meta.ships_from.trim() : "",
   ].filter(Boolean);
+  // Public product copies use neutral keys (lib/marketplace/public-product.ts).
 
   const warehouseRaw =
     warehouseRawCandidates.find((value) => parseWarehouseCountryCode(value) !== null) ??
     null;
 
   return {
-    processingDays: parsePositiveNumber(meta.cj_delivery_cycle),
-    shippingDays: parsePositiveNumber(meta.cj_shipping_days),
-    isFreeShipping: Boolean(product.is_free_shipping ?? meta.cj_is_free_shipping),
-    hasTracking: Boolean(meta.cj_has_tracking),
+    processingDays: parsePositiveNumber(meta.processing_days ?? meta.cj_delivery_cycle),
+    shippingDays: parsePositiveNumber(meta.shipping_days ?? meta.cj_shipping_days),
+    isFreeShipping: Boolean(product.is_free_shipping ?? (meta.free_shipping ?? meta.cj_is_free_shipping)),
+    hasTracking: Boolean(meta.has_tracking ?? meta.cj_has_tracking),
     warehouseCountryCode: warehouseRaw,
     defaultShipFromCountry: parseWarehouseCountryCode(warehouseRaw),
   };

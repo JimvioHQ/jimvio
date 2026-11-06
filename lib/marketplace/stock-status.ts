@@ -1,3 +1,5 @@
+import { isFulfilledSource } from "@/lib/marketplace/public-product";
+
 /**
  * Centralized marketplace stock status for customer-facing UI.
  * Authoritative quantity: products.inventory_quantity / product_variants.inventory_quantity
@@ -109,7 +111,7 @@ export function resolveStockStatus(input: StockInput): ResolvedStock {
   if (available <= threshold) {
     const label = hideQuantity
       ? "Low stock"
-      : `Low stock · ${available} left`;
+      : `Only ${available} left`;
     return {
       status: "low_stock",
       available,
@@ -120,16 +122,15 @@ export function resolveStockStatus(input: StockInput): ResolvedStock {
     };
   }
 
-  const label = hideQuantity
-    ? "In stock"
-    : `In stock · ${available.toLocaleString()} available`;
+  // Plenty of stock: say so without a warehouse-sized count. Counts are shown
+  // only when they help the buyer decide (low stock).
   return {
     status: "in_stock",
     available,
     threshold,
-    label,
-    compactLabel: label,
-    showQuantity: !hideQuantity,
+    label: "In stock",
+    compactLabel: "In stock",
+    showQuantity: false,
   };
 }
 
@@ -143,12 +144,12 @@ export function isPurchaseBlockedByStock(input: StockInput): boolean {
 export function shouldHideStockQuantity(product: {
   source?: string | null;
 }): boolean {
-  return product.source === "cj";
+  return isFulfilledSource(product.source);
 }
 
 /** Dropship-eligible marketplace products (CJ supplier catalog). */
 export function isDropshipEligible(product: {
   source?: string | null;
 }): boolean {
-  return product.source === "cj";
+  return isFulfilledSource(product.source);
 }
