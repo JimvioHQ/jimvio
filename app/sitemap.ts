@@ -14,7 +14,7 @@ const STATIC_ROUTES: Array<{
   changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
 }> = [
   { path: "/", priority: 1, changeFrequency: "daily" },
-  { path: "/marketplace", priority: 0.9, changeFrequency: "daily" },
+  // "/marketplace" is a permanent redirect to /marketplace/physical, so it is not listed.
   { path: "/marketplace/physical", priority: 0.85, changeFrequency: "daily" },
   { path: "/marketplace/digital", priority: 0.85, changeFrequency: "daily" },
   { path: "/communities", priority: 0.85, changeFrequency: "daily" },
