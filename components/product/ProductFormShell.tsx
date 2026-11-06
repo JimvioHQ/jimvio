@@ -26,7 +26,7 @@ import {
     updateAdminProduct,
     type AdminProductUpdateInput,
 } from "@/lib/actions/admin-products";
-import { upsertSellerProduct, getSellerUploadContext } from "@/lib/actions/seller-products";
+import { upsertSellerProduct, getSellerUploadContext, getSellerProductForEdit } from "@/lib/actions/seller-products";
 import { CategoryTreeSelect } from "@/components/product/CategoryTreeSelect";
 import {
     ProductTypeSelector,
@@ -1990,13 +1990,9 @@ export function ProductFormShell({
                     }
                     product = result.data.product;
                 } else {
-                    const { data, error: pErr } = await supabase
-                        .from("products")
-                        .select("*")
-                        .eq("id", productId)
-                        .single();
-                    if (pErr || !data) { setError("Product not found."); setLoading(false); return; }
-                    product = data;
+                    const result = await getSellerProductForEdit(productId);
+                    if (!result.success) { setError("Product not found."); setLoading(false); return; }
+                    product = result.product;
                 }
 
                 if (!product) {

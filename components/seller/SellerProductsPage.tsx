@@ -44,6 +44,12 @@ import {
   type ProductSortKey,
 } from "@/lib/seller/product-inventory";
 
+/** Columns the seller list shows (never cost or private file fields; those stay server-side). */
+const SELLER_LIST_COLUMNS = `id, name, slug, price, currency, status, product_type, images,
+         inventory_quantity, sale_count, is_digital, created_at, updated_at, vendor_id,
+         is_active, view_count, rating, review_count, track_inventory,
+         low_stock_threshold, deleted_at`;
+
 type ProductStatus = "active" | "paused" | "draft" | "archived" | "pending_review" | "rejected";
 
 type Product = Pick<Database["public"]["Tables"]["products"]["Row"],
@@ -141,12 +147,7 @@ export function SellerProductsPage() {
 
     const { data: prods, error: prodsError } = await supabase
       .from("products")
-      .select(
-        `id, name, slug, price, currency, status, product_type, images,
-         inventory_quantity, sale_count, is_digital, created_at, updated_at, vendor_id,
-         is_active, view_count, rating, review_count, track_inventory,
-         low_stock_threshold, deleted_at`
-      )
+      .select(SELLER_LIST_COLUMNS)
       .eq("vendor_id", vendorLookup.vendor.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -358,7 +359,7 @@ export function SellerProductsPage() {
     const supabase = createClient();
     const { data: inserted } = await supabase
       .from("products")
-      .select("*")
+      .select(SELLER_LIST_COLUMNS)
       .eq("id", result.id)
       .maybeSingle();
     if (inserted) {

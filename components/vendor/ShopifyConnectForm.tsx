@@ -43,7 +43,7 @@ export function ShopifyConnectForm({ vendorId }: Props) {
 
     const { count } = await supabase
       .from("products")
-      .select("*", { count: "exact", head: true })
+      .select("id", { count: "exact", head: true })
       .eq("vendor_id", vendorId)
       .eq("source", "shopify");
 
