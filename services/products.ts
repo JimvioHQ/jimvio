@@ -545,6 +545,19 @@ async function attachStorefrontRelations(
 
 class ProductNotFoundForCache extends Error {}
 
+/** Current slug of a product whose old slug is recorded in product_slug_redirects (server-only table). */
+async function currentSlugForOldSlug(oldSlug: string | null): Promise<string | null> {
+  if (!oldSlug) return null;
+  // The redirect table is not in the generated types; it is read with the service role only.
+  const admin = getAdminDB() as unknown as {
+    from: (t: string) => { select: (c: string) => { eq: (k: string, v: string) => { maybeSingle: () => PromiseLike<{ data: Record<string, unknown> | null; error: unknown }> } } };
+  };
+  const { data: redirect, error } = await admin.from("product_slug_redirects").select("product_id").eq("old_slug", oldSlug).maybeSingle();
+  if (error || !redirect?.product_id) return null;
+  const { data: product } = await admin.from("products").select("slug").eq("id", String(redirect.product_id)).maybeSingle();
+  return typeof product?.slug === "string" ? product.slug : null;
+}
+
 /**
  * Public product data is the same for every visitor, so it is cached for
  * 5 minutes (per slug). Crawlers opening thousands of product URLs no longer
@@ -567,6 +580,12 @@ const loadPublicProduct = (slug: string) =>
         return attachStorefrontRelations(db, row);
       }
       if (primaryFailed) throw new ProductLookupUnavailable();
+      // A renamed product: the old address leads to the current one (the page then redirects permanently).
+      const renamed = await currentSlugForOldSlug(lookups[0]?.kind === "slug" ? lookups[0].slug : null);
+      if (renamed && renamed !== slug) {
+        const { row } = await queryVisibleProduct(db, { kind: "slug", slug: renamed });
+        if (row) return attachStorefrontRelations(db, row);
+      }
       throw new ProductNotFoundForCache();
     },
     ["public-product-v1", slug],

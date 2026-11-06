@@ -1,5 +1,6 @@
 
 import { cleanSupplierProductName } from "@/lib/catalog/clean-product-name";
+import { cleanProductSlug, uniqueProductSlug } from "@/lib/marketplace/product-slug";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
     parseVariantKey,
@@ -476,8 +477,8 @@ export async function mapCJProductToJimvio(
         cjProduct.categoryName
     );
 
-    const baseSlug = slugify(cjProduct.productNameEn);
-    const slug = `${baseSlug}-${cjProduct.productSku.toLowerCase()}`;
+    // Clean URL from the buyer-facing title; no supplier code. Uniqueness is settled at insert.
+    const slug = cleanProductSlug(cleanSupplierProductName(cjProduct.productNameEn));
 
     const productOptions =
         optionKeys.length > 0 && rawVariants.length > 0
@@ -1022,6 +1023,7 @@ export async function upsertCJProduct(
                 mapped.is_active = false;
             }
 
+            mapped.slug = await uniqueProductSlug(supabase, mapped.slug);
             const { data: inserted, error: insErr } = await supabase
                 .from("products")
                 .insert({ ...mapped })
