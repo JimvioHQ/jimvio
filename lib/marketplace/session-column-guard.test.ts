@@ -57,7 +57,7 @@ describe("browser code reads only storefront product columns", () => {
 describe("buyer-facing cart and order reads never carry supplier data", () => {
   it("getCart lists explicit line columns and attaches only buyer-safe facts", () => {
     const src = readFileSync("lib/actions/marketplace.ts", "utf8");
-    const getCart = src.slice(src.indexOf("export async function getCart("), src.indexOf("export async function updateCartItemQuantity("));
+    const getCart = src.slice(src.indexOf("\nexport async function getCart("), src.indexOf("\nexport async function updateCartItemQuantity("));
     assert.ok(!/cart_items \(\s*\*/.test(getCart), "cart_items(*) in getCart");
     assert.ok(getCart.includes("withBuyerLineFacts"));
   });
