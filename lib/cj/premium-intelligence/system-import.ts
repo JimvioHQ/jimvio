@@ -7,6 +7,7 @@ import { upsertCJProduct } from "@/lib/actions/cj_product";
 import { catalogOptionKeys, catalogVariantRecords } from "@/lib/cj/catalog-variants";
 import { syncCjVariantsFromPayload } from "@/lib/cj/sync-catalog-variants";
 import { getCatalogDB } from "./db";
+import { isCompleteCjDraft } from "./draft-completeness";
 import { getRawProduct } from "./catalog-repository";
 import {
   collectCjImageUrls,
@@ -76,10 +77,26 @@ export async function ensureCjProductImported(
   if (existing) {
     const { data: product } = await db
       .from("products")
-      .select("images")
+      .select("images, description")
       .eq("id", existing)
       .maybeSingle();
-    if (hasPublishableImages(product?.images)) {
+    // With fetchDetail requested, a draft imported from list data only (one image, no
+    // description, no CJ variants) must be rebuilt from the CJ product detail instead of
+    // being reused as-is — otherwise it can never pass the publish gates.
+    let reusable = hasPublishableImages(product?.images);
+    if (reusable && options?.fetchDetail === true) {
+      const { count } = await db
+        .from("product_variants")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", existing)
+        .not("cj_vid", "is", null);
+      reusable = isCompleteCjDraft({
+        images: product?.images,
+        description: (product as { description?: string | null } | null)?.description ?? null,
+        cjVariantCount: count ?? 0,
+      });
+    }
+    if (reusable) {
       const rawExisting = await getRawProduct(pid);
       if (rawExisting) {
         await syncCjVariantsFromPayload(
