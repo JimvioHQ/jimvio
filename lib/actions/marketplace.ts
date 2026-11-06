@@ -1189,6 +1189,25 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 function catalogReader() {
   return createServiceRoleClient();
 }
+
+/**
+ * Cart lines for the browser: the line's supplier metadata stays on the server;
+ * only a buyer-safe SKU and the weight shown in the cart are attached.
+ */
+async function withBuyerLineFacts<T extends { id: string }>(items: T[]): Promise<Array<T & { source_metadata: Record<string, unknown> }>> {
+  if (items.length === 0) return [];
+  const { data } = await catalogReader()
+    .from("cart_items")
+    .select("id, source_metadata")
+    .in("id", items.map((item) => item.id));
+  const metaById = new Map((data ?? []).map((row) => [row.id as string, (row.source_metadata ?? {}) as Record<string, unknown>]));
+  return items.map((item) => {
+    const meta = metaById.get(item.id) ?? {};
+    const sku = typeof meta.sku === "string" && !/^cj/i.test(meta.sku) ? meta.sku : undefined;
+    const weight = meta.weight ?? meta.cj_weight;
+    return { ...item, source_metadata: { ...(sku ? { sku } : {}), ...(weight != null ? { weight } : {}) } };
+  });
+}
 import { revalidatePath } from "next/cache";
 import { finalizeAndCompleteOrder } from "./order-lifecycle";
 import {
@@ -1773,7 +1792,8 @@ export async function addToCart(
 
     if (!cart) throw new Error("Could not get or create cart");
 
-    const existingQuery = supabase
+    // The cart belongs to this user (getOrCreateCart above); its line metadata is server-only.
+    const existingQuery = catalogReader()
       .from("cart_items")
       .select("id, quantity, variant_id, source_metadata")
       .eq("cart_id", cart.id)
@@ -1902,9 +1922,10 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
       let cartQuery = supabase
         .from("carts")
         .select(`
-          *,
+          id, user_id, currency, item_count, subtotal, last_activity_at, created_at, updated_at, jimvio_store_id,
           cart_items (
-            *,
+            id, cart_id, product_id, variant_id, vendor_id, quantity, unit_price_at_add, currency_at_add,
+            product_source, affiliate_link_id, added_at, updated_at,
             products (
               id, name, slug, images, source, cj_last_synced_at,
               pricing_type, billing_period, product_type
@@ -1930,7 +1951,7 @@ export async function getCart(opts?: { jimvioStoreId?: string | null; jimvioStor
       if (cartError) throw cartError;
       if (!cart) return { cart: null, items: [], total: 0 };
 
-      const items = (cart.cart_items as any[]) ?? [];
+      const items = await withBuyerLineFacts((cart.cart_items as any[]) ?? []);
       const total = items.reduce(
         (sum, item) => sum + Number(item.unit_price_at_add) * Number(item.quantity),
         0
@@ -2001,7 +2022,8 @@ export async function updateCartItemVariant(cartItemId: string, variantId: strin
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Authentication required" };
 
-    const { data: item, error: itemErr } = await supabase
+    // Line metadata is server-only; ownership is enforced by the carts.user_id filter below.
+    const { data: item, error: itemErr } = await catalogReader()
       .from("cart_items")
       .select(`
         id, cart_id, product_id, variant_id, vendor_id, quantity, source_metadata, currency_at_add,
