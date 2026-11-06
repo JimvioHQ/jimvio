@@ -202,7 +202,7 @@ async function syncSource(
 
 async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch, otherReports: { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[]): Promise<ItemResearch> {
   const loaded = await fetchArticlePage(item.url, fetchImpl);
-  if (!loaded.ok) return { brief: null, image: null, reason: "thin_source", issues: ["source_page_unavailable"] };
+  if (!loaded.ok) return { brief: null, image: null, reason: "thin_source", issues: ["source_page_unavailable", loaded.error] };
   const imageTask = (async () => {
     const official = await selectOfficialImage(loaded.page, fetchImpl);
     if (official.status === "verified") return official;

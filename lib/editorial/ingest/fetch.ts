@@ -4,7 +4,8 @@ import type { FeedItem } from "@/lib/editorial/ingest/types";
 
 const USER_AGENT = "JimvioMediaBot/1.0 (+https://www.jimvio.com/media)";
 const MAX_FEED_BYTES = 500_000;
-const MAX_PAGE_BYTES = 500_000;
+/** Official sites (e.g. noaa.gov) serve 0.5–2 MB of HTML; pages beyond this are read up to the cap. */
+const MAX_PAGE_BYTES = 3_000_000;
 const MAX_IMAGE_BYTES = 6_000_000;
 const TIMEOUT_MS = 8_000;
 const IMAGE_TIMEOUT_MS = 12_000;
@@ -13,7 +14,7 @@ export type FetchedFeed =
   | { ok: true; format: "rss" | "atom"; items: FeedItem[]; finalUrl: string }
   | { ok: false; error: string; status?: number };
 
-async function readLimited(response: Response, maxBytes: number): Promise<Uint8Array | null> {
+async function readLimited(response: Response, maxBytes: number, truncate = false): Promise<Uint8Array | null> {
   const reader = response.body?.getReader();
   if (!reader) return new Uint8Array();
   const chunks: Uint8Array[] = [];
@@ -24,7 +25,11 @@ async function readLimited(response: Response, maxBytes: number): Promise<Uint8A
     total += value.byteLength;
     if (total > maxBytes) {
       await reader.cancel();
-      return null;
+      if (!truncate) return null;
+      // Keep what fits: article text sits well before the end of heavy pages.
+      chunks.push(value.subarray(0, value.byteLength - (total - maxBytes)));
+      total = maxBytes;
+      break;
     }
     chunks.push(value);
   }
@@ -69,6 +74,29 @@ export async function fetchFeed(locator: string, fetchImpl: typeof fetch = fetch
   return { ok: true, format: parsed.format, items: parsed.items, finalUrl };
 }
 
+/** Extractor input limit (see extractArticlePage). */
+const EXTRACT_LIMIT = 500_000;
+
+/**
+ * Heavy pages are mostly scripts, styles and inline icons. Those are removed
+ * (they never hold article text); if the page is still too large, the part
+ * from the article/main element onward is kept.
+ */
+export function slimPageHtml(html: string): string {
+  if (html.length <= EXTRACT_LIMIT) return html;
+  const slim = html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
+    .replace(/<svg\b[\s\S]*?<\/svg>/gi, "")
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  if (slim.length <= EXTRACT_LIMIT) return slim;
+  const head = (slim.match(/<head\b[\s\S]*?<\/head>/i) ?? [""])[0].slice(0, 50_000);
+  const start = slim.search(/<(article|main)\b/i);
+  const body = slim.slice(start >= 0 ? start : 0);
+  return (head + body).slice(0, EXTRACT_LIMIT - 1);
+}
+
 export async function fetchArticlePage(
   locator: string,
   fetchImpl: typeof fetch = fetch,
@@ -90,9 +118,9 @@ export async function fetchArticlePage(
   if (!response.ok) return { ok: false, error: "The source page returned an error response." };
   const type = (response.headers.get("content-type") ?? "").toLowerCase();
   if (type && !/html|text\/plain/.test(type)) return { ok: false, error: "The source response is not an article page." };
-  const bytes = await readLimited(response, MAX_PAGE_BYTES);
-  if (!bytes) return { ok: false, error: "The source page is too large." };
-  const html = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  const bytes = await readLimited(response, MAX_PAGE_BYTES, true);
+  if (!bytes) return { ok: false, error: "The source page could not be read." };
+  const html = slimPageHtml(new TextDecoder("utf-8", { fatal: false }).decode(bytes));
   const page = extractArticlePage(html, finalUrl);
   if (!page || page.wordCount < 12) return { ok: false, error: "The source page did not include a usable article." };
   return { ok: true, page };
