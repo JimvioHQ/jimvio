@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { StorageNotice } from "@/components/editorial/admin/notice";
 import { LICENSED_PROVIDERS, REJECTED_CANDIDATES, UNVERIFIED_CANDIDATES, VERIFIED_FEEDS } from "@/lib/editorial/ingest/catalog";
-import { addIngestSource, enableVerifiedSource, saveIngestControls, setIngestSourceEnabled } from "@/lib/editorial/ingest/actions";
+import { addIngestSource, enableVerifiedSource, saveIngestControls, setIngestSourceEnabled, setIngestSourceReview } from "@/lib/editorial/ingest/actions";
 import { loadIngestDesk } from "@/lib/editorial/ingest/store";
 import { MEDIA_CATEGORIES } from "@/lib/editorial/types";
 
@@ -150,7 +150,7 @@ export default async function MediaSourcesPage({
                 <td className="px-4 py-3">
                   <p className="font-semibold">{source.name}</p>
                   <p className="break-all text-[#667085]">{source.locator}</p>
-                  <p className="text-xs text-[#98a2b3]">{source.enabled ? "Enabled" : "Disabled"} · every {source.pollMinutes} minutes · {source.permittedUsage}</p>
+                  <p className="text-xs text-[#98a2b3]">{source.enabled ? "Enabled" : "Disabled"} · every {source.pollMinutes} minutes · {source.permittedUsage} · {source.alwaysReview ? "always sent to review" : "may publish automatically when every check passes"}</p>
                 </td>
                 <td className="px-4 py-3">{source.health}{source.lastError ? `: ${source.lastError}` : ""}</td>
                 <td className="px-4 py-3">{source.lastSuccessAt ? source.lastSuccessAt.slice(0, 16).replace("T", " ") : "Never"}</td>
@@ -159,6 +159,11 @@ export default async function MediaSourcesPage({
                     <input type="hidden" name="id" value={source.id} />
                     <input type="hidden" name="enabled" value={source.enabled ? "0" : "1"} />
                     <button type="submit" className="inline-flex h-11 items-center rounded-lg border border-[#e6e8ee] px-3 text-sm font-semibold">{source.enabled ? "Disable" : "Enable saved source"}</button>
+                  </form>
+                  <form action={setIngestSourceReview} className="mt-2">
+                    <input type="hidden" name="id" value={source.id} />
+                    <input type="hidden" name="review" value={source.alwaysReview ? "0" : "1"} />
+                    <button type="submit" className="inline-flex h-11 items-center rounded-lg border border-[#e6e8ee] px-3 text-sm font-semibold">{source.alwaysReview ? "Allow automatic publishing" : "Always send to review"}</button>
                   </form>
                 </td>
               </tr>
