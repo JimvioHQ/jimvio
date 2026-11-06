@@ -113,3 +113,9 @@ export function rangeLabel(r: [number, number] | null): string | null {
   const f = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : String(Math.round(n)));
   return r[0] === r[1] ? f(r[0]) : `${f(r[0])}–${f(r[1])}`;
 }
+
+/** YouTube dates; a placeholder before YouTube existed (the API returns 1970-01-01 for some legacy channels) is "unknown", not a real date. */
+export function ytDate(v: unknown): string | null {
+  const s = typeof v === "string" ? v.trim() : "";
+  return s && Date.parse(s) >= Date.UTC(2005, 1, 14) ? s : null;
+}

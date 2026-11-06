@@ -190,3 +190,30 @@ describe("file readers", () => {
     assert.ok(html.includes("&lt;script&gt;"));
   });
 });
+
+describe("tileCount (engagement tiles stay one row on desktop)", async () => {
+  const { tileCount } = await import("./result-model.ts");
+  it("keeps exact counts below 100 million and compacts above, keeping the exact figure", () => {
+    assert.deepEqual(tileCount(9_019), { value: "9,019", exact: null });
+    assert.deepEqual(tileCount(99_999_999), { value: "99,999,999", exact: null });
+    assert.deepEqual(tileCount(250_000_000), { value: "250M", exact: "Exact: 250,000,000." });
+    assert.deepEqual(tileCount(1_834_122_026), { value: "1.83B", exact: "Exact: 1,834,122,026." });
+    assert.deepEqual(tileCount(2_000_000_000), { value: "2B", exact: "Exact: 2,000,000,000." });
+    assert.deepEqual(tileCount(null), { value: null, exact: null });
+  });
+});
+
+describe("rejected links (no scan ran)", () => {
+  it("say why the link was rejected and never claim every check completed", () => {
+    const c = { id: "links" as const, status: "inconclusive" as const, summary: "Links with a username or password inside can't be checked.", findings: [], metrics: [], sources: [], limits: [], nextSteps: ["Paste the full link, starting with https://"] };
+    const m = linkModel(c, null, "https://user:pass@example.com/", new Date().toISOString());
+    assert.equal(m.banner.title, "This Link Can't Be Checked");
+    assert.equal(m.banner.text, c.summary);
+    assert.equal(m.risk.value, null);
+    assert.equal(m.sections.found.length, 0);
+    assert.equal(m.sections.couldNotVerify.length, 1);
+    assert.match(m.sections.couldNotVerify[0].text, /Nothing was checked/);
+    assert.deepEqual(m.sections.actions, ["Paste the full link, starting with https://"]);
+    assert.ok(!JSON.stringify(m).includes("technical problem"));
+  });
+});

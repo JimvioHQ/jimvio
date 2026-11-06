@@ -119,8 +119,12 @@ export function EngagementResult({ report, checker, onNewCheck }: { report: Scan
             {m.caption ? <p className="mt-2 line-clamp-2 text-[15px] text-[#111827]">{m.caption}</p> : null}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[14px] text-[#111827] xl:text-[15px]">
               <span className="flex items-center gap-2"><CalendarDays className="h-5 w-5" /> {m.postedLabel}: {m.posted ?? "Not available"}</span>
-              <span className="hidden h-6 w-px bg-[#E5E7EB] sm:block" />
-              <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> Duration: {m.duration ?? "Not available"}</span>
+              {m.duration || m.postedLabel !== "Created" ? (
+                <>
+                  <span className="hidden h-6 w-px bg-[#E5E7EB] sm:block" />
+                  <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> Duration: {m.duration ?? "Not available"}</span>
+                </>
+              ) : null}
             </div>
           </div>
         </Card>

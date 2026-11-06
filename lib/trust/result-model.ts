@@ -10,7 +10,7 @@ import type {
 import { assessLink } from "./link-assessment";
 import { assessProduct } from "./product-assessment";
 import { assessMedia, softwareKind } from "./media-assessment";
-import { INSUFFICIENT_TEXT, rangeLabel } from "./engagement-estimate";
+import { INSUFFICIENT_TEXT, rangeLabel, ytDate } from "./engagement-estimate";
 
 export type Tone = "good" | "warn" | "bad" | "neutral" | "info" | "ai";
 export type Pill = { label: string; tone: Tone };
@@ -38,6 +38,15 @@ export const NA = "Not Available";
 
 export function fmtCount(n: number | null | undefined): string | null {
   return n == null || !Number.isFinite(n) ? null : Math.round(n).toLocaleString("en-US");
+}
+
+/** Tile-sized count: exact below 100 million, compact above (e.g. "1.83B") so a row of tiles fits; the exact figure stays in the hint. */
+export function tileCount(n: number | null | undefined): { value: string | null; exact: string | null } {
+  const exact = fmtCount(n);
+  if (n == null || !Number.isFinite(n) || Math.abs(n) < 1e8) return { value: exact, exact: null };
+  const [d, u] = Math.abs(n) >= 1e9 ? [1e9, "B"] : [1e6, "M"];
+  const v = Math.abs(n / d) >= 100 ? (n / d).toFixed(0) : (n / d).toFixed(2).replace(/\.?0+$/, "");
+  return { value: `${v}${u}`, exact: `Exact: ${exact}.` };
 }
 
 export function fmtBytes(n: number | null | undefined, withExact = false): string | null {
@@ -246,7 +255,11 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
   // Older reports have no stored assessment: rebuild it from the same evidence.
   const a: LinkAssessment | null = d ? (d.assessment ?? assessLink({ findings: c.findings, details: d })) : null;
   const state: AssessmentState = a?.state ?? "SCAN_FAILED";
-  const h = HERO[state];
+  // No details means the link was rejected before any request (malformed, credentials, private address…): say so, never "technical problem".
+  const rejected = !d;
+  const h = rejected
+    ? { tone: "neutral" as const, title: "This Link Can't Be Checked", text: c.summary || "This link can't be checked.", result: { label: "Not Checked", tone: "neutral" as const } }
+    : HERO[state];
   const banner: Banner = { tone: h.tone, title: h.title, text: h.text, result: h.result };
 
   const checks: CheckRow[] = (a?.checks ?? []).map((k) => ({
@@ -269,7 +282,9 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
   const riskBadge: Pill = riskValue == null ? pill("Not Scored", "neutral") : pill(rc, riskValue >= 60 ? "bad" : riskValue >= 40 ? "warn" : riskValue >= 20 ? "info" : "good");
   const riskText =
     riskValue == null
-      ? "Too few checks completed to give a reliable score."
+      ? rejected
+        ? "No checks ran, so there is no score."
+        : "Too few checks completed to give a reliable score."
       : riskValue >= 80
         ? "Credible threat evidence. Avoid this link."
         : riskValue >= 60
@@ -339,8 +354,10 @@ export function linkModel(c: CheckerResult, d: LinkDetails | null, submittedUrl:
         : summaryItems(a?.found ?? [], checks),
       couldNotVerify: a?.couldNotVerifyItems
         ? a.couldNotVerifyItems.map((x) => ({ title: x.name, text: x.text, pill: checks.find((r) => r.key === x.checkId)?.pill ?? (x.status === "INCONCLUSIVE" ? ({ label: "Partial", tone: "neutral" } as Pill) : null) }))
-        : summaryItems(a?.couldNotVerify ?? [], checks),
-      actions: a?.actions ?? ["Try the check again in a few minutes."],
+        : rejected
+          ? [{ title: "All 12 security checks", text: "Nothing was checked, because the link was rejected before any request was made.", pill: pill("Not Run", "neutral") }]
+          : summaryItems(a?.couldNotVerify ?? [], checks),
+      actions: a?.actions ?? (rejected ? (c.nextSteps.length ? c.nextSteps : ["Paste the full link, starting with https://"]) : ["Try the check again in a few minutes."]),
     },
     limits: c.limits,
   };
@@ -403,7 +420,7 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
   const postsLabel = isYt ? "Videos" : d.contentType === "reel" ? "Reels" : "Posts";
   const notPublic = `${name} doesn't publish this number.`;
   const tiles: Tile[] = [
-    { key: "views", value: fmtCount(d.views), label: `Total ${viewsWord}` },
+    { key: "views", value: tileCount(d.views).value, label: `Total ${viewsWord}`, hint: tileCount(d.views).exact ?? undefined },
     {
       key: "real",
       value: est?.genuine ? rangeLabel(est.genuine) : null,
@@ -418,11 +435,11 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
       tone: est?.suspicious && est.suspicious[1] > 0 && (est.suspiciousShare?.[0] ?? 0) > 0.2 ? "warn" : undefined,
       hint: est?.suspicious ? `ESTIMATED range of views the engagement doesn't explain — possibly, not certainly, inorganic. ${isYt ? "YouTube removes invalid views privately and never publishes the count." : ""}` : `${INSUFFICIENT_TEXT}`,
     },
-    { key: "likes", value: fmtCount(d.likes), label: "Likes", hint: d.likes == null ? notPublic : `${CLASS_HINT[d.metricClass?.likes ?? "PLATFORM_REPORTED"]}` },
-    { key: "comments", value: fmtCount(d.comments), label: "Comments", hint: d.comments == null ? notPublic : `${CLASS_HINT[d.metricClass?.comments ?? "PLATFORM_REPORTED"]}` },
+    { key: "likes", value: tileCount(d.likes).value, label: "Likes", hint: d.likes == null ? notPublic : [CLASS_HINT[d.metricClass?.likes ?? "PLATFORM_REPORTED"], tileCount(d.likes).exact].filter(Boolean).join(" ") },
+    { key: "comments", value: tileCount(d.comments).value, label: "Comments", hint: d.comments == null ? notPublic : [CLASS_HINT[d.metricClass?.comments ?? "PLATFORM_REPORTED"], tileCount(d.comments).exact].filter(Boolean).join(" ") },
     { key: "rate", value: d.engagementRate == null ? null : `${(d.engagementRate * 100).toFixed(2)}%`, label: "Engagement Rate", hint: "(Likes + comments) ÷ views, from the public counts." },
     { key: "posts", value: fmtCount(d.account.posts), label: postsLabel },
-    { key: "reach", value: fmtCount(d.account.totalViews), label: isYt ? "Channel Total Views" : d.platform === "instagram" ? "Account Total Reach" : "Account Total Views" },
+    { key: "reach", value: tileCount(d.account.totalViews).value, hint: tileCount(d.account.totalViews).exact ?? undefined, label: isYt ? "Channel Total Views" : d.platform === "instagram" ? "Account Total Reach" : "Account Total Views" },
   ];
 
   const commentFinding = c.findings.find((x) => /comments/i.test(x.title));
@@ -469,7 +486,7 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
   const account: InfoRow[] = isYt
     ? [
         { key: "channel", label: "Channel", value: d.authorName, href: handleHref },
-        { key: "created", label: "Channel Created", value: fmtDate(a.createdAt) },
+        { key: "created", label: "Channel Created", value: fmtDate(ytDate(a.createdAt)) },
         { key: "followers", label: "Subscribers", value: followersValue },
         { key: "views", label: "Total Views", value: fmtCount(a.totalViews) },
         { key: "posts", label: "Videos", value: fmtCount(a.posts) },
@@ -487,7 +504,8 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
         { key: "visibility", label: "Account Visibility", value: null, pill: visibility(a.visibility) },
       ];
 
-  const heading = isYt ? (d.title ?? d.authorName ?? `${name} ${kindLabel}`) : (d.authorHandle ?? d.authorName ?? `${name} ${kindLabel}`);
+  const fallbackHeading = d.found ? `${name} ${kindLabel}` : `${kindLabel.charAt(0).toUpperCase()}${kindLabel.slice(1)} not found`;
+  const heading = isYt ? (d.title ?? d.authorName ?? fallbackHeading) : (d.authorHandle ?? d.authorName ?? fallbackHeading);
   return {
     platform: d.platform,
     platformName: name,
@@ -498,7 +516,7 @@ export function engagementModel(c: CheckerResult, d: EngagementDetails): Engagem
     caption: isYt ? null : d.caption,
     thumbnail: d.thumbnailUrl,
     duration: fmtDuration(d.durationSec),
-    posted: fmtDate(d.publishedAt),
+    posted: fmtDate(isYt ? ytDate(d.publishedAt) : d.publishedAt),
     postedLabel: isYt ? (d.contentType === "channel" ? "Created" : "Published") : "Posted",
     url: d.url,
     quality,
@@ -633,11 +651,11 @@ export function productModel(c: CheckerResult, d: ProductDetails): ProductModel 
     { key: "basis", label: "Type Detected From", value: d.productTypeBasis },
     { key: "format", label: "File Format", value: d.format ? `${formatShort} · verified from file signature` : formatShort },
     { key: "size", label: "File Size", value: fmtBytes(d.size, true) },
-    { key: "pages", label: "Pages", value: pages?.total ? `${fmtCount(pages.total)} total · ${fmtCount(pages.withText)} with readable text${pages.blank ? ` · ${pages.blank} blank` : ""}${pages.imageOnly ? ` · ${pages.imageOnly} image-only` : ""}` : fmtCount(d.pages) },
+    ...(pages?.total || d.pages || /pdf/i.test(`${d.mime ?? ""} ${d.format ?? ""}`) ? [{ key: "pages", label: "Pages", value: pages?.total ? `${fmtCount(pages.total)} total · ${fmtCount(pages.withText)} with readable text${pages.blank ? ` · ${pages.blank} blank` : ""}${pages.imageOnly ? ` · ${pages.imageOnly} image-only` : ""}` : fmtCount(d.pages) } as InfoRow] : []),
     { key: "author", label: "Author / Written By", value: meta(d.author, "from file metadata, not independently verified") ?? "Not stated" },
     { key: "authorship", label: "Authorship Result", value: null, pill: d.aiToolInMetadata ? pill(`AI Tool Named (${d.aiToolInMetadata})`, "ai") : d.author ? pill("Metadata Found · Unverified", "info") : pill("Unverified", "neutral") },
-    { key: "date", label: "PDF File Created", value: date ? `${date} · file metadata (not the publication date)` : null },
-    ...(d.modifiedAt && d.modifiedAt !== d.createdAt ? [{ key: "modified", label: "PDF File Modified", value: fmtDate(d.modifiedAt) }] : []),
+    { key: "date", label: `${formatShort === "PDF" ? "PDF " : ""}File Created`, value: date ? `${date} · file metadata (not the publication date)` : null },
+    ...(d.modifiedAt && d.modifiedAt !== d.createdAt ? [{ key: "modified", label: `${formatShort === "PDF" ? "PDF " : ""}File Modified`, value: fmtDate(d.modifiedAt) }] : []),
     ...(d.firstSeenAt ? [{ key: "firstseen", label: "First Seen on Jimvio", value: fmtDate(d.firstSeenAt) }] : []),
     { key: "tool", label: "Creator Application", value: tool ? `${[d.producer, d.creator && d.creator !== d.producer ? d.creator : null].filter(Boolean).join(" · ")} · file metadata` : null },
     ...(d.isbn ? [{ key: "isbn", label: "ISBN", value: d.isbn }] : []),

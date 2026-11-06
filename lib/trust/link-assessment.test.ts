@@ -127,3 +127,29 @@ describe("URL shapes through the real heuristics", async () => {
     assert.ok(r.evidence.some((e) => e.includes("bit.ly")));
   });
 });
+
+describe("acceptance regressions (Nov 2026 audit)", async () => {
+  const { urlSignals } = await import("./url-heuristics.ts");
+  const { normalizeUrl } = await import("./url-guard.ts");
+  it("a typo like 'ht!tp://%%%not a url' is rejected instead of being scanned as a clean address", () => {
+    for (const bad of ["ht!tp://%%%not a url", "https://com", "https://-bad-.com/", "https://a..b.com/"]) assert.throws(() => normalizeUrl(bad), /valid link/, bad);
+    for (const ok of ["www.cloudflare.com", "https://xn--pypal-4ve.com/", "http://1.1.1.1/", "https://sub_domain.example.co.uk/x"]) assert.doesNotThrow(() => normalizeUrl(ok), ok);
+  });
+  it("suspicious URL and reputation items say what was found, not what was checked", () => {
+    const raw = "http://1.1.1.1/";
+    const a = assessLink({ findings: urlSignals(new URL(raw)), details: d({ submittedUrl: raw, finalUrl: raw }) });
+    const url = a.checks.find((k) => k.id === "url")!;
+    assert.equal(url.status, "SUSPICIOUS");
+    assert.match(url.explanation, /^The address itself has risky features: .+\.$/);
+    assert.ok(!/\.\.|; \./.test(url.explanation));
+    assert.match(a.checks.find((k) => k.id === "reputation")!.explanation, /^No abused domain ending/);
+  });
+  it("domain age reads naturally (months under a year, plural years)", () => {
+    const age = (ageDays: number) => assessLink({ findings: [], details: d({ ageDays }) }).checks.find((k) => k.id === "registration")!.explanation;
+    assert.match(age(90), /^Registered 3 months ago\./);
+    assert.match(age(40), /^Registered 1 month ago\./);
+    assert.match(age(400), /^Registered 1 year ago\./);
+    assert.match(age(7700), /^Registered 21 years ago\./);
+    assert.ok(!/year\(s\)|<1/.test(age(200)));
+  });
+});

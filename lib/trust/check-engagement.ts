@@ -5,7 +5,7 @@ import { takeQuota } from "./threat-intel";
 import { assessPost } from "@/lib/ugc/checker/post-signals";
 import { youtubeVideoId } from "@/lib/ugc/verification/video-ref";
 import { youtubeKeyEnvs, youtubeOembed, youtubePublic } from "@/lib/youtube/public-data";
-import { estimateViews } from "./engagement-estimate";
+import { estimateViews, ytDate } from "./engagement-estimate";
 
 /**
  * Checker 2: engagement on public posts and channels.
@@ -202,7 +202,7 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         return { ...base, status: "inconclusive", summary: "This video is private or was removed.", sources: ["YouTube Data API"], details: { ...d, accessNote: "YouTube did not return this video. It may be private or removed." } };
       }
       const st = item.statistics ?? {};
-      const post = { views: n(st.viewCount), likes: n(st.likeCount), comments: n(st.commentCount), publishedAt: item.snippet?.publishedAt ?? null };
+      const post = { views: n(st.viewCount), likes: n(st.likeCount), comments: n(st.commentCount), publishedAt: ytDate(item.snippet?.publishedAt) };
       const channelId = String(item.snippet?.channelId ?? "");
       const channelData = channelId ? await yt(userId, `channels?part=statistics,snippet&id=${encodeURIComponent(channelId)}`) : null;
       const channelItem = (channelData?.items as Record<string, any>[] | undefined)?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -238,14 +238,14 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         authorHandle: customUrl ? (customUrl.startsWith("@") ? customUrl : `@${customUrl}`) : d.authorHandle,
         authorUrl: channelId ? `https://www.youtube.com/channel/${encodeURIComponent(channelId)}` : null,
         thumbnailUrl: bestThumb(item.snippet?.thumbnails),
-        publishedAt: str(item.snippet?.publishedAt),
+        publishedAt: ytDate(item.snippet?.publishedAt),
         durationSec: duration ? isoDurationSeconds(duration) : null,
         views: post.views,
         likes: post.likes,
         comments: post.comments,
         engagementRate: a.engagementRate,
         account: {
-          createdAt: str(channelItem?.snippet?.publishedAt),
+          createdAt: ytDate(channelItem?.snippet?.publishedAt),
           followers: channelSubscribers,
           followersHidden: Boolean(channelStats.hiddenSubscriberCount),
           totalViews: channelViews,
@@ -289,7 +289,7 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
           { label: "Comments", value: fmt(post.comments) },
           { label: "Engagement", value: a.engagementRate == null ? "—" : `${(a.engagementRate * 100).toFixed(2)}%` },
           { label: "Views per day", value: fmt(a.viewsPerDay) },
-          { label: "Published", value: item.snippet?.publishedAt ? new Date(String(item.snippet.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
+          { label: "Published", value: ytDate(item.snippet?.publishedAt) ? new Date(String(item.snippet?.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
           { label: "Category", value: String(item.snippet?.categoryId ?? "Not provided") },
           { label: "Duration", value: durationLabel ?? "Not provided" },
           { label: "Channel subscribers", value: channelSubscribers == null ? "Hidden / unavailable" : fmt(channelSubscribers) },
@@ -297,7 +297,7 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
           { label: "Channel videos", value: fmt(channelVideos) },
           { label: "Channel ID", value: channelId || "Not provided" },
           { label: "Channel handle", value: String(channelItem?.snippet?.customUrl ?? "Not provided") },
-          { label: "Channel created", value: channelItem?.snippet?.publishedAt ? new Date(String(channelItem.snippet.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
+          { label: "Channel created", value: ytDate(channelItem?.snippet?.publishedAt) ? new Date(String(channelItem?.snippet?.publishedAt)).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "Not provided" },
           { label: "Channel country", value: String(channelItem?.snippet?.country ?? "Not public") },
           { label: "Video description", value: String(item.snippet?.description ?? "").trim().slice(0, 240) || "Not provided" },
           { label: "Video visibility", value: String(item.status?.privacyStatus ?? "Not provided") },
@@ -340,9 +340,9 @@ export async function checkEngagement(url: URL | null, userId: string | null = n
         authorHandle: chCustom ? (chCustom.startsWith("@") ? chCustom : `@${chCustom}`) : d.authorHandle,
         authorUrl: chId ? `https://www.youtube.com/channel/${encodeURIComponent(chId)}` : url.toString(),
         thumbnailUrl: bestThumb(ch.snippet?.thumbnails),
-        publishedAt: str(ch.snippet?.publishedAt),
+        publishedAt: ytDate(ch.snippet?.publishedAt),
         views: views,
-        account: { createdAt: str(ch.snippet?.publishedAt), followers: subs, followersHidden: Boolean(ch.statistics?.hiddenSubscriberCount), totalViews: views, totalLikes: null, posts: videos, country: str(ch.snippet?.country), verified: null, visibility: "public" },
+        account: { createdAt: ytDate(ch.snippet?.publishedAt), followers: subs, followersHidden: Boolean(ch.statistics?.hiddenSubscriberCount), totalViews: views, totalLikes: null, posts: videos, country: str(ch.snippet?.country), verified: null, visibility: "public" },
         verdict: findings.some((f) => f.tone === "warn") ? "suspicious" : findings.length ? "real" : null,
       },
       status: findings.some((f) => f.tone === "warn") ? "suspicious" : findings.length ? "low_risk" : "inconclusive",

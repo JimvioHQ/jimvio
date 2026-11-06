@@ -31,3 +31,13 @@ describe("view estimate", () => {
     assert.equal(rangeLabel([0, 0]), "0");
   });
 });
+
+describe("YouTube placeholder dates", async () => {
+  const { ytDate } = await import("./engagement-estimate.ts");
+  it("treats the API's 1970-01-01 placeholder (and anything before YouTube existed) as unknown", () => {
+    assert.equal(ytDate("1970-01-01T00:00:00Z"), null);
+    assert.equal(ytDate("2004-12-31T00:00:00Z"), null);
+    assert.equal(ytDate(""), null);
+    assert.equal(ytDate("2005-09-19T05:00:00Z"), "2005-09-19T05:00:00Z");
+  });
+});

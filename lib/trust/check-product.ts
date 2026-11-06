@@ -1,7 +1,7 @@
 import "server-only";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { CheckerResult, Finding, ProductDetails, ProductType } from "./types";
-import { extractText, fileSafety, pdfMeta, type FileType, type PdfMeta } from "./file-inspect";
+import { epubMeta, extractText, fileSafety, pdfMeta, type FileType, type PdfMeta } from "./file-inspect";
 import { claimFindings, readProductPage } from "./product-signals";
 import { seenFile } from "./fingerprints";
 import { inspectPdf, type PdfStructure } from "./pdf-structure";
@@ -118,6 +118,13 @@ export async function checkProduct(input: ProductInput, applicableReason: string
       if (pdf?.pages.total && (!meta.pages || meta.pages !== pdf.pages.total)) meta = { ...meta, pages: pdf.pages.total };
       if (meta.pages) metrics.push({ label: "Pages", value: String(meta.pages) });
       if (meta.producer) metrics.push({ label: "Made with", value: meta.producer });
+    } else if (file.type.kind === "ebook") {
+      const em = epubMeta(file.buf);
+      if (em) {
+        const { rights: _rights, ...rest } = em; // eslint-disable-line @typescript-eslint/no-unused-vars
+        meta = rest;
+        if (meta.producer) metrics.push({ label: "Made with", value: meta.producer });
+      } else limits.push("The EPUB package (container.xml / OPF) could not be read, so its metadata was not checked.");
     }
     const seen = await seenFile(file.sha);
     seenCount = seen.count;
