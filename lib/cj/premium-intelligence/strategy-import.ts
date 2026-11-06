@@ -59,6 +59,31 @@ async function liveCountsByCategory(): Promise<Map<StrategyCategoryId, number>> 
   return counts;
 }
 
+/** Why an imported strategy candidate did not go live (recorded in the run summary). */
+async function gateReason(pid: string): Promise<string> {
+  const db = getServiceClient();
+  const { data: product } = await db
+    .from("products")
+    .select("id, images, description, price, auto_unpublish_reason")
+    .eq("source", "cj")
+    .contains("source_metadata", { cj_pid: pid })
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!product) return "gate_not_imported";
+  if (product.auto_unpublish_reason) return "gate_removed";
+  const images = Array.isArray(product.images) ? product.images.length : 0;
+  if (images < 3) return "gate_images";
+  if (String(product.description ?? "").replace(/<[^>]+>/g, " ").trim().length < 40) return "gate_description";
+  if (!(Number(product.price) > 0)) return "gate_price";
+  const { count } = await db
+    .from("product_variants")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", product.id as string)
+    .not("cj_vid", "is", null);
+  if (!count) return "gate_variants";
+  return "gate_other";
+}
+
 export async function runStrategyImport(options: { keywordsPerRun?: number; maxPublish?: number; maxWithoutVideo?: number; now?: Date } = {}): Promise<StrategyImportResult> {
   const keywords = keywordsForRun(options.now ?? new Date(), options.keywordsPerRun ?? 2);
   const maxPublish = options.maxPublish ?? 6;
@@ -160,8 +185,12 @@ export async function runStrategyImport(options: { keywordsPerRun?: number; maxP
           if (hasVideo) result.publishedWithVideo += 1;
           else publishedWithoutVideo += 1;
           counts.set(kw.category, (counts.get(kw.category) ?? 0) + 1);
-        } else if (outcome === "skipped") result.skipped += 1;
-        else result.failed += 1;
+        } else {
+          if (outcome === "skipped") result.skipped += 1;
+          else result.failed += 1;
+          const why = await gateReason(row.pid);
+          result.rejected[why] = (result.rejected[why] ?? 0) + 1;
+        }
       } catch {
         result.failed += 1;
       }
