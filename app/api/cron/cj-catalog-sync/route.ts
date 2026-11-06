@@ -82,9 +82,21 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ ok: true, listSync, retried, enrichment });
   } catch (err) {
+    // Runs had been failing with an empty message; keep enough detail to diagnose.
+    const message =
+      err instanceof Error
+        ? err.message || `${err.name}: ${(err.stack ?? "").split("\n").slice(0, 3).join(" | ")}`
+        : (() => {
+            try {
+              return JSON.stringify(err);
+            } catch {
+              return String(err);
+            }
+          })();
+    console.error("[cj-catalog-sync] failed", err);
     await releaseHeavyWorkerLock(lock.runId, {
       status: "failed",
-      error_message: err instanceof Error ? err.message : "failed",
+      error_message: (message || "failed").slice(0, 500),
     });
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "failed" },

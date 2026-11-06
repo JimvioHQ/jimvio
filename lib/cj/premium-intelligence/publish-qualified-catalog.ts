@@ -748,3 +748,83 @@ export async function publishQualifiedCjCatalog(
 
   return stats;
 }
+
+
+/* ------------------------------------------------------------------ */
+/* Strategy import (2026–2030 categories): same gates as the qualified */
+/* catalog publisher, fed by fresh CJ keyword searches.                */
+/* ------------------------------------------------------------------ */
+
+export type StrategyCandidateSignals = {
+  trending: boolean;
+  supplierVerified: boolean;
+  verifiedWarehouse: number | null;
+  imageCount: number;
+  descriptionLength: number;
+};
+
+/** Candidate row built from a CJ list row, exactly like the catalog pool builds it. */
+export function strategyCandidateFromRaw(
+  rawRow: { pid: string; title: string | null; image: string | null; sku: string | null; stock: number; sell_price: number; orders: number; raw_payload: Record<string, unknown> },
+  signals: StrategyCandidateSignals,
+): CandidateRow {
+  const payload = rawRow.raw_payload ?? {};
+  const categoryName =
+    (typeof payload.categoryName === "string" && payload.categoryName) ||
+    (typeof payload.threeCategoryName === "string" && payload.threeCategoryName) ||
+    (typeof payload.twoCategoryName === "string" && payload.twoCategoryName) ||
+    "";
+  const payloadVideos = mergeProductVideoUrls(
+    normalizeCjVideoUrls(payload.productVideo),
+    normalizeCjVideoUrls(payload.videoList),
+    normalizeCjVideoUrls(payload.videoUrl),
+    typeof payload.description === "string" ? extractVideosFromHtml(payload.description) : [],
+  );
+  return {
+    pid: rawRow.pid,
+    has_video: payloadVideos.length > 0,
+    supplier_verified: signals.supplierVerified,
+    verified_warehouse: signals.verifiedWarehouse,
+    trending: signals.trending,
+    image_count: signals.imageCount,
+    description_length: signals.descriptionLength,
+    supplier_reputation_score: null,
+    linked_product_id: null,
+    catalog_tier: null,
+    stock: rawRow.stock,
+    sell_price: rawRow.sell_price,
+    orders: rawRow.orders,
+    title: rawRow.title,
+    image: rawRow.image,
+    sku: rawRow.sku,
+    category_name: categoryName,
+    has_catalog_vid: catalogVariantRecords(payload).some((variant) => Boolean(normalizeCjVid(variant.vid))),
+    payload_videos: payloadVideos,
+  };
+}
+
+/** Adds genuine CJ videos (detail lookup) when the list row carried none. Never invents one. */
+export async function withCjVideos(candidate: CandidateRow): Promise<CandidateRow> {
+  if (candidate.payload_videos.length > 0) return candidate;
+  try {
+    const token = await getCJToken(getServiceClient());
+    const { videos } = await fetchCjProductVideoUrls(token, candidate.pid);
+    if (videos.length === 0) return candidate;
+    return { ...candidate, has_video: true, payload_videos: mergeProductVideoUrls(candidate.payload_videos, videos) };
+  } catch {
+    return candidate;
+  }
+}
+
+/** Imports (pricing formula, variants, stock) and publishes only if every Jimvio gate passes, video required. */
+export async function importAndPublishStrategyCandidate(candidate: CandidateRow): Promise<{ outcome: "published" | "skipped" | "failed"; stats: QualifiedPublishStats }> {
+  const stats = emptyStats();
+  const outcome = await importAndPublishPid(candidate.pid, stats, candidate, {
+    requireVideo: true,
+    additionalOnly: true,
+    enforceVideoMix: true,
+  });
+  return { outcome, stats };
+}
+
+export type { CandidateRow as StrategyCandidateRow };
