@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Clock3, FileText, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ScanReport } from "@/lib/trust/types";
@@ -83,14 +84,14 @@ export function TrustScanHistory({
           <h2 id="trust-history-heading" className="mt-1 text-xl font-black tracking-tight text-slate-950">Recent checks</h2>
           <p className="mt-1 text-xs text-[#64748B]">Open a previous report from your signed-in account.</p>
         </div>
-        <button type="button" onClick={() => setReload((value) => value + 1)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#46536C] hover:bg-[#F8FAFC]" aria-label="Refresh recent checks">
+        {authenticated ? <button type="button" onClick={() => setReload((value) => value + 1)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E2E7EF] px-3 text-xs font-bold text-[#46536C] hover:bg-[#F8FAFC]" aria-label="Refresh recent checks">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
-        </button>
+        </button> : null}
       </div>
       {loading ? (
         <p className="mt-4 flex items-center gap-2 text-xs text-[#64748B]"><Loader2 className="h-4 w-4 animate-spin" /> Loading recent checks…</p>
       ) : !authenticated ? (
-        <p className="mt-4 rounded-xl bg-[#F8FAFC] px-4 py-3 text-xs leading-relaxed text-[#64748B]">Sign in to Jimvio to keep and reopen your scan history. You can still run checks without an account.</p>
+        <p className="mt-4 rounded-xl bg-[#F8FAFC] px-4 py-3 text-xs leading-relaxed text-[#64748B]"><Link href="/login?next=%2Ftrust-checker" className="font-bold text-[#FF5A1F] hover:underline">Sign in</Link> to keep and reopen your scan history. You can still run checks without an account.</p>
       ) : scans.length === 0 ? (
         <p className="mt-4 rounded-xl bg-[#F8FAFC] px-4 py-3 text-xs text-[#64748B]">Your saved checks will appear here after your first scan.</p>
       ) : (
