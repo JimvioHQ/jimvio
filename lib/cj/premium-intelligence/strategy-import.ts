@@ -66,6 +66,9 @@ export async function runStrategyImport(options: { keywordsPerRun?: number; maxP
   // so video coverage keeps rising toward the 50% goal.
   const maxWithoutVideo = options.maxWithoutVideo ?? 2;
   let publishedWithoutVideo = 0;
+  // Each attempt costs a CJ product-detail call; keep runs inside the daily points budget.
+  const maxAttempts = 10;
+  let attempts = 0;
   const result: StrategyImportResult = {
     keywords: keywords.map((k) => k.keyword),
     searched: 0,
@@ -147,6 +150,8 @@ export async function runStrategyImport(options: { keywordsPerRun?: number; maxP
         continue;
       }
 
+      if (attempts >= maxAttempts) break;
+      attempts += 1;
       try {
         const { outcome } = await importAndPublishStrategyCandidate(candidate, { requireVideo: hasVideo });
         if (outcome === "published") {
