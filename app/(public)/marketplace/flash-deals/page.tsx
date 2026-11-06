@@ -34,7 +34,7 @@ export default async function MarketplaceFlashDealsPage({
       status, is_flash_deal, discount_label, shipping_from,
       delivery_time, affiliate_commission_rate, view_count, sale_count,
       sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
-      inventory_quantity, source_metadata, is_active, auto_unpublished, deleted_at, created_at,
+      inventory_quantity, is_trending, has_supplier_video, is_partner_verified, is_active, auto_unpublished, deleted_at, created_at,
       vendors(id, verification_status)
     `)
     .eq("status", "active")

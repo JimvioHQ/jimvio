@@ -25,7 +25,7 @@ const TRENDING_SELECT = `
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count, sold_count,
   rating, review_count, is_free_shipping, vendor_id, category_id, sku,
-  view_count, created_at, auto_unpublished, deleted_at, source, source_metadata,
+  view_count, created_at, auto_unpublished, deleted_at, source, is_trending, has_supplier_video, is_partner_verified,
   track_inventory, inventory_quantity,
   vendors(id, verification_status)
 `;

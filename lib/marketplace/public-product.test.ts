@@ -101,3 +101,12 @@ describe("stock label for buyers", () => {
     assert.equal(resolveStockStatus({ inventory_quantity: 3, track_inventory: true, low_stock_threshold: 5 }).label, "Only 3 left");
   });
 });
+
+describe("ranking payloads (camelCase)", () => {
+  it("removes cost and counts and neutralises the source", () => {
+    const out = JSON.stringify(toPublicPayload({ rankings: [{ productId: "p", name: "Lamp", costPrice: 1.6, saleCount: 4, viewCount: 9, source: "cj", score: 0.9 }] }));
+    for (const secret of ["costPrice", "saleCount", "viewCount", "\"cj\""]) assert.ok(!out.includes(secret), secret);
+    assert.ok(out.includes("Lamp") && out.includes("score"));
+  });
+});
+

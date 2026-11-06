@@ -75,7 +75,7 @@ const PRODUCT_SELECT = `
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
   created_at, auto_unpublished, deleted_at,
-  inventory_quantity, source_metadata,
+  inventory_quantity, is_trending, has_supplier_video, is_partner_verified,
   vendors(id, verification_status)
 `;
 
@@ -239,13 +239,13 @@ export async function fetchMarketplacePageBundle(
     listingCount,
   );
 
-  const slimIntel = (meta: unknown) => {
-    if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
-    const record = meta as Record<string, unknown>;
+  // Badge facts come from plain columns; supplier metadata never reaches the browser.
+  const slimIntel = (row: unknown) => {
+    const p = (row ?? {}) as { is_trending?: boolean | null; has_supplier_video?: boolean | null; is_partner_verified?: boolean | null };
     const out: Record<string, unknown> = {};
-    if (record.cj_supplier_verified === true) out.cj_supplier_verified = true;
-    if (record.cj_trending === true) out.cj_trending = true;
-    if (Number(record.cj_verified_warehouse) === 1) out.cj_verified_warehouse = 1;
+    if (p.is_partner_verified) out.verified = true;
+    if (p.is_trending) out.trending = true;
+    if (p.has_supplier_video) out.has_video = true;
     return Object.keys(out).length > 0 ? out : null;
   };
 
@@ -253,7 +253,7 @@ export async function fetchMarketplacePageBundle(
     products.map((p) => ({
       ...p,
       images: slimListingImages(p.images, 2, 400),
-      source_metadata: slimIntel(p.source_metadata),
+      source_metadata: slimIntel(p),
     }));
 
   return {

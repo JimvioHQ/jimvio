@@ -589,7 +589,7 @@ export function MarketplacePageClient({
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
               rating, review_count, is_free_shipping, vendor_id, category_id, sku,
-              source, source_metadata,
+              source, is_trending, has_supplier_video, is_partner_verified,
               vendors(id, verification_status)
             `)
           .eq("status", "active")
@@ -878,7 +878,7 @@ export function MarketplacePageClient({
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
               rating, review_count, is_free_shipping, vendor_id, category_id, sku,
-              source, source_metadata,
+              source, is_trending, has_supplier_video, is_partner_verified,
               vendors(id, verification_status)
             `)
                   .eq("status", "active")
@@ -892,7 +892,7 @@ export function MarketplacePageClient({
             : applyFilters(
             supabaseRef.current
               .from("products")
-              .select("*", { count: "exact", head: true })
+              .select("id", { count: "exact", head: true })
               .eq("status", "active")
               .eq("is_active", true)
               .is("deleted_at", null)
