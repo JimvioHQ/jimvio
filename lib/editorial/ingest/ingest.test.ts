@@ -478,7 +478,11 @@ describe("external ingestion", () => {
       serverAutopublish: true,
       publishedToday: 0,
     });
-    assert.equal(missing.length, 0);
+    // Never published or drafted: it is only queued for a later research run.
+    assert.equal(missing.length, 1);
+    assert.equal(missing[0]?.status, "discovered");
+    assert.equal(missing[0]?.filterReason, "queued");
+    assert.equal(missing[0]?.article, null);
     const thin = planSourceItems({
       settings: { ...settings, mode: "auto", ownerAutopublishAuthorized: true },
       source: source(),
@@ -505,7 +509,10 @@ describe("external ingestion", () => {
       publishedToday: 0,
       researchFor: () => ({ brief: null, image: null, reason: "writer_unavailable" }),
     });
-    assert.equal(offline.length, 0);
+    // Writer outage: kept queued for retry, nothing written publicly.
+    assert.equal(offline.length, 1);
+    assert.equal(offline[0]?.filterReason, "queued");
+    assert.equal(offline[0]?.article, null);
   });
 
   it("honors poll windows, stuck jobs, link-only sources, and category blocks", () => {

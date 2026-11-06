@@ -240,7 +240,7 @@ export function assessEditorialDraft(draft: ReportDraft, input: {
   const outputWords = wordCount(bodyHtml.replace(/<[^>]+>/g, " "));
   const headed = draft.sections.filter((section) => section.heading).length;
   if (outputWords < 650 || headed < 3) issues.push("insufficient_depth");
-  if (outputWords > 1200) issues.push("overlong");
+  if (outputWords > 1300) issues.push("overlong");
   const sentences = plain.split(/(?<=[.!?])\s+/);
   const seen = new Set<string>();
   for (const sentence of sentences) {
@@ -286,7 +286,7 @@ const INSTRUCTIONS = [
   "Do not describe feeds, metadata, extraction, confidence, or how the story was assembled.",
   "Do not start the headline with the feed name and do not write the words public notice.",
   "Do not repeat the source headline.",
-  "Write a substantial, independently researched article of 650–1,200 words with at least three informative sections. Each section must add distinct, source-supported context, verified detail, implications, and clearly identified uncertainty.",
+  "Write a substantial, independently researched article of 650–1,300 words (aim for 900–1,300 when the evidence supports it) with at least three informative sections. Each section must add distinct, source-supported context, verified detail, implications, and clearly identified uncertainty.",
   "If the dossier does not contain enough verified evidence for a substantive 650-word report, do not pad or invent; allow the story to fail publication quality checks.",
   "Use the specific people, dates, places, numbers, and program names from the dossier. Do not replace them with general claims about importance, innovation, or the future.",
   "When people lists two or more names, the body must include at least two of those exact full names.",

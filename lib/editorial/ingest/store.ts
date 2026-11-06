@@ -15,6 +15,7 @@ import type {
 } from "@/lib/editorial/ingest/types";
 import { ingestUnavailable } from "@/lib/editorial/ingest/db-error";
 import { clampDailyPublishCap, DEFAULT_INGEST_SETTINGS } from "@/lib/editorial/ingest/types";
+import { QUEUED_REASON } from "@/lib/editorial/ingest/plan";
 
 type Row = Record<string, unknown>;
 type DbError = { message?: string; code?: string } | null;
@@ -25,6 +26,7 @@ interface Chain<T> extends PromiseLike<DbResult<T>> {
   insert: (row: Row | Row[]) => Chain<T>;
   update: (row: Row) => Chain<T>;
   eq: (column: string, value: unknown) => Chain<T>;
+  is: (column: string, value: null) => Chain<T>;
   order: (column: string, options?: { ascending?: boolean }) => Chain<T>;
   limit: (count: number) => Chain<T>;
   maybeSingle: () => Promise<DbResult<T>>;
@@ -264,7 +266,7 @@ export async function loadCycleContext(now: Date): Promise<CycleContext> {
     if (settingsResult.error || !settingsResult.data) return empty;
     const [sourcesResult, itemsResult, articlesResult, jobsResult, publishedResult] = await Promise.all([
       from("media_sources").select(SOURCE_COLUMNS).order("name", { ascending: true }).limit(100),
-      from("media_external_items").select("id, external_key, fingerprint, article_id, url, title, summary, published_at, source_id").order("created_at", { ascending: false }).limit(500),
+      from("media_external_items").select("id, external_key, fingerprint, article_id, url, title, summary, published_at, source_id, status, filter_reason").order("created_at", { ascending: false }).limit(500),
       from("media_articles").select("id, title, source_url").order("updated_at", { ascending: false }).limit(500),
       from("media_ingest_jobs").select("id, source_id, status, attempt, started_at").order("started_at", { ascending: false }).limit(40),
       from("media_external_items").select("updated_at").eq("status", "published").order("updated_at", { ascending: false }).limit(50),
@@ -285,6 +287,7 @@ export async function loadCycleContext(now: Date): Promise<CycleContext> {
         fingerprint: String(row.fingerprint ?? ""),
         articleId: row.article_id ? String(row.article_id) : null,
         url: String(row.url ?? ""),
+        queued: row.status === "discovered" && row.filter_reason === QUEUED_REASON && !row.article_id,
       })),
       existingArticles: asRows(articlesResult.data).map((row) => ({
         id: String(row.id ?? ""),
@@ -390,8 +393,32 @@ export async function persistPlannedItem(sourceId: string, item: PlannedItem, no
     updated_at: now.toISOString(),
   });
   if (ingestUnavailable(error)) return { articleId, slug, unavailable: true };
-  if (error?.code === "23505") return { articleId, slug, unavailable: false };
-  if (error) return { articleId, slug, unavailable: false };
+  if (error?.code === "23505") {
+    // Only a queued row (no decision yet) may be replaced by the decision from a later run.
+    const { error: updateError } = await from("media_external_items")
+      .update({
+        title: item.title,
+        summary: item.summary,
+        published_at: item.publishedAt,
+        cluster_key: item.clusterKey,
+        status: item.status,
+        filter_reason: item.filterReason,
+        article_id: articleId,
+        duplicate_of: item.duplicateOf,
+        sensitive: item.sensitive,
+        evidence: item.evidence,
+        image_status: item.imageStatus,
+        image_note: item.imageNote?.slice(0, 300) ?? null,
+        updated_at: now.toISOString(),
+      })
+      .eq("id", item.id)
+      .eq("status", "discovered")
+      .eq("filter_reason", QUEUED_REASON)
+      .is("article_id", null);
+    if (updateError) return { articleId, slug, unavailable: false };
+  } else if (error) {
+    return { articleId, slug, unavailable: false };
+  }
   if (articleId && item.article && (item.imageStatus === "verified" || item.imageStatus === "fallback") && item.article.imageUrl) {
     await from("media_image_rights").insert({
       article_id: articleId,
