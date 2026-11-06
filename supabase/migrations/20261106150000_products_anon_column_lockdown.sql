@@ -1,4 +1,4 @@
--- Anonymous visitors (public key) may read storefront columns only: never cost,
+-- Applied 2026-11-06 with owner approval. Anonymous visitors (public key) may read storefront columns only: never cost,
 -- supplier metadata, paid-file URLs, file digests or admin/review fields.
 -- Server code uses the service role and is unaffected. Listing code already
 -- reads is_trending / has_supplier_video / is_partner_verified instead of
