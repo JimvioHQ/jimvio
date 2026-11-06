@@ -1,9 +1,9 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getDomain } from "tldts";
-import { externalKey, jaccard, titleTokens } from "@/lib/editorial/ingest/feed";
+import { externalKey, sameStory, sharedEntityCount } from "@/lib/editorial/ingest/feed";
 import { fetchArticlePage, fetchFeed, fetchImage } from "@/lib/editorial/ingest/fetch";
 import { evaluateImage, selectOfficialImage } from "@/lib/editorial/ingest/images";
-import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, serverAutopublishAuthorized, sourceDue, type ItemResearch } from "@/lib/editorial/ingest/plan";
+import { alreadyStoredDuplicate, countPlans, cycleSourceOutcome, isStuckJob, MAX_SOURCES_PER_CYCLE, planSourceItems, publishSlotsRemaining, researchCandidates, serverAutopublishAuthorized, sourceDue, sourceResting, type ItemResearch } from "@/lib/editorial/ingest/plan";
 import { illustrativeImage } from "@/lib/editorial/ingest/illustrative";
 import { searchUnsplashPhotos } from "@/lib/community/photo-content/unsplash";
 import { writeGroundedReport } from "@/lib/editorial/ingest/report";
@@ -67,6 +67,8 @@ export async function runIngestCycle(options?: {
     if (options?.sourceId && source.id !== options.sourceId) return false;
     if (source.kind === "licensed" || source.kind === "api" || source.permittedUsage === "none") return false;
     const forced = options?.force === true && (!options.sourceId || source.id === options.sourceId);
+    // A source that keeps failing rests (and is probed again later) instead of taking a slot every run.
+    if (!forced && sourceResting(context.jobs.filter((job) => job.sourceId === source.id), context.settings.retryLimit, now)) return false;
     return sourceDue(source, now, forced);
   });
   // Rotate fairly: sources that have waited longest are polled first.
@@ -112,10 +114,6 @@ async function syncSource(
   const empty = { discovered: 0, duplicates: 0, filtered: 0, grouped: 0, drafted: 0, review: 0, published: 0, failed: 0 };
   const previous = context.jobs.filter((job) => job.sourceId === source.id);
   if (previous.some((job) => job.status === "running")) return { counts: empty, fetched: 0, wrote: false, publishedSlug: null };
-  const recentFailures = previous.slice(0, context.settings.retryLimit);
-  if (!force && recentFailures.length >= context.settings.retryLimit && recentFailures.every((job) => job.status === "failed")) {
-    return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
-  }
   const attempt = Math.min(8, Math.max(0, ...previous.map((job) => job.attempt), 0) + 1);
   const key = force ? `retry:${source.id}:${now.getTime()}` : `sync:${source.id}:${now.toISOString().slice(0, 13)}`;
   const job = await startJob({ sourceId: source.id, key, kind: force ? "retry" : "sync", attempt });
@@ -134,7 +132,7 @@ async function syncSource(
     return { counts: { ...empty, failed: 1 }, fetched: 0, wrote: false, publishedSlug: null };
   }
 
-  const known = new Set(context.existingItems.map((item) => item.externalKey));
+  const known = new Set(context.existingItems.filter((item) => !item.queued).map((item) => item.externalKey));
   const fresh = fetched.items.filter((item) => !known.has(externalKey(item.url, item.guid)));
   const slots = context.settings.mode === "auto"
     ? publishSlotsRemaining(context.publishedToday, context.settings.dailyPublishCap, now)
@@ -145,7 +143,7 @@ async function syncSource(
   // Research one candidate per source per cycle. Feed polling remains broad, while
   // bounded research prevents sequential source-page, corroboration and AI calls
   // from exhausting the serverless function's execution window.
-  const budget = fresh.slice(0, paceClosed ? 0 : Math.min(1, slots));
+  const budget = researchCandidates(fresh, { settings: context.settings, source, now }).slice(0, paceClosed ? 0 : Math.min(1, slots));
   let writerUnavailable = false;
   for (const item of budget) {
     if (Date.now() > deadline) break;
@@ -204,7 +202,7 @@ async function syncSource(
 
 async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typeof fetch, otherReports: { sourceName: string; title: string; url: string; summary: string; publishedAt: string | null }[]): Promise<ItemResearch> {
   const loaded = await fetchArticlePage(item.url, fetchImpl);
-  if (!loaded.ok) return { brief: null, image: null, reason: "thin_source" };
+  if (!loaded.ok) return { brief: null, image: null, reason: "thin_source", issues: ["source_page_unavailable"] };
   const imageTask = (async () => {
     const official = await selectOfficialImage(loaded.page, fetchImpl);
     if (official.status === "verified") return official;
@@ -263,18 +261,21 @@ async function researchItem(source: SourceRecord, item: FeedItem, fetchImpl: typ
     const left = report.publishedAt ? Date.parse(report.publishedAt) : NaN;
     const right = item.publishedAt ? Date.parse(item.publishedAt) : NaN;
     if (Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) > 72 * 60 * 60 * 1000) return false;
-    return jaccard(titleTokens(report.title), titleTokens(item.title)) >= 0.6;
+    return sameStory(report.title, item.title);
   }).filter((report, index, all) => all.findIndex((candidate) => publisherKey(candidate.url) === publisherKey(report.url)) === index).slice(0, 3);
   const corroboratingPages: { sourceName: string; sourceTitle: string; sourceUrl: string; page: ExtractedPage }[] = [];
   for (const report of related) {
     const secondary = await fetchArticlePage(report.url, fetchImpl);
-    if (secondary.ok && secondary.page.wordCount >= 80) corroboratingPages.push({ sourceName: report.sourceName, sourceTitle: report.title, sourceUrl: report.url, page: secondary.page });
+    // Counts only when the other publisher's page is really about the same story.
+    const primaryText = `${loaded.page.title} ${loaded.page.paragraphs.join(" ")}`;
+    const secondaryText = `${secondary.ok ? secondary.page.title : ""} ${secondary.ok ? secondary.page.paragraphs.join(" ") : ""}`;
+    if (secondary.ok && secondary.page.wordCount >= 80 && sharedEntityCount(primaryText, secondaryText) >= 3) corroboratingPages.push({ sourceName: report.sourceName, sourceTitle: report.title, sourceUrl: report.url, page: secondary.page });
   }
   const written = await writeGroundedReport({ sourceName: source.name, sourceTitle: item.title, sourceUrl: item.url, page: loaded.page, corroboratingPages, lookup: lookupProfileNames });
   const image = await imageTask;
   // No photo the source lets us use: a licensed, clearly-labelled illustration.
   const verified = image.status === "verified" ? image : illustrativeImage(source.categories[0], item.title);
-  if (!written.ok) return { brief: null, image: verified, reason: written.reason };
+  if (!written.ok) return { brief: null, image: verified, reason: written.reason, issues: written.issues };
   return { brief: written.brief, image: verified, reason: null };
 }
 

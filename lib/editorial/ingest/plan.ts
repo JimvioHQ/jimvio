@@ -10,6 +10,7 @@ import {
   fingerprintTitle,
   jaccard,
   primaryLanguage,
+  sameStory,
   titleTokens,
   wordCount,
 } from "@/lib/editorial/ingest/feed";
@@ -53,7 +54,55 @@ export type ItemResearch = {
   brief: OriginalBrief | null;
   image: ImageDecision | null;
   reason: "thin_source" | "writer_unavailable" | "quality_gate" | string | null;
+  /** Exact checks that failed, kept as evidence so editors can see why. */
+  issues?: string[];
 };
+
+/** Stories saved for a later run: fresh, not yet researched, and allowed to be replaced by the real decision. */
+export const QUEUED_REASON = "queued";
+
+export function staleCutoff(settings: Pick<IngestSettings, "staleDays">, now: Date): number {
+  const days = Math.min(Math.max(settings.staleDays, 1), 2);
+  return now.getTime() - days * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Feed items worth spending the research budget on, newest first: not stale,
+ * in the source language, from a source whose terms allow reporting.
+ */
+export function researchCandidates<T extends Pick<FeedItem, "publishedAt" | "language">>(
+  items: readonly T[],
+  input: { settings: Pick<IngestSettings, "staleDays">; source: Pick<SourceRecord, "language" | "permittedUsage">; now: Date },
+): T[] {
+  if (input.source.permittedUsage === "none" || input.source.permittedUsage === "link") return [];
+  const before = staleCutoff(input.settings, input.now);
+  const sourceLanguage = primaryLanguage(input.source.language);
+  return items
+    .filter((item) => {
+      if (item.publishedAt && Date.parse(item.publishedAt) < before) return false;
+      const language = primaryLanguage(item.language);
+      return !(sourceLanguage && language && sourceLanguage !== language);
+    })
+    .sort((left, right) => (Date.parse(right.publishedAt ?? "") || 0) - (Date.parse(left.publishedAt ?? "") || 0));
+}
+
+/** A source that failed its last `retryLimit` runs rests for this long before one probe. */
+export const FAILED_SOURCE_BACKOFF_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * True while a repeatedly failing source should be skipped. Skipped sources
+ * must not occupy the per-run source slots, or healthy sources starve.
+ */
+export function sourceResting(
+  jobs: readonly { status: string; startedAt: string }[],
+  retryLimit: number,
+  now: Date,
+): boolean {
+  const recent = jobs.slice(0, Math.max(1, retryLimit));
+  if (recent.length < Math.max(1, retryLimit) || !recent.every((job) => job.status === "failed")) return false;
+  const last = Date.parse(recent[0]?.startedAt ?? "");
+  return Number.isFinite(last) && now.getTime() - last < FAILED_SOURCE_BACKOFF_MS;
+}
 
 export function stableItemId(externalKey: string): string {
   const hex = createHash("sha256").update(externalKey).digest("hex");
@@ -164,11 +213,11 @@ export function planSourceItems(input: {
 }): PlannedItem[] & { heldForPace: number } {
   const ids = input.ids ?? stableItemId;
   const now = input.now;
-  const staleWindowDays = Math.min(Math.max(input.settings.staleDays, 1), 2);
-  const staleBefore = now.getTime() - staleWindowDays * 24 * 60 * 60 * 1000;
+  const staleBefore = staleCutoff(input.settings, now);
   const sourceLanguage = primaryLanguage(input.source.language);
   const knownKeys = new Map(input.existingItems.map((item) => [item.externalKey, item]));
-  const knownPrints = new Map(input.existingItems.map((item) => [item.fingerprint, item]));
+  // Queued rows have no decision yet, so they are not "matching records" for duplicate checks.
+  const knownPrints = new Map(input.existingItems.filter((item) => !item.queued).map((item) => [item.fingerprint, item]));
   const articlePrints = new Map(input.existingArticles.map((article) => [fingerprintTitle(article.title), article.id]));
   const articleUrls = new Map(
     input.existingArticles.filter((article) => article.sourceUrl).map((article) => [article.sourceUrl as string, article.id]),
@@ -185,7 +234,8 @@ export function planSourceItems(input: {
     seen.add(key);
     const fingerprint = fingerprintTitle(item.title);
     const existing = knownKeys.get(key);
-    if (existing) {
+    // Queued items were saved without a decision; plan them again like fresh ones.
+    if (existing && !existing.queued) {
       planned.push(blank(ids(key), item, key, fingerprint, existing.articleId ? "drafted" : "discovered", null, existing.id));
       const last = planned[planned.length - 1];
       last.status = "duplicate";
@@ -243,7 +293,7 @@ export function planSourceItems(input: {
     const related = (input.otherReports ?? []).filter((report) => {
       if (report.sourceName === input.source.name) return false;
       if (publisherKey(report.url, report.sourceName) === primaryPublisher) return false;
-      return withinWindow(report.publishedAt, primary.publishedAt) && jaccard(titleTokens(report.title), primary.tokens) >= 0.6;
+      return withinWindow(report.publishedAt, primary.publishedAt) && sameStory(report.title, primary.title);
     }).filter((report, index, all) =>
       all.findIndex((candidate) => publisherKey(candidate.url, candidate.sourceName) === publisherKey(report.url, report.sourceName)) === index,
     ).slice(0, 3);
@@ -270,7 +320,18 @@ export function planSourceItems(input: {
       continue;
     }
     const research = input.researchFor ? input.researchFor(primary) : null;
-    if (!research || research.reason === "writer_unavailable") continue;
+    if (!research || research.reason === "writer_unavailable") {
+      // Not researched in this run: keep it queued so a later run can, and so other
+      // sources can use the headline as candidate corroboration.
+      for (const item of ordered) {
+        const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, "discovered", QUEUED_REASON, null);
+        row.clusterKey = clusterKey;
+        row.imageStatus = "rejected";
+        row.imageNote = "Not checked yet: the story is queued for research.";
+        planned.push(row);
+      }
+      continue;
+    }
     const supplied = input.imageFor ? input.imageFor(primary) : research.image;
     const verified = supplied && supplied.status === "verified" && supplied.url && !isEditorialMarkUrl(supplied.url) ? supplied : null;
     const prose = research.brief ? `${research.brief.title}\n${research.brief.excerpt}\n${research.brief.bodyHtml}` : "";
@@ -285,9 +346,10 @@ export function planSourceItems(input: {
         const row = blank(ids(item.externalKey), item, item.externalKey, item.fingerprint, index === 0 ? status : "grouped", index === 0 ? reason : "grouped", null);
         row.clusterKey = clusterKey;
         row.sensitive = sensitive;
-        row.evidence = `Held: ${reason}. ${sourceUrls}`.slice(0, 2000);
+        const detail = research.issues?.length ? ` (${research.issues.join(", ")})` : "";
+        row.evidence = `Held: ${reason}${detail}. ${sourceUrls}`.slice(0, 2000);
         row.imageStatus = supplied?.status ?? "rejected";
-        row.imageNote = supplied?.note ?? "No verified official image.";
+        row.imageNote = supplied?.note ?? "Not checked: the story did not pass research.";
         planned.push(row);
       });
       const primaryRow = planned.find((entry) => entry.externalKey === primary.externalKey);
@@ -391,7 +453,7 @@ function blank(
     sensitive: false,
     evidence: "",
     imageStatus: "rejected",
-    imageNote: "No granted image rights.",
+    imageNote: "Not checked: the story was filtered before image selection.",
     article: null,
   };
 }

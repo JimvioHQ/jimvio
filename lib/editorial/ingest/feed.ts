@@ -59,6 +59,36 @@ export function titleTokens(title: string): string[] {
   return [...new Set(fingerprintTitle(title).split(" ").filter((word) => word.length > 2 && !STOP.has(word)))];
 }
 
+const ENTITY_STOP = new Set([
+  "The", "A", "An", "And", "But", "For", "How", "Why", "What", "When", "Who", "New", "Its", "Is", "Are", "This", "That",
+  "With", "From", "After", "Over", "Into", "Says", "Report", "Update", "Live", "Breaking", "Exclusive", "Analysis", "Here",
+]);
+
+/** Distinctive names in a headline or text: capitalised words, acronyms and figures (e.g. "OPay", "IPO", "29M"). */
+export function distinctiveEntities(text: string): string[] {
+  const words = text.match(/\b(?:[A-Z][A-Za-z0-9&'-]{1,}|[0-9][0-9.,]*[A-Za-z]{0,3})\b/g) ?? [];
+  return [...new Set(words.filter((word) => !ENTITY_STOP.has(word) && word.length >= 2).map((word) => word.toLowerCase().replace(/[’']s$/, "")))];
+}
+
+/**
+ * Two headlines describe the same story: near-identical wording, or real word
+ * overlap plus at least two shared distinctive names. Candidates only — the
+ * other publisher's page is still fetched and checked before it counts.
+ */
+export function sameStory(leftTitle: string, rightTitle: string): boolean {
+  const overlap = jaccard(titleTokens(leftTitle), titleTokens(rightTitle));
+  if (overlap >= 0.6) return true;
+  if (overlap < 0.25) return false;
+  const right = new Set(distinctiveEntities(rightTitle));
+  return distinctiveEntities(leftTitle).filter((entity) => right.has(entity)).length >= 2;
+}
+
+/** Shared distinctive names between two article bodies (page-level corroboration check). */
+export function sharedEntityCount(leftText: string, rightText: string): number {
+  const right = new Set(distinctiveEntities(rightText));
+  return distinctiveEntities(leftText).filter((entity) => right.has(entity)).length;
+}
+
 export function jaccard(left: readonly string[], right: readonly string[]): number {
   if (!left.length || !right.length) return 0;
   const other = new Set(right);

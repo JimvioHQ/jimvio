@@ -97,6 +97,8 @@ export type ExistingItemRef = {
   fingerprint: string;
   articleId: string | null;
   url: string;
+  /** Saved for later research; a later run may replace it with a decision. */
+  queued?: boolean;
 };
 
 export type ExistingArticleRef = {
