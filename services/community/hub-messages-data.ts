@@ -7,6 +7,12 @@ import {
   isCallSignalingMessage,
   previewChatMessage,
 } from "@/lib/community/message-signaling";
+import {
+  isMarketplaceUnread,
+  marketplaceReadKey,
+  marketplaceThreadId,
+  previewMarketplaceMessage,
+} from "@/lib/messaging/marketplace-thread";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -22,7 +28,8 @@ async function getUserCommunityIds(userId: string) {
 
 export type HubMessageThread = {
   id: string;
-  kind: "direct" | "group" | "space";
+  /** direct = 1:1 (community DM or platform-wide DM when communitySlug is ""); marketplace = buyer ↔ store. */
+  kind: "direct" | "group" | "space" | "marketplace";
   name: string;
   avatarUrl: string | null;
   subtitle: string | null;
@@ -36,6 +43,8 @@ export type HubMessageThread = {
   peerId: string | null;
   roomId: string | null;
   href: string | null;
+  /** Marketplace threads only. */
+  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null };
 };
 
 export type HubMessageItem = {
@@ -202,28 +211,103 @@ async function loadRoomLastMessages(
   return roomLastMsg;
 }
 
+type MarketConvRow = {
+  id: string;
+  buyer_id: string;
+  vendor_id: string;
+  updated_at: string | null;
+  vendor: { business_name?: string | null; business_slug?: string | null; business_logo?: string | null } | null;
+};
+
+/** Buyer ↔ store chats where the viewer is the buyer or owns the store (RLS applies). */
+async function loadMarketplaceThreads(userId: string, readCursors: Map<string, string>): Promise<HubMessageThread[]> {
+  const supabase = await createClient();
+  try {
+    const { data: myVendors } = await supabase.from("vendors").select("id").eq("user_id", userId);
+    const vendorIds = (myVendors ?? []).map((v) => v.id);
+    const or = [`buyer_id.eq.${userId}`, ...(vendorIds.length ? [`vendor_id.in.(${vendorIds.join(",")})`] : [])].join(",");
+    const { data: convs, error } = await supabase
+      .from("conversations")
+      .select("id, buyer_id, vendor_id, updated_at, vendor:vendors!vendor_id (business_name, business_slug, business_logo)")
+      .or(or)
+      .order("updated_at", { ascending: false })
+      .limit(50);
+    if (error || !convs?.length) return [];
+    const rows = convs as unknown as MarketConvRow[];
+    const buyerIds = [...new Set(rows.filter((c) => c.buyer_id !== userId).map((c) => c.buyer_id))];
+    const [{ data: msgs }, { data: buyers }] = await Promise.all([
+      supabase
+        .from("conversation_messages")
+        .select("conversation_id, sender_id, body, message_type, created_at")
+        .in("conversation_id", rows.map((c) => c.id))
+        .order("created_at", { ascending: false })
+        .limit(400),
+      buyerIds.length
+        ? supabase.from("profiles").select("id, full_name, username, avatar_url").in("id", buyerIds)
+        : Promise.resolve({ data: [] as never[] }),
+    ]);
+    const last = new Map<string, { sender_id: string; body: string | null; message_type: string | null; created_at: string | null }>();
+    for (const m of msgs ?? []) if (!last.has(m.conversation_id)) last.set(m.conversation_id, m);
+    const buyerById = new Map((buyers ?? []).map((b) => [b.id, b]));
+
+    return rows.map((c) => {
+      const iAmBuyer = c.buyer_id === userId;
+      const buyer = iAmBuyer ? null : buyerById.get(c.buyer_id);
+      const m = last.get(c.id);
+      const storeHref = c.vendor?.business_slug ? `/vendors/${c.vendor.business_slug}` : null;
+      return {
+        id: marketplaceThreadId(c.id),
+        kind: "marketplace" as const,
+        name: iAmBuyer ? (c.vendor?.business_name ?? "Store") : (buyer?.full_name ?? buyer?.username ?? "Buyer"),
+        avatarUrl: iAmBuyer ? (c.vendor?.business_logo ?? null) : (buyer?.avatar_url ?? null),
+        subtitle: iAmBuyer ? "Marketplace · you're buying" : "Marketplace · your store",
+        lastMessage: m ? previewMarketplaceMessage(m.body, m.message_type) : "No messages yet",
+        lastMessageTime: m?.created_at ?? c.updated_at ?? new Date().toISOString(),
+        unreadCount: m && m.created_at && isMarketplaceUnread({ sender_id: m.sender_id, created_at: m.created_at }, userId, readCursors.get(marketplaceReadKey(c.id))) ? 1 : 0,
+        isOnline: false,
+        communityId: "",
+        communityName: "Marketplace",
+        communitySlug: "",
+        peerId: iAmBuyer ? null : c.buyer_id,
+        roomId: null,
+        href: iAmBuyer ? storeHref : buyer?.username ? `/u/${buyer.username}` : null,
+        market: { conversationId: c.id, vendorId: c.vendor_id, isVendorSide: !iAmBuyer, storeHref },
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 export async function getHubMessageThreads(userId: string) {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(userId);
-  const threads: HubMessageThread[] = [];
   const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
-  const readCursors = await loadReadCursors(userId);
+  const [communityIds, readCursors] = await Promise.all([getUserCommunityIds(userId), loadReadCursors(userId)]);
+  const threads: HubMessageThread[] = [];
 
-  if (communityIds.length > 0) {
-    const { data: convs } = await supabase
-      .from("community_inbox_conversations")
-      .select(
-        `id, community_id, user_high, user_low, updated_at,
+  const inboxSelect = `id, community_id, user_high, user_low, updated_at,
          communities(name, slug),
-         community_inbox_messages(id, body, created_at, sender_id, message_type)`
-      )
-      .in("community_id", communityIds)
+         community_inbox_messages(id, body, created_at, sender_id, message_type)`;
+  const inboxQuery = () =>
+    supabase
+      .from("community_inbox_conversations")
+      .select(inboxSelect)
       .or(`user_high.eq.${userId},user_low.eq.${userId}`)
       .order("updated_at", { ascending: false })
       .limit(50)
       .order("created_at", { ascending: false, referencedTable: "community_inbox_messages" })
       .limit(30, { referencedTable: "community_inbox_messages" });
 
+  // Platform-wide DMs (no community) and marketplace chats show for everyone, member of a community or not.
+  const [platformDms, communityDms, marketThreads] = await Promise.all([
+    inboxQuery().is("community_id", null),
+    communityIds.length > 0 ? inboxQuery().in("community_id", communityIds) : Promise.resolve({ data: [] as never[] }),
+    loadMarketplaceThreads(userId, readCursors),
+  ]);
+  threads.push(...marketThreads);
+
+  {
+    const convs = [...(platformDms.data ?? []), ...(communityDms.data ?? [])];
     const peerIds = (convs ?? []).map((c) =>
       c.user_high === userId ? c.user_low : c.user_high
     );
@@ -264,22 +348,25 @@ export async function getHubMessageThreads(userId: string) {
         kind: "direct",
         name: peer?.full_name ?? peer?.username ?? "Member",
         avatarUrl: peer?.avatar_url ?? null,
-        subtitle: community?.name ?? null,
+        subtitle: community?.name ?? (peer?.username ? `@${peer.username}` : null),
         lastMessage: last
           ? previewChatMessage(last.body ?? "", last.message_type)
           : "No messages yet",
         lastMessageTime: last?.created_at ?? conv.updated_at ?? new Date().toISOString(),
         unreadCount,
         isOnline: onlineSet.has(peerId),
-        communityId: conv.community_id,
-        communityName: community?.name ?? "Community",
-        communitySlug: community?.slug ?? "",
+        communityId: conv.community_id ?? "",
+        communityName: community?.name ?? (conv.community_id ? "Community" : "Direct message"),
+        // "" = platform-wide DM (served by /api/messages/direct).
+        communitySlug: conv.community_id ? (community?.slug ?? "") : "",
         peerId,
         roomId: null,
         href: peer?.username ? `/u/${peer.username}` : null,
       });
     }
+  }
 
+  if (communityIds.length > 0) {
     type RoomRow = {
       id: string;
       name: string;
@@ -454,7 +541,9 @@ export async function getHubMessageThreads(userId: string) {
         href: spaceHref,
       });
     }
+  }
 
+  {
     const inboxIds = threads.filter((t) => t.kind === "direct").map((t) => t.id);
     const unreadRoomIds = threads
       .filter((t) => t.kind === "group" && t.roomId)
@@ -483,14 +572,18 @@ export async function getHubMessageThreads(userId: string) {
   const unread = threads.filter((t) => t.unreadCount > 0).length;
   const groups = threads.filter((t) => t.kind === "group").length;
   const spaceCount = threads.filter((t) => t.kind === "space").length;
+  const direct = threads.filter((t) => t.kind === "direct").length;
+  const marketplace = threads.filter((t) => t.kind === "marketplace").length;
 
   return {
     threads,
     tabCounts: {
       all: threads.length,
       unread,
+      direct,
       groups,
       spaces: spaceCount,
+      marketplace,
     },
   };
 }
@@ -810,7 +903,7 @@ export async function sendHubDirectMessage(
         category: "new_message",
         title: `New message from ${name}`,
         message: preview || "Sent a message",
-        actionUrl: `/communities/messages?thread=${conversationId}`,
+        actionUrl: `/messages?thread=${conversationId}`,
         data: { event: "community_direct_message", conversation_id: conversationId, source: "community" },
         groupKey: `dm:${conversationId}`,
         actorId: userId,

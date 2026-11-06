@@ -1,4 +1,4 @@
-export type ThreadKind = "direct" | "group" | "space";
+export type ThreadKind = "direct" | "group" | "space" | "marketplace";
 
 export type HubThread = {
   id: string;
@@ -18,6 +18,8 @@ export type HubThread = {
   peerId: string | null;
   roomId: string | null;
   href: string | null;
+  /** Marketplace (buyer ↔ store) threads only. */
+  market?: { conversationId: string; vendorId: string; isVendorSide: boolean; storeHref: string | null };
 };
 
 export type HubMessageAttachment = {

@@ -174,6 +174,8 @@ const nextConfig: NextConfig = {
       // Canonical account destinations
       { source: "/ugc/saved", destination: "/saved", permanent: false },
       { source: "/inbox", destination: "/notifications", permanent: false },
+      // Older marketplace message notifications linked here (query string is kept).
+      { source: "/dashboard/messages", destination: "/messages", permanent: false },
       // Commerce OS consolidation — Dropshipping OS → Commerce (preserve deep links)
       { source: "/dropshipping", destination: "/commerce", permanent: false },
       {

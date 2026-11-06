@@ -106,7 +106,7 @@ export function useConversationMessages({
   const targetKey = target
     ? target.kind === "room"
       ? `room:${target.roomId}`
-      : `inbox:${target.slug}:${target.conversationId}`
+      : `inbox:${target.slug ?? "dm"}:${target.conversationId}`
     : null;
 
   const upsertMessage = useCallback((msg: Msg) => {

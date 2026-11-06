@@ -28,7 +28,8 @@ export function OtherInboxes({ search }: { search: string }) {
       fetch("/api/messages/elsewhere", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => {
-          if (alive && Array.isArray(j?.data)) setItems(j.data as Item[]);
+          // Marketplace chats now live in the main list; only campaign chats link out.
+          if (alive && Array.isArray(j?.data)) setItems((j.data as Item[]).filter((item) => item.source !== "marketplace"));
         })
         .catch(() => undefined);
     void load();
@@ -43,7 +44,7 @@ export function OtherInboxes({ search }: { search: string }) {
   if (!shown.length) return null;
   return (
     <div className="border-t border-black/[0.05] pt-2">
-      <p className="px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Marketplace & campaign chats</p>
+      <p className="px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Campaign chats</p>
       {shown.map((i) => {
         const Icon = i.source === "marketplace" ? ShoppingBag : Megaphone;
         return (
