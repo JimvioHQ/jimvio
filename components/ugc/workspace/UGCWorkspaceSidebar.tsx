@@ -105,7 +105,7 @@ function NavLink({
   );
 }
 
-export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void }) {
+export function UGCWorkspaceSidebar({ onNavigate, variant = "rail" }: { onNavigate?: () => void; variant?: "rail" | "drawer" }) {
   const pathname = usePathname();
   // The sidebar sits outside the brand provider, so it reads the owner state itself.
   const { brandId } = useUgcBrandWorkspace();
@@ -118,7 +118,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: { onNavigate?: () => void })
   ];
 
   return (
-    <div className="flex h-full w-[228px] flex-col border-r border-[#E5E7EB] bg-white">
+    <div className={cn("flex h-full flex-col bg-white", variant === "drawer" ? "w-full" : "w-[228px] border-r border-[#E5E7EB]")}>
       <div className="px-3 pb-3 pt-4">
         <p className="px-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
           UGC & Clipping
