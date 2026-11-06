@@ -102,7 +102,7 @@ async function reconcileOne(db: SupabaseClient, tx: Tx, now: number, s: Reconcil
   if (outcome === "failed" || (flwStatus === "not_found" && isStale(tx.created_at, now))) {
     await db.from("transactions").update({ status: outcome === "failed" ? "failed" : "cancelled", updated_at: nowIso }).eq("id", tx.id).eq("status", "pending");
     if (tx.type === "wallet_deposit" && typeof tx.metadata?.deposit_id === "string") {
-      await db.from("wallet_deposits").update({ status: outcome === "failed" ? "failed" : "cancelled", updated_at: nowIso }).eq("id", tx.metadata.deposit_id).eq("status", "pending");
+      await db.from("wallet_deposits").update({ status: outcome === "failed" ? "failed" : "cancelled" }).eq("id", tx.metadata.deposit_id).eq("status", "pending");
     }
     if (outcome === "failed") s.failed++;
     else s.expiredTransactions++;
@@ -164,7 +164,7 @@ export async function reconcilePayments(limit = 40): Promise<ReconcileSummary> {
       .in("status", ["pending", "processing", "completed", "paid"])
       .limit(1);
     if ((live ?? []).length) continue;
-    const { data: done } = await db.from("wallet_deposits").update({ status: "cancelled", updated_at: nowIso }).eq("id", d.id).eq("status", "pending").select("id");
+    const { data: done } = await db.from("wallet_deposits").update({ status: "cancelled" }).eq("id", d.id).eq("status", "pending").select("id");
     s.expiredDeposits += (done ?? []).length;
   }
 

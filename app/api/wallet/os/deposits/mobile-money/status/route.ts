@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
         .eq("status", "pending");
       await db
         .from("wallet_deposits")
-        .update({ status: "failed", updated_at: now })
+        .update({ status: "failed" })
         .eq("id", depositId)
         .eq("status", "pending");
       return NextResponse.json({
