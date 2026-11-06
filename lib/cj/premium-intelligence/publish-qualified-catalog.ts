@@ -816,13 +816,17 @@ export async function withCjVideos(candidate: CandidateRow): Promise<CandidateRo
   }
 }
 
-/** Imports (pricing formula, variants, stock) and publishes only if every Jimvio gate passes, video required. */
-export async function importAndPublishStrategyCandidate(candidate: CandidateRow): Promise<{ outcome: "published" | "skipped" | "failed"; stats: QualifiedPublishStats }> {
+/** Imports (pricing formula, variants, stock) and publishes only if every Jimvio gate passes (video required unless told otherwise). */
+export async function importAndPublishStrategyCandidate(
+  candidate: CandidateRow,
+  options: { requireVideo?: boolean } = {},
+): Promise<{ outcome: "published" | "skipped" | "failed"; stats: QualifiedPublishStats }> {
   const stats = emptyStats();
+  const requireVideo = options.requireVideo ?? true;
   const outcome = await importAndPublishPid(candidate.pid, stats, candidate, {
-    requireVideo: true,
+    requireVideo,
     additionalOnly: true,
-    enforceVideoMix: true,
+    enforceVideoMix: requireVideo,
   });
   return { outcome, stats };
 }
