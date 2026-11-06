@@ -457,7 +457,7 @@ async function importAndPublishPid(
   pid: string,
   stats: QualifiedPublishStats,
   candidate: CandidateRow,
-  options: { requireVideo?: boolean; additionalOnly?: boolean; enforceVideoMix?: boolean } = {}
+  options: { requireVideo?: boolean; additionalOnly?: boolean; enforceVideoMix?: boolean; fetchDetail?: boolean } = {}
 ): Promise<"published" | "skipped" | "failed"> {
   const supabase = getServiceClient();
 
@@ -500,7 +500,7 @@ async function importAndPublishPid(
   }
 
   const importedId = await ensureCjProductImported(pid, {
-    fetchDetail: false,
+    fetchDetail: options.fetchDetail === true,
   });
   if (!importedId) {
     stats.failed += 1;
@@ -827,6 +827,9 @@ export async function importAndPublishStrategyCandidate(
     requireVideo,
     additionalOnly: true,
     enforceVideoMix: requireVideo,
+    // Keyword-search rows carry one image and no description or variants;
+    // the CJ product detail supplies them (list-only drafts never pass the gates).
+    fetchDetail: true,
   });
   return { outcome, stats };
 }
