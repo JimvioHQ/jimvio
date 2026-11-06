@@ -110,7 +110,11 @@ export function estimateViews(i: Input): ViewEstimate {
 /** Compact range label: "8.1K – 9.6K". */
 export function rangeLabel(r: [number, number] | null): string | null {
   if (!r) return null;
-  const f = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K` : String(Math.round(n)));
+  const f = (n: number) =>
+    n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e11 ? 0 : 2).replace(/\.?0+$/, "")}B`
+    : n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`
+    : n >= 1e3 ? `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}K`
+    : String(Math.round(n));
   return r[0] === r[1] ? f(r[0]) : `${f(r[0])}–${f(r[1])}`;
 }
 

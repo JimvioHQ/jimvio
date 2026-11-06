@@ -217,3 +217,18 @@ describe("rejected links (no scan ran)", () => {
     assert.ok(!JSON.stringify(m).includes("technical problem"));
   });
 });
+
+describe("downloaded report keeps exact counts behind compact tiles", async () => {
+  const { rowsFromTiles } = await import("./report-doc.ts");
+  it("adds the exact figure from the tile hint, and leaves ordinary tiles alone", () => {
+    assert.deepEqual(rowsFromTiles([
+      { key: "views", label: "Total Views", value: "1.83B", hint: "Exact: 1,834,122,026." },
+      { key: "likes", label: "Likes", value: "9,019", hint: "Reported by the platform." },
+      { key: "x", label: "Comments", value: null },
+    ]), [
+      { label: "Total Views", value: "1.83B (1,834,122,026)" },
+      { label: "Likes", value: "9,019" },
+      { label: "Comments", value: "Not Available" },
+    ]);
+  });
+});

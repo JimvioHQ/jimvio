@@ -26,7 +26,11 @@ export function rowsFromInfo(rows: InfoRow[]) {
 }
 
 export function rowsFromTiles(tiles: Tile[]) {
-  return tiles.map((t) => ({ label: t.label, value: t.value ?? "Not Available" }));
+  // Tiles show compact figures (e.g. "1.83B"); the report keeps the exact count when the tile has one.
+  return tiles.map((t) => {
+    const exact = /Exact: ([\d,]+)\./.exec(t.hint ?? "")?.[1];
+    return { label: t.label, value: t.value == null ? "Not Available" : exact ? `${t.value} (${exact})` : t.value };
+  });
 }
 
 /** The three summary cards, in the same order as on the page (after the detailed results). */
