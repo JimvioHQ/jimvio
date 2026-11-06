@@ -106,7 +106,8 @@ export async function ensureCjProductImported(
   if (options?.fetchDetail !== false) {
     try {
       detail = await fetchCjDetail(pid);
-    } catch {
+    } catch (err) {
+      console.warn(`[CJ import] product detail failed pid=${pid}:`, err instanceof Error ? err.message : err);
       detail = null;
     }
   }
