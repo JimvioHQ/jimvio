@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import { distinctiveEntities, sameStory, sharedEntityCount } from "@/lib/editorial/ingest/feed";
 import {
   FAILED_SOURCE_BACKOFF_MS,
+  ownerAuthorizationDecision,
+  OWNER_CONFIRMATION_PHRASE,
   planSourceItems,
   QUEUED_REASON,
   researchCandidates,
@@ -189,5 +191,18 @@ describe("media autopublish pipeline", () => {
     const rows = plan({ items: [feedItem("Old OPay story", "https://weetracker.com/old/", "2026-10-30T00:00:00.000Z")] });
     assert.equal(rows[0]?.filterReason, "stale");
     assert.match(rows[0]?.imageNote ?? "", /Not checked/);
+  });
+
+  it("saving controls never silently revokes an existing owner authorization", () => {
+    const base = { serverAuthorized: true };
+    // The bug: authorized, box ticked, phrase left blank -> was revoked. Now kept.
+    assert.deepEqual(ownerAuthorizationDecision({ ...base, ticked: true, phrase: "", currentlyAuthorized: true }), { authorized: true, requested: true, needsPhrase: false });
+    // Granting for the first time still needs the exact phrase.
+    assert.equal(ownerAuthorizationDecision({ ...base, ticked: true, phrase: "", currentlyAuthorized: false }).authorized, false);
+    assert.equal(ownerAuthorizationDecision({ ...base, ticked: true, phrase: "", currentlyAuthorized: false }).needsPhrase, true);
+    assert.equal(ownerAuthorizationDecision({ ...base, ticked: true, phrase: OWNER_CONFIRMATION_PHRASE, currentlyAuthorized: false }).authorized, true);
+    // Unticking revokes; the server flag is always required.
+    assert.equal(ownerAuthorizationDecision({ ...base, ticked: false, phrase: OWNER_CONFIRMATION_PHRASE, currentlyAuthorized: true }).authorized, false);
+    assert.equal(ownerAuthorizationDecision({ serverAuthorized: false, ticked: true, phrase: OWNER_CONFIRMATION_PHRASE, currentlyAuthorized: true }).authorized, false);
   });
 });

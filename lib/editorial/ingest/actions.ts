@@ -8,13 +8,12 @@ import { writeAuditEvent } from "@/services/ops/audit";
 import { catalogByLocator } from "@/lib/editorial/ingest/catalog";
 import { fetchFeed } from "@/lib/editorial/ingest/fetch";
 import { canonicalUrl } from "@/lib/editorial/ingest/feed";
-import { serverAutopublishAuthorized } from "@/lib/editorial/ingest/plan";
+import { ownerAuthorizationDecision, serverAutopublishAuthorized } from "@/lib/editorial/ingest/plan";
 import { getIngestSource, insertSource, loadIngestDesk, saveIngestSettings, setSourceAlwaysReview, setSourceEnabled } from "@/lib/editorial/ingest/store";
 import { runIngestCycle } from "@/lib/editorial/ingest/run";
 import { DAILY_PUBLISH_MAX, type IngestMode } from "@/lib/editorial/ingest/types";
 import { isArticleId, isMediaCategory } from "@/lib/editorial/validate";
 
-const CONFIRM = "AUTHORIZE AUTOMATIC PUBLICATION";
 
 async function requireAdmin() {
   const auth = await assertPlatformAdmin();
@@ -58,8 +57,14 @@ export async function saveIngestControls(formData: FormData) {
   const current = await loadIngestDesk();
   if (current.unavailable) notice("/media/admin/sources", "storage");
   const blocked = formData.getAll("blocked").map(String).filter((value) => isMediaCategory(value));
-  const requestedOwner = formData.get("owner") === "on" && String(formData.get("confirmation") ?? "") === CONFIRM;
-  const owner = requestedOwner && serverAutopublishAuthorized() ? true : false;
+  const decision = ownerAuthorizationDecision({
+    ticked: formData.get("owner") === "on",
+    phrase: String(formData.get("confirmation") ?? ""),
+    currentlyAuthorized: current.settings.ownerAutopublishAuthorized,
+    serverAuthorized: serverAutopublishAuthorized(),
+  });
+  const requestedOwner = decision.requested;
+  const owner = decision.authorized;
   const saved = await saveIngestSettings({
     mode: modeOf(formData.get("mode")),
     emergencyStop: formData.get("emergency") === "on",
@@ -75,6 +80,7 @@ export async function saveIngestControls(formData: FormData) {
   updateTag("editorial");
   revalidatePath("/media/admin/sources");
   if (requestedOwner && !serverAutopublishAuthorized()) notice("/media/admin/sources", "autopublish");
+  if (decision.needsPhrase) notice("/media/admin/sources", "confirm");
   notice("/media/admin/sources", formData.get("emergency") === "on" ? "stopped" : "saved");
 }
 
