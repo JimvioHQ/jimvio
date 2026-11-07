@@ -23,8 +23,8 @@ jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
     runs-on: [self-hosted, Linux, X64]
-    # Self-hosted typecheck/build can exceed hosted defaults on cold caches.
-    timeout-minutes: 90
+    # Self-hosted cold npm ci can take ~20m; typecheck/build needs headroom beyond that.
+    timeout-minutes: 150
     steps:
       - name: Checkout
         uses: actions/checkout@v5
