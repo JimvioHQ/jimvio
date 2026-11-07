@@ -38,7 +38,8 @@ jobs:
   gate:
     name: Release gates
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 45
+    # Cold npm ci (~20m) + ci:prepush on the self-hosted runner.
+    timeout-minutes: 150
     outputs:
       should_deploy: ${{ steps.decide.outputs.should_deploy }}
     steps:

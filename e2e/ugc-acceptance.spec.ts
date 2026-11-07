@@ -68,6 +68,12 @@ test.describe("ugc guest production probes", () => {
     const bw = await request.get(`${PROD}/ugc/brand-workspace`, { maxRedirects: 0 });
     expect([301, 308]).toContain(bw.status());
     expect(bw.headers().location || "").toMatch(/\/ugc\/campaign-center\/?$/);
+
+    const dash = await request.get(`${PROD}/ugc/campaign-center/dashboard`, {
+      maxRedirects: 0,
+    });
+    expect([301, 308]).toContain(dash.status());
+    expect(dash.headers().location || "").toMatch(/\/ugc\/campaign-center\/?$/);
   });
 
   test("campaign detail still resolves for UUID-shaped ids", async ({ request }) => {

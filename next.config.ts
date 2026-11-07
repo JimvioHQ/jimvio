@@ -89,6 +89,14 @@ const nextConfig: NextConfig = {
         destination: "/ugc",
         permanent: true,
       },
+      // Brand Workspace has no /dashboard child; without this redirect Next
+      // matches /ugc/[id]/dashboard with id="campaign-center".
+      {
+        source: "/ugc/campaign-center/dashboard",
+        destination: "/ugc/campaign-center",
+        permanent: true,
+      },
+
       // /deals was a duplicate page with randomised "HOT DEAL" badges and
       // invented B2B figures; the data-driven deals page is canonical.
       {
