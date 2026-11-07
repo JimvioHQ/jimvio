@@ -32,7 +32,7 @@ export function DashboardShell({
         name: user.name,
         avatarUrl: user.avatarUrl,
         level: user.level ?? 1,
-        role: user.role ?? "Creator",
+        role: user.role ?? "Member",
         verified: user.verified,
         xp: user.xp ?? 0,
         xpGoal: user.xpGoal ?? 1000,

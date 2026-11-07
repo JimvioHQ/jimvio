@@ -166,7 +166,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         name: feedUser.fullName ?? feedUser.displayName,
         avatarUrl: feedUser.avatarUrl,
         level: hubSnapshot?.level ?? 1,
-        role: "Creator",
+        role: "Member",
         verified: false,
         xp: hubSnapshot?.xp ?? 0,
         xpGoal: 1000,
@@ -265,11 +265,25 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           name: prof.full_name ?? prof.username ?? "Member",
           avatarUrl: prof.avatar_url,
           level: points?.level ?? 1,
-          role: "Creator",
+          role: "Member",
           verified: true,
           xp: (points?.total_points ?? 0) % 1000,
           xpGoal: 1000,
         });
+
+        // Prefer the user's chosen professional identity when available.
+        void supabase
+          .from("jip_identity")
+          .select("industries")
+          .eq("user_id", authUserId)
+          .maybeSingle()
+          .then((res: { data: { industries: string[] | null } | null }) => {
+            if (cancelled) return;
+            const industries = res.data?.industries ?? [];
+            const label = industries[0]?.trim();
+            if (!label) return;
+            setUser((prev) => (prev ? { ...prev, role: label } : prev));
+          });
       }
 
       if (joinedRes.error) {
@@ -326,7 +340,13 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                {isGuest ? "Sign in to continue" : `Level ${profile.level} ${profile.role}`}
+                {isGuest
+                  ? "Sign in to continue"
+                  : profile.role && profile.role !== "Member"
+                    ? profile.role
+                    : profile.level > 1
+                      ? `Level ${profile.level}`
+                      : "Member"}
               </p>
             </div>
           </Link>

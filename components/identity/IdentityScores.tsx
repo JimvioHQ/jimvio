@@ -37,7 +37,7 @@ export function IdentityScores({
 
       <div className="mt-5 rounded-2xl bg-black/[0.02] p-4">
         <div className="mb-2 flex items-baseline justify-between">
-          <p className="text-[13px] font-semibold text-[#1C1B19]">{levelProgress.levelLabel} Creator</p>
+          <p className="text-[13px] font-semibold text-[#1C1B19]">{levelProgress.levelLabel} progress</p>
           <p className="text-[11.5px] text-[#9A9388]">
             {levelProgress.xp.toLocaleString()} XP
             {levelProgress.xpForNextLevel != null && (

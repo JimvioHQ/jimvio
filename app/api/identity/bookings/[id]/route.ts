@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { notifyUser } from "@/lib/notifications/notify-user";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ export async function PATCH(
   const { id } = await params;
   const body = await req.json().catch(() => null);
   const status = body?.status as string | undefined;
-  if (!status || !STATUSES.includes(status as typeof STATUSES[number])) {
+  if (!status || !STATUSES.includes(status as (typeof STATUSES)[number])) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
@@ -36,5 +38,27 @@ export async function PATCH(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the counterparty about the status change.
+  try {
+    const notifyTarget =
+      data.creator_id === user.id ? data.brand_user_id : data.creator_id;
+    if (notifyTarget && notifyTarget !== user.id) {
+      const db = createServiceRoleClient();
+      await notifyUser(db as never, {
+        userId: notifyTarget,
+        type: "system",
+        title: `Booking ${status}`,
+        message: `Your request “${data.title}” was marked ${status}.`,
+        actionUrl: "/identity/bookings",
+        actorId: user.id,
+        eventKey: `jip-booking-status:${data.id}:${status}`,
+        data: { bookingId: data.id, status },
+      });
+    }
+  } catch (err) {
+    console.error("booking status notify failed", err);
+  }
+
   return NextResponse.json({ booking: data });
 }
