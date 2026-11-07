@@ -1,28 +1,29 @@
-# Migration review — `20261107040000_platform_verification_grants.sql`
+# Migration review — `20261107095352_platform_verification_grants.sql`
 
-**Status:** NOT APPLIED. Awaiting owner approval.
+**Status:** APPLIED to production project `vsfhwfimudpdipdkxbww` on 2026-11-07.
+
+Remote history version: `20261107095352` / `platform_verification_grants`  
+(Local filename aligned to the applied remote version. Prior draft name was `20261107040000`.)
 
 ## Purpose
 
 Add an admin audit trail for Blue Verified decisions without exposing private evidence to anon/authenticated clients.
 
-## Permission model
+## Permission model (verified post-apply)
 
 | Surface | Who | Access |
 |---|---|---|
-| `platform_verification_public` (view) | anon + authenticated | SELECT verified status projection only |
+| `platform_verification_public` (view, `security_invoker=false`) | anon + authenticated | SELECT verified status projection only |
 | `platform_verification_grants` | authenticated | SELECT own user/creator/influencer rows (status metadata) |
 | `platform_verification_evidence` | none (RLS, no policies) | service_role / admin API only |
 | `platform_verification_audit` | authenticated | SELECT own grant audit notes |
 | Writes (grant/reject/suspend/revoke) | admin API + service_role | Server-side `assertAdminAccess` |
 
-## Security fix vs earlier draft
+## Security notes
 
-Earlier draft exposed `evidence_refs` via a public SELECT policy on the grants table. This migration:
-
-1. Drops `evidence_refs` if present.
-2. Stores evidence in a separate table with **no** client SELECT policy.
-3. Publishes only a verified-status view publicly.
+1. No `evidence_refs` column on grants.
+2. Evidence is a separate table with **no** client SELECT policy and no grants to anon/authenticated.
+3. Public callers use the verified-status view only (no reason / revocation fields).
 
 ## Rollback
 
@@ -31,12 +32,5 @@ drop view if exists public.platform_verification_public;
 drop table if exists public.platform_verification_evidence;
 drop table if exists public.platform_verification_audit;
 drop table if exists public.platform_verification_grants;
+-- then remove supabase_migrations.schema_migrations row version 20261107095352
 ```
-
-## Apply gate
-
-Do not apply until:
-
-1. Owner reviews this file + the SQL.
-2. Tenant-isolation and verification tests pass.
-3. Owner explicitly approves production apply.

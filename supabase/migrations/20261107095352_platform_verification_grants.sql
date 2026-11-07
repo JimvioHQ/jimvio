@@ -7,8 +7,11 @@
 -- SECURITY: evidence is NEVER selectable by anon/authenticated on the grants table.
 -- Public callers use view platform_verification_public (status projection only).
 --
--- NOT APPLIED TO PRODUCTION until owner reviews SQL + RLS evidence.
+-- Owner-authorized for production apply (2026-11-07).
 -- Idempotent: drop/create policies and tables safely.
+--
+-- View uses security_invoker=false so anon can read the verified projection
+-- without granting SELECT on the base grants table (which would leak reason fields).
 
 -- 1) Public-safe status projection (no evidence)
 create table if not exists public.platform_verification_grants (
@@ -79,9 +82,10 @@ create table if not exists public.platform_verification_audit (
 create index if not exists platform_verification_audit_grant_idx
   on public.platform_verification_audit (grant_id, created_at desc);
 
--- 3) Public view — verified status only (no reasons that may leak PII)
+-- 3) Public view — verified status only (no reasons that may leak PII).
+-- security_invoker=false: view owner rights so anon never needs base-table SELECT.
 create or replace view public.platform_verification_public
-with (security_invoker = true)
+with (security_invoker = false)
 as
 select
   id,
@@ -103,6 +107,7 @@ alter table public.platform_verification_audit enable row level security;
 revoke all on public.platform_verification_grants from anon, authenticated;
 revoke all on public.platform_verification_evidence from anon, authenticated;
 revoke all on public.platform_verification_audit from anon, authenticated;
+revoke all on public.platform_verification_public from anon, authenticated;
 
 grant select on public.platform_verification_public to anon, authenticated;
 
