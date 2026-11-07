@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { toPublicCampaignListItem } from "@/lib/ugc/public-campaign-list";
 import { attachPublicFunding } from "@/lib/ugc/public-campaign-funding";
@@ -9,9 +10,11 @@ import type { UGCCampaign } from "@/types/ugc";
  * Same select and public mapping as GET /api/ugc/campaigns, so search
  * engines, link previews and first paint show real campaigns instead of an
  * empty filter bar.
+ *
+ * Cached for anonymous/public board only — never stores per-user data.
  */
-export async function loadPublicActiveCampaigns(
-  limit = 24,
+async function loadPublicActiveCampaignsUncached(
+  limit: number,
 ): Promise<{ campaigns: UGCCampaign[]; total: number }> {
   try {
     const db = createServiceRoleClient();
@@ -20,7 +23,7 @@ export async function loadPublicActiveCampaigns(
       .select(
         `
         *,
-        media:ugc_campaign_media(*),
+        media:ugc_campaign_media(id, type, url, thumbnail_url, order_index, usage),
         vendor:vendors!brand_id (
           business_name,
           business_logo,
@@ -53,4 +56,15 @@ export async function loadPublicActiveCampaigns(
   } catch {
     return { campaigns: [], total: 0 };
   }
+}
+
+export async function loadPublicActiveCampaigns(
+  limit = 24,
+): Promise<{ campaigns: UGCCampaign[]; total: number }> {
+  const safeLimit = Math.min(48, Math.max(1, Math.floor(limit) || 24));
+  return unstable_cache(
+    () => loadPublicActiveCampaignsUncached(safeLimit),
+    ["ugc-public-active-campaigns", String(safeLimit)],
+    { revalidate: 60, tags: ["ugc-public-campaigns"] },
+  )();
 }

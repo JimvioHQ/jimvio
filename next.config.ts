@@ -72,6 +72,17 @@ const nextConfig: NextConfig = {
         destination: "/orders",
         permanent: true,
       },
+      // Legacy Brand Workspace alias — must not fall through to /ugc/[id].
+      {
+        source: "/ugc/brand-workspace",
+        destination: "/ugc/campaign-center",
+        permanent: true,
+      },
+      {
+        source: "/ugc/brand-workspace/:path*",
+        destination: "/ugc/campaign-center",
+        permanent: true,
+      },
       // /deals was a duplicate page with randomised "HOT DEAL" badges and
       // invented B2B figures; the data-driven deals page is canonical.
       {

@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
-export default function Page() {
-  redirect("/ugc");
+/** Creator dashboard entry redirects to the public UGC discover board. */
+export default async function UgcDashboardRedirect() {
+  permanentRedirect("/ugc");
 }
