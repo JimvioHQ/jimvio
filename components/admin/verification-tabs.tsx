@@ -4,15 +4,16 @@
 
 import React from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Store, Users, Video, Flag } from "lucide-react";
+import { Store, Users, Video, Flag, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabKey = "vendors" | "creators" | "ugc" | "reports";
+type TabKey = "vendors" | "creators" | "ugc" | "reports" | "platform";
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: "vendors",  label: "Vendors",  icon: Store },
     { key: "creators", label: "Creators", icon: Users },
     { key: "ugc",      label: "UGC",      icon: Video },
+    { key: "platform", label: "Blue Verified", icon: ShieldCheck },
     { key: "reports",  label: "Reports",  icon: Flag  },
 ];
 
@@ -21,7 +22,7 @@ export function VerificationTabs({
     counts,
 }: {
     current: string;
-    counts: Record<TabKey, number>;
+    counts: Partial<Record<TabKey, number>>;
 }) {
     const router   = useRouter();
     const pathname = usePathname();

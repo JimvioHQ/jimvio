@@ -140,6 +140,12 @@ async function initiateExternalCheckout(
     amount: number;
     paymentMethod: string;
     phone: string;
+    topUp?: {
+      fromBudget: number;
+      toBudget: number | null;
+      incrementalUsd: number;
+      previousHeld: number;
+    };
   },
 ): Promise<{ ok: true; checkoutUrl: string | null; paymentRef: string } | { ok: false; error: string; status: number }> {
   const origin =
@@ -147,6 +153,17 @@ async function initiateExternalCheckout(
     process.env.NEXT_PUBLIC_APP_URL ??
     "https://www.jimvio.com";
   const appUrl = origin.replace(/\/$/, "");
+  const purpose = opts.topUp ? "ugc_escrow_topup" : "ugc_escrow";
+  const topUpMeta = opts.topUp
+    ? {
+        purpose,
+        campaign_id: opts.campaignId,
+        from_budget: opts.topUp.fromBudget,
+        to_budget: opts.topUp.toBudget,
+        incremental_usd: opts.topUp.incrementalUsd,
+        previous_held: opts.topUp.previousHeld,
+      }
+    : { purpose, campaign_id: opts.campaignId };
 
   if (opts.paymentMethod === "mobile_money") {
     return {
@@ -173,8 +190,10 @@ async function initiateExternalCheckout(
         customerEmail: profile?.email || opts.user.email || "ugc@jimvio.com",
         customerName: profile?.full_name || "Jimvio Brand",
         customerPhone: opts.phone || profile?.phone || "",
-        orderDescription: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
-        meta: { purpose: "ugc_escrow", campaign_id: opts.campaignId },
+        orderDescription: opts.topUp
+          ? `UGC budget top-up ${opts.campaignId.slice(0, 8)}`
+          : `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
+        meta: topUpMeta,
         paymentOptions: "card",
       });
       await db.from("transactions").insert({
@@ -187,8 +206,10 @@ async function initiateExternalCheckout(
         provider: "flutterwave",
         provider_transaction_id: txRef,
         reference: opts.campaignId,
-        description: `UGC campaign escrow ${opts.campaignId}`,
-        metadata: { purpose: "ugc_escrow", campaign_id: opts.campaignId },
+        description: opts.topUp
+          ? `UGC budget top-up ${opts.campaignId}`
+          : `UGC campaign escrow ${opts.campaignId}`,
+        metadata: topUpMeta,
       });
       return { ok: true, checkoutUrl, paymentRef: txRef };
     } catch (err) {
@@ -212,7 +233,9 @@ async function initiateExternalCheckout(
         jimvioOrderId: opts.campaignId,
         amount: invoiceTotals.amount,
         currency: invoiceTotals.currency,
-        description: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
+        description: opts.topUp
+          ? `UGC budget top-up ${opts.campaignId.slice(0, 8)}`
+          : `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
         buyerEmail: profile?.email || opts.user.email || "",
         successUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?crypto=pending`,
         cancelUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?crypto=cancel`,
@@ -227,10 +250,11 @@ async function initiateExternalCheckout(
         provider: "nowpayments",
         provider_transaction_id: invoice.invoiceId || opts.campaignId,
         reference: opts.campaignId,
-        description: `UGC campaign escrow ${opts.campaignId}`,
+        description: opts.topUp
+          ? `UGC budget top-up ${opts.campaignId}`
+          : `UGC campaign escrow ${opts.campaignId}`,
         metadata: {
-          purpose: "ugc_escrow",
-          campaign_id: opts.campaignId,
+          ...topUpMeta,
           invoice_amount: invoiceTotals.amount,
           invoice_currency: invoiceTotals.currency,
           payment_method: "crypto",
@@ -315,6 +339,7 @@ async function recordEscrowTransaction(
   userId: string,
   campaignId: string,
   amount: number,
+  metadata?: Record<string, unknown>,
 ) {
   try {
     await db.from("transactions").insert({
@@ -326,6 +351,7 @@ async function recordEscrowTransaction(
       direction: "debit",
       reference: campaignId,
       description: `UGC campaign escrow ${campaignId}`,
+      ...(metadata ? { metadata } : {}),
     });
   } catch {
     /* ledger is additive — escrow row is the source of truth */
@@ -375,6 +401,13 @@ export async function POST(
   const paymentMethodRaw =
     typeof body.payment_method === "string" ? body.payment_method : "flutterwave";
   const payment_method = normalizeUgcPaymentMethod(paymentMethodRaw);
+  const isTopUp = body.topUp === true;
+  const requestedAmount =
+    typeof body.amount === "number" && Number.isFinite(body.amount) ? Number(body.amount) : null;
+  const topUpNewBudget =
+    typeof body.newBudget === "number" && Number.isFinite(body.newBudget)
+      ? Number(body.newBudget)
+      : null;
 
   if (payment_method === "mobile_money") {
     return NextResponse.json(
@@ -410,7 +443,8 @@ export async function POST(
     .eq("status", "held")
     .maybeSingle();
 
-  if (heldEscrowRow) {
+  // Initial fund: if already held and covers budget, activate. Top-ups continue below.
+  if (heldEscrowRow && !isTopUp) {
     if (ready.success && heldCovers(campaign, heldEscrowRow) && campaign.status !== "active") {
       await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
     }
@@ -425,8 +459,15 @@ export async function POST(
     });
   }
 
-  if (!ready.success) {
+  if (!isTopUp && !ready.success) {
     return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
+  }
+
+  if (isTopUp && !["active", "paused"].includes(String(campaign.status))) {
+    return NextResponse.json(
+      { error: "Budget top-up is only available for active or paused campaigns." },
+      { status: 400 },
+    );
   }
 
   const { data: pendingEscrow } = await db
@@ -437,20 +478,155 @@ export async function POST(
     .maybeSingle();
 
   const budget = Number(campaign.total_budget) || 0;
-  const minCheck = checkMinCampaignFunding(budget, "USD");
-  if (!minCheck.ok) {
-    return NextResponse.json(
-      {
-        error: minCheck.message,
-        code: "MIN_FUNDING_USD",
-        requiredUsd: MIN_CAMPAIGN_FUNDING_USD,
-        amountUsd: minCheck.amountUsd,
-        rateUsed: minCheck.rateUsed,
-      },
-      { status: 400 },
-    );
+  let amount: number;
+  if (isTopUp) {
+    if (requestedAmount == null || requestedAmount <= 0) {
+      return NextResponse.json({ error: "Top-up amount is required." }, { status: 400 });
+    }
+    if (topUpNewBudget != null) {
+      const minCheck = checkMinCampaignFunding(topUpNewBudget, "USD");
+      if (!minCheck.ok) {
+        return NextResponse.json(
+          { error: minCheck.message, code: "MIN_FUNDING_USD" },
+          { status: 400 },
+        );
+      }
+    }
+    amount = Math.round(requestedAmount * 100) / 100;
+  } else {
+    const minCheck = checkMinCampaignFunding(budget, "USD");
+    if (!minCheck.ok) {
+      return NextResponse.json(
+        {
+          error: minCheck.message,
+          code: "MIN_FUNDING_USD",
+          requiredUsd: MIN_CAMPAIGN_FUNDING_USD,
+          amountUsd: minCheck.amountUsd,
+          rateUsed: minCheck.rateUsed,
+        },
+        { status: 400 },
+      );
+    }
+    amount = campaignFundingChargeUsd(budget, "USD");
   }
-  const amount = campaignFundingChargeUsd(budget, "USD");
+
+  // ── Live budget top-up (wallet) ──────────────────────────────────────────
+  if (isTopUp && payment_method === "wallet") {
+    if (!heldEscrowRow) {
+      return NextResponse.json(
+        { error: "No held escrow to top up. Fund the campaign first." },
+        { status: 400 },
+      );
+    }
+    const debit = await debitWalletForEscrow(db, user.id, amount);
+    if (!debit.ok) {
+      return NextResponse.json({ error: debit.error }, { status: debit.status });
+    }
+
+    const prevHeld = Number(heldEscrowRow.amount ?? 0);
+    const nextHeld = Math.round((prevHeld + amount) * 100) / 100;
+    const paymentRef = `WALLET_TOPUP_${randomUUID()}`;
+    const { error: topUpErr } = await db
+      .from("ugc_campaign_escrow")
+      .update({
+        amount: nextHeld,
+        locked_amount: nextHeld,
+        payment_ref: paymentRef,
+        deposited_at: new Date().toISOString(),
+      })
+      .eq("id", heldEscrowRow.id)
+      .eq("status", "held");
+
+    if (topUpErr) {
+      await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+      return NextResponse.json({ error: topUpErr.message }, { status: 500 });
+    }
+
+    if (topUpNewBudget != null) {
+      await db
+        .from("ugc_campaigns")
+        .update({ total_budget: topUpNewBudget })
+        .eq("id", id);
+    }
+
+    await recordEscrowTransaction(db, user.id, id, amount, {
+      purpose: "ugc_escrow_topup",
+      campaign_id: id,
+      from_budget: budget,
+      to_budget: topUpNewBudget,
+      incremental_usd: amount,
+      previous_held: prevHeld,
+      next_held: nextHeld,
+    });
+    await db.from("ugc_escrow_ledger").insert({
+      brand_id: campaign.brand_id,
+      campaign_id: id,
+      entry_type: "deposit",
+      amount,
+      currency: "USD",
+      actor_user_id: user.id,
+      reference: paymentRef,
+      metadata: {
+        purpose: "budget_increase_confirmed",
+        from_budget: budget,
+        to_budget: topUpNewBudget,
+        incremental_usd: amount,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      funded: true,
+      activated: campaign.status === "active",
+      topUp: true,
+      pending: false,
+      amount,
+      newBudget: topUpNewBudget,
+      currency: "USD",
+      payment_method,
+      message: "Budget top-up confirmed. Escrow and budget updated.",
+    });
+  }
+
+  // ── Live budget top-up (external checkout) ───────────────────────────────
+  if (isTopUp) {
+    if (!heldEscrowRow) {
+      return NextResponse.json(
+        { error: "No held escrow to top up. Fund the campaign first." },
+        { status: 400 },
+      );
+    }
+    const checkout = await initiateExternalCheckout(db, {
+      req,
+      user,
+      campaignId: id,
+      amount,
+      paymentMethod: payment_method,
+      phone,
+      topUp: {
+        fromBudget: budget,
+        toBudget: topUpNewBudget,
+        incrementalUsd: amount,
+        previousHeld: Number(heldEscrowRow.amount ?? 0),
+      },
+    });
+    if (!checkout.ok) {
+      return NextResponse.json({ error: checkout.error }, { status: checkout.status });
+    }
+    return NextResponse.json({
+      success: true,
+      funded: false,
+      activated: false,
+      topUp: true,
+      pending: true,
+      checkout_url: checkout.checkoutUrl,
+      amount,
+      newBudget: topUpNewBudget,
+      currency: "USD",
+      payment_method,
+      message: "Complete payment. Budget updates only after confirmation.",
+    });
+  }
 
   if (payment_method === "wallet") {
     const debit = await debitWalletForEscrow(db, user.id, amount);

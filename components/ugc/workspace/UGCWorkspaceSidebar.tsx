@@ -154,23 +154,24 @@ export function UGCWorkspaceSidebar({ onNavigate, variant = "rail" }: { onNaviga
  * Review once they have a campaign, with the number of posts waiting.
  */
 function useOwnerState(): { hasBrand: boolean; hasCampaign: boolean; waiting: number } {
+  const { brandId, brandReady, ugcFetch, workspaces } = useUgcBrandWorkspace();
   const [state, setState] = useState({ hasBrand: false, hasCampaign: false, waiting: 0 });
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const ws = await fetch("/api/ugc/workspaces", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null);
-      const hasBrand = Array.isArray(ws?.data) && ws.data.length > 0;
-      if (!hasBrand) return;
-      const camps = await fetch("/api/ugc/campaigns?mine=true&status=all&limit=50", { cache: "no-store" })
+      const hasBrand = workspaces.length > 0;
+      if (!hasBrand || !brandReady || !brandId) {
+        if (!cancelled) setState({ hasBrand, hasCampaign: false, waiting: 0 });
+        return;
+      }
+      const camps = await ugcFetch("/api/ugc/campaigns?mine=true&status=all&limit=50")
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
       const list = (Array.isArray(camps?.data) ? camps.data : []) as { status?: string }[];
       const hasCampaign = list.some((c) => c.status && c.status !== "draft" && c.status !== "cancelled");
       let waiting = 0;
       if (hasCampaign) {
-        const subs = await fetch("/api/ugc/submissions?status=pending&limit=1", { cache: "no-store" })
+        const subs = await ugcFetch("/api/ugc/submissions?status=pending&limit=1")
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null);
         waiting = Number(subs?.counts?.pending ?? 0);
@@ -180,6 +181,6 @@ function useOwnerState(): { hasBrand: boolean; hasCampaign: boolean; waiting: nu
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [brandId, brandReady, ugcFetch, workspaces.length]);
   return state;
 }

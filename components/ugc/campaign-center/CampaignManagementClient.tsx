@@ -138,16 +138,40 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     void patch({ status: "cancelled" });
   }, [patch]);
 
-  const doIncrease = useCallback(() => {
+  const doIncrease = useCallback(async () => {
     const n = Number(increaseAmount);
     if (!Number.isFinite(n) || n <= 0) {
-      toast.error("Enter a valid budget amount");
+      toast.error("Enter a valid budget amount (USD)");
       return;
     }
-    setIncreaseOpen(false);
-    setIncreaseAmount("");
-    void patch({ total_budget: n });
-  }, [increaseAmount, patch]);
+    // Drafts can still patch budget directly; live campaigns require escrow top-up.
+    if (campaign?.status === "draft") {
+      setIncreaseOpen(false);
+      setIncreaseAmount("");
+      void patch({ total_budget: n });
+      return;
+    }
+    setBusy("increase");
+    try {
+      const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}/budget-increase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newBudget: n }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Could not start budget increase");
+      setIncreaseOpen(false);
+      setIncreaseAmount("");
+      toast.success("Complete payment to raise the budget. Escrow updates after confirmation.");
+      if (typeof json.fundUrl === "string") {
+        router.push(json.fundUrl);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not start budget increase");
+    } finally {
+      setBusy(null);
+    }
+  }, [increaseAmount, patch, campaign?.status, ugcFetch, campaignId, router]);
 
   const managementDisabled = loading || !campaign || busy != null;
 

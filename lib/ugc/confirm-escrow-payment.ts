@@ -94,29 +94,44 @@ export async function confirmUgcEscrowPayment(
     covers(Number(escrow.amount ?? 0), escrow.currency) &&
     (campaign.status === "active" || escrowMayActivateCampaign(campaign.status));
 
-  const expected = Number(escrow.amount ?? 0);
-  const escrowCurrency = String(escrow.currency ?? "USD").toUpperCase();
-  // USD $100 minimum — compare via FX helpers, never raw RWF against USD.
-  if (Number.isFinite(expected) && !meetsMinCampaignFunding(expected, escrowCurrency)) {
-    return { handled: true, activated: false, campaignId, alreadyHeld: false };
-  }
-
   let invoiceAmount: number | null = null;
   let invoiceCurrency: string | null = null;
   const { data: tx } = await db
     .from("transactions")
-    .select("metadata")
+    .select("metadata, status, amount")
     .eq("type", "ugc_escrow")
     .eq("reference", campaignId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const meta = (tx?.metadata ?? {}) as { invoice_amount?: number; invoice_currency?: string };
+  const meta = (tx?.metadata ?? {}) as {
+    invoice_amount?: number;
+    invoice_currency?: string;
+    purpose?: string;
+    to_budget?: number;
+    incremental_usd?: number;
+    previous_held?: number;
+  };
   if (meta.invoice_amount != null && Number.isFinite(Number(meta.invoice_amount))) {
     invoiceAmount = Number(meta.invoice_amount);
   }
   if (typeof meta.invoice_currency === "string") {
     invoiceCurrency = meta.invoice_currency;
+  }
+
+  const isTopUpConfirm = meta.purpose === "ugc_escrow_topup";
+  const expected = isTopUpConfirm
+    ? Number(meta.incremental_usd ?? tx?.amount ?? 0)
+    : Number(escrow.amount ?? 0);
+  const escrowCurrency = String(escrow.currency ?? "USD").toUpperCase();
+  // USD $100 minimum — compare via FX helpers, never raw RWF against USD.
+  // Top-ups may be below $100; the resulting total budget was already validated.
+  if (
+    !isTopUpConfirm &&
+    Number.isFinite(expected) &&
+    !meetsMinCampaignFunding(expected, escrowCurrency)
+  ) {
+    return { handled: true, activated: false, campaignId, alreadyHeld: false };
   }
 
   if (
@@ -130,6 +145,70 @@ export async function confirmUgcEscrowPayment(
     })
   ) {
     return { handled: true, activated: false, campaignId, alreadyHeld: false };
+  }
+
+  // Live budget top-up: escrow is already held; apply incremental amount + new budget.
+  if (escrow.status === "held" && isTopUpConfirm) {
+    const incremental = expected;
+    if (incremental > 0 && tx?.status === "pending") {
+      const prevHeld =
+        typeof meta.previous_held === "number" && Number.isFinite(meta.previous_held)
+          ? meta.previous_held
+          : Number(escrow.amount ?? 0);
+      const nextHeld = Math.round((prevHeld + incremental) * 100) / 100;
+      const { data: topped } = await db
+        .from("ugc_campaign_escrow")
+        .update({
+          amount: nextHeld,
+          locked_amount: nextHeld,
+          deposited_at: new Date().toISOString(),
+          payment_ref: opts.paymentRef || opts.providerTransactionId || escrow.payment_ref,
+        })
+        .eq("id", escrow.id)
+        .eq("status", "held")
+        .eq("amount", prevHeld) // race guard: only if amount unchanged
+        .select("id")
+        .maybeSingle();
+
+      if (topped) {
+        if (
+          typeof meta.to_budget === "number" &&
+          Number.isFinite(meta.to_budget) &&
+          meta.to_budget > 0
+        ) {
+          await db
+            .from("ugc_campaigns")
+            .update({ total_budget: meta.to_budget })
+            .eq("id", campaignId);
+        }
+        await db
+          .from("transactions")
+          .update({ status: "completed" })
+          .eq("type", "ugc_escrow")
+          .eq("reference", campaignId)
+          .eq("status", "pending");
+        try {
+          await db.from("ugc_escrow_ledger").insert({
+            brand_id: campaign.brand_id,
+            campaign_id: campaignId,
+            entry_type: "deposit",
+            amount: incremental,
+            currency: escrow.currency ?? "USD",
+            reference: opts.paymentRef || opts.providerTransactionId || "topup",
+            metadata: {
+              purpose: "budget_increase_confirmed",
+              to_budget: meta.to_budget,
+              incremental_usd: incremental,
+            },
+          });
+        } catch {
+          /* ledger additive */
+        }
+        return { handled: true, activated: campaign.status === "active", campaignId, alreadyHeld: false };
+      }
+    }
+    // Idempotent: already applied or race lost — treat as handled.
+    return { handled: true, activated: campaign.status === "active", campaignId, alreadyHeld: true };
   }
 
   if (escrow.status === "held") {

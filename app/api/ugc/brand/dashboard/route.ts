@@ -79,6 +79,7 @@ type ActivityItem = {
 type DashboardStats = {
   needsProfile?: boolean;
   summary?: {
+    totalCampaigns?: number;
     activeCampaigns: number;
     upcomingCampaigns: number;
     pendingApplications: number;
@@ -88,6 +89,8 @@ type DashboardStats = {
     totalViews: number;
     paidViews?: number;
     remainingBudget?: number | null;
+    confirmedEscrow?: number | null;
+    approvedRewards?: number | null;
     totalCreators: number;
   };
   attention?: AttentionItem[];
@@ -203,9 +206,18 @@ export async function GET(req: NextRequest) {
   const subStats = new Map<string, { total: number; approved: number; realViews: number; paidViews: number }>();
   const creatorSet = new Set<string>();
 
+  let confirmedEscrowUsd = 0;
+  let approvedRewardsUsd = 0;
+
   if (campaignIds.length > 0) {
-    const [{ data: participants }, { data: pendingSubs }, { data: customEvents }, { data: activityRows }] =
-      await Promise.all([
+    const [
+      { data: participants },
+      { data: pendingSubs },
+      { data: customEvents },
+      { data: activityRows },
+      { data: escrowRows },
+      { data: approvedSubs },
+    ] = await Promise.all([
         db
           .from("ugc_campaign_participants")
           .select("campaign_id, influencer_id, status")
@@ -226,7 +238,33 @@ export async function GET(req: NextRequest) {
           .in("campaign_id", campaignIds)
           .order("created_at", { ascending: false })
           .limit(20),
+        showFinance
+          ? db
+              .from("ugc_campaign_escrow")
+              .select("campaign_id, status, amount, currency")
+              .in("campaign_id", campaignIds)
+              .eq("status", "held")
+          : Promise.resolve({ data: [] as { amount?: number }[] }),
+        showFinance
+          ? db
+              .from("ugc_submissions")
+              .select("total_earnings")
+              .in("campaign_id", campaignIds)
+              .eq("status", "approved")
+              .limit(5000)
+          : Promise.resolve({ data: [] as { total_earnings?: number }[] }),
       ]);
+
+    if (showFinance) {
+      confirmedEscrowUsd = (escrowRows ?? []).reduce(
+        (sum, row) => sum + Number(row.amount ?? 0),
+        0,
+      );
+      approvedRewardsUsd = (approvedSubs ?? []).reduce(
+        (sum, row) => sum + Number(row.total_earnings ?? 0),
+        0,
+      );
+    }
 
     for (const p of participants ?? []) {
       const cid = String(p.campaign_id);
@@ -439,6 +477,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       summary: {
+        totalCampaigns: ownedCampaigns.length,
         activeCampaigns: byStatus.active.length,
         upcomingCampaigns,
         pendingApplications,
@@ -450,6 +489,8 @@ export async function GET(req: NextRequest) {
         remainingBudget: showFinance
           ? byStatus.active.reduce((a, c) => a + Math.max(0, Number(c.total_budget ?? 0) - Number(c.spent_budget ?? 0)), 0)
           : null,
+        confirmedEscrow: showFinance ? confirmedEscrowUsd : null,
+        approvedRewards: showFinance ? approvedRewardsUsd : null,
         totalCreators: creatorSet.size,
       },
       attention: attention.slice(0, 8),

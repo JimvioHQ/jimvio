@@ -16,13 +16,15 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
+import { writeScopedDraft } from "@/lib/ugc/client/tenant-storage";
 
 const PLATFORMS = ["tiktok", "instagram", "youtube", "facebook"] as const;
 const TYPES = ["ugc", "clipping", "music_clipping", "promotion"] as const;
-const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
 
 export function CampaignCopilotPage() {
   const router = useRouter();
+  const { userId, brandId, brandReady } = useUgcBrandWorkspace();
   const [product, setProduct] = useState("");
   const [niche, setNiche] = useState("");
   const [goal, setGoal] = useState("");
@@ -73,10 +75,14 @@ export function CampaignCopilotPage() {
       toast.error("Generate a draft first");
       return;
     }
+    if (!brandReady || !userId || !brandId) {
+      toast.error("Select your brand workspace before opening Create Campaign");
+      return;
+    }
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(output.draftForm));
+      writeScopedDraft(userId, brandId, JSON.stringify(output.draftForm));
       toast.success("Draft saved — opening Create Campaign");
-      router.push("/ugc/campaign-center/create");
+      router.push(`/ugc/campaign-center/create?brandId=${encodeURIComponent(brandId)}`);
     } catch {
       toast.error("Could not save draft");
     }

@@ -42,8 +42,13 @@ import {
   type BriefLink,
   type ContentFormat,
 } from "@/lib/ugc/campaign-brief";
-
-const STEP_KEY = "jimvio-campaign-center-step-v1";
+import {
+  readScopedDraft,
+  readScopedStep,
+  removeScopedDraft,
+  writeScopedDraft,
+  writeScopedStep,
+} from "@/lib/ugc/client/tenant-storage";
 
 const TYPES: {
   value: UGCCampaignType;
@@ -141,8 +146,6 @@ const DEFAULT_FORM: FormState = {
   assets: [],
 };
 
-const DRAFT_KEY = "jimvio-campaign-center-draft-v1";
-
 function briefFromStored(description: string): string {
   const cut = description.search(/\n\n(?:Countries|Languages|Creator limit):/);
   return (cut === -1 ? description : description.slice(0, cut)).trim();
@@ -153,7 +156,7 @@ type CampaignCreateWizardProps = {
 };
 
 export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
-  const { ugcFetch, brandId } = useUgcBrandWorkspace();
+  const { ugcFetch, brandId, userId, brandReady } = useUgcBrandWorkspace();
   const { t } = useLocale();
   const STEPS = [
     t("wizardStepType"),
@@ -258,14 +261,16 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return next;
   }, []);
 
-  // Load local autosave, edit target, duplicate, or template campaign
+  // Load local autosave, edit target, duplicate, or template campaign.
+  // Never restore drafts until userId + brandId are known (tenant isolation).
   useEffect(() => {
     let cancelled = false;
+    if (!brandReady || !userId || !brandId) return;
     const requestedStep = parseCampaignWizardStepParam(stepParam);
     const restoreStep = (draft: FormState) => {
       let saved: number | null = null;
       try {
-        const raw = sessionStorage.getItem(STEP_KEY);
+        const raw = readScopedStep(userId, brandId);
         saved = raw != null ? Number(raw) : null;
         if (!Number.isInteger(saved)) saved = null;
       } catch {
@@ -302,7 +307,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       }
 
       try {
-        const raw = localStorage.getItem(DRAFT_KEY);
+        const raw = readScopedDraft(userId, brandId);
         if (raw) {
           const parsed = JSON.parse(raw) as FormState;
           const next = { ...DEFAULT_FORM, ...parsed };
@@ -322,34 +327,34 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- locale helper is stable for this load
-  }, [sourceId, applyCampaign, stepParam, ugcFetch, editId]);
+  }, [sourceId, applyCampaign, stepParam, ugcFetch, editId, brandReady, userId, brandId]);
 
-  // Autosave to localStorage
+  // Autosave to localStorage — scoped by authenticated user + brand
   useEffect(() => {
-    if (!hydrated.current || activeCampaignId) return;
+    if (!hydrated.current || activeCampaignId || !userId || !brandId) return;
     const t = window.setTimeout(() => {
-      try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
-        setAutoSavedAt(new Date().toLocaleTimeString());
-      } catch {
-        /* ignore */
-      }
+      writeScopedDraft(userId, brandId, JSON.stringify(form));
+      setAutoSavedAt(new Date().toLocaleTimeString());
     }, 800);
     return () => window.clearTimeout(t);
-  }, [form, activeCampaignId]);
+  }, [form, activeCampaignId, userId, brandId]);
 
-  const persistLocalDraft = useCallback((nextForm: FormState, nextStep?: number) => {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(nextForm));
-      if (typeof nextStep === "number") {
-        sessionStorage.setItem(STEP_KEY, String(nextStep));
+  const persistLocalDraft = useCallback(
+    (nextForm: FormState, nextStep?: number) => {
+      if (!userId || !brandId) return false;
+      try {
+        writeScopedDraft(userId, brandId, JSON.stringify(nextForm));
+        if (typeof nextStep === "number") {
+          writeScopedStep(userId, brandId, nextStep);
+        }
+        setAutoSavedAt(new Date().toLocaleTimeString());
+        return true;
+      } catch {
+        return false;
       }
-      setAutoSavedAt(new Date().toLocaleTimeString());
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+    },
+    [userId, brandId],
+  );
 
   const applyStepErrors = (errors: { field: string; message: string }[]) => {
     setError(errors.map((e) => e.message).join(" · "));
@@ -683,7 +688,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Save failed");
-      localStorage.removeItem(DRAFT_KEY);
+      if (userId && brandId) removeScopedDraft(userId, brandId);
       toast.success(t("draftSaved"));
       router.push("/ugc/campaign-center/drafts");
     } catch (e) {
@@ -718,7 +723,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           throw new Error(missing || json.error || "Create failed");
         }
         id = json.campaign?.id as string;
-        localStorage.removeItem(DRAFT_KEY);
+        if (userId && brandId) removeScopedDraft(userId, brandId);
       } else {
         const res = await ugcFetch(`/api/ugc/campaigns/${id}`, {
           method: "PATCH",
