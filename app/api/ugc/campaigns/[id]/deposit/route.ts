@@ -154,6 +154,17 @@ async function initiateExternalCheckout(
     "https://www.jimvio.com";
   const appUrl = origin.replace(/\/$/, "");
   const purpose = opts.topUp ? "ugc_escrow_topup" : "ugc_escrow";
+  // Flutterwave meta must be string values; DB transaction metadata keeps numbers.
+  const flutterwaveMeta: Record<string, string> = opts.topUp
+    ? {
+        purpose,
+        campaign_id: opts.campaignId,
+        from_budget: String(opts.topUp.fromBudget),
+        to_budget: String(opts.topUp.toBudget ?? ""),
+        incremental_usd: String(opts.topUp.incrementalUsd),
+        previous_held: String(opts.topUp.previousHeld),
+      }
+    : { purpose, campaign_id: opts.campaignId };
   const topUpMeta = opts.topUp
     ? {
         purpose,
@@ -193,7 +204,7 @@ async function initiateExternalCheckout(
         orderDescription: opts.topUp
           ? `UGC budget top-up ${opts.campaignId.slice(0, 8)}`
           : `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
-        meta: topUpMeta,
+        meta: flutterwaveMeta,
         paymentOptions: "card",
       });
       await db.from("transactions").insert({
