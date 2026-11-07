@@ -32,6 +32,7 @@ export function BlueVerifiedBadge({
 }) {
   if (!verified) return null;
   const px = SIZE_PX[size] ?? 16;
+  const tip = title ?? label;
   return (
     <svg
       viewBox="0 0 16 16"
@@ -40,8 +41,8 @@ export function BlueVerifiedBadge({
       className={cn("inline-block shrink-0 align-middle", className)}
       aria-label={label}
       role="img"
-      title={title ?? label}
     >
+      <title>{tip}</title>
       <circle cx="8" cy="8" r="8" fill="#1D9BF0" />
       <path
         d="M4.7 8.2l2.1 2.1 4.5-4.5"
