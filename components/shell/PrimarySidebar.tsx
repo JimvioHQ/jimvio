@@ -277,9 +277,9 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           .select("industries")
           .eq("user_id", authUserId)
           .maybeSingle()
-          .then(({ data: identity }) => {
+          .then((res: { data: { industries: string[] | null } | null }) => {
             if (cancelled) return;
-            const industries = (identity?.industries as string[] | null) ?? [];
+            const industries = res.data?.industries ?? [];
             const label = industries[0]?.trim();
             if (!label) return;
             setUser((prev) => (prev ? { ...prev, role: label } : prev));
