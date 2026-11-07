@@ -71,6 +71,7 @@ export function PlatformVerificationConsole() {
   }, [status, q]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load verification grants on filter change
     void load();
   }, [load]);
 

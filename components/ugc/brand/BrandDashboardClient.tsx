@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   AlertCircle,
   ArrowRight,
-  CalendarClock,
   Clock,
   FileStack,
   FolderKanban,
@@ -183,6 +182,7 @@ export default function BrandDashboardClient() {
   }, [ugcFetch]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load brand dashboard on mount / brand change
     void load();
   }, [load]);
 
