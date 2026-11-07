@@ -124,7 +124,7 @@ export function PlatformVerificationConsole() {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-[13px] text-amber-900">
         Platform verification tables are not applied yet. Review{" "}
-        <code className="rounded bg-white px-1">supabase/migrations/20261107040000_platform_verification_grants.sql</code>{" "}
+        <code className="rounded bg-white px-1">supabase/migrations/20261107095352_platform_verification_grants.sql</code>{" "}
         and apply only after owner approval.
       </div>
     );
