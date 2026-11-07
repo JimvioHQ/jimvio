@@ -83,6 +83,12 @@ const nextConfig: NextConfig = {
         destination: "/ugc/campaign-center",
         permanent: true,
       },
+      // Creator dashboard entry → public UGC discover board.
+      {
+        source: "/ugc/dashboard",
+        destination: "/ugc",
+        permanent: true,
+      },
       // /deals was a duplicate page with randomised "HOT DEAL" badges and
       // invented B2B figures; the data-driven deals page is canonical.
       {
