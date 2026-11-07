@@ -24,7 +24,7 @@ export function IdentityAtmosphere({ contained = false }: { contained?: boolean 
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none -z-10 overflow-hidden bg-[#FBFAF8] dark:bg-[var(--color-bg)]",
+        "pointer-events-none -z-10 overflow-hidden bg-[#F8FAFC] dark:bg-[var(--color-bg)]",
         contained ? "absolute inset-0" : "fixed inset-0",
       )}
     >

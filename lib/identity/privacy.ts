@@ -79,7 +79,11 @@ export type PrivacyField =
   | "showSocial"
   | "showResume"
   | "showMediaKit"
-  | "showAnalytics";
+  | "showAnalytics"
+  | "showPortfolio"
+  | "showBusiness"
+  | "showServices"
+  | "showContact";
 
 const PRIVATE_BY_DEFAULT = new Set<PrivacyField>(["showResume", "showMediaKit", "showAnalytics"]);
 
