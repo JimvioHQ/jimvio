@@ -61,6 +61,17 @@ const nextConfig: NextConfig = {
       // The public supplier directory was retired; stores stay at /vendors/<slug>.
       { source: "/vendors", destination: "/marketplace", permanent: true },
       { source: "/guides", destination: "/getting-started", permanent: true },
+      // Dead Campaign Center "Orders" link → marketplace seller orders.
+      {
+        source: "/ugc/campaign-center/orders",
+        destination: "/orders",
+        permanent: true,
+      },
+      {
+        source: "/ugc/campaign-center/orders/:path*",
+        destination: "/orders",
+        permanent: true,
+      },
       // /deals was a duplicate page with randomised "HOT DEAL" badges and
       // invented B2B figures; the data-driven deals page is canonical.
       {
