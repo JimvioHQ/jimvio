@@ -17,14 +17,17 @@ import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { resolveTrustedRequestOrigin } from "@/lib/payments/customer-return-origin";
 import { getSiteUrl } from "@/lib/site-url";
 import { PLATFORM_CURRENCY } from "@/lib/currency/platform";
+import {
+  campaignFundingChargeUsd,
+  checkMinCampaignFunding,
+  MIN_CAMPAIGN_FUNDING_USD,
+} from "@/lib/ugc/min-funding";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const MIN_FUNDING_USD = 1;
-
 const RequestSchema = z.object({
-  amount: z.number().finite().min(MIN_FUNDING_USD).max(1_000_000).optional(),
+  amount: z.number().finite().min(MIN_CAMPAIGN_FUNDING_USD).max(1_000_000).optional(),
   country: z
     .string()
     .trim()
@@ -124,11 +127,23 @@ export async function POST(
     });
   }
 
-  const budget = Number(campaign.total_budget) || MIN_FUNDING_USD;
+  const budget = Number(campaign.total_budget) || 0;
+  const minCheck = checkMinCampaignFunding(budget, "USD");
+  if (!minCheck.ok) {
+    return NextResponse.json(
+      {
+        error: minCheck.message,
+        code: "MIN_FUNDING_USD",
+        requiredUsd: MIN_CAMPAIGN_FUNDING_USD,
+        amountUsd: minCheck.amountUsd,
+        rateUsed: minCheck.rateUsed,
+      },
+      { status: 400 },
+    );
+  }
   // The full budget is always collected: a campaign goes live only when it is fully funded.
   const amountUsd = Math.max(
-    MIN_FUNDING_USD,
-    budget,
+    campaignFundingChargeUsd(budget, "USD"),
     body.amount != null ? Math.round(body.amount * 100) / 100 : 0,
   );
 

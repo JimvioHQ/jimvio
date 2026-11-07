@@ -17,8 +17,11 @@ import { orderTotalsForUsdGateway } from "@/lib/money";
 import { normalizeWalletDepositMethod } from "@/lib/payments/wallet-deposit-method";
 import { safeDepositInitiateError } from "@/lib/payments/safe-payment-error";
 import { campaignFunding } from "@/lib/ugc/escrow-funding";
-
-const MIN_FUNDING_USD = 1;
+import {
+  campaignFundingChargeUsd,
+  checkMinCampaignFunding,
+  MIN_CAMPAIGN_FUNDING_USD,
+} from "@/lib/ugc/min-funding";
 
 /** Canonical UGC external funding methods (wallet is separate). */
 function normalizeUgcPaymentMethod(raw: string): string {
@@ -433,8 +436,21 @@ export async function POST(
     .eq("status", "pending")
     .maybeSingle();
 
-  const budget = Number(campaign.total_budget) || MIN_FUNDING_USD;
-  const amount = Math.max(MIN_FUNDING_USD, budget);
+  const budget = Number(campaign.total_budget) || 0;
+  const minCheck = checkMinCampaignFunding(budget, "USD");
+  if (!minCheck.ok) {
+    return NextResponse.json(
+      {
+        error: minCheck.message,
+        code: "MIN_FUNDING_USD",
+        requiredUsd: MIN_CAMPAIGN_FUNDING_USD,
+        amountUsd: minCheck.amountUsd,
+        rateUsed: minCheck.rateUsed,
+      },
+      { status: 400 },
+    );
+  }
+  const amount = campaignFundingChargeUsd(budget, "USD");
 
   if (payment_method === "wallet") {
     const debit = await debitWalletForEscrow(db, user.id, amount);

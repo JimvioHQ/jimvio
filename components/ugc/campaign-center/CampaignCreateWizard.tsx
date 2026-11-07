@@ -774,7 +774,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           </p>
           {editId ? (
             <Link
-              href={`/ugc/${editId}`}
+              href={`/ugc/campaign-center/${editId}/preview`}
               className="mt-2 inline-flex text-[13px] font-semibold text-[#FF5A1F] hover:underline"
             >
               Preview campaign
@@ -1367,7 +1367,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             <ReviewRow label={t("reviewAssetsLabel")} value={t("reviewAssets", { count: form.media.length })} />
             {persistedStatus === "draft" && validateCampaignWizardReady(form).success ? (
               <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
-                Next step: fund your campaign (minimum $1.00). It stays in{" "}
+                Next step: fund your campaign (minimum $100.00 USD). It stays in{" "}
                 <strong>Pending Funding</strong> until escrow is deposited, then activates
                 automatically.
               </p>

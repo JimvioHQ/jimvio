@@ -4,8 +4,7 @@ import { assertCampaignReadyForFunding } from "@/lib/ugc/campaign-wizard-validat
 import { paidAmountCoversEscrow } from "@/lib/ugc/escrow-amount";
 import { escrowMayActivateCampaign } from "@/lib/ugc/campaign-edit-guard";
 import { campaignFunding } from "@/lib/ugc/escrow-funding";
-
-const MIN_FUNDING_USD = 1;
+import { meetsMinCampaignFunding } from "@/lib/ugc/min-funding";
 
 type ConfirmOpts = {
   paymentRef?: string | null;
@@ -97,7 +96,8 @@ export async function confirmUgcEscrowPayment(
 
   const expected = Number(escrow.amount ?? 0);
   const escrowCurrency = String(escrow.currency ?? "USD").toUpperCase();
-  if (Number.isFinite(expected) && expected < MIN_FUNDING_USD) {
+  // USD $100 minimum — compare via FX helpers, never raw RWF against USD.
+  if (Number.isFinite(expected) && !meetsMinCampaignFunding(expected, escrowCurrency)) {
     return { handled: true, activated: false, campaignId, alreadyHeld: false };
   }
 

@@ -268,6 +268,12 @@ export default function CampaignManagementClient({ campaignId }: Props) {
         </Button>
 
         <Button asChild disabled={managementDisabled} size="sm" variant="outline" className="rounded-xl">
+          <Link href={`/ugc/campaign-center/${campaignId}/preview`}>
+            Preview campaign
+          </Link>
+        </Button>
+
+        <Button asChild disabled={managementDisabled} size="sm" variant="outline" className="rounded-xl">
           <Link href={`/ugc/campaign-center/${campaignId}/participants`}>
             <Users className="mr-2 h-4 w-4" />
             View participants

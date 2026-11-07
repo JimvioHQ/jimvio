@@ -31,8 +31,11 @@ import {
   type MoMoFormState,
 } from "@/components/checkout/MobileMoneyCheckoutPanel";
 import { WALLET_DEPOSIT_INITIABLE_METHODS } from "@/lib/payments/wallet-deposit-method";
-
-const MIN_FUNDING_USD = 1;
+import {
+  campaignFundingChargeUsd,
+  checkMinCampaignFunding,
+  MIN_CAMPAIGN_FUNDING_USD,
+} from "@/lib/ugc/min-funding";
 
 const DEPOSIT_METHOD_SET = new Set<string>(WALLET_DEPOSIT_INITIABLE_METHODS);
 
@@ -154,8 +157,8 @@ export function CampaignFundClient() {
   }, []);
 
   const amountToFund = useMemo(() => {
-    const budget = Number(campaign?.total_budget) || MIN_FUNDING_USD;
-    return Math.max(MIN_FUNDING_USD, budget);
+    const budget = Number(campaign?.total_budget) || 0;
+    return campaignFundingChargeUsd(budget, "USD");
   }, [campaign]);
 
   const money = (amount: number, currency: string = PLATFORM_CURRENCY) =>
@@ -312,8 +315,8 @@ export function CampaignFundClient() {
       setError(readiness.errors.map((e) => e.message).join(" · "));
       return;
     }
-    if (amountToFund < MIN_FUNDING_USD) {
-      setError(t("minFundingIs", { amount: money(MIN_FUNDING_USD) }));
+    if (!checkMinCampaignFunding(amountToFund, "USD").ok) {
+      setError(t("minFundingIs", { amount: money(MIN_CAMPAIGN_FUNDING_USD) }));
       return;
     }
     if (usingWallet && walletBalance < amountToFund) {
@@ -501,8 +504,14 @@ export function CampaignFundClient() {
 
               <div className="mt-5 space-y-2">
                 <Row label="Campaign budget" value={money(amountToFund)} strong />
+                <Row label="Minimum funding required" value={money(MIN_CAMPAIGN_FUNDING_USD)} />
                 <Row label="Estimated reach" value={`~${estimatedReach.toLocaleString()} views`} />
               </div>
+              <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">
+                Jimvio requires a minimum of <strong>$100.00 USD</strong> (or the RWF equivalent at
+                the current trusted rate) in confirmed escrow before a campaign can activate.
+                Pending checkouts are not treated as funded.
+              </p>
 
               {readiness && !readiness.success ? (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-900">

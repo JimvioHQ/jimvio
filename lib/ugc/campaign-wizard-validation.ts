@@ -17,6 +17,8 @@
  */
 
 import { contentFormatNeedsDuration, type ContentFormat } from "@/lib/ugc/campaign-brief";
+import { MIN_CAMPAIGN_FUNDING_USD, meetsMinCampaignFunding } from "@/lib/ugc/min-funding";
+import { formatUSD } from "@/lib/currency/platform";
 
 export const CAMPAIGN_WIZARD_STEPS = [
   { id: "type", index: 0, label: "Type" },
@@ -165,6 +167,13 @@ function ownStepErrors(step: CampaignWizardStepId, draft: CampaignWizardDraft): 
   if (step === "rewards") {
     if (!positive(draft.total_budget)) {
       errors.push(tag("total_budget", "Budget must be greater than 0."));
+    } else if (!meetsMinCampaignFunding(draft.total_budget, "USD")) {
+      errors.push(
+        tag(
+          "total_budget",
+          `Minimum campaign funding is ${formatUSD(MIN_CAMPAIGN_FUNDING_USD)}. Raise the budget before funding.`,
+        ),
+      );
     }
     const model = draft.payment_model === "fixed_per_content" ? "fixed_per_content" : "per_views";
     if (model === "per_views" && !positive(draft.rate_per_1k_views)) {
