@@ -50,6 +50,8 @@ import { CreatorProfileChecklist } from "@/components/identity/CreatorProfileChe
 import { SocialAccountsManager } from "@/components/identity/SocialAccountsManager";
 import { IdentityPortfolioManager } from "@/components/identity/IdentityPortfolioManager";
 import { SettingsResumeManagers } from "./SettingsResumeManagers";
+import { SettingsAiBioAssist } from "./SettingsAiBioAssist";
+import { SettingsAiProfileBuilder } from "./SettingsAiProfileBuilder";
 
 const AVAILABILITY: { value: IdentityAvailability; label: string }[] = [
   { value: "open", label: "Open to work" },
@@ -378,6 +380,7 @@ export function SettingsProfileForm({
                   <p className="mt-1.5 text-right text-[12px] text-[#9CA3AF]">
                     {bio.length}/{bioMax}
                   </p>
+                  <SettingsAiBioAssist bio={bio} maxLength={bioMax} onApply={setBio} />
                 </SettingsField>
               </div>
             </div>
@@ -481,6 +484,7 @@ export function SettingsProfileForm({
       </div>
     </form>
 
+      <div className="mt-8"><SettingsAiProfileBuilder /></div>
       <SettingsResumeManagers initialPayload={initialPayload} />
     </div>
   );

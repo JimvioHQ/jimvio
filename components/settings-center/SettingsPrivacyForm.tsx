@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { IdentityPrivacyVisibility } from "@/lib/identity/types";
 import type { PreciseLocationSummary } from "@/lib/geo/precise-location";
 import { PreciseLocationCard } from "./PreciseLocationCard";
+import { SettingsPrivacyPreview } from "./SettingsPrivacyPreview";
 import { cn } from "@/lib/utils";
 import { useSettingsCenter } from "./settings-center-context";
 import { SettingsButton, SettingsCard, SettingsPageHeader, SettingsStatus } from "./settings-ui";
@@ -56,10 +57,12 @@ export function SettingsPrivacyForm({
   initialVisibility,
   initialCustom,
   preciseLocation,
+  username,
 }: {
   initialVisibility: IdentityPrivacyVisibility;
   initialCustom: Record<string, unknown>;
   preciseLocation: PreciseLocationSummary;
+  username?: string | null;
 }) {
   const { menuButton } = useSettingsCenter();
   const [privacyVisibility, setPrivacyVisibility] =
@@ -153,7 +156,7 @@ export function SettingsPrivacyForm({
 
         <SettingsCard
           title="Visible details"
-          description="When your profile is visible, choose which sections appear publicly."
+          description="When your profile is visible, choose which sections appear publicly. Resume and work history stay private until you explicitly enable them."
         >
           <div className="space-y-2">
             {(
@@ -163,7 +166,7 @@ export function SettingsPrivacyForm({
                 ["showWebsite", "Website"],
                 ["showSkills", "Skills and languages"],
                 ["showSocial", "External links"],
-                ["showResume", "Resume and work history"],
+                ["showResume", "Resume and work history (opt-in: Experience, Education, Credentials)"],
                 ["showMediaKit", "Media kit"],
                 ["showAnalytics", "Analytics"],
                 ["showPortfolio", "Portfolio & Work"],
@@ -189,6 +192,8 @@ export function SettingsPrivacyForm({
         </SettingsCard>
 
         {error ? <SettingsStatus tone="error">{error}</SettingsStatus> : null}
+
+        <SettingsPrivacyPreview fields={fields} username={username} />
 
         <SettingsButton onClick={() => void save()} loading={saving}>
           <Save className="h-4 w-4" />
