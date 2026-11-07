@@ -232,6 +232,8 @@ export function ProfileAccountMenu({
 
           <DropdownMenuItem
             onSelect={async () => {
+              const { clearAllUgcTenantClientState } = await import("@/lib/ugc/client/tenant-storage");
+              clearAllUgcTenantClientState();
               await signOut();
               window.location.href = "/";
             }}

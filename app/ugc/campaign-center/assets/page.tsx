@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ImageIcon } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type MediaRow = {
   campaignId: string;
@@ -14,12 +15,15 @@ type MediaRow = {
 };
 
 export default function CampaignAssetsPage() {
+  const { ugcFetch, brandReady, brandId } = useUgcBrandWorkspace();
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!brandReady || !brandId) return;
     let cancelled = false;
-    fetch("/api/ugc/campaigns?status=all&limit=50&mine=true")
+    setLoading(true);
+    ugcFetch("/api/ugc/campaigns?status=all&limit=50&mine=true")
       .then((r) => r.json())
       .then((j) => {
         if (!cancelled) setCampaigns(j.data ?? []);
@@ -30,7 +34,7 @@ export default function CampaignAssetsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [ugcFetch, brandReady, brandId]);
 
   const assets = useMemo(() => {
     const rows: MediaRow[] = [];

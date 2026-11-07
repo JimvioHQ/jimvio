@@ -1,7 +1,10 @@
-import { BadgeCheck } from "lucide-react";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { cn } from "@/lib/utils";
 
-/** Premium verified indicator — only render when backend confirms verification. */
+/**
+ * Identity / JIP verified indicator — uses the platform blue tick.
+ * Only render when a trusted backend flag confirms verification.
+ */
 export function VerifiedBadge({
   verified,
   className,
@@ -14,15 +17,22 @@ export function VerifiedBadge({
   if (!verified) return null;
   return (
     <span
-      title="Verified: a Jimvio team member reviewed this store's business details. Not a product certification."
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50 font-semibold text-emerald-800",
-        size === "sm" ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[11px]",
-        className,
-      )}
+      title="Verified: Jimvio confirmed this identity. Not a product certification."
+      className={cn("inline-flex items-center gap-1", className)}
     >
-      <BadgeCheck className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} aria-hidden />
-      Verified
+      <BlueVerifiedBadge
+        verified
+        size={size === "sm" ? "sm" : "md"}
+        label="Verified on Jimvio"
+      />
+      <span
+        className={cn(
+          "font-semibold text-[#1D9BF0]",
+          size === "sm" ? "text-[10px]" : "text-[11px]",
+        )}
+      >
+        Verified
+      </span>
     </span>
   );
 }

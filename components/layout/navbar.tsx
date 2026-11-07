@@ -776,7 +776,12 @@ function MobileDrawer({
                             <div className="my-1 h-px bg-[var(--color-border)]" />
                             <button
                               type="button"
-                              onClick={async () => { await signOut(); window.location.href = "/"; }}
+                              onClick={async () => {
+                                const { clearAllUgcTenantClientState } = await import("@/lib/ugc/client/tenant-storage");
+                                clearAllUgcTenantClientState();
+                                await signOut();
+                                window.location.href = "/";
+                              }}
                               className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-red-600 transition-colors hover:bg-red-500/5"
                             >
                               <LogOut className="size-4 shrink-0" />

@@ -1,4 +1,7 @@
-const STORAGE_KEY = "jimvio-ugc-brand-id";
+import {
+  readScopedBrandId,
+  writeScopedBrandId,
+} from "@/lib/ugc/client/tenant-storage";
 
 export function withBrandQuery(url: string, brandId: string | null | undefined) {
   if (!brandId) return url;
@@ -9,18 +12,22 @@ export function withBrandQuery(url: string, brandId: string | null | undefined) 
   return `${withoutHash}${join}brandId=${encodeURIComponent(brandId)}${hash}`;
 }
 
+/** @deprecated Prefer readScopedBrandId(userId) — unscoped key leaks across accounts. */
 export function readStoredBrandId() {
-  try {
-    return sessionStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  return null;
 }
 
-export function writeStoredBrandId(brandId: string) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, brandId);
-  } catch {
-    /* ignore */
-  }
+/** @deprecated Prefer writeScopedBrandId(userId, brandId). */
+export function writeStoredBrandId(_brandId: string) {
+  /* no-op: callers must pass userId via writeScopedBrandId */
+}
+
+export function readBrandIdForUser(userId: string | null | undefined) {
+  if (!userId) return null;
+  return readScopedBrandId(userId);
+}
+
+export function writeBrandIdForUser(userId: string | null | undefined, brandId: string) {
+  if (!userId || !brandId) return;
+  writeScopedBrandId(userId, brandId);
 }

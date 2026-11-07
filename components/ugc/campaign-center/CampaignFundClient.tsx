@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -31,8 +31,11 @@ import {
   type MoMoFormState,
 } from "@/components/checkout/MobileMoneyCheckoutPanel";
 import { WALLET_DEPOSIT_INITIABLE_METHODS } from "@/lib/payments/wallet-deposit-method";
-
-const MIN_FUNDING_USD = 1;
+import {
+  campaignFundingChargeUsd,
+  checkMinCampaignFunding,
+  MIN_CAMPAIGN_FUNDING_USD,
+} from "@/lib/ugc/min-funding";
 
 const DEPOSIT_METHOD_SET = new Set<string>(WALLET_DEPOSIT_INITIABLE_METHODS);
 
@@ -61,7 +64,16 @@ function extractRedirectUrl(data: unknown): string | null {
 export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useLocale();
+  const topUpUsd = useMemo(() => {
+    const raw = Number(searchParams.get("topUp"));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }, [searchParams]);
+  const pendingNewBudget = useMemo(() => {
+    const raw = Number(searchParams.get("newBudget"));
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }, [searchParams]);
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [escrowHeld, setEscrowHeld] = useState(false);
   const [showFundDespiteActive, setShowFundDespiteActive] = useState(false);
@@ -154,9 +166,11 @@ export function CampaignFundClient() {
   }, []);
 
   const amountToFund = useMemo(() => {
-    const budget = Number(campaign?.total_budget) || MIN_FUNDING_USD;
-    return Math.max(MIN_FUNDING_USD, budget);
-  }, [campaign]);
+    // Live budget top-up: charge only the incremental escrow amount.
+    if (topUpUsd != null) return Math.round(topUpUsd * 100) / 100;
+    const budget = Number(campaign?.total_budget) || 0;
+    return campaignFundingChargeUsd(budget, "USD");
+  }, [campaign, topUpUsd]);
 
   const money = (amount: number, currency: string = PLATFORM_CURRENCY) =>
     formatMoneyAsUSD(amount, currency);
@@ -308,12 +322,17 @@ export function CampaignFundClient() {
 
   const fund = async () => {
     if (!campaign) return;
-    if (readiness && !readiness.success) {
+    // Top-ups skip full wizard readiness; they only add confirmed escrow.
+    if (!topUpUsd && readiness && !readiness.success) {
       setError(readiness.errors.map((e) => e.message).join(" · "));
       return;
     }
-    if (amountToFund < MIN_FUNDING_USD) {
-      setError(t("minFundingIs", { amount: money(MIN_FUNDING_USD) }));
+    if (!topUpUsd && !checkMinCampaignFunding(amountToFund, "USD").ok) {
+      setError(t("minFundingIs", { amount: money(MIN_CAMPAIGN_FUNDING_USD) }));
+      return;
+    }
+    if (topUpUsd && amountToFund <= 0) {
+      setError("Top-up amount must be greater than zero.");
       return;
     }
     if (usingWallet && walletBalance < amountToFund) {
@@ -333,6 +352,9 @@ export function CampaignFundClient() {
         body: JSON.stringify({
           amount: amountToFund,
           payment_method: depositMethod,
+          ...(topUpUsd != null
+            ? { topUp: true, newBudget: pendingNewBudget ?? undefined }
+            : {}),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -341,6 +363,15 @@ export function CampaignFundClient() {
           ? (json.missing as { message?: string }[]).map((m) => m.message).filter(Boolean).join(" · ")
           : "";
         throw new Error(missing || json.error || t("fundingFailed"));
+      }
+
+      if (json.topUp && json.funded) {
+        setOutcome("activated");
+        toast.success(json.message || "Budget top-up confirmed.");
+        window.setTimeout(() => {
+          router.push(`/ugc/campaign-center/${campaign.id}/edit`);
+        }, 1400);
+        return;
       }
 
       const activated = Boolean(json.activated);
@@ -500,9 +531,22 @@ export function CampaignFundClient() {
               </div>
 
               <div className="mt-5 space-y-2">
-                <Row label="Campaign budget" value={money(amountToFund)} strong />
+                <Row
+                  label={topUpUsd != null ? "Budget top-up" : "Campaign budget"}
+                  value={money(amountToFund)}
+                  strong
+                />
+                {topUpUsd != null && pendingNewBudget != null ? (
+                  <Row label="New total budget" value={money(pendingNewBudget)} />
+                ) : null}
+                <Row label="Minimum funding required" value={money(MIN_CAMPAIGN_FUNDING_USD)} />
                 <Row label="Estimated reach" value={`~${estimatedReach.toLocaleString()} views`} />
               </div>
+              <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">
+                Jimvio requires a minimum of <strong>$100.00 USD</strong> (or the RWF equivalent at
+                the current trusted rate) in confirmed escrow before a campaign can activate.
+                Pending checkouts are not treated as funded.
+              </p>
 
               {readiness && !readiness.success ? (
                 <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12.5px] text-amber-900">
@@ -623,8 +667,12 @@ export function CampaignFundClient() {
                         <>
                           <Lock className="h-4 w-4" />
                           {usingWallet
-                            ? `${t("fundAndActivate")} · ${money(amountToFund)}`
-                            : "Complete Secure Payment"}
+                            ? topUpUsd != null
+                              ? `Confirm top-up · ${money(amountToFund)}`
+                              : `${t("fundAndActivate")} · ${money(amountToFund)}`
+                            : topUpUsd != null
+                              ? "Complete top-up payment"
+                              : "Complete Secure Payment"}
                         </>
                       )}
                     </button>

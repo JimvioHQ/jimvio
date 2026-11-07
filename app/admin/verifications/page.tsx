@@ -13,6 +13,7 @@ import { VerificationFilters } from "@/components/admin/verification-filters";
 import { CreatorsTable } from "@/components/admin/creators-table";
 import { UGCSubmissionsTable } from "@/components/admin/ugc-submissions-table";
 import { ReportsTable } from "@/components/admin/reports-table";
+import { PlatformVerificationConsole } from "@/components/admin/PlatformVerificationConsole";
 import { EmptyState } from "@/components/ui/admin";
 import { Store, Video } from "lucide-react";
 import Link from "next/link";
@@ -185,6 +186,7 @@ export default async function AdminVerificationsPage({
                     />
                     : <ReportsTable reports={reportData} />
             )}
+            {tab === "platform" && <PlatformVerificationConsole />}
         </div>
     );
 }

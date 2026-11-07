@@ -55,7 +55,7 @@ export function CampaignCenterBoard({
   initialStatus = "all",
   showCreateCta = true,
 }: CampaignCenterBoardProps) {
-  const { ugcFetch, brandId } = useUgcBrandWorkspace();
+  const { ugcFetch, brandId, brandReady } = useUgcBrandWorkspace();
 
   const router = useRouter();
   const { formatMoney } = useCurrency();
@@ -67,6 +67,7 @@ export function CampaignCenterBoard({
   const [tab, setTab] = useState<FilterStatus>(initialStatus);
 
   const load = useCallback(async () => {
+    if (!brandReady || !brandId) return;
     setLoading(true);
     try {
       const res = await ugcFetch("/api/ugc/campaigns?status=all&limit=50&mine=true");
@@ -77,7 +78,7 @@ export function CampaignCenterBoard({
     } finally {
       setLoading(false);
     }
-  }, [ugcFetch, t]);
+  }, [ugcFetch, t, brandReady, brandId]);
 
   useEffect(() => {
     void load();

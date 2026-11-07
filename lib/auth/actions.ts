@@ -912,6 +912,7 @@ export async function signOut(): Promise<void> {
   } catch (err) {
     console.error("[auth] signOut error:", err)
   }
+  // Client UGC tenant keys are cleared in the navbar/menu before this action runs.
   redirect("/")
 }
 
