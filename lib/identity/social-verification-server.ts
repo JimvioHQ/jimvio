@@ -95,19 +95,11 @@ async function saveVerified(
   note: string,
 ) {
   const client = db();
-  const { data: existing, error: existingError } = await client
-    .from("jip_social_accounts")
-    .select("is_public")
-    .eq("user_id", userId)
-    .eq("platform", platform)
-    .maybeSingle();
-  if (existingError) throw new Error("Could not preserve social account visibility.");
   const payload: Record<string, unknown> = {
     user_id: userId,
     platform,
-    // New connections stay private until the owner opts in. Preserve an
-    // existing public/private choice when the account is re-verified.
-    is_public: existing?.is_public === true,
+    // Identity 2.2: verified accounts are automatically eligible for public display.
+    is_public: true,
     handle: fields.handle,
     url: fields.url,
     is_verified: true,
@@ -243,6 +235,7 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
       .from("jip_social_accounts")
       .update({
         verify_status: "failed",
+        is_public: false,
         verify_checked_at: now(),
         verify_note: "Verification code expired. Request a new code.",
       })
@@ -281,7 +274,12 @@ export async function checkBioCode(userId: string, id: string): Promise<VerifyRe
     .from("jip_social_accounts")
     // A temporarily unreadable profile remains pending; only a readable bio
     // that lacks the complete token is recorded as a failed attempt.
-    .update({ verify_status: unreachable ? "code_issued" : "failed", verify_checked_at: now(), verify_note: note })
+    .update({
+      verify_status: unreachable ? "code_issued" : "failed",
+      ...(unreachable ? {} : { is_public: false }),
+      verify_checked_at: now(),
+      verify_note: note,
+    })
     .eq("id", id);
   return {
     ok: false,
@@ -322,7 +320,12 @@ export async function reviewDecision(
   } else {
     await db()
       .from("jip_social_accounts")
-      .update({ verify_status: "failed", verify_checked_at: now(), verify_note: note || "The code was not found in the bio." })
+      .update({
+        verify_status: "failed",
+        is_public: false,
+        verify_checked_at: now(),
+        verify_note: note || "The code was not found in the bio.",
+      })
       .eq("id", id);
   }
   return { ok: true };

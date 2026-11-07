@@ -158,7 +158,14 @@ export function IdentityV2Sections({ payload }: { payload: IdentityProfilePayloa
         action={isOwner ? <OwnerAddLink href="/settings/profile" label="Edit overview" /> : undefined}
       >
         {profile.bio ? (
-          <p className="max-w-3xl text-[14px] leading-relaxed text-[#374151]">{profile.bio}</p>
+          <div className="max-w-3xl">
+            {profile.shortBioLines?.length ? (
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]">
+                Full biography
+              </p>
+            ) : null}
+            <p className="text-[14px] leading-relaxed text-[#374151]">{profile.bio}</p>
+          </div>
         ) : isOwner ? (
           <p className="text-[13.5px] text-[#9CA3AF]">
             Add a professional summary in{" "}

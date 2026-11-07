@@ -16,7 +16,7 @@ import {
   resolvePrimaryIdentityLabel,
   shouldShowCreatorProgramBadge,
 } from "@/lib/identity/identity-types";
-import { formatPublicCountry, shortBioPreview } from "@/lib/identity/public-location";
+import { formatPublicCountry } from "@/lib/identity/public-location";
 import { PersonAvatar } from "@/components/feed/PersonAvatar";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
 import { IdentityCard, IdentityPill } from "@/components/identity/identity-ui";
@@ -25,6 +25,7 @@ import { IdentitySocialLinks } from "@/components/identity/IdentitySocialLinks";
 import { VerifiedBadge } from "@/components/identity/VerifiedBadge";
 import { IdentityProfileActions } from "@/components/identity/IdentityProfileActions";
 import { IdentityV2Sections } from "@/components/identity/IdentityV2Sections";
+import { ShortProfessionalBio } from "@/components/identity/ShortProfessionalBio";
 
 const AVAILABILITY_META: Record<
   string,
@@ -52,12 +53,15 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
     isInfluencer: payload.isInfluencer,
     xp: levelProgress.xp,
   });
-  const shortBio = shortBioPreview(profile.bio);
   const jimvioFollowers = payload.jimvioFollowers ?? 0;
   const jimvioFollowing = payload.jimvioFollowing ?? 0;
 
   const publicSocial = useMemo(() => {
-    const withUrl = payload.social.filter((account) => Boolean(account.url?.trim()));
+    const withUrl = payload.social.filter(
+      (account) =>
+        Boolean(account.url?.trim()) &&
+        (account.isVerified || account.platform === "website"),
+    );
     return [...withUrl].sort((a, b) => {
       const ai = PUBLIC_SOCIAL_ORDER.indexOf(a.platform as (typeof PUBLIC_SOCIAL_ORDER)[number]);
       const bi = PUBLIC_SOCIAL_ORDER.indexOf(b.platform as (typeof PUBLIC_SOCIAL_ORDER)[number]);
@@ -200,16 +204,11 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
                   <IdentityPill tone={availability.tone}>{availability.label}</IdentityPill>
                 </div>
 
-                {profile.headline ? (
-                  <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-[#111827] sm:text-[15px]">
-                    {profile.headline}
-                  </p>
-                ) : null}
-                {shortBio && shortBio !== profile.headline ? (
-                  <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#6B7280]">
-                    {shortBio}
-                  </p>
-                ) : null}
+                <ShortProfessionalBio
+                  lines={profile.shortBioLines}
+                  bio={profile.bio}
+                  headline={profile.headline}
+                />
               </div>
             </div>
 
@@ -258,14 +257,9 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
             </span>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4">
-            <span className="hidden h-6 w-px bg-[#E5E7EB] sm:block" aria-hidden />
-            {publicSocial.length > 0 ? (
-              <IdentitySocialLinks accounts={publicSocial} compact branded />
-            ) : (
-              <span className="text-[12.5px] text-[#9CA3AF]">No public social links</span>
-            )}
-          </div>
+          {publicSocial.length > 0 ? (
+            <IdentitySocialLinks accounts={publicSocial} compact branded className="gap-4" />
+          ) : null}
         </div>
       </div>
 
@@ -284,35 +278,21 @@ export function IdentityProfileView({ payload }: { payload: IdentityProfilePaylo
 
       <IdentityV2Sections payload={payload} />
 
-      {/* Trust footer */}
-      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-[#E5E7EB] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[13.5px] font-semibold text-[#111827]">
-            {showCreatorBadge
-              ? `${levelProgress.levelLabel} Creator status`
-              : identityLabel
-                ? `${identityLabel} on Jimvio`
-                : "Jimvio Identity"}
-          </p>
-          <p className="mt-0.5 text-[12.5px] text-[#6B7280]">
-            Public information controlled by profile owner. Private data stays private.
-          </p>
-        </div>
-        {isOwner ? (
-          <Link
-            href="/settings/privacy"
-            className="text-[13px] font-semibold text-[#DC2626] hover:underline"
-          >
-            Privacy settings
-          </Link>
-        ) : null}
+      {/* Compact trust footer */}
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-center text-[12px] text-[#9CA3AF]">
+        <span className="inline-flex items-center gap-1.5 font-medium text-[#6B7280]">
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-[#FF5A1F] text-[10px] font-bold text-white">
+            J
+          </span>
+          Powered by Jimvio
+        </span>
+        <span aria-hidden className="text-[#E5E7EB]">
+          ·
+        </span>
+        <Link href="/privacy" className="font-medium text-[#6B7280] hover:text-[#111827] hover:underline">
+          Privacy &amp; Trust
+        </Link>
       </div>
-
-      <p className="mt-8 text-center text-[13px] font-medium tracking-wide">
-        <span className="text-[#FF5A1F]">One Identity.</span>{" "}
-        <span className="text-[#EF4444]">Verified Proof.</span>{" "}
-        <span className="text-[#FF5A1F]">Multiple Opportunities.</span>
-      </p>
     </div>
   );
 }

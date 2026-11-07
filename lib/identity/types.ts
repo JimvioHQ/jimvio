@@ -607,6 +607,8 @@ export interface IdentityProfileCore {
   privacyVisibility: IdentityPrivacyVisibility;
   privacyCustom: Record<string, unknown>;
   mediaKitUrl: string | null;
+  /** Up to three editable short-bio sentences for the public header. */
+  shortBioLines: string[];
   creatorLevel: IdentityCreatorLevel;
   trustScore: number;
   aiScore: number;

@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { FeedSidebarCard, FeedSidebarSkeleton } from "@/components/feed/FeedSidebarCard";
 import { useFeedHubDiscover } from "@/components/feed/use-feed-hub-discover";
 import { useFollowUser } from "@/hooks/live/useFollowUser";
 import { POPULAR_USER_COUNT, type FeedSidebarPopularUser } from "@/lib/feed/load-feed-sidebar";
 import { cn, formatNumber, getInitials } from "@/lib/utils";
 import { PresenceAvatarFrame } from "@/components/presence/PresenceAvatarFrame";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 
 function UserAvatar({
   name,
@@ -83,14 +84,7 @@ function PopularUserRow({ user }: { user: FeedSidebarPopularUser }) {
             <p className="truncate text-[12px] font-semibold text-[var(--color-text-primary,#111827)] group-hover:text-[#FF5A1F]">
               {user.name}
             </p>
-            {user.verified ? (
-              <BadgeCheck
-                className="h-3.5 w-3.5 shrink-0 text-[#3b82f6]"
-                fill="currentColor"
-                strokeWidth={0}
-                aria-label="Verified"
-              />
-            ) : null}
+            <BlueVerifiedBadge verified={Boolean(user.verified)} size="sm" />
           </div>
           <p className="truncate text-[10.5px] text-[var(--color-text-muted,#6b7280)]">
             {user.username ? `@${user.username}` : "Creator"}

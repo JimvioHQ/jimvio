@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
-  BadgeCheck,
   BookMarked,
   CheckCheck,
   CheckCircle2,
@@ -30,6 +29,7 @@ import {
   useCreatorCommerceStore,
 } from "@/lib/community/commerce";
 import { MessageCommerceEmbed } from "@/components/community/commerce/MessageCommerceEmbed";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -320,16 +320,9 @@ export function MessageCard({
                     {name}
                   </span>
                 )}
-                {p?.is_verified && (
-                  <BadgeCheck
-                    className={cn(
-                      discussion ? "h-3.5 w-3.5 text-[#3b82f6]" : "h-3.5 w-3.5 text-[var(--color-accent)]"
-                    )}
-                    fill={discussion ? "currentColor" : undefined}
-                    strokeWidth={discussion ? 0 : undefined}
-                    aria-label="Verified"
-                  />
-                )}
+                {p?.is_verified ? (
+                  <BlueVerifiedBadge verified size={discussion ? "sm" : "xs"} />
+                ) : null}
                 {role && (
                   <span
                     className={cn(

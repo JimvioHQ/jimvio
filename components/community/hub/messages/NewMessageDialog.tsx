@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BlueVerifiedBadge } from "@/components/verification/BlueVerifiedBadge";
 import { HubAvatar } from "../hub-ui";
 import type { HubThread } from "./types";
 
@@ -186,7 +187,7 @@ export function NewMessageDialog({
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1 truncate text-[13px] font-bold">
                       <span className="truncate">{name}</span>
-                      {person.is_verified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" aria-label="Verified" /> : null}
+                      <BlueVerifiedBadge verified={Boolean(person.is_verified)} size="sm" />
                     </p>
                     <p className="truncate text-[11px] text-[var(--color-text-muted)]">
                       {person.username ? `@${person.username}` : "Jimvio member"}

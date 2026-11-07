@@ -16,6 +16,7 @@ import {
   getModuleSnapshots,
   modulePresenceFromSnapshots,
 } from "./module-snapshots";
+import { shortBioLinesFromCustom } from "./short-bio";
 import { canViewFullDetails, canViewIdentity, privacyFieldVisible } from "./privacy";
 import { computeCreatorStats } from "./stats";
 import type {
@@ -420,6 +421,11 @@ async function buildProfilePayload(
       identity.privacy_custom && typeof identity.privacy_custom === "object"
         ? (identity.privacy_custom as Record<string, unknown>)
         : {},
+    shortBioLines: shortBioLinesFromCustom(
+      identity.privacy_custom && typeof identity.privacy_custom === "object"
+        ? (identity.privacy_custom as Record<string, unknown>)
+        : {},
+    ),
     mediaKitUrl: isSelf || flags.isAdmin || privacyFieldVisible(identity.privacy_custom as Record<string, unknown> | null, "showMediaKit") ? identity.media_kit_url : null,
     creatorLevel: identity.creator_level,
     trustScore: Number(identity.trust_score ?? 50),
@@ -444,8 +450,8 @@ async function buildProfilePayload(
     .select("*")
     .eq("user_id", profile.id)
     .order("followers", { ascending: false });
-  // Owners and admins can manage/review all accounts. Everyone else receives
-  // only accounts the owner explicitly marked public.
+  // Owners and admins can manage/review all accounts. Visitors only see
+  // accounts marked public (verified accounts are auto-marked public).
   if (!isSelf && !flags.isAdmin) socialsQuery = socialsQuery.eq("is_public", true);
 
   const canBook =
